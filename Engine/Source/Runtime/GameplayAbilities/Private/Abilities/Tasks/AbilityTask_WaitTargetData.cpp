@@ -4,8 +4,8 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 
-UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

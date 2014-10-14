@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UWidget
 
-UWidget::UWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsEnabled = true;
 	bIsVariable = true;

@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UWidgetSwitcher
 
-UWidgetSwitcher::UWidgetSwitcher(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetSwitcher::UWidgetSwitcher(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
 

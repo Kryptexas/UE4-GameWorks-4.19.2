@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
 
-UPhysicsConstraintTemplate::UPhysicsConstraintTemplate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsConstraintTemplate::UPhysicsConstraintTemplate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LinearXMotion_DEPRECATED = LCM_Locked;
 	LinearYMotion_DEPRECATED = LCM_Locked;

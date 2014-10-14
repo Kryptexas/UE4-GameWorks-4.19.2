@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileSet
 
-UPaperTileSet::UPaperTileSet(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTileSet::UPaperTileSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TileWidth = 32;
 	TileHeight = 32;

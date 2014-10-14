@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "UK2Node_InputAxisKeyEvent"
 
-UK2Node_InputAxisKeyEvent::UK2Node_InputAxisKeyEvent(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UK2Node_InputAxisKeyEvent::UK2Node_InputAxisKeyEvent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;

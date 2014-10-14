@@ -2400,8 +2400,8 @@ static int32 DumpBlueprintInfoUtils::LoadBlueprints(FString AssetName, bool bAll
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UDumpBlueprintsInfoCommandlet::UDumpBlueprintsInfoCommandlet(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UDumpBlueprintsInfoCommandlet::UDumpBlueprintsInfoCommandlet(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

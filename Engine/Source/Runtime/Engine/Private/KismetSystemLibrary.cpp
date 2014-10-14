@@ -13,8 +13,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
 
-UKismetSystemLibrary::UKismetSystemLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetSystemLibrary::UKismetSystemLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

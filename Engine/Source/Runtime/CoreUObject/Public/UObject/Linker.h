@@ -957,7 +957,7 @@ class ULinker : public UObject, public FLinkerTables
 	class FSHA1*			ScriptSHA;
 
 	/** Constructor. */
-	ULinker(const class FPostConstructInitializeProperties& PCIP, UPackage* InRoot, const TCHAR* InFilename );
+	ULinker(const FObjectInitializer& ObjectInitializer, UPackage* InRoot, const TCHAR* InFilename );
 	/**
 	 * I/O function
 	 * 
@@ -1744,7 +1744,7 @@ private:
 	 * @param	Filename	Name of file on disk to load
 	 * @param	LoadFlags	Load flags determining behavior
 	 */
-	ULinkerLoad( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags );
+	ULinkerLoad( const FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags );
 
 	/**
 	 * Returns whether the time limit allotted has been exceeded, if enabled.
@@ -1878,9 +1878,9 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	COREUOBJECT_API static TMap<FString, TArray<uint8> > PackagesToScriptSHAMap;
 
 	/** Constructor */
-	ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned = false );
+	ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	/** Constructor for memory writer */
-	ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
+	ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	void BeginDestroy();
 
 	/** Returns the appropriate name index for the source name, or 0 if not found in NameIndices */

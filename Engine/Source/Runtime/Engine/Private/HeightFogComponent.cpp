@@ -8,8 +8,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/ExponentialHeightFog.h"
 
-UExponentialHeightFogComponent::UExponentialHeightFogComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled_DEPRECATED = true;
 
@@ -157,10 +157,10 @@ void UExponentialHeightFogComponent::SetStartDistance(float Value)
 //////////////////////////////////////////////////////////////////////////
 // AExponentialHeightFog
 
-AExponentialHeightFog::AExponentialHeightFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AExponentialHeightFog::AExponentialHeightFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	Component = PCIP.CreateDefaultSubobject<UExponentialHeightFogComponent>(this, TEXT("HeightFogComponent0"));
+	Component = ObjectInitializer.CreateDefaultSubobject<UExponentialHeightFogComponent>(this, TEXT("HeightFogComponent0"));
 	RootComponent = Component;
 
 	bHidden = false;

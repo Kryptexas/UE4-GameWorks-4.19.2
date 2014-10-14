@@ -191,8 +191,8 @@ UEdGraphNode* FSoundCueGraphSchemaAction_Paste::PerformAction(class UEdGraph* Pa
 /////////////////////////////////////////////////////
 // USoundCueGraphSchema
 
-USoundCueGraphSchema::USoundCueGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCueGraphSchema::USoundCueGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

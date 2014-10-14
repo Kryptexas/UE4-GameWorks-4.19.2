@@ -9,8 +9,8 @@
 /////////////////////////////////////////////////////
 // UBorder
 
-UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBorder::UBorder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

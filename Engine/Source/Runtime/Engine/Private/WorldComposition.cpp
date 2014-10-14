@@ -14,8 +14,8 @@ UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionC
 UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionDestroyed;
 #endif // WITH_EDITOR
 
-UWorldComposition::UWorldComposition(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWorldComposition::UWorldComposition(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

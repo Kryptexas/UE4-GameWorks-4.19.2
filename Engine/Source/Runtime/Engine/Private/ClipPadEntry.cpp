@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/ClipPadEntry.h"
 
-UDEPRECATED_ClipPadEntry::UDEPRECATED_ClipPadEntry(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_ClipPadEntry::UDEPRECATED_ClipPadEntry(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Title = TEXT("Untitled");
 }

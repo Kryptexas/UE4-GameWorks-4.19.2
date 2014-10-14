@@ -31,8 +31,8 @@ static_assert((LOOKUP_TABLE_MAX_SAMPLES & (LOOKUP_TABLE_MAX_SAMPLES - 1)) == 0, 
 // Log category for distributions.
 DEFINE_LOG_CATEGORY_STATIC(LogDistributions,Warning,Warning);
 
-UDistribution::UDistribution(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistribution::UDistribution(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1544,8 +1544,8 @@ void FComposableVectorDistribution::Resample( float MinIn, float MaxIn )
 	ResampleLookupTable( &LookupTable, OldTable, MinIn, MaxIn, LOOKUP_TABLE_MAX_SAMPLES );
 }
 
-UDistributionFloatConstant::UDistributionFloatConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionFloatConstant::UDistributionFloatConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1678,8 +1678,8 @@ void UDistributionFloatConstant::SetTangents(int32 SubIndex, int32 KeyIndex, flo
 	check( KeyIndex == 0 );
 }
 
-UDistributionFloatConstantCurve::UDistributionFloatConstantCurve(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionFloatConstantCurve::UDistributionFloatConstantCurve(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1837,8 +1837,8 @@ void UDistributionFloatConstantCurve::SetTangents(int32 SubIndex, int32 KeyIndex
 }
 
 
-UDistributionFloatUniform::UDistributionFloatUniform(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionFloatUniform::UDistributionFloatUniform(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2041,8 +2041,8 @@ void UDistributionFloatUniform::SetTangents(int32 SubIndex, int32 KeyIndex, floa
 	check( KeyIndex == 0 );
 }
 
-UDistributionFloatUniformCurve::UDistributionFloatUniformCurve(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionFloatUniformCurve::UDistributionFloatUniformCurve(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2308,8 +2308,8 @@ void UDistributionFloatUniformCurve::SetTangents(int32 SubIndex, int32 KeyIndex,
 	bIsDirty = true;
 }
 
-UDistributionVectorConstant::UDistributionVectorConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionVectorConstant::UDistributionVectorConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2562,8 +2562,8 @@ void UDistributionVectorConstant::GetRange(FVector& OutMin, FVector& OutMax) con
 	OutMax	= Constant;
 }
 
-UDistributionVectorConstantCurve::UDistributionVectorConstantCurve(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionVectorConstantCurve::UDistributionVectorConstantCurve(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2911,8 +2911,8 @@ void UDistributionVectorConstantCurve::GetRange(FVector& OutMin, FVector& OutMax
 	OutMax = MaxVec;
 }
 
-UDistributionVectorUniform::UDistributionVectorUniform(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionVectorUniform::UDistributionVectorUniform(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MirrorFlags[0] = EDVMF_Different;
 	MirrorFlags[1] = EDVMF_Different;
@@ -3497,8 +3497,8 @@ void UDistributionVectorUniform::GetRange(FVector& OutMin, FVector& OutMax) cons
 }
 
 
-UDistributionVectorUniformCurve::UDistributionVectorUniformCurve(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionVectorUniformCurve::UDistributionVectorUniformCurve(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bLockAxes1 = false;
 	bLockAxes2 = false;
@@ -4068,8 +4068,8 @@ void UDistributionVectorUniformCurve::GetRange(FVector& OutMin, FVector& OutMax)
 }
 
 
-UDistributionFloatParameterBase::UDistributionFloatParameterBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionFloatParameterBase::UDistributionFloatParameterBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxInput = 1.0f;
 	MaxOutput = 1.0f;
@@ -4106,8 +4106,8 @@ float UDistributionFloatParameterBase::GetValue( float F, UObject* Data, class F
 }
 
 
-UDistributionVectorParameterBase::UDistributionVectorParameterBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDistributionVectorParameterBase::UDistributionVectorParameterBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxInput = FVector(1.0f,1.0f,1.0f);
 	MaxOutput = FVector(1.0f,1.0f,1.0f);

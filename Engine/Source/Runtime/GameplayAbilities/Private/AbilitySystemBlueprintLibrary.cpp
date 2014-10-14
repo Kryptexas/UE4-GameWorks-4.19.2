@@ -10,8 +10,8 @@
 #include "Abilities/Tasks/AbilityTask_WaitConfirmCancel.h"
 #include "LatentActions.h"
 
-UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

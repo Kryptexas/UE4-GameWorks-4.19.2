@@ -4,8 +4,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Tasks/BTTask_RotateToFaceBBEntry.h"
 
-UBTTask_RotateToFaceBBEntry::UBTTask_RotateToFaceBBEntry(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBTTask_RotateToFaceBBEntry::UBTTask_RotateToFaceBBEntry(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Precision(10.f)
 {
 	NodeName = "Rotate to face BB entry";

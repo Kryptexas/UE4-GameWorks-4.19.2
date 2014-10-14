@@ -82,7 +82,7 @@ int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVecto
 		maxDist.Add(-MY_FLTMAX);
 
 	// Construct temporary UModel for kdop creation. We keep no refs to it, so it can be GC'd.
-	UModel* TempModel = new UModel(FPostConstructInitializeProperties(),NULL,1);
+	UModel* TempModel = new UModel(FObjectInitializer(),NULL,1);
 
 	// For each vertex, project along each kdop direction, to find the max in that direction.
 	const FStaticMeshLODResources& RenderData = StaticMesh->RenderData->LODResources[0];

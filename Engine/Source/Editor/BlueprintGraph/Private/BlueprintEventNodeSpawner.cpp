@@ -107,8 +107,8 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2No
 }
 
 //------------------------------------------------------------------------------
-UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintEventNodeSpawner::UBlueprintEventNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EventFunc(nullptr)
 {
 }

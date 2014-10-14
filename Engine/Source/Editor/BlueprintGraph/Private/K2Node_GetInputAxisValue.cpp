@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_GetInputAxisValue"
 
-UK2Node_GetInputAxisValue::UK2Node_GetInputAxisValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_GetInputAxisValue::UK2Node_GetInputAxisValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bConsumeInput = true;
 }

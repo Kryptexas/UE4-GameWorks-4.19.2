@@ -30,8 +30,8 @@ FNavigationLinkBase::FNavigationLinkBase()
 //----------------------------------------------------------------------//
 // UNavLinkDefinition
 //----------------------------------------------------------------------//
-UNavLinkDefinition::UNavLinkDefinition(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavLinkDefinition::UNavLinkDefinition(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bHasDeterminedMetaAreaClass(false)
 	, bHasMetaAreaClass(false)
 	, bHasDeterminedAdjustableLinks(false)
@@ -585,7 +585,7 @@ uint32 FCompositeNavModifier::GetAllocatedSize() const
 //----------------------------------------------------------------------//
 // UNavLinkTrivial
 //----------------------------------------------------------------------//
-UNavLinkTrivial::UNavLinkTrivial(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavLinkTrivial::UNavLinkTrivial(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	FNavigationLink& Link = Links[Links.Add(FNavigationLink(FVector(0,100,0), FVector(0,-100,0)))];
 }

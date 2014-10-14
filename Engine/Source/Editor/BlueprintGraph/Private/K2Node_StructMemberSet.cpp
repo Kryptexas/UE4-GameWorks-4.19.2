@@ -9,8 +9,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_StructMemberSet::UK2Node_StructMemberSet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_StructMemberSet::UK2Node_StructMemberSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

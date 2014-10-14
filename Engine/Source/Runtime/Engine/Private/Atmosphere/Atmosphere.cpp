@@ -10,14 +10,14 @@
 #include "ObjectEditorUtils.h"
 #endif
 
-AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AAtmosphericFog::AAtmosphericFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	AtmosphericFogComponent = PCIP.CreateDefaultSubobject<UAtmosphericFogComponent>(this, TEXT("AtmosphericFogComponent0"));
+	AtmosphericFogComponent = ObjectInitializer.CreateDefaultSubobject<UAtmosphericFogComponent>(this, TEXT("AtmosphericFogComponent0"));
 	RootComponent = AtmosphericFogComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -80,8 +80,8 @@ FAtmospherePrecomputeParameters::FAtmospherePrecomputeParameters():
 {
 }
 
-UAtmosphericFogComponent::UAtmosphericFogComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP), TransmittanceResource(NULL), IrradianceResource(NULL), InscatterResource(NULL)
+UAtmosphericFogComponent::UAtmosphericFogComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), TransmittanceResource(NULL), IrradianceResource(NULL), InscatterResource(NULL)
 #if WITH_EDITORONLY_DATA
 	, PrecomputeDataHandler(NULL)
 #endif

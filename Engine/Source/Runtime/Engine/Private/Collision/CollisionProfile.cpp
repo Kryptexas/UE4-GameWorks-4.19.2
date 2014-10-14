@@ -38,8 +38,8 @@ ENGINE_API const FName UCollisionProfile::BlockAllDynamic_ProfileName = FName(TE
 ENGINE_API const FName UCollisionProfile::Pawn_ProfileName = FName(TEXT("Pawn"));
 ENGINE_API const FName UCollisionProfile::Vehicle_ProfileName = FName(TEXT("Vehicle"));
 
-UCollisionProfile::UCollisionProfile(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCollisionProfile::UCollisionProfile(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

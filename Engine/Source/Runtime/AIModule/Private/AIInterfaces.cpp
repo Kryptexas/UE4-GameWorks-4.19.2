@@ -4,8 +4,8 @@
 #include "AIResourceInterface.h"
 #include "GenericTeamAgentInterface.h"
 
-UAIResourceInterface::UAIResourceInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIResourceInterface::UAIResourceInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -29,7 +29,7 @@ ETeamAttitude::Type FGenericTeamId::GetAttitude(const AActor* A, const AActor* B
 	return TeamAgentA == NULL || B == NULL ? ETeamAttitude::Neutral : TeamAgentA->GetTeamAttitudeTowards(*B);
 }
 
-UGenericTeamAgentInterface::UGenericTeamAgentInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenericTeamAgentInterface::UGenericTeamAgentInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

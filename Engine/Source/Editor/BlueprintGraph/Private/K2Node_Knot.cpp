@@ -11,8 +11,8 @@
 /////////////////////////////////////////////////////
 // UK2Node_Knot
 
-UK2Node_Knot::UK2Node_Knot(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Knot::UK2Node_Knot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
 }

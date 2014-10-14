@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 
-UNavRelevantComponent::UNavRelevantComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavRelevantComponent::UNavRelevantComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bNavigationRelevant = true;
 }

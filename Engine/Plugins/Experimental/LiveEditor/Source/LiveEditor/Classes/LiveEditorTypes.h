@@ -70,5 +70,5 @@ class ULiveEditorTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	ULiveEditorTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
+	ULiveEditorTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 };

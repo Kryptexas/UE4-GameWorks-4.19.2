@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "MovieSceneFactory"
 
-UMovieSceneFactory::UMovieSceneFactory( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMovieSceneFactory::UMovieSceneFactory( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 	// @todo sequencer: Only allow users to create new MovieScenes if that feature is turned on globally.

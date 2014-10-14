@@ -66,8 +66,8 @@ UBlueprintBoundEventNodeSpawner* UBlueprintBoundEventNodeSpawner::Create(TSubcla
 }
 
 //------------------------------------------------------------------------------
-UBlueprintBoundEventNodeSpawner::UBlueprintBoundEventNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintBoundEventNodeSpawner::UBlueprintBoundEventNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EventDelegate(nullptr)
 {
 }

@@ -38,8 +38,8 @@ protected:
 //----------------------------------------------------------------------//
 // UFuncTestRenderingComponent
 //----------------------------------------------------------------------//
-UFuncTestRenderingComponent::UFuncTestRenderingComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFuncTestRenderingComponent::UFuncTestRenderingComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 

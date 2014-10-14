@@ -4,8 +4,8 @@
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
 #include "IGameLiveStreaming.h"
 
-UQueryLiveStreamsCallbackProxy::UQueryLiveStreamsCallbackProxy( const FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UQueryLiveStreamsCallbackProxy::UQueryLiveStreamsCallbackProxy( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }
 

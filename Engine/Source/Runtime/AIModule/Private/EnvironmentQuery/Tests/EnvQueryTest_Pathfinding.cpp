@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Context = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::High;

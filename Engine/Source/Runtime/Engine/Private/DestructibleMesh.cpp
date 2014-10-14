@@ -17,8 +17,8 @@
 
 DEFINE_LOG_CATEGORY(LogDestructible)
 
-UDestructibleMesh::UDestructibleMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDestructibleMesh::UDestructibleMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

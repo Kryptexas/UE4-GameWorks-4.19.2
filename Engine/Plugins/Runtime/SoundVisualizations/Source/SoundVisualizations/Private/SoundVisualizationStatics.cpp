@@ -9,8 +9,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSoundVisualization, Log, All);
 
-USoundVisualizationStatics::USoundVisualizationStatics(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundVisualizationStatics::USoundVisualizationStatics(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

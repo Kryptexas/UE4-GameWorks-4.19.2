@@ -170,8 +170,8 @@ static bool ParseFGA(
 	return true;
 }
 
-UVectorFieldStaticFactory::UVectorFieldStaticFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldStaticFactory::UVectorFieldStaticFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UVectorFieldStatic::StaticClass();
@@ -272,8 +272,8 @@ bool UVectorFieldStaticFactory::FactoryCanImport( const FString& Filename )
 /*-----------------------------------------------------------------------------
 	Static vector field reimport factory.
 -----------------------------------------------------------------------------*/
-UReimportVectorFieldStaticFactory::UReimportVectorFieldStaticFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportVectorFieldStaticFactory::UReimportVectorFieldStaticFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UVectorFieldStatic::StaticClass();
 

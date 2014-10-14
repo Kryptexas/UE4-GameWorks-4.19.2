@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialFactory"
 
-UEditorTutorialFactory::UEditorTutorialFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorTutorialFactory::UEditorTutorialFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

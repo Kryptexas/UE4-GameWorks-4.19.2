@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 
-UBTComposite_SimpleParallel::UBTComposite_SimpleParallel(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTComposite_SimpleParallel::UBTComposite_SimpleParallel(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Simple Parallel";
 	bUseChildExecutionNotify = true;

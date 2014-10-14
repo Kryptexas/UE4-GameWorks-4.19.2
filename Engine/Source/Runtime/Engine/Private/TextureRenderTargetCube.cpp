@@ -11,8 +11,8 @@
 	UTextureRenderTargetCube
 -----------------------------------------------------------------------------*/
 
-UTextureRenderTargetCube::UTextureRenderTargetCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureRenderTargetCube::UTextureRenderTargetCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHDR = true;
 	ClearColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);

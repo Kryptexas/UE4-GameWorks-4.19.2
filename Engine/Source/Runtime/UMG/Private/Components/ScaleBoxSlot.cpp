@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UScaleBoxSlot
 
-UScaleBoxSlot::UScaleBoxSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScaleBoxSlot::UScaleBoxSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Padding = FMargin(0, 0);
 

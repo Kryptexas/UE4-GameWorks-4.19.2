@@ -974,8 +974,8 @@ FString FNavMeshPath::GetDescription() const
 // UNavigationPath
 //----------------------------------------------------------------------//
 
-UNavigationPath::UNavigationPath(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationPath::UNavigationPath(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bIsValid(false)
 	, bDebugDrawingEnabled(false)
 	, DebugDrawingColor(FColor::White)

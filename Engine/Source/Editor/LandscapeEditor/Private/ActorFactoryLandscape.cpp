@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
-UActorFactoryLandscape::UActorFactoryLandscape(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryLandscape::UActorFactoryLandscape(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("Landscape", "Landscape");
 	NewActorClass = ALandscapeProxy::StaticClass();
@@ -31,8 +31,8 @@ AActor* UActorFactoryLandscape::SpawnActor(UObject* Asset, ULevel* InLevel, cons
 	return InLevel->OwningWorld->SpawnActor(ALandscapePlaceholder::StaticClass(), &Location, &Rotation, SpawnInfo);
 }
 
-ALandscapePlaceholder::ALandscapePlaceholder(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALandscapePlaceholder::ALandscapePlaceholder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -45,12 +45,12 @@ ALandscapePlaceholder::ALandscapePlaceholder(const FPostConstructInitializePrope
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent.Get();
 	RootComponent->Mobility = EComponentMobility::Static;
 
 #if WITH_EDITORONLY_DATA
-	TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	TSubobjectPtr<UBillboardComponent> SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent.IsValid())
 	{
 		SpriteComponent->Sprite = ConstructorStatics.TerrainTexture.Get();

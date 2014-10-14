@@ -25,8 +25,8 @@ FAggregator::FAllocationStats FAggregator::AllocationStats;
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-UGameplayEffect::UGameplayEffect(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayEffect::UGameplayEffect(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ChanceToApplyToTarget.SetValue(1.f);
 	ChanceToExecuteOnGameplayEffect.SetValue(1.f);

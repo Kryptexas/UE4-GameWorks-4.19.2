@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookActorFactory
 
-UPaperFlipbookActorFactory::UPaperFlipbookActorFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperFlipbookActorFactory::UPaperFlipbookActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = NSLOCTEXT("Paper2D", "PaperFlipbookFactoryDisplayName", "Add Animated Sprite");
 	NewActorClass = APaperFlipbookActor::StaticClass();

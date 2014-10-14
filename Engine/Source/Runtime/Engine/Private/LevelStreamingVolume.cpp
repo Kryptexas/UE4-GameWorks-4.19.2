@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/LevelStreamingVolume.h"
 
-ALevelStreamingVolume::ALevelStreamingVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALevelStreamingVolume::ALevelStreamingVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 

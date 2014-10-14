@@ -83,8 +83,8 @@ public:
 	}
 };
 
-UK2Node_VariableSetRef::UK2Node_VariableSetRef(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_VariableSetRef::UK2Node_VariableSetRef(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

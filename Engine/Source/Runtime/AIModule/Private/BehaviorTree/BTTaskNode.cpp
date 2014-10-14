@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BTTaskNode.h"
 
-UBTTaskNode::UBTTaskNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTaskNode::UBTTaskNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "UnknownTask";
 	bNotifyTick = false;

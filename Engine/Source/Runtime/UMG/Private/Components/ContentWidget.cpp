@@ -12,8 +12,8 @@
 /////////////////////////////////////////////////////
 // UContentWidget
 
-UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UContentWidget::UContentWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanHaveMultipleChildren = false;
 }

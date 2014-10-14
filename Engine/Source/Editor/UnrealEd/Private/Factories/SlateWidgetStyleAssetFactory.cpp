@@ -33,8 +33,8 @@ public:
 };
 
 
-USlateWidgetStyleAssetFactory::USlateWidgetStyleAssetFactory( const class FPostConstructInitializeProperties& PCIP )
- : Super(PCIP)
+USlateWidgetStyleAssetFactory::USlateWidgetStyleAssetFactory( const FObjectInitializer& ObjectInitializer )
+ : Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

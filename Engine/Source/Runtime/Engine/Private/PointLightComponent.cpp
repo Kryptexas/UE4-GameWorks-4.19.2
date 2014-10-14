@@ -97,8 +97,8 @@ public:
 	{}
 };
 
-UPointLightComponent::UPointLightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPointLightComponent::UPointLightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())

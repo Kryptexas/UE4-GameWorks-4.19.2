@@ -2,8 +2,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
 
-UAbilityTask_WaitOverlap::UAbilityTask_WaitOverlap(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitOverlap::UAbilityTask_WaitOverlap(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

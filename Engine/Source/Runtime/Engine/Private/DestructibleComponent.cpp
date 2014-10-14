@@ -16,8 +16,8 @@
 #include "PhysicsEngine/DestructibleActor.h"
 #include "Engine/DestructibleMesh.h"
 
-UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 #if WITH_PHYSX
 	, PhysxUserData(this)
 #endif

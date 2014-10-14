@@ -15,8 +15,8 @@ namespace
 	}
 }
 
-UEnvQueryContext_BlueprintBase::UEnvQueryContext_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP), CallMode(UEnvQueryContext_BlueprintBase::InvalidCallMode)
+UEnvQueryContext_BlueprintBase::UEnvQueryContext_BlueprintBase(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer), CallMode(UEnvQueryContext_BlueprintBase::InvalidCallMode)
 {
 	UClass* StopAtClass = UEnvQueryContext_BlueprintBase::StaticClass();	
 	bool bImplementsProvideSingleActor = DoesImplementBPFunction(GET_FUNCTION_NAME_CHECKED(UEnvQueryContext_BlueprintBase, ProvideSingleActor), this, StopAtClass);

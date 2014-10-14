@@ -51,8 +51,8 @@ FArchive& operator<<(FArchive& Ar,FModelElement& Element)
 	return Ar;
 }
 
-UModelComponent::UModelComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CastShadow = true;
 	bUseAsOccluder = true;
@@ -63,8 +63,8 @@ UModelComponent::UModelComponent(const class FPostConstructInitializeProperties&
 }
 
 #if WITH_EDITOR
-UModelComponent::UModelComponent(const class FPostConstructInitializeProperties& PCIP,UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
-	UPrimitiveComponent(PCIP),
+UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer,UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
+	UPrimitiveComponent(ObjectInitializer),
 	Model(InModel),
 	ComponentIndex(InComponentIndex),
 	Nodes(InNodes)

@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UDrawSphereComponent::UDrawSphereComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDrawSphereComponent::UDrawSphereComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);

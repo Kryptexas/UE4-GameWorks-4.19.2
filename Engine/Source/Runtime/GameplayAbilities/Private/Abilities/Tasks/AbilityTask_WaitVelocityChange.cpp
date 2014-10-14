@@ -3,8 +3,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilityTask_WaitVelocityChange.h"
 
-UAbilityTask_WaitVelocityChange::UAbilityTask_WaitVelocityChange(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitVelocityChange::UAbilityTask_WaitVelocityChange(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bTickingTask = true;
 }

@@ -9,8 +9,8 @@
 /////////////////////////////////////////////////////
 // UAnimationConduitGraphSchema
 
-UAnimationConduitGraphSchema::UAnimationConduitGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationConduitGraphSchema::UAnimationConduitGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

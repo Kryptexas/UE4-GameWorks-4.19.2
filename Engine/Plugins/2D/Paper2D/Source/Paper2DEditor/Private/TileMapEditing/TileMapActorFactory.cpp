@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UTileMapActorFactory
 
-UTileMapActorFactory::UTileMapActorFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTileMapActorFactory::UTileMapActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = NSLOCTEXT("Paper2D", "TileMapFactoryDisplayName", "Paper2D Tile Map");
 	NewActorClass = APaperTileMapActor::StaticClass();

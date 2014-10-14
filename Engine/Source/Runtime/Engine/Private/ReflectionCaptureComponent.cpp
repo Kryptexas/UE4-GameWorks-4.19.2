@@ -43,13 +43,13 @@ void UWorld::UpdateAllReflectionCaptures()
 	UReflectionCaptureComponent::UpdateReflectionCaptureContents(this);
 }
 
-AReflectionCapture::AReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	CaptureComponent = PCIP.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
+	CaptureComponent = ObjectInitializer.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization
@@ -85,8 +85,8 @@ void AReflectionCapture::PostEditMove(bool bFinished)
 }
 #endif // WITH_EDITOR
 
-ASphereReflectionCapture::ASphereReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<USphereReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
+ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USphereReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
 	USphereReflectionCaptureComponent* SphereComponent = CastChecked<USphereReflectionCaptureComponent>(CaptureComponent);
 	RootComponent = SphereComponent;
@@ -97,7 +97,7 @@ ASphereReflectionCapture::ASphereReflectionCapture(const class FPostConstructIni
 	}
 #endif	//WITH_EDITORONLY_DATA
 
-	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = PCIP.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
 	DrawInfluenceRadius->AttachParent = CaptureComponent;
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
@@ -105,7 +105,7 @@ ASphereReflectionCapture::ASphereReflectionCapture(const class FPostConstructIni
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	DrawCaptureRadius = PCIP.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius1"));
+	DrawCaptureRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius1"));
 	DrawCaptureRadius->AttachParent = CaptureComponent;
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
@@ -136,8 +136,8 @@ void APlaneReflectionCapture::EditorApplyScale(const FVector& DeltaScale, const 
 }
 #endif
 
-ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UBoxReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
+ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UBoxReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
 	UBoxReflectionCaptureComponent* BoxComponent = CastChecked<UBoxReflectionCaptureComponent>(CaptureComponent);
 	BoxComponent->RelativeScale3D = FVector(1000, 1000, 400);
@@ -148,7 +148,7 @@ ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializ
 		SpriteComponent->AttachParent = BoxComponent;
 	}
 #endif	//WITH_EDITORONLY_DATA
-	TSubobjectPtr<UBoxComponent> DrawInfluenceBox = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	TSubobjectPtr<UBoxComponent> DrawInfluenceBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
 	DrawInfluenceBox->AttachParent = CaptureComponent;
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
@@ -157,7 +157,7 @@ ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializ
 	DrawInfluenceBox->InitBoxExtent(FVector(1, 1, 1));
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
 
-	TSubobjectPtr<UBoxComponent> DrawCaptureBox = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	TSubobjectPtr<UBoxComponent> DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
 	DrawCaptureBox->AttachParent = CaptureComponent;
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
@@ -168,8 +168,8 @@ ABoxReflectionCapture::ABoxReflectionCapture(const class FPostConstructInitializ
 	BoxComponent->PreviewCaptureBox = DrawCaptureBox;
 }
 
-APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UPlaneReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
+APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlaneReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
 	UPlaneReflectionCaptureComponent* PlaneComponent = CastChecked<UPlaneReflectionCaptureComponent>(CaptureComponent);
 	PlaneComponent->RelativeScale3D = FVector(1, 1000, 1000);
@@ -180,7 +180,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructIniti
 		SpriteComponent->AttachParent = PlaneComponent;
 	}
 #endif	//#if WITH_EDITORONLY_DATA
-	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = PCIP.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
 	DrawInfluenceRadius->AttachParent = CaptureComponent;
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
@@ -189,7 +189,7 @@ APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructIniti
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	TSubobjectPtr<UBoxComponent> DrawCaptureBox = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	TSubobjectPtr<UBoxComponent> DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
 	DrawCaptureBox->AttachParent = CaptureComponent;
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
@@ -722,8 +722,8 @@ private:
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdate;
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdateForLoad;
 
-UReflectionCaptureComponent::UReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReflectionCaptureComponent::UReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Brightness = 1;
 	// Shouldn't be able to change reflection captures at runtime
@@ -1404,8 +1404,8 @@ void UReflectionCaptureComponent::PreFeatureLevelChange(ERHIFeatureLevel::Type P
 }
 #endif // WITH_EDITOR
 
-USphereReflectionCaptureComponent::USphereReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USphereReflectionCaptureComponent::USphereReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	InfluenceRadius = 3000;
 }
@@ -1432,8 +1432,8 @@ void USphereReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedE
 }
 #endif // WITH_EDITOR
 
-UBoxReflectionCaptureComponent::UBoxReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBoxReflectionCaptureComponent::UBoxReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BoxTransitionDistance = 100;
 }
@@ -1464,8 +1464,8 @@ void UBoxReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEven
 }
 #endif // WITH_EDITOR
 
-UPlaneReflectionCaptureComponent::UPlaneReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPlaneReflectionCaptureComponent::UPlaneReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	InfluenceRadiusScale = 2;
 }

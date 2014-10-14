@@ -15,8 +15,8 @@
 	USoundCue implementation.
 -----------------------------------------------------------------------------*/
 
-USoundCue::USoundCue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCue::USoundCue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	VolumeMultiplier = 0.75f;
 	PitchMultiplier = 1.0f;

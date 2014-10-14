@@ -234,8 +234,8 @@ private:
 	UGameplayAbilitiesBlueprintFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UGameplayAbilitiesBlueprintFactory::UGameplayAbilitiesBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilitiesBlueprintFactory::UGameplayAbilitiesBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

@@ -15,8 +15,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteComponent
 
-UPaperSpriteComponent::UPaperSpriteComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteComponent::UPaperSpriteComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 

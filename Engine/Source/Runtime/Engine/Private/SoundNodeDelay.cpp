@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
          USoundNodeDelay implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeDelay::USoundNodeDelay(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeDelay::USoundNodeDelay(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DelayMin = 0.0f;
 	DelayMax = 0.0f;

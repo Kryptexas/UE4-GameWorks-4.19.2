@@ -6,8 +6,8 @@
 /* UMediaPlayerFactory structors
  *****************************************************************************/
 
-UMediaPlayerFactory::UMediaPlayerFactory( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaPlayerFactory::UMediaPlayerFactory( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UMediaPlayer::StaticClass();
 

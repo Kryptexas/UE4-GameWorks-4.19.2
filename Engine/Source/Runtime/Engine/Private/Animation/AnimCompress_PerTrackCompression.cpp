@@ -928,8 +928,8 @@ public:
 	}
 };
 
-UAnimCompress_RemoveLinearKeys::UAnimCompress_RemoveLinearKeys(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_RemoveLinearKeys::UAnimCompress_RemoveLinearKeys(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bNeedsSkeleton = true;
 	Description = TEXT("Remove Linear Keys");
@@ -945,8 +945,8 @@ UAnimCompress_RemoveLinearKeys::UAnimCompress_RemoveLinearKeys(const class FPost
 }
 
 
-UAnimCompress_PerTrackCompression::UAnimCompress_PerTrackCompression(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_PerTrackCompression::UAnimCompress_PerTrackCompression(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Compress each track independently");
 	MaxPosDiffBitwise = 0.007f;

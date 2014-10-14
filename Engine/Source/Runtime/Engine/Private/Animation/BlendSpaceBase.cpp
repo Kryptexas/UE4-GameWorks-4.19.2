@@ -13,8 +13,8 @@
 // I can't make this member since I  need to change this in const function
 bool bNeedReinitializeFilter = false;
 
-UBlendSpaceBase::UBlendSpaceBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlendSpaceBase::UBlendSpaceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

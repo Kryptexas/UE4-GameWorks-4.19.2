@@ -107,7 +107,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UPrimitiveComponent(const class FPostConstructInitializeProperties& PCIP);
+	UPrimitiveComponent(const FObjectInitializer& ObjectInitializer);
 
 	// Rendering
 	

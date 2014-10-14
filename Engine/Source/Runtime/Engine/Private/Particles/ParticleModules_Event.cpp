@@ -22,24 +22,24 @@
 /*-----------------------------------------------------------------------------
 	UParticleModuleEventSendToGame implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleEventSendToGame::UParticleModuleEventSendToGame(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleEventSendToGame::UParticleModuleEventSendToGame(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleEventBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleEventBase::UParticleModuleEventBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleEventBase::UParticleModuleEventBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleEventGenerator implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleEventGenerator::UParticleModuleEventGenerator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleEventGenerator::UParticleModuleEventGenerator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -254,16 +254,16 @@ bool UParticleModuleEventGenerator::HandleParticleBurst(FParticleEmitterInstance
 /*-----------------------------------------------------------------------------
 	UParticleModuleEventReceiverBase implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleEventReceiverBase::UParticleModuleEventReceiverBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleEventReceiverBase::UParticleModuleEventReceiverBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleEventReceiver implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleEventReceiverKillParticles::UParticleModuleEventReceiverKillParticles(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleEventReceiverKillParticles::UParticleModuleEventReceiverKillParticles(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -287,8 +287,8 @@ bool UParticleModuleEventReceiverKillParticles::ProcessParticleEvent(FParticleEm
 /*-----------------------------------------------------------------------------
 	UParticleModuleEventReceiver implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleEventReceiverSpawn::UParticleModuleEventReceiverSpawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleEventReceiverSpawn::UParticleModuleEventReceiverSpawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;

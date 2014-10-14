@@ -3,8 +3,8 @@
 #include "StatsViewerPrivatePCH.h"
 #include "TextureStats.h"
 
-UTextureStats::UTextureStats(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+UTextureStats::UTextureStats(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	LastTimeRendered( FLT_MAX )
 {
 }

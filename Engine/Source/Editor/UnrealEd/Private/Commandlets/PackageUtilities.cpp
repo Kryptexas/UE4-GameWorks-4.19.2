@@ -563,8 +563,8 @@ bool FContentHelper::QueryAssetsInCollection(FName InCollectionName, ECollection
 /*-----------------------------------------------------------------------------
 ULoadPackageCommandlet
 -----------------------------------------------------------------------------*/
-ULoadPackageCommandlet::ULoadPackageCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULoadPackageCommandlet::ULoadPackageCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -1253,8 +1253,8 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 	}
 }
 
-UPkgInfoCommandlet::UPkgInfoCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPkgInfoCommandlet::UPkgInfoCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -2102,8 +2102,8 @@ struct CompressAnimationsFunctor
 	}
 };
 
-UCompressAnimationsCommandlet::UCompressAnimationsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCompressAnimationsCommandlet::UCompressAnimationsCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -2171,8 +2171,8 @@ int32 UCompressAnimationsCommandlet::Main( const FString& Params )
 //======================================================================
 // UReplaceActorCommandlet
 //======================================================================
-UReplaceActorCommandlet::UReplaceActorCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReplaceActorCommandlet::UReplaceActorCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }

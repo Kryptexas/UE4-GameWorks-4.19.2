@@ -192,7 +192,7 @@ void UObject::DestroyNonNativeProperties()
  * @param	Data				Default data
  * @return	Returns true if that property was a non-native one, otherwise false
  */
-bool FPostConstructInitializeProperties::InitNonNativeProperty(UProperty* Property, UObject* Data)
+bool FObjectInitializer::InitNonNativeProperty(UProperty* Property, UObject* Data)
 {
 	if (!Property->GetOwnerClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic)) // if this property belongs to a native class, it was already initialized by the class constructor
 	{

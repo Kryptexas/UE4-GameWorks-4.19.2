@@ -14,8 +14,8 @@ DEFINE_LOG_CATEGORY(LogSkeletalControl);
 /////////////////////////////////////////////////////
 // UBoneMaskFilter 
 
-UBoneMaskFilter::UBoneMaskFilter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBoneMaskFilter::UBoneMaskFilter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

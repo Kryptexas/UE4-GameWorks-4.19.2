@@ -1122,7 +1122,7 @@ namespace UM
 	};
 }
 
-#define RELAY_CONSTRUCTOR(TClass, TSuperClass) TClass(const class FPostConstructInitializeProperties& PCIP) : TSuperClass(PCIP) {}
+#define RELAY_CONSTRUCTOR(TClass, TSuperClass) TClass(const FObjectInitializer& ObjectInitializer) : TSuperClass(ObjectInitializer) {}
 
 #if !USE_COMPILED_IN_NATIVES
 	#define COMPILED_IN_FLAGS(TStaticFlags) (TStaticFlags& ~(CLASS_Intrinsic))
@@ -1175,13 +1175,13 @@ public: \
 	}
 
 #define DEFINE_FORBIDDEN_DEFAULT_CONSTRUCTOR_CALL(TClass) \
-	static_assert(false, "You have to define " #TClass "::" #TClass "() or " #TClass "::" #TClass "(const FPostConstructInitializeProperties&). This is required by UObject system to work correctly.");
+	static_assert(false, "You have to define " #TClass "::" #TClass "() or " #TClass "::" #TClass "(const FObjectInitializer&). This is required by UObject system to work correctly.");
 
 #define DEFINE_DEFAULT_CONSTRUCTOR_CALL(TClass) \
-	static void __DefaultConstructor(const class FPostConstructInitializeProperties& X) { const_cast<FPostConstructInitializeProperties&>(X).FinalizeSubobjectClassInitialization(); new((EInternal*)X.GetObj())TClass(); }
+	static void __DefaultConstructor(const class FObjectInitializer& X) { const_cast<FObjectInitializer&>(X).FinalizeSubobjectClassInitialization(); new((EInternal*)X.GetObj())TClass(); }
 
-#define DEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(TClass) \
-	static void __DefaultConstructor(const class FPostConstructInitializeProperties& X) { new((EInternal*)X.GetObj())TClass(X); }
+#define DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+	static void __DefaultConstructor(const class FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass(X); }
 
 #define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
 	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
@@ -1189,7 +1189,7 @@ public: \
 	enum {IsIntrinsic=1}; \
 	static void StaticRegisterNatives##TClass() {} \
 	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(TClass)
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
 
 #define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
 	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
@@ -1197,7 +1197,7 @@ public: \
 	enum {IsIntrinsic=1}; \
 	static void StaticRegisterNatives##TClass() {} \
 	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(TClass)
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
 
 #define DECLARE_CASTED_CLASS_INTRINSIC( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags ) \
 	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, NO_API) \
@@ -1207,7 +1207,7 @@ public: \
 	enum {IsIntrinsic=1}; \
 	static void StaticRegisterNatives##TClass() {} \
 	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(TClass)
+	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
 
 
 

@@ -6,8 +6,8 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "AIController.h"
 
-AFunctionalAITest::AFunctionalAITest( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+AFunctionalAITest::AFunctionalAITest( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, CurrentSpawnSetIndex(INDEX_NONE)
 	, bSingleSetRun(false)
 {

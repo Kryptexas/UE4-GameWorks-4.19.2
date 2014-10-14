@@ -8,8 +8,8 @@
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
 
-UAbilitySystemGlobals::UAbilitySystemGlobals(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	AbilitySystemGlobalsClassName = FStringClassReference(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
 

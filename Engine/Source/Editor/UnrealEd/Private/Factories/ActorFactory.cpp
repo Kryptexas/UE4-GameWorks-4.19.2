@@ -99,8 +99,8 @@ FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& In
 /*-----------------------------------------------------------------------------
 UActorFactory
 -----------------------------------------------------------------------------*/
-UActorFactory::UActorFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactory::UActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("DefaultName","Actor");
 	bShowInEditorQuickMenu = false;
@@ -226,8 +226,8 @@ void UActorFactory::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 /*-----------------------------------------------------------------------------
 UActorFactoryStaticMesh
 -----------------------------------------------------------------------------*/
-UActorFactoryStaticMesh::UActorFactoryStaticMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryStaticMesh::UActorFactoryStaticMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("StaticMeshDisplayName", "Static Mesh");
 	NewActorClass = AStaticMeshActor::StaticClass();
@@ -297,8 +297,8 @@ FQuat UActorFactoryStaticMesh::AlignObjectToSurfaceNormal(const FVector& InSurfa
 /*-----------------------------------------------------------------------------
 UActorFactoryDeferredDecal
 -----------------------------------------------------------------------------*/
-UActorFactoryDeferredDecal::UActorFactoryDeferredDecal(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryDeferredDecal::UActorFactoryDeferredDecal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 { 
 	DisplayName = LOCTEXT("DeferredDecalDisplayName", "Deferred Decal");
 	NewActorClass = ADecalActor::StaticClass();
@@ -435,8 +435,8 @@ TargetMaterial :
 /*-----------------------------------------------------------------------------
 UActorFactoryTextRender
 -----------------------------------------------------------------------------*/
-UActorFactoryTextRender::UActorFactoryTextRender(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTextRender::UActorFactoryTextRender(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Property initialization
 	DisplayName = LOCTEXT("TextRenderDisplayName", "Text Render");
@@ -448,8 +448,8 @@ UActorFactoryTextRender::UActorFactoryTextRender(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 UActorFactoryEmitter
 -----------------------------------------------------------------------------*/
-UActorFactoryEmitter::UActorFactoryEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryEmitter::UActorFactoryEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("EmitterDisplayName", "Emitter");
 	NewActorClass = AEmitter::StaticClass();
@@ -521,8 +521,8 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 /*-----------------------------------------------------------------------------
 UActorFactoryPlayerStart
 -----------------------------------------------------------------------------*/
-UActorFactoryPlayerStart::UActorFactoryPlayerStart(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPlayerStart::UActorFactoryPlayerStart(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("PlayerStartDisplayName", "Player Start");
 	NewActorClass = APlayerStart::StaticClass();
@@ -531,8 +531,8 @@ UActorFactoryPlayerStart::UActorFactoryPlayerStart(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 UActorFactoryTargetPoint
 -----------------------------------------------------------------------------*/
-UActorFactoryTargetPoint::UActorFactoryTargetPoint( const class FPostConstructInitializeProperties& PCIP )
-: Super( PCIP )
+UActorFactoryTargetPoint::UActorFactoryTargetPoint( const FObjectInitializer& ObjectInitializer )
+: Super( ObjectInitializer )
 {
 	DisplayName = LOCTEXT( "TargetPointDisplayName", "Target Point" );
 	NewActorClass = ATargetPoint::StaticClass();
@@ -541,8 +541,8 @@ UActorFactoryTargetPoint::UActorFactoryTargetPoint( const class FPostConstructIn
 /*-----------------------------------------------------------------------------
 UActorFactoryNote
 -----------------------------------------------------------------------------*/
-UActorFactoryNote::UActorFactoryNote( const class FPostConstructInitializeProperties& PCIP )
-: Super( PCIP )
+UActorFactoryNote::UActorFactoryNote( const FObjectInitializer& ObjectInitializer )
+: Super( ObjectInitializer )
 {
 	DisplayName = LOCTEXT( "NoteDisplayName", "Note" );
 	NewActorClass = ANote::StaticClass();
@@ -551,8 +551,8 @@ UActorFactoryNote::UActorFactoryNote( const class FPostConstructInitializeProper
 /*-----------------------------------------------------------------------------
 UActorFactoryPhysicsAsset
 -----------------------------------------------------------------------------*/
-UActorFactoryPhysicsAsset::UActorFactoryPhysicsAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPhysicsAsset::UActorFactoryPhysicsAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("PhysicsAssetDisplayName", "Skeletal Physics");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
@@ -646,8 +646,8 @@ void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO
 /*-----------------------------------------------------------------------------
 UActorFactoryAnimationAsset
 -----------------------------------------------------------------------------*/
-UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryAnimationAsset::UActorFactoryAnimationAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("SingleAnimSkeletalDisplayName", "Single Animation Skeletal");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
@@ -824,8 +824,8 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 /*-----------------------------------------------------------------------------
 UActorFactorySkeletalMesh
 -----------------------------------------------------------------------------*/
-UActorFactorySkeletalMesh::UActorFactorySkeletalMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactorySkeletalMesh::UActorFactorySkeletalMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 { 
 	DisplayName = LOCTEXT("SkeletalMeshDisplayName", "Skeletal Mesh");
 	NewActorClass = ASkeletalMeshActor::StaticClass();
@@ -998,8 +998,8 @@ FQuat UActorFactorySkeletalMesh::AlignObjectToSurfaceNormal(const FVector& InSur
 /*-----------------------------------------------------------------------------
 UActorFactoryCameraActor
 -----------------------------------------------------------------------------*/
-UActorFactoryCameraActor::UActorFactoryCameraActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryCameraActor::UActorFactoryCameraActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("CameraDisplayName", "Camera");
 	NewActorClass = ACameraActor::StaticClass();
@@ -1008,8 +1008,8 @@ UActorFactoryCameraActor::UActorFactoryCameraActor(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 UActorFactoryAmbientSound
 -----------------------------------------------------------------------------*/
-UActorFactoryAmbientSound::UActorFactoryAmbientSound(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryAmbientSound::UActorFactoryAmbientSound(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("AmbientSoundDisplayName", "Ambient Sound");
 	NewActorClass = AAmbientSound::StaticClass();
@@ -1070,8 +1070,8 @@ void UActorFactoryAmbientSound::PostCreateBlueprint( UObject* Asset, AActor* CDO
 /*-----------------------------------------------------------------------------
 UActorFactoryClass
 -----------------------------------------------------------------------------*/
-UActorFactoryClass::UActorFactoryClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryClass::UActorFactoryClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ClassDisplayName", "Class");
 }
@@ -1145,8 +1145,8 @@ AActor* UActorFactoryClass::SpawnActor( UObject* Asset, ULevel* InLevel, const F
 /*-----------------------------------------------------------------------------
 UActorFactoryBlueprint
 -----------------------------------------------------------------------------*/
-UActorFactoryBlueprint::UActorFactoryBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryBlueprint::UActorFactoryBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("BlueprintDisplayName", "Blueprint");
 }
@@ -1245,8 +1245,8 @@ void UActorFactoryBlueprint::PostSpawnActor( UObject* Asset, AActor* NewActor)
 /*-----------------------------------------------------------------------------
 UActorFactoryMatineeActor
 -----------------------------------------------------------------------------*/
-UActorFactoryMatineeActor::UActorFactoryMatineeActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryMatineeActor::UActorFactoryMatineeActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("MatineeDisplayName", "Matinee");
 	NewActorClass = AMatineeActor::StaticClass();
@@ -1305,8 +1305,8 @@ void UActorFactoryMatineeActor::PostCreateBlueprint( UObject* Asset, AActor* CDO
 /*-----------------------------------------------------------------------------
 UActorFactoryDirectionalLight
 -----------------------------------------------------------------------------*/
-UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("DirectionalLightDisplayName", "Directional Light");
 	NewActorClass = ADirectionalLight::StaticClass();
@@ -1317,8 +1317,8 @@ UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const class FPostCo
 /*-----------------------------------------------------------------------------
 UActorFactorySpotLight
 -----------------------------------------------------------------------------*/
-UActorFactorySpotLight::UActorFactorySpotLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactorySpotLight::UActorFactorySpotLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("SpotLightDisplayName", "Spot Light");
 	NewActorClass = ASpotLight::StaticClass();
@@ -1329,8 +1329,8 @@ UActorFactorySpotLight::UActorFactorySpotLight(const class FPostConstructInitial
 /*-----------------------------------------------------------------------------
 UActorFactoryPointLight
 -----------------------------------------------------------------------------*/
-UActorFactoryPointLight::UActorFactoryPointLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPointLight::UActorFactoryPointLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("PointLightDisplayName", "Point Light");
 	NewActorClass = APointLight::StaticClass();
@@ -1341,8 +1341,8 @@ UActorFactoryPointLight::UActorFactoryPointLight(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 UActorFactorySkyLight
 -----------------------------------------------------------------------------*/
-UActorFactorySkyLight::UActorFactorySkyLight( const class FPostConstructInitializeProperties& PCIP )
-: Super( PCIP )
+UActorFactorySkyLight::UActorFactorySkyLight( const FObjectInitializer& ObjectInitializer )
+: Super( ObjectInitializer )
 {
 	DisplayName = LOCTEXT( "SkyLightDisplayName", "Sky Light" );
 	NewActorClass = ASkyLight::StaticClass();
@@ -1351,8 +1351,8 @@ UActorFactorySkyLight::UActorFactorySkyLight( const class FPostConstructInitiali
 /*-----------------------------------------------------------------------------
 UActorFactorySphereReflectionCapture
 -----------------------------------------------------------------------------*/
-UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ReflectionCaptureSphereDisplayName", "Sphere Reflection Capture");
 	NewActorClass = ASphereReflectionCapture::StaticClass();
@@ -1363,8 +1363,8 @@ UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const
 /*-----------------------------------------------------------------------------
 UActorFactoryBoxReflectionCapture
 -----------------------------------------------------------------------------*/
-UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ReflectionCaptureBoxDisplayName", "Box Reflection Capture");
 	NewActorClass = ABoxReflectionCapture::StaticClass();
@@ -1375,8 +1375,8 @@ UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const class
 /*-----------------------------------------------------------------------------
 UActorFactoryPlaneReflectionCapture
 -----------------------------------------------------------------------------*/
-UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ReflectionCapturePlaneDisplayName", "Plane Reflection Capture");
 	NewActorClass = APlaneReflectionCapture::StaticClass();
@@ -1387,8 +1387,8 @@ UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const c
 /*-----------------------------------------------------------------------------
 UActorFactoryAtmosphericFog
 -----------------------------------------------------------------------------*/
-UActorFactoryAtmosphericFog::UActorFactoryAtmosphericFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryAtmosphericFog::UActorFactoryAtmosphericFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("AtmosphericFogDisplayName", "Atmospheric Fog");
 	NewActorClass = AAtmosphericFog::StaticClass();
@@ -1397,8 +1397,8 @@ UActorFactoryAtmosphericFog::UActorFactoryAtmosphericFog(const class FPostConstr
 /*-----------------------------------------------------------------------------
 UActorFactoryExponentialHeightFog
 -----------------------------------------------------------------------------*/
-UActorFactoryExponentialHeightFog::UActorFactoryExponentialHeightFog(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryExponentialHeightFog::UActorFactoryExponentialHeightFog(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ExponentialHeightFogDisplayName", "Exponential Height Fog");
 	NewActorClass = AExponentialHeightFog::StaticClass();
@@ -1407,8 +1407,8 @@ UActorFactoryExponentialHeightFog::UActorFactoryExponentialHeightFog(const class
 /*-----------------------------------------------------------------------------
 UActorFactoryInteractiveFoliage
 -----------------------------------------------------------------------------*/
-UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("InteractiveFoliageDisplayName", "Interactive Foliage");
 	NewActorClass = AInteractiveFoliageActor::StaticClass();
@@ -1417,8 +1417,8 @@ UActorFactoryInteractiveFoliage::UActorFactoryInteractiveFoliage(const class FPo
 /*-----------------------------------------------------------------------------
 UActorFactoryTriggerBox
 -----------------------------------------------------------------------------*/
-UActorFactoryTriggerBox::UActorFactoryTriggerBox(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTriggerBox::UActorFactoryTriggerBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("TriggerBoxDisplayName", "Box Trigger");
 	NewActorClass = ATriggerBox::StaticClass();
@@ -1427,8 +1427,8 @@ UActorFactoryTriggerBox::UActorFactoryTriggerBox(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 UActorFactoryTriggerCapsule
 -----------------------------------------------------------------------------*/
-UActorFactoryTriggerCapsule::UActorFactoryTriggerCapsule(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTriggerCapsule::UActorFactoryTriggerCapsule(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("TriggerCapsuleDisplayName", "Capsule Trigger");
 	NewActorClass = ATriggerCapsule::StaticClass();
@@ -1437,8 +1437,8 @@ UActorFactoryTriggerCapsule::UActorFactoryTriggerCapsule(const class FPostConstr
 /*-----------------------------------------------------------------------------
 UActorFactoryTriggerSphere
 -----------------------------------------------------------------------------*/
-UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("TriggerSphereDisplayName", "Sphere Trigger");
 	NewActorClass = ATriggerSphere::StaticClass();
@@ -1447,8 +1447,8 @@ UActorFactoryTriggerSphere::UActorFactoryTriggerSphere(const class FPostConstruc
 /*-----------------------------------------------------------------------------
 UActorFactoryDestructible
 -----------------------------------------------------------------------------*/
-UActorFactoryDestructible::UActorFactoryDestructible(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryDestructible::UActorFactoryDestructible(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("DestructibleDisplayName", "Destructible");
 	NewActorClass = ADestructibleActor::StaticClass();
@@ -1513,8 +1513,8 @@ FQuat UActorFactoryDestructible::AlignObjectToSurfaceNormal(const FVector& InSur
 /*-----------------------------------------------------------------------------
 UActorFactoryVectorField
 -----------------------------------------------------------------------------*/
-UActorFactoryVectorFieldVolume::UActorFactoryVectorFieldVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorFactoryVectorFieldVolume::UActorFactoryVectorFieldVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("VectorFieldVolumeDisplayName", "Vector Field Volume");
 	NewActorClass = AVectorFieldVolume::StaticClass();
@@ -1557,8 +1557,8 @@ void CreateBrushForVolumeActor( AVolume* NewActor, UBrushBuilder* BrushBuilder )
 		NewActor->PreEditChange(NULL);
 
 		NewActor->PolyFlags = 0;
-		NewActor->Brush = new( NewActor, NAME_None, RF_Transactional )UModel(FPostConstructInitializeProperties(), NULL, true );
-		NewActor->Brush->Polys = new( NewActor->Brush, NAME_None, RF_Transactional )UPolys(FPostConstructInitializeProperties());
+		NewActor->Brush = new( NewActor, NAME_None, RF_Transactional )UModel(FObjectInitializer(), NULL, true );
+		NewActor->Brush->Polys = new( NewActor->Brush, NAME_None, RF_Transactional )UPolys(FObjectInitializer());
 		NewActor->BrushComponent->Brush = NewActor->Brush;
 		if(BrushBuilder != nullptr)
 		{
@@ -1587,8 +1587,8 @@ void CreateBrushForVolumeActor( AVolume* NewActor, UBrushBuilder* BrushBuilder )
 /*-----------------------------------------------------------------------------
 UActorFactoryBoxVolume
 -----------------------------------------------------------------------------*/
-UActorFactoryBoxVolume::UActorFactoryBoxVolume( const class FPostConstructInitializeProperties& PCIP )
-: Super(PCIP)
+UActorFactoryBoxVolume::UActorFactoryBoxVolume( const FObjectInitializer& ObjectInitializer )
+: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT( "BoxVolumeDisplayName", "Box Volume" );
 	NewActorClass = AVolume::StaticClass();
@@ -1627,8 +1627,8 @@ void UActorFactoryBoxVolume::PostSpawnActor( UObject* Asset, AActor* NewActor )
 /*-----------------------------------------------------------------------------
 UActorFactorySphereVolume
 -----------------------------------------------------------------------------*/
-UActorFactorySphereVolume::UActorFactorySphereVolume( const class FPostConstructInitializeProperties& PCIP )
-: Super(PCIP)
+UActorFactorySphereVolume::UActorFactorySphereVolume( const FObjectInitializer& ObjectInitializer )
+: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT( "SphereVolumeDisplayName", "Sphere Volume" );
 	NewActorClass = AVolume::StaticClass();
@@ -1669,8 +1669,8 @@ void UActorFactorySphereVolume::PostSpawnActor( UObject* Asset, AActor* NewActor
 /*-----------------------------------------------------------------------------
 UActorFactoryCylinderVolume
 -----------------------------------------------------------------------------*/
-UActorFactoryCylinderVolume::UActorFactoryCylinderVolume( const class FPostConstructInitializeProperties& PCIP )
-: Super(PCIP)
+UActorFactoryCylinderVolume::UActorFactoryCylinderVolume( const FObjectInitializer& ObjectInitializer )
+: Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT( "CylinderVolumeDisplayName", "Cylinder Volume" );
 	NewActorClass = AVolume::StaticClass();

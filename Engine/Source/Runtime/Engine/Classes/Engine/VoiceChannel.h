@@ -22,8 +22,8 @@ class UVoiceChannel : public UChannel
 	/**
 	 * Default constructor
 	 */
-	UVoiceChannel(const class FPostConstructInitializeProperties& PCIP)
-		: UChannel(PCIP)
+	UVoiceChannel(const FObjectInitializer& ObjectInitializer)
+		: UChannel(ObjectInitializer)
 	{
 		// Register with the network channel system
 		ChannelClasses[CHTYPE_Voice] = GetClass();

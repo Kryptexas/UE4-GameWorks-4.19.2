@@ -33,16 +33,16 @@ DECLARE_CYCLE_STAT(TEXT("MoveToActor"),STAT_MoveToActor,STATGROUP_AI);
 
 DEFINE_LOG_CATEGORY(LogAINavigation);
 
-AAIController::AAIController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AAIController::AAIController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// set up navigation component
-	NavComponent = PCIP.CreateDefaultSubobject<UNavigationComponent>(this, TEXT("NavComponent"));
+	NavComponent = ObjectInitializer.CreateDefaultSubobject<UNavigationComponent>(this, TEXT("NavComponent"));
 
-	PathFollowingComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
+	PathFollowingComponent = ObjectInitializer.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
 	PathFollowingComponent->OnMoveFinished.AddUObject(this, &AAIController::OnMoveCompleted);
 
-	ActionsComp = PCIP.CreateDefaultSubobject<UPawnActionsComponent>(this, "ActionsComp");
+	ActionsComp = ObjectInitializer.CreateDefaultSubobject<UPawnActionsComponent>(this, "ActionsComp");
 
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;

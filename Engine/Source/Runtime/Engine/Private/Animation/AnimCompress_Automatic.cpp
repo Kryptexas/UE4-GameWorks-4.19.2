@@ -5,8 +5,8 @@
 #include "AnimationUtils.h"
 #include "Animation/AnimCompress_Automatic.h"
 
-UAnimCompress_Automatic::UAnimCompress_Automatic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_Automatic::UAnimCompress_Automatic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Automatic");
 	MaxEndEffectorError = 1.0f;

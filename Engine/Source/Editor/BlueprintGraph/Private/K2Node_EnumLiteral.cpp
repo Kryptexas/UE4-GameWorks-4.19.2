@@ -14,8 +14,8 @@ const FString& UK2Node_EnumLiteral::GetEnumInputPinName()
 	return Name;
 }
 
-UK2Node_EnumLiteral::UK2Node_EnumLiteral(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EnumLiteral::UK2Node_EnumLiteral(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -13,8 +13,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugging, Log, All);
 #define BUGIT_VIEWS (1<<EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead)
 #define BREAK_LINE_TEXT TEXT("________________________________________________________________")
 
-UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, KeyPressActivationTime(0.4f)
 {
 	PrimaryComponentTick.bCanEverTick = true;

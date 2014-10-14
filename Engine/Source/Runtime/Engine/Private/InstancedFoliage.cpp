@@ -89,8 +89,8 @@ FArchive& operator<<(FArchive& Ar, FFoliageComponentHashInfo& ComponentHashInfo)
 // UFoliageType
 //
 
-UFoliageType::UFoliageType(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Density = 100.0f;
 	Radius = 0.0f;
@@ -135,8 +135,8 @@ UFoliageType::UFoliageType(const FPostConstructInitializeProperties& PCIP)
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 }
 
-UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mesh = nullptr;
 }
@@ -705,10 +705,10 @@ void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSele
 //
 // AInstancedFoliageActor
 //
-AInstancedFoliageActor::AInstancedFoliageActor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AInstancedFoliageActor::AInstancedFoliageActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;
 	RootComponent->Mobility = EComponentMobility::Movable;
 	

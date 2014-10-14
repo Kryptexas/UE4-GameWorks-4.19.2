@@ -261,8 +261,8 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-UCustomMeshComponent::UCustomMeshComponent( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UCustomMeshComponent::UCustomMeshComponent( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	PrimaryComponentTick.bCanEverTick = false;
 

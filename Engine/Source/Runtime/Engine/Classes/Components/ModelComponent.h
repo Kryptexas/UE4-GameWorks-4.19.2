@@ -40,7 +40,7 @@ public:
 	/**
 	 * Minimal initialization constructor.
 	 */
-	UModelComponent( const class FPostConstructInitializeProperties& PCIP,UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
+	UModelComponent( const FObjectInitializer& ObjectInitializer,UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
 #endif // WITH_EDITOR
 
 	/**

@@ -100,8 +100,8 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // UDebugSkelMeshComponent
 
-UDebugSkelMeshComponent::UDebugSkelMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bDrawMesh = true;
 	PreviewInstance = NULL;

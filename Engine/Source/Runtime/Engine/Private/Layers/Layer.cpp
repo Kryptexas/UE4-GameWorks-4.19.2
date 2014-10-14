@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
 
-ULayer::ULayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULayer::ULayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, LayerName( NAME_None )
 	, bIsVisible( true )
 {

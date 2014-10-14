@@ -2,8 +2,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
 
-UAbilityTask_WaitMovementModeChange::UAbilityTask_WaitMovementModeChange(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitMovementModeChange::UAbilityTask_WaitMovementModeChange(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RequiredMode = MOVE_None;
 }

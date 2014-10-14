@@ -447,8 +447,8 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SPLINE COMPONENT
 
-ULandscapeSplinesComponent::ULandscapeSplinesComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeSplinesComponent::ULandscapeSplinesComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Static;
 
@@ -621,8 +621,8 @@ void ULandscapeSplinesComponent::ShowSplineEditorMesh(bool bShow)
 //////////////////////////////////////////////////////////////////////////
 // CONTROL POINT MESH COMPONENT
 
-UControlPointMeshComponent::UControlPointMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UControlPointMeshComponent::UControlPointMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	Mobility = EComponentMobility::Static;
@@ -635,8 +635,8 @@ UControlPointMeshComponent::UControlPointMeshComponent(const class FPostConstruc
 //////////////////////////////////////////////////////////////////////////
 // SPLINE CONTROL POINT
 
-ULandscapeSplineControlPoint::ULandscapeSplineControlPoint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeSplineControlPoint::ULandscapeSplineControlPoint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Width = 1000;
 	SideFalloff = 1000;
@@ -1109,8 +1109,8 @@ void ULandscapeSplineControlPoint::PostEditChangeProperty(FPropertyChangedEvent&
 //////////////////////////////////////////////////////////////////////////
 // SPLINE SEGMENT
 
-ULandscapeSplineSegment::ULandscapeSplineSegment(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeSplineSegment::ULandscapeSplineSegment(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	Connections[0].ControlPoint = NULL;

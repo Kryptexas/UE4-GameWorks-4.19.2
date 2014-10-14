@@ -6,8 +6,8 @@
 /* UMediaSoundWaveFactoryNew structors
  *****************************************************************************/
 
-UMediaSoundWaveFactoryNew::UMediaSoundWaveFactoryNew( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaSoundWaveFactoryNew::UMediaSoundWaveFactoryNew( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UMediaSoundWave::StaticClass();
 	bCreateNew = true;

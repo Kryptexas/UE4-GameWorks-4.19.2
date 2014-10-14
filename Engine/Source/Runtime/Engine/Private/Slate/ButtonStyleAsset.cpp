@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Slate/ButtonStyleAsset.h"
 
-UButtonStyleAsset::UButtonStyleAsset( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UButtonStyleAsset::UButtonStyleAsset( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

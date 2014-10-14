@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTerrainSplineComponent
 
-UPaperTerrainSplineComponent::UPaperTerrainSplineComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTerrainSplineComponent::UPaperTerrainSplineComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

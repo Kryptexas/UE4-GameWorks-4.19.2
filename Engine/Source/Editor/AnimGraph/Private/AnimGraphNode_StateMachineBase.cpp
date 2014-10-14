@@ -42,8 +42,8 @@ public:
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_StateMachineBase::UAnimGraphNode_StateMachineBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_StateMachineBase::UAnimGraphNode_StateMachineBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

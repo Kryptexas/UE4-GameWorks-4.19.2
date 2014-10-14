@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimationTransitionGraph
 
-UAnimationTransitionGraph::UAnimationTransitionGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationTransitionGraph::UAnimationTransitionGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

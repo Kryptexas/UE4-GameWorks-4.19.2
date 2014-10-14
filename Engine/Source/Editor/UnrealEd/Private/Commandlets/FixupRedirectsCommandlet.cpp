@@ -9,8 +9,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogFixupRedirectsCommandlet, Log, All);
 
-UFixupRedirectsCommandlet::UFixupRedirectsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFixupRedirectsCommandlet::UFixupRedirectsCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }

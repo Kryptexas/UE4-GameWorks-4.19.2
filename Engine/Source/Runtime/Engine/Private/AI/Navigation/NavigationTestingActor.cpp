@@ -21,10 +21,10 @@ TStatId FNavTestTickHelper::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FNavTestTickHelper, STATGROUP_Tickables);
 }
 
-ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+ANavigationTestingActor::ANavigationTestingActor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	EdRenderComp = PCIP.CreateDefaultSubobject<UNavTestRenderingComponent>(this, TEXT("EdRenderComp"));
+	EdRenderComp = ObjectInitializer.CreateDefaultSubobject<UNavTestRenderingComponent>(this, TEXT("EdRenderComp"));
 	EdRenderComp->PostPhysicsComponentTick.bCanEverTick = false;
 
 #if WITH_RECAST
@@ -48,7 +48,7 @@ ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructIniti
 	// collision profile name set up - found in baseengine.ini
 	static FName CollisionProfileName(TEXT("Pawn"));
 
-	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
+	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCylinder"));
 	CapsuleComponent->InitCapsuleSize(NavAgentProps.AgentRadius, NavAgentProps.AgentHeight / 2);
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;

@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-ULightmappedSurfaceCollection::ULightmappedSurfaceCollection(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightmappedSurfaceCollection::ULightmappedSurfaceCollection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

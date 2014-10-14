@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // USpacer
 
-USpacer::USpacer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpacer::USpacer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Size(1.0f, 1.0f)
 {
 	bIsVariable = false;

@@ -6,8 +6,8 @@
 #include "StructureEditorUtils.h"
 #endif //WITH_EDITOR
 
-UUserDefinedStruct::UUserDefinedStruct(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUserDefinedStruct::UUserDefinedStruct(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

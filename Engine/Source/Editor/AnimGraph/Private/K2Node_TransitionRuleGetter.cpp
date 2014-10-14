@@ -15,8 +15,8 @@
 
 #define LOCTEXT_NAMESPACE "TransitionRuleGetter"
 
-UK2Node_TransitionRuleGetter::UK2Node_TransitionRuleGetter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_TransitionRuleGetter::UK2Node_TransitionRuleGetter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

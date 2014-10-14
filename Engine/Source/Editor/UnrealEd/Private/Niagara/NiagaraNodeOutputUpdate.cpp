@@ -4,8 +4,8 @@
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorSettings.h"
 
-UNiagaraNodeOutputUpdate::UNiagaraNodeOutputUpdate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraNodeOutputUpdate::UNiagaraNodeOutputUpdate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

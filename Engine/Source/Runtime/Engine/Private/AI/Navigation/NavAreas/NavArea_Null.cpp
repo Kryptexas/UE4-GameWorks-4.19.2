@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 
-UNavArea_Null::UNavArea_Null(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavArea_Null::UNavArea_Null(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	DefaultCost = BIG_NUMBER;
 }

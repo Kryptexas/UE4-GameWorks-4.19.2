@@ -19,8 +19,8 @@ class UCrowdFollowingComponent;
  *  (usually: replace class of PathFollowingComponent in AIController by adding 
  *   those lines in controller's constructor
  *
- *   ACrowdAIController::ACrowdAIController(const class FPostConstructInitializeProperties& PCIP)
- *       : Super(PCIP.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
+ *   ACrowdAIController::ACrowdAIController(const FObjectInitializer& ObjectInitializer)
+ *       : Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
  *
  *   or simply add both components and switch move requests between them)
  *

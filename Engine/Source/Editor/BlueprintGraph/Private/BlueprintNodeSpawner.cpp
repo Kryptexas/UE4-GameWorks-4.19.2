@@ -53,8 +53,8 @@ UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> c
 }
 
 //------------------------------------------------------------------------------
-UBlueprintNodeSpawner::UBlueprintNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintNodeSpawner::UBlueprintNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

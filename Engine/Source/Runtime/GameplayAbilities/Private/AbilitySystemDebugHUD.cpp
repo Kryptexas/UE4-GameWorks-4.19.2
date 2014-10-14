@@ -5,7 +5,7 @@
 #include "AbilitySystemDebugHUD.h"
 #include "DebugRenderSceneProxy.h"
 
-AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 
 }

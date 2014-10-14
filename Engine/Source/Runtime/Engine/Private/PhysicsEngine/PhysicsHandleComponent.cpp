@@ -6,8 +6,8 @@
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
 
-UPhysicsHandleComponent::UPhysicsHandleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsHandleComponent::UPhysicsHandleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;

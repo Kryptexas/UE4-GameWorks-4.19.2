@@ -14,8 +14,8 @@
 /////////////////////////////////////////////////////
 // UUserWidget
 
-UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
 	Visiblity = ESlateVisibility::SelfHitTestInvisible;

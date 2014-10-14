@@ -421,8 +421,8 @@ bool UMaterialInstance::UpdateParameters()
 	return bDirty;
 }
 
-UMaterialInstance::UMaterialInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialInstance::UMaterialInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHasStaticPermutationResource = false;
 	bOverrideBaseProperties = false;

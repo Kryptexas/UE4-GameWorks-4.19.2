@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_ReachedMoveGoal.h"
 
-UBTDecorator_ReachedMoveGoal::UBTDecorator_ReachedMoveGoal(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_ReachedMoveGoal::UBTDecorator_ReachedMoveGoal(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Reached move goal";
 

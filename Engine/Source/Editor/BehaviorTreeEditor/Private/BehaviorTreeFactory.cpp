@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeFactory"
 
-UBehaviorTreeFactory::UBehaviorTreeFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBehaviorTreeFactory::UBehaviorTreeFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UBehaviorTree::StaticClass();
 	bCreateNew = true;

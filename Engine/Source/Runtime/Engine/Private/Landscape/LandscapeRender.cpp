@@ -2675,8 +2675,8 @@ void FLandscapeXYOffsetVertexFactory::ModifyCompilationEnvironment( EShaderPlatf
 IMPLEMENT_VERTEX_FACTORY_TYPE(FLandscapeXYOffsetVertexFactory, "LandscapeVertexFactory", true, true, true, false, false);
 
 /** ULandscapeMaterialInstanceConstant */
-ULandscapeMaterialInstanceConstant::ULandscapeMaterialInstanceConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeMaterialInstanceConstant::ULandscapeMaterialInstanceConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsLayerThumbnail = false;
 	DataWeightmapIndex = -1;

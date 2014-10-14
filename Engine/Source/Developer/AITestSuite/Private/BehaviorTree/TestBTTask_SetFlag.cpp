@@ -4,7 +4,7 @@
 #include "BehaviorTree/TestBTTask_SetFlag.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
-UTestBTTask_SetFlag::UTestBTTask_SetFlag(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UTestBTTask_SetFlag::UTestBTTask_SetFlag(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Log";
 	TaskResult = EBTNodeResult::Succeeded;

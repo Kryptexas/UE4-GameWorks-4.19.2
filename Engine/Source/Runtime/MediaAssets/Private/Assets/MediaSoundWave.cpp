@@ -6,8 +6,8 @@
 /* UMediaSoundWave structors
  *****************************************************************************/
 
-UMediaSoundWave::UMediaSoundWave( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaSoundWave::UMediaSoundWave( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, AudioQueue(MakeShareable(new FMediaSampleQueue))
 {
 	bLooping = false;

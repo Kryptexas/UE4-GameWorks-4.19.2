@@ -73,8 +73,8 @@ class ENGINE_API UActorChannel : public UChannel
 	/**
 	 * Default constructor
 	 */
-	UActorChannel(const class FPostConstructInitializeProperties& PCIP)
-		: UChannel(PCIP)
+	UActorChannel(const FObjectInitializer& ObjectInitializer)
+		: UChannel(ObjectInitializer)
 	{
 		ChannelClasses[CHTYPE_Actor] = GetClass();
 		ChType = CHTYPE_Actor;

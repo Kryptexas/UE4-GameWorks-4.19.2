@@ -19,8 +19,8 @@ int32 UFactory::OverwriteYesOrNoToAllState = -1;
 
 bool UFactory::bAllowOneTimeWarningMessages = true;
 
-UFactory::UFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFactory::UFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

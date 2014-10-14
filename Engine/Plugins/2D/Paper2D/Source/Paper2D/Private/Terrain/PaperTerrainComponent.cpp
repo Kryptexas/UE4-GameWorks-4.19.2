@@ -79,8 +79,8 @@ void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* Vi
 //////////////////////////////////////////////////////////////////////////
 // UPaperTerrainComponent
 
-UPaperTerrainComponent::UPaperTerrainComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTerrainComponent::UPaperTerrainComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TerrainColor(FLinearColor::White)
 	, ReparamStepsPerSegment(8)
 	, SpriteCollisionDomain(ESpriteCollisionMode::Use3DPhysics)

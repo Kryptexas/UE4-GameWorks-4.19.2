@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Sequence.h"
 
-UPawnAction_Sequence::UPawnAction_Sequence(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction_Sequence::UPawnAction_Sequence(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, SubActionTriggeringPolicy(EPawnSubActionTriggeringPolicy::CopyBeforeTriggering)
 {
 }

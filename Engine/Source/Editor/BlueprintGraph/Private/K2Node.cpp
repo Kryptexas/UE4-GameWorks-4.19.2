@@ -16,8 +16,8 @@ static const uint32 MaxArrayPinTooltipLineCount = 10;
 /////////////////////////////////////////////////////
 // UK2Node
 
-UK2Node::UK2Node(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node::UK2Node(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

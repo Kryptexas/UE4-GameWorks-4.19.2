@@ -5,8 +5,8 @@
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer"
 
-UStaticMeshLightingInfo::UStaticMeshLightingInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshLightingInfo::UStaticMeshLightingInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

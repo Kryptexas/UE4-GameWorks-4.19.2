@@ -9,8 +9,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Predictive;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;

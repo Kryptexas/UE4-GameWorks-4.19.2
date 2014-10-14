@@ -10,13 +10,13 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_ActorVisualization(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_ActorVisualization(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	//PrimaryActorTick.bCanEverTick = true;
 	//PrimaryActorTick.TickGroup = TG_PrePhysics;
 
-	CollisionComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCapsule0"));
+	CollisionComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCapsule0"));
 	CollisionComponent->InitCapsuleSize(0.f, 0.f);
 	CollisionComponent->AlwaysLoadOnClient = true;
 	CollisionComponent->bAbsoluteScale = true;
@@ -25,7 +25,7 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 	CollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	//TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	//TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = CollisionComponent;
 }
 

@@ -12,8 +12,8 @@
 #define LOCTEXT_NAMESPACE "KismetInputLibrary"
 
 
-UKismetInputLibrary::UKismetInputLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetInputLibrary::UKismetInputLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -9,7 +9,7 @@
 #endif // WITH_EDITOR
 #include "LogVisualizerDebugActor.h"
 
-ALogVisualizerDebugActor::ALogVisualizerDebugActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALogVisualizerDebugActor::ALogVisualizerDebugActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

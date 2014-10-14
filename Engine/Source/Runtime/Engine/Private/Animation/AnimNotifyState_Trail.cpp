@@ -17,8 +17,8 @@ DEFINE_LOG_CATEGORY(LogAnimTrails);
 /////////////////////////////////////////////////////
 // UAnimNotifyState_Trail
 
-UAnimNotifyState_Trail::UAnimNotifyState_Trail(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimNotifyState_Trail::UAnimNotifyState_Trail(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PSTemplate = NULL;
 	FirstSocketName = NAME_None;

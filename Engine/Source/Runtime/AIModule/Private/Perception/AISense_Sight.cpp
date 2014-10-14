@@ -43,8 +43,8 @@ FAISightTarget::FAISightTarget(AActor* InTarget, FGenericTeamId InTeamId)
 //----------------------------------------------------------------------//
 // UAISense_Sight
 //----------------------------------------------------------------------//
-UAISense_Sight::UAISense_Sight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, MaxTracesPerTick(DefaultMaxTracesPerTick)
 	, HighImportanceQueryDistanceThreshold(300.f)
 	, MaxQueryImportance(60.f)

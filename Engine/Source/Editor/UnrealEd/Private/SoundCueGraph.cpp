@@ -6,8 +6,8 @@
 #include "UnrealEd.h"
 #include "SoundDefinitions.h"
 
-USoundCueGraph::USoundCueGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCueGraph::USoundCueGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

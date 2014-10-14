@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UNamedSlot
 
-UNamedSlot::UNamedSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNamedSlot::UNamedSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = true;
 }

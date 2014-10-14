@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/KillZVolume.h"
 
-AKillZVolume::AKillZVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AKillZVolume::AKillZVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

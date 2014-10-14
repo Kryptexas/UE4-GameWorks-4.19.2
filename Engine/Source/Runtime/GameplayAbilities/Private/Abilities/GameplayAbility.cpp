@@ -14,8 +14,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-UGameplayAbility::UGameplayAbility(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CostGameplayEffect = NULL;
 	CooldownGameplayEffect = NULL;

@@ -12,8 +12,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityTargetActor_GroundTrace::AGameplayAbilityTargetActor_GroundTrace(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+AGameplayAbilityTargetActor_GroundTrace::AGameplayAbilityTargetActor_GroundTrace(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	CollisionHeightOffset = 0.0f;
 }

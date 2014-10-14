@@ -7,8 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraScriptFactory"
 
-UNiagaraScriptFactoryNew::UNiagaraScriptFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraScriptFactoryNew::UNiagaraScriptFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UNiagaraScript::StaticClass();

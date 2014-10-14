@@ -11,8 +11,8 @@ USelection::FOnSelectionChanged	USelection::SelectObjectEvent;
 FSimpleMulticastDelegate		USelection::SelectNoneEvent;
 
 
-USelection::USelection(const class FPostConstructInitializeProperties& PCIP)
-:	UObject(PCIP)
+USelection::USelection(const FObjectInitializer& ObjectInitializer)
+:	UObject(ObjectInitializer)
 ,	SelectionMutex( 0 )
 ,	bIsBatchDirty(false)
 {

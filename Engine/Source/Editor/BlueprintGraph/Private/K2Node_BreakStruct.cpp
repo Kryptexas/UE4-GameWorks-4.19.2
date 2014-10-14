@@ -120,7 +120,7 @@ public:
 };
 
 
-UK2Node_BreakStruct::UK2Node_BreakStruct(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UK2Node_BreakStruct::UK2Node_BreakStruct(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

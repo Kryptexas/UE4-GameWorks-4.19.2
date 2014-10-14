@@ -4,7 +4,7 @@
 #include "HotSpots/AIHotSpotManager.h"
 
 
-UAIHotSpotManager::UAIHotSpotManager(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAIHotSpotManager::UAIHotSpotManager(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }

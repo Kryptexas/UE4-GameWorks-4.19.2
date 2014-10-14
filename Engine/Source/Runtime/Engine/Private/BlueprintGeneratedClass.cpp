@@ -10,8 +10,8 @@
 #endif //WITH_EDITOR
 
 
-UBlueprintGeneratedClass::UBlueprintGeneratedClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NumReplicatedProperties = 0;
 }

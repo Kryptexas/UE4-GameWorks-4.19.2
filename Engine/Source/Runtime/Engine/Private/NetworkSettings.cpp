@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UNetworkSettings::UNetworkSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNetworkSettings::UNetworkSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

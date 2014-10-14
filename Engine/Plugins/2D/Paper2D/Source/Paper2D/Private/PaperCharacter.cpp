@@ -7,11 +7,11 @@ FName APaperCharacter::SpriteComponentName(TEXT("Sprite0"));
 //////////////////////////////////////////////////////////////////////////
 // APaperCharacter
 
-APaperCharacter::APaperCharacter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.DoNotCreateDefaultSubobject(ACharacter::MeshComponentName))
+APaperCharacter::APaperCharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(ACharacter::MeshComponentName))
 {
 	// Try to create the sprite component
-	Sprite = PCIP.CreateOptionalDefaultSubobject<UPaperFlipbookComponent>(this, APaperCharacter::SpriteComponentName);
+	Sprite = ObjectInitializer.CreateOptionalDefaultSubobject<UPaperFlipbookComponent>(this, APaperCharacter::SpriteComponentName);
 	if (Sprite)
 	{
 		Sprite->AlwaysLoadOnClient = true;

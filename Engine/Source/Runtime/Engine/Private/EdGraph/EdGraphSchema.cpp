@@ -236,8 +236,8 @@ void FEdGraphSchemaAction_NewNode::AddReferencedObjects( FReferenceCollector& Co
 /////////////////////////////////////////////////////
 // UEdGraphSchema
 
-UEdGraphSchema::UEdGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema::UEdGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

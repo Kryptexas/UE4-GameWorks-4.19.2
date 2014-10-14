@@ -8,10 +8,10 @@
 #include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
 
-ALight::ALight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALight::ALight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	LightComponent = PCIP.CreateAbstractDefaultSubobject<ULightComponent>(this, TEXT("LightComponent0"));
+	LightComponent = ObjectInitializer.CreateAbstractDefaultSubobject<ULightComponent>(this, TEXT("LightComponent0"));
 
 	bHidden = true;
 	bCollideWhenPlacing = true;
@@ -152,8 +152,8 @@ void ALight::SetAffectTranslucentLighting(bool bNewValue)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-APointLight::APointLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UPointLightComponent>(TEXT("LightComponent0")))
+APointLight::APointLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPointLightComponent>(TEXT("LightComponent0")))
 {
 	PointLightComponent = CastChecked<UPointLightComponent>(LightComponent);
 	PointLightComponent->Mobility = EComponentMobility::Stationary;
@@ -200,8 +200,8 @@ void APointLight::LoadedFromAnotherClass(const FName& OldClassName)
 }
 #endif // WITH_EDITOR
 
-ADirectionalLight::ADirectionalLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UDirectionalLightComponent>(TEXT("LightComponent0")))
+ADirectionalLight::ADirectionalLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UDirectionalLightComponent>(TEXT("LightComponent0")))
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -226,7 +226,7 @@ ADirectionalLight::ADirectionalLight(const class FPostConstructInitializePropert
 	RootComponent = DirectionalLightComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = FColor(150, 200, 255);
@@ -324,8 +324,8 @@ void APointLight::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 }
 #endif
 
-AGeneratedMeshAreaLight::AGeneratedMeshAreaLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGeneratedMeshAreaLight::AGeneratedMeshAreaLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	bEditable = false;

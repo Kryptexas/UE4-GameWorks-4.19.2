@@ -12,8 +12,8 @@ DECLARE_CYCLE_STAT(TEXT("CurveTableRowHandle Eval"),STAT_CurveTableRowHandleEval
 
 
 //////////////////////////////////////////////////////////////////////////
-UCurveTable::UCurveTable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveTable::UCurveTable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

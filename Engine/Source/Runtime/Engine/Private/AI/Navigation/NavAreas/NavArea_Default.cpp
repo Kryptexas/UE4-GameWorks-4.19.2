@@ -3,6 +3,6 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 
-UNavArea_Default::UNavArea_Default(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavArea_Default::UNavArea_Default(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }

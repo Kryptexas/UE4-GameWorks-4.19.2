@@ -10,8 +10,8 @@
 /*-----------------------------------------------------------------------------
 	UTextureLightProfile
 -----------------------------------------------------------------------------*/
-UTextureLightProfile::UTextureLightProfile(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureLightProfile::UTextureLightProfile(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NeverStream = true;
 	Brightness = -1;

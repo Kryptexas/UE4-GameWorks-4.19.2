@@ -104,8 +104,8 @@ UBlueprintDelegateNodeSpawner* UBlueprintDelegateNodeSpawner::Create(TSubclassOf
 }
 
 //------------------------------------------------------------------------------
-UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintDelegateNodeSpawner::UBlueprintDelegateNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

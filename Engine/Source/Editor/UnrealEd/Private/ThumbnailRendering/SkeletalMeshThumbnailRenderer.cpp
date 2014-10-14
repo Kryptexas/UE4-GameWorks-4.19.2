@@ -7,8 +7,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
-USkeletalMeshThumbnailRenderer::USkeletalMeshThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMeshThumbnailRenderer::USkeletalMeshThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ThumbnailScene = nullptr;
 }

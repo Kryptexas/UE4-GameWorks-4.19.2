@@ -25,8 +25,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
 FDetailedTickStats GDetailedPathFindingStats( 30, 10, 1, 20, TEXT("pathfinding") );
 #endif
 
-APawn::APawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APawn::APawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;

@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UPostProcessComponent::UPostProcessComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPostProcessComponent::UPostProcessComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled = true;
 	BlendRadius = 100.0f;

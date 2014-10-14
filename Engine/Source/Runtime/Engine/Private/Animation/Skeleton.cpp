@@ -43,8 +43,8 @@ FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 	return Ar;
 }
 
-USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeleton::USkeleton(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Make sure we have somewhere for curve names.
 	SmartNames.AddContainer(AnimCurveMappingName);

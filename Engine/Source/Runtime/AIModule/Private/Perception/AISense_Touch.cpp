@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Touch.h"
 
-UAISense_Touch::UAISense_Touch(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Touch::UAISense_Touch(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	
 }

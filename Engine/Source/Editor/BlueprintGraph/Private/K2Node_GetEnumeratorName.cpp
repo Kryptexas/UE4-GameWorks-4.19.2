@@ -12,8 +12,8 @@
 
 FString UK2Node_GetEnumeratorName::EnumeratorPinName = TEXT("Enumerator");
 
-UK2Node_GetEnumeratorName::UK2Node_GetEnumeratorName(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_GetEnumeratorName::UK2Node_GetEnumeratorName(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

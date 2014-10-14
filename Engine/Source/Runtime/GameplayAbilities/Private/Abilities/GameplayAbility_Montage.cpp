@@ -11,8 +11,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-UGameplayAbility_Montage::UGameplayAbility_Montage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbility_Montage::UGameplayAbility_Montage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PlayRate = 1.f;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::Server;

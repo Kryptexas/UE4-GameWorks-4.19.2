@@ -25,8 +25,8 @@ static const int32 MAX_DEMO_READ_WRITE_BUFFER = 1024 * 2;
 	UDemoNetDriver.
 -----------------------------------------------------------------------------*/
 
-UDemoNetDriver::UDemoNetDriver(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDemoNetDriver::UDemoNetDriver(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -124,7 +124,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	World->DemoNetDriver = NULL;
 	SetWorld( NULL );
 
-	UDemoPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FPostConstructInitializeProperties() );
+	UDemoPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FObjectInitializer() );
 
 	NewPendingNetGame->DemoNetDriver = this;
 
@@ -721,7 +721,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 	UDemoNetConnection.
 -----------------------------------------------------------------------------*/
 
-UDemoNetConnection::UDemoNetConnection( const class FPostConstructInitializeProperties& PCIP ) : Super( PCIP )
+UDemoNetConnection::UDemoNetConnection( const FObjectInitializer& ObjectInitializer ) : Super( ObjectInitializer )
 {
 	MaxPacket = 512;
 	InternalAck = true;
@@ -835,6 +835,6 @@ bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 	UDemoPendingNetGame.
 -----------------------------------------------------------------------------*/
 
-UDemoPendingNetGame::UDemoPendingNetGame( const class FPostConstructInitializeProperties& PCIP ) : Super( PCIP )
+UDemoPendingNetGame::UDemoPendingNetGame( const FObjectInitializer& ObjectInitializer ) : Super( ObjectInitializer )
 {
 }

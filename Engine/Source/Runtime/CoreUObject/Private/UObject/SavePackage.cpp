@@ -2608,12 +2608,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				if (bCompressFromMemory || bSaveAsync)
 				{
 					// Allocate the linker with a memory writer, forcing byte swapping if wanted.
-					Linker = new ULinkerSave( FPostConstructInitializeProperties(), InOuter, bForceByteSwapping, bSaveUnversioned );
+					Linker = new ULinkerSave( FObjectInitializer(), InOuter, bForceByteSwapping, bSaveUnversioned );
 				}
 				else
 				{
 					// Allocate the linker, forcing byte swapping if wanted.
-					Linker = new ULinkerSave( FPostConstructInitializeProperties(), InOuter, *TempFilename, bForceByteSwapping, bSaveUnversioned );
+					Linker = new ULinkerSave( FObjectInitializer(), InOuter, *TempFilename, bForceByteSwapping, bSaveUnversioned );
 				}
 
 				// Use the custom versions we had previously gleaned from the export tag pass

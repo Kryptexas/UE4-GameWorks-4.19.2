@@ -455,8 +455,8 @@ public:
 	ENGINE_API static FSimpleMulticastDelegate LevelDirtiedEvent;
 
 	// Constructor.
-	ENGINE_API ULevel(const class FPostConstructInitializeProperties& PCIP, const FURL& InURL );
-	ULevel(const class FPostConstructInitializeProperties& PCIP );
+	ENGINE_API ULevel(const FObjectInitializer& ObjectInitializer, const FURL& InURL );
+	ULevel(const FObjectInitializer& ObjectInitializer );
 	~ULevel();
 
 	// Begin UObject interface.

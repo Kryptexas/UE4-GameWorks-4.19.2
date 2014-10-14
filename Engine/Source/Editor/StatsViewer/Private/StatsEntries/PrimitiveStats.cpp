@@ -3,8 +3,8 @@
 #include "StatsViewerPrivatePCH.h"
 #include "PrimitiveStats.h"
 
-UPrimitiveStats::UPrimitiveStats(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPrimitiveStats::UPrimitiveStats(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

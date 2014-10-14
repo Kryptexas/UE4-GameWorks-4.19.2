@@ -378,8 +378,8 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-UCableComponent::UCableComponent( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UCableComponent::UCableComponent( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;

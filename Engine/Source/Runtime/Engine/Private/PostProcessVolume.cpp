@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/PostProcessVolume.h"
 
-APostProcessVolume::APostProcessVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APostProcessVolume::APostProcessVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);

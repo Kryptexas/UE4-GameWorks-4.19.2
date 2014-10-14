@@ -6,8 +6,8 @@
 
 DECLARE_CYCLE_STAT(TEXT("Sensing"),STAT_AI_Sensing,STATGROUP_AI);
 
-UPawnSensingComponent::UPawnSensingComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnSensingComponent::UPawnSensingComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LOSHearingThreshold = 2800.f;
 	HearingThreshold = 1400.0f;

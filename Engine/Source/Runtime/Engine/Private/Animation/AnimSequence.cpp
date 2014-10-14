@@ -96,8 +96,8 @@ bool FCurveTrack::CompressCurveWeights()
 /////////////////////////////////////////////////////
 // UAnimSequence
 
-UAnimSequence::UAnimSequence(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSequence::UAnimSequence(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bEnableRootMotion(false)
 	, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	, bRootMotionSettingsCopiedFromMontage(false)

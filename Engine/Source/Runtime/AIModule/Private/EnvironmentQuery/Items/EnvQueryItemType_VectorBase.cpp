@@ -5,7 +5,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
 
-UEnvQueryItemType_VectorBase::UEnvQueryItemType_VectorBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType_VectorBase::UEnvQueryItemType_VectorBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

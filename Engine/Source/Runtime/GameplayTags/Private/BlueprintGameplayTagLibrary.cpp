@@ -2,8 +2,8 @@
 
 #include "GameplayTagsModulePrivatePCH.h"
 
-UBlueprintGameplayTagLibrary::UBlueprintGameplayTagLibrary(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintGameplayTagLibrary::UBlueprintGameplayTagLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

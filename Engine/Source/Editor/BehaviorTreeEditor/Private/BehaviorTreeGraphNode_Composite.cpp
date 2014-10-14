@@ -4,8 +4,8 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode_Composite"
 
-UBehaviorTreeGraphNode_Composite::UBehaviorTreeGraphNode_Composite(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBehaviorTreeGraphNode_Composite::UBehaviorTreeGraphNode_Composite(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

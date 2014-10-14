@@ -836,7 +836,7 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 				*PropNameDep, 
 				*SourceStruct,
 				*BoolProperty->GetCPPType(NULL, 0));
-			PropMacroOuterClass = FString::Printf(TEXT("FPostConstructInitializeProperties(), EC_CppProperty, CPP_BOOL_PROPERTY_OFFSET(%s, %s)"),
+			PropMacroOuterClass = FString::Printf(TEXT("FObjectInitializer(), EC_CppProperty, CPP_BOOL_PROPERTY_OFFSET(%s, %s)"),
 				*PropNameDep, *SourceStruct);
 		}
 		else
@@ -849,7 +849,7 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 	if (ArrayProperty)
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
-		FString PropMacroOuterArray = TEXT("FPostConstructInitializeProperties(), EC_CppProperty, 0");
+		FString PropMacroOuterArray = TEXT("FObjectInitializer(), EC_CppProperty, 0");
 		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
 	}
 }
@@ -1017,7 +1017,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 		GeneratedEnumRegisterFunctionText.Logf(TEXT("        if (!ReturnEnum)\r\n"));
 		GeneratedEnumRegisterFunctionText.Logf(TEXT("        {\r\n"));
 
-		GeneratedEnumRegisterFunctionText.Logf(TEXT("            ReturnEnum = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UEnum(FPostConstructInitializeProperties());\r\n"), *Enum->GetName());
+		GeneratedEnumRegisterFunctionText.Logf(TEXT("            ReturnEnum = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UEnum(FObjectInitializer());\r\n"), *Enum->GetName());
 		GeneratedEnumRegisterFunctionText.Logf(TEXT("            TArray<FName> EnumNames;\r\n"));
 		for (int32 Index = 0; Index < Enum->NumEnums(); Index++)
 		{
@@ -1110,7 +1110,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			ExplicitSizeString = FString::Printf( TEXT(", sizeof(%s), ALIGNOF(%s)"), NameLookupCPP.GetNameCPP(ScriptStruct), NameLookupCPP.GetNameCPP(ScriptStruct) );
 		}
 
-		GeneratedStructRegisterFunctionText.Logf(TEXT("            ReturnStruct = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UScriptStruct(FPostConstructInitializeProperties(), %s, %s, EStructFlags(0x%08X)%s);\r\n"),
+		GeneratedStructRegisterFunctionText.Logf(TEXT("            ReturnStruct = new(Outer, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UScriptStruct(FObjectInitializer(), %s, %s, EStructFlags(0x%08X)%s);\r\n"),
 			*ScriptStruct->GetName(),
 			*BaseStructString,
 			*CppStructOpsString,
@@ -1228,7 +1228,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class)
 			StructureSize = FString::Printf(TEXT(", sizeof(%s)"), *GetEventStructParamsName(*CastChecked<UClass>(TempFunction->GetOuter())->GetName(), *FunctionName));
 		}
 
-		GeneratedFunctionText.Logf(TEXT("            ReturnFunction = new(OuterClass, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UFunction(FPostConstructInitializeProperties(), %s, 0x%08X, %d%s);\r\n"), 
+		GeneratedFunctionText.Logf(TEXT("            ReturnFunction = new(OuterClass, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) UFunction(FObjectInitializer(), %s, 0x%08X, %d%s);\r\n"), 
 			*Function->GetName(),
 			*SuperFunctionString,
 			Function->FunctionFlags,
@@ -2016,10 +2016,10 @@ void ExportStandardConstructorsMacro(FStringOutputDevice& Out, FClass* Class, co
 	if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
 	{
 		Out.Logf(TEXT("%s/** Standard constructor, called after all reflected properties have been initialized */\r\n"), FCString::Spc(4));
-		Out.Logf(TEXT("%s%s_API %s(const class FPostConstructInitializeProperties& PCIP);\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+		Out.Logf(TEXT("%s%s_API %s(const class FObjectInitializer& ObjectInitializer);\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
 	}
 
-	Out.Logf(TEXT("%sDEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	Out.Logf(TEXT("%sDEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
 }
 
 /**
@@ -2036,10 +2036,10 @@ void ExportConstructorDefinition(FStringOutputDevice& Out, FClass* Class, const 
 	if (!ClassData->bConstructorDeclared)
 	{
 		Out.Logf(TEXT("%s/** Standard constructor, called after all reflected properties have been initialized */"), FCString::Spc(4));
-		Out.Logf(TEXT("%s%s_API %s(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { };\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+		Out.Logf(TEXT("%s%s_API %s(const class FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) { };\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
 
 		ClassData->bConstructorDeclared = true;
-		ClassData->bPCIPConstructorDeclared = true;
+		ClassData->bObjectInitializerConstructorDeclared = true;
 	}
 }
 
@@ -2053,9 +2053,9 @@ void ExportDefaultConstructorCallDefinition(FStringOutputDevice& Out, FClass* Cl
 {
 	auto* ClassData = GScriptHelper.FindClassData(Class);
 
-	if (ClassData->bPCIPConstructorDeclared)
+	if (ClassData->bObjectInitializerConstructorDeclared)
 	{
-		Out.Logf(TEXT("%sDEFINE_DEFAULT_PCIP_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+		Out.Logf(TEXT("%sDEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
 	}
 	else if (ClassData->bDefaultConstructorDeclared)
 	{
@@ -5028,7 +5028,7 @@ UClass* GenerateCodeForHeader
 		}
 
 		// Create new class.
-		ResultClass = new( InParent, *ClassNameStripped, Flags ) UClass( FPostConstructInitializeProperties(),NULL );
+		ResultClass = new( InParent, *ClassNameStripped, Flags ) UClass( FObjectInitializer(),NULL );
 		GClassHeaderNameWithNoPathMap.Add(ResultClass, ClassNameStripped);
 
 		// add CLASS_Interface flag if the class is an interface
@@ -5058,7 +5058,7 @@ UClass* GenerateCodeForHeader
 		if (ResultClass->GetSuperStruct() == NULL)
 		{
 			// don't know its parent class yet
-			ResultClass->SetSuperStruct( new(InParent, *BaseClassNameStripped) UClass(FPostConstructInitializeProperties(),NULL) );
+			ResultClass->SetSuperStruct( new(InParent, *BaseClassNameStripped) UClass(FObjectInitializer(),NULL) );
 		}
 
 		if (ResultClass->GetSuperStruct() != NULL)

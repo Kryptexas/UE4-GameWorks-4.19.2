@@ -27,8 +27,8 @@
 
 FName	UInterpTrackHelper::KeyframeAddDataName = NAME_None;
 
-UInterpTrackHelper::UInterpTrackHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackHelper::UInterpTrackHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -72,8 +72,8 @@ void FMatinee::SetTrackAddPropName( const FName NewName )
 	TrackAddPropName = NewName;
 }
 
-UMatineeTrackAnimControlHelper::UMatineeTrackAnimControlHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackAnimControlHelper::UMatineeTrackAnimControlHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -312,8 +312,8 @@ void  UMatineeTrackAnimControlHelper::PostCreateKeyframe( UInterpTrack *Track, i
 }
 
 
-UMatineeTrackDirectorHelper::UMatineeTrackDirectorHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackDirectorHelper::UMatineeTrackDirectorHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -381,8 +381,8 @@ void  UMatineeTrackDirectorHelper::PostCreateKeyframe( UInterpTrack *Track, int3
 
 
 
-UMatineeTrackEventHelper::UMatineeTrackEventHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackEventHelper::UMatineeTrackEventHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -453,8 +453,8 @@ void  UMatineeTrackEventHelper::PostCreateKeyframe( UInterpTrack *Track, int32 K
 	KeyframeAddDataName = NAME_None;
 }
 
-UMatineeTrackSoundHelper::UMatineeTrackSoundHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackSoundHelper::UMatineeTrackSoundHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -482,8 +482,8 @@ void  UMatineeTrackSoundHelper::PostCreateKeyframe( UInterpTrack *Track, int32 K
 	KeyframeAddSound = NULL;
 }
 
-UMatineeTrackFloatPropHelper::UMatineeTrackFloatPropHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackFloatPropHelper::UMatineeTrackFloatPropHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -619,8 +619,8 @@ void  UMatineeTrackFloatPropHelper::PostCreateTrack( UInterpTrack *Track, bool b
 
 
 
-UMatineeTrackBoolPropHelper::UMatineeTrackBoolPropHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackBoolPropHelper::UMatineeTrackBoolPropHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -756,8 +756,8 @@ void UMatineeTrackBoolPropHelper::PostCreateTrack( UInterpTrack* Track, bool bDu
 }
 
 
-UMatineeTrackToggleHelper::UMatineeTrackToggleHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackToggleHelper::UMatineeTrackToggleHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -835,8 +835,8 @@ void  UMatineeTrackToggleHelper::PostCreateKeyframe( UInterpTrack *Track, int32 
 		KeyframeAddDataName = NAME_None;
 }
 
-UMatineeTrackVectorPropHelper::UMatineeTrackVectorPropHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackVectorPropHelper::UMatineeTrackVectorPropHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -982,8 +982,8 @@ void  UMatineeTrackVectorPropHelper::PostCreateTrack( UInterpTrack *Track, bool 
 	}
 }
 
-UMatineeTrackColorPropHelper::UMatineeTrackColorPropHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackColorPropHelper::UMatineeTrackColorPropHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1047,8 +1047,8 @@ void  UMatineeTrackColorPropHelper::PostCreateTrack( UInterpTrack *Track, bool b
 
 
 
-UMatineeTrackLinearColorPropHelper::UMatineeTrackLinearColorPropHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackLinearColorPropHelper::UMatineeTrackLinearColorPropHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1110,8 +1110,8 @@ void  UMatineeTrackLinearColorPropHelper::PostCreateTrack( UInterpTrack *Track, 
 	}
 }
 
-UMatineeTrackVisibilityHelper::UMatineeTrackVisibilityHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackVisibilityHelper::UMatineeTrackVisibilityHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1194,8 +1194,8 @@ void  UMatineeTrackVisibilityHelper::PostCreateKeyframe( UInterpTrack *Track, in
 
 
 
-UMatineeTrackParticleReplayHelper::UMatineeTrackParticleReplayHelper(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTrackParticleReplayHelper::UMatineeTrackParticleReplayHelper(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

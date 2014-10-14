@@ -7,8 +7,8 @@
 #define LOCTEXT_NAMESPACE "PaperJsonImporter"
 
 
-UReimportPaperJsonImporterFactory::UReimportPaperJsonImporterFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportPaperJsonImporterFactory::UReimportPaperJsonImporterFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UPaperSpriteSheet::StaticClass();
 

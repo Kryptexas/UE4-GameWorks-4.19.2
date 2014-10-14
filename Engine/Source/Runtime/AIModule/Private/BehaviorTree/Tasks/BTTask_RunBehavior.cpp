@@ -4,7 +4,7 @@
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 
-UBTTask_RunBehavior::UBTTask_RunBehavior(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_RunBehavior::UBTTask_RunBehavior(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Run Behavior";
 }

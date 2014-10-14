@@ -163,10 +163,10 @@ static inline USelection*& PrivateGetSelectedObjects()
 
 static void PrivateInitSelectedSets()
 {
-	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
+	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FObjectInitializer());
 	PrivateGetSelectedActors()->AddToRoot();
 
-	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
+	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FObjectInitializer());
 	PrivateGetSelectedObjects()->AddToRoot();
 }
 
@@ -180,8 +180,8 @@ static void PrivateDestroySelectedSets()
 #endif
 }
 
-UEditorEngine::UEditorEngine(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UEditorEngine::UEditorEngine(const class FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	if (!IsRunningCommandlet())
 	{
@@ -417,8 +417,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
 
 	// Allocate temporary model.
-	TempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
-	ConversionTempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
+	TempModel = new UModel( FObjectInitializer(),NULL, 1 );
+	ConversionTempModel = new UModel( FObjectInitializer(),NULL, 1 );
 
 	// create the timer manager
 	TimerManager = MakeShareable( new FTimerManager() );
@@ -6163,7 +6163,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	}
 
 	// Use a level factory to spawn all the actors using the ExportText
-	ULevelFactory* Factory = new ULevelFactory(FPostConstructInitializeProperties());
+	ULevelFactory* Factory = new ULevelFactory(FObjectInitializer());
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );

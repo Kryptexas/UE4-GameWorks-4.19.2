@@ -205,7 +205,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	ACharacter(const class FPostConstructInitializeProperties& PCIP);
+	ACharacter(const FObjectInitializer& ObjectInitializer);
 
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
@@ -224,10 +224,10 @@ public:
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
 
-	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
+	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
-	/** Name of the CharacterMovement component. Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
+	/** Name of the CharacterMovement component. Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName CharacterMovementComponentName;
 
 	/** Name of the CapsuleComponent. */

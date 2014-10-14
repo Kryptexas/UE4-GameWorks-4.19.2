@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Damage.h"
 
-UAISense_Damage::UAISense_Damage(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Damage::UAISense_Damage(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	
 }

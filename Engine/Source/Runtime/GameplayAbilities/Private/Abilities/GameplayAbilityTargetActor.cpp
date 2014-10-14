@@ -12,8 +12,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	StaticTargetFunction = false;
 	ShouldProduceTargetDataOnServer = false;

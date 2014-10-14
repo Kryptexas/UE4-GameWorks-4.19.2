@@ -42,8 +42,8 @@ public:
 	}
 };
 
-UConsole::UConsole(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UConsole::UConsole(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 //	, HistoryBufferCur(0)
 //	, AutoCompleteCursor(-1)
 {

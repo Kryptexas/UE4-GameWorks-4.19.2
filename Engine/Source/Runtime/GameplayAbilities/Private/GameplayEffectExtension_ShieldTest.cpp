@@ -6,8 +6,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemTestAttributeSet.h"
 
-UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 }

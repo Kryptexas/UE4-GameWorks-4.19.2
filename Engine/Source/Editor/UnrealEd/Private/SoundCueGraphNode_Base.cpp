@@ -9,8 +9,8 @@
 /////////////////////////////////////////////////////
 // USoundCueGraphNode_Base
 
-USoundCueGraphNode_Base::USoundCueGraphNode_Base(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCueGraphNode_Base::USoundCueGraphNode_Base(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

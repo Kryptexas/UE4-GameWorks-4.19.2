@@ -117,8 +117,8 @@ void FEnvironmentQuerySchemaAction_NewSubNode::AddReferencedObjects( FReferenceC
 
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_EnvironmentQuery::UEdGraphSchema_EnvironmentQuery(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema_EnvironmentQuery::UEdGraphSchema_EnvironmentQuery(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -5045,8 +5045,8 @@ void FCascade::CloseEntryPopup()
 /*-----------------------------------------------------------------------------
 	UCascadeParticleSystemComponent
 -----------------------------------------------------------------------------*/
-UCascadeParticleSystemComponent::UCascadeParticleSystemComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCascadeParticleSystemComponent::UCascadeParticleSystemComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5090,8 +5090,8 @@ void UCascadeParticleSystemComponent::UpdateLODInformation()
 	}
 }
 
-UCascadeConfiguration::UCascadeConfiguration(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCascadeConfiguration::UCascadeConfiguration(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

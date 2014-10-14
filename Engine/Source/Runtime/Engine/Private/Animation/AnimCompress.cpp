@@ -85,8 +85,8 @@ static void PackQuaternionToStream(
 	}
 }
 
-UAnimCompress::UAnimCompress(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress::UAnimCompress(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("None");
 	TranslationCompressionFormat = ACF_None;

@@ -13,8 +13,8 @@
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AGameplayAbilityTargetActor_Radius::AGameplayAbilityTargetActor_Radius(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayAbilityTargetActor_Radius::AGameplayAbilityTargetActor_Radius(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;

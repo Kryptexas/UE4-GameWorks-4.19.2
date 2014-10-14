@@ -10,8 +10,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationReportCommandlet, Log, All);
 
-UGenerateTextLocalizationReportCommandlet::UGenerateTextLocalizationReportCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenerateTextLocalizationReportCommandlet::UGenerateTextLocalizationReportCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

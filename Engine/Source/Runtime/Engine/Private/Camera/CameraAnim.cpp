@@ -16,8 +16,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UCameraAnim
 
-UCameraAnim::UCameraAnim(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCameraAnim::UCameraAnim(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AnimLength = 3.0f;
 	BaseFOV = 90.0f;

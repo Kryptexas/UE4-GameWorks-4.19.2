@@ -1048,7 +1048,7 @@ bool FLightmassMaterialRenderer::CreateRenderTarget(EPixelFormat InFormat, int32
 
 	if (RenderTarget == NULL)
 	{
-		RenderTarget = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+		RenderTarget = new UTextureRenderTarget2D(FObjectInitializer());
 		check(RenderTarget);
 		RenderTarget->AddToRoot();
 		RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);

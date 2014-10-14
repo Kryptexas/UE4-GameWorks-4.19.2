@@ -2,19 +2,19 @@
 
 #include "EnginePrivate.h"
 
-UInterface_CollisionDataProvider::UInterface_CollisionDataProvider(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterface_CollisionDataProvider::UInterface_CollisionDataProvider(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-URuntimeMovieScenePlayerInterface::URuntimeMovieScenePlayerInterface( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+URuntimeMovieScenePlayerInterface::URuntimeMovieScenePlayerInterface( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 }
 
-UInterface_PostProcessVolume::UInterface_PostProcessVolume( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UInterface_PostProcessVolume::UInterface_PostProcessVolume( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 }

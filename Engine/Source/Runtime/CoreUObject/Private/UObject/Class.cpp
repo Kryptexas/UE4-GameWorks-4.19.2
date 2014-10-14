@@ -408,8 +408,8 @@ UStruct::UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags )
 {
 }
 
-UStruct::UStruct(const class FPostConstructInitializeProperties& PCIP, UStruct* InSuperStruct, SIZE_T ParamsSize, SIZE_T Alignment )
-:	UField			(PCIP)
+UStruct::UStruct(const FObjectInitializer& ObjectInitializer, UStruct* InSuperStruct, SIZE_T ParamsSize, SIZE_T Alignment )
+:	UField			(ObjectInitializer)
 ,   SuperStruct		( InSuperStruct )
 ,	Children		( NULL )
 ,	PropertiesSize	( ParamsSize ? ParamsSize : (InSuperStruct ? InSuperStruct->GetPropertiesSize() : 0) )
@@ -1812,8 +1812,8 @@ UScriptStruct::UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InF
 {
 }
 
-UScriptStruct::UScriptStruct(const class FPostConstructInitializeProperties& PCIP, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps, EStructFlags InStructFlags, SIZE_T ExplicitSize, SIZE_T ExplicitAlignment )
-	: UStruct(PCIP, InSuperStruct, InCppStructOps ? InCppStructOps->GetSize() : ExplicitSize, InCppStructOps ? InCppStructOps->GetAlignment() : ExplicitAlignment )
+UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps, EStructFlags InStructFlags, SIZE_T ExplicitSize, SIZE_T ExplicitAlignment )
+	: UStruct(ObjectInitializer, InSuperStruct, InCppStructOps ? InCppStructOps->GetSize() : ExplicitSize, InCppStructOps ? InCppStructOps->GetAlignment() : ExplicitAlignment )
 	, StructFlags(EStructFlags(InStructFlags | (InCppStructOps ? STRUCT_Native : STRUCT_NoFlags)))
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
@@ -1825,8 +1825,8 @@ UScriptStruct::UScriptStruct(const class FPostConstructInitializeProperties& PCI
 	PrepareCppStructOps(); // propgate flags, etc
 }
 
-UScriptStruct::UScriptStruct(const class FPostConstructInitializeProperties& PCIP)
-	: UStruct(PCIP)
+UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer)
+	: UStruct(ObjectInitializer)
 	, StructFlags(STRUCT_NoFlags)
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
@@ -2414,7 +2414,7 @@ class FRestoreClassInfo: public FRestoreForUObjectOverwrite
 	/** Saved ClassCastFlags **/
 	EClassCastFlags	CastFlags;
 	/** Saved ClassConstructor **/
-	void			(*Constructor)(const class FPostConstructInitializeProperties&);
+	void			(*Constructor)(const FObjectInitializer&);
 	/** Saved ClassConstructor **/
 	void			(*AddReferencedObjects)(UObject*, FReferenceCollector&);
 	/** Saved NativeFunctionLookupTable. */
@@ -2513,7 +2513,7 @@ UObject* UClass::CreateDefaultObject()
 				check(ClassDefaultObject);
 				// Blueprint CDOs have their properties always initialized.
 				const bool bShouldInitilizeProperties = !HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
-				(*ClassConstructor)(FPostConstructInitializeProperties(ClassDefaultObject, ParentDefaultObject, false, bShouldInitilizeProperties));
+				(*ClassConstructor)(FObjectInitializer(ClassDefaultObject, ParentDefaultObject, false, bShouldInitilizeProperties));
 			}
 		}
 	}
@@ -3257,8 +3257,8 @@ bool UClass::HasProperty(UProperty* InProperty) const
 /**
  * Internal constructor.
  */
-UClass::UClass(const class FPostConstructInitializeProperties& PCIP)
-:	UStruct( PCIP )
+UClass::UClass(const FObjectInitializer& ObjectInitializer)
+:	UStruct( ObjectInitializer )
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
 ,	ClassUnique(0)
@@ -3273,8 +3273,8 @@ UClass::UClass(const class FPostConstructInitializeProperties& PCIP)
 /**
  * Create a new UClass given its superclass.
  */
-UClass::UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InBaseClass )
-:	UStruct( PCIP, InBaseClass )
+UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass )
+:	UStruct( ObjectInitializer, InBaseClass )
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
 ,	ClassUnique(0)
@@ -3317,7 +3317,7 @@ UClass::UClass
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
 	EObjectFlags	InFlags,
-	void			(*InClassConstructor)(const class FPostConstructInitializeProperties&),
+	void			(*InClassConstructor)(const FObjectInitializer&),
 	void			(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&)
 )
 :	UStruct					( EC_StaticConstructor, InSize, InFlags )
@@ -3344,7 +3344,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	uint32			InClassFlags,
 	EClassCastFlags	InClassCastFlags,
 	const TCHAR*    InConfigName,
-	void			(*InClassConstructor)(const class FPostConstructInitializeProperties&),
+	void			(*InClassConstructor)(const FObjectInitializer&),
 	void			(*InAddReferencedObjects)(UObject*, class FReferenceCollector&),
 	class UClass* TClass_Super_StaticClass,
 	class UClass* TClass_WithinClass_StaticClass
@@ -3363,7 +3363,7 @@ bool UClass::HotReloadPrivateStaticClass(
 	//@todo safe? ClassFlags = InClassFlags | CLASS_Native;
 	//@todo safe? ClassCastFlags = InClassCastFlags;
 	//@todo safe? ClassConfigName = InConfigName;
-	void(*OldClassConstructor)(const class FPostConstructInitializeProperties&) = ClassConstructor;
+	void(*OldClassConstructor)(const FObjectInitializer&) = ClassConstructor;
 	ClassConstructor = InClassConstructor;
 	ClassAddReferencedObjects = InAddReferencedObjects;
 	/* No recursive ::StaticClass calls allowed. Setup extras. */
@@ -3644,8 +3644,8 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	UFunction.
 -----------------------------------------------------------------------------*/
 
-UFunction::UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
-: UStruct( PCIP, InSuperFunction, ParamsSize )
+UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize )
+: UStruct( ObjectInitializer, InSuperFunction, ParamsSize )
 , FunctionFlags(InFunctionFlags)
 , RepOffset(InRepOffset)
 , RPCId(0)

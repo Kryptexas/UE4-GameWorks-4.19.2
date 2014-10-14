@@ -25,8 +25,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimationTransitionSchema"
 
-UAnimationTransitionSchema::UAnimationTransitionSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationTransitionSchema::UAnimationTransitionSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Initialize defaults
 }

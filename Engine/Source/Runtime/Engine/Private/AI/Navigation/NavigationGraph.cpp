@@ -18,8 +18,8 @@ FNavGraphNode::FNavGraphNode()
 //----------------------------------------------------------------------//
 // UNavigationGraphNodeComponent
 //----------------------------------------------------------------------//
-UNavigationGraphNodeComponent::UNavigationGraphNodeComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationGraphNodeComponent::UNavigationGraphNodeComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -44,8 +44,8 @@ void UNavigationGraphNodeComponent::BeginDestroy()
 //----------------------------------------------------------------------//
 // ANavigationGraphNode
 //----------------------------------------------------------------------//
-ANavigationGraphNode::ANavigationGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationGraphNode::ANavigationGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -53,8 +53,8 @@ ANavigationGraphNode::ANavigationGraphNode(const class FPostConstructInitializeP
 // ANavigationGraph
 //----------------------------------------------------------------------//
 
-ANavigationGraph::ANavigationGraph(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationGraph::ANavigationGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{

@@ -7,8 +7,8 @@
 #include "MovieSceneBoolTrackInstance.h"
 
 
-UMovieSceneBoolTrack::UMovieSceneBoolTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneBoolTrack::UMovieSceneBoolTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

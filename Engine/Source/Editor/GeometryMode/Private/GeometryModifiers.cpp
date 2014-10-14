@@ -26,8 +26,8 @@ static FVector ComputeWorldSpaceMousePos( FEditorViewportClient* ViewportClient 
 	return View->PixelToWorld(ViewportClient->Viewport->GetMouseX(),ViewportClient->Viewport->GetMouseY(),0.5f);
 }
 
-UGeomModifier::UGeomModifier(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier::UGeomModifier(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bPushButton = false;
 	bInitialized = false;
@@ -366,8 +366,8 @@ void UGeomModifier::StoreAllCurrentGeomSelections()
 }
 
 
-UGeomModifier_Edit::UGeomModifier_Edit(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Edit::UGeomModifier_Edit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Edit", "Edit");
 }
@@ -606,8 +606,8 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 /*------------------------------------------------------------------------------
 	UGeomModifier_Extrude
 ------------------------------------------------------------------------------*/
-UGeomModifier_Extrude::UGeomModifier_Extrude(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Extrude::UGeomModifier_Extrude(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Extrude", "Extrude");
 	Length = 16;
@@ -837,8 +837,8 @@ void UGeomModifier_Extrude::Apply(int32 InLength, int32 InSegments)
 	}
 }
 
-UGeomModifier_Lathe::UGeomModifier_Lathe(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Lathe::UGeomModifier_Lathe(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Lathe", "Lathe");
 	Axis = EAxis::Y;
@@ -1166,8 +1166,8 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 /*------------------------------------------------------------------------------
 	UGeomModifier_Pen
 ------------------------------------------------------------------------------*/
-UGeomModifier_Pen::UGeomModifier_Pen(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Pen::UGeomModifier_Pen(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Pen", "Pen");
 	bCreateBrushShape = false;
@@ -1699,7 +1699,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	// perhaps there were additional brushes were selected. 
 	check( ClippedBrush->GetClass() == InBrush->GetClass() );
 
-	ClippedBrush->Brush = new( InBrush->GetOuter(), NAME_None )UModel( FPostConstructInitializeProperties(),NULL );
+	ClippedBrush->Brush = new( InBrush->GetOuter(), NAME_None )UModel( FObjectInitializer(),NULL );
 	ClippedBrush->BrushComponent->Brush = ClippedBrush->Brush;
 
 	GeometryClipping::BuildGiantAlignedBrush( *ClippedBrush, InPlane );
@@ -1816,8 +1816,8 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 }
 
 } // namespace GeometryClipping
-UGeomModifier_Clip::UGeomModifier_Clip(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Clip::UGeomModifier_Clip(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "BrushClip", "Brush Clip");
 	bFlipNormal = false;
@@ -2196,8 +2196,8 @@ void UGeomModifier_Clip::Tick(FEditorViewportClient* ViewportClient,float DeltaT
 }
 
 
-UGeomModifier_Delete::UGeomModifier_Delete(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Delete::UGeomModifier_Delete(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Delete", "Delete");
 	bPushButton = true;
@@ -2281,8 +2281,8 @@ bool UGeomModifier_Delete::OnApply()
 	return bHandled;
 }
 
-UGeomModifier_Create::UGeomModifier_Create(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Create::UGeomModifier_Create(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Create", "Create");
 	bPushButton = true;
@@ -2345,8 +2345,8 @@ bool UGeomModifier_Create::OnApply()
 	return true;
 }
 
-UGeomModifier_Flip::UGeomModifier_Flip(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Flip::UGeomModifier_Flip(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Flip", "Flip");
 	bPushButton = true;
@@ -2389,8 +2389,8 @@ bool UGeomModifier_Flip::OnApply()
 	return true;
 }
 
-UGeomModifier_Split::UGeomModifier_Split(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Split::UGeomModifier_Split(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Split", "Split");
 	bPushButton = true;
@@ -2759,8 +2759,8 @@ bool UGeomModifier_Split::OnApply()
 	return true;
 }
 
-UGeomModifier_Triangulate::UGeomModifier_Triangulate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Triangulate::UGeomModifier_Triangulate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Triangulate", "Triangulate");
 	bPushButton = true;
@@ -2830,8 +2830,8 @@ bool UGeomModifier_Triangulate::OnApply()
 	return true;
 }
 
-UGeomModifier_Optimize::UGeomModifier_Optimize(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Optimize::UGeomModifier_Optimize(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Optimize", "Optimize");
 	bPushButton = true;
@@ -2917,8 +2917,8 @@ bool UGeomModifier_Optimize::OnApply()
 	return true;
 }
 
-UGeomModifier_Turn::UGeomModifier_Turn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Turn::UGeomModifier_Turn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Turn", "Turn");
 	bPushButton = true;
@@ -3077,8 +3077,8 @@ bool UGeomModifier_Turn::OnApply()
 	return true;
 }
 
-UGeomModifier_Weld::UGeomModifier_Weld(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGeomModifier_Weld::UGeomModifier_Weld(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = NSLOCTEXT("UnrealEd", "Weld", "Weld");
 	bPushButton = true;

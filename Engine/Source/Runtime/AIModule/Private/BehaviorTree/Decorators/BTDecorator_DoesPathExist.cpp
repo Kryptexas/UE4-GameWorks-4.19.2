@@ -8,7 +8,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_DoesPathExist.h"
 
-UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Does path exist";
 

@@ -23,8 +23,8 @@ float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 	return NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
 }
 
-UAttributeSet::UAttributeSet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAttributeSet::UAttributeSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

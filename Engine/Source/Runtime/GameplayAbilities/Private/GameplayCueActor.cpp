@@ -3,8 +3,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueActor.h"
 
-AGameplayCueActor::AGameplayCueActor(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+AGameplayCueActor::AGameplayCueActor(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	AttachToOwner = false;
 }

@@ -8,8 +8,8 @@
 
 
 
-UEditorAnimSegment::UEditorAnimSegment(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorAnimSegment::UEditorAnimSegment(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	AnimSlotIndex = 0;

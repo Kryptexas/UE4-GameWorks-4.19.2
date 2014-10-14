@@ -7,7 +7,7 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeAmbientNonLoopToggle implementation
 -----------------------------------------------------------------------------*/
-UDEPRECATED_SoundNodeAmbientNonLoopToggle::UDEPRECATED_SoundNodeAmbientNonLoopToggle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_SoundNodeAmbientNonLoopToggle::UDEPRECATED_SoundNodeAmbientNonLoopToggle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

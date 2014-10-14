@@ -3,8 +3,8 @@
 #include "IntroTutorialsPrivatePCH.h"
 #include "EditorTutorial.h"
 
-UEditorTutorial::UEditorTutorial(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorTutorial::UEditorTutorial(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -108,8 +108,8 @@ UEdGraphNode* FEdGraphSchemaAction_NewStateComment::PerformAction(class UEdGraph
 /////////////////////////////////////////////////////
 // UAnimationStateMachineSchema
 
-UAnimationStateMachineSchema::UAnimationStateMachineSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationStateMachineSchema::UAnimationStateMachineSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PC_Exec = TEXT("exec");
 }

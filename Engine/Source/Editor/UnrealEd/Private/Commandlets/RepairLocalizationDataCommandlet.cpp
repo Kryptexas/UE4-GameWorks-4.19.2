@@ -132,8 +132,8 @@ void RepairManifestAndArchives(TSharedRef<FInternationalizationManifest> Manifes
 	}
 }
 
-URepairLocalizationDataCommandlet::URepairLocalizationDataCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URepairLocalizationDataCommandlet::URepairLocalizationDataCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

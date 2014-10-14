@@ -2,8 +2,8 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-UWidgetDesignerSettings::UWidgetDesignerSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetDesignerSettings::UWidgetDesignerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	GridSnapEnabled = true;
 	GridSnapSize = 4;

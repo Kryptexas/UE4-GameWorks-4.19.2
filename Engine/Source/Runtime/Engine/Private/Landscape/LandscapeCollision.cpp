@@ -1569,8 +1569,8 @@ void ULandscapeHeightfieldCollisionComponent::SetSectionBase(FIntPoint InSection
 	SectionBaseY = InSectionBase.Y;
 }
 
-ULandscapeHeightfieldCollisionComponent::ULandscapeHeightfieldCollisionComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeHeightfieldCollisionComponent::ULandscapeHeightfieldCollisionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);

@@ -7,8 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_RotationMultiplier::UAnimGraphNode_RotationMultiplier(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_RotationMultiplier::UAnimGraphNode_RotationMultiplier(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

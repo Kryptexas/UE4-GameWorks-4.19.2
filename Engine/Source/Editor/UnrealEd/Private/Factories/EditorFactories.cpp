@@ -69,8 +69,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 /*------------------------------------------------------------------------------
 	UTexture2DFactoryNew implementation.
 ------------------------------------------------------------------------------*/
-UTexture2DFactoryNew::UTexture2DFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexture2DFactoryNew::UTexture2DFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass		= UTexture2D::StaticClass();
 	bCreateNew			= true;
@@ -116,8 +116,8 @@ UObject* UTexture2DFactoryNew::FactoryCreateNew( UClass* InClass, UObject* InPar
 /*------------------------------------------------------------------------------
 	UMaterialInstanceConstantFactoryNew implementation.
 ------------------------------------------------------------------------------*/
-UMaterialInstanceConstantFactoryNew::UMaterialInstanceConstantFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialInstanceConstantFactoryNew::UMaterialInstanceConstantFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UMaterialInstanceConstant::StaticClass();
@@ -145,8 +145,8 @@ UObject* UMaterialInstanceConstantFactoryNew::FactoryCreateNew(UClass* Class,UOb
 /*------------------------------------------------------------------------------
 	UMaterialFactoryNew implementation.
 ------------------------------------------------------------------------------*/
-UMaterialFactoryNew::UMaterialFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialFactoryNew::UMaterialFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UMaterial::StaticClass();
@@ -188,8 +188,8 @@ UObject* UMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent,F
 /*------------------------------------------------------------------------------
 	UMaterialFunctionFactoryNew implementation.
 ------------------------------------------------------------------------------*/
-UMaterialFunctionFactoryNew::UMaterialFunctionFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialFunctionFactoryNew::UMaterialFunctionFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UMaterialFunction::StaticClass();
@@ -206,8 +206,8 @@ UObject* UMaterialFunctionFactoryNew::FactoryCreateNew(UClass* Class,UObject* In
 /*------------------------------------------------------------------------------
 	UMaterialParameterCollectionFactoryNew implementation.
 ------------------------------------------------------------------------------*/
-UMaterialParameterCollectionFactoryNew::UMaterialParameterCollectionFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialParameterCollectionFactoryNew::UMaterialParameterCollectionFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UMaterialParameterCollection::StaticClass();
@@ -276,8 +276,8 @@ static bool ForceValidActorRefs(UStruct* Struct, uint8* Data)
 	return bChangedObjectPointer;
 }
 
-ULevelFactory::ULevelFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelFactory::ULevelFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UWorld::StaticClass();
 	Formats.Add(TEXT("t3d;Unreal World"));
@@ -425,7 +425,7 @@ UObject* ULevelFactory::FactoryCreateText
 				if (FParse::Value(Str, TEXT("NAME="), LevelName))
 				{
 					// create a new named level
-					World->SetCurrentLevel( new(World->GetOuter(), *LevelName)ULevel(FPostConstructInitializeProperties(),FURL(nullptr)) );
+					World->SetCurrentLevel( new(World->GetOuter(), *LevelName)ULevel(FObjectInitializer(),FURL(nullptr)) );
 				}
 			}
 #endif
@@ -752,7 +752,7 @@ UObject* ULevelFactory::FactoryCreateText
 
 	if (GIsImportingT3D && (MapPackageText.Len() > 0))
 	{
-		UPackageFactory* PackageFactory = new UPackageFactory(FPostConstructInitializeProperties());
+		UPackageFactory* PackageFactory = new UPackageFactory(FObjectInitializer());
 		check(PackageFactory);
 
 		FName NewPackageName(*(RootMapPackage->GetName()));
@@ -930,8 +930,8 @@ UObject* ULevelFactory::FactoryCreateText
 /*-----------------------------------------------------------------------------
 	UPackageFactory.
 -----------------------------------------------------------------------------*/
-UPackageFactory::UPackageFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPackageFactory::UPackageFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UPackage::StaticClass();
 	Formats.Add(TEXT("T3DPKG;Unreal Package"));
@@ -1115,8 +1115,8 @@ UObject* UPackageFactory::FactoryCreateText( UClass* Class, UObject* InParent, F
 	UPolysFactory.
 -----------------------------------------------------------------------------*/
 
-UPolysFactory::UPolysFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPolysFactory::UPolysFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UPolys::StaticClass();
@@ -1141,7 +1141,7 @@ UObject* UPolysFactory::FactoryCreateText
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	// Create polys.
-	UPolys* Polys = Context ? CastChecked<UPolys>(Context) : new(InParent,Name,Flags)UPolys(FPostConstructInitializeProperties());
+	UPolys* Polys = Context ? CastChecked<UPolys>(Context) : new(InParent,Name,Flags)UPolys(FObjectInitializer());
 
 	// Eat up if present.
 	GetBEGIN( &Buffer, TEXT("POLYLIST") );
@@ -1388,8 +1388,8 @@ UObject* UPolysFactory::FactoryCreateText
 /*-----------------------------------------------------------------------------
 	UModelFactory.
 -----------------------------------------------------------------------------*/
-UModelFactory::UModelFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UModelFactory::UModelFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UModel::StaticClass();
 	Formats.Add(TEXT("t3d;Unreal model text"));
@@ -1413,7 +1413,7 @@ UObject* UModelFactory::FactoryCreateText
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	ABrush* TempOwner = (ABrush*)Context;
-	UModel* Model = new( InParent, Name, Flags )UModel( FPostConstructInitializeProperties(),TempOwner, 1 );
+	UModel* Model = new( InParent, Name, Flags )UModel( FObjectInitializer(),TempOwner, 1 );
 
 	const TCHAR* StrPtr;
 	FString StrLine;
@@ -1431,7 +1431,7 @@ UObject* UModelFactory::FactoryCreateText
 		}
 		else if( GetBEGIN (&StrPtr,TEXT("POLYLIST")) )
 		{
-			UPolysFactory* PolysFactory = new UPolysFactory(FPostConstructInitializeProperties());
+			UPolysFactory* PolysFactory = new UPolysFactory(FObjectInitializer());
 			Model->Polys = (UPolys*)PolysFactory->FactoryCreateText(UPolys::StaticClass(),Model,NAME_None,RF_Transactional,nullptr,Type,Buffer,BufferEnd,Warn);
 			check(Model->Polys);
 		}
@@ -1540,8 +1540,8 @@ void CreateSoundCue( USoundWave* Sound, UObject* InParent, EObjectFlags Flags, b
 /*-----------------------------------------------------------------------------
 	UReverbEffectFactory.
 -----------------------------------------------------------------------------*/
-UReverbEffectFactory::UReverbEffectFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReverbEffectFactory::UReverbEffectFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UReverbEffect::StaticClass();
@@ -1564,8 +1564,8 @@ UObject* UReverbEffectFactory::FactoryCreateNew( UClass* InClass, UObject* InPar
 
 static bool bSoundFactorySuppressImportOverwriteDialog = false;
 
-USoundFactory::USoundFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundFactory::USoundFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 
@@ -1713,7 +1713,7 @@ UObject* USoundFactory::FactoryCreateBinary
 
 		// Use pre-existing sound if it exists and we want to keep settings,
 		// otherwise create new sound and import raw data.
-		USoundWave* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new( InParent, Name, Flags ) USoundWave(FPostConstructInitializeProperties());
+		USoundWave* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new( InParent, Name, Flags ) USoundWave(FObjectInitializer());
 		
 		if (bUseExistingSettings && ExistingSound)
 		{
@@ -1786,8 +1786,8 @@ void USoundFactory::SuppressImportOverwriteDialog()
 	UDialogueVoiceFactory.
 -----------------------------------------------------------------------------*/
 
-UDialogueVoiceFactory::UDialogueVoiceFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueVoiceFactory::UDialogueVoiceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UDialogueVoice::StaticClass();
 	bCreateNew = true;
@@ -1803,8 +1803,8 @@ UObject* UDialogueVoiceFactory::FactoryCreateNew(UClass* Class,UObject* InParent
 	UDialogueWaveFactory.
 -----------------------------------------------------------------------------*/
 
-UDialogueWaveFactory::UDialogueWaveFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueWaveFactory::UDialogueWaveFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UDialogueWave::StaticClass();
 	bCreateNew = true;
@@ -1819,8 +1819,8 @@ UObject* UDialogueWaveFactory::FactoryCreateNew(UClass* Class,UObject* InParent,
 /*-----------------------------------------------------------------------------
 	UReimportSoundFactory.
 -----------------------------------------------------------------------------*/
-UReimportSoundFactory::UReimportSoundFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportSoundFactory::UReimportSoundFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundWave::StaticClass();
@@ -1925,8 +1925,8 @@ const FString SurroundSpeakerLocations[SPEAKER_Count] =
 	TEXT( "_br" )			// SPEAKER_BackRight
 };
 
-USoundSurroundFactory::USoundSurroundFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundSurroundFactory::USoundSurroundFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundWave::StaticClass();
@@ -2015,7 +2015,7 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 
 			if (Sound == nullptr)
 			{
-				Sound = new( InParent, BaseName, Flags ) USoundWave(FPostConstructInitializeProperties());
+				Sound = new( InParent, BaseName, Flags ) USoundWave(FObjectInitializer());
 			}
 		}
 
@@ -2149,8 +2149,8 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 /*-----------------------------------------------------------------------------
 	UReimportSoundSurroundFactory.
 -----------------------------------------------------------------------------*/
-UReimportSoundSurroundFactory::UReimportSoundSurroundFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportSoundSurroundFactory::UReimportSoundSurroundFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundWave::StaticClass();
@@ -2308,8 +2308,8 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 /*------------------------------------------------------------------------------
 	USoundCueFactoryNew.
 ------------------------------------------------------------------------------*/
-USoundCueFactoryNew::USoundCueFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundCueFactoryNew::USoundCueFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundCue::StaticClass();
@@ -2339,8 +2339,8 @@ UObject* USoundCueFactoryNew::FactoryCreateNew( UClass* Class, UObject* InParent
 /*-----------------------------------------------------------------------------
 	USoundMixFactory.
 -----------------------------------------------------------------------------*/
-USoundMixFactory::USoundMixFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundMixFactory::USoundMixFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundMix::StaticClass();
@@ -2361,8 +2361,8 @@ UObject* USoundMixFactory::FactoryCreateNew( UClass* InClass, UObject* InParent,
 /*-----------------------------------------------------------------------------
 	USoundClassFactory.
 -----------------------------------------------------------------------------*/
-USoundClassFactory::USoundClassFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundClassFactory::USoundClassFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundClass::StaticClass();
@@ -2387,8 +2387,8 @@ UObject* USoundClassFactory::FactoryCreateNew( UClass* InClass, UObject* InParen
 /*------------------------------------------------------------------------------
 	USoundAttenuationFactory.
 ------------------------------------------------------------------------------*/
-USoundAttenuationFactory::USoundAttenuationFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundAttenuationFactory::USoundAttenuationFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundAttenuation::StaticClass();
@@ -2405,8 +2405,8 @@ UObject* USoundAttenuationFactory::FactoryCreateNew( UClass* Class, UObject* InP
 /*------------------------------------------------------------------------------
 	UParticleSystemFactoryNew.
 ------------------------------------------------------------------------------*/
-UParticleSystemFactoryNew::UParticleSystemFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemFactoryNew::UParticleSystemFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UParticleSystem::StaticClass();
@@ -2422,8 +2422,8 @@ UObject* UParticleSystemFactoryNew::FactoryCreateNew(UClass* Class,UObject* InPa
 /*------------------------------------------------------------------------------
 	UPhysicalMaterialFactoryNew.
 ------------------------------------------------------------------------------*/
-UPhysicalMaterialFactoryNew::UPhysicalMaterialFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicalMaterialFactoryNew::UPhysicalMaterialFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UPhysicalMaterial::StaticClass();
@@ -2439,8 +2439,8 @@ UObject* UPhysicalMaterialFactoryNew::FactoryCreateNew(UClass* Class,UObject* In
 /*------------------------------------------------------------------------------
 	UInterpDataFactoryNew.
 ------------------------------------------------------------------------------*/
-UInterpDataFactoryNew::UInterpDataFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpDataFactoryNew::UInterpDataFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UInterpData::StaticClass();
@@ -2457,8 +2457,8 @@ UObject* UInterpDataFactoryNew::FactoryCreateNew(UClass* Class,UObject* InParent
 	UTextureRenderTargetFactoryNew
 -----------------------------------------------------------------------------*/
 
-UTextureRenderTargetFactoryNew::UTextureRenderTargetFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureRenderTargetFactoryNew::UTextureRenderTargetFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTextureRenderTarget2D::StaticClass();
 	bCreateNew = true;
@@ -2484,8 +2484,8 @@ UObject* UTextureRenderTargetFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 /*-----------------------------------------------------------------------------
 	UTextureRenderTargetCubeFactoryNew
 -----------------------------------------------------------------------------*/
-UTextureRenderTargetCubeFactoryNew::UTextureRenderTargetCubeFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureRenderTargetCubeFactoryNew::UTextureRenderTargetCubeFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UTextureRenderTargetCube::StaticClass();
@@ -3219,8 +3219,8 @@ UTexture2D* DecompressTGA(
 bool UTextureFactory::bSuppressImportOverwriteDialog = false;
 bool UTextureFactory::bSuppressImportResolutionWarnings = false;
 
-UTextureFactory::UTextureFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTexture::StaticClass();
 
@@ -4382,7 +4382,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		UPackage* MaterialPackage = CreatePackage(nullptr, *MaterialPackageName);
 
 		// Create the material
-		UMaterialFactoryNew* Factory = new UMaterialFactoryNew(FPostConstructInitializeProperties());
+		UMaterialFactoryNew* Factory = new UMaterialFactoryNew(FObjectInitializer());
 		UMaterial* Material = (UMaterial*)Factory->FactoryCreateNew( UMaterial::StaticClass(), MaterialPackage, *MaterialName, Flags, Context, Warn );
 
 		// Notify the asset registry
@@ -4541,8 +4541,8 @@ bool UTextureFactory::IsImportResolutionValid(int32 Width, int32 Height, bool bA
 /*------------------------------------------------------------------------------
 	UTextureExporterPCX implementation.
 ------------------------------------------------------------------------------*/
-UTextureExporterPCX::UTextureExporterPCX(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureExporterPCX::UTextureExporterPCX(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTexture2D::StaticClass();
 	PreferredFormatIndex = 0;
@@ -4609,8 +4609,8 @@ bool UTextureExporterPCX::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 /*------------------------------------------------------------------------------
 	UTextureExporterBMP implementation.
 ------------------------------------------------------------------------------*/
-UTextureExporterBMP::UTextureExporterBMP(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureExporterBMP::UTextureExporterBMP(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTexture2D::StaticClass();
 	PreferredFormatIndex = 0;
@@ -4916,8 +4916,8 @@ public:
 	UTextureExporterHDR implementation.
 	Exports render targets.
 ------------------------------------------------------------------------------*/
-UTextureExporterHDR::UTextureExporterHDR(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureExporterHDR::UTextureExporterHDR(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTextureRenderTarget::StaticClass();
 	PreferredFormatIndex = 0;
@@ -4946,8 +4946,8 @@ bool UTextureExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, FArch
 	UTextureCubeExporterHDR implementation.
 	Export UTextureCubes as .HDR
 ------------------------------------------------------------------------------*/
-UTextureCubeExporterHDR::UTextureCubeExporterHDR(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureCubeExporterHDR::UTextureCubeExporterHDR(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTextureCube::StaticClass();
 	PreferredFormatIndex = 0;
@@ -4970,8 +4970,8 @@ bool UTextureCubeExporterHDR::ExportBinary(UObject* Object, const TCHAR* Type, F
 /*------------------------------------------------------------------------------
 	UTextureExporterTGA implementation.
 ------------------------------------------------------------------------------*/
-UTextureExporterTGA::UTextureExporterTGA(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureExporterTGA::UTextureExporterTGA(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UTexture2D::StaticClass();
@@ -5149,8 +5149,8 @@ static bool ScanFontBox( const uint8* Data, int32 X, int32 Y, int32& XL, int32& 
 
 #define NUM_FONT_CHARS 256
 
-UFontFactory::UFontFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFontFactory::UFontFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UFont::StaticClass();
 	bEditorImport = false;
@@ -5175,7 +5175,7 @@ UObject* UFontFactory::FactoryCreateBinary
 	check(Type);
 
 	check(Class==UFont::StaticClass());
-	UFont* Font = new( InParent, Name, Flags )UFont(FPostConstructInitializeProperties());
+	UFont* Font = new( InParent, Name, Flags )UFont(FObjectInitializer());
 	// note RF_Public because font textures can be referenced direclty by material expressions
 	UTexture2D* Tex = CastChecked<UTexture2D>( UTextureFactory::FactoryCreateBinary( 
 		UTexture2D::StaticClass(), Font, NAME_None, RF_Public, Context, Type, Buffer, BufferEnd, Warn ) );
@@ -5436,8 +5436,8 @@ void FCustomizableTextObjectFactory::ProcessConstructedObject(UObject* CreatedOb
 /*-----------------------------------------------------------------------------
 UReimportTextureFactory.
 -----------------------------------------------------------------------------*/
-UReimportTextureFactory::UReimportTextureFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportTextureFactory::UReimportTextureFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UTexture::StaticClass();
@@ -5577,8 +5577,8 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 /*-----------------------------------------------------------------------------
 UReimportFbxStaticMeshFactory.
 -----------------------------------------------------------------------------*/
-UReimportFbxStaticMeshFactory::UReimportFbxStaticMeshFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportFbxStaticMeshFactory::UReimportFbxStaticMeshFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UStaticMesh::StaticClass();
@@ -5762,8 +5762,8 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 /*-----------------------------------------------------------------------------
 UReimportFbxSkeletalMeshFactory
 -----------------------------------------------------------------------------*/ 
-UReimportFbxSkeletalMeshFactory::UReimportFbxSkeletalMeshFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportFbxSkeletalMeshFactory::UReimportFbxSkeletalMeshFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USkeletalMesh::StaticClass();
@@ -5931,8 +5931,8 @@ USkeleton* ChooseSkeleton()
 	return SkeletonSelectorWindow->GetSelectedSkeleton();
 }
 
-UReimportFbxAnimSequenceFactory::UReimportFbxAnimSequenceFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportFbxAnimSequenceFactory::UReimportFbxAnimSequenceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UAnimSequence::StaticClass();
@@ -6086,8 +6086,8 @@ public:
 /*------------------------------------------------------------------------------
 	UBlueprintFactory implementation.
 ------------------------------------------------------------------------------*/
-UBlueprintFactory::UBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintFactory::UBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	// Look in the config file to determine what the default base class is, if any
@@ -6181,8 +6181,8 @@ UObject* UBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 /*------------------------------------------------------------------------------
 	UBlueprintMacroFactory implementation.
 ------------------------------------------------------------------------------*/
-UBlueprintMacroFactory::UBlueprintMacroFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintMacroFactory::UBlueprintMacroFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 	bCreateNew = true;
@@ -6243,8 +6243,8 @@ FString UBlueprintMacroFactory::GetDefaultNewAssetName() const
 BlueprintFunctionLibraryFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UBlueprintFunctionLibraryFactory::UBlueprintFunctionLibraryFactory(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UBlueprintFunctionLibraryFactory::UBlueprintFunctionLibraryFactory(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	static FBoolConfigValueHelper CanCreateNewHelper(TEXT("CustomBlueprintFunctionLibrary"), TEXT("bCanCreateNew"));
 	bCreateNew = CanCreateNewHelper;
@@ -6309,8 +6309,8 @@ FString UBlueprintFunctionLibraryFactory::GetDefaultNewAssetName() const
 /*------------------------------------------------------------------------------
 	UBlueprintInterfaceFactory implementation.
 ------------------------------------------------------------------------------*/
-UBlueprintInterfaceFactory::UBlueprintInterfaceFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintInterfaceFactory::UBlueprintInterfaceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bCreateNew = true;
@@ -6378,8 +6378,8 @@ FString UBlueprintInterfaceFactory::GetDefaultNewAssetName() const
 	UCurveFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UCurveFactory::UCurveFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveFactory::UCurveFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bCreateNew = true;
@@ -6456,8 +6456,8 @@ UObject* UCurveFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 	UCurveImportFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UCurveImportFactory::UCurveImportFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveImportFactory::UCurveImportFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bCreateNew = false;
@@ -6556,8 +6556,8 @@ UObject* UCurveImportFactory::FactoryCreateText( UClass* InClass, UObject* InPar
 /*------------------------------------------------------------------------------
 	UArchetypeLibraryFactory implementation.
 ------------------------------------------------------------------------------*/
-UObjectLibraryFactory::UObjectLibraryFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UObjectLibraryFactory::UObjectLibraryFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bCreateNew = true;
@@ -6574,8 +6574,8 @@ UObject* UObjectLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 	UDataAssetFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UDataAssetFactory::UDataAssetFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDataAssetFactory::UDataAssetFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;
@@ -6633,8 +6633,8 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 /*------------------------------------------------------------------------------
 	UDestructibleMeshFactory implementation.
 ------------------------------------------------------------------------------*/
-UDestructibleMeshFactory::UDestructibleMeshFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDestructibleMeshFactory::UDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bEditorImport = true;
@@ -6707,8 +6707,8 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 /*-----------------------------------------------------------------------------
 	UReimportDestructibleMeshFactory implementation.
 -----------------------------------------------------------------------------*/
-UReimportDestructibleMeshFactory::UReimportDestructibleMeshFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UReimportDestructibleMeshFactory::UReimportDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UDestructibleMesh::StaticClass();
@@ -6839,8 +6839,8 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 /*------------------------------------------------------------------------------
 	UBlendSpaceFactoryNew.
 ------------------------------------------------------------------------------*/
-UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UBlendSpace::StaticClass();
@@ -6912,8 +6912,8 @@ void UBlendSpaceFactoryNew::OnTargetSkeletonSelected(const FAssetData& SelectedA
 /*------------------------------------------------------------------------------
 	UBlendSpaceFactory1D.
 ------------------------------------------------------------------------------*/
-UBlendSpaceFactory1D::UBlendSpaceFactory1D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlendSpaceFactory1D::UBlendSpaceFactory1D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UBlendSpace1D::StaticClass();
@@ -6985,8 +6985,8 @@ void UBlendSpaceFactory1D::OnTargetSkeletonSelected(const FAssetData& SelectedAs
 /*------------------------------------------------------------------------------
 	UAimOffsetBlendSpaceFactoryNew.
 ------------------------------------------------------------------------------*/
-UAimOffsetBlendSpaceFactoryNew::UAimOffsetBlendSpaceFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAimOffsetBlendSpaceFactoryNew::UAimOffsetBlendSpaceFactoryNew(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UAimOffsetBlendSpace::StaticClass();
 	bCreateNew = true;
@@ -7009,8 +7009,8 @@ UObject* UAimOffsetBlendSpaceFactoryNew::FactoryCreateNew(UClass* Class,UObject*
 /*------------------------------------------------------------------------------
 	UAimOffsetBlendSpaceFactory1D.
 ------------------------------------------------------------------------------*/
-UAimOffsetBlendSpaceFactory1D::UAimOffsetBlendSpaceFactory1D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAimOffsetBlendSpaceFactory1D::UAimOffsetBlendSpaceFactory1D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UAimOffsetBlendSpace1D::StaticClass();
 	bCreateNew = true;
@@ -7033,8 +7033,8 @@ UObject* UAimOffsetBlendSpaceFactory1D::FactoryCreateNew(UClass* Class,UObject* 
 /*------------------------------------------------------------------------------
 	UEnumFactory implementation.
 ------------------------------------------------------------------------------*/
-UEnumFactory::UEnumFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEnumFactory::UEnumFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UUserDefinedEnum::StaticClass();
 	bCreateNew = true;
@@ -7062,8 +7062,8 @@ UObject* UEnumFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName 
 /*------------------------------------------------------------------------------
 	UStructureFactory implementation.
 ------------------------------------------------------------------------------*/
-UStructureFactory::UStructureFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStructureFactory::UStructureFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UUserDefinedStruct::StaticClass();
 	bCreateNew = FStructureEditorUtils::UserDefinedStructEnabled();
@@ -7079,8 +7079,8 @@ UObject* UStructureFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 /*-----------------------------------------------------------------------------
 	UForceFeedbackEffectFactory implementation.
 -----------------------------------------------------------------------------*/
-UForceFeedbackEffectFactory::UForceFeedbackEffectFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UForceFeedbackEffectFactory::UForceFeedbackEffectFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UForceFeedbackEffect::StaticClass();
@@ -7097,8 +7097,8 @@ UObject* UForceFeedbackEffectFactory::FactoryCreateNew( UClass* InClass, UObject
 /*-----------------------------------------------------------------------------
 USubsurfaceProfileFactory implementation.
 -----------------------------------------------------------------------------*/
-USubsurfaceProfileFactory::USubsurfaceProfileFactory(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+USubsurfaceProfileFactory::USubsurfaceProfileFactory(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	SupportedClass = USubsurfaceProfile::StaticClass();
@@ -7115,8 +7115,8 @@ UObject* USubsurfaceProfileFactory::FactoryCreateNew(UClass* InClass, UObject* I
 /*-----------------------------------------------------------------------------
 	UTouchInterfaceFactory implementation.
 -----------------------------------------------------------------------------*/
-UTouchInterfaceFactory::UTouchInterfaceFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTouchInterfaceFactory::UTouchInterfaceFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UTouchInterface::StaticClass();
@@ -7135,8 +7135,8 @@ UObject* UTouchInterfaceFactory::FactoryCreateNew( UClass* InClass, UObject* InP
 	UCameraAnimFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UCameraAnimFactory::UCameraAnimFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCameraAnimFactory::UCameraAnimFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UCameraAnim::StaticClass();
 	bCreateNew = true;

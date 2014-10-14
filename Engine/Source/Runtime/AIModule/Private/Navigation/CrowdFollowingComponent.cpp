@@ -10,7 +10,7 @@
 
 DEFINE_LOG_CATEGORY(LogCrowdFollowing);
 
-UCrowdFollowingComponent::UCrowdFollowingComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bAffectFallingVelocity = false;
 	bRotateToVelocity = true;

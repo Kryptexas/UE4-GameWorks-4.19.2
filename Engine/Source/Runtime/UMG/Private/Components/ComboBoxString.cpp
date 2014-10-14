@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UComboBoxString
 
-UComboBoxString::UComboBoxString(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UComboBoxString::UComboBoxString(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SComboBox< TSharedPtr<FString> >::FArguments SlateDefaults;
 	WidgetStyle = *SlateDefaults._ComboBoxStyle;

@@ -379,8 +379,8 @@ private:
 
 /* UBuildPatchManifest implementation
 *****************************************************************************/
-UBuildPatchManifest::UBuildPatchManifest(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBuildPatchManifest::UBuildPatchManifest(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ManifestFileVersion(EBuildPatchAppManifestVersion::GetLatestVersion())
 	, bIsFileData(false)
 	, AppID(0)

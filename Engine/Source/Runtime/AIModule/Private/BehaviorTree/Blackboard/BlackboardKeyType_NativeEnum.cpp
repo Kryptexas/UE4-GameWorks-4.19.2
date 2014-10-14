@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_NativeEnum.h"
 
-UBlackboardKeyType_NativeEnum::UBlackboardKeyType_NativeEnum(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType_NativeEnum::UBlackboardKeyType_NativeEnum(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(uint8);
 	SupportedOp = EBlackboardKeyOperation::Arithmetic;

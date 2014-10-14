@@ -4,8 +4,8 @@
 
 #include "../Classes/Lightmass/LightmassImportanceVolume.h"
 
-ALightmassImportanceVolume::ALightmassImportanceVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALightmassImportanceVolume::ALightmassImportanceVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 

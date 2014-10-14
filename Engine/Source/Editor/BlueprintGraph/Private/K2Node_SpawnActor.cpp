@@ -11,8 +11,8 @@ static FString NoCollisionFailPinName(TEXT("SpawnEvenIfColliding"));
 
 #define LOCTEXT_NAMESPACE "K2Node_SpawnActor"
 
-UK2Node_SpawnActor::UK2Node_SpawnActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_SpawnActor::UK2Node_SpawnActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform");
 }

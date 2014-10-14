@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-UDEPRECATED_SaveGameSummary::UDEPRECATED_SaveGameSummary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_SaveGameSummary::UDEPRECATED_SaveGameSummary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

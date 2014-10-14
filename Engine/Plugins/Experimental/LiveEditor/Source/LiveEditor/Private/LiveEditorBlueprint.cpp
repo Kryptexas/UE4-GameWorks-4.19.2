@@ -17,8 +17,8 @@ namespace nLiveEditorBlueprint
 	}
 }
 
-ULiveEditorBlueprint::ULiveEditorBlueprint(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULiveEditorBlueprint::ULiveEditorBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

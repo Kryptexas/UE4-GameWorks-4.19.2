@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UProgressWidgetStyle::UProgressWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UProgressWidgetStyle::UProgressWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

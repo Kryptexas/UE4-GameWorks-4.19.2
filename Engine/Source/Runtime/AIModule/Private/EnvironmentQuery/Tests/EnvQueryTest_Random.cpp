@@ -4,7 +4,7 @@
 #include "EnvironmentQuery/Tests/EnvQueryTest_Random.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 
-UEnvQueryTest_Random::UEnvQueryTest_Random(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest_Random::UEnvQueryTest_Random(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Low;
 

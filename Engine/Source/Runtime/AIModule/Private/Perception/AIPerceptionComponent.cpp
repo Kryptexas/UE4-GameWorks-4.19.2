@@ -28,8 +28,8 @@ void FActorPerceptionInfo::Merge(const FActorPerceptionInfo& Other)
 //----------------------------------------------------------------------//
 const int32 UAIPerceptionComponent::InitialStimuliToProcessArraySize = 10;
 
-UAIPerceptionComponent::UAIPerceptionComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIPerceptionComponent::UAIPerceptionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, DominantSense(ECorePerceptionTypes::MAX)
 	, PerceptionListenerId(AIPerception::InvalidListenerId)
 {

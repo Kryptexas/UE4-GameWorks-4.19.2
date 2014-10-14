@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/BTDecorator.h"
 
-UBTDecorator::UBTDecorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator::UBTDecorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "UnknownDecorator";
 

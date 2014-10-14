@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UAchievementQueryCallbackProxy
 
-UAchievementQueryCallbackProxy::UAchievementQueryCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAchievementQueryCallbackProxy::UAchievementQueryCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

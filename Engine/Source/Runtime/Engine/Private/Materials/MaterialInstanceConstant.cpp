@@ -8,8 +8,8 @@
 #include "MaterialInstanceSupport.h"
 
 
-UMaterialInstanceConstant::UMaterialInstanceConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialInstanceConstant::UMaterialInstanceConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

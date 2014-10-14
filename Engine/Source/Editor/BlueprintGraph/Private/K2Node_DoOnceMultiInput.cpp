@@ -76,8 +76,8 @@ FString UK2Node_DoOnceMultiInput::GetNameForPin(int32 PinIndex, bool In)
 	return Name;
 }
 
-UK2Node_DoOnceMultiInput::UK2Node_DoOnceMultiInput(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_DoOnceMultiInput::UK2Node_DoOnceMultiInput(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NumAdditionalInputs = 0;
 }

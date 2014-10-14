@@ -3,8 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-UK2Node_FunctionTerminator::UK2Node_FunctionTerminator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_FunctionTerminator::UK2Node_FunctionTerminator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

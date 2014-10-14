@@ -3,8 +3,8 @@
 #include "InputCorePrivatePCH.h"
 #include "PropertyTag.h"
 
-UInputCoreTypes::UInputCoreTypes(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInputCoreTypes::UInputCoreTypes(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

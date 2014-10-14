@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UWorldThumbnailInfo::UWorldThumbnailInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWorldThumbnailInfo::UWorldThumbnailInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CameraMode = ECameraProjectionMode::Perspective;
 	OrthoDirection = EOrthoThumbnailDirection::Top;

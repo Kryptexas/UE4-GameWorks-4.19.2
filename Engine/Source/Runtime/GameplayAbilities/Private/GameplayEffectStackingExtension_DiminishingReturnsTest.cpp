@@ -14,8 +14,8 @@ UCurveTable* GetCurveTable()
 	return CurveTable;
 }
 
-UGameplayEffectStackingExtension_DiminishingReturnsTest::UGameplayEffectStackingExtension_DiminishingReturnsTest(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayEffectStackingExtension_DiminishingReturnsTest::UGameplayEffectStackingExtension_DiminishingReturnsTest(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	Handle = FCrc::StrCrc32("UGameplayEffectStackingExtension_DiminishingReturnsTest");
 }

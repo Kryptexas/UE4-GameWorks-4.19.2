@@ -289,8 +289,8 @@ ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandL
 
 // ------------------------------------------------------
 
-USubsurfaceProfile::USubsurfaceProfile(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USubsurfaceProfile::USubsurfaceProfile(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

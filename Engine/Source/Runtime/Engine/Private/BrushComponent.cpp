@@ -538,8 +538,8 @@ private:
 	FCollisionResponseContainer CollisionResponse;
 };
 
-UBrushComponent::UBrushComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBrushComponent::UBrushComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHiddenInGame = true;
 	AlwaysLoadOnClient = false;

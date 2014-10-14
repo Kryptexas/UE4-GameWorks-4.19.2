@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFbxTextureImportData::UFbxTextureImportData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxTextureImportData::UFbxTextureImportData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

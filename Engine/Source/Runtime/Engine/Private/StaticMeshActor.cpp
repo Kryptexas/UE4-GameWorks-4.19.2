@@ -13,12 +13,12 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshActor"
 
-AStaticMeshActor::AStaticMeshActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AStaticMeshActor::AStaticMeshActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanBeDamaged = false;
 
-	StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
+	StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	StaticMeshComponent->Mobility = EComponentMobility::Static;
 	StaticMeshComponent->bGenerateOverlapEvents = false;

@@ -10,8 +10,8 @@
 /*-----------------------------------------------------------------------------
        USoundNodeMature implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeMature::USoundNodeMature(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeMature::USoundNodeMature(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

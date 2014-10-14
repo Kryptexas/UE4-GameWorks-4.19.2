@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // ULeaderboardFlushCallbackProxy
 
-ULeaderboardFlushCallbackProxy::ULeaderboardFlushCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULeaderboardFlushCallbackProxy::ULeaderboardFlushCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

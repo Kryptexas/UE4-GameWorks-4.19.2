@@ -25,10 +25,10 @@ public:
 	/**
 	 * Creates and initializes a new text buffer.
 	 *
-	 * @param PCIP - Initialization properties.
+	 * @param ObjectInitializer - Initialization properties.
 	 * @param InText - The initial text.
 	 */
-	COREUOBJECT_API UTextBuffer (const class FPostConstructInitializeProperties& PCIP, const TCHAR* InText);
+	COREUOBJECT_API UTextBuffer (const FObjectInitializer& ObjectInitializer, const TCHAR* InText);
 
 
 public:

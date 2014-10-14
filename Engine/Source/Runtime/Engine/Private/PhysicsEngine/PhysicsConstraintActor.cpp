@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
 
-APhysicsConstraintActor::APhysicsConstraintActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APhysicsConstraintActor::APhysicsConstraintActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -19,7 +19,7 @@ APhysicsConstraintActor::APhysicsConstraintActor(const class FPostConstructIniti
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	ConstraintComp = PCIP.CreateDefaultSubobject<UPhysicsConstraintComponent>(this, TEXT("MyConstraintComp"));
+	ConstraintComp = ObjectInitializer.CreateDefaultSubobject<UPhysicsConstraintComponent>(this, TEXT("MyConstraintComp"));
 	RootComponent = ConstraintComp;
 	bHidden = true;
 }

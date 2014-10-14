@@ -7,8 +7,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffectExtension.h"
 
-UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

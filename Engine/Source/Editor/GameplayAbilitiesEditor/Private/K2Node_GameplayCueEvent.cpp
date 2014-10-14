@@ -13,8 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
-UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	EventSignatureName = GAMEPLAYABILITIES_BlueprintCustomHandler;
 	EventSignatureClass = UGameplayCueInterface::StaticClass();

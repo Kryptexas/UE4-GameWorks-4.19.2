@@ -2,8 +2,8 @@
 
 #include "AITestSuitePrivatePCH.h"
 
-UTestPawnAction_Log::UTestPawnAction_Log(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UTestPawnAction_Log::UTestPawnAction_Log(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, Logger(nullptr)
 {
 

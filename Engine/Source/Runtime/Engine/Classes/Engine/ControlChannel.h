@@ -47,8 +47,8 @@ class UControlChannel : public UChannel
 	/**
 	 * Default constructor
 	 */
-	UControlChannel(const class FPostConstructInitializeProperties& PCIP)
-		: UChannel(PCIP)
+	UControlChannel(const FObjectInitializer& ObjectInitializer)
+		: UChannel(ObjectInitializer)
 	{
 		ChannelClasses[CHTYPE_Control]      = GetClass();
 		ChType								= CHTYPE_Control;

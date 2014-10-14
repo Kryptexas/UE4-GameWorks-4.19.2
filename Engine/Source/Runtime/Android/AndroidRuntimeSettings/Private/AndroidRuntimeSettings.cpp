@@ -4,8 +4,8 @@
 
 #include "AndroidRuntimeSettings.h"
 
-UAndroidRuntimeSettings::UAndroidRuntimeSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Orientation(EAndroidScreenOrientation::Landscape)
 	, bEnableGooglePlaySupport(false)
 {

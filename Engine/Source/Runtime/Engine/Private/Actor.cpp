@@ -37,8 +37,8 @@ FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
 
-AActor::AActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AActor::AActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default

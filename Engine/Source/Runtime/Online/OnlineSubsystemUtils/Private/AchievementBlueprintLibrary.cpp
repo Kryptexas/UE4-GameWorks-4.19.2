@@ -4,8 +4,8 @@
 #include "AchievementBlueprintLibrary.h"
 #include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineAchievementsInterface.h"
 
-UAchievementBlueprintLibrary::UAchievementBlueprintLibrary(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAchievementBlueprintLibrary::UAchievementBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -95,8 +95,8 @@ private:
 	UK2Node_CustomEvent const* CustomEvent;
 };
 
-UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CustomEvent::UK2Node_CustomEvent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bOverrideFunction = false;
 	bIsEditable = true;

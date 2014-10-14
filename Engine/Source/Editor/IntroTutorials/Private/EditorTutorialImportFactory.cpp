@@ -10,8 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialImportFactory"
 
-UEditorTutorialImportFactory::UEditorTutorialImportFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorTutorialImportFactory::UEditorTutorialImportFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEditorImport = true;
 	bEditAfterNew = true;

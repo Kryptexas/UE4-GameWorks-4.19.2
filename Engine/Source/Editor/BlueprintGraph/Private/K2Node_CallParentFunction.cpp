@@ -4,8 +4,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_CallParentFunction::UK2Node_CallParentFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallParentFunction::UK2Node_CallParentFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsFinalFunction = true;
 }

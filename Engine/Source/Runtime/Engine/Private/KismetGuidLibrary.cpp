@@ -7,8 +7,8 @@
 /* Guid functions
  *****************************************************************************/
 
-UKismetGuidLibrary::UKismetGuidLibrary( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UKismetGuidLibrary::UKismetGuidLibrary( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 

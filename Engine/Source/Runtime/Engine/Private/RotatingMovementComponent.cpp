@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/RotatingMovementComponent.h"
 
-URotatingMovementComponent::URotatingMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URotatingMovementComponent::URotatingMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RotationRate.Yaw = 180.0f;
 	bRotationInLocalSpace = true;

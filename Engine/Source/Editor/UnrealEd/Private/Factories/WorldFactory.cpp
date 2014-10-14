@@ -4,8 +4,8 @@
 
 #define LOCTEXT_NAMESPACE "WorldFactory"
 
-UWorldFactory::UWorldFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWorldFactory::UWorldFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = UEditorEngine::IsUsingWorldAssets();
 	SupportedClass = UWorld::StaticClass();

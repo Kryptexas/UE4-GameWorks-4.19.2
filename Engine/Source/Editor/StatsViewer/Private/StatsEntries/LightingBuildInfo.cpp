@@ -3,8 +3,8 @@
 #include "StatsViewerPrivatePCH.h"
 #include "LightingBuildInfo.h"
 
-ULightingBuildInfo::ULightingBuildInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightingBuildInfo::ULightingBuildInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

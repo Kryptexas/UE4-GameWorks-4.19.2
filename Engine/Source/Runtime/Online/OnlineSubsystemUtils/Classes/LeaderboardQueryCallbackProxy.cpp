@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // ULeaderboardQueryCallbackProxy
 
-ULeaderboardQueryCallbackProxy::ULeaderboardQueryCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULeaderboardQueryCallbackProxy::ULeaderboardQueryCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

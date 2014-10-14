@@ -177,8 +177,8 @@ void FAnimationFrameSnapshot::CopyToInstance(UAnimInstance* Instance)
 /////////////////////////////////////////////////////
 // UAnimBlueprintGeneratedClass
 
-UAnimBlueprintGeneratedClass::UAnimBlueprintGeneratedClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimBlueprintGeneratedClass::UAnimBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RootAnimNodeIndex = INDEX_NONE;
 }

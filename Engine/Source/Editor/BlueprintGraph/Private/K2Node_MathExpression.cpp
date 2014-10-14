@@ -2268,8 +2268,8 @@ private:
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-UK2Node_MathExpression::UK2Node_MathExpression(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MathExpression::UK2Node_MathExpression(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// renaming the node rebuilds the expression (the node name is where they 
 	// specify the math equation)

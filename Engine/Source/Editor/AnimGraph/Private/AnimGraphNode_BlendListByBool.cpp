@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_BlendListByBool::UAnimGraphNode_BlendListByBool(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_BlendListByBool::UAnimGraphNode_BlendListByBool(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

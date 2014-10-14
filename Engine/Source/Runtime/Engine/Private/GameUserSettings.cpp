@@ -14,8 +14,8 @@ enum EGameUserSettingsVersion
 };
 
 
-UGameUserSettings::UGameUserSettings(const class FPostConstructInitializeProperties& PCIP)
-:	Super(PCIP)
+UGameUserSettings::UGameUserSettings(const FObjectInitializer& ObjectInitializer)
+:	Super(ObjectInitializer)
 {
 	SetToDefaults();
 }

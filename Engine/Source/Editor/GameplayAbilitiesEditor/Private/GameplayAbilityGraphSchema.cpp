@@ -8,8 +8,8 @@
 #include "BlueprintEditorUtils.h"
 
 
-UGameplayAbilityGraphSchema::UGameplayAbilityGraphSchema(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayAbilityGraphSchema::UGameplayAbilityGraphSchema(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

@@ -311,7 +311,7 @@ public:
 	static class UNetConnection* GNetConnectionBeingCleanedUp;
 
 	// Constructors and destructors.
-	ENGINE_API UNetConnection(const class FPostConstructInitializeProperties& PCIP);
+	ENGINE_API UNetConnection(const FObjectInitializer& ObjectInitializer);
 
 	// Begin UObject interface.
 

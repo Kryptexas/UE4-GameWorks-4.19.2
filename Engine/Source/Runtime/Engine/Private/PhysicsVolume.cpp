@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
 
-APhysicsVolume::APhysicsVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APhysicsVolume::APhysicsVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));

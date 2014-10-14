@@ -292,8 +292,8 @@ const UScriptStruct* UEdGraphSchema_K2::ColorStruct = nullptr;
 
 bool UEdGraphSchema_K2::bGeneratingDocumentation = false;
 
-UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema_K2::UEdGraphSchema_K2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Initialize cached static references to well-known struct types
 	if (VectorStruct == nullptr)

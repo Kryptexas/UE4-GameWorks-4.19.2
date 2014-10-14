@@ -22,8 +22,8 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 	OverlapInfo.Item = InBodyIndex;
 }
 
-USceneComponent::USceneComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Movable;
 	RelativeScale_DEPRECATED = 1.0f;

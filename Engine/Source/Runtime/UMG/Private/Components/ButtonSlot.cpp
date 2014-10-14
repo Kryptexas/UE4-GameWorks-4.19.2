@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UButtonSlot
 
-UButtonSlot::UButtonSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UButtonSlot::UButtonSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Padding = FMargin(4, 2);
 

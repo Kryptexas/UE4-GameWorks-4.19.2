@@ -16,8 +16,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
 
-UGameplayStatics::UGameplayStatics(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayStatics::UGameplayStatics(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

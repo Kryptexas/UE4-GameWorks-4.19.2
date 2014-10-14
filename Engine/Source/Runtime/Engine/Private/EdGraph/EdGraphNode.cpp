@@ -39,8 +39,8 @@ FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGra
 /////////////////////////////////////////////////////
 // UEdGraphNode
 
-UEdGraphNode::UEdGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
 {
 

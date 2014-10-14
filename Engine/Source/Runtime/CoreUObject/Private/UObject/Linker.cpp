@@ -109,8 +109,8 @@ FName FLinkerTables::GetExportClassName( int32 i )
 /*----------------------------------------------------------------------------
 	ULinker.
 ----------------------------------------------------------------------------*/
-ULinker::ULinker(const class FPostConstructInitializeProperties& PCIP, UPackage* InRoot, const TCHAR* InFilename )
-:	UObject(PCIP)
+ULinker::ULinker(const FObjectInitializer& ObjectInitializer, UPackage* InRoot, const TCHAR* InFilename )
+:	UObject(ObjectInitializer)
 ,	LinkerRoot( InRoot )
 ,	Summary()
 ,	Filename( InFilename )

@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAction"
 
-UK2Node_InputAction::UK2Node_InputAction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_InputAction::UK2Node_InputAction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;

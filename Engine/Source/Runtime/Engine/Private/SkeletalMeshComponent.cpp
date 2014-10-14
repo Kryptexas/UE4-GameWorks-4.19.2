@@ -85,8 +85,8 @@ public:
 	}
 };
 
-USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;

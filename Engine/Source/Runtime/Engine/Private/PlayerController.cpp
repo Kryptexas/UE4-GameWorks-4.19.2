@@ -37,8 +37,8 @@ const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 //////////////////////////////////////////////////////////////////////////
 // APlayerController
 
-APlayerController::APlayerController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, SlateOperations(FReply::Unhandled())
 {
 	NetPriority = 3.0f;

@@ -3,8 +3,8 @@
 
 #include "EnginePrivate.h"
 
-UShapeComponent::UShapeComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionProfileName(FName(TEXT("OverlapAllDynamic")));
 	// when we deprecated this variable, we switched on for the shapecomponent collision profile

@@ -12,7 +12,7 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
-UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeInstance = NULL;
 	bHighlightInAbortRange0 = false;

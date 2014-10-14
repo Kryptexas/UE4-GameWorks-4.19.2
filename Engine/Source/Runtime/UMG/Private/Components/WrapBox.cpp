@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UWrapBox
 
-UWrapBox::UWrapBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWrapBox::UWrapBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

@@ -25,7 +25,7 @@ uint32 UPathFollowingComponent::NextRequestId = 0;
 const float UPathFollowingComponent::DefaultAcceptanceRadius = -1.f;
 UPathFollowingComponent::FRequestCompletedSignature UPathFollowingComponent::UnboundRequestDelegate;
 
-UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bAutoActivate = true;

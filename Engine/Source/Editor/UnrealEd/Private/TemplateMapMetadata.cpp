@@ -10,7 +10,7 @@
 	UTemplateMapMetadata.
 -----------------------------------------------------------------------------*/
 
-UDEPRECATED_TemplateMapMetadata::UDEPRECATED_TemplateMapMetadata(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_TemplateMapMetadata::UDEPRECATED_TemplateMapMetadata(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

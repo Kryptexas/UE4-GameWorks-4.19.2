@@ -2,8 +2,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-UK2Node_CallArrayFunction::UK2Node_CallArrayFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallArrayFunction::UK2Node_CallArrayFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

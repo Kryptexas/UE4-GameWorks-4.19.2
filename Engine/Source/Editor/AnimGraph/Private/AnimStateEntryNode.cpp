@@ -14,8 +14,8 @@
 /////////////////////////////////////////////////////
 // UAnimStateEntryNode
 
-UAnimStateEntryNode::UAnimStateEntryNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimStateEntryNode::UAnimStateEntryNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

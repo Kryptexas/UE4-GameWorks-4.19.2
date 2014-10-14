@@ -17,8 +17,8 @@
 
 UNetConnection* UNetConnection::GNetConnectionBeingCleanedUp = NULL;
 
-UNetConnection::UNetConnection(const class FPostConstructInitializeProperties& PCIP)
-:	UPlayer(PCIP)
+UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
+:	UPlayer(ObjectInitializer)
 ,	Driver				( NULL )
 ,	PackageMap			( NULL )
 ,	Viewer				( NULL )
@@ -115,7 +115,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	}
 
 	// Create package map.
-	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
+	PackageMap = new( this )UPackageMapClient( FObjectInitializer(), this, Driver->GuidCache );
 
 	// Create the voice channel
 	CreateChannel(CHTYPE_Voice, true, VOICE_CHANNEL_INDEX);
@@ -162,7 +162,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	}
 
 	// Create package map.
-	PackageMap = new( this )UPackageMapClient( FPostConstructInitializeProperties(), this, Driver->GuidCache );
+	PackageMap = new( this )UPackageMapClient( FObjectInitializer(), this, Driver->GuidCache );
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -298,8 +298,8 @@ void UNetConnection::CleanUp()
 	Driver = NULL;
 }
 
-UChildConnection::UChildConnection(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UChildConnection::UChildConnection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

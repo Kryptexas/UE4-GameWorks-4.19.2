@@ -29,8 +29,8 @@ public:
 	}
 };
 
-UK2Node_SetFieldsInStruct::UK2Node_SetFieldsInStruct(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_SetFieldsInStruct::UK2Node_SetFieldsInStruct(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -1211,8 +1211,8 @@ bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int
 	UInstancedStaticMeshComponent
 -----------------------------------------------------------------------------*/
 
-UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;

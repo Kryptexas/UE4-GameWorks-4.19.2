@@ -9,8 +9,8 @@
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 
-UAnimComposite::UAnimComposite(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimComposite::UAnimComposite(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -452,7 +452,7 @@ class UNavigationTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UNavigationTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) { }
+	UNavigationTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) { }
 };
 
 //////////////////////////////////////////////////////////////////////////

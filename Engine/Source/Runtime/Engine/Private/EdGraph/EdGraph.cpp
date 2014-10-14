@@ -78,8 +78,8 @@ UEdGraph* FGraphReference::GetGraph() const
 /////////////////////////////////////////////////////
 // UEdGraph
 
-UEdGraph::UEdGraph(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraph::UEdGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEditable = true;
 	bAllowDeletion = true;

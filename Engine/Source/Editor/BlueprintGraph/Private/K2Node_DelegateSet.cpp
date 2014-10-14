@@ -123,8 +123,8 @@ public:
 	}
 };
 
-UK2Node_DelegateSet::UK2Node_DelegateSet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_DelegateSet::UK2Node_DelegateSet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

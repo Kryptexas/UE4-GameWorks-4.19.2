@@ -14,8 +14,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // APlayerCameraManager
 
-APlayerCameraManager::APlayerCameraManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	static FName NAME_Default(TEXT("Default"));
 
@@ -40,7 +40,7 @@ APlayerCameraManager::APlayerCameraManager(const class FPostConstructInitializeP
 	bFollowHmdOrientation = false;
 
 	// create dummy transform component
-	TransformComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
+	TransformComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
 	RootComponent = TransformComponent;
 }
 

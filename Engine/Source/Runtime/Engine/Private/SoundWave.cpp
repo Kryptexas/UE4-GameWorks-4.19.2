@@ -51,8 +51,8 @@ void FStreamedAudioChunk::StoreInDerivedDataCache(const FString& InDerivedDataKe
 }
 #endif // #if WITH_EDITORONLY_DATA
 
-USoundWave::USoundWave(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Volume = 1.0;
 	Pitch = 1.0;

@@ -4,8 +4,8 @@
 #include "Sound/SoundBase.h"
 #include "Sound/SoundNodeDialoguePlayer.h"
 
-USoundNodeDialoguePlayer::USoundNodeDialoguePlayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeDialoguePlayer::USoundNodeDialoguePlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

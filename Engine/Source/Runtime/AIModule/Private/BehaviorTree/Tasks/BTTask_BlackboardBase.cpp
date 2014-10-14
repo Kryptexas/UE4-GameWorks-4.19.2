@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
 
-UBTTask_BlackboardBase::UBTTask_BlackboardBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_BlackboardBase::UBTTask_BlackboardBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "BlackboardBase";
 

@@ -10,8 +10,8 @@
 #include "AnimEncoding.h"
 #include "AnimationCompression.h"
 
-UAnimCompress_BitwiseCompressOnly::UAnimCompress_BitwiseCompressOnly(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_BitwiseCompressOnly::UAnimCompress_BitwiseCompressOnly(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Bitwise Compress Only");
 }

@@ -3220,7 +3220,7 @@ void FMeshUtilities::CreateProxyMesh(
 		MeshPackage->Modify();
 	}
 
-	UStaticMesh* StaticMesh = new(MeshPackage, FName(*(TEXT("SM_") + AssetBaseName)), RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+	UStaticMesh* StaticMesh = new(MeshPackage, FName(*(TEXT("SM_") + AssetBaseName)), RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 	StaticMesh->InitResources();
 	{
 		FString OutputPath = StaticMesh->GetPathName();
@@ -3793,7 +3793,7 @@ void FMeshUtilities::MergeActors(
 		Package->FullyLoad();
 		Package->Modify();
 
-		UStaticMesh* StaticMesh = new(Package, *AssetName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+		UStaticMesh* StaticMesh = new(Package, *AssetName, RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 		StaticMesh->InitResources();
 		
 		FString OutputPath = StaticMesh->GetPathName();

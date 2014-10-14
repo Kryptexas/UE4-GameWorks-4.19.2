@@ -15,7 +15,7 @@ namespace EQSGraphVersion
 	const int32 Latest = CopyPasteOutersBug;
 }
 
-UEnvironmentQueryGraph::UEnvironmentQueryGraph(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvironmentQueryGraph::UEnvironmentQueryGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Schema = UEdGraphSchema_EnvironmentQuery::StaticClass();
 	bLockUpdates = false;

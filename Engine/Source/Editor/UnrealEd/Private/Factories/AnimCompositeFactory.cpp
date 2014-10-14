@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimCompositeFactory"
 
-UAnimCompositeFactory::UAnimCompositeFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompositeFactory::UAnimCompositeFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	SupportedClass = UAnimComposite::StaticClass();

@@ -4,7 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_KeepInCone.h"
 
-UBTDecorator_KeepInCone::UBTDecorator_KeepInCone(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_KeepInCone::UBTDecorator_KeepInCone(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Keep in Cone";
 

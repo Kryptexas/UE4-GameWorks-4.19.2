@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISightTargetInterface.h"
 
-UAISightTargetInterface::UAISightTargetInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAISightTargetInterface::UAISightTargetInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

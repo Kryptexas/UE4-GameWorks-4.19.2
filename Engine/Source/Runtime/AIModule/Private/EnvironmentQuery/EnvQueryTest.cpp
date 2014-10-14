@@ -11,7 +11,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryTest::UEnvQueryTest(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest::UEnvQueryTest(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	TestPurpose = EEnvTestPurpose::FilterAndScore;
 	FilterType = EEnvTestFilterType::Range;

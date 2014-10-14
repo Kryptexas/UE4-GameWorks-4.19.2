@@ -15,8 +15,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_LatentAbilityCall::UK2Node_LatentAbilityCall(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_LatentAbilityCall::UK2Node_LatentAbilityCall(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UAbilityTask, Activate);
 }

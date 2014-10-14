@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BTService.h"
 
-UBTService::UBTService(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTService::UBTService(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bNotifyTick = true;
 	bNotifyOnSearch = true;

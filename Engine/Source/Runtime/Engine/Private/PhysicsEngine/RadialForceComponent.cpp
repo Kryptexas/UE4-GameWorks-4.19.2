@@ -6,8 +6,8 @@
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
-URadialForceComponent::URadialForceComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URadialForceComponent::URadialForceComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -172,13 +172,13 @@ void URadialForceComponent::UpdateCollisionObjectQueryParams()
 
 //////////////////////////////////////////////////////////////////////////
 // ARB_RADIALFORCEACTOR
-ARadialForceActor::ARadialForceActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ARadialForceActor::ARadialForceActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	ForceComponent = PCIP.CreateDefaultSubobject<URadialForceComponent>(this, TEXT("ForceComponent0"));
+	ForceComponent = ObjectInitializer.CreateDefaultSubobject<URadialForceComponent>(this, TEXT("ForceComponent0"));
 
 #if WITH_EDITOR
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		// Structure to hold one-time initialization

@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UWidgetSwitcherSlot
 
-UWidgetSwitcherSlot::UWidgetSwitcherSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetSwitcherSlot::UWidgetSwitcherSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(NULL)
 {
 	HorizontalAlignment = HAlign_Fill;

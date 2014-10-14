@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UWidgetTree
 
-UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetTree::UWidgetTree(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryGenerator_ActorsOfClass::UEnvQueryGenerator_ActorsOfClass(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryGenerator_ActorsOfClass::UEnvQueryGenerator_ActorsOfClass(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	SearchCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Actor::StaticClass();

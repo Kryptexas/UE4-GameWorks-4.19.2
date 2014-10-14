@@ -7,8 +7,8 @@
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent
 //----------------------------------------------------------------------//
-UNavLinkRenderingComponent::UNavLinkRenderingComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavLinkRenderingComponent::UNavLinkRenderingComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// properties
 

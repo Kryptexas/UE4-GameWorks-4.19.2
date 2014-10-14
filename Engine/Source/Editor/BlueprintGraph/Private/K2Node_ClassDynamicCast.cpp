@@ -16,8 +16,8 @@ struct FClassDynamicCastHelper
 	}
 };
 
-UK2Node_ClassDynamicCast::UK2Node_ClassDynamicCast(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ClassDynamicCast::UK2Node_ClassDynamicCast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

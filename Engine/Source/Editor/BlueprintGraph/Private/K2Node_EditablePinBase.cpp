@@ -2,8 +2,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-UK2Node_EditablePinBase::UK2Node_EditablePinBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EditablePinBase::UK2Node_EditablePinBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

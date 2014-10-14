@@ -192,8 +192,8 @@ ENGINE_API bool FRawCurveTracks::DuplicateCurveData(USkeleton::AnimCurveUID ToCo
 
 /////////////////////////////////////////////////////
 
-UAnimSequenceBase::UAnimSequenceBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSequenceBase::UAnimSequenceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, RateScale(1.0f)
 {
 }

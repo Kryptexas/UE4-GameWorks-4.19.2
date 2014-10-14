@@ -7,8 +7,8 @@
 
 const int32 MaxNumInStack = 2;
 
-UGameplayEffectStackingExtension_CappedNumberTest::UGameplayEffectStackingExtension_CappedNumberTest(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayEffectStackingExtension_CappedNumberTest::UGameplayEffectStackingExtension_CappedNumberTest(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	Handle = FCrc::StrCrc32("UGameplayEffectStackingExtension_CappedNumberTest");
 }

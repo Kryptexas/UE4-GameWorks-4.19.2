@@ -9,8 +9,8 @@
 /////////////////////////////////////////////////////
 // UWidgetBlueprintLibrary
 
-UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

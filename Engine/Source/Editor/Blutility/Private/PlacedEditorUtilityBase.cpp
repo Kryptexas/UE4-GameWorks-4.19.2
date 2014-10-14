@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // APlacedEditorUtilityBase
 
-APlacedEditorUtilityBase::APlacedEditorUtilityBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlacedEditorUtilityBase::APlacedEditorUtilityBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	HelpText = TEXT("Please fill out the help text");

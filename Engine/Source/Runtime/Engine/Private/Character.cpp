@@ -22,8 +22,8 @@ FName ACharacter::MeshComponentName(TEXT("CharacterMesh0"));
 FName ACharacter::CharacterMovementComponentName(TEXT("CharMoveComp"));
 FName ACharacter::CapsuleComponentName(TEXT("CollisionCylinder"));
 
-ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -44,7 +44,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = true;
 
-	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
+	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
 	CapsuleComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 
@@ -61,7 +61,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	JumpMaxHoldTime = 0.0f;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = FColor(150, 200, 255);
@@ -73,14 +73,14 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	CharacterMovement = PCIP.CreateDefaultSubobject<UCharacterMovementComponent>(this, ACharacter::CharacterMovementComponentName);
+	CharacterMovement = ObjectInitializer.CreateDefaultSubobject<UCharacterMovementComponent>(this, ACharacter::CharacterMovementComponentName);
 	if (CharacterMovement)
 	{
 		CharacterMovement->UpdatedComponent = CapsuleComponent;
 		CrouchedEyeHeight = CharacterMovement->CrouchedHalfHeight * 0.80f;
 	}
 
-	Mesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, ACharacter::MeshComponentName);
+	Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, ACharacter::MeshComponentName);
 	if (Mesh)
 	{
 		Mesh->AlwaysLoadOnClient = true;

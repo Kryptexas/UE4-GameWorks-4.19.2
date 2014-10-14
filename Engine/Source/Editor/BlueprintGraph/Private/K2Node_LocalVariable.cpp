@@ -8,8 +8,8 @@
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_LocalVariable.h"
 
-UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
 	CustomVariableName = TEXT("NewLocalVar");

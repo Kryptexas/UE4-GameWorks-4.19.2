@@ -25,8 +25,8 @@ struct FFormatTextNodeHelper
 	}
 };
 
-UK2Node_FormatText::UK2Node_FormatText(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_FormatText::UK2Node_FormatText(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, CachedFormatPin(NULL)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Builds a formatted string using available specifier values. Use {} to denote specifiers.");

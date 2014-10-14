@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTerrainMaterial
 
-UPaperTerrainMaterial::UPaperTerrainMaterial(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTerrainMaterial::UPaperTerrainMaterial(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Add a default rule
 	FPaperTerrainMaterialRule& DefaultRule = *new (Rules) FPaperTerrainMaterialRule();

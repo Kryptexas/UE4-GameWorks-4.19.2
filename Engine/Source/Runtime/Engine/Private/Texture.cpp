@@ -35,8 +35,8 @@ FName FTextureResource::TextureGroupStatFNames[TEXTUREGROUP_MAX] =
 
 UTexture::FOnTextureSaved UTexture::PreSaveEvent;
 
-UTexture::UTexture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SRGB = true;
 	Filter = TF_Default;

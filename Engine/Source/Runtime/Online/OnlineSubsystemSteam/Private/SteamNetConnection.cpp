@@ -8,8 +8,8 @@
 #include "SocketSubsystemSteam.h"
 #include "SocketsSteam.h"
 
-USteamNetConnection::USteamNetConnection(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+USteamNetConnection::USteamNetConnection(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	bIsPassthrough(false)
 {
 }

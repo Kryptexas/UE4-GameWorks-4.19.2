@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteActorFactory
 
-UPaperSpriteActorFactory::UPaperSpriteActorFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteActorFactory::UPaperSpriteActorFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DisplayName = NSLOCTEXT("Paper2D", "PaperSpriteFactoryDisplayName", "Add Sprite");
 	NewActorClass = APaperSpriteActor::StaticClass();

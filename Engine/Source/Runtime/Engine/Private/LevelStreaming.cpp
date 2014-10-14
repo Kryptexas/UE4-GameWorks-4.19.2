@@ -868,8 +868,8 @@ void ULevelStreaming::RemoveStreamingVolumeDuplicates()
 
 #endif // WITH_EDITOR
 
-ULevelStreaming::ULevelStreaming(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreaming::ULevelStreaming(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bShouldBeVisibleInEditor = true;
 	LevelColor = FLinearColor::White;
@@ -895,16 +895,16 @@ void ULevelStreaming::PostEditUndo()
 /*-----------------------------------------------------------------------------
 	ULevelStreamingPersistent implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingPersistent::ULevelStreamingPersistent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingPersistent::ULevelStreamingPersistent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 /*-----------------------------------------------------------------------------
 	ULevelStreamingKismet implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingKismet::ULevelStreamingKismet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingKismet::ULevelStreamingKismet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -933,8 +933,8 @@ bool ULevelStreamingKismet::ShouldBeLoaded( const FVector& ViewLocation )
 /*-----------------------------------------------------------------------------
 	ULevelStreamingAlwaysLoaded implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bShouldBeVisible = true;
 }
@@ -947,8 +947,8 @@ bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )
 /*-----------------------------------------------------------------------------
 	ULevelStreamingBounds implementation.
 -----------------------------------------------------------------------------*/
-ULevelStreamingBounds::ULevelStreamingBounds(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelStreamingBounds::ULevelStreamingBounds(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

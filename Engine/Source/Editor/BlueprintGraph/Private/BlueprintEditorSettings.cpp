@@ -5,8 +5,8 @@
 #include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorUserSettings.h"
 
-UBlueprintEditorSettings::UBlueprintEditorSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSaveOnCompile = false;
 	bShowGraphInstructionText = true;

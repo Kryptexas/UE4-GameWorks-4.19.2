@@ -1931,7 +1931,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 	
 			// Construct landscape static mesh
 			FString LandscapeMeshAssetName = TEXT("SM_") + LandscapeBaseAssetName;
-			UStaticMesh* StaticMesh = new(LODPackage, *LandscapeMeshAssetName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+			UStaticMesh* StaticMesh = new(LODPackage, *LandscapeMeshAssetName, RF_Public|RF_Standalone) UStaticMesh(FObjectInitializer());
 			StaticMesh->InitResources();
 			{
 				FString OutputPath = StaticMesh->GetPathName();

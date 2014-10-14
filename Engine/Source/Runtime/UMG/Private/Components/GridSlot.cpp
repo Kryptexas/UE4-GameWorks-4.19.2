@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UGridSlot
 
-UGridSlot::UGridSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGridSlot::UGridSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(nullptr)
 {
 	HorizontalAlignment = HAlign_Fill;

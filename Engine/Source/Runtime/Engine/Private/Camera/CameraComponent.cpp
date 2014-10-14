@@ -13,8 +13,8 @@ static void SetDeprecatedControllerViewRotation(UCameraComponent& Component, boo
 //////////////////////////////////////////////////////////////////////////
 // UCameraComponent
 
-UCameraComponent::UCameraComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())

@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-UThumbnailInfo::UThumbnailInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UThumbnailInfo::UThumbnailInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -606,7 +606,7 @@ void FLiveEditorManager::InjectNewBlueprintEditor( const TWeakPtr<FBlueprintEdit
 
 void FLiveEditorManager::CreateLiveEditorWorld()
 {
-	LiveEditorWorld = new UWorld(FPostConstructInitializeProperties(),FURL(NULL));
+	LiveEditorWorld = new UWorld(FObjectInitializer(),FURL(NULL));
 	LiveEditorWorld->WorldType = EWorldType::Preview;
 	
 	bool bTransactional = false;

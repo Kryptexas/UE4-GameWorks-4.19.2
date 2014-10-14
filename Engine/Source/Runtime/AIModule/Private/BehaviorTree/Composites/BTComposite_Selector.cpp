@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Composites/BTComposite_Selector.h"
 
-UBTComposite_Selector::UBTComposite_Selector(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTComposite_Selector::UBTComposite_Selector(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Selector";
 

@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookThumbnailRenderer
 
-UPaperFlipbookThumbnailRenderer::UPaperFlipbookThumbnailRenderer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperFlipbookThumbnailRenderer::UPaperFlipbookThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

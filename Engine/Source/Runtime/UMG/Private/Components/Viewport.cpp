@@ -486,8 +486,8 @@ public:
 /////////////////////////////////////////////////////
 // UViewport
 
-UViewport::UViewport(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UViewport::UViewport(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ShowFlags(ESFIM_Game)
 {
 	bIsVariable = true;

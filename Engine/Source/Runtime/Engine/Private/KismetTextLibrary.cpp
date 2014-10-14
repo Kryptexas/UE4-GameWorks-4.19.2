@@ -9,8 +9,8 @@
 /* UKismetTextLibrary structors
  *****************************************************************************/
 
-UKismetTextLibrary::UKismetTextLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetTextLibrary::UKismetTextLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 { }
 
 

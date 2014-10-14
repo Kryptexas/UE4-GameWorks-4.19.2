@@ -5,8 +5,8 @@
 TArray<TArray<FDebugDrawDelegate> > UDebugDrawService::Delegates;
 FEngineShowFlags UDebugDrawService::ObservedFlags(ESFIM_Editor);
 
-UDebugDrawService::UDebugDrawService(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDebugDrawService::UDebugDrawService(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Delegates.Reserve(sizeof(FEngineShowFlags)*8);
 }

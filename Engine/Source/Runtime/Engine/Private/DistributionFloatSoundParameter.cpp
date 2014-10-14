@@ -6,7 +6,7 @@
 /*-----------------------------------------------------------------------------
 	Parameter-based distributions
 -----------------------------------------------------------------------------*/
-	UDEPRECATED_DistributionFloatSoundParameter::UDEPRECATED_DistributionFloatSoundParameter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+	UDEPRECATED_DistributionFloatSoundParameter::UDEPRECATED_DistributionFloatSoundParameter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

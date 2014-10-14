@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-USubsurfaceProfileRenderer::USubsurfaceProfileRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USubsurfaceProfileRenderer::USubsurfaceProfileRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

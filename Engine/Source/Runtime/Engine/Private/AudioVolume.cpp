@@ -119,8 +119,8 @@ void FReverbSettings::PostSerialize(const FArchive& Ar)
 	}
 }
 
-AAudioVolume::AAudioVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AAudioVolume::AAudioVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 

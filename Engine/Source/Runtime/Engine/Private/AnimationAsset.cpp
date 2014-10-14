@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimSequence.h"
 
-UAnimationAsset::UAnimationAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

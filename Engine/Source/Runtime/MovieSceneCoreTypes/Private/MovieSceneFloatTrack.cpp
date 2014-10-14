@@ -7,8 +7,8 @@
 #include "MovieSceneFloatTrackInstance.h"
 
 
-UMovieSceneFloatTrack::UMovieSceneFloatTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneFloatTrack::UMovieSceneFloatTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

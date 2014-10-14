@@ -33,8 +33,8 @@ static TAutoConsoleVariable<int32> CVarNetReliableDebug(
 	UChannel implementation.
 -----------------------------------------------------------------------------*/
 
-UChannel::UChannel(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UChannel::UChannel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

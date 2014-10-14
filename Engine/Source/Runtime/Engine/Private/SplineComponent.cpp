@@ -9,8 +9,8 @@
 #include "ComponentInstanceDataCache.h"
 
 
-USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bAllowSplineEditingPerInstance(true)
 	, ReparamStepsPerSegment(10)
 	, Duration(1.0f)

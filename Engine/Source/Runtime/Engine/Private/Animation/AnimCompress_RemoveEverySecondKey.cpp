@@ -10,8 +10,8 @@
 #include "AnimEncoding.h"
 #include "AnimationCompression.h"
 
-UAnimCompress_RemoveEverySecondKey::UAnimCompress_RemoveEverySecondKey(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_RemoveEverySecondKey::UAnimCompress_RemoveEverySecondKey(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Remove Every Second Key");
 	MinKeys = 10;

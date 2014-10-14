@@ -26,8 +26,8 @@ float EaseAlpha(float InAlpha, uint8 EasingFunc, float BlendExp, int32 Steps)
 	return InAlpha;
 }
 
-UKismetMathLibrary::UKismetMathLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetMathLibrary::UKismetMathLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -9,8 +9,8 @@ DEFINE_LOG_CATEGORY(LogDataTable);
 ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
 ENGINE_API const FString FDataTableCategoryHandle::Unknown(TEXT("UNKNOWN"));
 
-UDataTable::UDataTable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

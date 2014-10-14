@@ -3,14 +3,14 @@
 #include "EnginePrivate.h"
 #include "VectorField/VectorFieldVolume.h"
 
-AVectorFieldVolume::AVectorFieldVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AVectorFieldVolume::AVectorFieldVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	VectorFieldComponent = PCIP.CreateDefaultSubobject<UVectorFieldComponent>(this, TEXT("VectorFieldComponent0"));
+	VectorFieldComponent = ObjectInitializer.CreateDefaultSubobject<UVectorFieldComponent>(this, TEXT("VectorFieldComponent0"));
 	RootComponent = VectorFieldComponent;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{

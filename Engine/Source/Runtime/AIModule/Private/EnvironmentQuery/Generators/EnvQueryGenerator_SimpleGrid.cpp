@@ -8,7 +8,7 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
-UEnvQueryGenerator_SimpleGrid::UEnvQueryGenerator_SimpleGrid(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryGenerator_SimpleGrid::UEnvQueryGenerator_SimpleGrid(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();

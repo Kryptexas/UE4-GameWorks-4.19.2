@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_String.h"
 
-UBlackboardKeyType_String::UBlackboardKeyType_String(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType_String::UBlackboardKeyType_String(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FString);
 	SupportedOp = EBlackboardKeyOperation::Text;

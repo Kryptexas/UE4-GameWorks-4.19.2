@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UInAppPurchaseQueryCallbackProxy
 
-UInAppPurchaseQueryCallbackProxy::UInAppPurchaseQueryCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInAppPurchaseQueryCallbackProxy::UInAppPurchaseQueryCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

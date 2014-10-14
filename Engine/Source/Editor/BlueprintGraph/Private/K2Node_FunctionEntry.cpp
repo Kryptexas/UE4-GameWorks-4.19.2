@@ -108,8 +108,8 @@ struct FFunctionEntryHelper
 	}
 };
 
-UK2Node_FunctionEntry::UK2Node_FunctionEntry(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_FunctionEntry::UK2Node_FunctionEntry(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

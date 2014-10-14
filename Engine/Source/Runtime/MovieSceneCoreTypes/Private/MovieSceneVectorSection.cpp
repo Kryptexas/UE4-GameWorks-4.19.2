@@ -4,8 +4,8 @@
 #include "MovieSceneVectorSection.h"
 #include "MovieSceneVectorTrack.h"
 
-UMovieSceneVectorSection::UMovieSceneVectorSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneVectorSection::UMovieSceneVectorSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 
 }

@@ -12,8 +12,8 @@ TMap< USoundNodeGroupControl*, TArray< TMap< FActiveSound*, int32> > > USoundNod
 /*-----------------------------------------------------------------------------
     USoundNodeGroupControl implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeGroupControl::USoundNodeGroupControl(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeGroupControl::USoundNodeGroupControl(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

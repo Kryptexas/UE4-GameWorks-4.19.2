@@ -42,8 +42,8 @@ FInputChord::RelationshipType FInputChord::GetRelationship( const FInputChord& O
 /* UInputComponent interface
  *****************************************************************************/
 
-UInputComponent::UInputComponent( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UInputComponent::UInputComponent( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	bBlockInput = false;
 }

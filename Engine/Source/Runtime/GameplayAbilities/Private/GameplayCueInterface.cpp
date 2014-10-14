@@ -5,8 +5,8 @@
 #include "GameplayCueInterface.h"
 #include "GameplayTagsModule.h"
 
-UGameplayCueInterface::UGameplayCueInterface(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayCueInterface::UGameplayCueInterface(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

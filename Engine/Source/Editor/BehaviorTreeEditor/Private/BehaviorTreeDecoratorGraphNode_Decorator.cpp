@@ -6,7 +6,7 @@
 #include "BehaviorTreeGraphNode_CompositeDecorator.h"
 #include "BehaviorTreeDecoratorGraphNode_Decorator.h"
 
-UBehaviorTreeDecoratorGraphNode_Decorator::UBehaviorTreeDecoratorGraphNode_Decorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeDecoratorGraphNode_Decorator::UBehaviorTreeDecoratorGraphNode_Decorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeInstance = NULL;
 }

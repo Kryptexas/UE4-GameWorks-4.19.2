@@ -9,8 +9,8 @@
 #include "UnrealEd.h"
 #endif
 
-UGameplayTagsManager::UGameplayTagsManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayTagsManager::UGameplayTagsManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITOR
 	RegisteredObjectReimport = false;

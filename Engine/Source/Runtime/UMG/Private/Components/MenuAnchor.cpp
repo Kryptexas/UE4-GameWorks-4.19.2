@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UMenuAnchor
 
-UMenuAnchor::UMenuAnchor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMenuAnchor::UMenuAnchor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Placement = MenuPlacement_ComboBox;
 }

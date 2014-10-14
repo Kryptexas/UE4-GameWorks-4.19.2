@@ -138,8 +138,8 @@ void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayer
 //////////////////////////////////////////////////////////////////////////
 // ULocalPlayer
 
-ULocalPlayer::ULocalPlayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULocalPlayer::ULocalPlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PendingLevelPlayerControllerClass = APlayerController::StaticClass();
 }

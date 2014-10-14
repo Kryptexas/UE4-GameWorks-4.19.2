@@ -3,7 +3,7 @@
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 
-UEnvironmentQueryGraphNode_Test::UEnvironmentQueryGraphNode_Test(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvironmentQueryGraphNode_Test::UEnvironmentQueryGraphNode_Test(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bTestEnabled = true;
 	bHasNamedWeight = false;

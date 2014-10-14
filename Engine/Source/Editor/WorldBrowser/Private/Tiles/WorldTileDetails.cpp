@@ -20,8 +20,8 @@ FTileLODEntryDetails::FTileLODEntryDetails()
 
 /////////////////////////////////////////////////////
 // UWorldTileDetails
-UWorldTileDetails::UWorldTileDetails(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWorldTileDetails::UWorldTileDetails(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LOD1.LODIndex = 0;
 	LOD2.LODIndex = 1;

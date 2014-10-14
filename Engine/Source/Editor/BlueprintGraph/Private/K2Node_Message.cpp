@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_Message"
 
-UK2Node_Message::UK2Node_Message(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Message::UK2Node_Message(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

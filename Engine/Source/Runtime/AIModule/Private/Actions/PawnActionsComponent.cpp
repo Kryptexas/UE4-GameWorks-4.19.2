@@ -147,8 +147,8 @@ int32 FPawnActionStack::GetStackSize() const
 // UPawnActionsComponent
 //----------------------------------------------------------------------//
 
-UPawnActionsComponent::UPawnActionsComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnActionsComponent::UPawnActionsComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;

@@ -4,8 +4,8 @@
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 
-UMovieScene3DTransformSection::UMovieScene3DTransformSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieScene3DTransformSection::UMovieScene3DTransformSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 
 }

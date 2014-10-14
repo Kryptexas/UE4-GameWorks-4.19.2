@@ -11,8 +11,8 @@
 
 #define INVALID_CONTROLLERID 255
 
-UOnlineSessionClient::UOnlineSessionClient(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOnlineSessionClient::UOnlineSessionClient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHandlingDisconnect = false;
 	bIsFromInvite = false;

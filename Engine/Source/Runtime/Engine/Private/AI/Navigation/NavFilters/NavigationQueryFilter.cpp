@@ -110,7 +110,7 @@ uint16 FNavigationQueryFilter::GetExcludeFlags() const
 //----------------------------------------------------------------------//
 // UNavigationQueryFilter
 //----------------------------------------------------------------------//
-UNavigationQueryFilter::UNavigationQueryFilter(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavigationQueryFilter::UNavigationQueryFilter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	IncludeFlags.Packed = 0xffff;
 	ExcludeFlags.Packed = 0;

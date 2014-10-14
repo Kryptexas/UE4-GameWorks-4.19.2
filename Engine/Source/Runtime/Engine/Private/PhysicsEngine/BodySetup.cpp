@@ -39,8 +39,8 @@ static TAutoConsoleVariable<float> CVarMaxContactOffset(
 	ECVF_Default);
 
 DEFINE_LOG_CATEGORY(LogPhysics);
-UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bConsiderForBounds = true;
 	bMeshCollideAll = false;

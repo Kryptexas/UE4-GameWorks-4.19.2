@@ -5,8 +5,8 @@
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_BoneDrivenController::UAnimGraphNode_BoneDrivenController(const FPostConstructInitializeProperties& PCIP)
-	:Super(PCIP)
+UAnimGraphNode_BoneDrivenController::UAnimGraphNode_BoneDrivenController(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
 
 }

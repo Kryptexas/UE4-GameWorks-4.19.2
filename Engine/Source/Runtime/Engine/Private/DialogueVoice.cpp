@@ -7,8 +7,8 @@
 #include "AudioDerivedData.h"
 #include "SubtitleManager.h"
 
-UDialogueVoice::UDialogueVoice(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueVoice::UDialogueVoice(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, LocalizationGUID( FGuid::NewGuid() )
 {
 }

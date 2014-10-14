@@ -96,8 +96,8 @@ struct FForExpandNodeHelper
 	}
 };
 
-UK2Node_ForEachElementInEnum::UK2Node_ForEachElementInEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ForEachElementInEnum::UK2Node_ForEachElementInEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

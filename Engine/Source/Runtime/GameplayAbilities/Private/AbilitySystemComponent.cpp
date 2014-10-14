@@ -29,8 +29,8 @@ static FAutoConsoleVariableRef CVarDebugGameplayCues(
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
-UAbilitySystemComponent::UAbilitySystemComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bWantsInitializeComponent = true;
 

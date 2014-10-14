@@ -15,8 +15,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGenerateArchiveCommandlet, Log, All);
 /**
  *	UGenerateGatherArchiveCommandlet
  */
-UGenerateGatherArchiveCommandlet::UGenerateGatherArchiveCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenerateGatherArchiveCommandlet::UGenerateGatherArchiveCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -91,8 +91,8 @@ void FLightMap::FinishCleanup()
 	delete this;
 }
 
-ULightMapTexture2D::ULightMapTexture2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightMapTexture2D::ULightMapTexture2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -711,7 +711,7 @@ void FLightMapPendingTexture::StartEncoding()
 
 	if (bNeedsSkyOcclusionTexture)
 	{
-		ULightMapTexture2D* Texture = new(Outer, GetSkyOcclusionTextureName(GLightmapCounter)) ULightMapTexture2D(FPostConstructInitializeProperties());
+		ULightMapTexture2D* Texture = new(Outer, GetSkyOcclusionTextureName(GLightmapCounter)) ULightMapTexture2D(FObjectInitializer());
 		SkyOcclusionTexture = Texture;
 
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY(), TSF_BGRA8);
@@ -810,7 +810,7 @@ void FLightMapPendingTexture::StartEncoding()
 		}
 
 		// Create the light-map texture for this coefficient.
-		ULightMapTexture2D* Texture = new(Outer, GetLightmapName(GLightmapCounter, CoefficientIndex)) ULightMapTexture2D(FPostConstructInitializeProperties());
+		ULightMapTexture2D* Texture = new(Outer, GetLightmapName(GLightmapCounter, CoefficientIndex)) ULightMapTexture2D(FObjectInitializer());
 		Textures[CoefficientIndex] = Texture;
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY() * 2, TSF_BGRA8);	// Top/bottom atlased
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;

@@ -546,8 +546,8 @@ void FBSPOps::csgCopyBrush( ABrush* Dest, ABrush* Src, uint32 PolyFlags, EObject
 
 	// Duplicate the brush and its polys.
 	Dest->PolyFlags		= PolyFlags;
-	Dest->Brush			= new( Dest, NAME_None, ResFlags )UModel(FPostConstructInitializeProperties(), NULL, Src->Brush->RootOutside );
-	Dest->Brush->Polys	= new( Dest->Brush, NAME_None, ResFlags )UPolys(FPostConstructInitializeProperties());
+	Dest->Brush			= new( Dest, NAME_None, ResFlags )UModel(FObjectInitializer(), NULL, Src->Brush->RootOutside );
+	Dest->Brush->Polys	= new( Dest->Brush, NAME_None, ResFlags )UPolys(FObjectInitializer());
 	check(Dest->Brush->Polys->Element.GetOwner()==Dest->Brush->Polys);
 	Dest->Brush->Polys->Element.AssignButKeepOwner(Src->Brush->Polys->Element);
 	check(Dest->Brush->Polys->Element.GetOwner()==Dest->Brush->Polys);

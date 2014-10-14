@@ -15,10 +15,10 @@ namespace DecalEditorConstants
 }
 #endif
 
-ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
-	Decal = PCIP.CreateDefaultSubobject<UDecalComponent>(this, TEXT("NewDecalComponent"));
+	Decal = ObjectInitializer.CreateDefaultSubobject<UDecalComponent>(this, TEXT("NewDecalComponent"));
 	Decal->RelativeScale3D = FVector(128.0f, 256.0f, 256.0f);
 
 	Decal->RelativeRotation = FRotator(-90, 0, 0);
@@ -26,7 +26,7 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 	RootComponent = Decal;
 
 #if WITH_EDITORONLY_DATA
-	BoxComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	BoxComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
 	if (BoxComponent != nullptr)
 	{
 		BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -39,8 +39,8 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 		BoxComponent->AttachParent = Decal;
 	}
 
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet())
 	{

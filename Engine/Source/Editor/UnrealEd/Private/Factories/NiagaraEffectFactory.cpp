@@ -7,8 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectFactory"
 
-UNiagaraEffectFactoryNew::UNiagaraEffectFactoryNew(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UNiagaraEffectFactoryNew::UNiagaraEffectFactoryNew(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	SupportedClass = UNiagaraEffect::StaticClass();

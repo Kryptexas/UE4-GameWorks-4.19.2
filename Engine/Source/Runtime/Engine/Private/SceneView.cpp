@@ -818,7 +818,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 }
 
 /** Dummy class needed to support Cast<IBlendableInterface>(Object) */
-UBlendableInterface::UBlendableInterface(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) 
+UBlendableInterface::UBlendableInterface(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) 
 {
 }
 

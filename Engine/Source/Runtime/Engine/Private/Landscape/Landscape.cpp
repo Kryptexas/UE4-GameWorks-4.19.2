@@ -50,8 +50,8 @@ FAutoConsoleCommand CmdPrintNumLandscapeShadows(
 	FConsoleCommandDelegate::CreateStatic(PrintNumLandscapeShadows)
 	);
 
-ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
@@ -314,15 +314,15 @@ void ULandscapeComponent::GetLayerDebugColorKey(int32& R, int32& G, int32& B) co
 }
 #endif	//WITH_EDITOR
 
-ULandscapeMeshCollisionComponent::ULandscapeMeshCollisionComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeMeshCollisionComponent::ULandscapeMeshCollisionComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// make landscape always create? 
 	bAlwaysCreatePhysicsState = true;
 }
 
-ULandscapeInfo::ULandscapeInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeInfo::ULandscapeInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITOR
 	bIsValid = false;
@@ -457,8 +457,8 @@ void ULandscapeComponent::PostLoad()
 
 #endif // WITH_EDITOR
 
-ALandscape::ALandscape(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALandscape::ALandscape(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsProxy = false;
 
@@ -472,8 +472,8 @@ ALandscape* ALandscape::GetLandscapeActor()
 	return this;
 }
 
-ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = false;
@@ -482,7 +482,7 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 	bReplicateMovement = false;
 	bCanBeDamaged = false;
 
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;
 	RootComponent->RelativeScale3D = FVector(128.0f, 128.0f, 256.0f); // Old default scale, preserved for compatibility. See ULandscapeEditorObject::NewLandscape_Scale
 	RootComponent->Mobility = EComponentMobility::Static;

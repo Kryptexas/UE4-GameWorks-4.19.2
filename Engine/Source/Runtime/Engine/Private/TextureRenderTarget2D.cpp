@@ -10,8 +10,8 @@
 	UTextureRenderTarget2D
 -----------------------------------------------------------------------------*/
 
-UTextureRenderTarget2D::UTextureRenderTarget2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureRenderTarget2D::UTextureRenderTarget2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHDR = true;
 	ClearColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);

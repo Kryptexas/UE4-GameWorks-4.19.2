@@ -15,8 +15,8 @@ public:
 	typedef UTextProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UTextProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	TProperty( PCIP, EC_CppProperty, InOffset, InFlags)
+	UTextProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	TProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 

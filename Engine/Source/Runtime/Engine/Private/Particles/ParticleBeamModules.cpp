@@ -23,8 +23,8 @@
 /*-----------------------------------------------------------------------------
 	UParticleModuleTypeDataBeam2 implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleTypeDataBeam2::UParticleModuleTypeDataBeam2(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleTypeDataBeam2::UParticleModuleTypeDataBeam2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -897,8 +897,8 @@ void UParticleModuleTypeDataBeam2::GetNoiseRange(FVector& NoiseMin, FVector& Noi
 /*-----------------------------------------------------------------------------
 	UParticleModuleBaseModifier implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleBeamBase::UParticleModuleBeamBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleBeamBase::UParticleModuleBeamBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = false;
@@ -907,8 +907,8 @@ UParticleModuleBeamBase::UParticleModuleBeamBase(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
 	UParticleModuleBeamModifier implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleBeamModifier::UParticleModuleBeamModifier(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleBeamModifier::UParticleModuleBeamModifier(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ModifierType = PEB2MT_Source;
 }
@@ -1176,8 +1176,8 @@ void UParticleModuleBeamModifier::GetDataPointerOffsets(FParticleEmitterInstance
 /*-----------------------------------------------------------------------------
 	UParticleModuleBeamNoise implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleBeamNoise::UParticleModuleBeamNoise(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleBeamNoise::UParticleModuleBeamNoise(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Frequency = 0;
 	NoiseLockRadius = 1.0f;
@@ -1520,8 +1520,8 @@ void UParticleModuleBeamNoise::GetNoiseRange(FVector& NoiseMin, FVector& NoiseMa
 /*-----------------------------------------------------------------------------
 	UParticleModuleBeamSource implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleBeamSource::UParticleModuleBeamSource(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleBeamSource::UParticleModuleBeamSource(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -1952,8 +1952,8 @@ bool UParticleModuleBeamSource::ResolveSourceData(FParticleBeam2EmitterInstance*
 /*-----------------------------------------------------------------------------
 	UParticleModuleBeamTarget implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleBeamTarget::UParticleModuleBeamTarget(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleBeamTarget::UParticleModuleBeamTarget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

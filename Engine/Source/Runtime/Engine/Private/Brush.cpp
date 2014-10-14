@@ -18,10 +18,10 @@ ABrush::FOnBrushRegistered ABrush::OnBrushRegistered;
 TArray< TWeakObjectPtr< ULevel > > ABrush::LevelsToRebuild;
 #endif
 
-ABrush::ABrush(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	BrushComponent = PCIP.CreateDefaultSubobject<UBrushComponent>(this, TEXT("BrushComponent0"));
+	BrushComponent = ObjectInitializer.CreateDefaultSubobject<UBrushComponent>(this, TEXT("BrushComponent0"));
 	BrushComponent->Mobility = EComponentMobility::Static;
 	BrushComponent->bGenerateOverlapEvents = false;
 	BrushComponent->bCanEverAffectNavigation = false;

@@ -4,8 +4,8 @@
 #include "PhysXSupport.h"
 
 
-UPhysicsThrusterComponent::UPhysicsThrusterComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsThrusterComponent::UPhysicsThrusterComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -41,15 +41,15 @@ void UPhysicsThrusterComponent::PostLoad()
 
 //////////////////////////////////////////////////////////////////////////
 
-APhysicsThruster::APhysicsThruster(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APhysicsThruster::APhysicsThruster(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	ThrusterComponent = PCIP.CreateDefaultSubobject<UPhysicsThrusterComponent>(this, TEXT("Thruster0"));
+	ThrusterComponent = ObjectInitializer.CreateDefaultSubobject<UPhysicsThrusterComponent>(this, TEXT("Thruster0"));
 	RootComponent = ThrusterComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet())
 	{

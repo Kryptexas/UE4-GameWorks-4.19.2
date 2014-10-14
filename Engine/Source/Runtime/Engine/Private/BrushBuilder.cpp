@@ -10,8 +10,8 @@
 /*-----------------------------------------------------------------------------
 	UBrushBuilder.
 -----------------------------------------------------------------------------*/
-UBrushBuilder::UBrushBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBrushBuilder::UBrushBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BitmapFilename = TEXT("BBGeneric");
 	ToolTip = TEXT("BrushBuilderName_Generic");

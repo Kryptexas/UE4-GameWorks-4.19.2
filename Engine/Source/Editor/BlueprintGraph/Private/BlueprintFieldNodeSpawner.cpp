@@ -20,8 +20,8 @@ UBlueprintFieldNodeSpawner* UBlueprintFieldNodeSpawner::Create(TSubclassOf<UK2No
 }
 
 //------------------------------------------------------------------------------
-UBlueprintFieldNodeSpawner::UBlueprintFieldNodeSpawner(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintFieldNodeSpawner::UBlueprintFieldNodeSpawner(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Field(nullptr)
 {
 }

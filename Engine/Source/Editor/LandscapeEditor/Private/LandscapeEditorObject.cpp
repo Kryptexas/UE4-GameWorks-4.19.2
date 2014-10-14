@@ -7,8 +7,8 @@
 
 #include "Landscape/LandscapeMaterialInstanceConstant.h"
 
-ULandscapeEditorObject::ULandscapeEditorObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 
 	// Tool Settings:
 	, ToolStrength(0.3f)

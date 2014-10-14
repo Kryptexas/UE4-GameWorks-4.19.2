@@ -4,7 +4,7 @@
 #include "BehaviorTree/TestBTTask_Log.h"
 #include "MockAI_BT.h"
 
-UTestBTTask_Log::UTestBTTask_Log(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UTestBTTask_Log::UTestBTTask_Log(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Log";
 	ExecutionTicks = 0;

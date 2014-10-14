@@ -6,8 +6,8 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneColorTrackInstance.h"
 
-UMovieSceneColorTrack::UMovieSceneColorTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneColorTrack::UMovieSceneColorTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

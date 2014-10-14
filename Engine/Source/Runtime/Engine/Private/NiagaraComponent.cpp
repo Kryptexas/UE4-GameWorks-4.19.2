@@ -392,8 +392,8 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-UNiagaraComponent::UNiagaraComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraComponent::UNiagaraComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;

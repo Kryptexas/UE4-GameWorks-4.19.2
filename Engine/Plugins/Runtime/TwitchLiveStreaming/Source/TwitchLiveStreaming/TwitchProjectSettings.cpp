@@ -4,8 +4,8 @@
 #include "TwitchProjectSettings.h"
 
 
-UTwitchProjectSettings::UTwitchProjectSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UTwitchProjectSettings::UTwitchProjectSettings( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

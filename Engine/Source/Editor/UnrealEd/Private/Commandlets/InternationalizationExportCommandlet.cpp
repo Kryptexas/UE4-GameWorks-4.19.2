@@ -1029,8 +1029,8 @@ FString FPortableObjectEntry::ToString() const
 /**
  *	UInternationalizationExportCommandlet
  */
-UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -134,8 +134,8 @@ private:
 	FEdGraphPinType ExpectedSelectionPinType;
 };
 
-UK2Node_Switch::UK2Node_Switch(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Switch::UK2Node_Switch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bHasDefaultPin = true;

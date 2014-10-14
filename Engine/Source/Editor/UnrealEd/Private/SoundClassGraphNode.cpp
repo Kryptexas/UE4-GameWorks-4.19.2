@@ -11,8 +11,8 @@
 /////////////////////////////////////////////////////
 // USoundClassGraphNode
 
-USoundClassGraphNode::USoundClassGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundClassGraphNode::USoundClassGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ChildPin(NULL)
 	, ParentPin(NULL)
 {

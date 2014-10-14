@@ -7,8 +7,8 @@
 DEFINE_LOG_CATEGORY(LogSlateStyle);
 
 
-USlateWidgetStyleContainerBase::USlateWidgetStyleContainerBase( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+USlateWidgetStyleContainerBase::USlateWidgetStyleContainerBase( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 { }
 
 

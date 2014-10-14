@@ -12,8 +12,8 @@
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Comment
 
-UMaterialGraphNode_Comment::UMaterialGraphNode_Comment(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphNode_Comment::UMaterialGraphNode_Comment(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

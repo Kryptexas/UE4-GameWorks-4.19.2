@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteAtlasFactory
 
-UPaperSpriteAtlasFactory::UPaperSpriteAtlasFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteAtlasFactory::UPaperSpriteAtlasFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UPaperSpriteAtlas::StaticClass();
 

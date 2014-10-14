@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UProgressBar
 
-UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UProgressBar::UProgressBar(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SProgressBar::FArguments SlateDefaults;
 	WidgetStyle = *SlateDefaults._Style;

@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Composites/BTComposite_Sequence.h"
 
-UBTComposite_Sequence::UBTComposite_Sequence(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTComposite_Sequence::UBTComposite_Sequence(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Sequence";
 

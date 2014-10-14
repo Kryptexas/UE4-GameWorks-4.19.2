@@ -14,8 +14,8 @@
 // UVehicleAnimInstance
 /////////////////////////////////////////////////////
 
-UVehicleAnimInstance::UVehicleAnimInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVehicleAnimInstance::UVehicleAnimInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

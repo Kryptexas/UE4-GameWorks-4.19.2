@@ -14,8 +14,8 @@
 /*-----------------------------------------------------------------------------
 	UEditorBrushBuilder.
 -----------------------------------------------------------------------------*/
-UEditorBrushBuilder::UEditorBrushBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorBrushBuilder::UEditorBrushBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BitmapFilename = TEXT("BBGeneric");
 	ToolTip = TEXT("BrushBuilderName_Generic");
@@ -246,8 +246,8 @@ void UEditorBrushBuilder::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 }
 
-UConeBuilder::UConeBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UConeBuilder::UConeBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -324,8 +324,8 @@ bool UConeBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-UCubeBuilder::UCubeBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCubeBuilder::UCubeBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -401,8 +401,8 @@ bool UCubeBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-UCurvedStairBuilder::UCurvedStairBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurvedStairBuilder::UCurvedStairBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -520,8 +520,8 @@ bool UCurvedStairBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-UCylinderBuilder::UCylinderBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCylinderBuilder::UCylinderBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -596,8 +596,8 @@ bool UCylinderBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-ULinearStairBuilder::ULinearStairBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULinearStairBuilder::ULinearStairBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -723,8 +723,8 @@ bool ULinearStairBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-USheetBuilder::USheetBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USheetBuilder::USheetBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -791,8 +791,8 @@ bool USheetBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-USpiralStairBuilder::USpiralStairBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpiralStairBuilder::USpiralStairBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -914,8 +914,8 @@ bool USpiralStairBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 	return EndBrush( InWorld, InBrush );
 }
 
-UTetrahedronBuilder::UTetrahedronBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTetrahedronBuilder::UTetrahedronBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -983,8 +983,8 @@ bool UTetrahedronBuilder::Build( UWorld* InWorld, ABrush* InBrush )
 }
 
 
-UVolumetricBuilder::UVolumetricBuilder(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVolumetricBuilder::UVolumetricBuilder(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

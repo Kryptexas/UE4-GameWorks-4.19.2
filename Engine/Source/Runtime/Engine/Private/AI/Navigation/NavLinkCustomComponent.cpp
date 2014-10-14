@@ -11,7 +11,7 @@
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 
-UNavLinkCustomComponent::UNavLinkCustomComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavLinkCustomComponent::UNavLinkCustomComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NavLinkUserId = 0;
 	LinkRelativeStart = FVector(70, 0, 0);

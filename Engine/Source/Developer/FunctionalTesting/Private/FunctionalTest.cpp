@@ -4,8 +4,8 @@
 #include "ObjectEditorUtils.h"
 #include "VisualLog.h"
 
-AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, TimesUpResult(EFunctionalTestResult::Failed)
 	, TimeLimit(DefaultTimeLimit)
 	, TimesUpMessage( NSLOCTEXT("FunctionalTest", "DefaultTimesUpMessage", "Time's up!") )
@@ -16,7 +16,7 @@ AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
-	SpriteComponent = PCIP.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
 		SpriteComponent->bHiddenInGame = false;

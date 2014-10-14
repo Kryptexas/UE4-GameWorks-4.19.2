@@ -15,8 +15,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookComponent
 
-UPaperFlipbookComponent::UPaperFlipbookComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperFlipbookComponent::UPaperFlipbookComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 

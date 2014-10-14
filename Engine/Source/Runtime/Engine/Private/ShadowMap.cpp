@@ -28,8 +28,8 @@
 	extern ENGINE_API bool GAllowStreamingLightmaps;
 #endif
 
-UShadowMapTexture2D::UShadowMapTexture2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UShadowMapTexture2D::UShadowMapTexture2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LODGroup = TEXTUREGROUP_Shadowmap;
 }
@@ -176,7 +176,7 @@ bool FShadowMapPendingTexture::AddElement(FShadowMapAllocation& Allocation, cons
 void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 {
 	// Create the shadow-map texture.
-	UShadowMapTexture2D* Texture = new(Outer) UShadowMapTexture2D(FPostConstructInitializeProperties());
+	UShadowMapTexture2D* Texture = new(Outer) UShadowMapTexture2D(FObjectInitializer());
 	Texture->Filter			= GUseBilinearLightmaps ? TF_Default : TF_Nearest;
 	// Signed distance field textures get stored in linear space, since they need more precision near .5.
 	Texture->SRGB			= false;

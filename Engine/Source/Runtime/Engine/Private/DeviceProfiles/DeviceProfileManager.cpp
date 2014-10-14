@@ -123,8 +123,8 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 }
 
 
-UDeviceProfileManager::UDeviceProfileManager( const class FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UDeviceProfileManager::UDeviceProfileManager( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	RenameIndex = 0;
 #if WITH_EDITOR

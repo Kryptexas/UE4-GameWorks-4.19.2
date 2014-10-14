@@ -4,15 +4,15 @@
 
 
 
-UAssetUserData::UAssetUserData(const FPostConstructInitializeProperties& PCIP)
-	: UObject(PCIP)
+UAssetUserData::UAssetUserData(const FObjectInitializer& ObjectInitializer)
+	: UObject(ObjectInitializer)
 {
 
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-UInterface_AssetUserData::UInterface_AssetUserData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterface_AssetUserData::UInterface_AssetUserData(const class FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

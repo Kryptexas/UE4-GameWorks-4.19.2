@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 // BehaviorTreeGraph
 
-UBehaviorTreeDecoratorGraph::UBehaviorTreeDecoratorGraph(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeDecoratorGraph::UBehaviorTreeDecoratorGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Schema = UEdGraphSchema_BehaviorTreeDecorator::StaticClass();
 }

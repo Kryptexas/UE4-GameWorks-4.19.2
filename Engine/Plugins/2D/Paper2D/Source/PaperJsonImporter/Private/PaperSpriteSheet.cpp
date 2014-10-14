@@ -3,8 +3,8 @@
 #include "PaperJsonImporterPrivatePCH.h"
 #include "PaperSpriteSheet.h"
 
-UPaperSpriteSheet::UPaperSpriteSheet(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteSheet::UPaperSpriteSheet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

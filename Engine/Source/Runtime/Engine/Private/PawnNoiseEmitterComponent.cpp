@@ -6,8 +6,8 @@
 
 
 
-UPawnNoiseEmitterComponent::UPawnNoiseEmitterComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnNoiseEmitterComponent::UPawnNoiseEmitterComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NoiseLifetime = 1.0f;
 	PrimaryComponentTick.bCanEverTick = false;

@@ -446,7 +446,7 @@ bool FCinematicFPSPerfTest::RunTest(const FString& Parameters)
 /* UAutomationTestSettings interface
  *****************************************************************************/
 
-UAutomationTestSettings::UAutomationTestSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UAutomationTestSettings::UAutomationTestSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }

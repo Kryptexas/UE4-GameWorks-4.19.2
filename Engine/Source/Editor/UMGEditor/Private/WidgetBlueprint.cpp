@@ -40,8 +40,8 @@ bool FWidgetAnimation_DEPRECATED::SerializeFromMismatchedTag(struct FPropertyTag
 /////////////////////////////////////////////////////
 // UWidgetBlueprint
 
-UWidgetBlueprint::UWidgetBlueprint(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetBlueprint::UWidgetBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
 	WidgetTree->SetFlags(RF_Transactional);

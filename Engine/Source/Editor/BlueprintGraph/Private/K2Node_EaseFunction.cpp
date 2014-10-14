@@ -68,8 +68,8 @@ struct FEaseFunctionNodeHelper
 
 };
 
-UK2Node_EaseFunction::UK2Node_EaseFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EaseFunction::UK2Node_EaseFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, CachedEaseFuncPin(NULL)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Interpolates from value A to value B using a user specified easing function");

@@ -10,8 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"
 
-UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_AIMoveTo::UK2Node_AIMoveTo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ProxyFactoryFunctionName = GET_FUNCTION_NAME_CHECKED(UAIBlueprintHelperLibrary, CreateMoveToProxyObject);
 	ProxyFactoryClass = UAIBlueprintHelperLibrary::StaticClass();

@@ -5,12 +5,12 @@
 //////////////////////////////////////////////////////////////////////////
 // APaperTerrainActor
 
-APaperTerrainActor::APaperTerrainActor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APaperTerrainActor::APaperTerrainActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DummyRoot = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent"));
-	SplineComponent = PCIP.CreateDefaultSubobject<UPaperTerrainSplineComponent>(this, TEXT("SplineComponent"));
- 	RenderComponent = PCIP.CreateDefaultSubobject<UPaperTerrainComponent>(this, TEXT("RenderComponent"));
+	DummyRoot = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent"));
+	SplineComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTerrainSplineComponent>(this, TEXT("SplineComponent"));
+ 	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTerrainComponent>(this, TEXT("RenderComponent"));
  
 	SplineComponent->AttachParent = DummyRoot;
 	RenderComponent->AttachParent = DummyRoot;

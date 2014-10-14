@@ -2,13 +2,13 @@
 
 #include "EnginePrivate.h"
 
-APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerStart::APlayerStart(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CapsuleComponent->InitCapsuleSize(40.0f, 92.0f);
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
 
 	if (!IsRunningCommandlet())
 	{

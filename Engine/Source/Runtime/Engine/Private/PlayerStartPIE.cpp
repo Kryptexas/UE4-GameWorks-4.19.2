@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-APlayerStartPIE::APlayerStartPIE(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APlayerStartPIE::APlayerStartPIE(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UKismetStringLibrary
 
-UKismetStringLibrary::UKismetStringLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetStringLibrary::UKismetStringLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -331,18 +331,18 @@ void FTransaction::GetTransactionObjects(TArray<UObject*>& Objects)
 /*-----------------------------------------------------------------------------
 	Transaction tracking system.
 -----------------------------------------------------------------------------*/
-UTransactor::UTransactor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTransactor::UTransactor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UTransBuffer::UTransBuffer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTransBuffer::UTransBuffer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UTransBuffer::UTransBuffer( const class FPostConstructInitializeProperties& PCIP, SIZE_T InMaxMemory )
-:	UTransactor(PCIP)
+UTransBuffer::UTransBuffer( const FObjectInitializer& ObjectInitializer, SIZE_T InMaxMemory )
+:	UTransactor(ObjectInitializer)
 ,	MaxMemory( InMaxMemory )
 {
 	// Reset.

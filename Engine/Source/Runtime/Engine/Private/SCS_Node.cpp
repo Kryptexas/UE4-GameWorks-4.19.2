@@ -11,8 +11,8 @@
 //////////////////////////////////////////////////////////////////////////
 // USCS_Node
 
-USCS_Node::USCS_Node(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USCS_Node::USCS_Node(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsFalseRoot_DEPRECATED = false;
 	bIsNative_DEPRECATED = false;

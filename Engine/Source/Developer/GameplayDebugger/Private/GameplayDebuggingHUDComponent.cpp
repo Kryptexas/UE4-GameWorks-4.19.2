@@ -28,8 +28,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 
-AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EngineShowFlags(EShowFlagInitMode::ESFIM_Game)
 {
 	World = NULL;

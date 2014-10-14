@@ -80,8 +80,8 @@ FTexture2DRHIRef FTexture2DDynamicResource::GetTexture2DRHI()
 /*-----------------------------------------------------------------------------
 	UTexture2DDynamic
 -----------------------------------------------------------------------------*/
-UTexture2DDynamic::UTexture2DDynamic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexture2DDynamic::UTexture2DDynamic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NeverStream = true;
 	Format = PF_B8G8R8A8;

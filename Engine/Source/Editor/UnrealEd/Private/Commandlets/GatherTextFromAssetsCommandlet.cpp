@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PackageTools.h"
@@ -341,8 +341,8 @@ TSharedPtr< FLocMetadataValue > UGatherTextFromAssetsCommandlet::FDialogueHelper
 }
 
 
-UGatherTextFromAssetsCommandlet::UGatherTextFromAssetsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	:Super(PCIP)
+UGatherTextFromAssetsCommandlet::UGatherTextFromAssetsCommandlet(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
 
 }

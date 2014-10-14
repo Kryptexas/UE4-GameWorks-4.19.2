@@ -9,8 +9,8 @@
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
-UEditorAnimBaseObj::UEditorAnimBaseObj(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorAnimBaseObj::UEditorAnimBaseObj(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

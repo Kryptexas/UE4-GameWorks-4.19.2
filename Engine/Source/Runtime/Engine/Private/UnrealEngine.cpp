@@ -8086,7 +8086,7 @@ EBrowseReturnVal::Type UEngine::Browse( FWorldContext& WorldContext, FURL URL, F
 			ShutdownWorldNetDriver(WorldContext.World());
 		}
 
-		WorldContext.PendingNetGame = new UPendingNetGame(FPostConstructInitializeProperties(), URL);
+		WorldContext.PendingNetGame = new UPendingNetGame(FObjectInitializer(), URL);
 		WorldContext.PendingNetGame->InitNetDriver();
 		if( !WorldContext.PendingNetGame->NetDriver )
 		{

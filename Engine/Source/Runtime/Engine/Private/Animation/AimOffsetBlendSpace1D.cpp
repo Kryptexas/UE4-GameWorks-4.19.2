@@ -9,8 +9,8 @@
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "Animation/AnimSequence.h"
 
-UAimOffsetBlendSpace1D::UAimOffsetBlendSpace1D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAimOffsetBlendSpace1D::UAimOffsetBlendSpace1D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

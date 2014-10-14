@@ -34,8 +34,8 @@ DEFINE_LOG_CATEGORY(LogLevel);
 ULevelBase implementation.
 -----------------------------------------------------------------------------*/
 
-ULevelBase::ULevelBase( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
-	: UObject(PCIP)
+ULevelBase::ULevelBase( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
+	: UObject(ObjectInitializer)
 	, URL( InURL )
 	, Actors( this )
 {
@@ -253,16 +253,16 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 
 TMap<FName, UWorld*> ULevel::StreamedLevelsOwningWorld;
 
-ULevel::ULevel( const class FPostConstructInitializeProperties& PCIP )
-	:	ULevelBase( PCIP )
+ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
+	:	ULevelBase( ObjectInitializer )
 	,	OwningWorld(NULL)
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 {
 	PrecomputedLightVolume = new FPrecomputedLightVolume();
 }
 
-ULevel::ULevel( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
-	:	ULevelBase( PCIP, InURL )
+ULevel::ULevel( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
+	:	ULevelBase( ObjectInitializer, InURL )
 	,	OwningWorld(NULL)
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 {
@@ -927,7 +927,7 @@ void ULevel::CreateModelComponents()
 			Model->Nodes[Nodes[NodeIndex]].ComponentNodeIndex = NodeIndex;
 		}
 
-		UModelComponent* ModelComponent = new(this) UModelComponent(FPostConstructInitializeProperties(),Model,ModelComponents.Num(),Key.MaskedPolyFlags,Nodes);
+		UModelComponent* ModelComponent = new(this) UModelComponent(FObjectInitializer(),Model,ModelComponents.Num(),Key.MaskedPolyFlags,Nodes);
 		ModelComponents.Add(ModelComponent);
 
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)
@@ -2120,8 +2120,8 @@ private:
 	FPrimitiveViewRelevance ViewRelevance;
 };
 
-ULineBatchComponent::ULineBatchComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	bTickInEditor = true;

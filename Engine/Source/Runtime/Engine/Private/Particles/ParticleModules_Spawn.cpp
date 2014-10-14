@@ -12,8 +12,8 @@
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleSpawnBase::UParticleModuleSpawnBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSpawnBase::UParticleModuleSpawnBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bProcessSpawnRate = true;
 	bProcessBurstList = true;
@@ -26,8 +26,8 @@ UParticleModuleSpawnBase::UParticleModuleSpawnBase(const class FPostConstructIni
 /*-----------------------------------------------------------------------------
 	UParticleModuleSpawn implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSpawn::UParticleModuleSpawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSpawn::UParticleModuleSpawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bProcessSpawnRate = true;
 	LODDuplicate = false;
@@ -270,8 +270,8 @@ float UParticleModuleSpawn::GetGlobalRateScale()const
 /*-----------------------------------------------------------------------------
 	UParticleModuleSpawnPerUnit implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSpawnPerUnit::UParticleModuleSpawnPerUnit(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSpawnPerUnit::UParticleModuleSpawnPerUnit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = false;
 	bUpdateModule = false;

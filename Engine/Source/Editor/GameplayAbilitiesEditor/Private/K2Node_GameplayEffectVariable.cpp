@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayEffectVariable"
 
-UK2Node_GameplayEffectVariable::UK2Node_GameplayEffectVariable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_GameplayEffectVariable::UK2Node_GameplayEffectVariable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

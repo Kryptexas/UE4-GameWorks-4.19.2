@@ -7,8 +7,8 @@
 #include "EnginePrivate.h"
 
 
-UOnlineSession::UOnlineSession(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOnlineSession::UOnlineSession(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

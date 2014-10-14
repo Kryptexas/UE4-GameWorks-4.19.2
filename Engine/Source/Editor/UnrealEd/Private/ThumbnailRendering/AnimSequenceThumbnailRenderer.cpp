@@ -7,8 +7,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
-UAnimSequenceThumbnailRenderer::UAnimSequenceThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSequenceThumbnailRenderer::UAnimSequenceThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ThumbnailScene = nullptr;
 }

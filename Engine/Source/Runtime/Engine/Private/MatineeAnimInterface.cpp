@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "Matinee/MatineeAnimInterface.h"
 
-UMatineeAnimInterface::UMatineeAnimInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeAnimInterface::UMatineeAnimInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

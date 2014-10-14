@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////
 // BehaviorTreeGraph
 
-UBehaviorTreeGraph::UBehaviorTreeGraph(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeGraph::UBehaviorTreeGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Schema = UEdGraphSchema_BehaviorTree::StaticClass();
 	bLockUpdates = false;

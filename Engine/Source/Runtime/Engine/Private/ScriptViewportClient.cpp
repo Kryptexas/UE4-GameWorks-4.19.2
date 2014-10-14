@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-UScriptViewportClient::UScriptViewportClient(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScriptViewportClient::UScriptViewportClient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

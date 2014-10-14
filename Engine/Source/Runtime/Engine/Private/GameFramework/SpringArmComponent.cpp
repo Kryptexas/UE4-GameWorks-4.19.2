@@ -10,8 +10,8 @@ const FName USpringArmComponent::SocketName(TEXT("SpringEndpoint"));
 
 extern float GAverageMS;
 
-USpringArmComponent::USpringArmComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;

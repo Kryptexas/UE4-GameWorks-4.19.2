@@ -9,7 +9,7 @@
 // UBTNode
 //----------------------------------------------------------------------//
 
-UBTNode::UBTNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTNode::UBTNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "";
 	ParentNode = NULL;

@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UComboBoxWidgetStyle::UComboBoxWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UComboBoxWidgetStyle::UComboBoxWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

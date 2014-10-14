@@ -12,8 +12,8 @@
 	UWidgetBlueprintFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UWidgetBlueprintFactory::UWidgetBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetBlueprintFactory::UWidgetBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

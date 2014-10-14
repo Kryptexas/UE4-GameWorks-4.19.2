@@ -7,8 +7,8 @@
 #include "AbilitySystemComponent.h"
 
 
-UAbilitySystemTestAttributeSet::UAbilitySystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAbilitySystemTestAttributeSet::UAbilitySystemTestAttributeSet(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	Health = MaxHealth = 100.f;
 	Mana = MaxMana = 100.f;

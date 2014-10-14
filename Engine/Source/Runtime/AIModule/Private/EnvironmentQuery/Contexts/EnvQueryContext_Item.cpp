@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
 
-UEnvQueryContext_Item::UEnvQueryContext_Item(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryContext_Item::UEnvQueryContext_Item(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	// special case, don't set delegate
 }

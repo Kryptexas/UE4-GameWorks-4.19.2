@@ -13,8 +13,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UCameraAnimInst
 
-UCameraAnimInst::UCameraAnimInst(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCameraAnimInst::UCameraAnimInst(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bFinished = true;
 	bAutoReleaseWhenFinished = true;
@@ -22,7 +22,7 @@ UCameraAnimInst::UCameraAnimInst(const class FPostConstructInitializeProperties&
 	TransientScaleModifier = 1.0f;
 	PlaySpace = ECameraAnimPlaySpace::CameraLocal;
 
-	InterpGroupInst = PCIP.CreateDefaultSubobject<UInterpGroupInst>(this, TEXT("InterpGroupInst0"));
+	InterpGroupInst = ObjectInitializer.CreateDefaultSubobject<UInterpGroupInst>(this, TEXT("InterpGroupInst0"));
 }
 
 void UCameraAnimInst::AdvanceAnim(float DeltaTime, bool bJump)

@@ -31,8 +31,8 @@ public:
 	}
 };
 
-UK2Node_TemporaryVariable::UK2Node_TemporaryVariable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_TemporaryVariable::UK2Node_TemporaryVariable(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bIsPersistent(false)
 {
 }

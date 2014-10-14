@@ -13,8 +13,8 @@
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
-AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.DoNotCreateDefaultSubobject(TEXT("Sprite")))
+AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("Sprite")))
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -56,7 +56,7 @@ AWorldSettings::AWorldSettings(const class FPostConstructInitializeProperties& P
 	VisibilityAggressiveness = VIS_LeastAggressive;
 	LevelLightingQuality = Quality_MAX;
 
-	TSubobjectPtr<UStaticMeshComponent> StaticMeshComponent = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
+	TSubobjectPtr<UStaticMeshComponent> StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->bHiddenInGame = true;
 	StaticMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);

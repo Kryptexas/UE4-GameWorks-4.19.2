@@ -9,21 +9,21 @@
 #include "AI/Navigation/NavLinkCustomComponent.h"
 #include "AI/Navigation/NavLinkProxy.h"
 
-ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("PositionComponent"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("PositionComponent"));
 	RootComponent = SceneComponent;
 
 	bHidden = true;
 
 #if WITH_EDITORONLY_DATA
-	EdRenderComp = PCIP.CreateDefaultSubobject<UNavLinkRenderingComponent>(this, TEXT("EdRenderComp"));
+	EdRenderComp = ObjectInitializer.CreateDefaultSubobject<UNavLinkRenderingComponent>(this, TEXT("EdRenderComp"));
 	EdRenderComp->PostPhysicsComponentTick.bCanEverTick = false;
 	EdRenderComp->AttachParent = RootComponent;
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
 	{
 		static ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/Engine/EditorResources/AI/S_NavLink"));
@@ -39,7 +39,7 @@ ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCI
 	}
 #endif
 
-	SmartLinkComp = PCIP.CreateDefaultSubobject<UNavLinkCustomComponent>(this, TEXT("SmartLinkComp"));
+	SmartLinkComp = ObjectInitializer.CreateDefaultSubobject<UNavLinkCustomComponent>(this, TEXT("SmartLinkComp"));
 	SmartLinkComp->SetNavigationRelevancy(false);
 	SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
 	bSmartLinkIsRelevant = false;

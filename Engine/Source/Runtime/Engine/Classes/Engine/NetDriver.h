@@ -312,7 +312,7 @@ public:
 #endif
 
 	// Constructors.
-	ENGINE_API UNetDriver(const class FPostConstructInitializeProperties& PCIP);
+	ENGINE_API UNetDriver(const FObjectInitializer& ObjectInitializer);
 
 
 	// Begin UObject interface.

@@ -135,7 +135,7 @@ bool FDerivedDataNavCollisionCooker::Build( TArray<uint8>& OutData )
 //----------------------------------------------------------------------//
 // UNavCollision
 //----------------------------------------------------------------------//
-UNavCollision::UNavCollision(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavCollision::UNavCollision(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {	
 }
 

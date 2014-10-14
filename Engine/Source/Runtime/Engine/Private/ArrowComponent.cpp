@@ -345,8 +345,8 @@ private:
 #endif // #if WITH_EDITORONLY_DATA
 };
 
-UArrowComponent::UArrowComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UArrowComponent::UArrowComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

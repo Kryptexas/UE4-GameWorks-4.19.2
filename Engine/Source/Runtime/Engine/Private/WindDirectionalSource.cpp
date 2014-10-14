@@ -3,14 +3,14 @@
 #include "EnginePrivate.h"
 #include "Engine/WindDirectionalSource.h"
 
-AWindDirectionalSource::AWindDirectionalSource(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	Component = PCIP.CreateDefaultSubobject<UWindDirectionalSourceComponent>(this, TEXT("WindDirectionalSourceComponent0"));
+	Component = ObjectInitializer.CreateDefaultSubobject<UWindDirectionalSourceComponent>(this, TEXT("WindDirectionalSourceComponent0"));
 	RootComponent = Component;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -98,8 +98,8 @@ void FWindSourceSceneProxy::ApplyWorldOffset(FVector InOffset)
 	}
 }
 
-UWindDirectionalSourceComponent::UWindDirectionalSourceComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWindDirectionalSourceComponent::UWindDirectionalSourceComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Strength = 1.0f;
 	Speed = 1.0f;

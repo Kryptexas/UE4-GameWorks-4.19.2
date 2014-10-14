@@ -5,8 +5,8 @@
 
 
 
-UNiagaraEffect::UNiagaraEffect(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UNiagaraEffect::UNiagaraEffect(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 }

@@ -15,8 +15,8 @@
 /////////////////////////////////////////////////////
 // UK2Node_Timeline
 
-UK2Node_Timeline::UK2Node_Timeline(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Timeline::UK2Node_Timeline(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoPlay = false;
 	bLoop = false;

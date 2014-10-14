@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UScaleBox
 
-UScaleBox::UScaleBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScaleBox::UScaleBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

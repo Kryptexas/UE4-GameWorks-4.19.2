@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/RendererSettings.h"
 
-URendererSettings::URendererSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

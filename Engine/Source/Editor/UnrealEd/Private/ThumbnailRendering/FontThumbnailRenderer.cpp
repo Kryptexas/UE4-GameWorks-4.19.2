@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UFontThumbnailRenderer::UFontThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFontThumbnailRenderer::UFontThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

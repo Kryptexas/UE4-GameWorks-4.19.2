@@ -4,8 +4,8 @@
 #include "AnimGraphPrivatePCH.h"
 #include "AnimPreviewInstance.h"
 
-UAnimPreviewInstance::UAnimPreviewInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimPreviewInstance::UAnimPreviewInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, SkeletalControlAlpha(1.0f)
 #if WITH_EDITORONLY_DATA
 	, bForceRetargetBasePose(false)

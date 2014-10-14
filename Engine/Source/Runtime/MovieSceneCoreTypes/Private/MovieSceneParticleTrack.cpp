@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "MovieSceneParticleTrack"
 
-UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

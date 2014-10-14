@@ -14,8 +14,8 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleCameraBase::UParticleModuleCameraBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleCameraBase::UParticleModuleCameraBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -26,8 +26,8 @@ UParticleModuleCameraBase::UParticleModuleCameraBase(const class FPostConstructI
 /*-----------------------------------------------------------------------------
 	UParticleModuleCameraOffset
 -----------------------------------------------------------------------------*/
-UParticleModuleCameraOffset::UParticleModuleCameraOffset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleCameraOffset::UParticleModuleCameraOffset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;

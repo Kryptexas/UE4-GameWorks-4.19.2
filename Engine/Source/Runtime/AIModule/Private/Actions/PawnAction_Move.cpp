@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Move.h"
 
-UPawnAction_Move::UPawnAction_Move(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction_Move::UPawnAction_Move(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, GoalLocation(FAISystem::InvalidLocation)
 	, AcceptableRadius(30.f)
 	, bFinishOnOverlap(true)

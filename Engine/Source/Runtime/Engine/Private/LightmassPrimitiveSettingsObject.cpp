@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-ULightmassPrimitiveSettingsObject::ULightmassPrimitiveSettingsObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightmassPrimitiveSettingsObject::ULightmassPrimitiveSettingsObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

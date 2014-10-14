@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UEditableTextBox
 
-UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ForegroundColor = FLinearColor::Black;
 	BackgroundColor = FLinearColor::White;

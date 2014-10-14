@@ -3,7 +3,7 @@
 #include "AITestSuitePrivatePCH.h"
 #include "BehaviorTree/TestBTDecorator_CantExecute.h"
 
-UTestBTDecorator_CantExecute::UTestBTDecorator_CantExecute(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UTestBTDecorator_CantExecute::UTestBTDecorator_CantExecute(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = TEXT("Can't Exexcute");
 

@@ -5,8 +5,8 @@
 
 DEFINE_LOG_CATEGORY(LogBeacon);
 
-AOnlineBeacon::AOnlineBeacon(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+AOnlineBeacon::AOnlineBeacon(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));
 }

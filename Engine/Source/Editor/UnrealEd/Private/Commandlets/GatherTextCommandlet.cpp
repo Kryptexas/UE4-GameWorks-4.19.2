@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
@@ -9,8 +9,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGatherTextCommandlet, Log, All);
 /**
  *	UGatherTextCommandlet
  */
-UGatherTextCommandlet::UGatherTextCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGatherTextCommandlet::UGatherTextCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

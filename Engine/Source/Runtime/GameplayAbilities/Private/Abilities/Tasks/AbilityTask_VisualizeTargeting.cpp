@@ -4,8 +4,8 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_VisualizeTargeting.h"
 
-UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

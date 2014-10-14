@@ -5,8 +5,8 @@
 
 const float UAISense::SuspendNextUpdate = FLT_MAX;
 
-UAISense::UAISense(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAISense::UAISense(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TimeUntilNextUpdate(SuspendNextUpdate)
 {
 }

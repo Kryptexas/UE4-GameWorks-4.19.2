@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
          USoundNodeDoppler implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeDoppler::USoundNodeDoppler(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeDoppler::USoundNodeDoppler(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DopplerIntensity = 1.0f;
 }

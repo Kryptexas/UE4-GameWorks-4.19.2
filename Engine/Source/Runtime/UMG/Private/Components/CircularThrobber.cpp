@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UCircularThrobber
 
-UCircularThrobber::UCircularThrobber(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCircularThrobber::UCircularThrobber(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SCircularThrobber::FArguments DefaultArgs;
 	Image = *DefaultArgs._PieceImage;

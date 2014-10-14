@@ -3,8 +3,8 @@
 #include "UMGEditorPrivatePCH.h"
 #include "WidgetGraphSchema.h"
 
-UWidgetGraphSchema::UWidgetGraphSchema(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UWidgetGraphSchema::UWidgetGraphSchema(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	NAME_NeverAsPin = TEXT("NeverAsPin");
 	NAME_PinHiddenByDefault = TEXT("PinHiddenByDefault");

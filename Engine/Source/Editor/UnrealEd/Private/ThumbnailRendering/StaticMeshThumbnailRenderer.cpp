@@ -7,8 +7,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
-UStaticMeshThumbnailRenderer::UStaticMeshThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshThumbnailRenderer::UStaticMeshThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ThumbnailScene = nullptr;
 }

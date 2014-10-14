@@ -491,8 +491,8 @@ bool UMaterial::IsDefaultMaterial() const
 	return bDefault;
 }
 
-UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BlendMode = BLEND_Opaque;
 	ShadingModel = MSM_DefaultLit;

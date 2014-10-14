@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "Navigation/CrowdAgentInterface.h"
 
-UCrowdAgentInterface::UCrowdAgentInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCrowdAgentInterface::UCrowdAgentInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

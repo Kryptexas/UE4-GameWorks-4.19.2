@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimGraphNode_TwoWayBlend"
 
-UAnimGraphNode_TwoWayBlend::UAnimGraphNode_TwoWayBlend(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_TwoWayBlend::UAnimGraphNode_TwoWayBlend(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

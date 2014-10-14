@@ -16,8 +16,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendListByEnum
 
-UAnimGraphNode_BlendListByEnum::UAnimGraphNode_BlendListByEnum(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_BlendListByEnum::UAnimGraphNode_BlendListByEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

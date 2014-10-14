@@ -8,15 +8,15 @@
 #include "Animation/VertexAnim/VertexAnimBase.h"
 #include "Animation/VertexAnim/MorphTarget.h"
 
-UVertexAnimBase::UVertexAnimBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVertexAnimBase::UVertexAnimBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-UMorphTarget::UMorphTarget(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMorphTarget::UMorphTarget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

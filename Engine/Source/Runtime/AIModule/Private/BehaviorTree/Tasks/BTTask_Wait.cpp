@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_Wait.h"
 
-UBTTask_Wait::UBTTask_Wait(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_Wait::UBTTask_Wait(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Wait";
 	WaitTime = 5.0f;

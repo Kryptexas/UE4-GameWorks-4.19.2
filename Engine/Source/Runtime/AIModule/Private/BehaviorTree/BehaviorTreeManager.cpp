@@ -17,7 +17,7 @@ DEFINE_STAT(STAT_AI_BehaviorTree_NumTemplates);
 DEFINE_STAT(STAT_AI_BehaviorTree_NumInstances);
 DEFINE_STAT(STAT_AI_BehaviorTree_InstanceMemory);
 
-UBehaviorTreeManager::UBehaviorTreeManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeManager::UBehaviorTreeManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MaxDebuggerSteps = 100;
 }

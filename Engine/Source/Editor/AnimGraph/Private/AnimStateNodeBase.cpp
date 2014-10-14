@@ -37,8 +37,8 @@ public:
 /////////////////////////////////////////////////////
 // UAnimStateNodeBase
 
-UAnimStateNodeBase::UAnimStateNodeBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimStateNodeBase::UAnimStateNodeBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

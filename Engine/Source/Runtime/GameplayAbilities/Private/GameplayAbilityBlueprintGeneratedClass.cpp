@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UGameplayAbilityBlueprintGeneratedClass
 
-UGameplayAbilityBlueprintGeneratedClass::UGameplayAbilityBlueprintGeneratedClass(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilityBlueprintGeneratedClass::UGameplayAbilityBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -13,8 +13,8 @@
 
 FName URig::WorldNodeName(TEXT("World"));
 
-URig::URig(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URig::URig(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

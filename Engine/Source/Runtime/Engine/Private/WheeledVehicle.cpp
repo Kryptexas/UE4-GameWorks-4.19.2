@@ -13,10 +13,10 @@
 FName AWheeledVehicle::VehicleMovementComponentName(TEXT("MovementComp"));
 FName AWheeledVehicle::VehicleMeshComponentName(TEXT("VehicleMesh"));
 
-AWheeledVehicle::AWheeledVehicle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AWheeledVehicle::AWheeledVehicle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	Mesh = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, VehicleMeshComponentName);
+	Mesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, VehicleMeshComponentName);
 	Mesh->SetCollisionProfileName(UCollisionProfile::Vehicle_ProfileName);
 	Mesh->BodyInstance.bSimulatePhysics = true;
 	Mesh->BodyInstance.bNotifyRigidBodyCollision = true;
@@ -26,7 +26,7 @@ AWheeledVehicle::AWheeledVehicle(const class FPostConstructInitializeProperties&
 	Mesh->bCanEverAffectNavigation = false;
 	RootComponent = Mesh;
 
-	VehicleMovement = PCIP.CreateDefaultSubobject<UWheeledVehicleMovementComponent, UWheeledVehicleMovementComponent4W>(this, VehicleMovementComponentName);
+	VehicleMovement = ObjectInitializer.CreateDefaultSubobject<UWheeledVehicleMovementComponent, UWheeledVehicleMovementComponent4W>(this, VehicleMovementComponentName);
 	VehicleMovement->SetIsReplicated(true); // Enable replication by default
 	VehicleMovement->UpdatedComponent = Mesh;
 }

@@ -130,7 +130,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UCharacterMovementComponent(const class FPostConstructInitializeProperties& PCIP);
+	UCharacterMovementComponent(const FObjectInitializer& ObjectInitializer);
 
 protected:
 

@@ -2,37 +2,37 @@
 
 #include "UnrealEd.h"
 
-UDEditorParameterValue::UDEditorParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorParameterValue::UDEditorParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDEditorFontParameterValue::UDEditorFontParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorFontParameterValue::UDEditorFontParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDEditorScalarParameterValue::UDEditorScalarParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorScalarParameterValue::UDEditorScalarParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDEditorStaticComponentMaskParameterValue::UDEditorStaticComponentMaskParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorStaticComponentMaskParameterValue::UDEditorStaticComponentMaskParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDEditorStaticSwitchParameterValue::UDEditorStaticSwitchParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorStaticSwitchParameterValue::UDEditorStaticSwitchParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDEditorTextureParameterValue::UDEditorTextureParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorTextureParameterValue::UDEditorTextureParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UDEditorVectorParameterValue::UDEditorVectorParameterValue(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEditorVectorParameterValue::UDEditorVectorParameterValue(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

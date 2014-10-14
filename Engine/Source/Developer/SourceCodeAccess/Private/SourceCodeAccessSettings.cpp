@@ -3,8 +3,8 @@
 #include "SourceCodeAccessPrivatePCH.h"
 #include "SourceCodeAccessSettings.h"
 
-USourceCodeAccessSettings::USourceCodeAccessSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USourceCodeAccessSettings::USourceCodeAccessSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if PLATFORM_WINDOWS
 	PreferredAccessor = TEXT("VisualStudioSourceCodeAccessor");

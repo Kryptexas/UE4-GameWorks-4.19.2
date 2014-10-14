@@ -49,7 +49,7 @@ FDialogueWaveParameter::FDialogueWaveParameter() : DialogueWave(NULL)
 
 }
 
-UDialogueTypes::UDialogueTypes(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDialogueTypes::UDialogueTypes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

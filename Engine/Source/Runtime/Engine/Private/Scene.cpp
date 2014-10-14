@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-UScene::UScene(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScene::UScene(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

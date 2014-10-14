@@ -10,8 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "GameplayTagsK2Node_LiteralGameplayTag"
 
-UGameplayTagsK2Node_LiteralGameplayTag::UGameplayTagsK2Node_LiteralGameplayTag(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayTagsK2Node_LiteralGameplayTag::UGameplayTagsK2Node_LiteralGameplayTag(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

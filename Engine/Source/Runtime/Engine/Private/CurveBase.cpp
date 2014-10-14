@@ -796,8 +796,8 @@ bool FRichCurve::operator==( const FRichCurve& Curve ) const
 //////////////////////////////////////////////////////////////////////////
 // UCurveBase
 
-UCurveBase::UCurveBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

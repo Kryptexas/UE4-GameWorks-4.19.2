@@ -91,8 +91,8 @@ void FNiagaraSchemaAction_NewNode::AddReferencedObjects( FReferenceCollector& Co
 
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	PC_Float = TEXT("float");

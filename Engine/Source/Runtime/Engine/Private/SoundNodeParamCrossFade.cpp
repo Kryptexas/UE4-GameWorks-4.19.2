@@ -8,7 +8,7 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeParamCrossFade implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeParamCrossFade::USoundNodeParamCrossFade(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+USoundNodeParamCrossFade::USoundNodeParamCrossFade(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

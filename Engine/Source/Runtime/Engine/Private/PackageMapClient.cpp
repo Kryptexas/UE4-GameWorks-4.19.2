@@ -28,8 +28,8 @@ static TAutoConsoleVariable<int32> CVarIgnorePackageMismatch( TEXT( "net.IgnoreP
 /*-----------------------------------------------------------------------------
 	UPackageMapClient implementation.
 -----------------------------------------------------------------------------*/
-UPackageMapClient::UPackageMapClient(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPackageMapClient::UPackageMapClient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

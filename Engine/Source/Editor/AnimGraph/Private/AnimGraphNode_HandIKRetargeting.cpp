@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_HandIKRetargeting::UAnimGraphNode_HandIKRetargeting(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UAnimGraphNode_HandIKRetargeting::UAnimGraphNode_HandIKRetargeting(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

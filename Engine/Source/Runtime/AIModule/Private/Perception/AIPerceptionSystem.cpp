@@ -16,8 +16,8 @@ DEFINE_LOG_CATEGORY(LogAIPerception);
 //----------------------------------------------------------------------//
 // UAIPerceptionSystem
 //----------------------------------------------------------------------//
-UAIPerceptionSystem::UAIPerceptionSystem(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, PerceptionAgingRate(0.3f)
 	, NextFreeListenerId(AIPerception::InvalidListenerId + 1)
 	, CurrentTime(0.f)

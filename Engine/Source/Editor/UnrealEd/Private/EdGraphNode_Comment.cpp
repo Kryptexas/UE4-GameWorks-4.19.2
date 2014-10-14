@@ -15,8 +15,8 @@
 /////////////////////////////////////////////////////
 // UEdGraphNode_Comment
 
-UEdGraphNode_Comment::UEdGraphNode_Comment(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphNode_Comment::UEdGraphNode_Comment(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeWidth = 400.0f;
 	NodeHeight = 100.0f;

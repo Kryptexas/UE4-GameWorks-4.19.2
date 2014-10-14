@@ -215,8 +215,8 @@ void FSplineMeshSceneProxy::ReleaseResources()
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshComponent
 
-USplineMeshComponent::USplineMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USplineMeshComponent::USplineMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Static;
 

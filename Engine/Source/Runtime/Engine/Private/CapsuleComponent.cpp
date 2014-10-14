@@ -4,8 +4,8 @@
 #include "EnginePrivate.h"
 
 
-UCapsuleComponent::UCapsuleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCapsuleComponent::UCapsuleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ShapeColor = FColor(223, 149, 157, 255);
 

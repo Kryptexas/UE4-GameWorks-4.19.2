@@ -20,8 +20,8 @@
 DEFINE_LOG_CATEGORY(LogPath);
 
 
-AController::AController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AController::AController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	PrimaryActorTick.bCanEverTick = true;
@@ -31,7 +31,7 @@ AController::AController(const class FPostConstructInitializeProperties& PCIP)
 #endif // WITH_EDITORONLY_DATA
 	bOnlyRelevantToOwner = true;
 
-	TransformComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
+	TransformComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("TransformComponent0"));
 	RootComponent = TransformComponent;
 
 	bCanBeDamaged = false;

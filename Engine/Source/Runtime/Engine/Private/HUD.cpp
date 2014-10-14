@@ -16,8 +16,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 #define LOCTEXT_NAMESPACE "HUD"
 
-AHUD::AHUD(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AHUD::AHUD(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.TickGroup = TG_DuringPhysics;
 	PrimaryActorTick.bCanEverTick = true;

@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/TriggerVolume.h"
 
-ATriggerVolume::ATriggerVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ATriggerVolume::ATriggerVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	static FName CollisionProfileName(TEXT("Trigger"));
 	BrushComponent->SetCollisionProfileName(CollisionProfileName);

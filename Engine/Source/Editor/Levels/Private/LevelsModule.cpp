@@ -29,6 +29,6 @@ TSharedRef< SWidget > FLevelsModule::CreateLevelBrowser()
 }
 
 
-ULevelBrowserSettings::ULevelBrowserSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelBrowserSettings::ULevelBrowserSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 { }

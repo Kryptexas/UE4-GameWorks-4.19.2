@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UEditorGameAgnosticSettings::UEditorGameAgnosticSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorGameAgnosticSettings::UEditorGameAgnosticSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCopyStarterContentPreference = true;
 	AutoScalabilityWorkScaleAmount = 1;

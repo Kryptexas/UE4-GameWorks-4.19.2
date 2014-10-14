@@ -92,8 +92,8 @@ class UPackageMapClient : public UPackageMap
 {
     GENERATED_UCLASS_BODY()
 
-	UPackageMapClient( const class FPostConstructInitializeProperties & PCIP, UNetConnection * InConnection, TSharedPtr< FNetGUIDCache > InNetGUIDCache ) : 
-		UPackageMap( PCIP )
+	UPackageMapClient( const FObjectInitializer & ObjectInitializer, UNetConnection * InConnection, TSharedPtr< FNetGUIDCache > InNetGUIDCache ) : 
+		UPackageMap( ObjectInitializer )
 	,	Connection(InConnection)
 	{
 		GuidCache				= InNetGUIDCache;

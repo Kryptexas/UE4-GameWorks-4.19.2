@@ -4,8 +4,8 @@
 #include "../../Classes/Debug/ReporterBase.h"
 #include "../../Classes/Debug/ReporterGraph.h"
 
-UReporterGraph::UReporterGraph(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UReporterGraph::UReporterGraph(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	AxesColor = FLinearColor::Yellow;
 

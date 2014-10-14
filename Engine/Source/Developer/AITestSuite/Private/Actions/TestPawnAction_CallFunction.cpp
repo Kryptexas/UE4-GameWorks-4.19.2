@@ -3,8 +3,8 @@
 #include "AITestSuitePrivatePCH.h"
 #include "Actions/TestPawnAction_CallFunction.h"
 
-UTestPawnAction_CallFunction::UTestPawnAction_CallFunction(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTestPawnAction_CallFunction::UTestPawnAction_CallFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, FunctionToCall(nullptr)
 {
 

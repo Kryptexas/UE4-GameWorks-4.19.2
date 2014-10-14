@@ -2,8 +2,8 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 
-APartyBeaconHost::APartyBeaconHost(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	State(NULL)
 {
 	BeaconTypeName = TEXT("PartyBeacon");

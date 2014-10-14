@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileMap
 
-UPaperTileMap::UPaperTileMap(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MapWidth = 4;
 	MapHeight = 4;

@@ -6,8 +6,8 @@
 
 #include "EnginePrivate.h"
 
-UInputSettings::UInputSettings(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInputSettings::UInputSettings(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

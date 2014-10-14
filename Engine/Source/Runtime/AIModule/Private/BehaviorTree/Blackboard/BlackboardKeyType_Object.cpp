@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 
-UBlackboardKeyType_Object::UBlackboardKeyType_Object(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardKeyType_Object::UBlackboardKeyType_Object(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FWeakObjectPtr);
 	BaseClass = UObject::StaticClass();

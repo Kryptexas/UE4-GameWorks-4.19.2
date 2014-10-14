@@ -91,8 +91,8 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 	return EWindowMode::Fullscreen;
 }
 
-UGameEngine::UGameEngine(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameEngine::UGameEngine(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
@@ -360,8 +360,8 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 /*-----------------------------------------------------------------------------
 	Game init and exit.
 -----------------------------------------------------------------------------*/
-UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AsyncLoadingTimeLimit = 5.0f;
 	bAsyncLoadingUseFullTimeLimit = true;

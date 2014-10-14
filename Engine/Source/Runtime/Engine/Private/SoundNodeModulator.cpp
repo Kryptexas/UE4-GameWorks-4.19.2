@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeModulator implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeModulator::USoundNodeModulator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeModulator::USoundNodeModulator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PitchMin = 0.95f;
 	PitchMax = 1.05f;

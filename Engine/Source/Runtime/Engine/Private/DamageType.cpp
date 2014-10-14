@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UDamageType::UDamageType(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDamageType::UDamageType(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DamageImpulse = 800.0f;
 	DestructibleImpulse = 800.0f;

@@ -16,8 +16,8 @@
 //////////// UPhysicsAsset ////////////
 ///////////////////////////////////////
 
-UPhysicsAsset::UPhysicsAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsAsset::UPhysicsAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

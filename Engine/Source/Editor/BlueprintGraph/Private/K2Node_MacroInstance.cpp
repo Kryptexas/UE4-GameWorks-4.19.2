@@ -7,8 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_MacroInstance"
 
-UK2Node_MacroInstance::UK2Node_MacroInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MacroInstance::UK2Node_MacroInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bReconstructNode = false;
 }

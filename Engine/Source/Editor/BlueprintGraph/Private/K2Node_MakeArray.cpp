@@ -70,8 +70,8 @@ public:
 /////////////////////////////////////////////////////
 // UK2Node_MakeArray
 
-UK2Node_MakeArray::UK2Node_MakeArray(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MakeArray::UK2Node_MakeArray(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	NumInputs = 1;

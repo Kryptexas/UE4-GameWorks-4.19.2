@@ -15,7 +15,7 @@ static void UpdatePersistentKeys(class UBlackboardData* Asset)
 	}
 }
 
-UBlackboardData::UBlackboardData(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBlackboardData::UBlackboardData(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{

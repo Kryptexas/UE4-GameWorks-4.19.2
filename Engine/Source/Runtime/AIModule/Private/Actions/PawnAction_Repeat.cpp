@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Repeat.h"
 
-UPawnAction_Repeat::UPawnAction_Repeat(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction_Repeat::UPawnAction_Repeat(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, SubActionTriggeringPolicy(EPawnSubActionTriggeringPolicy::CopyBeforeTriggering)
 {
 	ChildFailureHandlingMode = EPawnActionFailHandling::IgnoreFailure;

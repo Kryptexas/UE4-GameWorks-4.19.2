@@ -4,8 +4,8 @@
 #include "BlueprintUtilities.h"
 #include "Engine/ComponentDelegateBinding.h"
 
-UComponentDelegateBinding::UComponentDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UComponentDelegateBinding::UComponentDelegateBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -11,8 +11,8 @@ struct FK2Node_CreateDelegate_Helper
 FString FK2Node_CreateDelegate_Helper::ObjectInputName(TEXT("InputObject"));
 FString FK2Node_CreateDelegate_Helper::DelegateOutputName(TEXT("OutputDelegate"));
 
-UK2Node_CreateDelegate::UK2Node_CreateDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CreateDelegate::UK2Node_CreateDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

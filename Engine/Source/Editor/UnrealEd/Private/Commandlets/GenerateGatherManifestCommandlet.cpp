@@ -11,8 +11,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGenerateManifestCommandlet, Log, All);
 /**
  *	UGenerateGatherManifestCommandlet
  */
-UGenerateGatherManifestCommandlet::UGenerateGatherManifestCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenerateGatherManifestCommandlet::UGenerateGatherManifestCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

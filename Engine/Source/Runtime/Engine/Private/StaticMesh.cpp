@@ -1174,8 +1174,8 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 UStaticMesh
 -----------------------------------------------------------------------------*/
 
-UStaticMesh::UStaticMesh(const FPostConstructInitializeProperties& PCIP)
-	: UObject(PCIP)
+UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
+	: UObject(ObjectInitializer)
 {
 	ElementToIgnoreForTexFactor = -1;
 	StreamingDistanceMultiplier=1.0f;
@@ -2562,8 +2562,8 @@ UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
 UStaticMeshSocket
 -----------------------------------------------------------------------------*/
 
-UStaticMeshSocket::UStaticMeshSocket(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshSocket::UStaticMeshSocket(const class FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RelativeScale = FVector(1.0f, 1.0f, 1.0f);
 }

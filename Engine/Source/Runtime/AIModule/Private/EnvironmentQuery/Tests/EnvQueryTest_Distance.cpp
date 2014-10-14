@@ -23,7 +23,7 @@ namespace
 	}
 }
 
-UEnvQueryTest_Distance::UEnvQueryTest_Distance(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryTest_Distance::UEnvQueryTest_Distance(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	DistanceTo = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::Low;

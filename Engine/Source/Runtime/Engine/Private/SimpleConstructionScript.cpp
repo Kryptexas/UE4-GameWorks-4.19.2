@@ -15,8 +15,8 @@
 const FName USimpleConstructionScript::DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
 #endif
 
-USimpleConstructionScript::USimpleConstructionScript(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USimpleConstructionScript::USimpleConstructionScript(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RootNode_DEPRECATED = NULL;
 	DefaultSceneRootNode = NULL;

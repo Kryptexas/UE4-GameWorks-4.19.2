@@ -14,8 +14,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_AddComponent
 
-UK2Node_AddComponent::UK2Node_AddComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_AddComponent::UK2Node_AddComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsPureFunc = false;
 }

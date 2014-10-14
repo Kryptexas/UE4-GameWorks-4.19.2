@@ -6,8 +6,8 @@
 /* UMediaPlayer structors
  *****************************************************************************/
 
-UMediaPlayer::UMediaPlayer( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaPlayer::UMediaPlayer( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, AutoPlay(false)
 	, AutoPlayRate(1.0f)
 	, Looping(true)

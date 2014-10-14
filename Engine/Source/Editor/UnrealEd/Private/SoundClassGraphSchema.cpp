@@ -18,8 +18,8 @@ UEdGraphNode* FSoundClassGraphSchemaAction_NewNode::PerformAction(class UEdGraph
 	return NULL;
 }
 
-USoundClassGraphSchema::USoundClassGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundClassGraphSchema::USoundClassGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

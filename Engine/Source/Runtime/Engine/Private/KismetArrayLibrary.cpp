@@ -8,8 +8,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogArray, Warning, All);
 //////////////////////////////////////////////////////////////////////////
 // UKismetArrayLibrary
 
-UKismetArrayLibrary::UKismetArrayLibrary(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetArrayLibrary::UKismetArrayLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

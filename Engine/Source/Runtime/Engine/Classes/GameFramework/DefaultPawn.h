@@ -84,7 +84,7 @@ private:
 	virtual void Turn(float Val);
 
 public:
-	/** Name of the MovementComponent.  Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
+	/** Name of the MovementComponent.  Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName MovementComponentName;
 
 	/** DefaultPawn movement component */
@@ -98,7 +98,7 @@ public:
 	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<USphereComponent> CollisionComponent;
 
-	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
+	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
 	/** The mesh associated with this Pawn. */

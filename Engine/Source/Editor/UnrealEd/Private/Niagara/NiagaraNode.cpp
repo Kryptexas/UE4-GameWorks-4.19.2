@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UNiagaraNode::UNiagaraNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraNode::UNiagaraNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

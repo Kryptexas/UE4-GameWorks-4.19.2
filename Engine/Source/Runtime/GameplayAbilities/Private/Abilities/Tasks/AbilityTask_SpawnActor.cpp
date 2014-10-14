@@ -5,8 +5,8 @@
 #include "Abilities/Tasks/AbilityTask_SpawnActor.h"
 
 
-UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 }

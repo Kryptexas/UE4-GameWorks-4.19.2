@@ -14,8 +14,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogThumbnailManager, Log, All);
 
 UThumbnailManager* UThumbnailManager::ThumbnailManagerSingleton = nullptr;
 
-UThumbnailManager::UThumbnailManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UThumbnailManager::UThumbnailManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	if (!IsRunningCommandlet())
 	{

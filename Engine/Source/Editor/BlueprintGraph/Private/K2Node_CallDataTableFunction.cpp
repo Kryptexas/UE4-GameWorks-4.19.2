@@ -4,8 +4,8 @@
 
 #include "CompilerResultsLog.h"
 
-UK2Node_CallDataTableFunction::UK2Node_CallDataTableFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallDataTableFunction::UK2Node_CallDataTableFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

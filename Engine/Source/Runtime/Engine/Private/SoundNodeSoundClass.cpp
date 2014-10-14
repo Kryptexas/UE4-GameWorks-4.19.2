@@ -9,8 +9,8 @@
 	USoundNodeSoundClass implementation.
 -----------------------------------------------------------------------------*/
 
-USoundNodeSoundClass::USoundNodeSoundClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeSoundClass::USoundNodeSoundClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

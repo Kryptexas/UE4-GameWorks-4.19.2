@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UMultiLineEditableText
 
-UMultiLineEditableText::UMultiLineEditableText(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;

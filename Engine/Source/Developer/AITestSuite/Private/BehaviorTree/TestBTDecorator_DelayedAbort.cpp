@@ -3,7 +3,7 @@
 #include "AITestSuitePrivatePCH.h"
 #include "BehaviorTree/TestBTDecorator_DelayedAbort.h"
 
-UTestBTDecorator_DelayedAbort::UTestBTDecorator_DelayedAbort(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UTestBTDecorator_DelayedAbort::UTestBTDecorator_DelayedAbort(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Delayed Abort";
 	DelayTicks = 5;

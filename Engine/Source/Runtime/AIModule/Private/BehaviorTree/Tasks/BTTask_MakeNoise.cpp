@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_MakeNoise.h"
 
-UBTTask_MakeNoise::UBTTask_MakeNoise(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UBTTask_MakeNoise::UBTTask_MakeNoise(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, Loudnes(1.0f)
 {
 	NodeName = "MakeNoise";

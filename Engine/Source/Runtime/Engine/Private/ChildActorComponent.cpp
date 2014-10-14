@@ -5,8 +5,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 
-UChildActorComponent::UChildActorComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UChildActorComponent::UChildActorComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

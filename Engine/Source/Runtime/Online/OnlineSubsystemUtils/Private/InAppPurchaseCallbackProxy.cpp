@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UInAppPurchaseCallbackProxy
 
-UInAppPurchaseCallbackProxy::UInAppPurchaseCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInAppPurchaseCallbackProxy::UInAppPurchaseCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PurchaseRequest = nullptr;
 	WorldPtr = nullptr;

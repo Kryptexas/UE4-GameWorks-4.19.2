@@ -3,8 +3,8 @@
 #include "UdpMessagingPrivatePCH.h"
 
 
-UUdpMessagingSettings::UUdpMessagingSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UUdpMessagingSettings::UUdpMessagingSettings( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, EnableTransport(true)
 	, MulticastTimeToLive(1)
 	, EnableTunnel(false)

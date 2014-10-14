@@ -6,14 +6,14 @@
 
 
 
-UNiagaraScript::UNiagaraScript(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraScript::UNiagaraScript(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
 
-UNiagaraScriptSourceBase::UNiagaraScriptSourceBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraScriptSourceBase::UNiagaraScriptSourceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

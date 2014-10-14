@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/CanvasRenderTarget2D.h"
 
-UCanvasRenderTarget2D::UCanvasRenderTarget2D( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UCanvasRenderTarget2D::UCanvasRenderTarget2D( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	bNeedsTwoCopies = false;
 }

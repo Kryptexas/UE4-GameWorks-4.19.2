@@ -160,8 +160,8 @@ public:
 
 public:
 	// Constructors.
-	UProperty(const class FPostConstructInitializeProperties& PCIP);
-	UProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags );
+	UProperty(const FObjectInitializer& ObjectInitializer);
+	UProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags );
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
@@ -938,13 +938,13 @@ public:
 	typedef TInPropertyBaseClass Super;
 	typedef TPropertyTypeFundamentals<InTCppType> TTypeFundamentals;
 
-	TProperty( const class FPostConstructInitializeProperties& PCIP )
-		:	Super( PCIP)
+	TProperty( const FObjectInitializer& ObjectInitializer )
+		:	Super( ObjectInitializer)
 	{
 		SetElementSize();
 	}
-	TProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	Super( PCIP, EC_CppProperty, InOffset, InFlags | TTypeFundamentals::GetComputedFlagsPropertyFlags())
+	TProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags | TTypeFundamentals::GetComputedFlagsPropertyFlags())
 	{
 		SetElementSize();
 	}
@@ -1038,12 +1038,12 @@ public:
 	typedef InTCppType TCppType;
 	typedef typename Super::TTypeFundamentals TTypeFundamentals;
 
-	TProperty_WithEqualityAndSerializer( const class FPostConstructInitializeProperties& PCIP )
-		:	Super( PCIP)
+	TProperty_WithEqualityAndSerializer( const FObjectInitializer& ObjectInitializer )
+		:	Super( ObjectInitializer)
 	{
 	}
-	TProperty_WithEqualityAndSerializer( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	Super( PCIP, EC_CppProperty, InOffset, InFlags)
+	TProperty_WithEqualityAndSerializer( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
@@ -1064,8 +1064,8 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UNumericProperty,UProperty,CLASS_Abstract,CoreUObject,CASTCLASS_UNumericProperty)
 
-	UNumericProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	UProperty( PCIP, EC_CppProperty, InOffset, InFlags )
+	UNumericProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{}
 
 	// UProperty interface.
@@ -1196,12 +1196,12 @@ public:
 	typedef TProperty_WithEqualityAndSerializer<InTCppType, UNumericProperty> Super;
 	typedef InTCppType TCppType;
 	typedef typename Super::TTypeFundamentals TTypeFundamentals;
-	TProperty_Numeric( const class FPostConstructInitializeProperties& PCIP )
-		:	Super( PCIP)
+	TProperty_Numeric( const FObjectInitializer& ObjectInitializer )
+		:	Super( ObjectInitializer)
 	{
 	}
-	TProperty_Numeric( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	Super( PCIP, EC_CppProperty, InOffset, InFlags)
+	TProperty_Numeric( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
@@ -1271,8 +1271,8 @@ class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 	// Variables.
 	UEnum* Enum;
 
-	UByteProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UEnum* InEnum=NULL )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags)
+	UByteProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UEnum* InEnum=NULL )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	,	Enum( InEnum )
 	{
 	}
@@ -1313,8 +1313,8 @@ class COREUOBJECT_API UInt8Property : public TProperty_Numeric<int8>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UInt8Property,TProperty_Numeric<int8>,0,CoreUObject,CASTCLASS_UInt8Property)
 
-	UInt8Property( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags)
+	UInt8Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 };
@@ -1330,8 +1330,8 @@ class COREUOBJECT_API UInt16Property : public TProperty_Numeric<int16>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UInt16Property,TProperty_Numeric<int16>,0,CoreUObject,CASTCLASS_UInt16Property)
 
-	UInt16Property( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags)
+	UInt16Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 };
@@ -1348,8 +1348,8 @@ class COREUOBJECT_API UIntProperty : public TProperty_Numeric<int32>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UIntProperty,TProperty_Numeric<int32>,0,CoreUObject,CASTCLASS_UIntProperty)
 
-	UIntProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags)
+	UIntProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 };
@@ -1365,8 +1365,8 @@ class COREUOBJECT_API UInt64Property : public TProperty_Numeric<int64>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UInt64Property,TProperty_Numeric<int64>,0,CoreUObject,CASTCLASS_UInt64Property)
 
-	UInt64Property( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags )
+	UInt64Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 };
@@ -1382,8 +1382,8 @@ class COREUOBJECT_API UUInt16Property : public TProperty_Numeric<uint16>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UUInt16Property,TProperty_Numeric<uint16>,0,CoreUObject,CASTCLASS_UUInt16Property)
 
-	UUInt16Property( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags )
+	UUInt16Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 };
@@ -1399,8 +1399,8 @@ class COREUOBJECT_API UUInt32Property : public TProperty_Numeric<uint32>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UUInt32Property,TProperty_Numeric<uint32>,0,CoreUObject,CASTCLASS_UUInt32Property)
 
-	UUInt32Property( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags )
+	UUInt32Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 };
@@ -1416,8 +1416,8 @@ class COREUOBJECT_API UUInt64Property : public TProperty_Numeric<uint64>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UUInt64Property,TProperty_Numeric<uint64>,0,CoreUObject,CASTCLASS_UUInt64Property)
 
-	UUInt64Property( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags )
+	UUInt64Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 };
@@ -1433,8 +1433,8 @@ class COREUOBJECT_API UFloatProperty : public TProperty_Numeric<float>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UFloatProperty,TProperty_Numeric<float>,0,CoreUObject,CASTCLASS_UFloatProperty)
 
-	UFloatProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags )
+	UFloatProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 };
@@ -1450,8 +1450,8 @@ class COREUOBJECT_API UDoubleProperty : public TProperty_Numeric<double>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UDoubleProperty,TProperty_Numeric<double>,0,CoreUObject,CASTCLASS_UDoubleProperty)
 
-	UDoubleProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-		:	TProperty_Numeric( PCIP, EC_CppProperty, InOffset, InFlags )
+	UDoubleProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+		:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 };
@@ -1483,12 +1483,12 @@ private:
 
 public:
 
-	UBoolProperty( const class FPostConstructInitializeProperties& PCIP );
+	UBoolProperty( const FObjectInitializer& ObjectInitializer );
 	
 	/**
 	 * Constructor.
 	 *
-	 * @param PCIP Properties.
+	 * @param ObjectInitializer Properties.
 	 * @param ECppProperty Unused.
 	 * @param InOffset Offset of the property.
 	 * @param InCategory Category of the property.
@@ -1497,7 +1497,7 @@ public:
 	 * @param InElementSize Sizeof of the boolean type this property represents.
 	 * @param bIsNativeBool true if this property represents C++ bool type.
 	 */
-	UBoolProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool );
+	UBoolProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool );
 
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
@@ -1590,8 +1590,8 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	// Variables.
 	class UClass* PropertyClass;
 
-	UObjectPropertyBase( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass=NULL )
-	:	UProperty( PCIP, EC_CppProperty, InOffset, InFlags )
+	UObjectPropertyBase( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass=NULL )
+	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	,	PropertyClass( InClass )
 	{}
 
@@ -1728,12 +1728,12 @@ public:
 	typedef InTCppType TCppType;
 	typedef typename Super::TTypeFundamentals TTypeFundamentals;
 
-	TUObjectPropertyBase( const class FPostConstructInitializeProperties& PCIP )
-		:	Super( PCIP)
+	TUObjectPropertyBase( const FObjectInitializer& ObjectInitializer )
+		:	Super( ObjectInitializer)
 	{
 	}
-	TUObjectPropertyBase( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-		:	Super( PCIP, EC_CppProperty, InOffset, InFlags)
+	TUObjectPropertyBase( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+		:	Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 		this->PropertyClass = InClass;
 	}
@@ -1758,8 +1758,8 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UObjectProperty,TUObjectPropertyBase<UObject*>,0,CoreUObject,CASTCLASS_UObjectProperty)
 
-	UObjectProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-	:	TUObjectPropertyBase( PCIP, EC_CppProperty, InOffset, InFlags, InClass )
+	UObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+	:	TUObjectPropertyBase( ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass )
 	{
 	}
 
@@ -1791,8 +1791,8 @@ class COREUOBJECT_API UWeakObjectProperty : public TUObjectPropertyBase<FWeakObj
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UWeakObjectProperty,TUObjectPropertyBase<FWeakObjectPtr>,0,CoreUObject,CASTCLASS_UWeakObjectProperty)
 
-	UWeakObjectProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-	:	TUObjectPropertyBase( PCIP, EC_CppProperty, InOffset, InFlags, InClass )
+	UWeakObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+	:	TUObjectPropertyBase( ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass )
 	{
 	}
 	
@@ -1824,8 +1824,8 @@ class COREUOBJECT_API ULazyObjectProperty : public TUObjectPropertyBase<FLazyObj
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(ULazyObjectProperty,TUObjectPropertyBase<FLazyObjectPtr>,0,CoreUObject,CASTCLASS_ULazyObjectProperty)
 
-	ULazyObjectProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-		:	TUObjectPropertyBase( PCIP, EC_CppProperty, InOffset, InFlags, InClass )
+	ULazyObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+		:	TUObjectPropertyBase( ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass )
 	{
 	}
 
@@ -1863,8 +1863,8 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 {
 	DECLARE_CASTED_CLASS_INTRINSIC(UAssetObjectProperty,TUObjectPropertyBase<FAssetPtr>,0,CoreUObject,CASTCLASS_UAssetObjectProperty)
 
-	UAssetObjectProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
-		:	TUObjectPropertyBase( PCIP, EC_CppProperty, InOffset, InFlags, InClass )
+	UAssetObjectProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass )
+		:	TUObjectPropertyBase( ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClass )
 	{}
 
 	// UHT interface
@@ -1910,8 +1910,8 @@ class COREUOBJECT_API UClassProperty : public UObjectProperty
 	// Variables.
 	class UClass* MetaClass;
 public:
-	UClassProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
-	:	UObjectProperty( PCIP, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
+	UClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
+	:	UObjectProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
 	,	MetaClass( InMetaClass )
 	{
 	}
@@ -1949,8 +1949,8 @@ class COREUOBJECT_API UAssetClassProperty : public UAssetObjectProperty
 	// Variables.
 	class UClass* MetaClass;
 public:
-	UAssetClassProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
-		:	Super(PCIP, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
+	UAssetClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
+		:	Super(ObjectInitializer, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
 		,	MetaClass( InMetaClass )
 	{}
 
@@ -1991,8 +1991,8 @@ public:
 	typedef UInterfaceProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UInterfaceProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InInterfaceClass )
-		:	UInterfaceProperty_Super( PCIP, EC_CppProperty, InOffset, (InFlags & ~CPF_InterfaceClearMask) )
+	UInterfaceProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InInterfaceClass )
+		:	UInterfaceProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, (InFlags & ~CPF_InterfaceClearMask) )
 		,	InterfaceClass( InInterfaceClass )
 	{
 	}
@@ -2037,8 +2037,8 @@ public:
 	typedef UNameProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UNameProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	UNameProperty_Super( PCIP, EC_CppProperty, InOffset, InFlags )
+	UNameProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	UNameProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
 
@@ -2066,8 +2066,8 @@ public:
 	typedef UStrProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UStrProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	UStrProperty_Super( PCIP, EC_CppProperty, InOffset, InFlags)
+	UStrProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	UStrProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
@@ -2099,8 +2099,8 @@ public:
 	typedef UArrayProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UArrayProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-	:	UArrayProperty_Super( PCIP, EC_CppProperty, InOffset, InFlags)
+	UArrayProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+	:	UArrayProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 	{
 	}
 
@@ -2471,7 +2471,7 @@ class COREUOBJECT_API UStructProperty : public UProperty
 	// Variables.
 	class UScriptStruct* Struct;
 public:
-	UStructProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct );
+	UStructProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct );
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
@@ -2541,8 +2541,8 @@ public:
 	typedef UDelegateProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UDelegateProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UFunction* InSignatureFunction = NULL )
-		: UDelegateProperty_Super( PCIP, EC_CppProperty, InOffset, InFlags)
+	UDelegateProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UFunction* InSignatureFunction = NULL )
+		: UDelegateProperty_Super( ObjectInitializer, EC_CppProperty, InOffset, InFlags)
 		, SignatureFunction(InSignatureFunction)
 	{
 	}
@@ -2586,8 +2586,8 @@ public:
 	typedef UMulticastDelegateProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
 
-	UMulticastDelegateProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UFunction* InSignatureFunction = NULL )
-		: TProperty( PCIP, EC_CppProperty, InOffset, InFlags )
+	UMulticastDelegateProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UFunction* InSignatureFunction = NULL )
+		: TProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 		, SignatureFunction(InSignatureFunction)
 	{
 	}
@@ -3087,8 +3087,8 @@ inline bool UObject::IsBasedOnArchetype(  const UObject* const SomeObject ) cons
 	C++ property macros.
 -----------------------------------------------------------------------------*/
 
-#define CPP_PROPERTY(name)	FPostConstructInitializeProperties(), EC_CppProperty, STRUCT_OFFSET(ThisClass, name)
-#define CPP_PROPERTY_BASE(name, base)	FPostConstructInitializeProperties(), EC_CppProperty, STRUCT_OFFSET(base, name)
+#define CPP_PROPERTY(name)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(ThisClass, name)
+#define CPP_PROPERTY_BASE(name, base)	FObjectInitializer(), EC_CppProperty, STRUCT_OFFSET(base, name)
 
 /** 
 	The mac does not interpret a pointer to a bool* that is say 0x40 as true!, so we need to use uint8 for that. 

@@ -10,8 +10,8 @@
 /////////////////////////////////////////////////////
 // UAnimationCustomTransitionSchema
 
-UAnimationCustomTransitionSchema::UAnimationCustomTransitionSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationCustomTransitionSchema::UAnimationCustomTransitionSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

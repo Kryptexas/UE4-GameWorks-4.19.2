@@ -22,8 +22,8 @@ TStatId FTestTickHelper::GetStatId() const
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
-UMockAI::UMockAI(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMockAI::UMockAI(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

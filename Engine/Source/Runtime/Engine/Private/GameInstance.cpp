@@ -14,8 +14,8 @@
 #endif
 
 
-UGameInstance::UGameInstance(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

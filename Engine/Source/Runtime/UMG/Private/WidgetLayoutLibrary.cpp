@@ -10,8 +10,8 @@
 /////////////////////////////////////////////////////
 // UWidgetLayoutLibrary
 
-UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

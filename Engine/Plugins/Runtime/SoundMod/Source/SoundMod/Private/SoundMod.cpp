@@ -3,8 +3,8 @@
 #include "SoundModPrivatePCH.h"
 #include "SoundDefinitions.h"
 
-USoundMod::USoundMod(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundMod::USoundMod(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

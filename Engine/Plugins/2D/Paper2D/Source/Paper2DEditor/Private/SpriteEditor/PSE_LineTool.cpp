@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPSE_LineTool
 
-UPSE_LineTool::UPSE_LineTool(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPSE_LineTool::UPSE_LineTool(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

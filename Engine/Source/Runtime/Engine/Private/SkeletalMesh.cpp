@@ -1926,8 +1926,8 @@ bool FSkeletalMeshResource::RequiresCPUSkinning(ERHIFeatureLevel::Type FeatureLe
 /*-----------------------------------------------------------------------------
 	USkeletalMesh
 -----------------------------------------------------------------------------*/
-USkeletalMesh::USkeletalMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMesh::USkeletalMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SkelMirrorAxis = EAxis::X;
 	SkelMirrorFlipAxis = EAxis::Z;
@@ -3362,8 +3362,8 @@ FString USkeletalMesh::GetDesc()
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
 -----------------------------------------------------------------------------*/
-USkeletalMeshSocket::USkeletalMeshSocket(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMeshSocket::USkeletalMeshSocket(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RelativeScale = FVector(1.0f, 1.0f, 1.0f);
 }
@@ -3497,11 +3497,11 @@ bool USkeletalMeshSocket::AttachActor(AActor* Actor, class USkeletalMeshComponen
 /*-----------------------------------------------------------------------------
 	ASkeletalMeshActor
 -----------------------------------------------------------------------------*/
-ASkeletalMeshActor::ASkeletalMeshActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASkeletalMeshActor::ASkeletalMeshActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
-	SkeletalMeshComponent = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("SkeletalMeshComponent0"));
+	SkeletalMeshComponent = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("SkeletalMeshComponent0"));
 	SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
 	SkeletalMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	// check BaseEngine.ini for profile setup
@@ -4656,8 +4656,8 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 }
 
 
-USkinnedMeshComponent::USkinnedMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;

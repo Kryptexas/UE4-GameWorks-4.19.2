@@ -123,8 +123,8 @@ protected:
 FName UGameplayDebuggingComponent::DefaultComponentName = TEXT("GameplayDebuggingComponent");
 FOnDebuggingTargetChanged UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate;
 
-UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, bDrawEQSLabels(true)
 	, bDrawEQSFailedItems(true)
 {

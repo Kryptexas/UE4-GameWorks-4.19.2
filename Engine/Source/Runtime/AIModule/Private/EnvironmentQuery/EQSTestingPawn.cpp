@@ -24,8 +24,8 @@ extern UNREALED_API class UEditorEngine* GEditor;
 //----------------------------------------------------------------------//
 // AEQSTestingPawn
 //----------------------------------------------------------------------//
-AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TimeLimitPerStep(-1)
 	, StepToDebugDraw(0)
 	, bDrawLabels(true)
@@ -37,7 +37,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 
 #if WITH_EDITORONLY_DATA
-	EdRenderComp = PCIP.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));
+	EdRenderComp = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		UArrowComponent* ArrowComponent = FindComponentByClass<UArrowComponent>();
@@ -47,7 +47,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 			ArrowComponent->bIsScreenSizeScaled = true;
 		}
 
-		TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+		TSubobjectPtr<UBillboardComponent> SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 		if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 		{
 			struct FConstructorStatics

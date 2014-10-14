@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UHorizontalBox
 
-UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UHorizontalBox::UHorizontalBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

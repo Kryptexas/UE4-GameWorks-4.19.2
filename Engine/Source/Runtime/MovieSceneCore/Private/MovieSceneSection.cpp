@@ -3,8 +3,8 @@
 #include "MovieSceneCorePrivatePCH.h"
 #include "MovieSceneSection.h"
 
-UMovieSceneSection::UMovieSceneSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneSection::UMovieSceneSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 
 	StartTime = 0.0f;

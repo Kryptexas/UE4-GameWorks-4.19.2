@@ -636,7 +636,7 @@ const FWindowStyle& FWindowStyle::GetDefault()
 }
 
 
-USlateTypes::USlateTypes( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+USlateTypes::USlateTypes( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }

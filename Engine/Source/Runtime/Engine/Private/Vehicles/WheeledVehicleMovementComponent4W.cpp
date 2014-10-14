@@ -8,7 +8,7 @@
 #include "../PhysicsEngine/PhysXSupport.h"
 #endif // WITH_VEHICLE
 
-UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 #if WITH_VEHICLE
 	// grab default values from physx

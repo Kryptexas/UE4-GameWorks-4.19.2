@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UCContentCommandlets.cpp: Various commmandlets.
@@ -39,8 +39,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 #define CURRENT_PACKAGE_VERSION 0
 #define IGNORE_PACKAGE_VERSION INDEX_NONE
 
-UResavePackagesCommandlet::UResavePackagesCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UResavePackagesCommandlet::UResavePackagesCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -714,8 +714,8 @@ void UResavePackagesCommandlet::VerboseMessage(const FString& Message)
 	URecompileBlueprintsCommandlet commandlet.
 -----------------------------------------------------------------------------*/
 
-URecompileBlueprintsCommandlet::URecompileBlueprintsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+URecompileBlueprintsCommandlet::URecompileBlueprintsCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -986,8 +986,8 @@ FString MakeCutdownFilename(const FString& Filename, const TCHAR* CutdownDirecto
 	return CutdownDirectory / FPaths::GetCleanFilename(Filename);
 }
 
-UWrangleContentCommandlet::UWrangleContentCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWrangleContentCommandlet::UWrangleContentCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }
@@ -1630,8 +1630,8 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 	UListMaterialsUsedWithMeshEmittersCommandlet
 ========================================================================================================== */
 
-UListMaterialsUsedWithMeshEmittersCommandlet::UListMaterialsUsedWithMeshEmittersCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UListMaterialsUsedWithMeshEmittersCommandlet::UListMaterialsUsedWithMeshEmittersCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1785,8 +1785,8 @@ int32 UListMaterialsUsedWithMeshEmittersCommandlet::Main( const FString& Params 
 	UListStaticMeshesImportedFromSpeedTreesCommandlet
 ========================================================================================================== */
 
-UListStaticMeshesImportedFromSpeedTreesCommandlet::UListStaticMeshesImportedFromSpeedTreesCommandlet(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UListStaticMeshesImportedFromSpeedTreesCommandlet::UListStaticMeshesImportedFromSpeedTreesCommandlet(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

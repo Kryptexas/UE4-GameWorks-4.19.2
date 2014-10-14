@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryContext.h"
 
-UEnvQueryContext::UEnvQueryContext(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryContext::UEnvQueryContext(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

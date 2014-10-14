@@ -8,8 +8,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromMetaDataCommandlet, Log, All);
 //////////////////////////////////////////////////////////////////////////
 //GatherTextFromMetaDataCommandlet
 
-UGatherTextFromMetaDataCommandlet::UGatherTextFromMetaDataCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGatherTextFromMetaDataCommandlet::UGatherTextFromMetaDataCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UCanvasPanel
 
-UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCanvasPanel::UCanvasPanel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

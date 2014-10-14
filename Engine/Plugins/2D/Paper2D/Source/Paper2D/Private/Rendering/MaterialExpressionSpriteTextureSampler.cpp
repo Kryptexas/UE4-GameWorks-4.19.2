@@ -8,8 +8,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionSpriteTextureSampler
 
-UMaterialExpressionSpriteTextureSampler::UMaterialExpressionSpriteTextureSampler(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialExpressionSpriteTextureSampler::UMaterialExpressionSpriteTextureSampler(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ParameterName = TEXT("SpriteTexture");
 }

@@ -35,5 +35,5 @@ class AIMODULE_API UVisualLoggerExtension : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UVisualLoggerExtension(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
+	UVisualLoggerExtension(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 };

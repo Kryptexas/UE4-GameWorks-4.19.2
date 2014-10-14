@@ -9,8 +9,8 @@
 #include "Animation/BlendSpace.h"
 #include "AnimationUtils.h"
 
-UBlendSpace::UBlendSpace(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlendSpace::UBlendSpace(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NumOfDimension = 2;
 }

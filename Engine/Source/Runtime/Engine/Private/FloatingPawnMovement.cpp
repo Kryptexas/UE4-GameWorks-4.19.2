@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/FloatingPawnMovement.h"
 
-UFloatingPawnMovement::UFloatingPawnMovement(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFloatingPawnMovement::UFloatingPawnMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxSpeed = 1200.f;
 	Acceleration = 4000.f;

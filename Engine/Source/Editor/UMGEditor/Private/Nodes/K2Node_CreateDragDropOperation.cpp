@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-UK2Node_CreateDragDropOperation::UK2Node_CreateDragDropOperation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CreateDragDropOperation::UK2Node_CreateDragDropOperation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeTooltip = LOCTEXT("DragDropNodeTooltip", "Creates a new drag drop operation");
 }

@@ -60,8 +60,8 @@ public:
 	}
 };
 
-UK2Node_Literal::UK2Node_Literal(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Literal::UK2Node_Literal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

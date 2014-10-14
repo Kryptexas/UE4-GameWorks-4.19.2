@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-USceneThumbnailInfo::USceneThumbnailInfo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneThumbnailInfo::USceneThumbnailInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	OrbitPitch = -11.25;
 	OrbitYaw = -157.5;

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "TextLocalizationResourceGenerator.h"
@@ -10,8 +10,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationResourceCommandlet, Log, All);
 
-UGenerateTextLocalizationResourceCommandlet::UGenerateTextLocalizationResourceCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGenerateTextLocalizationResourceCommandlet::UGenerateTextLocalizationResourceCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

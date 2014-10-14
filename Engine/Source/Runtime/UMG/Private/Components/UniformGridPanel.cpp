@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UUniformGridPanel
 
-UUniformGridPanel::UUniformGridPanel(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUniformGridPanel::UUniformGridPanel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

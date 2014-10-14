@@ -79,8 +79,8 @@ public:
 	}
 };
 
-UK2Node_IfThenElse::UK2Node_IfThenElse(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_IfThenElse::UK2Node_IfThenElse(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

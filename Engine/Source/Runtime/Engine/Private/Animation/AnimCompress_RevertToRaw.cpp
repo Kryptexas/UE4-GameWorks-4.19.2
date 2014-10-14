@@ -10,8 +10,8 @@
 #include "AnimationUtils.h"
 #include "AnimEncoding.h"
 
-UDEPRECATED_AnimCompress_RevertToRaw::UDEPRECATED_AnimCompress_RevertToRaw(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_AnimCompress_RevertToRaw::UDEPRECATED_AnimCompress_RevertToRaw(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Revert To Raw");
 	TranslationCompressionFormat = ACF_None;

@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
-UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, ProxyFactoryFunctionName(NAME_None)
 	, ProxyFactoryClass(NULL)
 	, ProxyClass(NULL)

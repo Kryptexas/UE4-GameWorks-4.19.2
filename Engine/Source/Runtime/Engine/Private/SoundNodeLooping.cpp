@@ -9,8 +9,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNodeLooping implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeLooping::USoundNodeLooping(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeLooping::USoundNodeLooping(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

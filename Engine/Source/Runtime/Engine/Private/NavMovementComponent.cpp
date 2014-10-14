@@ -16,8 +16,8 @@ void FNavAgentProperties::UpdateWithCollisionComponent(UShapeComponent* Collisio
 //----------------------------------------------------------------------//
 // UMovementComponent
 //----------------------------------------------------------------------//
-UNavMovementComponent::UNavMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavMovementComponent::UNavMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bUpdateNavAgentWithOwnersCollision(true)
 	, bStopMovementAbortPaths(true)
 {

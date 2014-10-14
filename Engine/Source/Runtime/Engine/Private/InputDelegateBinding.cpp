@@ -10,8 +10,8 @@
 #include "Engine/InputAxisKeyDelegateBinding.h"
 #include "Engine/InputVectorAxisDelegateBinding.h"
 
-UInputDelegateBinding::UInputDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInputDelegateBinding::UInputDelegateBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

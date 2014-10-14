@@ -3,8 +3,8 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "TestBeaconClient.h"
 
-ATestBeaconClient::ATestBeaconClient(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+ATestBeaconClient::ATestBeaconClient(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 }
 

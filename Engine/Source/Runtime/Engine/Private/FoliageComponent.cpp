@@ -48,8 +48,8 @@ protected:
 	FVector4 FoliageNormalizedRotationAxisAndAngle;
 };
 
-UInteractiveFoliageComponent::UInteractiveFoliageComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInteractiveFoliageComponent::UInteractiveFoliageComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

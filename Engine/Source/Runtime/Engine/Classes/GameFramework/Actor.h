@@ -72,7 +72,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	AActor(const class FPostConstructInitializeProperties& PCIP);
+	AActor(const FObjectInitializer& ObjectInitializer);
 
 	/**
 	 * Primary Actor tick function, which calls TickActor().

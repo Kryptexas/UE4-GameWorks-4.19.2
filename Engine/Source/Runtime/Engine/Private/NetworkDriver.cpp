@@ -94,8 +94,8 @@ static TAutoConsoleVariable<int32> CVarNetDormancyValidate(
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
 
-UNetDriver::UNetDriver(const class FPostConstructInitializeProperties& PCIP)
-:	UObject(PCIP)
+UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
+:	UObject(ObjectInitializer)
 ,	MaxInternetClientRate(10000)
 , 	MaxClientRate(15000)
 ,	RequireEngineVersionMatch(true)
@@ -1499,7 +1499,7 @@ void UNetDriver::FlushActorDormancy(AActor* Actor)
 UChildConnection* UNetDriver::CreateChild(UNetConnection* Parent)
 {
 	UE_LOG(LogNet, Log, TEXT("Creating child connection with %s parent"), *Parent->GetName());
-	UChildConnection* Child = new UChildConnection(FPostConstructInitializeProperties());
+	UChildConnection* Child = new UChildConnection(FObjectInitializer());
 	Child->Driver = this;
 	Child->URL = FURL();
 	Child->State = Parent->State;

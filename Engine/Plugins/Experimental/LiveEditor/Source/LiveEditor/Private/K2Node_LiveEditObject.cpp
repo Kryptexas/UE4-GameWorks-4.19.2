@@ -138,8 +138,8 @@ namespace UK2Node_LiveEditObjectStatics
 FString UK2Node_LiveEditObject::LiveEditableVarPinCategory(TEXT("LiveEditableVar"));
 
 
-UK2Node_LiveEditObject::UK2Node_LiveEditObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_LiveEditObject::UK2Node_LiveEditObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

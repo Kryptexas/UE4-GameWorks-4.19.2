@@ -485,7 +485,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "OpenMatinee", "Open UnrealMatinee") );
 
 	NormalTransactor = GEditor->Trans;
-	InterpEdTrans = new UMatineeTransBuffer( FPostConstructInitializeProperties(), 8*1024*1024 );
+	InterpEdTrans = new UMatineeTransBuffer( FObjectInitializer(), 8*1024*1024 );
 	GEditor->Trans = InterpEdTrans;
 
 	// Save viewports' data before it gets overridden by UpdateLevelViewport

@@ -336,8 +336,8 @@ private:
 	UAnimBlueprintFactory implementation.
 ------------------------------------------------------------------------------*/
 
-UAnimBlueprintFactory::UAnimBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimBlueprintFactory::UAnimBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

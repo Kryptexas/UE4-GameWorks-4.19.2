@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // USpinBox
 
-USpinBox::USpinBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpinBox::USpinBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);

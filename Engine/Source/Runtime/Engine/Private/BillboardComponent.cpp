@@ -295,8 +295,8 @@ private:
 #endif // #if WITH_EDITORONLY_DATA
 };
 
-UBillboardComponent::UBillboardComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBillboardComponent::UBillboardComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

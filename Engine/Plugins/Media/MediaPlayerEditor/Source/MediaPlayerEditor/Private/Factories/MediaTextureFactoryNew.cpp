@@ -6,8 +6,8 @@
 /* UMediaTextureFactoryNew structors
  *****************************************************************************/
 
-UMediaTextureFactoryNew::UMediaTextureFactoryNew( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaTextureFactoryNew::UMediaTextureFactoryNew( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UMediaTexture::StaticClass();
 	bCreateNew = true;

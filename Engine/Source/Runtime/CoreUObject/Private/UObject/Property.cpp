@@ -341,13 +341,13 @@ const TCHAR* UPropertyHelpers::ReadToken( const TCHAR* Buffer, FString& String, 
 //
 // Constructors.
 //
-UProperty::UProperty(const class FPostConstructInitializeProperties& PCIP)
-: UField(PCIP)	
+UProperty::UProperty(const FObjectInitializer& ObjectInitializer)
+: UField(ObjectInitializer)	
 , ArrayDim(1)
 {
 }
-UProperty::UProperty(const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags )
-: UField(PCIP)	
+UProperty::UProperty(const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
+: UField(ObjectInitializer)	
 , ArrayDim(1)
 , PropertyFlags(InFlags)
 , Offset_Internal(InOffset)

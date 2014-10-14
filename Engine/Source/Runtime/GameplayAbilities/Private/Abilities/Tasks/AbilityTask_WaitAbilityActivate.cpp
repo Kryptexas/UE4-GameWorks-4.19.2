@@ -6,8 +6,8 @@
 
 #include "Abilities/GameplayAbility.h"
 
-UAbilityTask_WaitAbilityActivate::UAbilityTask_WaitAbilityActivate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitAbilityActivate::UAbilityTask_WaitAbilityActivate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	IncludeTriggeredAbilities = false;
 }

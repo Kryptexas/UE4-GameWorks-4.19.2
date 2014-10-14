@@ -963,7 +963,7 @@ class AIMODULE_API UEnvQueryTypes : public UObject
 	/** special test value assigned to items skipped by condition check */
 	static float SkippedItemValue;
 
-	UEnvQueryTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
+	UEnvQueryTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 	static FText GetShortTypeName(const UObject* Ob);
 
 	static FText DescribeContext(TSubclassOf<class UEnvQueryContext> ContextClass);

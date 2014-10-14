@@ -6,8 +6,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 #include "BehaviorTree/Tasks/BTTask_MoveDirectlyToward.h"
 
-UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, AcceptableRadius(50.f)
 	, bProjectVectorGoalToNavigation(true)
 	, bAllowStrafe(true)

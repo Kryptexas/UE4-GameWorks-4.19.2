@@ -421,8 +421,8 @@ void FAnimTrack::SortAnimSegments()
 // UAnimCompositeBase
 ///////////////////////////////////////////////////////
 
-UAnimCompositeBase::UAnimCompositeBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompositeBase::UAnimCompositeBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -7,8 +7,8 @@
 /*-----------------------------------------------------------------------------
 	UMatineeTransBuffer / FMatineeTransaction
 -----------------------------------------------------------------------------*/
-UMatineeTransBuffer::UMatineeTransBuffer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeTransBuffer::UMatineeTransBuffer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

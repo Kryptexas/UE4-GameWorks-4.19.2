@@ -7,8 +7,8 @@
 //----------------------------------------------------------------------//
 // ANavModifierVolume
 //----------------------------------------------------------------------//
-ANavModifierVolume::ANavModifierVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavModifierVolume::ANavModifierVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

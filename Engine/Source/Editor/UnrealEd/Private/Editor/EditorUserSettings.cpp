@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "EditorUserSettings"
 
-UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorUserSettings::UEditorUserSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	//Default to high quality
 	MaterialQualityLevel = 1;

@@ -95,8 +95,8 @@ void FBatchTracingHelper::DoSingleSourceMultiDestinations<EEnvTraceShape::Capsul
 //----------------------------------------------------------------------//
 // UEnvQueryGenerator_OnCircle
 //----------------------------------------------------------------------//
-UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 	CircleCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();

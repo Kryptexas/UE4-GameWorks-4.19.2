@@ -9,8 +9,8 @@
 
 TArray<TWeakObjectPtr<UTireType>> UTireType::AllTireTypes;
 
-UTireType::UTireType(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTireType::UTireType(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Property initialization
 	FrictionScale = 1.0f;

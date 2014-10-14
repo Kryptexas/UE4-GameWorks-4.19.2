@@ -11,8 +11,8 @@
 
 const FString UK2Node_CastByteToEnum::ByteInputPinName = TEXT("Byte");
 
-UK2Node_CastByteToEnum::UK2Node_CastByteToEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CastByteToEnum::UK2Node_CastByteToEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

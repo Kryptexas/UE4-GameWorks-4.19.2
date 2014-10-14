@@ -209,8 +209,8 @@ FString const& FFavoritedBlueprintPaletteItem::ToString() const
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintPaletteFavorites::UBlueprintPaletteFavorites(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UBlueprintPaletteFavorites::UBlueprintPaletteFavorites(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

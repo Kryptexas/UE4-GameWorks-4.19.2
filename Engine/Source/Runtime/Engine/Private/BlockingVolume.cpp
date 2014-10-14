@@ -5,8 +5,8 @@
 
 static FName InvisibleWall_NAME(TEXT("InvisibleWall"));
 
-ABlockingVolume::ABlockingVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ABlockingVolume::ABlockingVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->bCanEverAffectNavigation = true;
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;

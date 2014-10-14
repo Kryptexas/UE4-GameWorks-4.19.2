@@ -17,8 +17,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
 #define LOCTEXT_NAMESPACE "CheatManager"	
 
-UCheatManager::UCheatManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCheatManager::UCheatManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bToggleAILogging(false)
 {
 	DebugCameraControllerClass = ADebugCameraController::StaticClass();

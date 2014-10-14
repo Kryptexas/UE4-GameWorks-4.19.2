@@ -21,8 +21,8 @@ static TAutoConsoleVariable<int32> CVarDebugCameraTraceComplex(
 // Externals
 // ------------------
 
-ADebugCameraHUD::ADebugCameraHUD(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADebugCameraHUD::ADebugCameraHUD(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHidden = false;
 }

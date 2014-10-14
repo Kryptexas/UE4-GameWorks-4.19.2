@@ -6,7 +6,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerAutomationTests.h"
 
-UVisualLoggerAutomationTests::UVisualLoggerAutomationTests(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UVisualLoggerAutomationTests::UVisualLoggerAutomationTests(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 
 }

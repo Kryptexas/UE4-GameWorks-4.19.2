@@ -74,8 +74,8 @@ bool UK2Node_MakeStruct::FMakeStructPinManager::CanTreatPropertyAsOptional(UProp
 		return UK2Node_MakeStruct::CanBeExposed(TestProperty);
 	}
 
-UK2Node_MakeStruct::UK2Node_MakeStruct(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MakeStruct::UK2Node_MakeStruct(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

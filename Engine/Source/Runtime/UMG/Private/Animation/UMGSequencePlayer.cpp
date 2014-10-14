@@ -8,8 +8,8 @@
 #include "MovieScene.h"
 #include "WidgetAnimation.h"
 
-UUMGSequencePlayer::UUMGSequencePlayer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 	TimeCursorPosition = 0.0f;

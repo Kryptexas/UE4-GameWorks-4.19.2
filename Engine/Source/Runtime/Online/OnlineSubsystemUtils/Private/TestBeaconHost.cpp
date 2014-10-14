@@ -2,8 +2,8 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 
-ATestBeaconHost::ATestBeaconHost(const FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+ATestBeaconHost::ATestBeaconHost(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 	BeaconTypeName = TEXT("TestBeacon");
 }

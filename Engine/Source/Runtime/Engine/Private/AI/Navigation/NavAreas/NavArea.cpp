@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
 
-UNavArea::UNavArea(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavArea::UNavArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	DefaultCost = 1.f;
 	FixedAreaEnteringCost = 0.f;

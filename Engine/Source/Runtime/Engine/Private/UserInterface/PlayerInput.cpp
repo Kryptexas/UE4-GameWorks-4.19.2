@@ -21,8 +21,8 @@ const TArray<FInputActionKeyMapping> UPlayerInput::NoKeyMappings;
 TArray<FInputActionKeyMapping> UPlayerInput::EngineDefinedActionMappings;
 TArray<FInputAxisKeyMapping> UPlayerInput::EngineDefinedAxisMappings;
 
-UPlayerInput::UPlayerInput(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPlayerInput::UPlayerInput(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SetFlags(RF_Transactional);
 	MouseSamplingTotal = +0.0083f;

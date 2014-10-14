@@ -61,8 +61,8 @@ DEFINE_LOG_CATEGORY(LogAnimNotify);
 // UAnimInstance
 /////////////////////////////////////////////////////
 
-UAnimInstance::UAnimInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RootNode = NULL;
 	RootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;

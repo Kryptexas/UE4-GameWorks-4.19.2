@@ -11,8 +11,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogScriptPlatformInterface, Log, All);
 /*******************************************
  * Platform Interface Base                 *
  *******************************************/
-UPlatformInterfaceBase::UPlatformInterfaceBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPlatformInterfaceBase::UPlatformInterfaceBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -166,8 +166,8 @@ IMPLEMENT_PLATFORM_INTERFACE_SINGLETON(UTwitterIntegrationBase,TwitterIntegratio
  * Cloud Storage                           *
  *******************************************/
 
-UCloudStorageBase::UCloudStorageBase(const class FPostConstructInitializeProperties& PCIP)
- : Super(PCIP)
+UCloudStorageBase::UCloudStorageBase(const FObjectInitializer& ObjectInitializer)
+ : Super(ObjectInitializer)
 {
 }
 
@@ -489,8 +489,8 @@ bool UCloudStorageBase::ResolveConflictWithVersionIndex(int32 /*Index*/)
  *******************************************/
 
 
-UMicroTransactionBase::UMicroTransactionBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMicroTransactionBase::UMicroTransactionBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -521,8 +521,8 @@ bool UMicroTransactionBase::BeginPurchase(int Index)
 /*******************************************
  * Twitter Integration
  *******************************************/
-UTwitterIntegrationBase::UTwitterIntegrationBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTwitterIntegrationBase::UTwitterIntegrationBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -571,8 +571,8 @@ bool UTwitterIntegrationBase::TwitterRequest(const FString& URL, const TArray<FS
 /*******************************************
  * Platform Interface Web Response         *
  *******************************************/
-UPlatformInterfaceWebResponse::UPlatformInterfaceWebResponse(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPlatformInterfaceWebResponse::UPlatformInterfaceWebResponse(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

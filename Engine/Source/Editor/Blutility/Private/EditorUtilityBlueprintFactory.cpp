@@ -26,8 +26,8 @@ public:
 /////////////////////////////////////////////////////
 // UEditorUtilityBlueprintFactory
 
-UEditorUtilityBlueprintFactory::UEditorUtilityBlueprintFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorUtilityBlueprintFactory::UEditorUtilityBlueprintFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	UClass* DefaultParentClass = APlacedEditorUtilityBase::StaticClass();
 

@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UTextBlock
 
-UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

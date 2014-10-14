@@ -29,8 +29,8 @@ namespace
 //////////////////////////////////////////////////////////////////////////
 // UTimelineTemplate
 
-UTimelineTemplate::UTimelineTemplate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTimelineTemplate::UTimelineTemplate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TimelineLength = 5.0f;
 	TimelineGuid = FGuid::NewGuid();

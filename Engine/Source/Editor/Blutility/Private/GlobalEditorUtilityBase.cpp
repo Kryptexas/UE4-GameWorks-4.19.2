@@ -9,8 +9,8 @@
 
 /////////////////////////////////////////////////////
 
-UGlobalEditorUtilityBase::UGlobalEditorUtilityBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGlobalEditorUtilityBase::UGlobalEditorUtilityBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

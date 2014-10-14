@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 
-UUnrealEdTypes::UUnrealEdTypes(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdTypes::UUnrealEdTypes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

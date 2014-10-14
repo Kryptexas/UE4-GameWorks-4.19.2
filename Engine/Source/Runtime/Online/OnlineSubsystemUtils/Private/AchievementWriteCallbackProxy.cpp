@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // ULeaderboardQueryCallbackProxy
 
-UAchievementWriteCallbackProxy::UAchievementWriteCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAchievementWriteCallbackProxy::UAchievementWriteCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

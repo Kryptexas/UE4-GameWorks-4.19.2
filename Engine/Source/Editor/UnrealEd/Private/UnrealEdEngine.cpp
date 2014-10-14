@@ -658,13 +658,13 @@ FString FClassPickerDefaults::GetDescription() const
 #undef LOCTEXT_NAMESPACE
 
 
-UUnrealEdKeyBindings::UUnrealEdKeyBindings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdKeyBindings::UUnrealEdKeyBindings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UUnrealEdOptions::UUnrealEdOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdOptions::UUnrealEdOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

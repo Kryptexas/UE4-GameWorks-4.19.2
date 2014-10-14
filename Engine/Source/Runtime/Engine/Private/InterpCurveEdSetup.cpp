@@ -49,8 +49,8 @@ void UInterpCurveEdSetup::Serialize(FArchive& Ar)
 	}
 }
 
-UInterpCurveEdSetup::UInterpCurveEdSetup(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpCurveEdSetup::UInterpCurveEdSetup(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	Tabs.Add(FCurveEdTab(TEXT("Default"), 0.0f, 1.0f, -1.0f, 1.0f));

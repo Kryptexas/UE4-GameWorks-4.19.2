@@ -5,8 +5,8 @@
 
 #define LOCTEXT_NAMESPACE "TextPropertyTest"
 
-UTextPropertyTestObject::UTextPropertyTestObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP), DefaultedText( LOCTEXT("DefaultedText", "DefaultValue") )
+UTextPropertyTestObject::UTextPropertyTestObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer), DefaultedText( LOCTEXT("DefaultedText", "DefaultValue") )
 {
 }
 

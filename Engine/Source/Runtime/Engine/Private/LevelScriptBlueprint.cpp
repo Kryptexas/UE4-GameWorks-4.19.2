@@ -10,8 +10,8 @@
 //////////////////////////////////////////////////////////////////////////
 // ULevelScriptBlueprint
 
-ULevelScriptBlueprint::ULevelScriptBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelScriptBlueprint::ULevelScriptBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

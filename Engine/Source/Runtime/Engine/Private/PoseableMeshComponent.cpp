@@ -8,8 +8,8 @@
 #include "AnimTree.h"
 #include "Animation/AnimInstance.h"
 
-UPoseableMeshComponent::UPoseableMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPoseableMeshComponent::UPoseableMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

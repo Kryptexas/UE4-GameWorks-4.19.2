@@ -22,8 +22,8 @@ FString FK2Node_SpawnActorFromClassHelper::NoCollisionFailPinName(TEXT("SpawnEve
 
 #define LOCTEXT_NAMESPACE "K2Node_SpawnActorFromClass"
 
-UK2Node_SpawnActorFromClass::UK2Node_SpawnActorFromClass(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_SpawnActorFromClass::UK2Node_SpawnActorFromClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Attempts to spawn a new Actor with the specified transform");
 }

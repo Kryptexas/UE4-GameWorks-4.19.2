@@ -18,8 +18,8 @@ struct FK2Node_CreateWidgetHelper
 
 FString FK2Node_CreateWidgetHelper::OwningPlayerPinName(TEXT("OwningPlayer"));
 
-UK2Node_CreateWidget::UK2Node_CreateWidget(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CreateWidget::UK2Node_CreateWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Creates a new widget");
 }

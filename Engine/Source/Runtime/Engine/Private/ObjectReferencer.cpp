@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 
-UObjectReferencer::UObjectReferencer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UObjectReferencer::UObjectReferencer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

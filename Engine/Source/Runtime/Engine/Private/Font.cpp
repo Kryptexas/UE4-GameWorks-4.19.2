@@ -7,13 +7,13 @@
 #include "EnginePrivate.h"
 
 
-UFontImportOptions::UFontImportOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFontImportOptions::UFontImportOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UFont::UFont(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFont::UFont(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ScalingFactor = 1.0f;
 }

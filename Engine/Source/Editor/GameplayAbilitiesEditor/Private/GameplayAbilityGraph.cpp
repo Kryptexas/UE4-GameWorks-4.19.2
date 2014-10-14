@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UGameplayAbilityGraph
 
-UGameplayAbilityGraph::UGameplayAbilityGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilityGraph::UGameplayAbilityGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

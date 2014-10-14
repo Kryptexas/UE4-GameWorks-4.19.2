@@ -86,8 +86,8 @@ void FVectorFieldInstance::UpdateTransforms(const FMatrix& LocalToWorld)
 ------------------------------------------------------------------------------*/
 
 
-UVectorField::UVectorField(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorField::UVectorField(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Intensity = 1.0f;
 }
@@ -252,8 +252,8 @@ private:
 	void* VolumeData;
 };
 
-UVectorFieldStatic::UVectorFieldStatic(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldStatic::UVectorFieldStatic(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -440,8 +440,8 @@ private:
 /*------------------------------------------------------------------------------
 	UVectorFieldComponent implementation.
 ------------------------------------------------------------------------------*/
-UVectorFieldComponent::UVectorFieldComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldComponent::UVectorFieldComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -877,8 +877,8 @@ public:
 	}
 };
 
-UVectorFieldAnimated::UVectorFieldAnimated(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVectorFieldAnimated::UVectorFieldAnimated(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	VolumeSizeX = 16;
 	VolumeSizeY = 16;

@@ -6,7 +6,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 #include "BehaviorTree/BTFunctionLibrary.h"
 
-UBTFunctionLibrary::UBTFunctionLibrary(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTFunctionLibrary::UBTFunctionLibrary(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

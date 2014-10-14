@@ -490,7 +490,7 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 #if WITH_EDITOR
 	if( EmptyPolys )
 	{
-		Polys = new( GetOuter(), NAME_None, RF_Transactional )UPolys(FPostConstructInitializeProperties());
+		Polys = new( GetOuter(), NAME_None, RF_Transactional )UPolys(FObjectInitializer());
 	}
 #endif // WITH_EDITOR
 
@@ -501,8 +501,8 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 //
 // Create a new model and allocate all objects needed for it.
 //
-UModel::UModel( const class FPostConstructInitializeProperties& PCIP,ABrush* Owner, bool InRootOutside )
-:	UObject(PCIP)
+UModel::UModel( const class FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside )
+:	UObject(ObjectInitializer)
 ,	Nodes		( this )
 ,	Verts		( this )
 ,	Vectors		( this )

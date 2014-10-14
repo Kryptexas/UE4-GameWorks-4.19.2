@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-UDefaultSizedThumbnailRenderer::UDefaultSizedThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDefaultSizedThumbnailRenderer::UDefaultSizedThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

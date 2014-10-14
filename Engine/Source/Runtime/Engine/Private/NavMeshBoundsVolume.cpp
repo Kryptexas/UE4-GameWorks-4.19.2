@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
 
-ANavMeshBoundsVolume::ANavMeshBoundsVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavMeshBoundsVolume::ANavMeshBoundsVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 

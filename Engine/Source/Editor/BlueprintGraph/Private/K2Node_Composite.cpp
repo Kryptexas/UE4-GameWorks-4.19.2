@@ -7,8 +7,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
-UK2Node_Composite::UK2Node_Composite(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Composite::UK2Node_Composite(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanHaveInputs = true;
 	bCanHaveOutputs = true;

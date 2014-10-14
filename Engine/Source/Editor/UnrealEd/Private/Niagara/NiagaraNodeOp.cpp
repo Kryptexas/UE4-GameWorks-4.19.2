@@ -5,8 +5,8 @@
 #include "GraphEditorSettings.h"
 #include "VectorVM.h"
 
-UNiagaraNodeOp::UNiagaraNodeOp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraNodeOp::UNiagaraNodeOp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

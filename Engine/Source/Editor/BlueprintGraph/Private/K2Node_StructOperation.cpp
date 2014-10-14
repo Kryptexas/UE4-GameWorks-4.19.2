@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UK2Node_StructOperation
 
-UK2Node_StructOperation::UK2Node_StructOperation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_StructOperation::UK2Node_StructOperation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

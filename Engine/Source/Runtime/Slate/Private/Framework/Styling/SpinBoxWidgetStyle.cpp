@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-USpinBoxWidgetStyle::USpinBoxWidgetStyle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpinBoxWidgetStyle::USpinBoxWidgetStyle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

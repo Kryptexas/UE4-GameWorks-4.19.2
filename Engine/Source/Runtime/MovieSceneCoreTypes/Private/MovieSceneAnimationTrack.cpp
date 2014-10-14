@@ -8,8 +8,8 @@
 
 #define LOCTEXT_NAMESPACE "MovieSceneAnimationTrack"
 
-UMovieSceneAnimationTrack::UMovieSceneAnimationTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneAnimationTrack::UMovieSceneAnimationTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_RefPoseBase
 
-UAnimGraphNode_RefPoseBase::UAnimGraphNode_RefPoseBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_RefPoseBase::UAnimGraphNode_RefPoseBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

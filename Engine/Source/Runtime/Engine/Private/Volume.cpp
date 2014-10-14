@@ -13,8 +13,8 @@ AVolume::FOnVolumeShapeChanged AVolume::OnVolumeShapeChanged;
 
 DEFINE_LOG_CATEGORY_STATIC(LogVolume, Log, All);
 
-AVolume::AVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AVolume::AVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->AlwaysLoadOnClient = true;
 	BrushComponent->AlwaysLoadOnServer = true;

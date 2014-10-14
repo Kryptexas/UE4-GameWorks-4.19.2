@@ -1310,7 +1310,7 @@ public:
 		: bContainsDelegates(false),
 		bConstructorDeclared(false),
 		bDefaultConstructorDeclared(false),
-		bPCIPConstructorDeclared(false)
+		bObjectInitializerConstructorDeclared(false)
 	{
 	}
 
@@ -1556,8 +1556,8 @@ public:
 	// Is default constructor declared?
 	bool bDefaultConstructorDeclared;
 
-	// Is PCIP constructor (i.e. a constructor with only one parameter of type FPostConstructInitializeProperties) declared?
-	bool bPCIPConstructorDeclared;
+	// Is ObjectInitializer constructor (i.e. a constructor with only one parameter of type FObjectInitializer) declared?
+	bool bObjectInitializerConstructorDeclared;
 
 	// GENERATED_BODY access specifier to preserve.
 	EAccessSpecifier GeneratedBodyMacroAccessSpecifier;

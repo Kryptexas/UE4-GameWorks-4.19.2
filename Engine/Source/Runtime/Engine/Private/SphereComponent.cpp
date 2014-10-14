@@ -3,8 +3,8 @@
 
 #include "EnginePrivate.h"
 
-USphereComponent::USphereComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USphereComponent::USphereComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SphereRadius = 32.0f;
 	ShapeColor = FColor(255, 0, 0, 255);

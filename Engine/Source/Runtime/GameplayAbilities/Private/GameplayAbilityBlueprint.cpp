@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UGameplayAbilityBlueprint
 
-UGameplayAbilityBlueprint::UGameplayAbilityBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameplayAbilityBlueprint::UGameplayAbilityBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -29,7 +29,7 @@ public:
 	/** Called to deselect everything */
 	static FSimpleMulticastDelegate SelectNoneEvent;
 
-	USelection(const class FPostConstructInitializeProperties& PCIP);
+	USelection(const FObjectInitializer& ObjectInitializer);
 
 	typedef ClassArray::TIterator TClassIterator;
 	typedef ClassArray::TConstIterator TClassConstIterator;

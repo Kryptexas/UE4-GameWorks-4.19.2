@@ -26,8 +26,8 @@ extern bool TrackTexture( const FString& TextureName );
 static const float SPEED_SCALE_ADJUSTMENT = 0.5f;
 
 
-ADebugCameraController::ADebugCameraController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADebugCameraController::ADebugCameraController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SelectedActor = NULL;
 	SelectedComponent = NULL;

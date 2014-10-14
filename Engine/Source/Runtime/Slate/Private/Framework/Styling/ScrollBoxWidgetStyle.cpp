@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UScrollBoxWidgetStyle::UScrollBoxWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UScrollBoxWidgetStyle::UScrollBoxWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

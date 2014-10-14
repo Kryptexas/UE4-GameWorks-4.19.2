@@ -16,8 +16,8 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystemComponent.h"
 
-UParticleModuleSizeBase::UParticleModuleSizeBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSizeBase::UParticleModuleSizeBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -30,8 +30,8 @@ UParticleModuleSizeBase::UParticleModuleSizeBase(const class FPostConstructIniti
 	UParticleModuleSize implementation.
 -----------------------------------------------------------------------------*/
 
-UParticleModuleSize::UParticleModuleSize(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSize::UParticleModuleSize(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = false;
@@ -102,8 +102,8 @@ void UParticleModuleSize::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset,
 /*-----------------------------------------------------------------------------
 	UParticleModuleSize_Seeded implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSize_Seeded::UParticleModuleSize_Seeded(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSize_Seeded::UParticleModuleSize_Seeded(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bSupportsRandomSeed = true;
@@ -138,8 +138,8 @@ void UParticleModuleSize_Seeded::EmitterLoopingNotify(FParticleEmitterInstance* 
 /*-----------------------------------------------------------------------------
 	UParticleModuleSizeMultiplyLife implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSizeMultiplyLife::UParticleModuleSizeMultiplyLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSizeMultiplyLife::UParticleModuleSizeMultiplyLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -337,8 +337,8 @@ void UParticleModuleSizeMultiplyLife::SetToSensibleDefaults(UParticleEmitter* Ow
 /*-----------------------------------------------------------------------------
 	UParticleModuleSizeScale implementation.
 -----------------------------------------------------------------------------*/
-UParticleModuleSizeScale::UParticleModuleSizeScale(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSizeScale::UParticleModuleSizeScale(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;
@@ -429,8 +429,8 @@ void UParticleModuleSizeScale::SetToSensibleDefaults(UParticleEmitter* Owner)
 /*------------------------------------------------------------------------------
 	Scale size by speed module.
 ------------------------------------------------------------------------------*/
-UParticleModuleSizeScaleBySpeed::UParticleModuleSizeScaleBySpeed(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleSizeScaleBySpeed::UParticleModuleSizeScaleBySpeed(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateModule = true;
 	MaxScale.X = 1;

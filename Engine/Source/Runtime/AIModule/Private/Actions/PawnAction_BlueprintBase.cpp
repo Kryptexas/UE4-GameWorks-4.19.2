@@ -11,8 +11,8 @@ namespace
 	}
 }
 
-UPawnAction_BlueprintBase::UPawnAction_BlueprintBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction_BlueprintBase::UPawnAction_BlueprintBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UPawnAction_BlueprintBase::StaticClass();
 	bWantsTick = HasBlueprintFunction(TEXT("ActionTick"), this, StopAtClass);

@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UGridPanel
 
-UGridPanel::UGridPanel(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGridPanel::UGridPanel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

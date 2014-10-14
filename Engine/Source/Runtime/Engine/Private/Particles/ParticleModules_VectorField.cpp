@@ -20,13 +20,13 @@
 /*------------------------------------------------------------------------------
 	Global vector field scale.
 ------------------------------------------------------------------------------*/
-UParticleModuleVectorFieldBase::UParticleModuleVectorFieldBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldBase::UParticleModuleVectorFieldBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UParticleModuleVectorFieldGlobal::UParticleModuleVectorFieldGlobal(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldGlobal::UParticleModuleVectorFieldGlobal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -39,8 +39,8 @@ void UParticleModuleVectorFieldGlobal::CompileModule(FParticleEmitterBuildInfo& 
 /*------------------------------------------------------------------------------
 	Per-particle vector field scale.
 ------------------------------------------------------------------------------*/
-UParticleModuleVectorFieldScale::UParticleModuleVectorFieldScale(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldScale::UParticleModuleVectorFieldScale(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -89,8 +89,8 @@ bool UParticleModuleVectorFieldScale::IsValidForLODLevel(UParticleLODLevel* LODL
 /*------------------------------------------------------------------------------
 	Per-particle vector field scale over life.
 ------------------------------------------------------------------------------*/
-UParticleModuleVectorFieldScaleOverLife::UParticleModuleVectorFieldScaleOverLife(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldScaleOverLife::UParticleModuleVectorFieldScaleOverLife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -139,8 +139,8 @@ bool UParticleModuleVectorFieldScaleOverLife::IsValidForLODLevel(UParticleLODLev
 /*------------------------------------------------------------------------------
 	Local vector fields.
 ------------------------------------------------------------------------------*/
-UParticleModuleVectorFieldLocal::UParticleModuleVectorFieldLocal(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldLocal::UParticleModuleVectorFieldLocal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
 
@@ -165,8 +165,8 @@ void UParticleModuleVectorFieldLocal::CompileModule(FParticleEmitterBuildInfo& E
 /*------------------------------------------------------------------------------
 	Local vector initial rotation.
 ------------------------------------------------------------------------------*/
-UParticleModuleVectorFieldRotation::UParticleModuleVectorFieldRotation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldRotation::UParticleModuleVectorFieldRotation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -179,8 +179,8 @@ void UParticleModuleVectorFieldRotation::CompileModule(FParticleEmitterBuildInfo
 /*------------------------------------------------------------------------------
 	Local vector field rotation rate.
 ------------------------------------------------------------------------------*/
-UParticleModuleVectorFieldRotationRate::UParticleModuleVectorFieldRotationRate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleVectorFieldRotationRate::UParticleModuleVectorFieldRotationRate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

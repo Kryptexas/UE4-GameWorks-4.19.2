@@ -37,7 +37,7 @@ namespace CubemapHelpers
 		// If the source format is 8 bit per channel or less then select a LDR target format.
 		const EPixelFormat TargetPixelFormat = CalculateImageBytes(1, 1, 0, SourcePixelFormat) <= 4 ? PF_B8G8R8A8 : PF_FloatRGBA;
 
-		UTextureRenderTarget2D* RenderTargetLongLat = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+		UTextureRenderTarget2D* RenderTargetLongLat = new UTextureRenderTarget2D(FObjectInitializer());
 		check(RenderTargetLongLat);
 		RenderTargetLongLat->AddToRoot();
 		RenderTargetLongLat->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);

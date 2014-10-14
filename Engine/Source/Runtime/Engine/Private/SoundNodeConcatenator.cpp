@@ -8,8 +8,8 @@
 /*-----------------------------------------------------------------------------
          USoundNodeConcatenator implementation.
 -----------------------------------------------------------------------------*/
-USoundNodeConcatenator::USoundNodeConcatenator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeConcatenator::USoundNodeConcatenator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -13,8 +13,8 @@
 
 #include "NavMeshRenderingHelpers.h"
 
-UNavMeshRenderingComponent::UNavMeshRenderingComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavMeshRenderingComponent::UNavMeshRenderingComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	AlwaysLoadOnClient = false;

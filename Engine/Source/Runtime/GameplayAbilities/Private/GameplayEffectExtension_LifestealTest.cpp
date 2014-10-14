@@ -6,8 +6,8 @@
 #include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 
-UGameplayEffectExtension_LifestealTest::UGameplayEffectExtension_LifestealTest(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayEffectExtension_LifestealTest::UGameplayEffectExtension_LifestealTest(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	HealthRestoreGameplayEffect = NULL;
 }

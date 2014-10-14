@@ -83,8 +83,8 @@ void PTireShader(const void* shaderData, const PxF32 tireFriction,
 
 #endif // WITH_PHYSX
 
-UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Mass = 1500.0f;
 	DragCoefficient = 0.3f;

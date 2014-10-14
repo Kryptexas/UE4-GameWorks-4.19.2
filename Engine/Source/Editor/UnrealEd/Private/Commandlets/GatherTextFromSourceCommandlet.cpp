@@ -9,8 +9,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromSourceCommandlet, Log, All);
 
 #define LOC_DEFINE_REGION
 
-UGatherTextFromSourceCommandlet::UGatherTextFromSourceCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGatherTextFromSourceCommandlet::UGatherTextFromSourceCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

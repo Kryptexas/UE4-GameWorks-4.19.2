@@ -464,7 +464,7 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 		{
 			LoadFlags |= LOAD_SeekFree;
 		}
-		Linker = new ULinkerLoad( FPostConstructInitializeProperties(), Parent, Filename, LoadFlags );
+		Linker = new ULinkerLoad( FObjectInitializer(), Parent, Filename, LoadFlags );
 		// Add to the list of linkers that haven't been finalized yet
 		GObjPendingLoaders.Add(Parent, Linker);
 	}
@@ -593,8 +593,8 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
  * @param	Filename	Name of file on disk to load
  * @param	LoadFlags	Load flags determining behavior
  */
-ULinkerLoad::ULinkerLoad( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
-:	ULinker( PCIP, InParent, InFilename )
+ULinkerLoad::ULinkerLoad( const class FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
+:	ULinker( ObjectInitializer, InParent, InFilename )
 ,	LoadFlags( InLoadFlags )
 ,	bHaveImportsBeenVerified( false )
 #if WITH_EDITOR

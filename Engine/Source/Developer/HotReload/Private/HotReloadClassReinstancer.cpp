@@ -165,7 +165,7 @@ void FHotReloadClassReinstancer::ReconstructClassDefaultObject(UClass* InOldClas
 	new ((void *)OldCDO) UObjectBase(InOldClass, CDOFlags, CDOOuter, CDOName);
 	const bool bShouldInitilizeProperties = false;
 	const bool bCopyTransientsFromClassDefaults = false;
-	(*InOldClass->ClassConstructor)(FPostConstructInitializeProperties(OldCDO, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
+	(*InOldClass->ClassConstructor)(FObjectInitializer(OldCDO, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
 }
 
 void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass* InOldClass)

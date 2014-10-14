@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UScrollBox
 
-UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

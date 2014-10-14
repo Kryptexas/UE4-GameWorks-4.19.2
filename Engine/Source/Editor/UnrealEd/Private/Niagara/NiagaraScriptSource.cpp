@@ -8,8 +8,8 @@
 //////////////////////////////////////////////////////////////////////////
 // NiagaraGraph
 
-UNiagaraGraph::UNiagaraGraph(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraGraph::UNiagaraGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	Schema = UEdGraphSchema_Niagara::StaticClass();
@@ -24,8 +24,8 @@ class UNiagaraScriptSource* UNiagaraGraph::GetSource() const
 //////////////////////////////////////////////////////////////////////////
 // UNiagraScriptSource
 
-UNiagaraScriptSource::UNiagaraScriptSource(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNiagaraScriptSource::UNiagaraScriptSource(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -7,8 +7,8 @@
 #include "Internationalization.h"
 #include "SDecoratedEnumCombo.h"
 
-UHardwareTargetingSettings::UHardwareTargetingSettings(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UHardwareTargetingSettings::UHardwareTargetingSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TargetedHardwareClass(EHardwareClass::Unspecified)
 	, AppliedTargetedHardwareClass(EHardwareClass::Unspecified)
 	, DefaultGraphicsPerformance(EGraphicsPreset::Unspecified)

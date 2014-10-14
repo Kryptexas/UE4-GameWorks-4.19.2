@@ -3,8 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
-UTextBlockWidgetStyle::UTextBlockWidgetStyle( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UTextBlockWidgetStyle::UTextBlockWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 	
 }

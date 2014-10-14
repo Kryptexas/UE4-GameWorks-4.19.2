@@ -6,8 +6,8 @@
 #define LOCTEXT_NAMESPACE "GameLiveStreaming"
 
 
-UGameLiveStreamingFunctionLibrary::UGameLiveStreamingFunctionLibrary( const FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UGameLiveStreamingFunctionLibrary::UGameLiveStreamingFunctionLibrary( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 }
 

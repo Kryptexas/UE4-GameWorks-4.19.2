@@ -405,8 +405,8 @@ public:
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
 };
 
-ULandscapeGizmoRenderComponent::ULandscapeGizmoRenderComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeGizmoRenderComponent::ULandscapeGizmoRenderComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHiddenInGame = true;
 	AlwaysLoadOnClient = false;
@@ -435,11 +435,11 @@ FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform& Lo
 	}
 }
 
-ALandscapeGizmoActor::ALandscapeGizmoActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALandscapeGizmoActor::ALandscapeGizmoActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization
@@ -466,7 +466,7 @@ ALandscapeGizmoActor::ALandscapeGizmoActor(const class FPostConstructInitializeP
 	}
 #endif
 
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;
 	RootComponent->Mobility = EComponentMobility::Static;
 
@@ -506,8 +506,8 @@ void ALandscapeGizmoActor::Duplicate(ALandscapeGizmoActor* Gizmo)
 }
 #endif	//WITH_EDITOR
 
-ALandscapeGizmoActiveActor::ALandscapeGizmoActiveActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+ALandscapeGizmoActiveActor::ALandscapeGizmoActiveActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite"))
 	)
 {
@@ -535,7 +535,7 @@ ALandscapeGizmoActiveActor::ALandscapeGizmoActiveActor(const class FPostConstruc
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	TSubobjectPtr<ULandscapeGizmoRenderComponent> LandscapeGizmoRenderComponent = PCIP.CreateDefaultSubobject<ULandscapeGizmoRenderComponent>(this, TEXT("GizmoRendererComponent0"));
+	TSubobjectPtr<ULandscapeGizmoRenderComponent> LandscapeGizmoRenderComponent = ObjectInitializer.CreateDefaultSubobject<ULandscapeGizmoRenderComponent>(this, TEXT("GizmoRendererComponent0"));
 	LandscapeGizmoRenderComponent->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
 	RootComponent = LandscapeGizmoRenderComponent;

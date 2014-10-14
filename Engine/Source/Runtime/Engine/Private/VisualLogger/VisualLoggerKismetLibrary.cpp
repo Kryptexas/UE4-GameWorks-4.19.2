@@ -5,8 +5,8 @@
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerKismetLibrary.h"
 
-UVisualLoggerKismetLibrary::UVisualLoggerKismetLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UVisualLoggerKismetLibrary::UVisualLoggerKismetLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

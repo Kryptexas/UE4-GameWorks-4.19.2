@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // UAnimNotifyState
 
-UAnimNotifyState::UAnimNotifyState(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimNotifyState::UAnimNotifyState(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 #if WITH_EDITORONLY_DATA

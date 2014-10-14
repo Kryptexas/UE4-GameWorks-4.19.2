@@ -171,16 +171,16 @@ void Particle_ModifyVectorDistribution(UDistributionVector* pkDistribution, FVec
 /*-----------------------------------------------------------------------------
 	AEmitter implementation.
 -----------------------------------------------------------------------------*/
-AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AEmitter::AEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	ParticleSystemComponent = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ParticleSystemComponent0"));
+	ParticleSystemComponent = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ParticleSystemComponent0"));
 	ParticleSystemComponent->SecondsBeforeInactive = 1;
 	RootComponent = ParticleSystemComponent;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -471,8 +471,8 @@ bool AEmitter::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 /*-----------------------------------------------------------------------------
 	UParticleLODLevel implementation.
 -----------------------------------------------------------------------------*/
-UParticleLODLevel::UParticleLODLevel(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleLODLevel::UParticleLODLevel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnabled = true;
 	ConvertedModules = true;
@@ -948,8 +948,8 @@ bool UParticleLODLevel::IsModuleEditable(UParticleModule* InModule)
 /*-----------------------------------------------------------------------------
 	UParticleEmitter implementation.
 -----------------------------------------------------------------------------*/
-UParticleEmitter::UParticleEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP),
+UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer),
 	QualityLevelSpawnRateScale(1.0f)
 {
 	// Structure to hold one-time initialization
@@ -1780,8 +1780,8 @@ void UParticleEmitter::Build()
 /*-----------------------------------------------------------------------------
 	UParticleSpriteEmitter implementation.
 -----------------------------------------------------------------------------*/
-UParticleSpriteEmitter::UParticleSpriteEmitter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSpriteEmitter::UParticleSpriteEmitter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -1948,8 +1948,8 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 /*-----------------------------------------------------------------------------
 	UParticleSystem implementation.
 -----------------------------------------------------------------------------*/
-UParticleSystem::UParticleSystem(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	ThumbnailDistance = 200.0;
@@ -2887,8 +2887,8 @@ bool UParticleSystem::HasGPUEmitter() const
 	return false;
 }
 
-UParticleSystemComponent::UParticleSystemComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
@@ -5905,8 +5905,8 @@ int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
 	return INDEX_NONE;
 }
 
-UParticleSystemReplay::UParticleSystemReplay(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemReplay::UParticleSystemReplay(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5995,8 +5995,8 @@ FArchive& operator<<( FArchive& Ar, FParticleEmitterReplayFrame& Obj )
 	return Ar;
 }
 
-AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite"))
 		.DoNotCreateDefaultSubobject(TEXT("ArrowComponent0"))
 	)

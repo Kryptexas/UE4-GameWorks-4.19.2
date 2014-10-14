@@ -227,8 +227,8 @@ void FFractureMaterial::FillNxFractureMaterialDesc(NxFractureMaterialDesc& PFrac
 // UDestructibleFractureSettings
 //////////////////////////////////////////////////////////////////////////
 
-UDestructibleFractureSettings::UDestructibleFractureSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDestructibleFractureSettings::UDestructibleFractureSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CellSiteCount = 25;
 	OriginalSubmeshCount = 0;

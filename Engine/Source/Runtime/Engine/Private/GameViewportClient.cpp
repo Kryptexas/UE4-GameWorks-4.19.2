@@ -79,8 +79,8 @@ public:
 	}
 };
 
-UGameViewportClient::UGameViewportClient(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, EngineShowFlags(ESFIM_Game)
 	, CurrentBufferVisualizationMode(NAME_None)
 	, HighResScreenshotDialog(NULL)

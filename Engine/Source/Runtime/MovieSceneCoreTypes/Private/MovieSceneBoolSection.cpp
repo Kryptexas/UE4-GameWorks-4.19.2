@@ -4,8 +4,8 @@
 #include "MovieSceneBoolSection.h"
 
 
-UMovieSceneBoolSection::UMovieSceneBoolSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneBoolSection::UMovieSceneBoolSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

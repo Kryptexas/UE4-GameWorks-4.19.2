@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UPhysicsSettings::UPhysicsSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, DefaultGravityZ(-980.f)
 	, DefaultTerminalVelocity(4000.f)
 	, DefaultFluidFriction(0.3f)

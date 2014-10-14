@@ -181,8 +181,8 @@ bool UNavigationSystem::bUpdateNavOctreeOnComponentChange = true;
 // life cycle stuff                                                                
 //----------------------------------------------------------------------//
 
-UNavigationSystem::UNavigationSystem(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bWholeWorldNavigable(false)
 	, bAddPlayersToGenerationSeeds(true)
 	, bSkipAgentHeightCheckWhenPickingNavData(false)

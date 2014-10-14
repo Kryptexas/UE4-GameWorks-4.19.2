@@ -6,8 +6,8 @@
 /*-----------------------------------------------------------------------------
  MatineeOptions
  -----------------------------------------------------------------------------*/
-UMatineeOptions::UMatineeOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMatineeOptions::UMatineeOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -5,8 +5,8 @@
 #include "CubemapUnwrapUtils.h"			// FMipLevelBatchedElementParameters
 #include "NormalMapPreview.h"
 
-UTextureThumbnailRenderer::UTextureThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureThumbnailRenderer::UTextureThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -4,7 +4,7 @@
 #include "BlueprintNodeHelpers.h"
 #include "BehaviorTree/Tasks/BTTask_BlueprintBase.h"
 
-UBTTask_BlueprintBase::UBTTask_BlueprintBase(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTTask_BlueprintBase::UBTTask_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTTask_BlueprintBase::StaticClass();
 	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);

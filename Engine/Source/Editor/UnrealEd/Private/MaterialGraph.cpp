@@ -14,8 +14,8 @@
 
 #define LOCTEXT_NAMESPACE "MaterialGraph"
 
-UMaterialGraph::UMaterialGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraph::UMaterialGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

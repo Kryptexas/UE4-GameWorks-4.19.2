@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UEditableText
 
-UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;

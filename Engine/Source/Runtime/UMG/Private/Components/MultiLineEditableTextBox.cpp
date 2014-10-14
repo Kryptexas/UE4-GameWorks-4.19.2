@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UMultiLineEditableTextBox
 
-UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ForegroundColor = FLinearColor::Black;
 	BackgroundColor = FLinearColor::White;

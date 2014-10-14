@@ -69,8 +69,8 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 /////////////////////////////////////////////////////
 // UEdGraphPin
 
-UEdGraphPin::UEdGraphPin(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEdGraphPin::UEdGraphPin(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	bHidden = false;

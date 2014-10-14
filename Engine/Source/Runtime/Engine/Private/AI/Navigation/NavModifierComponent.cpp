@@ -5,7 +5,7 @@
 #include "AI/Navigation/NavModifierComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 
-UNavModifierComponent::UNavModifierComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavModifierComponent::UNavModifierComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	AreaClass = UNavArea_Null::StaticClass();
 }

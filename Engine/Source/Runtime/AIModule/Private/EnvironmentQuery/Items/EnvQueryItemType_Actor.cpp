@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Actor.h"
 
-UEnvQueryItemType_Actor::UEnvQueryItemType_Actor(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType_Actor::UEnvQueryItemType_Actor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FWeakObjectPtr);
 }

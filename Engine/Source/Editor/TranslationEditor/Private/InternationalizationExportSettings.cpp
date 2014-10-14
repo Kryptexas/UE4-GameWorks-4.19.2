@@ -3,8 +3,8 @@
 
 #include "InternationalizationExportSettings.h"
 
-UInternationalizationExportSettings::UInternationalizationExportSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInternationalizationExportSettings::UInternationalizationExportSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

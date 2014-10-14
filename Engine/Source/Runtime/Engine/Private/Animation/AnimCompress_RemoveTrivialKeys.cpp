@@ -10,8 +10,8 @@
 #include "AnimEncoding.h"
 #include "AnimationCompression.h"
 
-UAnimCompress_RemoveTrivialKeys::UAnimCompress_RemoveTrivialKeys(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimCompress_RemoveTrivialKeys::UAnimCompress_RemoveTrivialKeys(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Description = TEXT("Remove Trivial Keys");
 	MaxPosDiff = 0.0001f;

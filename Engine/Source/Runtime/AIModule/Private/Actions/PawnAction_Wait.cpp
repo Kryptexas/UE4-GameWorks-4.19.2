@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Wait.h"
 
-UPawnAction_Wait::UPawnAction_Wait(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction_Wait::UPawnAction_Wait(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, TimeToWait(0.f)
 	, FinishTimeStamp(0.f)
 {

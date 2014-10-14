@@ -98,7 +98,7 @@ void FCrowdAvoidanceSamplingPattern::AddSampleWithMirror(float AngleInDegrees, f
 	AddSample(-AngleInDegrees, NormalizedRadius);
 }
 
-UCrowdManager::UCrowdManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	MyNavData = NULL;
 #if WITH_RECAST

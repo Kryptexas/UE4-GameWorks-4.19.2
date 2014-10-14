@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_StateMachine
 
-UAnimGraphNode_StateMachine::UAnimGraphNode_StateMachine(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_StateMachine::UAnimGraphNode_StateMachine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
 }

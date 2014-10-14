@@ -54,8 +54,8 @@ FTemplateConfigValue::FTemplateConfigValue(const FString& InFile, const FString&
 
 
 
-UTemplateProjectDefs::UTemplateProjectDefs(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTemplateProjectDefs::UTemplateProjectDefs(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -4,8 +4,8 @@
 #include "ApexDestructibleAssetImport.h"
 #include "Engine/DestructibleMesh.h"
 
-UDestructibleChunkParamsProxy::UDestructibleChunkParamsProxy(const class FPostConstructInitializeProperties& PCIP)
-	:Super(PCIP)
+UDestructibleChunkParamsProxy::UDestructibleChunkParamsProxy(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
 {
 
 }

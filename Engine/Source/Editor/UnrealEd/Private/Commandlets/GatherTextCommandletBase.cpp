@@ -15,8 +15,8 @@ TSharedPtr<FConflictReportInfo> FConflictReportInfo::StaticConflictInstance;
 //////////////////////////////////////////////////////////////////////////
 //UGatherTextCommandletBase
 
-UGatherTextCommandletBase::UGatherTextCommandletBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UGatherTextCommandletBase::UGatherTextCommandletBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

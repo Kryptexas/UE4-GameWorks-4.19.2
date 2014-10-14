@@ -8,8 +8,8 @@
 
 
 
-UEditorAnimCompositeSegment::UEditorAnimCompositeSegment(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorAnimCompositeSegment::UEditorAnimCompositeSegment(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	AnimSegmentIndex = 0;
 }

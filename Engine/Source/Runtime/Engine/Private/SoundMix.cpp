@@ -12,8 +12,8 @@
 	USoundMix implementation.
 -----------------------------------------------------------------------------*/
 
-USoundMix::USoundMix(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundMix::USoundMix(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bApplyEQ = false;
 	InitialDelay = 0.0f;

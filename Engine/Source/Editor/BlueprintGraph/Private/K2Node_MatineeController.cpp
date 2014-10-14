@@ -10,8 +10,8 @@
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
 
-UK2Node_MatineeController::UK2Node_MatineeController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MatineeController::UK2Node_MatineeController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FMatineeDelegates::Get().OnEventKeyframeAdded.AddUObject(this, &UK2Node_MatineeController::OnEventKeyframeAdded);
 	FMatineeDelegates::Get().OnEventKeyframeRenamed.AddUObject(this, &UK2Node_MatineeController::OnEventKeyframeRenamed);

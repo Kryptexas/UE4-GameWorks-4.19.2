@@ -17,8 +17,8 @@ FEdGraphPinType FStructVariableDescription::ToPinType() const
 	return FEdGraphPinType(Category, SubCategory, SubCategoryObject.Get(), bIsArray, false);
 }
 
-UUserDefinedStructEditorData::UUserDefinedStructEditorData(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UUserDefinedStructEditorData::UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 

@@ -7,10 +7,10 @@
 #include "EnginePrivate.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 
-ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	MeshComp = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("CamMesh0"));
+	MeshComp = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("CamMesh0"));
 	MeshComp->BodyInstance.bEnableCollision_DEPRECATED = false;
 
 	MeshComp->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -22,15 +22,15 @@ ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCI
 }
 // -----------------------------------------------
 
-ASceneCapture2D::ASceneCapture2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASceneCapture2D::ASceneCapture2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DrawFrustum = PCIP.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
+	DrawFrustum = ObjectInitializer.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
 	DrawFrustum->AttachParent = MeshComp;
 
-	CaptureComponent2D = PCIP.CreateDefaultSubobject<USceneCaptureComponent2D>(this, TEXT("NewSceneCaptureComponent2D"));
+	CaptureComponent2D = ObjectInitializer.CreateDefaultSubobject<USceneCaptureComponent2D>(this, TEXT("NewSceneCaptureComponent2D"));
 	CaptureComponent2D->AttachParent = MeshComp;
 }
 
@@ -78,15 +78,15 @@ void ASceneCapture2D::PostActorCreated()
 }
 // -----------------------------------------------
 
-ASceneCaptureCube::ASceneCaptureCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASceneCaptureCube::ASceneCaptureCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DrawFrustum = PCIP.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
+	DrawFrustum = ObjectInitializer.CreateDefaultSubobject<UDrawFrustumComponent>(this, TEXT("DrawFrust0"));
 	DrawFrustum->AlwaysLoadOnClient = false;
 	DrawFrustum->AlwaysLoadOnServer = false;
 	DrawFrustum->AttachParent = MeshComp;
 
-	CaptureComponentCube = PCIP.CreateDefaultSubobject<USceneCaptureComponentCube>(this, TEXT("NewSceneCaptureComponentCube"));
+	CaptureComponentCube = ObjectInitializer.CreateDefaultSubobject<USceneCaptureComponentCube>(this, TEXT("NewSceneCaptureComponentCube"));
 	CaptureComponentCube->AttachParent = MeshComp;
 }
 
@@ -143,8 +143,8 @@ void ASceneCaptureCube::PostEditMove(bool bFinished)
 }
 #endif
 // -----------------------------------------------
-USceneCaptureComponent::USceneCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCaptureEveryFrame = true;
 	MaxViewDistanceOverride = -1;
@@ -175,8 +175,8 @@ void USceneCaptureComponent::HideActorComponents(AActor* InActor)
 // -----------------------------------------------
 
 
-USceneCaptureComponent2D::USceneCaptureComponent2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FOVAngle = 90.0f;
 	bAutoActivate = true;
@@ -239,8 +239,8 @@ void USceneCaptureComponent2D::PostEditChangeProperty(FPropertyChangedEvent& Pro
 // -----------------------------------------------
 
 
-USceneCaptureComponentCube::USceneCaptureComponentCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USceneCaptureComponentCube::USceneCaptureComponentCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;

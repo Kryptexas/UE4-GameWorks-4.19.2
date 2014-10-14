@@ -4,8 +4,8 @@
 #include "BlueprintUtilities.h"
 #include "Engine/InputAxisDelegateBinding.h"
 
-UInputAxisDelegateBinding::UInputAxisDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInputAxisDelegateBinding::UInputAxisDelegateBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

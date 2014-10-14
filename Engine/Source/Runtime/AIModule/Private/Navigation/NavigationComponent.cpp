@@ -9,8 +9,8 @@
 // Life cycle                                                        
 //----------------------------------------------------------------------//
 
-UNavigationComponent::UNavigationComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UNavigationComponent::UNavigationComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bIsPathPartial(false)
 	, AsynPathQueryID(INVALID_NAVQUERYID)
 {

@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 
-ULightmassOptionsObject::ULightmassOptionsObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightmassOptionsObject::ULightmassOptionsObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

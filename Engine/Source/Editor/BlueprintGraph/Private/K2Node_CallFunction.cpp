@@ -396,8 +396,8 @@ bool FDynamicOutputHelper::CanConformPinType(const UK2Node_CallFunction* FuncNod
  *  UK2Node_CallFunction
  ******************************************************************************/
 
-UK2Node_CallFunction::UK2Node_CallFunction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallFunction::UK2Node_CallFunction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

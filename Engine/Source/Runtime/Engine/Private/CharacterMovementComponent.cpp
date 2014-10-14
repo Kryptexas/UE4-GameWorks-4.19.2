@@ -151,8 +151,8 @@ FString FCharacterMovementComponentPreClothTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[UCharacterMovementComponent::PreClothTick]");
 }
 
-UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PreClothComponentTick.bCanEverTick = true;
 	PreClothComponentTick.bStartWithTickEnabled = false;

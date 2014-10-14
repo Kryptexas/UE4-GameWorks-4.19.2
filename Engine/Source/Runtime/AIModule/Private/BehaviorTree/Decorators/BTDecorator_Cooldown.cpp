@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_Cooldown.h"
 
-UBTDecorator_Cooldown::UBTDecorator_Cooldown(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_Cooldown::UBTDecorator_Cooldown(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Cooldown";
 	CoolDownTime = 5.0f;

@@ -8,8 +8,8 @@
 	UStructProperty.
 -----------------------------------------------------------------------------*/
 
-UStructProperty::UStructProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct )
-	:	UProperty( PCIP, EC_CppProperty, InOffset, InFlags )
+UStructProperty::UStructProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct )
+	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	,	Struct( InStruct )
 {
 	ElementSize = Struct->PropertiesSize;

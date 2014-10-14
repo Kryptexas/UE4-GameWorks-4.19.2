@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-ASpotLight::ASpotLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<USpotLightComponent>(TEXT("LightComponent0")))
+ASpotLight::ASpotLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USpotLightComponent>(TEXT("LightComponent0")))
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -26,7 +26,7 @@ ASpotLight::ASpotLight(const class FPostConstructInitializeProperties& PCIP)
 	RootComponent = SpotLightComponent;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = GetLightColor();

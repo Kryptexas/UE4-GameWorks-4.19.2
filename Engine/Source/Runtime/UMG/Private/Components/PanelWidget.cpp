@@ -12,8 +12,8 @@
 /////////////////////////////////////////////////////
 // UPanelWidget
 
-UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPanelWidget::UPanelWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bCanHaveMultipleChildren(true)
 {
 }

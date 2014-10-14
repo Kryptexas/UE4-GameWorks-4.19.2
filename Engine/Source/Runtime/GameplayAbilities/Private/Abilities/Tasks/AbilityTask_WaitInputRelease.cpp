@@ -3,8 +3,8 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GameplayPrediction.h"
 
-UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	StartTime = 0.f;
 	RegisteredCallback= false;

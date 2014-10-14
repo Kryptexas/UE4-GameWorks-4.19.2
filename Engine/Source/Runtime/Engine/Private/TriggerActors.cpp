@@ -13,8 +13,8 @@ namespace
 {
 	static const FColor TriggerBaseColor(100, 255, 100, 255);
 }
-ATriggerCapsule::ATriggerCapsule(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UCapsuleComponent>(TEXT("CollisionComp")))
+ATriggerCapsule::ATriggerCapsule(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UCapsuleComponent>(TEXT("CollisionComp")))
 {
 	UCapsuleComponent* CapsuleCollisionComponent = CastChecked<UCapsuleComponent>(CollisionComponent);
 	CapsuleCollisionComponent->ShapeColor = TriggerBaseColor;
@@ -81,8 +81,8 @@ void ATriggerCapsule::EditorApplyScale(const FVector& DeltaScale, const FVector*
 }
 #endif	//WITH_EDITOR
 
-ATriggerBox::ATriggerBox(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UBoxComponent>(TEXT("CollisionComp")))
+ATriggerBox::ATriggerBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UBoxComponent>(TEXT("CollisionComp")))
 {
 	UBoxComponent* BoxCollisionComponent = CastChecked<UBoxComponent>(CollisionComponent);
 
@@ -125,8 +125,8 @@ void ATriggerBox::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 }
 #endif	//WITH_EDITOR
 
-ATriggerSphere::ATriggerSphere(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<USphereComponent>(TEXT("CollisionComp")))
+ATriggerSphere::ATriggerSphere(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USphereComponent>(TEXT("CollisionComp")))
 {
 	USphereComponent* SphereCollisionComponent = CastChecked<USphereComponent>(CollisionComponent);
 

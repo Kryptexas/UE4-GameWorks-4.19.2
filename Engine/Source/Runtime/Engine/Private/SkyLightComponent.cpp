@@ -86,8 +86,8 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 {
 }
 
-USkyLightComponent::USkyLightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkyLightComponent::USkyLightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())
@@ -471,10 +471,10 @@ void USkyLightComponent::RecaptureSky()
 	SetCaptureIsDirty();
 }
 
-ASkyLight::ASkyLight(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ASkyLight::ASkyLight(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	LightComponent = PCIP.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
+	LightComponent = ObjectInitializer.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
 	RootComponent = LightComponent;
 
 #if WITH_EDITORONLY_DATA

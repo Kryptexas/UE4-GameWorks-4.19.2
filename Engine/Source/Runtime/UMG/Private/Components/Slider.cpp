@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // USlider
 
-USlider::USlider(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USlider::USlider(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Orientation = EOrientation::Orient_Horizontal;
 	SliderBarColor = FLinearColor::White;

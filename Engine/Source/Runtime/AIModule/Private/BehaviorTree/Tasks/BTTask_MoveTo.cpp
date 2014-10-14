@@ -7,8 +7,8 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
 
-UBTTask_MoveTo::UBTTask_MoveTo(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, AcceptableRadius(50.f)
 	, bAllowStrafe(false)
 {

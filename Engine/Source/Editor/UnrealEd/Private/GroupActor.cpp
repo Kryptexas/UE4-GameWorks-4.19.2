@@ -8,12 +8,12 @@ const FLinearColor BOXCOLOR_LOCKEDGROUPS( 0.0f, 1.0f, 0.0f );
 const FLinearColor BOXCOLOR_UNLOCKEDGROUPS( 1.0f, 0.0f, 0.0f );
 
 
-AGroupActor::AGroupActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGroupActor::AGroupActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bLocked = true;
 
-	TSubobjectPtr<USceneComponent> GroupComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("GroupComponent"));
+	TSubobjectPtr<USceneComponent> GroupComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("GroupComponent"));
 	RootComponent = GroupComponent;
 }
 

@@ -4,8 +4,8 @@
 
 #include "IOSRuntimeSettings.h"
 
-UIOSRuntimeSettings::UIOSRuntimeSettings(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bEnableGameCenterSupport = true;
 	bSupportsPortraitOrientation = true;

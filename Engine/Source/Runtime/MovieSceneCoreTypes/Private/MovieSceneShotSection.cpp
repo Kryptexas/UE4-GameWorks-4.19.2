@@ -3,8 +3,8 @@
 #include "MovieSceneCoreTypesPCH.h"
 #include "MovieSceneShotSection.h"
 
-UMovieSceneShotSection::UMovieSceneShotSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneShotSection::UMovieSceneShotSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

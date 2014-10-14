@@ -2341,7 +2341,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 
 		// Copy the current builder brush into a temp model.
 		// We keep no reference to this, so it will be GC'd at some point.
-		UModel* TempModel = new UModel(FPostConstructInitializeProperties(), NULL, 1);
+		UModel* TempModel = new UModel(FObjectInitializer(), NULL, 1);
 		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
 
 		// Now transform each poly into local space for the selected static mesh.

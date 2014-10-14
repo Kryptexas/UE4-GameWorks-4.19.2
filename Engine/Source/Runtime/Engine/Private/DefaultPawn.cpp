@@ -10,8 +10,8 @@ FName ADefaultPawn::CollisionComponentName(TEXT("CollisionComponent0"));
 FName ADefaultPawn::MeshComponentName(TEXT("MeshComponent0"));
 
 
-ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADefaultPawn::ADefaultPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanBeDamaged = true;
 
@@ -22,7 +22,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 	BaseEyeHeight = 0.0f;
 	bCollideWhenPlacing = false;
 
-	CollisionComponent = PCIP.CreateDefaultSubobject<USphereComponent>(this, ADefaultPawn::CollisionComponentName);
+	CollisionComponent = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, ADefaultPawn::CollisionComponentName);
 	CollisionComponent->InitSphereRadius(35.0f);
 	CollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 
@@ -35,7 +35,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 
 	RootComponent = CollisionComponent;
 
-	MovementComponent = PCIP.CreateDefaultSubobject<UFloatingPawnMovement>(this, ADefaultPawn::MovementComponentName);
+	MovementComponent = ObjectInitializer.CreateDefaultSubobject<UFloatingPawnMovement>(this, ADefaultPawn::MovementComponentName);
 	MovementComponent->UpdatedComponent = CollisionComponent;
 
 	// Structure to hold one-time initialization
@@ -48,7 +48,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 
 	static FConstructorStatics ConstructorStatics;
 
-	MeshComponent = PCIP.CreateOptionalDefaultSubobject<UStaticMeshComponent>(this, ADefaultPawn::MeshComponentName);
+	MeshComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UStaticMeshComponent>(this, ADefaultPawn::MeshComponentName);
 	if (MeshComponent)
 	{
 		MeshComponent->SetStaticMesh(ConstructorStatics.SphereMesh.Object);

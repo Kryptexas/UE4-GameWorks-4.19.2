@@ -18,8 +18,8 @@
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
 
-UTexture2D::UTexture2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTexture2D::UTexture2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHasCancelationPending = false;
 	StreamingIndex = -1;

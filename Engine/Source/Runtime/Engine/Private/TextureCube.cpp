@@ -8,8 +8,8 @@
 #include "RenderUtils.h"
 #include "DDSLoader.h"
 
-UTextureCube::UTextureCube(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextureCube::UTextureCube(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SRGB = true;
 }

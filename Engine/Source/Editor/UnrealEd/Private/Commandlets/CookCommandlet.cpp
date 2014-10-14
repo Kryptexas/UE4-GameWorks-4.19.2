@@ -26,8 +26,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
-UCookerSettings::UCookerSettings(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	DefaultPVRTCQuality = 0;
 }
@@ -50,8 +50,8 @@ static FString GetPackageFilename( UPackage* Package )
 /* UCookCommandlet structors
  *****************************************************************************/
 
-UCookCommandlet::UCookCommandlet( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UCookCommandlet::UCookCommandlet( const class FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 {
 
 	LogToConsole = false;

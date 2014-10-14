@@ -4,7 +4,7 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 
-UEnvQueryItemType::UEnvQueryItemType(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType::UEnvQueryItemType(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	// register in known types 
 	if (HasAnyFlags(RF_ClassDefaultObject) && !GetClass()->HasAnyClassFlags(CLASS_Abstract))

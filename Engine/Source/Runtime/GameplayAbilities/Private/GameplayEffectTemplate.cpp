@@ -3,8 +3,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectTemplate.h"
 
-UGameplayEffectTemplate::UGameplayEffectTemplate(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayEffectTemplate::UGameplayEffectTemplate(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	
 }

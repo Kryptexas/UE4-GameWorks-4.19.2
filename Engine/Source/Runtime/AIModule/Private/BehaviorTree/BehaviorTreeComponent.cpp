@@ -13,7 +13,7 @@
 // UBehaviorTreeComponent
 //----------------------------------------------------------------------//
 
-UBehaviorTreeComponent::UBehaviorTreeComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ActiveInstanceIdx = 0;
 	bLoopExecution = false;

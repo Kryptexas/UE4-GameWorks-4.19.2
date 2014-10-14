@@ -3,8 +3,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectStackingExtension.h"
 
-UGameplayEffectStackingExtension::UGameplayEffectStackingExtension(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayEffectStackingExtension::UGameplayEffectStackingExtension(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	
 }

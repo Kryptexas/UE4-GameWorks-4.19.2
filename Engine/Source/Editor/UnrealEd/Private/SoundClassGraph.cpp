@@ -6,8 +6,8 @@
 #include "UnrealEd.h"
 #include "GraphEditor.h"
 
-USoundClassGraph::USoundClassGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundClassGraph::USoundClassGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, RootSoundClass(NULL)
 {
 }

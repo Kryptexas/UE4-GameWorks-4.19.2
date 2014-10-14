@@ -9,8 +9,8 @@
 /** A mapping of package name to generated script SHA keys */
 TMap<FString, TArray<uint8> > ULinkerSave::PackagesToScriptSHAMap;
 
-ULinkerSave::ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned )
-:	ULinker(PCIP, InParent, InFilename )
+ULinkerSave::ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage* InParent, const TCHAR* InFilename, bool bForceByteSwapping, bool bInSaveUnversioned )
+:	ULinker(ObjectInitializer, InParent, InFilename )
 ,	Saver( NULL )
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));
@@ -45,8 +45,8 @@ ULinkerSave::ULinkerSave( const class FPostConstructInitializeProperties& PCIP, 
 	}
 }
 
-ULinkerSave::ULinkerSave(const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned )
-:	ULinker( PCIP, InParent,TEXT("$$Memory$$") )
+ULinkerSave::ULinkerSave(const FObjectInitializer& ObjectInitializer, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned )
+:	ULinker( ObjectInitializer, InParent,TEXT("$$Memory$$") )
 ,	Saver( NULL )
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));

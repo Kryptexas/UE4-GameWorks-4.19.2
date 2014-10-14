@@ -547,7 +547,7 @@ void FClassBrowseHelper::UpdateAvailableNodeClasses()
 
 //////////////////////////////////////////////////////////////////////////
 
-UBehaviorTreeEditorTypes::UBehaviorTreeEditorTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBehaviorTreeEditorTypes::UBehaviorTreeEditorTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

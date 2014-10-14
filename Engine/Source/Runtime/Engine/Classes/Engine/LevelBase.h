@@ -19,15 +19,15 @@ class ULevelBase : public UObject
 	TTransArray<AActor*> Actors;
 
 	// Constructors.
-	ULevelBase( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL );
+	ULevelBase( const FObjectInitializer& ObjectInitializer,const FURL& InURL );
 
 	// Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
-	ULevelBase(const class FPostConstructInitializeProperties& PCIP)
-		:	UObject(PCIP)
+	ULevelBase(const FObjectInitializer& ObjectInitializer)
+		:	UObject(ObjectInitializer)
 		,Actors( this )
 	{}
 };

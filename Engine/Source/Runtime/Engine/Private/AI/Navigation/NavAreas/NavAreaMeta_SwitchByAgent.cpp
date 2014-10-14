@@ -4,7 +4,7 @@
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta_SwitchByAgent.h"
 
-UNavAreaMeta_SwitchByAgent::UNavAreaMeta_SwitchByAgent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavAreaMeta_SwitchByAgent::UNavAreaMeta_SwitchByAgent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Agent0Area = UNavArea_Default::StaticClass();
 	Agent1Area = UNavArea_Default::StaticClass();

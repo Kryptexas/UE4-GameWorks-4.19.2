@@ -3,8 +3,8 @@
 
 //////////////////////////////////////////////////////////////////////////
 
-UScriptComponent::UScriptComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScriptComponent::UScriptComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = false;

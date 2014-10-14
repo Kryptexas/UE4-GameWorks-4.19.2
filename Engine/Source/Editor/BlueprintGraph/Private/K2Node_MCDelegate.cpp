@@ -12,8 +12,8 @@ FString FK2Node_BaseMCDelegateHelper::DelegatePinName(TEXT("Delegate"));
 
 /////// UK2Node_BaseMCDelegate ///////////
 
-UK2Node_BaseMCDelegate::UK2Node_BaseMCDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_BaseMCDelegate::UK2Node_BaseMCDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -212,8 +212,8 @@ void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FS
 
 /////// UK2Node_AddDelegate ///////////
 
-UK2Node_AddDelegate::UK2Node_AddDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_AddDelegate::UK2Node_AddDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -256,8 +256,8 @@ void UK2Node_AddDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FStri
 
 /////// UK2Node_ClearDelegate ///////////
 
-UK2Node_ClearDelegate::UK2Node_ClearDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_ClearDelegate::UK2Node_ClearDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -280,8 +280,8 @@ FNodeHandlingFunctor* UK2Node_ClearDelegate::CreateNodeHandler(FKismetCompilerCo
 
 /////// UK2Node_RemoveDelegate ///////////
 
-UK2Node_RemoveDelegate::UK2Node_RemoveDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_RemoveDelegate::UK2Node_RemoveDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -317,8 +317,8 @@ FNodeHandlingFunctor* UK2Node_RemoveDelegate::CreateNodeHandler(FKismetCompilerC
 
 /////// UK2Node_CallDelegate ///////////
 
-UK2Node_CallDelegate::UK2Node_CallDelegate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_CallDelegate::UK2Node_CallDelegate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -3,8 +3,8 @@
 
 #include "EnginePrivate.h"
 
-UBoxComponent::UBoxComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBoxComponent::UBoxComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BoxExtent = FVector(32.0f, 32.0f, 32.0f);
 

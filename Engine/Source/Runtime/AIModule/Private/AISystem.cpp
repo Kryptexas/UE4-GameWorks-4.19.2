@@ -10,7 +10,7 @@
 #include "AISystem.h"
 
 
-UAISystem::UAISystem(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{

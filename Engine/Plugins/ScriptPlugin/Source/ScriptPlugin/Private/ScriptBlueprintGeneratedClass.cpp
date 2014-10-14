@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UScriptBlueprintGeneratedClass
 
-UScriptBlueprintGeneratedClass::UScriptBlueprintGeneratedClass(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UScriptBlueprintGeneratedClass::UScriptBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Decorators/BTDecorator_ConditionalLoop.h"
 
-UBTDecorator_ConditionalLoop::UBTDecorator_ConditionalLoop(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_ConditionalLoop::UBTDecorator_ConditionalLoop(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Conditional Loop";
 	bNotifyDeactivation = true;

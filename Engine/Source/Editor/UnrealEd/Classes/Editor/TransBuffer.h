@@ -34,7 +34,7 @@ class UNREALED_API UTransBuffer
 public:
 
 	// Constructor.
-	UTransBuffer( const class FPostConstructInitializeProperties& PCIP,SIZE_T InMaxMemory );
+	UTransBuffer( const FObjectInitializer& ObjectInitializer,SIZE_T InMaxMemory );
 
 public:
 

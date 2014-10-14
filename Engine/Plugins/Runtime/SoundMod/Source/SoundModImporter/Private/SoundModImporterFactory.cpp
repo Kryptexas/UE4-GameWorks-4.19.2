@@ -12,8 +12,8 @@
 
 static bool bSoundModFactorySuppressImportOverwriteDialog = false;
 
-USoundModImporterFactory::USoundModImporterFactory(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundModImporterFactory::USoundModImporterFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = false;
 	SupportedClass = USoundMod::StaticClass();
@@ -106,7 +106,7 @@ UObject* USoundModImporterFactory::FactoryCreateBinary
 
 	// Use pre-existing sound if it exists and we want to keep settings,
 	// otherwise create new sound and import raw data.
-	USoundMod* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new(InParent, Name, Flags) USoundMod(FPostConstructInitializeProperties());
+	USoundMod* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new(InParent, Name, Flags) USoundMod(FObjectInitializer());
 
 	Sound->Duration = xmpModuleInfo.seq_data->duration / 1000.f;
 

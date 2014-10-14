@@ -7,8 +7,8 @@
 #include "Abilities/GameplayAbility.h"
 
 
-UAbilityTask_WaitAbilityCommit::UAbilityTask_WaitAbilityCommit(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAbilityTask_WaitAbilityCommit::UAbilityTask_WaitAbilityCommit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

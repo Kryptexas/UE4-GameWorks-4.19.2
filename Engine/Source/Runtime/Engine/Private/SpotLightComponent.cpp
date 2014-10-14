@@ -153,8 +153,8 @@ public:
 	}
 };
 
-USpotLightComponent::USpotLightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpotLightComponent::USpotLightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())

@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "SlateBrushAssetFactory"
 
-USlateBrushAssetFactory::USlateBrushAssetFactory( const class FPostConstructInitializeProperties& PCIP )
- : Super(PCIP)
+USlateBrushAssetFactory::USlateBrushAssetFactory( const FObjectInitializer& ObjectInitializer )
+ : Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	bEditAfterNew = true;

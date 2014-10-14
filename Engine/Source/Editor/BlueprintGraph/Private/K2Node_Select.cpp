@@ -187,8 +187,8 @@ public:
 	}
 };
 
-UK2Node_Select::UK2Node_Select(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Select::UK2Node_Select(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	NumOptionPins = 2;

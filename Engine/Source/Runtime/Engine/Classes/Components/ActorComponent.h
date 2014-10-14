@@ -17,7 +17,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UActorComponent(const class FPostConstructInitializeProperties& PCIP);
+	UActorComponent(const FObjectInitializer& ObjectInitializer);
 
 	/** Main tick function for the Actor */
 	UPROPERTY()

@@ -7,15 +7,15 @@
 #include "IDocumentation.h"
 #endif
 
-ADocumentationActor::ADocumentationActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ADocumentationActor::ADocumentationActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;	
 
 #if WITH_EDITORONLY_DATA
 	// Create a Material billboard to represent our actor
-	Billboard = PCIP.CreateDefaultSubobject<UMaterialBillboardComponent>(this, TEXT("BillboardComponent"));
+	Billboard = ObjectInitializer.CreateDefaultSubobject<UMaterialBillboardComponent>(this, TEXT("BillboardComponent"));
 	if (!IsRunningCommandlet() && (Billboard != NULL))
 	{
 		static ConstructorHelpers::FObjectFinder<UMaterial> MaterialAsset(TEXT("/Engine/EditorMaterials/HelpActorMaterial"));

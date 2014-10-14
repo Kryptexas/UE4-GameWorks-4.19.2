@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // USizeBox
 
-USizeBox::USizeBox(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USizeBox::USizeBox(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 }

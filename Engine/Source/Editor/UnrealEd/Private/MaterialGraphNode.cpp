@@ -39,8 +39,8 @@
 /////////////////////////////////////////////////////
 // UMaterialGraphNode
 
-UMaterialGraphNode::UMaterialGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphNode::UMaterialGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bPreviewNeedsUpdate(false)
 	, bIsErrorExpression(false)
 	, bIsPreviewExpression(false)

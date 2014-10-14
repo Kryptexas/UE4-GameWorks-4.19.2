@@ -317,14 +317,14 @@ bool AMatineeActor::IgnoreActorSelection()
 	return IgnoreActorSelectionCount > 0;
 }
 
-AMatineeActor::AMatineeActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization
@@ -1734,8 +1734,8 @@ void AMatineeActor::CheckPriorityRefresh()
   AMatineeActorCameraAnim
 -----------------------------------------------------------------------------*/
 
-AMatineeActorCameraAnim::AMatineeActorCameraAnim(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AMatineeActorCameraAnim::AMatineeActorCameraAnim(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	bEditable = false;
@@ -1746,8 +1746,8 @@ AMatineeActorCameraAnim::AMatineeActorCameraAnim(const class FPostConstructIniti
 /*-----------------------------------------------------------------------------
   UInterpData
 -----------------------------------------------------------------------------*/
-UInterpData::UInterpData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpData::UInterpData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	InterpLength = 5.0f;
 	EdSectionStart = 0.0f;
@@ -2022,8 +2022,8 @@ void UInterpData::UpdateBakeAndPruneStatus()
 /*-----------------------------------------------------------------------------
  UInterpGroup
 -----------------------------------------------------------------------------*/
-UInterpGroup::UInterpGroup(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpGroup::UInterpGroup(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -2365,8 +2365,8 @@ AActor* UInterpGroup::DeselectGroupActor( UInterpGroupInst* GrInst )
 /*-----------------------------------------------------------------------------
 	UInterpFilter
 -----------------------------------------------------------------------------*/
-UInterpFilter::UInterpFilter(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpFilter::UInterpFilter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2390,8 +2390,8 @@ void UInterpFilter::FilterData(class AMatineeActor* InMatineeActor)
 /*-----------------------------------------------------------------------------
 	UInterpFilter_Classes
 -----------------------------------------------------------------------------*/
-UInterpFilter_Classes::UInterpFilter_Classes(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpFilter_Classes::UInterpFilter_Classes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2505,8 +2505,8 @@ void UInterpFilter_Classes::FilterData(class AMatineeActor* InMatineeActor)
 /*-----------------------------------------------------------------------------
 	UInterpFilter_Custom
 -----------------------------------------------------------------------------*/
-UInterpFilter_Custom::UInterpFilter_Custom(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpFilter_Custom::UInterpFilter_Custom(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2532,8 +2532,8 @@ void UInterpFilter_Custom::FilterData(AMatineeActor* InMatineeActor)
 /*-----------------------------------------------------------------------------
  UInterpGroupInst
 -----------------------------------------------------------------------------*/
-UInterpGroupInst::UInterpGroupInst(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpGroupInst::UInterpGroupInst(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2658,8 +2658,8 @@ void UInterpGroupInst::TermGroupInst(bool bDeleteTrackInst)
 /*-----------------------------------------------------------------------------
  UInterpGroupDirector
 -----------------------------------------------------------------------------*/
-UInterpGroupDirector::UInterpGroupDirector(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpGroupDirector::UInterpGroupDirector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -2899,8 +2899,8 @@ FString FInterpEdSelKey::GetOwningTrackSubGroupName( int32* piSubTrack )
 /*-----------------------------------------------------------------------------
  UInterpTrack
 -----------------------------------------------------------------------------*/
-UInterpTrack::UInterpTrack(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrack::UInterpTrack(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInst::StaticClass();
 	ActiveCondition = ETAC_Always;
@@ -3007,8 +3007,8 @@ void UInterpTrack::EnableTrack( bool bInEnable, bool bPropagateToSubTracks )
 /*-----------------------------------------------------------------------------
  UInterpTrackInst
 -----------------------------------------------------------------------------*/
-UInterpTrackInst::UInterpTrackInst(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInst::UInterpTrackInst(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -3037,8 +3037,8 @@ UWorld* UInterpTrackInst::GetWorld() const
 	UInterpTrackInstProperty
 -----------------------------------------------------------------------------*/
 
-UInterpTrackInstProperty::UInterpTrackInstProperty(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstProperty::UInterpTrackInstProperty(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -3076,8 +3076,8 @@ void UInterpTrackInstProperty::TermTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
  UInterpTrackMoveAxis
 -----------------------------------------------------------------------------*/
-UInterpTrackMoveAxis::UInterpTrackMoveAxis(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackMoveAxis::UInterpTrackMoveAxis(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	CurveTension = 0.0f;
 	bSubTrackOnly = true;
@@ -3396,8 +3396,8 @@ void UInterpTrackMoveAxis::ReduceKeys( float IntervalStart, float IntervalEnd, f
 /*----------------------------------------------------------------------------
  UInterpTrackMove
 -----------------------------------------------------------------------------*/
-UInterpTrackMove::UInterpTrackMove(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackMove::UInterpTrackMove(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstMove::StaticClass();
 	bOnePerGroup = true;
@@ -4777,8 +4777,8 @@ FTransform UInterpTrackMove::GetMoveRefFrame(UInterpTrackInstMove* MoveTrackInst
 /*-----------------------------------------------------------------------------
  UInterpTrackInstMove
 -----------------------------------------------------------------------------*/
-UInterpTrackInstMove::UInterpTrackInstMove(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstMove::UInterpTrackInstMove(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -4976,8 +4976,8 @@ STRUCTTRACK_GETKEYFRAMETIME(UInterpTrackFloatBase, FloatTrack.Points, InVal)
 STRUCTTRACK_GETKEYFRAMEINDEX(UInterpTrackFloatBase, FloatTrack.Points, InVal)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackFloatBase, FloatTrack.Points, InVal)
 
-UInterpTrackFloatBase::UInterpTrackFloatBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackFloatBase::UInterpTrackFloatBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackTitle = TEXT("Generic Float Track");
 	CurveTension = 0.0f;
@@ -5060,8 +5060,8 @@ STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackToggle, ToggleTrack)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackToggle, ToggleTrack, Time, FToggleTrackKey)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackToggle, ToggleTrack, Time)
 
-UInterpTrackToggle::UInterpTrackToggle(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackToggle::UInterpTrackToggle(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstToggle::StaticClass();
 	TrackTitle = TEXT("Toggle");
@@ -5368,8 +5368,8 @@ STRUCTTRACK_GETKEYFRAMETIME(UInterpTrackVectorBase, VectorTrack.Points, InVal)
 STRUCTTRACK_GETKEYFRAMEINDEX(UInterpTrackVectorBase, VectorTrack.Points, InVal)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackVectorBase, VectorTrack.Points, InVal)
 
-UInterpTrackVectorBase::UInterpTrackVectorBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackVectorBase::UInterpTrackVectorBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackTitle = TEXT("Generic Vector Track");
 	CurveTension = 0.0f;
@@ -5450,8 +5450,8 @@ STRUCTTRACK_GETKEYFRAMETIME(UInterpTrackLinearColorBase, LinearColorTrack.Points
 STRUCTTRACK_GETKEYFRAMEINDEX(UInterpTrackLinearColorBase, LinearColorTrack.Points, InVal)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackLinearColorBase, LinearColorTrack.Points, InVal)
 
-UInterpTrackLinearColorBase::UInterpTrackLinearColorBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackLinearColorBase::UInterpTrackLinearColorBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackTitle = TEXT("Generic LinearColor Track");
 	CurveTension = 0.0f;
@@ -5525,8 +5525,8 @@ void UInterpTrackLinearColorBase::PostEditChangeProperty(FPropertyChangedEvent& 
 /*-----------------------------------------------------------------------------
 	UInterpTrackFloatProp
 -----------------------------------------------------------------------------*/
-UInterpTrackFloatProp::UInterpTrackFloatProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackFloatProp::UInterpTrackFloatProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstFloatProp::StaticClass();
 	TrackTitle = TEXT("Float Property");
@@ -5630,8 +5630,8 @@ void UInterpTrackFloatProp::ReduceKeys( float IntervalStart, float IntervalEnd, 
 /*-----------------------------------------------------------------------------
   UInterpTrackInstFloatProp
 -----------------------------------------------------------------------------*/
-UInterpTrackInstFloatProp::UInterpTrackInstFloatProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstFloatProp::UInterpTrackInstFloatProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5687,8 +5687,8 @@ void UInterpTrackInstFloatProp::InitTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	UInterpTrackVectorProp
 -----------------------------------------------------------------------------*/
-UInterpTrackVectorProp::UInterpTrackVectorProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackVectorProp::UInterpTrackVectorProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstVectorProp::StaticClass();
@@ -5771,8 +5771,8 @@ const FString	UInterpTrackVectorProp::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstVectorProp
 -----------------------------------------------------------------------------*/
-UInterpTrackInstVectorProp::UInterpTrackInstVectorProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstVectorProp::UInterpTrackInstVectorProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -5838,8 +5838,8 @@ STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackBoolProp, BoolTrack)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackBoolProp, BoolTrack, Time, FBoolTrackKey)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackBoolProp, BoolTrack, Time)
 
-UInterpTrackBoolProp::UInterpTrackBoolProp(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackBoolProp::UInterpTrackBoolProp(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstBoolProp::StaticClass();
 	TrackTitle = TEXT("Bool Property");
@@ -5961,8 +5961,8 @@ const FString UInterpTrackBoolProp::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstBoolProp
 -----------------------------------------------------------------------------*/
-UInterpTrackInstBoolProp::UInterpTrackInstBoolProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstBoolProp::UInterpTrackInstBoolProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -6013,8 +6013,8 @@ void UInterpTrackInstBoolProp::RestoreActorState( UInterpTrack* Track )
 /*-----------------------------------------------------------------------------
 	UInterpTrackColorProp
 -----------------------------------------------------------------------------*/
-UInterpTrackColorProp::UInterpTrackColorProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackColorProp::UInterpTrackColorProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstColorProp::StaticClass();
@@ -6109,8 +6109,8 @@ const FString	UInterpTrackColorProp::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 UInterpTrackInstColorProp
 -----------------------------------------------------------------------------*/
-UInterpTrackInstColorProp::UInterpTrackInstColorProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstColorProp::UInterpTrackInstColorProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -6170,8 +6170,8 @@ void UInterpTrackInstColorProp::InitTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 UInterpTrackLinearColorProp
 -----------------------------------------------------------------------------*/
-UInterpTrackLinearColorProp::UInterpTrackLinearColorProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackLinearColorProp::UInterpTrackLinearColorProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstLinearColorProp::StaticClass();
 	TrackTitle = TEXT("LinearColor Property");
@@ -6258,8 +6258,8 @@ const FString	UInterpTrackLinearColorProp::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 UInterpTrackInstLinearColorProp
 -----------------------------------------------------------------------------*/
-UInterpTrackInstLinearColorProp::UInterpTrackInstLinearColorProp(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstLinearColorProp::UInterpTrackInstLinearColorProp(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -6325,8 +6325,8 @@ STRUCTTRACK_SETKEYFRAMETIME(UInterpTrackEvent, EventTrack, Time, FEventTrackKey)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackEvent, EventTrack, Time, FEventTrackKey)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackEvent, EventTrack, Time)
 
-UInterpTrackEvent::UInterpTrackEvent(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackEvent::UInterpTrackEvent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstEvent::StaticClass();
 	TrackTitle = TEXT("Event");
@@ -6484,8 +6484,8 @@ const FString UInterpTrackEvent::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstEvent
 -----------------------------------------------------------------------------*/
-UInterpTrackInstEvent::UInterpTrackInstEvent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstEvent::UInterpTrackInstEvent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -6512,8 +6512,8 @@ STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackDirector, CutTrack)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackDirector, CutTrack, Time, FDirectorTrackCut)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackDirector, CutTrack, Time)
 
-UInterpTrackDirector::UInterpTrackDirector(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackDirector::UInterpTrackDirector(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	bOnePerGroup = true;
@@ -6814,8 +6814,8 @@ const FString UInterpTrackDirector::GetFormattedCameraShotName(int32 KeyIndex) c
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstDirector
 -----------------------------------------------------------------------------*/
-UInterpTrackInstDirector::UInterpTrackInstDirector(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstDirector::UInterpTrackInstDirector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -6849,8 +6849,8 @@ void UInterpTrackInstDirector::TermTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	UInterpTrackFade
 -----------------------------------------------------------------------------*/
-UInterpTrackFade::UInterpTrackFade(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackFade::UInterpTrackFade(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bOnePerGroup = true;
 	bDirGroupOnly = true;
@@ -6908,8 +6908,8 @@ float UInterpTrackFade::GetFadeAmountAtTime(float Time)
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstFade
 -----------------------------------------------------------------------------*/
-UInterpTrackInstFade::UInterpTrackInstFade(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstFade::UInterpTrackInstFade(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -6940,8 +6940,8 @@ void UInterpTrackInstFade::TermTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	UInterpTrackSlomo
 -----------------------------------------------------------------------------*/
-UInterpTrackSlomo::UInterpTrackSlomo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackSlomo::UInterpTrackSlomo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bOnePerGroup = true;
 	bDirGroupOnly = true;
@@ -6999,8 +6999,8 @@ void UInterpTrackSlomo::SetTrackToSensibleDefault()
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstSlomo
 -----------------------------------------------------------------------------*/
-UInterpTrackInstSlomo::UInterpTrackInstSlomo(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstSlomo::UInterpTrackInstSlomo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -7072,8 +7072,8 @@ STRUCTTRACK_SETKEYFRAMETIME(UInterpTrackAnimControl, AnimSeqs, StartTime, FAnimC
 STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackAnimControl, AnimSeqs)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackAnimControl, AnimSeqs, StartTime, FAnimControlTrackKey)
 
-UInterpTrackAnimControl::UInterpTrackAnimControl(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackAnimControl::UInterpTrackAnimControl(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstAnimControl::StaticClass();
@@ -7640,8 +7640,8 @@ const FString UInterpTrackAnimControl::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstAnimControl
 -----------------------------------------------------------------------------*/
-UInterpTrackInstAnimControl::UInterpTrackInstAnimControl(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstAnimControl::UInterpTrackInstAnimControl(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -7674,8 +7674,8 @@ STRUCTTRACK_SETKEYFRAMETIME(UInterpTrackSound, Sounds, Time, FSoundTrackKey)
 STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackSound, Sounds)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackSound, Sounds, Time, FSoundTrackKey)
 
-UInterpTrackSound::UInterpTrackSound(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackSound::UInterpTrackSound(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstSound::StaticClass();
@@ -8077,8 +8077,8 @@ void UInterpTrackSound::PreviewStopPlayback(class UInterpTrackInst* TrInst)
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstSound
 -----------------------------------------------------------------------------*/
-UInterpTrackInstSound::UInterpTrackInstSound(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstSound::UInterpTrackInstSound(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -8116,8 +8116,8 @@ void UInterpTrackInstSound::TermTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	UInterpTrackFloatParticleParam
 -----------------------------------------------------------------------------*/
-UInterpTrackFloatParticleParam::UInterpTrackFloatParticleParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackFloatParticleParam::UInterpTrackFloatParticleParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 	TrackInstClass = UInterpTrackInstFloatParticleParam::StaticClass();
@@ -8155,8 +8155,8 @@ void UInterpTrackFloatParticleParam::UpdateTrack(float NewPosition, UInterpTrack
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstFloatParticleParam
 -----------------------------------------------------------------------------*/
-UInterpTrackInstFloatParticleParam::UInterpTrackInstFloatParticleParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstFloatParticleParam::UInterpTrackInstFloatParticleParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -8462,8 +8462,8 @@ static void PostEditChangeMaterialParamTrack()
 /*-----------------------------------------------------------------------------
 	Float material parameter track.
 -----------------------------------------------------------------------------*/
-UInterpTrackFloatMaterialParam::UInterpTrackFloatMaterialParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackFloatMaterialParam::UInterpTrackFloatMaterialParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	TrackInstClass = UInterpTrackInstFloatMaterialParam::StaticClass();
 	TrackTitle = TEXT("Float UMaterial Param");
@@ -8541,8 +8541,8 @@ void UInterpTrackFloatMaterialParam::UpdateTrack(float NewPosition, UInterpTrack
 	}
 }
 
-UInterpTrackInstFloatMaterialParam::UInterpTrackInstFloatMaterialParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstFloatMaterialParam::UInterpTrackInstFloatMaterialParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -8619,8 +8619,8 @@ void UInterpTrackInstFloatMaterialParam::RestoreActorState(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	Vector material parameter track.
 -----------------------------------------------------------------------------*/
-UInterpTrackVectorMaterialParam::UInterpTrackVectorMaterialParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackVectorMaterialParam::UInterpTrackVectorMaterialParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstVectorMaterialParam::StaticClass();
@@ -8673,8 +8673,8 @@ void UInterpTrackVectorMaterialParam::UpdateTrack(float NewPosition, UInterpTrac
 	}
 }
 
-UInterpTrackInstVectorMaterialParam::UInterpTrackInstVectorMaterialParam(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstVectorMaterialParam::UInterpTrackInstVectorMaterialParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -8771,14 +8771,14 @@ static void GetListOfStaticActors(FString& OutString, const TArray<AActor*>& Act
 	}
 }
 
-AMaterialInstanceActor::AMaterialInstanceActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AMaterialInstanceActor::AMaterialInstanceActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
 	{
 		// Structure to hold one-time initialization
@@ -8837,8 +8837,8 @@ void AMaterialInstanceActor::PostEditChangeProperty(FPropertyChangedEvent& Prope
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstToggle
 -----------------------------------------------------------------------------*/
-UInterpTrackInstToggle::UInterpTrackInstToggle(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstToggle::UInterpTrackInstToggle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -8896,8 +8896,8 @@ void UInterpTrackInstToggle::RestoreActorState(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	UInterpTrackColorScale
 -----------------------------------------------------------------------------*/
-UInterpTrackColorScale::UInterpTrackColorScale(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackColorScale::UInterpTrackColorScale(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	bOnePerGroup = true;
@@ -8960,8 +8960,8 @@ void UInterpTrackColorScale::SetTrackToSensibleDefault()
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstColorScale
 -----------------------------------------------------------------------------*/
-UInterpTrackInstColorScale::UInterpTrackInstColorScale(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstColorScale::UInterpTrackInstColorScale(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -8981,8 +8981,8 @@ void UInterpTrackInstColorScale::TermTrackInst(UInterpTrack* Track)
 /*-----------------------------------------------------------------------------
 	UInterpTrackAudioMaster
 -----------------------------------------------------------------------------*/
-UInterpTrackAudioMaster::UInterpTrackAudioMaster(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackAudioMaster::UInterpTrackAudioMaster(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bOnePerGroup = true;
 	bDirGroupOnly = true;
@@ -9054,8 +9054,8 @@ float UInterpTrackAudioMaster::GetPitchScaleForTime( float Time ) const
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstAudioMaster
 -----------------------------------------------------------------------------*/
-UInterpTrackInstAudioMaster::UInterpTrackInstAudioMaster(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstAudioMaster::UInterpTrackInstAudioMaster(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -9077,8 +9077,8 @@ STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackVisibility, VisibilityTrack)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackVisibility, VisibilityTrack, Time, FVisibilityTrackKey)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackVisibility, VisibilityTrack, Time)
 
-UInterpTrackVisibility::UInterpTrackVisibility(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackVisibility::UInterpTrackVisibility(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstVisibility::StaticClass();
@@ -9313,8 +9313,8 @@ void UInterpTrackVisibility::HideActor( AActor* Actor, bool bHidden )
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstVisibility
 -----------------------------------------------------------------------------*/
-UInterpTrackInstVisibility::UInterpTrackInstVisibility(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstVisibility::UInterpTrackInstVisibility(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -9340,8 +9340,8 @@ STRUCTTRACK_REMOVEKEYFRAME(UInterpTrackParticleReplay, TrackKeys)
 STRUCTTRACK_DUPLICATEKEYFRAME(UInterpTrackParticleReplay, TrackKeys, Time, FParticleReplayTrackKey)
 STRUCTTRACK_GETCLOSESTSNAPPOSITION(UInterpTrackParticleReplay, TrackKeys, Time)
 
-UInterpTrackParticleReplay::UInterpTrackParticleReplay(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UInterpTrackParticleReplay::UInterpTrackParticleReplay(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 	TrackInstClass = UInterpTrackInstParticleReplay::StaticClass();
@@ -9592,8 +9592,8 @@ const FString UInterpTrackParticleReplay::GetSlateHelperClassName() const
 /*-----------------------------------------------------------------------------
 	UInterpTrackInstParticleReplay
 -----------------------------------------------------------------------------*/
-UInterpTrackInstParticleReplay::UInterpTrackInstParticleReplay(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpTrackInstParticleReplay::UInterpTrackInstParticleReplay(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -9624,8 +9624,8 @@ void UInterpTrackInstParticleReplay::RestoreActorState(UInterpTrack* Track)
 }
 
 
-UInterpGroupCamera::UInterpGroupCamera(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpGroupCamera::UInterpGroupCamera(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	Target.Location = FVector(140.0f, 0.0f, -40.0f);
@@ -9634,13 +9634,13 @@ UInterpGroupCamera::UInterpGroupCamera(const class FPostConstructInitializePrope
 	CompressTolerance = 5.0f;
 }
 
-UInterpGroupInstCamera::UInterpGroupInstCamera(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpGroupInstCamera::UInterpGroupInstCamera(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UInterpGroupInstDirector::UInterpGroupInstDirector(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInterpGroupInstDirector::UInterpGroupInstDirector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

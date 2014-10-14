@@ -85,7 +85,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	USceneComponent(const class FPostConstructInitializeProperties& PCIP);
+	USceneComponent(const FObjectInitializer& ObjectInitializer);
 
 	/** Current transform of this component, relative to the world */
 	FTransform ComponentToWorld;

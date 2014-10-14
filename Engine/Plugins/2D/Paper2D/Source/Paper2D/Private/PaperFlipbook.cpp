@@ -11,8 +11,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbook
 
-UPaperFlipbook::UPaperFlipbook(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperFlipbook::UPaperFlipbook(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FramesPerSecond = 15;
 

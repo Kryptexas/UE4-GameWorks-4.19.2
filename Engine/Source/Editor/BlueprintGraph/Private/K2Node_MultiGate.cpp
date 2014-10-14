@@ -452,8 +452,8 @@ public:
 	}
 };
 
-UK2Node_MultiGate::UK2Node_MultiGate(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_MultiGate::UK2Node_MultiGate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 
-APrecomputedVisibilityVolume::APrecomputedVisibilityVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APrecomputedVisibilityVolume::APrecomputedVisibilityVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);

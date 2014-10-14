@@ -3,8 +3,8 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Prediction.h"
 
-UAISense_Prediction::UAISense_Prediction(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UAISense_Prediction::UAISense_Prediction(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 }
 

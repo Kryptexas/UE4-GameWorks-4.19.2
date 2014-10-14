@@ -639,7 +639,7 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArra
 
 	//constructor
 	Emit(Body, *FString::Printf(
-		TEXT("%s::%s(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}\n\n"),
+		TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}\n\n"),
 		*CppClassName, *CppClassName));
 
 	for (int32 i = 0; i < Functions.Num(); ++i)

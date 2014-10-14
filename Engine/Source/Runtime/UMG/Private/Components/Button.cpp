@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UButton
 
-UButton::UButton(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UButton::UButton(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SButton::FArguments ButtonDefaults;
 	WidgetStyle = *ButtonDefaults._ButtonStyle;

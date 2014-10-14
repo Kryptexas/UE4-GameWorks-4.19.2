@@ -11,8 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "AnimMontageFactory"
 
-UAnimMontageFactory::UAnimMontageFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimMontageFactory::UAnimMontageFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCreateNew = true;
 	SupportedClass = UAnimMontage::StaticClass();

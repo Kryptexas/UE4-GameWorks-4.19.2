@@ -277,8 +277,8 @@ FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
 //----------------------------------------------------------------------//
 // UEQSRenderingComponent
 //----------------------------------------------------------------------//
-UEQSRenderingComponent::UEQSRenderingComponent(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
+UEQSRenderingComponent::UEQSRenderingComponent(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 	, DrawFlagName("GameplayDebug")
 	, bDrawOnlyWhenSelected(true)
 {
@@ -328,7 +328,7 @@ void UEQSRenderingComponent::DestroyRenderState_Concurrent()
 //----------------------------------------------------------------------//
 // UEQSQueryResultSourceInterface
 //----------------------------------------------------------------------//
-UEQSQueryResultSourceInterface::UEQSQueryResultSourceInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEQSQueryResultSourceInterface::UEQSQueryResultSourceInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

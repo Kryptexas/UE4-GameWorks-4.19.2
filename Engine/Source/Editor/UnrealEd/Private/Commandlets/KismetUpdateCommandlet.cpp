@@ -12,8 +12,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogBlueprintUpdateCommandlet, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // UKismetUpdateCommandlet
 
-UKismetUpdateCommandlet::UKismetUpdateCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UKismetUpdateCommandlet::UKismetUpdateCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

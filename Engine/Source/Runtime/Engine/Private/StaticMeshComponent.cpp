@@ -123,8 +123,8 @@ public:
 	FLightMapInstanceData CachedStaticLighting;
 };
 
-UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 

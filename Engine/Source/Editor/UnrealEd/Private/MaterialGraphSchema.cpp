@@ -144,8 +144,8 @@ UEdGraphNode* FMaterialGraphSchemaAction_Paste::PerformAction(class UEdGraph* Pa
 //////////////////////////
 // UMaterialGraphSchema //
 
-UMaterialGraphSchema::UMaterialGraphSchema(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialGraphSchema::UMaterialGraphSchema(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PC_Mask = TEXT("mask");
 	PC_Required = TEXT("required");

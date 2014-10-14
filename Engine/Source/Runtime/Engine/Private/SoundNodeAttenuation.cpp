@@ -9,8 +9,8 @@
 	USoundNodeAttenuation implementation.
 -----------------------------------------------------------------------------*/
 
-USoundNodeAttenuation::USoundNodeAttenuation(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeAttenuation::USoundNodeAttenuation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAttenuate_DEPRECATED = true;
 	bSpatialize_DEPRECATED = true;

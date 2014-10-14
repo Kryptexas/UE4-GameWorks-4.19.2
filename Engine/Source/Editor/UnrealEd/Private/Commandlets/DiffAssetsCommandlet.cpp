@@ -9,8 +9,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffAssetsCommandlet, Log, All);
 
-UDiffAssetsCommandlet::UDiffAssetsCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDiffAssetsCommandlet::UDiffAssetsCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

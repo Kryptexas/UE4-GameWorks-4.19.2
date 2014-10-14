@@ -3447,7 +3447,7 @@ void StaticUObjectInit()
 	UObjectBaseInit();
 
 	// Allocate special packages.
-	GObjTransientPkg = new( NULL, TEXT("/Engine/Transient") )UPackage(FPostConstructInitializeProperties());
+	GObjTransientPkg = new( NULL, TEXT("/Engine/Transient") )UPackage(FObjectInitializer());
 	GObjTransientPkg->AddToRoot();
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("VERIFYGC") ) )

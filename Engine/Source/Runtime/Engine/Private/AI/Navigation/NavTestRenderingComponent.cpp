@@ -503,7 +503,7 @@ private:
 	uint32 bShowDiff : 1;
 };
 
-UNavTestRenderingComponent::UNavTestRenderingComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UNavTestRenderingComponent::UNavTestRenderingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

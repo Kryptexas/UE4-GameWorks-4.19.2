@@ -357,8 +357,8 @@ private:
 	FColor BaseColor;
 };
 
-UMaterialBillboardComponent::UMaterialBillboardComponent(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UMaterialBillboardComponent::UMaterialBillboardComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	BodyInstance.bEnableCollision_DEPRECATED = false;
 

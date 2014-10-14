@@ -274,8 +274,8 @@ void FLightSceneProxy::ApplyWorldOffset(FVector InOffset)
 	SetTransform(NewLightToWorld, NewPosition);
 }
 
-ULightComponentBase::ULightComponentBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Brightness_DEPRECATED = 3.1415926535897932f;
 	Intensity = 3.1415926535897932f;
@@ -290,8 +290,8 @@ ULightComponentBase::ULightComponentBase(const class FPostConstructInitializePro
 /**
  * Updates/ resets light GUIDs.
  */
-ULightComponent::ULightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	ShadowMapChannel = INDEX_NONE;
 	PreviewShadowMapChannel = INDEX_NONE;

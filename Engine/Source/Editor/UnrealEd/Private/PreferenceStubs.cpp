@@ -9,33 +9,33 @@
 //
 // UCascadeOptions
 // 
-UCascadeOptions::UCascadeOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCascadeOptions::UCascadeOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////// UPhATSimOptions ////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-UPhATSimOptions::UPhATSimOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhATSimOptions::UPhATSimOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PhysicsBlend = 1.0f;
 }
 
-UMaterialEditorOptions::UMaterialEditorOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialEditorOptions::UMaterialEditorOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
 
-UCurveEdOptions::UCurveEdOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveEdOptions::UCurveEdOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UPersonaOptions::UPersonaOptions(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, DefaultLocalAxesSelection(2)
 {
 	ViewModeIndex = VMI_Lit;

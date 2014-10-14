@@ -7,8 +7,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectileMovement, Log, All);
 
 const float UProjectileMovementComponent::MIN_TICK_TIME = 0.0002f;
 
-UProjectileMovementComponent::UProjectileMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UProjectileMovementComponent::UProjectileMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bUpdateOnlyIfRendered = false;
 	bInitialVelocityInLocalSpace = true;

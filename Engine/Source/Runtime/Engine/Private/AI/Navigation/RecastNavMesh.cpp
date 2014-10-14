@@ -47,7 +47,7 @@ FNavMeshTileData::FNavData::~FNavData()
 float ARecastNavMesh::DrawDistanceSq = 0.0f;
 #if !WITH_RECAST
 
-ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 
@@ -158,8 +158,8 @@ namespace FNavMeshConfig
 
 ARecastNavMesh::FNavPolyFlags ARecastNavMesh::NavLinkFlag = ARecastNavMesh::FNavPolyFlags(0);
 
-ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bDrawNavMeshEdges(true)
 	, bDrawNavLinks(true)
 	, bDistinctlyDrawTilesBeingBuilt(true)

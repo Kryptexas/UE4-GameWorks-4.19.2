@@ -10,7 +10,7 @@
  *	UCurveEdPresetCurve
  */
 
-UDEPRECATED_CurveEdPresetCurve::UDEPRECATED_CurveEdPresetCurve(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDEPRECATED_CurveEdPresetCurve::UDEPRECATED_CurveEdPresetCurve(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -13,8 +13,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogMovement, Log, All);
 //----------------------------------------------------------------------//
 // UMovementComponent
 //----------------------------------------------------------------------//
-UMovementComponent::UMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	PrimaryComponentTick.bCanEverTick = true;

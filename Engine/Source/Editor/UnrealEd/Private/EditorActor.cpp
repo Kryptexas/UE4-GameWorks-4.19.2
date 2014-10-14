@@ -85,8 +85,8 @@ public:
 	}
 };
 
-UUnrealEdEngine::UUnrealEdEngine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUnrealEdEngine::UUnrealEdEngine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -253,7 +253,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 	const TCHAR* Paste = *PasteString;
 
 	// Import the actors.
-	ULevelFactory* Factory = new ULevelFactory(FPostConstructInitializeProperties());
+	ULevelFactory* Factory = new ULevelFactory(FObjectInitializer());
 	Factory->FactoryCreateText( ULevel::StaticClass(), InWorld->GetCurrentLevel(), InWorld->GetCurrentLevel()->GetFName(), RF_Transactional, NULL, bDuplicate ? TEXT("move") : TEXT("paste"), Paste, Paste+FCString::Strlen(Paste), GWarn );
 
 	// Fire ULevel::LevelDirtiedEvent when falling out of scope.

@@ -6,8 +6,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/EnumEditorUtils.h"
 #endif	// WITH_EDITOR
 
-UUserDefinedEnum::UUserDefinedEnum(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UUserDefinedEnum::UUserDefinedEnum(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

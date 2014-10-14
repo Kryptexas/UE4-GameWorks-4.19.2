@@ -25,8 +25,8 @@ namespace MatchState
 	const FName Aborted = FName(TEXT("Aborted"));
 }
 
-AGameMode::AGameMode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+AGameMode::AGameMode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite"))
 	)
 {

@@ -5,10 +5,10 @@
 //////////////////////////////////////////////////////////////////////////
 // APaperTileMapActor
 
-APaperTileMapActor::APaperTileMapActor(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+APaperTileMapActor::APaperTileMapActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	RenderComponent = PCIP.CreateDefaultSubobject<UPaperTileMapRenderComponent>(this, TEXT("RenderComponent"));
+	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTileMapRenderComponent>(this, TEXT("RenderComponent"));
 
 	RootComponent = RenderComponent;
 }

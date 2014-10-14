@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UDataAsset::UDataAsset(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDataAsset::UDataAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

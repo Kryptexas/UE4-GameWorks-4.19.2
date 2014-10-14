@@ -12,8 +12,8 @@
 // UAIAsyncTaskBlueprintProxy
 //----------------------------------------------------------------------//
 
-UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MyWorld = Cast<UWorld>(GetOuter());
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
@@ -73,8 +73,8 @@ void UAIAsyncTaskBlueprintProxy::BeginDestroy()
 // UAIAsyncTaskBlueprintProxy
 //----------------------------------------------------------------------//
 
-UAIBlueprintHelperLibrary::UAIBlueprintHelperLibrary(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIBlueprintHelperLibrary::UAIBlueprintHelperLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

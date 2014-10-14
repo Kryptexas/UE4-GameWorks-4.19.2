@@ -7,8 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UPaperBatchComponent
 
-UPaperBatchComponent::UPaperBatchComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperBatchComponent::UPaperBatchComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 

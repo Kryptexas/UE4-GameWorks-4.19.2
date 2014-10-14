@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UPaperSpriteFactory
 
-UPaperSpriteFactory::UPaperSpriteFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPaperSpriteFactory::UPaperSpriteFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bUseSourceRegion(false)
 	, InitialSourceUV(0, 0)
 	, InitialSourceDimension(0, 0)

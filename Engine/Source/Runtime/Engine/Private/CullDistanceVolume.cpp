@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/CullDistanceVolume.h"
 
-ACullDistanceVolume::ACullDistanceVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ACullDistanceVolume::ACullDistanceVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);

@@ -4,8 +4,8 @@
 #include "BlueprintUtilities.h"
 #include "Engine/InputKeyDelegateBinding.h"
 
-UInputKeyDelegateBinding::UInputKeyDelegateBinding(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInputKeyDelegateBinding::UInputKeyDelegateBinding(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -220,7 +220,7 @@ void FBehaviorTreeSchemaAction_NewSubNode::AddReferencedObjects( FReferenceColle
 }
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_BehaviorTree::UEdGraphSchema_BehaviorTree(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEdGraphSchema_BehaviorTree::UEdGraphSchema_BehaviorTree(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

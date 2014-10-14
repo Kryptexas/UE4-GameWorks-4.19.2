@@ -32,8 +32,8 @@ bool UK2Node_Event::IsCosmeticTickEvent() const
 
 #define LOCTEXT_NAMESPACE "K2Node_Event"
 
-UK2Node_Event::UK2Node_Event(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_Event::UK2Node_Event(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	FunctionFlags = 0;
 }

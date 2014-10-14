@@ -3,8 +3,8 @@
 #include "MovieSceneCoreTypesPCH.h"
 #include "MovieSceneParticleSection.h"
 
-UMovieSceneParticleSection::UMovieSceneParticleSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneParticleSection::UMovieSceneParticleSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	KeyType = EParticleKey::Toggle;
 }

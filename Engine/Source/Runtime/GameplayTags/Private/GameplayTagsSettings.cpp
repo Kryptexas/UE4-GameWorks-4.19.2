@@ -3,8 +3,8 @@
 #include "GameplayTagsModulePrivatePCH.h"
 #include "GameplayTagsModule.h"
 
-UGameplayTagsSettings::UGameplayTagsSettings(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayTagsSettings::UGameplayTagsSettings(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 

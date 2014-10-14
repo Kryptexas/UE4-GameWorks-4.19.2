@@ -4,8 +4,8 @@
 
 #include "../Classes/Lightmass/LightmassCharacterIndirectDetailVolume.h"
 
-ALightmassCharacterIndirectDetailVolume::ALightmassCharacterIndirectDetailVolume(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALightmassCharacterIndirectDetailVolume::ALightmassCharacterIndirectDetailVolume(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 

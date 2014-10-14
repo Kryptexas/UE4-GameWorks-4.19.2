@@ -3,8 +3,8 @@
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "ScopedTransaction.h"
 
-UEnvironmentQueryGraphNode::UEnvironmentQueryGraphNode(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEnvironmentQueryGraphNode::UEnvironmentQueryGraphNode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, NodeInstance(NULL)
 	, EnvQueryNodeClass(NULL)
 {

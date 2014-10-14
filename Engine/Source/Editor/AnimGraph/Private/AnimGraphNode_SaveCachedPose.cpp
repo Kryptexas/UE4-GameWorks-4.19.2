@@ -34,8 +34,8 @@ public:
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
-UAnimGraphNode_SaveCachedPose::UAnimGraphNode_SaveCachedPose(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_SaveCachedPose::UAnimGraphNode_SaveCachedPose(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCanRenameNode = true;
 }

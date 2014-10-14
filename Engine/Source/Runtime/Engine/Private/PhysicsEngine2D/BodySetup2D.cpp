@@ -6,8 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UBodySetup2D
 
-UBodySetup2D::UBodySetup2D(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBodySetup2D::UBodySetup2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

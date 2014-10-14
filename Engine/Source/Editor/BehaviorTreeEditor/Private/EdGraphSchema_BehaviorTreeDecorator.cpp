@@ -99,7 +99,7 @@ void FDecoratorSchemaAction_NewNode::AddReferencedObjects( FReferenceCollector& 
 
 //////////////////////////////////////////////////////////////////////////
 
-UEdGraphSchema_BehaviorTreeDecorator::UEdGraphSchema_BehaviorTreeDecorator(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEdGraphSchema_BehaviorTreeDecorator::UEdGraphSchema_BehaviorTreeDecorator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PC_Boolean = TEXT("bool");
 }

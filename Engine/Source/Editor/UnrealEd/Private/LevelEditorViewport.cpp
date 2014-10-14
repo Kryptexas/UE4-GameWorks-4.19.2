@@ -406,7 +406,7 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 	}
 
 	// create an unreal material asset
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew( FPostConstructInitializeProperties() );
+	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew( FObjectInitializer() );
 
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone | RF_Public, NULL, GWarn );

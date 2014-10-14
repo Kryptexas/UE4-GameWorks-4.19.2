@@ -537,18 +537,18 @@ template<> struct TIsWeakPointerType<FSubobjectPtr> { enum { Value = false }; };
 /**
  * TSubobjectPtrConstructor - internal private class to disallow the use of 
  * TSubobjectPtr's assignment operator as well as to disable easy access to
- * TSubobjectPtr::Get() when creating a subobject with PCIP.CreateDefaultSubobject().Get() <- No public 'Get'
+ * TSubobjectPtr::Get() when creating a subobject with ObjectInitializer.CreateDefaultSubobject().Get() <- No public 'Get'
  */
 template <class SubobjectType>
 class TSubobjectPtrConstructor
 {
-	/** Only FPostConstructInitializeProperties can construct this class. */
-	friend class FPostConstructInitializeProperties;
+	/** Only FObjectInitializer can construct this class. */
+	friend class FObjectInitializer;
 	/** TSubobjectPtr needs to have access to the subobject pointer. */
 	template <class AnySubobjectType> friend class TSubobjectPtr;
 	/** Subobject pointer. */
 	UObject* Object;	
-	/** Constructor used by PCIP. */
+	/** Constructor used by ObjectInitializer. */
 	TSubobjectPtrConstructor(SubobjectType* InObject)
 		: Object(InObject)
 	{}
@@ -567,14 +567,14 @@ class TSubobjectPtrConstructor
  *   UPROPERTY()
  *   TSubobjectPtr<UActorComponent> MyComponent;
  *
- * It can only be assigned to with PCIP.CreateDefaultSubobject (via TSubobjectPtrConstructor) in the owning object's constructor.
+ * It can only be assigned to with ObjectInitializer.CreateDefaultSubobject (via TSubobjectPtrConstructor) in the owning object's constructor.
  *
- *   MyComponent = PCIP.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
+ *   MyComponent = ObjectInitializer.CreateDefaultSubobject<UPathFollowingComponent>(this, TEXT("PathFollowingComponent"));
  *
  * Initialized with InvalidPtrValue by default because it always needs to be initialized (either with NULL or a pointer to sub-object in the constructor
  * of the owner object).
  * Usually used with Actor components to specify that the actor-derived class is the owner of the component and prevent other derived classes from
- * overwriting it in any other way than through PCIP object.
+ * overwriting it in any other way than through ObjectInitializer object.
  *
  * Implements a structure dereference operator for convenience
  *
@@ -607,7 +607,7 @@ public:
 	{
 		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 	}
-	/** Initialization constructor. Can only be used with PCIP.CreateDefaultSubobject(). */
+	/** Initialization constructor. Can only be used with ObjectInitializer.CreateDefaultSubobject(). */
 	template <class DerivedSubobjectType>
 	TSubobjectPtr(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
@@ -619,7 +619,7 @@ public:
 	{
 		return (SubobjectType*)Object;
 	}
-	/** Assignment operator - can only be used with PCIP.CreateDefaultSubobject(). */
+	/** Assignment operator - can only be used with ObjectInitializer.CreateDefaultSubobject(). */
 	template <class DerivedSubobjectType>
 	FORCEINLINE TSubobjectPtr& operator=(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
 	{
@@ -646,13 +646,13 @@ template<class T> struct TIsWeakPointerType< TSubobjectPtr<T> > { enum { Value =
 /**
  * Internal class to finalize UObject creation (initialize properties) after the real C++ constructor is called.
  **/
-class COREUOBJECT_API FPostConstructInitializeProperties
+class COREUOBJECT_API FObjectInitializer
 {
 public:
 	/**
 	 * Default Constructor, used when you are using the C++ "new" syntax. UObject::UObject will set the object pointer
 	 **/
-	FPostConstructInitializeProperties();
+	FObjectInitializer();
 
 	/**
 	 * Constructor
@@ -662,9 +662,9 @@ public:
 	 * @param	bInShouldIntializeProps false is a special case for changing base classes in UCCMake
 	 * @param	InInstanceGraph passed instance graph
 	 */
-	FPostConstructInitializeProperties(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph=NULL);
+	FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph = NULL);
 
-	~FPostConstructInitializeProperties();
+	~FObjectInitializer();
 
 	/** 
 	 * Return the archetype that this object will copy properties from later
@@ -787,7 +787,7 @@ public:
 	 * @param	SubobjectName	name of the new component or subobject
 	 */
 	template<class T>
-	FPostConstructInitializeProperties const& SetDefaultSubobjectClass(FName SubobjectName) const
+	FObjectInitializer const& SetDefaultSubobjectClass(FName SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
@@ -798,7 +798,7 @@ public:
 	 * @param	SubobjectName	name of the new component or subobject
 	 */
 	template<class T>
-	FORCEINLINE FPostConstructInitializeProperties const& SetDefaultSubobjectClass(TCHAR const*SubobjectName) const
+	FORCEINLINE FObjectInitializer const& SetDefaultSubobjectClass(TCHAR const*SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
@@ -809,7 +809,7 @@ public:
 	 * Indicates that a base class should not create a component
 	 * @param	SubobjectName	name of the new component or subobject to not create
 	 */
-	FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(FName SubobjectName) const
+	FObjectInitializer const& DoNotCreateDefaultSubobject(FName SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
@@ -820,7 +820,7 @@ public:
 	 * Indicates that a base class should not create a component
 	 * @param	ComponentName	name of the new component or subobject to not create
 	 */
-	FORCEINLINE FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(TCHAR const*SubobjectName) const
+	FORCEINLINE FObjectInitializer const& DoNotCreateDefaultSubobject(TCHAR const*SubobjectName) const
 	{
 		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
@@ -848,7 +848,7 @@ private:
 	friend class FScriptIntegrationObjectHelper;
 
 	template<class T>
-	friend void InternalConstructor( const class FPostConstructInitializeProperties& X );
+	friend void InternalConstructor(const class FObjectInitializer& X);
 
 	/**
 	 * Binary initialize object properties to zero or defaults.
@@ -863,7 +863,7 @@ private:
 	bool IsInstancingAllowed() const;
 
 	/**
-	 * Calls InitProperties for any default subobjects created through this PCIP.
+	 * Calls InitProperties for any default subobjects created through this ObjectInitializer.
 	 * @param bAllowInstancing	Indicates whether the object's components may be copied from their templates.
 	 * @return true if there are any subobjects which require instancing.
 	*/
@@ -891,7 +891,7 @@ private:
 	struct FOverrides
 	{
 		/**  Add an override, make sure it is legal **/
-		void Add(FName InComponentName, UClass *InComponentClass, FPostConstructInitializeProperties const& PCIP)
+		void Add(FName InComponentName, UClass *InComponentClass, FObjectInitializer const& ObjectInitializer)
 		{
 			int32 Index = Find(InComponentName);
 			if (Index == INDEX_NONE)
@@ -900,11 +900,11 @@ private:
 			}
 			else if (InComponentClass && Overrides[Index].ComponentClass)
 			{
-				PCIP.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, InComponentClass); // if a base class is asking for an override, the existing override (which we are going to use) had better be derived
+				ObjectInitializer.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, InComponentClass); // if a base class is asking for an override, the existing override (which we are going to use) had better be derived
 			}
 		}
 		/**  Retrieve an override, or TClassToConstructByDefault::StaticClass or NULL if this was removed by a derived class **/
-		UClass* Get(FName InComponentName, UClass* ReturnType, UClass* ClassToConstructByDefault, FPostConstructInitializeProperties const& PCIP)
+		UClass* Get(FName InComponentName, UClass* ReturnType, UClass* ClassToConstructByDefault, FObjectInitializer const& ObjectInitializer)
 		{
 			int32 Index = Find(InComponentName);
 			UClass *BaseComponentClass = ClassToConstructByDefault;
@@ -914,7 +914,7 @@ private:
 			}
 			else if (Overrides[Index].ComponentClass)
 			{
-				if (PCIP.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, ReturnType)) // if THE base class is asking for a T, the existing override (which we are going to use) had better be derived
+				if (ObjectInitializer.IslegalOverride(InComponentName, Overrides[Index].ComponentClass, ReturnType)) // if THE base class is asking for a T, the existing override (which we are going to use) had better be derived
 				{
 					return Overrides[Index].ComponentClass; // the override is of an acceptable class, so use it
 				}
@@ -987,7 +987,7 @@ private:
 	bool bCopyTransientsFromClassDefaults;
 	/**  If true, intialize the properties **/
 	bool bShouldIntializePropsFromArchetype;
-	/**  Only true until PCIP has not reached the base UObject class */
+	/**  Only true until ObjectInitializer has not reached the base UObject class */
 	bool bSubobjectClassInitializationAllowed;
 	/**  Instance graph **/
 	struct FObjectInstancingGraph* InstanceGraph;
@@ -999,6 +999,8 @@ private:
 	UObject* LastConstructedObject;
 };
 
+typedef DEPRECATED(4.6, "FPostConstructInitializeProperties was renamed to FObjectInitializer.") FObjectInitializer FPostConstructInitializeProperties;
+
 /**
 * Helper class for script integrations to access some UObject innards. Needed for script-generated UObject classes
 */
@@ -1008,36 +1010,36 @@ public:
 	/**
 	* Binary initialize object properties to zero or defaults.
 	*
-	* @param	PCIP				FPostConstructInitializeProperties helper
+	* @param	ObjectInitializer	FObjectInitializer helper
 	* @param	Obj					object to initialize data for
 	* @param	DefaultsClass		the class to use for initializing the data
 	* @param	DefaultData			the buffer containing the source data for the initialization
 	*/
-	inline static void InitProperties(const FPostConstructInitializeProperties& PCIP, UObject* Obj, UClass* DefaultsClass, UObject* DefaultData)
+	inline static void InitProperties(const FObjectInitializer& ObjectInitializer, UObject* Obj, UClass* DefaultsClass, UObject* DefaultData)
 	{
-		FPostConstructInitializeProperties::InitProperties(Obj, DefaultsClass, DefaultData, PCIP.bCopyTransientsFromClassDefaults);
+		FObjectInitializer::InitProperties(Obj, DefaultsClass, DefaultData, ObjectInitializer.bCopyTransientsFromClassDefaults);
 	}
 
 	/**
-	* Calls InitProperties for any default subobjects created through this PCIP.
+	* Calls InitProperties for any default subobjects created through this ObjectInitializer.
 	* @param bAllowInstancing	Indicates whether the object's components may be copied from their templates.
 	* @return true if there are any subobjects which require instancing.
 	*/
-	inline static bool InitSubobjectProperties(const FPostConstructInitializeProperties& PCIP)
+	inline static bool InitSubobjectProperties(const FObjectInitializer& ObjectInitializer)
 	{
-		return PCIP.InitSubobjectProperties(PCIP.IsInstancingAllowed());
+		return ObjectInitializer.InitSubobjectProperties(ObjectInitializer.IsInstancingAllowed());
 	}
 
 	/**
 	* Create copies of the object's components from their templates.
-	* @param PCIP					FPostConstructInitializeProperties helper
+	* @param ObjectInitializer			FObjectInitializer helper
 	* @param Class						Class of the object we are initializing
 	* @param bNeedInstancing			Indicates whether the object's components need to be instanced
 	* @param bNeedSubobjectInstancing	Indicates whether subobjects of the object's components need to be instanced
 	*/
-	inline static void InstanceSubobjects(const FPostConstructInitializeProperties& PCIP, UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing)
+	inline static void InstanceSubobjects(const FObjectInitializer& ObjectInitializer, UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing)
 	{
-		PCIP.InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
+		ObjectInitializer.InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
 	}
 };
 
@@ -1073,7 +1075,7 @@ T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage
 template< class T >
 T* NewObject(UObject* Outer=(UObject*)GetTransientPackage(),UClass* Class=T::StaticClass() )
 {
-	FPostConstructInitializeProperties::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use PCIP.CreateDefaultSuobject<> instead."));
+	FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
 	return ConstructObject<T>(Class,Outer);
 }
 

@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////
 // UAnimStateMachineTypes
 
-UAnimStateMachineTypes::UAnimStateMachineTypes(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimStateMachineTypes::UAnimStateMachineTypes(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

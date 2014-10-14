@@ -96,8 +96,8 @@ FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 }
 
 
-UActorComponent::UActorComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;

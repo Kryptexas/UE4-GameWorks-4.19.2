@@ -11,8 +11,8 @@
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 
-UParticleModuleMaterialBase::UParticleModuleMaterialBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMaterialBase::UParticleModuleMaterialBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -23,8 +23,8 @@ UParticleModuleMaterialBase::UParticleModuleMaterialBase(const class FPostConstr
 /*-----------------------------------------------------------------------------
 	UParticleModuleMeshMaterial
 -----------------------------------------------------------------------------*/
-UParticleModuleMeshMaterial::UParticleModuleMeshMaterial(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleModuleMeshMaterial::UParticleModuleMeshMaterial(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bSpawnModule = true;
 	bUpdateModule = true;

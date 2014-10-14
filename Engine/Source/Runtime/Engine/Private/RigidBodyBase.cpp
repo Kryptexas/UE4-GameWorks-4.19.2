@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-ARigidBodyBase::ARigidBodyBase(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ARigidBodyBase::ARigidBodyBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/BrushShape.h"
 
-ABrushShape::ABrushShape(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ABrushShape::ABrushShape(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;

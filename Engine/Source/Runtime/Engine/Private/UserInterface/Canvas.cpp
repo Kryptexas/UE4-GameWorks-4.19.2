@@ -1089,8 +1089,8 @@ void UCanvas::WrapString( FTextSizingParameters& Parameters, const float InCurX,
 	UCanvas object functions.
 -----------------------------------------------------------------------------*/
 
-UCanvas::UCanvas(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCanvas::UCanvas(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

@@ -5,8 +5,8 @@
 /////////////////////////////////////////////////////
 // UWrapBoxSlot
 
-UWrapBoxSlot::UWrapBoxSlot(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWrapBoxSlot::UWrapBoxSlot(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, Slot(NULL)
 {
 	HorizontalAlignment = HAlign_Fill;

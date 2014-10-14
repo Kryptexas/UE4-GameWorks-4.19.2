@@ -4,8 +4,8 @@
 #include "MovieSceneAudioSection.h"
 #include "SoundDefinitions.h"
 
-UMovieSceneAudioSection::UMovieSceneAudioSection( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 
 	Sound = NULL;

@@ -4,12 +4,12 @@
 #include "Engine/BookMark.h"
 #include "Engine/BookMark2D.h"
 
-UBookMark::UBookMark(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBookMark::UBookMark(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
-UBookMark2D::UBookMark2D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBookMark2D::UBookMark2D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

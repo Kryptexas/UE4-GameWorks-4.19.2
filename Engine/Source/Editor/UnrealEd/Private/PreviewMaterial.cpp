@@ -150,8 +150,8 @@ public:
 };
 
 /** Implementation of Preview Material functions*/
-UPreviewMaterial::UPreviewMaterial(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPreviewMaterial::UPreviewMaterial(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -160,8 +160,8 @@ FMaterialResource* UPreviewMaterial::AllocateResource()
 	return new FPreviewMaterial();
 }
 
-UMaterialEditorInstanceConstant::UMaterialEditorInstanceConstant(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialEditorInstanceConstant::UMaterialEditorInstanceConstant(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -722,7 +722,7 @@ void UMaterialEditorInstanceConstant::PostEditUndo()
 }
 #endif
 
-UMaterialEditorMeshComponent::UMaterialEditorMeshComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialEditorMeshComponent::UMaterialEditorMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

@@ -5,8 +5,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UConnectionCallbackProxy
 
-UConnectionCallbackProxy::UConnectionCallbackProxy(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UConnectionCallbackProxy::UConnectionCallbackProxy(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	OnLoginCompleteDelegate.BindUObject(this, &ThisClass::OnLoginCompleted);

@@ -2,7 +2,7 @@
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 
-UEnvironmentQueryGraphNode_Root::UEnvironmentQueryGraphNode_Root(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvironmentQueryGraphNode_Root::UEnvironmentQueryGraphNode_Root(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

@@ -7,8 +7,8 @@
 /* UMediaTexture structors
  *****************************************************************************/
 
-UMediaTexture::UMediaTexture( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
+UMediaTexture::UMediaTexture( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
 	, ClearColor(FLinearColor::Black)
 	, MediaPlayer(nullptr)
 	, CurrentMediaPlayer(nullptr)

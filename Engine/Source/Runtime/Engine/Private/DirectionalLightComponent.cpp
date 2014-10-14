@@ -610,8 +610,8 @@ private:
 	}
 };
 
-UDirectionalLightComponent::UDirectionalLightComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDirectionalLightComponent::UDirectionalLightComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())

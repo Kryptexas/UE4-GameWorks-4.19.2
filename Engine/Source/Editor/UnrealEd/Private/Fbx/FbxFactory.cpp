@@ -40,8 +40,8 @@
 
 #define LOCTEXT_NAMESPACE "FBXFactory"
 
-UFbxFactory::UFbxFactory(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxFactory::UFbxFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = NULL;
 	Formats.Add(TEXT("fbx;FBX meshes and animations"));
@@ -580,8 +580,8 @@ void UFbxFactory::CleanUp()
 	}
 }
 
-UFbxImportUI::UFbxImportUI(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bCombineMeshes = true;
 

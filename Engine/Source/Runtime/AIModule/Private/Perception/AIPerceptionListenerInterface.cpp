@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "Perception/AIPerceptionListenerInterface.h"
 
-UAIPerceptionListenerInterface::UAIPerceptionListenerInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAIPerceptionListenerInterface::UAIPerceptionListenerInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

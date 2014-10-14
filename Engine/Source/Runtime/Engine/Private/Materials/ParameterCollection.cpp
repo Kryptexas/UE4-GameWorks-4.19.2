@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "ParameterCollection.h"
 
-UMaterialParameterCollection::UMaterialParameterCollection(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialParameterCollection::UMaterialParameterCollection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {}
 
 void UMaterialParameterCollection::PostLoad()
@@ -340,8 +340,8 @@ void UMaterialParameterCollection::CreateBufferStruct()
 		);
 }
 
-UMaterialParameterCollectionInstance::UMaterialParameterCollectionInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialParameterCollectionInstance::UMaterialParameterCollectionInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Resource = NULL;
 }

@@ -8,8 +8,8 @@
 //----------------------------------------------------------------------//
 TArray<int32> UMockAI_BT::ExecutionLog;
 
-UMockAI_BT::UMockAI_BT(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMockAI_BT::UMockAI_BT(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{

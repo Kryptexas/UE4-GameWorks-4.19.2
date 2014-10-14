@@ -937,8 +937,8 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UGenerateBlueprintAPICommandlet::UGenerateBlueprintAPICommandlet(class FPostConstructInitializeProperties const& PCIP)
-	: Super(PCIP)
+UGenerateBlueprintAPICommandlet::UGenerateBlueprintAPICommandlet(FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

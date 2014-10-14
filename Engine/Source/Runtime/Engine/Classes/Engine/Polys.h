@@ -576,8 +576,8 @@ class UPolys : public UObject
 	TTransArray<FPoly> Element;
 
 	// Constructors.
-	UPolys(const class FPostConstructInitializeProperties& PCIP)
-	:  UObject(PCIP)
+	UPolys(const FObjectInitializer& ObjectInitializer)
+	:  UObject(ObjectInitializer)
 	, Element( this )
 	{}
 

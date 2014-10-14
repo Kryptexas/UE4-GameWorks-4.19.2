@@ -3369,8 +3369,8 @@ void ALandscape::PostEditMove(bool bFinished)
 }
 #endif	//WITH_EDITOR
 
-ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	Hardness = 0.5f;
 #if WITH_EDITORONLY_DATA

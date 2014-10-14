@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Commandlets/Commandlet.h"
 
-UCommandlet::UCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCommandlet::UCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	IsServer = true;
 	IsClient = true;

@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
 
-UEngineMessage::UEngineMessage(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP)
+UEngineMessage::UEngineMessage(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer)
 {
 }
 

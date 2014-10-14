@@ -6,8 +6,8 @@
 
 #include "EnginePrivate.h"
 
-UCurveLinearColor::UCurveLinearColor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UCurveLinearColor::UCurveLinearColor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

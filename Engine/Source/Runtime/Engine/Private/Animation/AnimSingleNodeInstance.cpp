@@ -21,8 +21,8 @@
 // UAnimSingleNodeInstance
 /////////////////////////////////////////////////////
 
-UAnimSingleNodeInstance::UAnimSingleNodeInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSingleNodeInstance::UAnimSingleNodeInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, PlayRate(1.f)
 	, bLooping(true)
 	, bPlaying(true)

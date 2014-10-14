@@ -6,8 +6,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendListBase
 
-UAnimGraphNode_BlendListBase::UAnimGraphNode_BlendListBase(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_BlendListBase::UAnimGraphNode_BlendListBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, RemovedPinArrayIndex(INDEX_NONE)
 {
 }

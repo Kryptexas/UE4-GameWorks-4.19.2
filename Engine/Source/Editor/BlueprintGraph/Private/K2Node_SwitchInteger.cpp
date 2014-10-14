@@ -5,8 +5,8 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-UK2Node_SwitchInteger::UK2Node_SwitchInteger(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_SwitchInteger::UK2Node_SwitchInteger(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	StartIndex = 0;
 

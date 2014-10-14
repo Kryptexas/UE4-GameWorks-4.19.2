@@ -843,7 +843,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UObject(const class FPostConstructInitializeProperties& PCIP);
+	UObject(const FObjectInitializer& ObjectInitializer);
 
 	//=============================================================================
 	// K2 support functions.

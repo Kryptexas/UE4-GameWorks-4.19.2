@@ -5,8 +5,8 @@
 #include "Components/ApplicationLifecycleComponent.h"
 #include "CallbackDevice.h"
 
-UApplicationLifecycleComponent::UApplicationLifecycleComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UApplicationLifecycleComponent::UApplicationLifecycleComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

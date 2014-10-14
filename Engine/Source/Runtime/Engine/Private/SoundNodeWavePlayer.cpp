@@ -6,8 +6,8 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeWavePlayer"
 
-USoundNodeWavePlayer::USoundNodeWavePlayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundNodeWavePlayer::USoundNodeWavePlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

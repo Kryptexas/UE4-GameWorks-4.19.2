@@ -6,8 +6,8 @@
 #include "SubMovieSceneSection.h"
 #include "SubMovieSceneTrackInstance.h"
 
-USubMovieSceneTrack::USubMovieSceneTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+USubMovieSceneTrack::USubMovieSceneTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 }
 

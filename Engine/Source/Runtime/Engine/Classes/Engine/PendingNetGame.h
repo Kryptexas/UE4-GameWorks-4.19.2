@@ -96,10 +96,10 @@ public:
 	FString					ConnectionError;
 
 	// Constructor.
-	UPendingNetGame( const class FPostConstructInitializeProperties& PCIP, const FURL& InURL );
+	UPendingNetGame( const FObjectInitializer& ObjectInitializer, const FURL& InURL );
 
 	// Constructor.
-	UPendingNetGame( const class FPostConstructInitializeProperties& PCIP );
+	UPendingNetGame( const FObjectInitializer& ObjectInitializer );
 
 	void	InitNetDriver();
 

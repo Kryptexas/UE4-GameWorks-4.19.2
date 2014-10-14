@@ -4,8 +4,8 @@
 #include "Audio.h"
 #include "Sound/SoundGroups.h"
 
-USoundGroups::USoundGroups(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundGroups::USoundGroups(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

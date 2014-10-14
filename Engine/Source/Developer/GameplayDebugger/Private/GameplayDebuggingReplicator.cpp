@@ -16,8 +16,8 @@
 
 FOnSelectionChanged AGameplayDebuggingReplicator::OnSelectionChangedDelegate;
 
-AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, MaxEQSQueries(5)
 	, bIsGlobalInWorld(true)
 	, LastDrawAtFrame(0)
@@ -41,7 +41,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
+	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITOR

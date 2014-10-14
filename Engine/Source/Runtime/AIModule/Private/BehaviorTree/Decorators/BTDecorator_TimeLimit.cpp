@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_TimeLimit.h"
 
-UBTDecorator_TimeLimit::UBTDecorator_TimeLimit(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_TimeLimit::UBTDecorator_TimeLimit(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "TimeLimit";
 	TimeLimit = 5.0f;

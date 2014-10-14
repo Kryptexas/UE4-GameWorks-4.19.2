@@ -553,8 +553,8 @@ void FTimeline::GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const
 //////////////////////////////////////////////////////////////////////////
 // UTimelineComponent
 
-UTimelineComponent::UTimelineComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTimelineComponent::UTimelineComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;

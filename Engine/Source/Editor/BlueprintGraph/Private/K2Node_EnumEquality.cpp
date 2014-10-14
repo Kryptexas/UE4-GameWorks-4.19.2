@@ -12,8 +12,8 @@
 
 #define LOCTEXT_NAMESPACE "K2Node_EnumEquality"
 
-UK2Node_EnumEquality::UK2Node_EnumEquality(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_EnumEquality::UK2Node_EnumEquality(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

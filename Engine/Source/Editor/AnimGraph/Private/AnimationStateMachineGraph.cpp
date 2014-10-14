@@ -8,8 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimationStateMachineGraph
 
-UAnimationStateMachineGraph::UAnimationStateMachineGraph(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimationStateMachineGraph::UAnimationStateMachineGraph(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAllowDeletion = false;
 	bAllowRenaming = true;

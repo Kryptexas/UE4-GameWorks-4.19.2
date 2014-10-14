@@ -2,8 +2,8 @@
 
 #include "SoundModPrivatePCH.h"
 
-USoundModWave::USoundModWave(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundModWave::USoundModWave(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, xmpContext(NULL)
 {
 }

@@ -256,7 +256,7 @@ public:
 public:
 	// Constructors.
 	UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
-	explicit UStruct(const class FPostConstructInitializeProperties& PCIP, UStruct* InSuperStruct, SIZE_T ParamsSize = 0, SIZE_T Alignment = 0 );
+	explicit UStruct(const FObjectInitializer& ObjectInitializer, UStruct* InSuperStruct, SIZE_T ParamsSize = 0, SIZE_T Alignment = 0 );
 
 	// UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
@@ -953,8 +953,8 @@ public:
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UScriptStruct,UStruct,0,CoreUObject,CASTCLASS_UScriptStruct,COREUOBJECT_API)
 
 	COREUOBJECT_API UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags );
-	COREUOBJECT_API explicit UScriptStruct(const class FPostConstructInitializeProperties& PCIP, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps = NULL, EStructFlags InStructFlags = STRUCT_NoFlags, SIZE_T ExplicitSize = 0, SIZE_T ExplicitAlignment = 0);
-	COREUOBJECT_API explicit UScriptStruct(const class FPostConstructInitializeProperties& PCIP);
+	COREUOBJECT_API explicit UScriptStruct(const FObjectInitializer& ObjectInitializer, UScriptStruct* InSuperStruct, ICppStructOps* InCppStructOps = NULL, EStructFlags InStructFlags = STRUCT_NoFlags, SIZE_T ExplicitSize = 0, SIZE_T ExplicitAlignment = 0);
+	COREUOBJECT_API explicit UScriptStruct(const FObjectInitializer& ObjectInitializer);
 
 public:
 	EStructFlags StructFlags;
@@ -1195,7 +1195,7 @@ public:
 	void Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL);
 
 	// Constructors.
-	explicit UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
+	explicit UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
 
 	void InitializeDerivedMembers();
 
@@ -1716,7 +1716,7 @@ public:
 
 	friend class FRestoreClassInfo;
 
-	void(*ClassConstructor)(const class FPostConstructInitializeProperties&);
+	void(*ClassConstructor)(const FObjectInitializer&);
 	/** Pointer to a static AddReferencedObjects method. */
 	void(*ClassAddReferencedObjects)(UObject*, class FReferenceCollector&);
 
@@ -1817,10 +1817,10 @@ public:
 
 public:
 	// Constructors
-	UClass(const class FPostConstructInitializeProperties& PCIP);
-	explicit UClass(const class FPostConstructInitializeProperties& PCIP, UClass* InSuperClass);
+	UClass(const FObjectInitializer& ObjectInitializer);
+	explicit UClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
-		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const class FPostConstructInitializeProperties&),
+		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const FObjectInitializer&),
 		void(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&));
 
 #if WITH_HOT_RELOAD
@@ -1839,7 +1839,7 @@ public:
 		uint32			InClassFlags,
 		EClassCastFlags	InClassCastFlags,
 		const TCHAR*    InConfigName,
-		void			(*InClassConstructor)(const class FPostConstructInitializeProperties&),
+		void			(*InClassConstructor)(const FObjectInitializer&),
 		void			(*InAddReferencedObjects)(UObject*, class FReferenceCollector&),
 		class UClass* TClass_Super_StaticClass,
 		class UClass* TClass_WithinClass_StaticClass
@@ -2186,7 +2186,7 @@ protected:
  * Helper template to call the default constructor for a class
  */
 template<class T>
-void InternalConstructor( const class FPostConstructInitializeProperties& X )
+void InternalConstructor( const FObjectInitializer& X )
 { 
 	T::__DefaultConstructor(X);
 }
@@ -2226,7 +2226,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 				TClass::StaticClassFlags,
 				TClass::StaticClassCastFlags(),
 				TClass::StaticConfigName(),
-				(void(*)(const class FPostConstructInitializeProperties&))InternalConstructor<TClass>,
+				(void(*)(const FObjectInitializer&))InternalConstructor<TClass>,
 				&TClass::AddReferencedObjects,
 				TClass::Super::StaticClass(),
 				TClass::WithinClass::StaticClass()
@@ -2254,7 +2254,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		TClass::StaticClassCastFlags(),
 		TClass::StaticConfigName(),
 		EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
-		(void(*)(const class FPostConstructInitializeProperties&))InternalConstructor<TClass>,
+		(void(*)(const FObjectInitializer&))InternalConstructor<TClass>,
 		&TClass::AddReferencedObjects
 		);
 	check(ReturnClass);

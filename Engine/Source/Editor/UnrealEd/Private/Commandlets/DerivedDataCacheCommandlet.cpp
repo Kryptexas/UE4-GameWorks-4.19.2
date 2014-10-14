@@ -14,8 +14,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
-UDerivedDataCacheCommandlet::UDerivedDataCacheCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDerivedDataCacheCommandlet::UDerivedDataCacheCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	LogToConsole = false;
 }

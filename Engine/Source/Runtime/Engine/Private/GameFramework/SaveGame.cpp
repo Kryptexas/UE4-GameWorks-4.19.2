@@ -2,8 +2,8 @@
 
 #include "EnginePrivate.h"
 
-USaveGame::USaveGame(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USaveGame::USaveGame(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

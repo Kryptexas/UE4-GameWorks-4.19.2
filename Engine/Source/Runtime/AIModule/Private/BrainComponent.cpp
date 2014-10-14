@@ -177,7 +177,7 @@ FString FAIMessageObserver::DescribeObservedMessage() const
 //////////////////////////////////////////////////////////////////////////
 // Brain component
 
-UBrainComponent::UBrainComponent(const FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBrainComponent::UBrainComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bDoLogicRestartOnUnlock = false;

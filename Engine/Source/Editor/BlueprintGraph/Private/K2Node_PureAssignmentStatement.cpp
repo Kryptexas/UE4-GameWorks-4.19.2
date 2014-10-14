@@ -70,8 +70,8 @@ FString UK2Node_PureAssignmentStatement::ValuePinName = FString(TEXT("Value"));
 FString UK2Node_PureAssignmentStatement::OutputPinName = FString(TEXT("ReturnValue"));
 
 
-UK2Node_PureAssignmentStatement::UK2Node_PureAssignmentStatement(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_PureAssignmentStatement::UK2Node_PureAssignmentStatement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

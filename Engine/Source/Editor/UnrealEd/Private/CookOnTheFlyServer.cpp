@@ -395,8 +395,8 @@ void LogCookerMessage( const FString& MessageText, EMessageSeverity::Type Severi
 /* UCookOnTheFlyServer structors
  *****************************************************************************/
 
-UCookOnTheFlyServer::UCookOnTheFlyServer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP),
+UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer),
 	CurrentCookMode(ECookMode::CookOnTheFly),
 	CookByTheBookOptions(NULL),
 	CookFlags(ECookInitializationFlags::None),

@@ -7,8 +7,8 @@
 /////////////////////////////////////////////////////
 // UOverlay
 
-UOverlay::UOverlay(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOverlay::UOverlay(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
 

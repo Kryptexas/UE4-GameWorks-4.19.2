@@ -2,8 +2,8 @@
 
 #include "UnrealEd.h"
 
-USoundWaveThumbnailRenderer::USoundWaveThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundWaveThumbnailRenderer::USoundWaveThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

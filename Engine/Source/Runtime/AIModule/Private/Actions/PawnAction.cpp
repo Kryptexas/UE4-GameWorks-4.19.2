@@ -16,8 +16,8 @@ namespace
 	}
 }
 
-UPawnAction::UPawnAction(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPawnAction::UPawnAction(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, AbortState(EPawnActionAbortState::NeverStarted)
 	, FinishResult(EPawnActionResult::NotStarted)
 {

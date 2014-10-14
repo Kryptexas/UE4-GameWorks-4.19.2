@@ -22,8 +22,8 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 
 //////////////////////////////////////////////////////////////////////////
 
-UMaterialInterface::UMaterialInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{

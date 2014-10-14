@@ -34,8 +34,8 @@ void FDeferredDecalProxy::SetTransform(const FTransform& InComponentToWorld)
 	ComponentTrans = InComponentToWorld;
 }
 
-UDecalComponent::UDecalComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UDecalComponent::UDecalComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

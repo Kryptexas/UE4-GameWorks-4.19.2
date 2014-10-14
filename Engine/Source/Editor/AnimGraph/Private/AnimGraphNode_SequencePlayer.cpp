@@ -50,8 +50,8 @@ public:
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SequencePlayer
 
-UAnimGraphNode_SequencePlayer::UAnimGraphNode_SequencePlayer(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimGraphNode_SequencePlayer::UAnimGraphNode_SequencePlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -9,8 +9,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
-UParticleSystemThumbnailRenderer::UParticleSystemThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UParticleSystemThumbnailRenderer::UParticleSystemThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

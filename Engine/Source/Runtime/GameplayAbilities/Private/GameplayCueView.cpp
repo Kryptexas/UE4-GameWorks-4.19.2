@@ -14,8 +14,8 @@
 #include "GameplayCueActor.h"
 #include "AbilitySystemComponent.h"
 
-UGameplayCueView::UGameplayCueView(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayCueView::UGameplayCueView(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 }

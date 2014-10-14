@@ -4,8 +4,8 @@
 #include "GameFramework/TouchInterface.h"
 #include "Slate.h"
 
-UTouchInterface::UTouchInterface(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTouchInterface::UTouchInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// defaults
 	ActiveOpacity = 1.0f;

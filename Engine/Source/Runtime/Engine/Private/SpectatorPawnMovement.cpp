@@ -8,8 +8,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 
-USpectatorPawnMovement::USpectatorPawnMovement(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USpectatorPawnMovement::USpectatorPawnMovement(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	MaxSpeed = 1200.f;
 	Acceleration = 4000.f;

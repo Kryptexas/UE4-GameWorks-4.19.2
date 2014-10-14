@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
 
-UEnvQueryItemType_Point::UEnvQueryItemType_Point(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryItemType_Point::UEnvQueryItemType_Point(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FVector);
 }

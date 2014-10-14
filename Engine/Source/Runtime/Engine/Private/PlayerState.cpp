@@ -8,8 +8,8 @@
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
 
-APlayerState::APlayerState(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP
+APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer
 		.DoNotCreateDefaultSubobject(TEXT("Sprite")) )
 {
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);

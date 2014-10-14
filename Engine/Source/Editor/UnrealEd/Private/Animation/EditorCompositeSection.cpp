@@ -8,8 +8,8 @@
 
 
 
-UEditorCompositeSection::UEditorCompositeSection(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UEditorCompositeSection::UEditorCompositeSection(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SectionIndex = INDEX_NONE;

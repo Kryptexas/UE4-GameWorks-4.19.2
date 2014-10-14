@@ -5,14 +5,14 @@
 #include "Engine/TextRenderActor.h"
 #include "LocalVertexFactory.h"
 
-ATextRenderActor::ATextRenderActor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ATextRenderActor::ATextRenderActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	TextRender = PCIP.CreateDefaultSubobject<UTextRenderComponent>(this, TEXT("NewTextRenderComponent"));
+	TextRender = ObjectInitializer.CreateDefaultSubobject<UTextRenderComponent>(this, TEXT("NewTextRenderComponent"));
 	RootComponent = TextRender;
 
 #if WITH_EDITORONLY_DATA
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
@@ -726,8 +726,8 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 
 // ------------------------------------------------------
 
-UTextRenderComponent::UTextRenderComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextRenderComponent::UTextRenderComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics

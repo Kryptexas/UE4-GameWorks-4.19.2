@@ -3,8 +3,8 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineSessionInterface.h"
 
-APartyBeaconClient::APartyBeaconClient(const class FPostConstructInitializeProperties& PCIP) :
-	Super(PCIP),
+APartyBeaconClient::APartyBeaconClient(const FObjectInitializer& ObjectInitializer) :
+	Super(ObjectInitializer),
 	bPendingReservationSent(false),
 	bCancelReservation(false)
 {

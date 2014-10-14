@@ -10,8 +10,8 @@
 //----------------------------------------------------------------------//
 // ALogVisualizerHUD
 //----------------------------------------------------------------------//
-ALogVisualizerHUD::ALogVisualizerHUD(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ALogVisualizerHUD::ALogVisualizerHUD(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bHidden = false;
 

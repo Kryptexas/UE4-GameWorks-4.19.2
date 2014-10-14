@@ -4,7 +4,7 @@
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Actor.h"
 
-UEnvQueryContext_Querier::UEnvQueryContext_Querier(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UEnvQueryContext_Querier::UEnvQueryContext_Querier(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
 

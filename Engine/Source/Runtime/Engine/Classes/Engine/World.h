@@ -982,7 +982,7 @@ public:
 	/**
 	 * UWorld default constructor
 	 */
-	UWorld( const class FPostConstructInitializeProperties& PCIP );
+	UWorld( const FObjectInitializer& ObjectInitializer );
 
 	/**
 	 * UWorld constructor called at game startup and when creating a new world in the Editor.
@@ -990,7 +990,7 @@ public:
 	 *
 	 * @param	InURL	URL associated with this world.
 	 */
-	UWorld( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL );
+	UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL );
 	
 	// LINE TRACE
 

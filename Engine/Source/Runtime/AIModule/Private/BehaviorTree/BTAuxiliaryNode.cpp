@@ -3,7 +3,7 @@
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BTAuxiliaryNode.h"
 
-UBTAuxiliaryNode::UBTAuxiliaryNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTAuxiliaryNode::UBTAuxiliaryNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	bNotifyBecomeRelevant = false;
 	bNotifyCeaseRelevant = false;

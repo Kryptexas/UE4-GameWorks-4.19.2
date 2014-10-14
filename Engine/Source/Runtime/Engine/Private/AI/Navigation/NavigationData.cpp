@@ -93,8 +93,8 @@ FSupportedAreaData::FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass, int32
 //----------------------------------------------------------------------//
 // ANavigationData                                                                
 //----------------------------------------------------------------------//
-ANavigationData::ANavigationData(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bEnableDrawing(false)
 	, bRebuildAtRuntime(false)
 	, DataVersion(NAVMESHVER_LATEST)

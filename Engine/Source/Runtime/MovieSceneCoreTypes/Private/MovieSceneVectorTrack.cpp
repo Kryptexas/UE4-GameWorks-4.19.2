@@ -6,8 +6,8 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneVectorTrackInstance.h"
 
-UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	NumChannelsUsed = 0;
 }

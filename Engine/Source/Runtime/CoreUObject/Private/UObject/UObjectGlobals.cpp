@@ -471,7 +471,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 			}
 			else
 			{
-				Result = new( InOuter, NewPackageName, RF_Public )UPackage(FPostConstructInitializeProperties());
+				Result = new( InOuter, NewPackageName, RF_Public )UPackage(FObjectInitializer());
 			}
 		}
 	}
@@ -1810,19 +1810,19 @@ void UObject::PostInitProperties()
 #endif
 }
 
-UObject::UObject(const class FPostConstructInitializeProperties& PCIP)
+UObject::UObject(const FObjectInitializer& ObjectInitializer)
 {
-	check(!PCIP.Obj || PCIP.Obj == this);
-	const_cast<FPostConstructInitializeProperties&>(PCIP).Obj = this;
-	const_cast<FPostConstructInitializeProperties&>(PCIP).FinalizeSubobjectClassInitialization();
+	check(!ObjectInitializer.Obj || ObjectInitializer.Obj == this);
+	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;
+	const_cast<FObjectInitializer&>(ObjectInitializer).FinalizeSubobjectClassInitialization();
 }
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
 static int32 GIsInConstructor = 0;
-/* Object that is currently being constructed with PCIP */
+/* Object that is currently being constructed with ObjectInitializer */
 static UObject* GConstructedObject = NULL;
 
-FPostConstructInitializeProperties::FPostConstructInitializeProperties() :
+FObjectInitializer::FObjectInitializer() :
 	Obj(NULL),
 	ObjectArchetype(NULL),
 	bCopyTransientsFromClassDefaults(false),
@@ -1836,7 +1836,7 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties() :
 	GConstructedObject = Obj;
 }	
 
-FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph) :
+FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph) :
 	Obj(InObj),
 	ObjectArchetype(InObjectArchetype),
 	// if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
@@ -1854,7 +1854,7 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* 
 /**
  * Destructor for internal class to finalize UObject creation (initialize properties) after the real C++ constructor is called.
  **/
-FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
+FObjectInitializer::~FObjectInitializer()
 {
 	// Let the FObjectFinders know we left the constructor.
 	GIsInConstructor--;
@@ -1947,7 +1947,7 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 				UObject* PropertyValue = ObjProp->GetObjectPropertyValue(ObjProp->ContainerPtrToValuePtr<void>(Obj));
 				if (!FSubobjectPtr::IsInitialized(PropertyValue))
 				{
-					UE_LOG(LogUObjectGlobals, Fatal, TEXT("%s must be initialized in the constructor (at least to NULL) by calling PCIP.CreateDefaultSubobject"), *ObjProp->GetFullName() );
+					UE_LOG(LogUObjectGlobals, Fatal, TEXT("%s must be initialized in the constructor (at least to NULL) by calling ObjectInitializer.CreateDefaultSubobject"), *ObjProp->GetFullName() );
 				}
 				else if (PropertyValue && P->HasAnyPropertyFlags(CPF_Transient))
 				{
@@ -1971,12 +1971,12 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 	}
 }
 
-bool FPostConstructInitializeProperties::IsInstancingAllowed() const
+bool FObjectInitializer::IsInstancingAllowed() const
 {
 	return (InstanceGraph == NULL) || InstanceGraph->IsSubobjectInstancingEnabled();
 }
 
-bool FPostConstructInitializeProperties::InitSubobjectProperties(bool bAllowInstancing) const
+bool FObjectInitializer::InitSubobjectProperties(bool bAllowInstancing) const
 {
 	bool bNeedSubobjectInstancing = false;
 	// initialize any subobjects, now that the constructors have run
@@ -1994,7 +1994,7 @@ bool FPostConstructInitializeProperties::InitSubobjectProperties(bool bAllowInst
 	return bNeedSubobjectInstancing;
 }
 
-void FPostConstructInitializeProperties::InstanceSubobjects(UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing) const
+void FObjectInitializer::InstanceSubobjects(UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing) const
 {
 	FObjectInstancingGraph TempInstancingGraph;
 	FObjectInstancingGraph* UseInstancingGraph = InstanceGraph ? InstanceGraph : &TempInstancingGraph;
@@ -2024,7 +2024,7 @@ void FPostConstructInitializeProperties::InstanceSubobjects(UClass* Class, bool 
 	}
 }
 
-UClass* FPostConstructInitializeProperties::GetClass() const
+UClass* FObjectInitializer::GetClass() const
 {
 	return Obj->GetClass();
 }
@@ -2042,14 +2042,14 @@ void FSubobjectPtr::Set(UObject* InObject)
 }
 
 // Binary initialize object properties to zero or defaults.
-void FPostConstructInitializeProperties::InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults)
+void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults)
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitProperties);
 
 	check(DefaultsClass && Obj);
 
 	UClass* Class = Obj->GetClass();
-	// bool to indicate that we need to initialize any non-native properties (native ones were done when the native constructor was called by the code that created and passed in a FPostConstructInitializeProperties object)
+	// bool to indicate that we need to initialize any non-native properties (native ones were done when the native constructor was called by the code that created and passed in a FObjectInitializer object)
 	bool bNeedInitialize = !Class->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
 
 	if (Obj->HasAnyFlags(RF_NeedLoad))
@@ -2105,7 +2105,7 @@ void FPostConstructInitializeProperties::InitProperties(UObject* Obj, UClass* De
 	}
 }
 
-bool FPostConstructInitializeProperties::IslegalOverride(FName InComponentName, class UClass *DerivedComponentClass, class UClass *BaseComponentClass) const
+bool FObjectInitializer::IslegalOverride(FName InComponentName, class UClass *DerivedComponentClass, class UClass *BaseComponentClass) const
 {
 	if (DerivedComponentClass && BaseComponentClass && !DerivedComponentClass->IsChildOf(BaseComponentClass) )
 	{
@@ -2116,7 +2116,7 @@ bool FPostConstructInitializeProperties::IslegalOverride(FName InComponentName, 
 	return true;
 }
 
-void FPostConstructInitializeProperties::AssertIfSubobjectSetupIsNotAllowed(const TCHAR* SubobjectName) const
+void FObjectInitializer::AssertIfSubobjectSetupIsNotAllowed(const TCHAR* SubobjectName) const
 {
 	UE_CLOG(!bSubobjectClassInitializationAllowed, LogUObjectGlobals, Fatal,
 		TEXT("%s.%s: Subobject class setup is only allowed in base class constructor call (in the initialization list)"), Obj ? *Obj->GetFullName() : TEXT("NULL"), SubobjectName);
@@ -2152,7 +2152,7 @@ UObject* StaticConstructObject
 	if (!bRecycledSubobject)
 	{		
 		FScopeCycleCounterUObject ConstructorScope(Result);
-		(*InClass->ClassConstructor)( FPostConstructInitializeProperties(Result, InTemplate, bCopyTransientsFromClassDefaults, true, InInstanceGraph) );
+		(*InClass->ClassConstructor)( FObjectInitializer(Result, InTemplate, bCopyTransientsFromClassDefaults, true, InInstanceGraph) );
 	}
 	
 	if( GIsEditor && GUndo && (InFlags & RF_Transactional) && !(InFlags & RF_NeedLoad) && !InClass->IsChildOf(UField::StaticClass()) )
@@ -2165,7 +2165,7 @@ UObject* StaticConstructObject
 	return Result;
 }
 
-void FPostConstructInitializeProperties::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
+void FObjectInitializer::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
 {
 	UE_CLOG(GIsInConstructor && Outer == GConstructedObject, LogUObjectGlobals, Fatal, TEXT("%s"), ErrorMessage);
 }
@@ -2528,7 +2528,7 @@ UScriptStruct* GetFallbackStruct()
 	return FallbackStruct;
 }
 
-UObject* FPostConstructInitializeProperties::CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient) const
+UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient) const
 {
 	if (SubobjectFName == NAME_None)
 	{

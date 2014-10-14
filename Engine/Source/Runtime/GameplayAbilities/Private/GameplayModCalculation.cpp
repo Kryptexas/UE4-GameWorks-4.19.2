@@ -11,8 +11,8 @@ FGameplayModCalculationSpecHandle FGameplayModCalculationSpecHandle::GenerateNew
 	return NewHandle;
 }
 
-UGameplayModCalculation::UGameplayModCalculation(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UGameplayModCalculation::UGameplayModCalculation(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 
 }

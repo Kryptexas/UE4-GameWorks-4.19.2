@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 
-UThumbnailRenderer::UThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UThumbnailRenderer::UThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

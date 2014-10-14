@@ -3,8 +3,8 @@
 #include "EnginePrivate.h"
 #include "HeadMountedDisplay.h"
 
-UHeadMountedDisplayFunctionLibrary::UHeadMountedDisplayFunctionLibrary(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UHeadMountedDisplayFunctionLibrary::UHeadMountedDisplayFunctionLibrary(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

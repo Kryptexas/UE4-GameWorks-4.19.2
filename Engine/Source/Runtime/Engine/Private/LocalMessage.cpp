@@ -14,7 +14,7 @@ FClientReceiveData::FClientReceiveData()
 	
 }
 
-ULocalMessage::ULocalMessage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULocalMessage::ULocalMessage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }

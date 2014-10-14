@@ -23,8 +23,8 @@ UObject* FWidgetAnimationBinding::FindRuntimeObject( UWidgetTree& WidgetTree ) c
 	return FoundObject;
 }
 
-UWidgetAnimation::UWidgetAnimation(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UWidgetAnimation::UWidgetAnimation(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -21,8 +21,8 @@ void FBranchingPoint::RefreshTriggerOffset(EAnimEventTriggerOffsets::Type Predic
 
 ///////////////////////////////////////////////////////////////////////////
 //
-UAnimMontage::UAnimMontage(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bAnimBranchingPointNeedsSort = true;
 	BlendInTime = 0.25f;

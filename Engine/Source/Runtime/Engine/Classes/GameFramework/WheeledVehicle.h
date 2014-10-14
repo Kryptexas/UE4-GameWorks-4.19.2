@@ -19,10 +19,10 @@ class ENGINE_API AWheeledVehicle : public APawn
 	UPROPERTY(Category=Vehicle, VisibleDefaultsOnly, BlueprintReadOnly)
 	TSubobjectPtr<class UWheeledVehicleMovementComponent> VehicleMovement;
 
-	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
+	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName VehicleMeshComponentName;
 
-	/** Name of the VehicleMovement. Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
+	/** Name of the VehicleMovement. Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
 	static FName VehicleMovementComponentName;
 
 	/** Util to get the wheeled vehicle movement component */

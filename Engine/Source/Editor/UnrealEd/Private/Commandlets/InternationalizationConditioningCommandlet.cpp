@@ -205,8 +205,8 @@ bool UInternationalizationConditioningCommandlet::FLocalizationFilePair::HasFore
  *	UGatherTextCommandlet
  */
 
-UInternationalizationConditioningCommandlet::UInternationalizationConditioningCommandlet(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UInternationalizationConditioningCommandlet::UInternationalizationConditioningCommandlet(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

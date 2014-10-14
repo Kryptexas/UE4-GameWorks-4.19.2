@@ -4,7 +4,7 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Decorators/BTDecorator_Loop.h"
 
-UBTDecorator_Loop::UBTDecorator_Loop(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UBTDecorator_Loop::UBTDecorator_Loop(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "Loop";
 	NumLoops = 3;

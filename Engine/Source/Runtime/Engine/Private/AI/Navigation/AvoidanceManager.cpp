@@ -29,7 +29,7 @@ void FNavAvoidanceData::Init(class UAvoidanceManager* Avoidance, const FVector& 
 bool UAvoidanceManager::bSystemActive = true;
 #endif
 
-UAvoidanceManager::UAvoidanceManager(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+UAvoidanceManager::UAvoidanceManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	DefaultTimeToLive = 1.5f;
 	LockTimeAfterAvoid = 0.2f;

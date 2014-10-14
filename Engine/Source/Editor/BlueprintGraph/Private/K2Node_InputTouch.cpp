@@ -8,8 +8,8 @@
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
-UK2Node_InputTouch::UK2Node_InputTouch(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UK2Node_InputTouch::UK2Node_InputTouch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;

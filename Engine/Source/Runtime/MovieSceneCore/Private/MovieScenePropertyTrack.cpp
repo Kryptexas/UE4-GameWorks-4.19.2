@@ -4,8 +4,8 @@
 #include "MovieScenePropertyTrack.h"
 
 
-UMovieScenePropertyTrack::UMovieScenePropertyTrack( const FPostConstructInitializeProperties& PCIP )
-	: Super( PCIP )
+UMovieScenePropertyTrack::UMovieScenePropertyTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
 {
 	bSectionsAreShowable = false;
 }

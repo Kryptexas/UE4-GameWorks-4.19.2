@@ -174,8 +174,8 @@ void FBPVariableDescription::RemoveMetaData(const FName& Key)
 //////////////////////////////////////////////////////////////////////////
 // UBlueprintCore
 
-UBlueprintCore::UBlueprintCore(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprintCore::UBlueprintCore(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bLegacyGeneratedClassIsAuthoritative = false;
 	bLegacyNeedToPurgeSkelRefs = true;
@@ -266,8 +266,8 @@ void UBlueprintCore::GenerateDeterministicGuid()
 	BlueprintGuid.D = HashBuffer[ 4 ];
 }
 
-UBlueprint::UBlueprint(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 #if WITH_EDITOR
 	, bRunConstructionScriptOnDrag(true)
 	, bGenerateConstClass(false)

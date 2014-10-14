@@ -32,8 +32,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 /*------------------------------------------------------------------------------
 	UTextBufferExporterTXT implementation.
 ------------------------------------------------------------------------------*/
-UTextBufferExporterTXT::UTextBufferExporterTXT(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTextBufferExporterTXT::UTextBufferExporterTXT(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UTextBuffer::StaticClass();
 	FormatExtension.Add(TEXT("TXT"));
@@ -63,8 +63,8 @@ bool UTextBufferExporterTXT::ExportText(const FExportObjectInnerContext* Context
 /*------------------------------------------------------------------------------
 	USoundExporterWAV implementation.
 ------------------------------------------------------------------------------*/
-USoundExporterWAV::USoundExporterWAV(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundExporterWAV::USoundExporterWAV(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = USoundWave::StaticClass();
 	bText = false;
@@ -96,8 +96,8 @@ bool USoundExporterWAV::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 /*------------------------------------------------------------------------------
 	USoundExporterOGG implementation.
 ------------------------------------------------------------------------------*/
-USoundExporterOGG::USoundExporterOGG(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundExporterOGG::USoundExporterOGG(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USoundWave::StaticClass();
@@ -138,8 +138,8 @@ bool USoundExporterOGG::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 /*------------------------------------------------------------------------------
 	USoundSurroundExporterWAV implementation.
 ------------------------------------------------------------------------------*/
-USoundSurroundExporterWAV::USoundSurroundExporterWAV(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USoundSurroundExporterWAV::USoundSurroundExporterWAV(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	
 	SupportedClass = USoundWave::StaticClass();
@@ -209,8 +209,8 @@ bool USoundSurroundExporterWAV::ExportBinary( UObject* Object, const TCHAR* Type
 /*------------------------------------------------------------------------------
 	UObjectExporterT3D implementation.
 ------------------------------------------------------------------------------*/
-UObjectExporterT3D::UObjectExporterT3D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UObjectExporterT3D::UObjectExporterT3D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UObject::StaticClass();
 	bText = true;
@@ -233,8 +233,8 @@ bool UObjectExporterT3D::ExportText( const FExportObjectInnerContext* Context, U
 /*------------------------------------------------------------------------------
 	UPolysExporterT3D implementation.
 ------------------------------------------------------------------------------*/
-UPolysExporterT3D::UPolysExporterT3D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPolysExporterT3D::UPolysExporterT3D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UPolys::StaticClass();
@@ -299,8 +299,8 @@ bool UPolysExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 /*------------------------------------------------------------------------------
 	UModelExporterT3D implementation.
 ------------------------------------------------------------------------------*/
-UModelExporterT3D::UModelExporterT3D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UModelExporterT3D::UModelExporterT3D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UModel::StaticClass();
 	bText = true;
@@ -357,8 +357,8 @@ void ExporterHelper_DumpPackageInners(const FExportObjectInnerContext* Context, 
 	}
 }
 
-ULevelExporterT3D::ULevelExporterT3D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelExporterT3D::ULevelExporterT3D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UWorld::StaticClass();
 	bText = true;
@@ -537,8 +537,8 @@ void ULevelExporterT3D::ExportPackageInners(FExportPackageParams& ExpPackagePara
 /*------------------------------------------------------------------------------
 	ULevelExporterSTL implementation.
 ------------------------------------------------------------------------------*/
-ULevelExporterSTL::ULevelExporterSTL(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelExporterSTL::ULevelExporterSTL(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UWorld::StaticClass();
 	bText = true;
@@ -1310,7 +1310,7 @@ bool GenerateExportMaterialPropertyData(
 
 		if(!RenderTarget)
 		{
-			RenderTarget = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+			RenderTarget = new UTextureRenderTarget2D(FObjectInitializer());
 			check(RenderTarget);
 			RenderTarget->AddToRoot();
 			RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1838,8 +1838,8 @@ struct FCompareMaterial
 /*------------------------------------------------------------------------------
 	ULevelExporterLOD implementation.
 ------------------------------------------------------------------------------*/
-ULevelExporterLOD::ULevelExporterLOD(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelExporterLOD::ULevelExporterLOD(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UWorld::StaticClass();
@@ -1986,8 +1986,8 @@ static void ExportPolys( UPolys* Polys, int32 &PolyNum, int32 TotalPolys, FFeedb
 	}
 }
 
-ULevelExporterOBJ::ULevelExporterOBJ(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelExporterOBJ::ULevelExporterOBJ(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UWorld::StaticClass();
 	bText = true;
@@ -2092,8 +2092,8 @@ bool ULevelExporterOBJ::ExportText(const FExportObjectInnerContext* Context, UOb
 /*------------------------------------------------------------------------------
 	ULevelExporterFBX implementation.
 ------------------------------------------------------------------------------*/
-ULevelExporterFBX::ULevelExporterFBX(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+ULevelExporterFBX::ULevelExporterFBX(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UWorld::StaticClass();
@@ -2144,8 +2144,8 @@ bool ULevelExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, FArchi
 /*------------------------------------------------------------------------------
 	UPolysExporterOBJ implementation.
 ------------------------------------------------------------------------------*/
-UPolysExporterOBJ::UPolysExporterOBJ(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPolysExporterOBJ::UPolysExporterOBJ(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UPolys::StaticClass();
@@ -2188,8 +2188,8 @@ bool UPolysExporterOBJ::ExportText(const FExportObjectInnerContext* Context, UOb
 /*------------------------------------------------------------------------------
 	USequenceExporterT3D implementation.
 ------------------------------------------------------------------------------*/
-USequenceExporterT3D::USequenceExporterT3D(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USequenceExporterT3D::USequenceExporterT3D(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2201,8 +2201,8 @@ bool USequenceExporterT3D::ExportText(const FExportObjectInnerContext* Context, 
 /*------------------------------------------------------------------------------
 UStaticMeshExporterOBJ implementation.
 ------------------------------------------------------------------------------*/
-UStaticMeshExporterOBJ::UStaticMeshExporterOBJ(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshExporterOBJ::UStaticMeshExporterOBJ(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = UStaticMesh::StaticClass();
@@ -2430,8 +2430,8 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 /*------------------------------------------------------------------------------
 UStaticMeshExporterFBX implementation.
 ------------------------------------------------------------------------------*/
-UStaticMeshExporterFBX::UStaticMeshExporterFBX(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UStaticMeshExporterFBX::UStaticMeshExporterFBX(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 
@@ -2458,8 +2458,8 @@ bool UStaticMeshExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type, F
 /*------------------------------------------------------------------------------
 USkeletalMeshExporterFBX implementation.
 ------------------------------------------------------------------------------*/
-USkeletalMeshExporterFBX::USkeletalMeshExporterFBX(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+USkeletalMeshExporterFBX::USkeletalMeshExporterFBX(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 	SupportedClass = USkeletalMesh::StaticClass();
@@ -2483,8 +2483,8 @@ bool USkeletalMeshExporterFBX::ExportBinary( UObject* Object, const TCHAR* Type,
 /*------------------------------------------------------------------------------
 UAnimSequenceExporterFBX implementation.
 ------------------------------------------------------------------------------*/
-UAnimSequenceExporterFBX::UAnimSequenceExporterFBX(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UAnimSequenceExporterFBX::UAnimSequenceExporterFBX(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	SupportedClass = UAnimSequence::StaticClass();
 	bText = false;
@@ -2576,8 +2576,8 @@ void UEditorEngine::RebuildStaticNavigableGeometry(ULevel* Level)
 /*-----------------------------------------------------------------------------
 	UExportTextContainer
 -----------------------------------------------------------------------------*/
-UExportTextContainer::UExportTextContainer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UExportTextContainer::UExportTextContainer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 
@@ -2640,7 +2640,7 @@ namespace MaterialExportUtils
 			OutFlattenMaterial.DiffuseSize.Y > 0)
 		{
 			// Create temporary render target
-			UTextureRenderTarget2D* RenderTargetDiffuse = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+			UTextureRenderTarget2D* RenderTargetDiffuse = new UTextureRenderTarget2D(FObjectInitializer());
 			check(RenderTargetDiffuse);
 			RenderTargetDiffuse->AddToRoot();
 			RenderTargetDiffuse->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -2673,7 +2673,7 @@ namespace MaterialExportUtils
 			InMaterial->GetMaterial()->HasNormalConnected())
 		{
 			// Create temporary render target
-			UTextureRenderTarget2D* RenderTargetNormal = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+			UTextureRenderTarget2D* RenderTargetNormal = new UTextureRenderTarget2D(FObjectInitializer());
 			check(RenderTargetNormal);
 			RenderTargetNormal->AddToRoot();
 			RenderTargetNormal->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -2735,7 +2735,7 @@ namespace MaterialExportUtils
 			if (OutFlattenMaterial.DiffuseSize.X > 0 && 
 				OutFlattenMaterial.DiffuseSize.Y > 0)
 			{
-				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FObjectInitializer());
 				check(RenderTargetTexture);
 				RenderTargetTexture->AddToRoot();
 				RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -2816,7 +2816,7 @@ namespace MaterialExportUtils
 			if (OutFlattenMaterial.NormalSize.X > 0 && 
 				OutFlattenMaterial.NormalSize.Y > 0)
 			{
-				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FPostConstructInitializeProperties());
+				UTextureRenderTarget2D* RenderTargetTexture = new UTextureRenderTarget2D(FObjectInitializer());
 				check(RenderTargetTexture);
 				RenderTargetTexture->AddToRoot();
 				RenderTargetTexture->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
