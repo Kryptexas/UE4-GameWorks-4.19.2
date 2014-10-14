@@ -1628,6 +1628,8 @@ bool ARecastNavMesh::HasValidNavmesh() const
 	return false;
 }
 
+#if WITH_RECAST
+
 FRecastNavMeshCachedData FRecastNavMeshCachedData::Construct(const ARecastNavMesh* RecastNavMeshActor)
 {
 	check(RecastNavMeshActor);
@@ -1683,3 +1685,4 @@ void FRecastNavMeshCachedData::OnAreaAdded(const UClass* AreaClass, int32 AreaID
 	}		
 }
 
+#endif// WITH_RECAST

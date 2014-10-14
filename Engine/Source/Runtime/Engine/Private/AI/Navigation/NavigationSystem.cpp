@@ -2656,6 +2656,7 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 
 void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 {
+#if WITH_RECAST
 	const TArray<FVector>* LevelGeom = Level ? Level->GetStaticNavigableGeometry() : NULL;
 	if (LevelGeom && NavOctree)
 	{
@@ -2669,6 +2670,7 @@ void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 			AddDirtyArea(Bounds, ENavigationDirtyFlag::All);
 		}
 	}
+#endif// WITH_RECAST
 }
 
 void UNavigationSystem::RemoveLevelCollisionFromOctree(ULevel* Level)
