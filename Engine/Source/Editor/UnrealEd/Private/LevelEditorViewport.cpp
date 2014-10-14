@@ -3930,7 +3930,7 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 		FSnappingUtils::DrawSnappingHelpers( View, PDI );
 	}
 
-	if(GUnrealEd != NULL)
+	if(GUnrealEd != NULL && !IsInGameView())
 	{
 		GUnrealEd->DrawComponentVisualizers(View, PDI);
 	}
