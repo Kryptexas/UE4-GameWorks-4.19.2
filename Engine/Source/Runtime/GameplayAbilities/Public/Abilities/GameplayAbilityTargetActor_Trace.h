@@ -15,6 +15,12 @@ class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_Trace : public AGameplay
 public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	/** Traces as normal, but will manually filter all hit actors */
+	void LineTraceWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector InTraceStart, const FVector InTraceEnd, ECollisionChannel Channel, const FCollisionQueryParams Params) const;
+
+	/** Sweeps as normal, but will manually filter all hit actors */
+	void SweepWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector InTraceStart, const FVector InTraceEnd, const FQuat InRotation, ECollisionChannel Channel, const FCollisionShape CollisionShape, const FCollisionQueryParams Params) const;
+
 	virtual FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const override;
 
 	void AimWithPlayerController(AActor* InSourceActor, FCollisionQueryParams Params, FVector TraceStart, FVector& TraceEnd) const;

@@ -74,7 +74,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	{
 		TraceEnd = TraceStart = OriginalEndPoint - (LerpValue * Movement);
 		TraceEnd.Z -= 99999.0f;
-		ThisWorld->SweepSingle(LocalResult, TraceStart, TraceEnd, FQuat::Identity, TraceChannel, CollisionShape, Params);
+		SweepWithFilter(LocalResult, ThisWorld, Filter, TraceStart, TraceEnd, FQuat::Identity, TraceChannel, CollisionShape, Params);
 		if (!LocalResult.bStartPenetrating)
 		{
 			if (!LocalResult.bBlockingHit || LocalResult.Actor.IsValid())
@@ -145,19 +145,19 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 	FVector LineTraceStart = TraceStart;
 	FVector LineTraceEnd = TraceEnd;
 	//Use a line trace initially to see where the player is actually pointing
-	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, TraceChannel, Params);
+	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceChannel, Params);
 	//Default to end of trace line if we don't hit anything.
 	if (!ReturnHitResult.bBlockingHit)
 	{
 		ReturnHitResult.Location = TraceEnd;
 	}
 
-	//Second trace, straight down. Consider using InSourceActor->GetWorld()->NavigationSystem->ProjectPointToNavigation() instead of tracing in the case of movement abilities (flag/bool).
+	//Second trace, straight down. Consider using InSourceActor->GetWorld()->NavigationSystem->ProjectPointToNavigation() instead of just going straight down in the case of movement abilities (flag/bool).
 	TraceStart = ReturnHitResult.Location - (TraceEnd - TraceStart).SafeNormal();		//Pull back very slightly to avoid scraping down walls
 	TraceEnd = TraceStart;
 	TraceStart.Z += CollisionHeightOffset;
 	TraceEnd.Z -= 99999.0f;
-	InSourceActor->GetWorld()->LineTraceSingle(ReturnHitResult, TraceStart, TraceEnd, TraceChannel, Params);
+	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceChannel, Params);
 	//if (!ReturnHitResult.bBlockingHit) then our endpoint may be off the map. Hopefully this is only possible in debug maps.
 
 	bLastTraceWasGood = true;		//So far, we're good. If we need a ground spot and can't find one, we'll come back.

@@ -29,34 +29,34 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 	RootComponent = CollisionComponent;
 }
 
-void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleTurretInformation(AActor* TurretActor, UMaterialInterface *TurretMaterial)
+void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial)
 {
-	if (TurretActor)
+	if (VisualizationActor)
 	{
 		//Get components
 		TArray<UMeshComponent*> MeshComps;
 		USceneComponent* MyRoot = GetRootComponent();
-		TurretActor->GetComponents(MeshComps);
+		VisualizationActor->GetComponents(MeshComps);
 		check(MyRoot);
 
 		for (UMeshComponent* MeshComp : MeshComps)
 		{
-			//Special case: If we don't clear the root component explicitly, the component will be destroyed along with the original turret actor.
-			if (MeshComp == TurretActor->GetRootComponent())
+			//Special case: If we don't clear the root component explicitly, the component will be destroyed along with the original visualization actor.
+			if (MeshComp == VisualizationActor->GetRootComponent())
 			{
-				TurretActor->SetRootComponent(NULL);
+				VisualizationActor->SetRootComponent(NULL);
 			}
 
-			//Disable collision on turret mesh parts so it doesn't interfere with aiming or any other client-side collision/prediction/physics stuff
+			//Disable collision on visualization mesh parts so it doesn't interfere with aiming or any other client-side collision/prediction/physics stuff
 			MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);		//All mesh components are primitive components, so no cast is needed
 
 			//Move components from one actor to the other, attaching as needed. Hierarchy should not be important, but we can do fixups if it becomes important later.
 			MeshComp->DetachFromParent();
 			MeshComp->AttachTo(MyRoot);
 			MeshComp->Rename(nullptr, this);
-			if (TurretMaterial)
+			if (VisualizationMaterial)
 			{
-				MeshComp->SetMaterial(0, TurretMaterial);
+				MeshComp->SetMaterial(0, VisualizationMaterial);
 			}
 		}
 	}

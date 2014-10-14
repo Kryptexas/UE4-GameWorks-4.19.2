@@ -7,7 +7,7 @@
 
 class AGameplayAbilityTargetActor;
 
-/** This is a dummy reticle for internal use by turret placement tasks. It builds a custom visual model of the turret being placed. */
+/** This is a dummy reticle for internal use by visualization placement tasks. It builds a custom visual model of the visualization being placed. */
 UCLASS(notplaceable)
 class AGameplayAbilityWorldReticle_ActorVisualization : public AGameplayAbilityWorldReticle
 {
@@ -15,14 +15,14 @@ class AGameplayAbilityWorldReticle_ActorVisualization : public AGameplayAbilityW
 
 public:
 
-	void InitializeReticleTurretInformation(AActor* TurretActor, UMaterialInterface *TurretMaterial);
+	void InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
 
-	/** Hardcoded collision component, so other objects don't think they can collide with the visualization turret */
+	/** Hardcoded collision component, so other objects don't think they can collide with the visualization actor */
 	UPROPERTY()
 	TSubobjectPtr<class UCapsuleComponent> CollisionComponent;
 
 	UPROPERTY()
-	TArray<UActorComponent*> TurretComponents;
+	TArray<UActorComponent*> VisualizationComponents;
 
 	/** Overridable function called whenever this actor is being removed from a level */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);

@@ -29,11 +29,11 @@ void AGameplayAbilityTargetActor_ActorPlacement::EndPlay(const EEndPlayReason::T
 void AGameplayAbilityTargetActor_ActorPlacement::StartTargeting(UGameplayAbility* InAbility)
 {
 	Super::StartTargeting(InAbility);
-	if (AActor *TurretActor = GetWorld()->SpawnActor(PlacedActorClass))
+	if (AActor *VisualizationActor = GetWorld()->SpawnActor(PlacedActorClass))
 	{
 		ActorVisualizationReticle = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle_ActorVisualization>();
-		ActorVisualizationReticle->InitializeReticleTurretInformation(TurretActor, PlacedActorMaterial);
-		GetWorld()->DestroyActor(TurretActor);
+		ActorVisualizationReticle->InitializeReticleVisualizationInformation(VisualizationActor, PlacedActorMaterial);
+		GetWorld()->DestroyActor(VisualizationActor);
 	}
 	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())
 	{
