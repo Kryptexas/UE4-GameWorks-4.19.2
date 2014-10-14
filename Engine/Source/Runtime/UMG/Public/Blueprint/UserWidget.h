@@ -210,13 +210,6 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category="User Interface", meta=(Keywords="Begin Play"))
 	void Construct();
 
-	/**
-	 * Whenever the underlying slate widgets are torn down.  This is called to allow you to do any last minute
-	 * destruction work.
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category="User Interface", meta=(Keywords="End Play"))
-	void Destruct();
-
 	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
 

@@ -78,12 +78,6 @@ void UUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
-	if ( !HasAnyFlags(RF_ClassDefaultObject) )
-	{
-		// Notify the blueprint that it's been removed from the slate hierarchy.
-		//Destruct();
-	}
-
 	UWidget* RootWidget = GetRootWidgetComponent();
 	if ( RootWidget )
 	{
@@ -170,11 +164,6 @@ void UUserWidget::SetIsDesignTime(bool bInDesignTime)
 }
 
 void UUserWidget::Construct_Implementation()
-{
-
-}
-
-void UUserWidget::Destruct_Implementation()
 {
 
 }
