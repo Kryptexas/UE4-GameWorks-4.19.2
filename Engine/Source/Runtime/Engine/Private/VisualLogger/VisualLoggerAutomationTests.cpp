@@ -262,7 +262,7 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags.Num() == 1);
 	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags[EventTag1] == 1);
 
-	CurrentTimestamp = GWorld->TimeSeconds + 0.2;
+	CurrentTimestamp = GWorld->TimeSeconds + 0.3;
 	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp); //generate new entry and serialize old one
 	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag1, EventTag2, EventTag3);
 	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag3);
