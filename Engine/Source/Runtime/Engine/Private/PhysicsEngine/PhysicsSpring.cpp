@@ -5,8 +5,8 @@
 #include "PhysXSupport.h"
 
 
-UPhysicsSpringComponent::UPhysicsSpringComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UPhysicsSpringComponent::UPhysicsSpringComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PreCloth;
