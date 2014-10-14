@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "SPropertyBinding.h"
+#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
