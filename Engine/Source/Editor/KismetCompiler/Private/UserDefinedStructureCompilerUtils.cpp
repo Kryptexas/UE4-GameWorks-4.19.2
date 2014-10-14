@@ -137,6 +137,7 @@ struct FUserDefinedStructureCompilerInner
 			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Struct, VarDesc.VarName, VarType, NULL, 0, Schema, MessageLog);
 			if (NewProperty != NULL)
 			{
+				NewProperty->SetFlags(RF_LoadCompleted);
 				FKismetCompilerUtilities::LinkAddedProperty(Struct, NewProperty);
 			}
 			else
