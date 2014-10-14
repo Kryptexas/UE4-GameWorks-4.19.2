@@ -227,6 +227,11 @@ FString MakeJsonString( const FString& String )
 		default: OutString += *Char;
 		}
 	}
+
+	OutString = OutString.Replace(TEXT("\xD7"), TEXT("&times;"));
+	OutString = OutString.Replace(TEXT("\xF7"), TEXT("&divide;"));
+	OutString = OutString.Replace(TEXT("\x2022"), TEXT("&middot;"));
+
 	return OutString;
 }
 
