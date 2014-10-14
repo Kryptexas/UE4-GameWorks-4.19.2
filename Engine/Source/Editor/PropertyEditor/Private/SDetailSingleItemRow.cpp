@@ -5,6 +5,7 @@
 #include "DetailItemNode.h"
 #include "PropertyEditorHelpers.h"
 #include "IDetailKeyframeHandler.h"
+#include "IDetailPropertyExtensionHandler.h"
 
 namespace DetailWidgetConstants
 {
@@ -96,6 +97,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				Row.ValueWidget.Widget
 			];
 
+		ValueWidget = CreateExtensionWidget(ValueWidget.ToSharedRef(), *Customization, InOwnerTreeNode );
+
 		if( Row.IsEnabledAttr.IsBound() )
 		{
 			ValueWidget->SetEnabled( Row.IsEnabledAttr );
@@ -144,6 +147,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.OnSlotResized( ColumnSizeData.OnWidthChanged )
 				[
 					SNew( SHorizontalBox )
+
 					+ SHorizontalBox::Slot()
 					.Padding( DetailWidgetConstants::RightRowPadding )
 					.HAlign( Row.ValueWidget.HorizontalAlignment )
@@ -298,6 +302,40 @@ const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle");
 	}
+}
+
+TSharedRef<SWidget> SDetailSingleItemRow::CreateExtensionWidget(TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode)
+{
+	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
+	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
+
+	if ( ExtensionHandler.IsValid() )
+	{
+		if ( InCustomization.HasPropertyNode() && ExtensionHandler.IsValid() )
+		{
+			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+
+			UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
+			if ( ExtensionHandler->IsPropertyExtenable(ObjectClass, *Handle) )
+			{
+				ValueWidget = SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						ValueWidget
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
+					];
+			}
+		}
+	}
+
+	return ValueWidget;
 }
 
 TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode )

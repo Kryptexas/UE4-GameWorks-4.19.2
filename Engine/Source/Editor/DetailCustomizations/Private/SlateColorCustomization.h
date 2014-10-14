@@ -2,7 +2,9 @@
 
 #pragma once
 
-class FSlateColorCustomization : public IPropertyTypeCustomization
+#include "MathStructCustomizations.h"
+
+class FSlateColorCustomization : public FColorStructCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
@@ -10,7 +12,7 @@ public:
 	/** IPropertyTypeCustomization interface */
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
+	virtual void MakeHeaderRow(TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row) override;
 
 private:
 
@@ -24,6 +26,9 @@ private:
 	void HandleForegroundChanged(ESlateCheckBoxState::Type CheckedState);
 
 private:
+
+	/** slate color struct handle */
+	TSharedPtr<IPropertyHandle> StructPropertyHandle;
 
 	TSharedPtr<IPropertyHandle> ColorRuleHandle;
 	TSharedPtr<IPropertyHandle> SpecifiedColorHandle;

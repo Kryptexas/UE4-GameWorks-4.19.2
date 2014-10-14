@@ -39,7 +39,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
 	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector4, FGetVector4);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
@@ -341,7 +341,7 @@ protected:
 	TWeakPtr<SWidget> MyWidget;
 
 	/** The underlying SWidget contained in a SObjectWidget */
-	TWeakPtr<SWidget> MyGCWidget;
+	TWeakPtr<class SObjectWidget> MyGCWidget;
 	
 	/** Is this widget being displayed on a designer surface */
 	UPROPERTY(Transient)

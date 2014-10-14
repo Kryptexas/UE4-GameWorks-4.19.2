@@ -29,6 +29,7 @@ private:
 	void OnPasteProperty();
 	bool CanPasteProperty() const;
 	const FSlateBrush* GetBorderImage() const;
+	TSharedRef<SWidget> CreateExtensionWidget( TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode );
 	TSharedRef<SWidget> CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode );
 	FReply OnAddKeyframeClicked();
 	bool IsHighlighted() const;

@@ -112,6 +112,7 @@ UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="U
 class UMG_API UUserWidget : public UWidget, public INamedSlotInterface
 {
 	GENERATED_UCLASS_BODY()
+
 public:
 	//UObject interface
 	virtual void PostInitProperties() override;
@@ -125,6 +126,10 @@ public:
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	// End of UVisual interface
+
+	// UWidget interface
+	virtual void SynchronizeProperties() override;
+	// End of UWidget interface
 
 	// UNamedSlotInterface Begin
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const override;
@@ -198,9 +203,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Player")
 	class APawn* GetOwningPlayerPawn() const;
 
-	/** Called when the widget is constructed */
+	/**
+	 * Called after the underlying slate widget is constructed.  Depending on how the slate object is used
+	 * this event may be called multiple times due to adding and removing from the hierarchy.
+	 */
 	UFUNCTION(BlueprintNativeEvent, Category="User Interface", meta=(Keywords="Begin Play"))
 	void Construct();
+
+	/**
+	 * Whenever the underlying slate widgets are torn down.  This is called to allow you to do any last minute
+	 * destruction work.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category="User Interface", meta=(Keywords="End Play"))
+	void Destruct();
 
 	UFUNCTION(BlueprintNativeEvent, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
@@ -281,6 +296,14 @@ public:
 
 	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetForegroundColor(FSlateColor InForegroundColor);
+
 	/**
 	 * Plays an animation in this widget
 	 * 
@@ -334,6 +357,21 @@ public:
 #endif
 
 public:
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Style")
+	FLinearColor ColorAndOpacity;
+
+	/**  */
+	UPROPERTY()
+	FGetLinearColor ColorAndOpacityDelegate;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Style")
+	FSlateColor ForegroundColor;
+
+	/**  */
+	UPROPERTY()
+	FGetSlateColor ForegroundColorDelegate;
 
 	/** Called when the visibility changes. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
@@ -391,9 +429,8 @@ private:
 
 	FLocalPlayerContext PlayerContext;
 
+	/** Has this widget been initialized by its class yet? */
 	bool bInitialized;
-
-	mutable UWorld* CachedWorld;
 };
 
 template< class T >

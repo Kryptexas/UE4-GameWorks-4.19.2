@@ -34,7 +34,7 @@ public:
 
 	/** A bindable delegate for the ColorAndOpacity. */
 	UPROPERTY()
-	FGetSlateColor ColorAndOpacityDelegate;
+	FGetLinearColor ColorAndOpacityDelegate;
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;

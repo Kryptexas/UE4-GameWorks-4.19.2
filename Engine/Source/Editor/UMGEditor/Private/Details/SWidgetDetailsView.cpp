@@ -8,6 +8,7 @@
 #include "Kismet2NameValidators.h"
 #include "ISequencer.h"
 #include "Animation/UMGDetailKeyframeHandler.h"
+#include "DetailWidgetExtensionHandler.h"
 #include "EditorClassUtils.h"
 
 #include "Customizations/SlateBrushCustomization.h"
@@ -38,6 +39,10 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 	// Create a handler for keyframing via the details panel
 	TSharedRef<IDetailKeyframeHandler> KeyframeHandler = MakeShareable( new FUMGDetailKeyframeHandler( InBlueprintEditor ) );
 	PropertyView->SetKeyframeHandler( KeyframeHandler );
+
+	// Create a handler for property binding via the details panel
+	TSharedRef<FDetailWidgetExtensionHandler> BindingHandler = MakeShareable( new FDetailWidgetExtensionHandler( InBlueprintEditor ) );
+	PropertyView->SetExtensionHandler(BindingHandler);
 
 	ChildSlot
 	[

@@ -365,7 +365,7 @@ void FBlueprintWidgetCustomization::PerformBindingCustomization(IDetailLayoutBui
 			{
 				if ( DelegateProperty->GetName().EndsWith(TEXT("Delegate")) )
 				{
-					CreateDelegateCustomization(DetailLayout, DelegateProperty, Widget);
+					//CreateDelegateCustomization(DetailLayout, DelegateProperty, Widget);
 				}
 				else if ( DelegateProperty->GetName().EndsWith(TEXT("Event")) )
 				{

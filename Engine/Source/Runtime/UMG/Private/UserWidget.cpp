@@ -21,9 +21,9 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	Visiblity = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
-	CachedWorld = NULL;
-
 	bSupportsKeyboardFocus = true;
+	ColorAndOpacity = FLinearColor::White;
+	ForegroundColor = FSlateColor::UseForeground();
 
 #if WITH_EDITORONLY_DATA
 	bUseDesignTimeSize = false;
@@ -78,10 +78,53 @@ void UUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
+	if ( !HasAnyFlags(RF_ClassDefaultObject) )
+	{
+		// Notify the blueprint that it's been removed from the slate hierarchy.
+		//Destruct();
+	}
+
 	UWidget* RootWidget = GetRootWidgetComponent();
 	if ( RootWidget )
 	{
 		RootWidget->ReleaseSlateResources(bReleaseChildren);
+	}
+}
+
+void UUserWidget::SynchronizeProperties()
+{
+	Super::SynchronizeProperties();
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		TAttribute<FLinearColor> ColorBinding = OPTIONAL_BINDING(FLinearColor, ColorAndOpacity);
+		TAttribute<FSlateColor> ForegroundColorBinding = OPTIONAL_BINDING(FSlateColor, ForegroundColor);
+
+		SafeGCWidget->SetColorAndOpacity(ColorBinding);
+		SafeGCWidget->SetForegroundColor(ForegroundColorBinding);
+	}
+}
+
+void UUserWidget::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+{
+	ColorAndOpacity = InColorAndOpacity;
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->SetColorAndOpacity(ColorAndOpacity);
+	}
+}
+
+void UUserWidget::SetForegroundColor(FSlateColor InForegroundColor)
+{
+	ForegroundColor = InForegroundColor;
+
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->SetForegroundColor(ForegroundColor);
 	}
 }
 
@@ -127,6 +170,11 @@ void UUserWidget::SetIsDesignTime(bool bInDesignTime)
 }
 
 void UUserWidget::Construct_Implementation()
+{
+
+}
+
+void UUserWidget::Destruct_Implementation()
 {
 
 }

@@ -143,6 +143,9 @@ public:
 	virtual void SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler ) override;
 	virtual TSharedPtr<IDetailKeyframeHandler> GetKeyframeHandler() override;
 
+	virtual void SetExtensionHandler(TSharedPtr<class IDetailPropertyExtensionHandler> InExtensionHandler);
+	virtual TSharedPtr<IDetailPropertyExtensionHandler> GetExtensionHandler();
+
 	/**
 	 * Requests that an item in the tree be expanded or collapsed
 	 *
@@ -424,7 +427,11 @@ protected:
 	/** Root tree node that needs to be destroyed when safe */
 	TSharedPtr<FComplexPropertyNode> RootNodePendingKill;
 
+	/** The handler for the keyframe UI, determines if the key framing UI should be displayed. */
 	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler;
+
+	/** Property extension handler returns additional UI to apply after the customization is applied to the property. */
+	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler;
 
 	/** External property nodes which need to validated each tick */
 	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;

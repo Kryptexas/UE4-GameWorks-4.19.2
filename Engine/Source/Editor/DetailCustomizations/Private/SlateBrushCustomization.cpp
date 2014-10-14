@@ -1039,7 +1039,7 @@ private:
 	static float TargetHeight;
 };
 
-float SSlateBrushStaticPreview::TargetHeight = 40.f;
+float SSlateBrushStaticPreview::TargetHeight = 18.0f;
 
 // SBrushResourceObjectBox
 ////////////////////////////////////////////////////////////////////////////////

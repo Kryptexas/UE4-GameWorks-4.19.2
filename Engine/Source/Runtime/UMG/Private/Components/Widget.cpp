@@ -244,7 +244,7 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 		// Otherwise we need to recreate the wrapper widget
 		else
 		{
-			TSharedPtr<SWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
+			TSharedPtr<SObjectWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
 				[
 					SafeWidget.ToSharedRef()
 				];

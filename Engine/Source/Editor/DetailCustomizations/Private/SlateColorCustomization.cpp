@@ -8,30 +8,30 @@ TSharedRef<IPropertyTypeCustomization> FSlateColorCustomization::MakeInstance()
 	return MakeShareable( new FSlateColorCustomization() );
 }
 
-void FSlateColorCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FSlateColorCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& InHeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	static const FName ColorUseRuleKey(TEXT("ColorUseRule"));
 	static const FName SpecifiedColorKey(TEXT("SpecifiedColor"));
 
-	ColorRuleHandle = StructPropertyHandle->GetChildHandle(ColorUseRuleKey);
-	SpecifiedColorHandle = StructPropertyHandle->GetChildHandle(SpecifiedColorKey);
+	StructPropertyHandle = InStructPropertyHandle;
+
+	ColorRuleHandle = InStructPropertyHandle->GetChildHandle(ColorUseRuleKey);
+	SpecifiedColorHandle = InStructPropertyHandle->GetChildHandle(SpecifiedColorKey);
 
 	check(ColorRuleHandle.IsValid());
 	check(SpecifiedColorHandle.IsValid());
+
+	ColorRuleHandle->MarkHiddenByCustomization();
+	SpecifiedColorHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(SharedThis(this), &FSlateColorCustomization::OnValueChanged));
+
+	FColorStructCustomization::CustomizeHeader(SpecifiedColorHandle.ToSharedRef(), InHeaderRow, StructCustomizationUtils);
 }
 
-void FSlateColorCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FSlateColorCustomization::MakeHeaderRow(TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row)
 {
-	SpecifiedColorHandle->SetOnPropertyValueChanged( FSimpleDelegate::CreateSP( SharedThis( this ), &FSlateColorCustomization::OnValueChanged ) );
-	
-	IDetailPropertyRow& ColorRow = StructBuilder.AddChildProperty(SpecifiedColorHandle.ToSharedRef());
+	// NOTE: Ignore InStructPropertyHandle, it's going to be the specified color handle that we passed to the color customization base class.
 
-	TSharedPtr<SWidget> NameWidget;
-	TSharedPtr<SWidget> ValueWidget;
-	FDetailWidgetRow Row;
-	ColorRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
-
-	ColorRow.CustomWidget(/*bShowChildren*/ true)
+	Row
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -48,7 +48,7 @@ void FSlateColorCustomization::CustomizeChildren( TSharedRef<class IPropertyHand
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			[
-				ValueWidget.ToSharedRef()
+				CreateColorWidget()
 			]
 
 			+ SHorizontalBox::Slot()
