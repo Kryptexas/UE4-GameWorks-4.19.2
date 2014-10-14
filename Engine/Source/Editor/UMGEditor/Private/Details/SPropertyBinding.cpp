@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
-#include "SPropertyBinding.h"
+#include "DetailLayoutBuilder.h"
 #include "PropertyHandle.h"
+#include "SPropertyBinding.h"
+
 
 #define LOCTEXT_NAMESPACE "UMG"
+
 
 /////////////////////////////////////////////////////
 // SPropertyBinding
