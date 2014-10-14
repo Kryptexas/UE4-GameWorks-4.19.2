@@ -14,9 +14,7 @@
 #include "DetourNode.h"
 #include "DetourCommon.h"
 #include "RecastAlloc.h"
-#if WITH_NAVIGATION_GENERATOR
-	#include "RecastNavMeshGenerator.h"
-#endif // WITH_NAVIGATION_GENERATOR
+#include "RecastNavMeshGenerator.h"
 
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "VisualLog.h"
@@ -245,6 +243,8 @@ FPImplRecastNavMesh::FPImplRecastNavMesh(ARecastNavMesh* Owner)
 {
 	check(Owner && "Owner must never be NULL");
 
+	DetourNavMesh = dtAllocNavMesh();
+
 	INC_DWORD_STAT_BY( STAT_NavigationMemory
 		, Owner->HasAnyFlags(RF_ClassDefaultObject) == false ? sizeof(*this) : 0 );
 };
@@ -252,11 +252,11 @@ FPImplRecastNavMesh::FPImplRecastNavMesh(ARecastNavMesh* Owner)
 FPImplRecastNavMesh::~FPImplRecastNavMesh()
 {
 	// release navmesh only if we own it
-	if (bOwnsNavMeshData && DetourNavMesh != NULL)
+	if (DetourNavMesh != nullptr)
 	{
 		dtFreeNavMesh(DetourNavMesh);
 	}
-	DetourNavMesh = NULL;
+	DetourNavMesh = nullptr;
 
 	DEC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
 };
@@ -1750,32 +1750,6 @@ static FORCEINLINE float PointDistToSegment2DSquared(const float* PT, const floa
 	return dx*dx + dz*dz;
 }
 
-void FPImplRecastNavMesh::GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, int32& NumTilesY) const
-{
- 	if (DetourNavMesh)
- 	{
- 		dtNavMeshParams const* Params = DetourNavMesh->getParams();
-		NumTilesX = FMath::TruncToFloat( FMath::Sqrt((float)Params->maxTiles) );
-		NumTilesY = NumTilesX;
-
- 		FVector const Mn = Recast2UnrVector(Params->orig);
-
-		float RecastMax[3];
-		RecastMax[0] = Params->orig[0] + (Params->tileWidth * NumTilesX);
-		RecastMax[1] = Params->orig[1];
-		RecastMax[2] = Params->orig[2] + (Params->tileHeight * NumTilesY);
-		FVector const Mx = Recast2UnrVector(RecastMax);
-
-		OuterBox = FBox(Mx, Mn);
-	}
-	else
-	{
-		NumTilesX = 0;
-		NumTilesY = 0;
-		OuterBox = FBox();
-	}
-}
-
 /** 
  * Traverses given tile's edges and detects the ones that are either poly (i.e. not triangle, but whole navmesh polygon) 
  * or navmesh edge. Returns a pair of verts for each edge found.
@@ -1965,9 +1939,7 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 		OutGeometry.BuiltMeshIndices.Reserve(NumIndicesToReserve);
 		OutGeometry.Clusters.AddZeroed(NumClusters);
 
-#if WITH_NAVIGATION_GENERATOR
 		const FRecastNavMeshGenerator* Generator = NavMeshOwner ? (const FRecastNavMeshGenerator*)(NavMeshOwner->GetGenerator()) : NULL;
-#endif
 
 		// spin through all polys in all tiles and draw them
 		// @see drawMeshTile() in recast code for reference
@@ -1982,12 +1954,8 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 				continue;
 			}
 
-#if WITH_NAVIGATION_GENERATOR
 			const bool bIsBeingBuilt = Generator != NULL && !!NavMeshOwner->bDistinctlyDrawTilesBeingBuilt 
-				&& Generator->IsTileFresh(Header->x, Header->y);
-#else
-			const bool bIsBeingBuilt = false;
-#endif
+				&& Generator->IsTileChanged(TileIdx);
 			
 			// add all the poly verts
 			float* F = Tile->verts;
@@ -2199,7 +2167,7 @@ FBox FPImplRecastNavMesh::GetNavMeshTileBounds(int32 TileIndex) const
 }
 
 /** Retrieves XY coordinates of tile specified by index */
-void FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const
+bool FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const
 {
 	if (DetourNavMesh && TileIndex >= 0 && TileIndex < DetourNavMesh->getMaxTiles())
 	{
@@ -2215,12 +2183,15 @@ void FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& 
 				OutX = Header->x;
 				OutY = Header->y;
 				OutLayer = Header->layer;
+				return true;
 			}
 		}
 	}
+
+	return false;
 }
 
-void FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const
+bool FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const
 {
 	if (DetourNavMesh)
 	{
@@ -2234,7 +2205,10 @@ void FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, in
 		ConstRecastNavMesh->calcTileLoc(&RecastPt.X, &TileX, &TileY);
 		OutX = TileX;
 		OutY = TileY;
+		return true;
 	}
+
+	return false;
 }
 
 void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const

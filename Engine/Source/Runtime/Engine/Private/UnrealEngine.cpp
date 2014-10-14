@@ -6715,6 +6715,17 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				MessageY += 20;
 			}
 
+			if (NavSys && NavSys->bBuildNavigationAtRuntime)
+			{
+				const int32 NumTasks = NavSys->GetNumRemainingBuildTasks();
+				if (NumTasks > 0)
+				{
+					SmallTextItem.Text = FText::FromString(FString::Printf(TEXT("Building Navigation (%d)"), NumTasks));
+					Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+					MessageY += 20;
+				}
+			}
+
 			if( World->bKismetScriptError )
 			{
 				SmallTextItem.Text = LOCTEXT("BlueprintInLevelHadCompileErrorMessage", "BLUEPRINT COMPILE ERROR" );

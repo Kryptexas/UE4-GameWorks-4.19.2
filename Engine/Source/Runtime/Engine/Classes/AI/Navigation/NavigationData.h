@@ -4,6 +4,7 @@
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "GameFramework/Actor.h"
+#include "UniquePtr.h"
 #include "NavigationData.generated.h"
 
 class FNavDataGenerator; 
@@ -410,7 +411,7 @@ class ENGINE_API ANavigationData : public AActor
 
 	virtual bool NeedsRebuild() const { return false; }
 	virtual bool CanRebuild() const;
-
+	
 	//----------------------------------------------------------------------//
 	// Generation & data access                                                      
 	//----------------------------------------------------------------------//
@@ -427,20 +428,18 @@ protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
 
 public:
-#if WITH_NAVIGATION_GENERATOR 
-	/** Retrieves navmesh's generator, creating one if not already present */
-	class FNavDataGenerator* GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone);
+	virtual void RebuildAll();
+	virtual void TickAsyncBuild(float DeltaSeconds);
 
-	const class FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }
+	/** Retrieves navmesh's generator */
+	FNavDataGenerator* GetGenerator() { return NavDataGenerator.Get(); }
+	const FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }
 
 	/** Request navigation data update after changes in nav octree */
 	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas);
 
-#endif // WITH_NAVIGATION_GENERATOR
 	/** releases navigation generator if any has been created */
 protected:
-	virtual void DestroyGenerator();
-
 	/** register self with navigation system as new NavAreaDefinition(s) observer */
 	void RegisterAsNavAreaClassObserver();
 
@@ -682,10 +681,6 @@ protected:
 	/** get ID to assign for newly added area */
 	virtual int32 GetNewAreaID(const UClass* AreaClass) const;
 	
-#if WITH_NAVIGATION_GENERATOR
-	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) PURE_VIRTUAL(ANavigationData::ConstructGenerator, return NULL; );
-#endif // WITH_NAVIGATION_GENERATOR
-
 protected:
 	/** Navigation data versioning. */
 	uint32 DataVersion;
@@ -701,18 +696,8 @@ protected:
 	typedef bool(*FNavRaycastPtr)(const ANavigationData* NavDataInstance, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier);
 	FNavRaycastPtr RaycastImplementation; 
 
-public:
-	/** common shared pointer type for all generators */
-	typedef TSharedPtr<FNavDataGenerator, ESPMode::ThreadSafe> FNavDataGeneratorSharedPtr;
-
-	/** common weak pointer type for all generators */
-	typedef TWeakPtr<FNavDataGenerator, ESPMode::ThreadSafe> FNavDataGeneratorWeakPtr;
-
 protected:
-#if WITH_NAVIGATION_GENERATOR
-	FNavDataGeneratorSharedPtr NavDataGenerator;
-#endif // WITH_NAVIGATION_GENERATOR
-
+	TUniquePtr<FNavDataGenerator> NavDataGenerator;
 	/** 
 	 *	Container for all path objects generated with this Navigation Data instance. 
 	 *	Is meant to be added to only on GameThread, and in fact should user should never 
