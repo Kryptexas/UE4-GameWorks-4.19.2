@@ -5,7 +5,7 @@
 class IWebBrowserWindow;
 class FWebBrowserViewport;
 
-class SLATE_API SWebBrowser : public SCompoundWidget
+class APPFRAMEWORK_API SWebBrowser : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SWebBrowser)
