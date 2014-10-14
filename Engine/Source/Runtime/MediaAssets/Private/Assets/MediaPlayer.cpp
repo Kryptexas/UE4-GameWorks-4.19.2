@@ -241,15 +241,16 @@ void UMediaPlayer::InitializePlayer( )
 		Player->OnOpened().AddUObject(this, &UMediaPlayer::HandleMediaPlayerMediaOpened);
 
 		// open the new media file
+		const FString FullUrl = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(URL) ? FPaths::GameContentDir() / URL : URL);
 		bool OpenedSuccessfully = false;
 
 		if (StreamMode == EMediaPlayerStreamModes::MASM_FromUrl)
 		{
-			OpenedSuccessfully = Player->Open(FPaths::ConvertRelativePathToFull(URL));
+			OpenedSuccessfully = Player->Open(FPaths::ConvertRelativePathToFull(FullUrl));
 		}
-		else if (FPaths::FileExists(URL))
+		else if (FPaths::FileExists(FullUrl))
 		{
-			FArchive* FileReader = IFileManager::Get().CreateFileReader(*URL);
+			FArchive* FileReader = IFileManager::Get().CreateFileReader(*FullUrl);
 		
 			if (FileReader == nullptr)
 			{
@@ -263,7 +264,7 @@ void UMediaPlayer::InitializePlayer( )
 				FileData->AddUninitialized(FileReader->TotalSize());
 				FileReader->Serialize(FileData->GetData(), FileReader->TotalSize());
 
-				OpenedSuccessfully = Player->Open(MakeShareable(FileData), URL);
+				OpenedSuccessfully = Player->Open(MakeShareable(FileData), FullUrl);
 			}
 
 			delete FileReader;
@@ -272,7 +273,7 @@ void UMediaPlayer::InitializePlayer( )
 		// finish initialization
 		if (OpenedSuccessfully)
 		{
-			CurrentUrl = URL;
+			CurrentUrl = FullUrl;
 		}
 	}
 

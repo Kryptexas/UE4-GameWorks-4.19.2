@@ -396,9 +396,12 @@ void FMediaPlayerCustomization::HandleUrlPickerPathPicked( const FString& Picked
 		FPaths::NormalizeFilename(FullPath);
 	}
 
-	if (FullPath.StartsWith(FPaths::RootDir()))
+	FString FullGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+
+	if (FullPath.StartsWith(FullGameContentDir))
 	{
-		FPaths::MakePathRelativeTo(FullPath, FPlatformProcess::BaseDir());
+		FPaths::MakePathRelativeTo(FullPath, *FullGameContentDir);
+		FullPath = FString(TEXT("./")) + FullPath;
 	}
 
 	UrlProperty->SetValue(FullPath);
@@ -414,12 +417,12 @@ EVisibility FMediaPlayerCustomization::HandleUrlWarningIconVisibility( ) const
 		return EVisibility::Hidden;
 	}
 
-	const FString FullPath = FPaths::ConvertRelativePathToFull(Url);
 	const FString FullMoviesPath = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir() / TEXT("Movies"));
+	const FString FullUrl = FPaths::ConvertRelativePathToFull(FPaths::IsRelative(Url) ? FPaths::GameContentDir() / Url : Url);
 
-	if (FullPath.StartsWith(FullMoviesPath))
+	if (FullUrl.StartsWith(FullMoviesPath))
 	{
-		if (FPaths::FileExists(FullPath))
+		if (FPaths::FileExists(FullUrl))
 		{
 			return EVisibility::Hidden;
 		}
