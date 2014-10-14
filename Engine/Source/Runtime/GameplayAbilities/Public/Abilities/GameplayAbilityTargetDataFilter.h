@@ -44,18 +44,29 @@ struct GAMEPLAYABILITIES_API FGameplayTargetDataFilter
 		default:
 			break;
 		}
+
+		if (RequiredActorClass && !ActorToBeFiltered->IsA(RequiredActorClass))
+		{
+			return false;
+		}
+
 		return true;
 	}
 
 	void InitializeFilterContext(AActor* FilterActor);
 
-	/** Filled out while running */
+	/** Actor we're comparing against. */
 	UPROPERTY()
 	AActor* SelfActor;
 
 	/** Our actual filter. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Filter)
 	TEnumAsByte<ETargetDataFilterSelf::Type> SelfFilter;
+
+	/** Subclass actors must be to pass the filter. */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Filter)
+	TSubclassOf<AActor> RequiredActorClass;
+	//UClass* RequiredActorClass;
 };
 
 
@@ -81,6 +92,11 @@ struct GAMEPLAYABILITIES_API FGameplayTargetDataFilterHandle
 			}
 		}
 		return true;
+	}
+
+	bool FilterPassesForActor(const TWeakObjectPtr<AActor> ActorToBeFiltered) const
+	{
+		return FilterPassesForActor(ActorToBeFiltered.Get());
 	}
 
 	bool operator()(const TWeakObjectPtr<AActor> ActorToBeFiltered) const
