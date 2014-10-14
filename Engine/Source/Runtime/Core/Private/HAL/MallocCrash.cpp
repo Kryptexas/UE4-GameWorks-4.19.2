@@ -82,7 +82,9 @@ struct FMallocCrashPool
 
 		AllocatedMemory = MaxNumAllocations*AllocationSize + sizeof(Allocations);
 
+#if	_DEBUG
 		FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "FMallocCrashPool Size=%5u Num=%4i Mem=%8u\n" ), PoolDesc.Size, MaxNumAllocations, AllocatedMemory );
+#endif // _DEBUG
 	}
 
 	uint8* AllocateFromPool( uint32 InAllocationSize )
@@ -347,6 +349,7 @@ void FMallocCrash::Free( void* Ptr )
 
 void FMallocCrash::PrintPoolsUsage()
 {
+#if	_DEBUG
 	FPlatformMisc::LowLevelOutputDebugString( TEXT( "FPoolDesc used\n" ) );
 	for( uint32 Index = 0; Index < FMallocCrash::NUM_POOLS; ++Index )
 	{
@@ -361,6 +364,7 @@ void FMallocCrash::PrintPoolsUsage()
 		FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "FPoolDesc(%5u,%4u),\n" ), CrashPool.AllocationSize-FMallocCrash::PER_ALLOC_OVERHEAD, Align(CrashPool.MaxUsedIndex*2+16,16) );
 	}
 	FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "LargeMemoryPoolOffset=%u\n" ), LargeMemoryPoolOffset );
+#endif // _DEBUG
 }
 
 bool FMallocCrash::IsOnCrashedThread() const
