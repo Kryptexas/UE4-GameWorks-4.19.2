@@ -41,6 +41,15 @@
 
 #define UE_VLOG_EVENTS(LogOwner, TagNameToLog, ...) FVisualLogger::EventLog(LogOwner, TagNameToLog, ##__VA_ARGS__)
 #define UE_VLOG_EVENT_WITH_DATA(LogOwner, LogEvent, ...) FVisualLogger::EventLog(LogOwner, LogEvent, ##__VA_ARGS__)
+#define DECLARE_VLOG_EVENT(EventName, Verbosity, UserFriendlyDesc) \
+	struct FVisualLogEventBase_##EventName : public FVisualLogEventBase \
+	{ \
+		virtual FString GetName() const override { return TEXT(#EventName); } \
+		virtual FString GetUserFriendlyDesc() const override { return TEXT(UserFriendlyDesc); } \
+		virtual ELogVerbosity::Type GetVerbosity() const override { return ELogVerbosity::Verbosity; } \
+	};
+
+#define DEFINE_VLOG_EVENT(EventName) FVisualLogEventBase_##EventName EventName;
 
 #else
 #define REDIRECT_TO_VLOG(Dest)
@@ -67,10 +76,10 @@
 #define UE_VLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data)
 #define UE_CVLOG_HISTOGRAM(Actor, CategoryName, Verbosity, GraphName, DataName, Data)
 
-#define DECLARE_VLOG_EVENT(EventName, UserFriendlyDesc)
-#define DEFINE_VLOG_EVENT(EventName) 
 #define UE_VLOG_EVENTS(LogOwner, TagNameToLog, ...) 
 #define UE_VLOG_EVENT_WITH_DATA(LogOwner, LogEvent, ...)
+#define DECLARE_VLOG_EVENT(EventName, Verbosity, UserFriendlyDesc)
+#define DEFINE_VLOG_EVENT(EventName) 
 
 #endif //ENABLE_VISUAL_LOG
 

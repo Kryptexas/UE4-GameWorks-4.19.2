@@ -25,17 +25,6 @@ struct FVisualLogEventBase
 	virtual ELogVerbosity::Type GetVerbosity() const { return ELogVerbosity::All; }
 };
 
-#define DECLARE_VLOG_EVENT(EventName, Verbosity, UserFriendlyDesc) \
-struct FVisualLogEventBase_##EventName : public FVisualLogEventBase \
-{ \
-	virtual FString GetName() const override { return TEXT(#EventName); } \
-	virtual FString GetUserFriendlyDesc() const override { return TEXT(UserFriendlyDesc); } \
-	virtual ELogVerbosity::Type GetVerbosity() const override { return ELogVerbosity::Verbosity; } \
-};
-
-#define DEFINE_VLOG_EVENT(EventName) FVisualLogEventBase_##EventName EventName;
-
-
 struct ENGINE_API FVisualLogEntry
 {
 	struct FLogEvent
