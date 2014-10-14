@@ -442,7 +442,7 @@ const TCHAR* FGenericPlatformMisc::RootDir()
 
 			// keep going until we've removed Binaries
 #if IS_MONOLITHIC && !IS_PROGRAM
-			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), GGameName));
+			int32 pos = Path.Find(*FString::Printf(TEXT("/%s/Binaries"), FApp::GetGameName()));
 #else
 			int32 pos = Path.Find(TEXT("/Engine/Binaries"), ESearchCase::IgnoreCase);
 #endif
@@ -534,7 +534,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 {
 	static FString GameDir = TEXT("");
 
-	// track if last time we called this function the .ini was ready and had fixed the GGameName case
+	// track if last time we called this function the .ini was ready and had fixed the GameName case
 	static bool bWasIniReady = false;
 	bool bIsIniReady = GConfig && GConfig->IsReadyForUse();
 	if (bWasIniReady != bIsIniReady)
@@ -554,7 +554,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 		if (FPlatformProperties::IsProgram())
 		{
 			// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
-			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), GGameName);
+			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), FApp::GetGameName());
 		}
 		else
 		{
@@ -567,7 +567,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 				if (FPlatformProperties::IsMonolithicBuild() == false)
 				{
 					// No game project file, but has a game name, use the game folder next to the working directory
-					GameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
+					GameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
 					FString GameBinariesDir = GameDir / TEXT("Binaries/");
 					if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*GameBinariesDir) == false)
 					{
@@ -576,7 +576,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find game directory: %s\n"), *GameDir);
 
 						// Use the uprojectdirs
-						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
+						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(FApp::GetGameName(), FPlatformProcess::BaseDir());
 						if (GameProjectFile.IsEmpty() == false)
 						{
 							// We found a project folder for the game
@@ -592,7 +592,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 				else
 				{
 #if !PLATFORM_DESKTOP
-					GameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
+					GameDir = FString::Printf(TEXT("../../../%s/"), FApp::GetGameName());
 #else
 					// This assumes the game executable is in <GAME>/Binaries/<PLATFORM>
 					GameDir = TEXT("../../");

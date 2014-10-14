@@ -417,6 +417,11 @@ FDateTime FApplePlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 	return MacEpoch + TimeSinceEpoch;
 }
 
+FString FApplePlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return Filename;
+}
+
 IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename)
 {
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), O_RDONLY);

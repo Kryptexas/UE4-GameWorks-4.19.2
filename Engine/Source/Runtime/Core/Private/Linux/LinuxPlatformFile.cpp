@@ -226,6 +226,11 @@ FDateTime FLinuxPlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 	return UnixEpoch + TimeSinceEpoch;
 }
 
+FString FLinuxPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return Filename;
+}
+
 IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename)
 {
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), O_RDONLY);

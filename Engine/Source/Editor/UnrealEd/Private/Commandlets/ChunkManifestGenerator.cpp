@@ -87,7 +87,7 @@ bool FChunkManifestGenerator::CleanTempPackagingDirectory(const FString& Platfor
 
 bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Platform)
 {
-	FString GameNameLower = FString(GGameName).ToLower();
+	FString GameNameLower = FString(FApp::GetGameName()).ToLower();
 
 	// empty out the current paklist directory
 	FString TmpPackagingDir = GetTempPackagingDirectoryForPlatform(Platform);

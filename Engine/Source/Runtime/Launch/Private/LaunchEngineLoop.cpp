@@ -219,8 +219,8 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 {
 	if (GIsGameAgnosticExe)
 	{
-		// Initialize GGameName to an empty string. Populate it below.
-		GGameName[0] = 0;
+		// Initialize GameName to an empty string. Populate it below.
+		FApp::SetGameName(TEXT(""));
 
 		FString ProjFilePath;
 		FString LocalGameName;
@@ -229,7 +229,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			// Only set the game name if this is NOT a program...
 			if (FPlatformProperties::IsProgram() == false)
 			{
-				FCString::Strncpy(GGameName, *LocalGameName, ARRAY_COUNT(GGameName));
+				FApp::SetGameName(*LocalGameName);
 			}
 			FPaths::SetProjectFilePath(ProjFilePath);
 		}
@@ -238,7 +238,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 		{
 			// Try to use the executable name as the game name.
 			LocalGameName = FPlatformProcess::ExecutableName();
-			FCString::Strncpy(GGameName, *LocalGameName, ARRAY_COUNT(GGameName));
+			FApp::SetGameName(*LocalGameName);
 
 			// Check it's not UE4Game, otherwise assume a uproject file relative to the game project directory
 			if (LocalGameName != TEXT("UE4Game"))
@@ -255,7 +255,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			bPrinted = true;
 			if (FApp::HasGameName())
 			{
-				UE_LOG(LogInit, Display, TEXT("Running engine for game: %s"), GGameName);
+				UE_LOG(LogInit, Display, TEXT("Running engine for game: %s"), FApp::GetGameName());
 			}
 			else
 			{
@@ -278,8 +278,8 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 		{
 			if (FPlatformProperties::RequiresCookedData())
 			{
-				// Non-agnostic exes that require cooked data cannot load projects, so make sure that the LocalGameName is the GGameName
-				if (LocalGameName != GGameName)
+				// Non-agnostic exes that require cooked data cannot load projects, so make sure that the LocalGameName is the GameName
+				if (LocalGameName != FApp::GetGameName())
 				{
 					UE_LOG(LogInit, Fatal, TEXT("Non-agnostic games cannot load projects on cooked platforms - try running UE4Game."));
 				}
@@ -287,7 +287,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			// Only set the game name if this is NOT a program...
 			if (FPlatformProperties::IsProgram() == false)
 			{
-				FCString::Strncpy(GGameName, *LocalGameName, ARRAY_COUNT(GGameName));
+				FApp::SetGameName(*LocalGameName);
 			}
 			FPaths::SetProjectFilePath(ProjFilePath);
 		}
@@ -302,6 +302,46 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 	return true;
 }
 
+void LaunchFixGameNameCase()
+{
+#if PLATFORM_DESKTOP && !IS_PROGRAM
+	// This is to make sure this function is not misused and is only called when the game name is set
+	check(FApp::HasGameName());
+
+	// correct the case of the game name, if possible (unless we're running a program and the game name is already set)	
+	if (FPaths::IsProjectFilePathSet())
+	{
+		const FString GameName(FPaths::GetBaseFilename(IFileManager::Get().GetFilenameOnDisk(*FPaths::GetProjectFilePath())));
+
+		const bool bGameNameMatchesProjectCaseSensitive = (FCString::Strcmp(*GameName, FApp::GetGameName()) == 0);
+		if (!bGameNameMatchesProjectCaseSensitive && (FApp::IsGameNameEmpty() || GIsGameAgnosticExe || (GameName.Len() > 0 && GIsGameAgnosticExe)))
+		{
+			if (GameName == FApp::GetGameName()) // case insensitive compare
+			{
+				FApp::SetGameName(*GameName);
+			}
+			else
+			{
+				const FText Message = FText::Format(
+					NSLOCTEXT("Core", "MismatchedGameNames", "The name of the .uproject file ('{0}') must match the GameName key in the [URL] section of Config/DefaultEngine.ini (currently '{1}').  Please either change the ini or rename the .uproject to match each other (case-insensitive match)."),
+					FText::FromString(FApp::GetGameName()),
+					FText::FromString(GameName));
+				if (!GIsBuildMachine)
+				{
+					UE_LOG(LogInit, Warning, TEXT("%s"), *Message.ToString());
+					FMessageDialog::Open(EAppMsgType::Ok, Message);
+				}
+				FApp::SetGameName(TEXT("")); // this disables part of the crash reporter to avoid writing log files to a bogus directory
+				if (!GIsBuildMachine)
+				{
+					exit(1);
+				}
+				UE_LOG(LogInit, Fatal, TEXT("%s"), *Message.ToString());
+			}
+		}
+	}
+#endif	//PLATFORM_DESKTOP
+}
 
 static IPlatformFile* ConditionallyCreateFileWrapper(const TCHAR* Name, IPlatformFile* CurrentPlatformFile, const TCHAR* CommandLine, bool* OutFailedToInitialize = NULL)
 {
@@ -477,7 +517,7 @@ bool LaunchHasIncompleteGameName()
 	{
 		// Verify this is a legitimate game name
 		// Launched with a game name. See if the <GameName> folder exists. If it doesn't, it could instead be <GameName>Game
-		const FString NonSuffixedGameFolder = FPaths::RootDir() / GGameName;
+		const FString NonSuffixedGameFolder = FPaths::RootDir() / FApp::GetGameName();
 		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*NonSuffixedGameFolder) == false)
 		{
 			const FString SuffixedGameFolder = NonSuffixedGameFolder + TEXT("Game");
@@ -511,7 +551,7 @@ void LaunchUpdateMostRecentProjectFile()
 			else if ( FPlatformFileManager::Get().GetPlatformFile().FileExists(*RecentProjectFileContents) )
 			{
 				// The previously loaded project file was found. Change the game name here and update the project file path
-				FCString::Strncpy(GGameName, *FPaths::GetBaseFilename(RecentProjectFileContents), ARRAY_COUNT(GGameName));
+				FApp::SetGameName(*FPaths::GetBaseFilename(RecentProjectFileContents));
 				FPaths::SetProjectFilePath(RecentProjectFileContents);
 				UE_LOG(LogInit, Display, TEXT("Loading recent project file: %s"), *RecentProjectFileContents);
 
@@ -632,7 +672,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return -1;
 	}
 
-	// Set GGameName, based on the command line
+	// Set GameName, based on the command line
 	if (LaunchSetGameName(CmdLine) == false)
 	{
 		// If it failed, do not continue
@@ -682,7 +722,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs
-				FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
+				FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(FApp::GetGameName(), FPlatformProcess::BaseDir());
 				if (GameProjectFile.IsEmpty() == false)
 				{
 					UE_LOG(LogInit, Display, TEXT("\tFound project file %s."), *GameProjectFile);
@@ -710,7 +750,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		{
 			// We did not find a non-suffixed folder and we DID find the suffixed one.
 			// The engine MUST be launched with <GameName>Game.
-			const FText GameNameText = FText::FromString( GGameName );
+			const FText GameNameText = FText::FromString(FApp::GetGameName());
 			FMessageDialog::Open(EAppMsgType::Ok, FText::Format( LOCTEXT("RequiresGamePrefix", "Error: UE4Editor does not append 'Game' to the passed in game name.\nYou must use the full name.\nYou specified '{0}', use '{0}Game'."), GameNameText ) );
 			return 1;
 		}
@@ -769,7 +809,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FString NormalizedToken = Token;
 	FPaths::NormalizeFilename(NormalizedToken);
 
-	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
+	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == FApp::GetGameName());
 	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && NormalizedToken == FPaths::GetProjectFilePath());
 	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
@@ -928,6 +968,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Tell the module manager what the game binaries folder is
 		const FString GameBinariesDirectory = FPaths::Combine( FPlatformMisc::GameDir(), TEXT( "Binaries" ), FPlatformProcess::GetBinariesSubdirectory() );
 		FModuleManager::Get().SetGameBinariesDirectory(*GameBinariesDirectory);
+
+		LaunchFixGameNameCase();
 	}
 #endif
 
@@ -2419,7 +2461,7 @@ bool FEngineLoop::AppInit( )
 			}
 
 			// Ask whether to compile before continuing
-			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, *FString::Printf(TEXT("Missing %s Modules"), GGameName)) == EAppReturnType::No)
+			if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, *ModulesList, *FString::Printf(TEXT("Missing %s Modules"), FApp::GetGameName())) == EAppReturnType::No)
 			{
 				return false;
 			}
@@ -2438,7 +2480,7 @@ bool FEngineLoop::AppInit( )
 				{
 					UE_LOG(LogInit, Warning, TEXT("Still incompatible or missing module: %s"), *StillIncompatibleFiles[Idx]);
 				}
-				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FString::Printf(TEXT("%s could not be compiled. Try rebuilding from source manually."), GGameName), TEXT("Error"));
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *FString::Printf(TEXT("%s could not be compiled. Try rebuilding from source manually."), FApp::GetGameName()), TEXT("Error"));
 				return false;
 			}
 		}

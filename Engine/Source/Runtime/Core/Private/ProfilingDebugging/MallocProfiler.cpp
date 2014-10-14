@@ -1041,7 +1041,7 @@ void FMallocProfilerBufferedFileWriter::Serialize( void* V, int64 Length )
 		if (BaseFilePath == TEXT(""))
 		{
 			const FString SysTime = FDateTime::Now().ToString();
-			BaseFilePath = FPaths::ProfilingDir() + GGameName + TEXT("-") + SysTime + TEXT("/") + GGameName;
+			BaseFilePath = FPaths::ProfilingDir() + FApp::GetGameName() + TEXT("-") + SysTime + TEXT("/") + FApp::GetGameName();
 		}
 			
 		// Create file writer to serialize data to HDD.

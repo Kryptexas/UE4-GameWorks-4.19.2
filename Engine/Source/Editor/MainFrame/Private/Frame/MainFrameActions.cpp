@@ -887,7 +887,7 @@ bool FMainFrameActionCallbacks::FullScreen_IsChecked()
 
 bool FMainFrameActionCallbacks::CanSwitchToProject( int32 InProjectIndex )
 {
-	if ( FApp::HasGameName() && ProjectNames[ InProjectIndex ].StartsWith( GGameName ) )
+	if (FApp::HasGameName() && ProjectNames[InProjectIndex].StartsWith(FApp::GetGameName()))
 	{
 		return false;
 	}

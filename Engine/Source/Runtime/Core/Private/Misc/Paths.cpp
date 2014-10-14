@@ -86,7 +86,7 @@ FString FPaths::GameUserDir()
 {
 	if (ShouldSaveToUserDir())
 	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), GGameName) + TEXT("/");
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), FApp::GetGameName()) + TEXT("/");
 	}
 	else
 	{

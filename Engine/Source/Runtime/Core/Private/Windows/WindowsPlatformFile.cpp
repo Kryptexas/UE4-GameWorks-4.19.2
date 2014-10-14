@@ -221,6 +221,40 @@ public:
 		return WindowsEpoch + TimeSinceEpoch;
 	}
 
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		FString Result;
+		WIN32_FIND_DATAW Data;
+		FString NormalizedFilename = NormalizeFilename(Filename);
+		while (NormalizedFilename.Len())
+		{
+			HANDLE Handle = FindFirstFileW(*NormalizedFilename, &Data);
+			if (Handle != INVALID_HANDLE_VALUE)
+			{
+				if (Result.Len())
+				{
+					Result = FString(Data.cFileName) / Result;
+				}
+				else
+				{
+					Result = Data.cFileName;
+				}				
+				FindClose(Handle);
+			}
+			int32 SeparatorIndex = INDEX_NONE;
+			if (NormalizedFilename.FindLastChar('/', SeparatorIndex))
+			{
+				NormalizedFilename = NormalizedFilename.Mid(0, SeparatorIndex);				
+			}
+			if (NormalizedFilename.Len() && (SeparatorIndex == INDEX_NONE || NormalizedFilename.EndsWith(TEXT(":"))))
+			{
+				Result = NormalizedFilename / Result;
+				NormalizedFilename.Empty();
+			}
+		}
+		return Result;
+	}
+
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		uint32  Access    = GENERIC_READ;

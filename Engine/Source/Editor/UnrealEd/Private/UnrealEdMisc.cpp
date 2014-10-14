@@ -1378,7 +1378,7 @@ void FUnrealEdMisc::RestartEditor(bool bWarn)
 	}
 	else if(FApp::HasGameName())
 	{
-		SwitchProject(GGameName, bWarn);
+		SwitchProject(FApp::GetGameName(), bWarn);
 	}
 	else
 	{

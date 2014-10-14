@@ -1086,6 +1086,24 @@ public:
 		return Result;
 	}
 
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		FPakFile* PakFile = NULL;
+		auto FileEntry = FindFileInPakFiles(Filename, &PakFile);
+		if (FileEntry)
+		{
+			const FString Path(FPaths::GetPath(Filename));
+			const FPakDirectory* PakDirectory = PakFile->FindDirectory(*Path);
+			const FString* RealFilename = PakDirectory->FindKey(const_cast<FPakEntry*>(FileEntry));
+			return *RealFilename;
+		}
+		else
+		{
+			// Fall back to lower level.
+			return LowerLevel->GetFilenameOnDisk(Filename);
+		}
+	}
+
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
 
 	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override

@@ -423,7 +423,7 @@ FReply SStatsViewer::OnExportClicked()
 	CSVFilename /= GWorld->GetOutermost()->GetName();
 	CSVFilename /= FString::Printf(
 		TEXT("%s-%i-%s.csv"),
-		GGameName,
+		FApp::GetGameName(),
 		GEngineVersion.GetChangelist(),
 		*FDateTime::Now().ToString() );
 

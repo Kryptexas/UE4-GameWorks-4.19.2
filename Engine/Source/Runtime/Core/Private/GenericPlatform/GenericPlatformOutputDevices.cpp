@@ -36,9 +36,9 @@ FString								FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 		if(	!FParse::Value(FCommandLine::Get(), TEXT("LOG="), Filename+FCString::Strlen(Filename), ARRAY_COUNT(Filename)-FCString::Strlen(Filename) )
 			&&	!FParse::Value(FCommandLine::Get(), TEXT("ABSLOG="), Filename, ARRAY_COUNT(Filename) ) )
 		{
-			if (FCString::Strlen(GGameName) != 0)
+			if (FCString::Strlen(FApp::GetGameName()) != 0)
 			{
-				FCString::Strcat( Filename, GGameName );
+				FCString::Strcat(Filename, FApp::GetGameName());
 			}
 			else
 			{

@@ -397,7 +397,7 @@ void FNetworkProfiler::TrackSessionChange( bool bShouldContinueTracking, const F
 				// Rename/ move file.
 				static int32 Salt = 0;
 				Salt++;		// Use a salt to solve the issue where this function is called so fast it produces the same time (seems to happen during seamless travel)
-				const FString FinalFileName = FPaths::ProfilingDir() + GGameName + TEXT( "-" ) + FDateTime::Now().ToString() + FString::Printf( TEXT( "[%i]" ), Salt ) + TEXT( ".nprof" );
+				const FString FinalFileName = FPaths::ProfilingDir() + FApp::GetGameName() + TEXT("-") + FDateTime::Now().ToString() + FString::Printf(TEXT("[%i]"), Salt) + TEXT(".nprof");
 				bool bWasMovedSuccessfully = IFileManager::Get().Move( *FinalFileName, *TempFileName );
 
 				// Send data to UnrealConsole to upload to DB.

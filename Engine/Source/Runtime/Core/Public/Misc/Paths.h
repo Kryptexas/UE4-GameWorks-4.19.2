@@ -82,8 +82,8 @@ public:
 	static FString RootDir();
 
 	/**
-	 * Returns the base directory of the current game by looking at the global
-	 * GGameName variable. This is usually a subdirectory of the installation
+	 * Returns the base directory of the current game by looking at FApp::GetGameName().
+	 * This is usually a subdirectory of the installation
 	 * root directory and can be overridden on the command line to allow self
 	 * contained mod support.
 	 *
@@ -99,8 +99,7 @@ public:
 	static FString GameUserDir();
 
 	/**
-	 * Returns the content directory of the current game by looking at the global
-	 * GGameName variable. 
+	 * Returns the content directory of the current game by looking at FApp::GetGameName().
 	 *
 	 * @return content directory
 	 */
@@ -114,24 +113,21 @@ public:
 	static FString GameConfigDir();
 
 	/**
-	 * Returns the saved directory of the current game by looking at the global
-	 * GGameName variable. 
+	 * Returns the saved directory of the current game by looking at FApp::GetGameName().
 	 *
 	 * @return saved directory
 	 */
 	static FString GameSavedDir();
 
 	/**
-	 * Returns the intermediate directory of the current game by looking at the global
-	 * GGameName variable. 
+	 * Returns the intermediate directory of the current game by looking at FApp::GetGameName().
 	 *
 	 * @return intermediate directory
 	 */
 	static FString GameIntermediateDir();
 
 	/**
-	 * Returns the plugins directory of the current game by looking at the global
-	 * GGameName variable. 
+	 * Returns the plugins directory of the current game by looking at FApp::GetGameName().
 	 *
 	 * @return plugins directory
 	 */

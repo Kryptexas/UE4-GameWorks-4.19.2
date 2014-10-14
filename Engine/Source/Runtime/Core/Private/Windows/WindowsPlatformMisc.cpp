@@ -672,7 +672,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 				TCHAR AutoReportExe[] = TEXT("../../../Engine/Binaries/DotNET/AutoReporter.exe");
 
 				FString IniDumpPath;
-				if (GGameName[0])
+				if (!FApp::IsGameNameEmpty())
 				{
 					const TCHAR IniDumpFilename[] = TEXT("UnrealAutoReportIniDump");
 					IniDumpPath = FPaths::CreateTempFilename(*FPaths::GameLogDir(), IniDumpFilename, TEXT(".txt"));
@@ -695,10 +695,10 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 				{
 					LogDirectory += CommandlineLogFile;
 				}
-				else if (FCString::Strlen(GGameName) != 0)
+				else if (!FApp::IsGameNameEmpty())
 				{
 					// If the app name is defined, use it as the log filename
-					LogDirectory += FString::Printf(TEXT("%s.Log"), GGameName);
+					LogDirectory += FString::Printf(TEXT("%s.Log"), FApp::GetGameName());
 				}
 				else
 				{

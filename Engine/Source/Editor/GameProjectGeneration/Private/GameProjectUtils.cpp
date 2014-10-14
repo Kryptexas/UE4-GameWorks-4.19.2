@@ -1494,8 +1494,6 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 		FString FileContents;
 
 		FileContents += TEXT("[URL]") LINE_TERMINATOR;
-		FileContents += FString::Printf(TEXT("GameName=%s") LINE_TERMINATOR, *NewProjectName);
-		FileContents += LINE_TERMINATOR;
 
 		FileContents += GetHardwareConfigString(InProjectInfo);
 		FileContents += LINE_TERMINATOR;

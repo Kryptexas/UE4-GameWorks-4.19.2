@@ -8,7 +8,7 @@ IMPLEMENT_MODULE(FDefaultModuleImpl, UE4Game);
 #if IS_MONOLITHIC
 PER_MODULE_BOILERPLATE
 bool GIsGameAgnosticExe = true;
-TCHAR GGameName[64] = TEXT("");
+TCHAR GInternalGameName[64] = TEXT("");
 IMPLEMENT_DEBUGGAME()
 IMPLEMENT_FOREIGN_ENGINE_DIR()
 #endif

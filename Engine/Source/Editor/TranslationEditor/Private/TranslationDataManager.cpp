@@ -393,7 +393,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslation
 				}
 				else
 				{
-					ProjectName = GGameName;
+					ProjectName = FApp::GetGameName();
 					SavedDir = FPaths::GameSavedDir();
 				}
 

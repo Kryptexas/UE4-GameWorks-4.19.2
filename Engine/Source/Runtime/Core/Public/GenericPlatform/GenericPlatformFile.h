@@ -139,6 +139,8 @@ public:
 	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) = 0;
 	/** Return the last access time of a file. Returns FDateTime::MinValue() on failure **/
 	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) = 0;
+	/** For case insensitive filesystems, returns the full path of the file with the same case as in the filesystem */
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) = 0;
 
 	/** Attempt to open a file for reading. If successful will return a non-nullptr pointer. Close the file by delete'ing the handle. **/
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) = 0;

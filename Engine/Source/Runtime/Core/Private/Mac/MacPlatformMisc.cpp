@@ -267,7 +267,7 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 	const bool bIsBundledApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
 	if (bIsBundledApp)
 	{
-		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(GGameName).GetNSString();
+		NSString* AppName = GIsEditor ? @"Unreal Editor" : FString(FApp::GetGameName()).GetNSString();
 
 		SEL ShowAboutSelector = [[NSApp delegate] respondsToSelector:@selector(showAboutWindow:)] ? @selector(showAboutWindow:) : @selector(orderFrontStandardAboutPanel:);
 		NSMenuItem* AboutItem = [[[NSMenuItem alloc] initWithTitle:[NSString stringWithFormat:@"About %@", AppName] action:ShowAboutSelector keyEquivalent:@""] autorelease];

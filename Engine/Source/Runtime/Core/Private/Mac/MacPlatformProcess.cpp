@@ -612,9 +612,9 @@ const TCHAR* FMacPlatformProcess::BaseDir()
 		if ([[BasePath pathExtension] isEqual: @"app"])
 		{
 			NSString* BundledBinariesPath = NULL;
-			if (GGameName[0] != 0)
+			if (!FApp::IsGameNameEmpty())
 			{
-				BundledBinariesPath = [BasePath stringByAppendingPathComponent: [NSString stringWithFormat: @"Contents/UE4/%s/Binaries/Mac", TCHAR_TO_UTF8(GGameName)]];
+				BundledBinariesPath = [BasePath stringByAppendingPathComponent : [NSString stringWithFormat : @"Contents/UE4/%s/Binaries/Mac", TCHAR_TO_UTF8(FApp::GetGameName())]];
 			}
 			if (!BundledBinariesPath || ![FileManager fileExistsAtPath:BundledBinariesPath])
 			{
@@ -659,7 +659,7 @@ static TCHAR* UserLibrarySubDirectory()
 	static TCHAR Result[MAX_PATH] = TEXT("");
 	if (!Result[0])
 	{
-		FString SubDirectory = IsRunningGame() ? GGameName : FString(TEXT("Unreal Engine")) / GGameName;
+		FString SubDirectory = IsRunningGame() ? FString(FApp::GetGameName()) : FString(TEXT("Unreal Engine")) / FApp::GetGameName();
 		if (IsRunningDedicatedServer())
 		{
 			SubDirectory += TEXT("Server");

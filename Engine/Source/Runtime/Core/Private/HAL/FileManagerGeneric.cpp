@@ -444,6 +444,11 @@ FDateTime FFileManagerGeneric::GetAccessTimeStamp( const TCHAR* Filename )
 	return GetLowLevel().GetAccessTimeStamp(Filename);
 }
 
+FString FFileManagerGeneric::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return GetLowLevel().GetFilenameOnDisk(Filename);
+}
+
 FString FFileManagerGeneric::DefaultConvertToRelativePath( const TCHAR* Filename )
 {
 	//default to the full absolute path of this file

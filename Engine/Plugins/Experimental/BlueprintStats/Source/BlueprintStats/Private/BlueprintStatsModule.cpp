@@ -77,7 +77,7 @@ void FBlueprintStatsModule::DumpBlueprintStats()
 	Aggregate.RemoteMacroCount.ValueSort(TGreater<int32>());
 
 	// Print out the merged record
-	UE_LOG(LogBlueprintStats, Log, TEXT("Blueprint stats for %d blueprints in %s"), Records.Num(), GGameName);
+	UE_LOG(LogBlueprintStats, Log, TEXT("Blueprint stats for %d blueprints in %s"), Records.Num(), FApp::GetGameName());
 	UE_LOG(LogBlueprintStats, Log, TEXT("%s"), *Aggregate.ToString(true));
 	UE_LOG(LogBlueprintStats, Log, TEXT("%s"), *Aggregate.ToString(false));
 	UE_LOG(LogBlueprintStats, Log, TEXT("\n"));

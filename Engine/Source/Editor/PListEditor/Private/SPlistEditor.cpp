@@ -213,8 +213,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 		]
 	];
 
-	// Default try to load the file GGameName-Info.plist file when widget is opened
-	FString DefaultFile = FString(GGameName) + TEXT("-Info.plist");
+	// Default try to load the file GameName-Info.plist file when widget is opened
+	FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
 	InOutLastPath += DefaultFile;
 	OpenFile(InOutLastPath);
 
@@ -825,7 +825,7 @@ bool SPListEditorPanel::OpenFile(FString FilePath)
 	if( !bLoadResult )
 	{
 		// try Info.plist
-		FilePath = FilePath.Replace(*(FString(GGameName) + TEXT("-")), TEXT(""));
+		FilePath = FilePath.Replace(*(FString(FApp::GetGameName()) + TEXT("-")), TEXT(""));
 		bLoadResult = Doc.LoadFile(FilePath);
 	}
 
@@ -914,7 +914,7 @@ FReply SPListEditorPanel::OnOpenClicked()
 		}
 
 		//FString DefaultPath = FPaths::GameDir() + TEXT("Build/IOS/");
-		//FString DefaultFile = FString(GGameName) + TEXT("-Info.plist");
+		//FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,

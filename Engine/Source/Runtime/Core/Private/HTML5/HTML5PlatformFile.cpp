@@ -285,6 +285,11 @@ public:
 		return HTML5Epoch + TimeSinceEpoch;
 	}
 
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		return Filename;
+	}
+
 	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		FString fn = NormalizeFilename(Filename);

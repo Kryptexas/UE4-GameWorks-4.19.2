@@ -169,7 +169,7 @@ bool FConfigFile::Combine(const FString& Filename)
 void FConfigFile::CombineFromBuffer(const FString& Buffer)
 {
 	// Replace %GAME% with game name.
-	FString Text = Buffer.Replace( TEXT("%GAME%"), GGameName, ESearchCase::CaseSensitive );
+	FString Text = Buffer.Replace(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
@@ -379,7 +379,7 @@ void FConfigFile::CombineFromBuffer(const FString& Buffer)
 void FConfigFile::ProcessInputFileContents(const FString& Contents)
 {
 	// Replace %GAME% with game name.
-	FString Text = Contents.Replace(TEXT("%GAME%"), GGameName, ESearchCase::CaseSensitive);
+	FString Text = Contents.Replace(TEXT("%GAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
@@ -675,7 +675,7 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 		{
 			if (IniToLoad.bRequired)
 			{
-				//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, GGameName );
+				//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, FApp::GetGameName() );
 				return false;
 			}
 			else
@@ -2666,7 +2666,7 @@ void FConfigCacheIni::InitializeConfigSystem()
 
 	// load the main .ini files (unless we're running a program or a gameless UE4Editor.exe, DefaultEngine.ini is required).
 	const bool bIsGamelessExe = !FApp::HasGameName();
-	const bool bDefaultEngineIniRequired = !bIsGamelessExe && (GIsGameAgnosticExe || FCString::Strlen(GGameName) == 0);
+	const bool bDefaultEngineIniRequired = !bIsGamelessExe && (GIsGameAgnosticExe || FApp::IsGameNameEmpty());
 	bool bEngineConfigCreated = FConfigCacheIni::LoadGlobalIniFile(GEngineIni, TEXT("Engine"), NULL, NULL, bDefaultEngineIniRequired);
 
 	if ( !bIsGamelessExe )
@@ -2681,51 +2681,13 @@ void FConfigCacheIni::InitializeConfigSystem()
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, Message);
 			}
-			GGameName[0] = 0; // this disables part of the crash reporter to avoid writing log files to a bogus directory
+			FApp::SetGameName(TEXT("")); // this disables part of the crash reporter to avoid writing log files to a bogus directory
 			if (!GIsBuildMachine)
 			{
 				exit(1);
 			}
 			UE_LOG(LogInit, Fatal,TEXT("%s"), *Message.ToString());
 		}
-#if PLATFORM_DESKTOP
-		// correct the case of the game name, if possible (unless we're running a program and the game name is already set)
-		const FString GameName = GConfig->GetStr(TEXT("URL"), TEXT("GameName"), GEngineIni);
-		const FString GameNameWithSuffix = GameName + TEXT("Game");
-		const bool bGameNameMatchesIniCaseSensitive = (FCString::Strcmp(*GameName, GGameName) == 0) || (FCString::Strcmp(*GameNameWithSuffix, GGameName) == 0);
-		if (!bGameNameMatchesIniCaseSensitive && (FCString::Strlen(GGameName) == 0 || GIsGameAgnosticExe || (GameName.Len() > 0 && GIsGameAgnosticExe)))
-		{
-			if (GameName == FString(GGameName)) // case insensitive compare
-			{
-				//UE_LOG(LogInit, Log, TEXT("Correcting the case of the game name to %s"), *GameName);
-				FCString::Strncpy(GGameName, *GameName, ARRAY_COUNT(GGameName));
-			}
-			else if ( GameNameWithSuffix == FString(GGameName) )
-			{
-				//UE_LOG(LogInit, Log, TEXT("Correcting the case of the game name to %sGame"), *GameName);
-				FCString::Strncpy(GGameName, *GameName, ARRAY_COUNT(GGameName));
-				FCString::Strcat(GGameName, ARRAY_COUNT(GGameName), TEXT("Game"));
-			}
-			else
-			{
-				const FText Message = FText::Format(
-					NSLOCTEXT("Core", "MismatchedGameNames", "The name of the .uproject file ('{0}') must match the GameName key in the [URL] section of Config/DefaultEngine.ini (currently '{1}').  Please either change the ini or rename the .uproject to match each other (case-insensitive match)."),
-					FText::FromString(GGameName),
-					FText::FromString(GameName));
-				if (!GIsBuildMachine)
-				{
-					UE_LOG(LogInit, Warning, TEXT("%s"), *Message.ToString());
-					FMessageDialog::Open( EAppMsgType::Ok, Message );
-				}
-				GGameName[0] = 0; // this disables part of the crash reporter to avoid writing log files to a bogus directory
-				if (!GIsBuildMachine)
-				{
-					exit(1);
-				}
-				UE_LOG(LogInit, Fatal, TEXT("%s"), *Message.ToString());
-			}
-		}
-#endif	//PLATFORM_DESKTOP
 	}
 
 	FConfigCacheIni::LoadGlobalIniFile(GGameIni, TEXT("Game"));

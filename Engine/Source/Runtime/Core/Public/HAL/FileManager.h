@@ -185,4 +185,13 @@ public:
 	 * @return			true if the message was sent to server and it returned success, or false if there is no server, or the command failed
 	 */
 	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler)=0;
+
+	/**
+	* For case insensitive filesystems, returns the full path of the file with the same case as in the filesystem.
+	*
+	* @param Filename	Filename to query
+	*
+	* @return	Filename with the same case as in the filesystem.
+	*/
+	virtual FString GetFilenameOnDisk(const TCHAR* Filename) = 0;
 };

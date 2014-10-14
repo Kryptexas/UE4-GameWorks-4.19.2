@@ -52,7 +52,20 @@ public:
 	 */
 	FORCEINLINE static const TCHAR* GetGameName()
 	{
-		return GGameName;
+		return GInternalGameName;
+	}
+
+	/**
+	* Sets the name of the currently running game.
+	*
+	* @param InGameName Name of the curently running game.
+	*/
+	FORCEINLINE static void SetGameName(const TCHAR* InGameName)
+	{
+		// At the moment Strcpy is not safe as we don't check the buffer size on all platforms, so we use strncpy here.
+		FCString::Strncpy(GInternalGameName, InGameName, ARRAY_COUNT(GInternalGameName));
+		// And make sure the GameName string is null terminated.
+		GInternalGameName[ARRAY_COUNT(GInternalGameName) - 1] = 0;
 	}
 
 	/**
@@ -148,13 +161,23 @@ public:
 	}
 
 	/**
+	* Reports if the game name is empty
+	*
+	* @return true if the game name is empty
+	*/
+	FORCEINLINE static bool IsGameNameEmpty()
+	{
+		return (GInternalGameName[0] == 0);
+	}
+
+	/**
 	 * Reports if the game name has been set
 	 *
 	 * @return true if the game name has been set
 	 */
-	static bool HasGameName()
+	FORCEINLINE static bool HasGameName()
 	{
-		return (GGameName[0] != 0) && (FCString::Stricmp(GGameName, TEXT("None")) != 0);
+		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
 	}
 
 	/**

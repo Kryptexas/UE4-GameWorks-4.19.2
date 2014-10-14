@@ -212,9 +212,9 @@ FText UGatherTextCommandlet::GetChangelistDescription( const FString& InConfigPa
 	else
 	{
 		// The config file falls outside of the root directory, we will use the game name if we have it
-		if (FCString::Strlen(GGameName) != 0)
+		if (FCString::Strlen(FApp::GetGameName()) != 0)
 		{
-			ProjectName = GGameName;
+			ProjectName = FApp::GetGameName();
 		}
 	}
 

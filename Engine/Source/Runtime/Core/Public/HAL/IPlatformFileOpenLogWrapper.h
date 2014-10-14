@@ -121,6 +121,10 @@ public:
 	{
 		return LowerLevel->GetAccessTimeStamp(Filename);
 	}
+	virtual FString	GetFilenameOnDisk(const TCHAR* Filename) override
+	{
+		return LowerLevel->GetFilenameOnDisk(Filename);
+	}
 	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		IFileHandle* Result = LowerLevel->OpenRead(Filename);

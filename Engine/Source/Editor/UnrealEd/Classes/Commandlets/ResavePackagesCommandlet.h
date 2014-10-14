@@ -5,7 +5,8 @@
 #include "ResavePackagesCommandlet.generated.h"
 
 UCLASS()
-class UResavePackagesCommandlet : public UCommandlet
+// Added UNREALED_API to expose this to the save packages test
+class UNREALED_API UResavePackagesCommandlet : public UCommandlet
 {
     GENERATED_UCLASS_BODY()
 

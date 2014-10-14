@@ -513,6 +513,11 @@ FDateTime FIOSPlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 	return IOSEpoch + TimeSinceEpoch;
 }
 
+FString FIOSPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
+{
+	return Filename;
+}
+
 IFileHandle* FIOSPlatformFile::OpenRead(const TCHAR* Filename)
 {
 	FString NormalizedFilename = NormalizeFilename(Filename);

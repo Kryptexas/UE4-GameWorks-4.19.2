@@ -555,9 +555,9 @@ public:
 		{
 			ProjectPath = FPaths::GetProjectFilePath();
 		}
-		else if (FGameProjectHelper::IsGameAvailable(GGameName))
+		else if (FGameProjectHelper::IsGameAvailable(FApp::GetGameName()))
 		{
-			ProjectPath = FPaths::RootDir() / GGameName / GGameName + TEXT(".uproject");
+			ProjectPath = FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
 		}
 		else
 		{
