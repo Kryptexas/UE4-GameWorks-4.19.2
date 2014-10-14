@@ -85,6 +85,9 @@ public:
 	 */
 	static bool DefaultCanExecuteAction();
 
+	/** Determine whether we are allowed to save the world at this moment */
+	static bool CanSaveWorld();
+
 	/** Saves all levels and asset packages */
 	static void SaveAll();
 	

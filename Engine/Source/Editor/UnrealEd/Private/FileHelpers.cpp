@@ -343,6 +343,11 @@ static bool SaveWorld(UWorld* World,
 					   bool bAutosaving,
 					   bool bPIESaving)
 {
+	// SaveWorld not reentrant - check that we are not already in the process of saving here (for example, via autosave)
+	static bool bIsReentrant = false;
+	check(!bIsReentrant);
+	TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
+
 	if ( !World )
 	{
 		FinalFilename = LOCTEXT("FilenameUnavailable", "Filename Not available!").ToString();

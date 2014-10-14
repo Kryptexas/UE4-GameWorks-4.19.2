@@ -620,6 +620,9 @@ public:
 	static bool ToggleFavorite_CanExecute();
 	static bool ToggleFavorite_IsChecked();
 
+	/** Determine whether the level can be saved at this moment */
+	static bool CanSaveWorld();
+
 	/** Save the current level as... */
 	static void SaveAs();
 

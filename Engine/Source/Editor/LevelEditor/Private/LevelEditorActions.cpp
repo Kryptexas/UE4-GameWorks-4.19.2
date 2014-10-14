@@ -323,6 +323,11 @@ bool FLevelEditorActionCallbacks::ToggleFavorite_IsChecked()
 }
 
 
+bool FLevelEditorActionCallbacks::CanSaveWorld()
+{
+	return FSlateApplication::Get().IsNormalExecution() && (!GUnrealEd || !GUnrealEd->GetPackageAutoSaver().IsAutoSaving());
+}
+
 void FLevelEditorActionCallbacks::Save()
 {
 	FEditorFileUtils::SaveCurrentLevel();
