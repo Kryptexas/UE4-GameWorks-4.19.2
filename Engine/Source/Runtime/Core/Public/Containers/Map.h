@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Core.h"
-#include "Array.h"
-#include "Set.h"
+#include "Containers/Array.h"
+#include "Containers/Set.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
 

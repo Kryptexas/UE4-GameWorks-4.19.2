@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "HAL/PlatformMath.h"
 
 //#define IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 

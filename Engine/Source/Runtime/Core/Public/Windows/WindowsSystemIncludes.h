@@ -5,12 +5,7 @@
 #include "Windows/WindowsPlatformCompilerSetup.h"
 
 // include windows.h
-#include "Windows/PreWindowsApi.h"
-#ifndef STRICT
-#define STRICT
-#endif
-#include "Windows/MinWindows.h"
-#include "Windows/PostWindowsApi.h"
+#include "Windows/WindowsHWrapper.h"
 
 // Macro for releasing COM objects
 #define SAFE_RELEASE(p) { if(p) { (p)->Release(); (p)=NULL; } }

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "SparseArray.h"
-
+#include "Containers/SparseArray.h"
+#include "Templates/Sorting.h"
 
 /**
  * The base KeyFuncs type with some useful definitions for all KeyFuncs; meant to be derived from instead of used directly.
