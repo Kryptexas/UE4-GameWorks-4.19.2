@@ -626,6 +626,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_CLEAN_DESTRUCTIBLE_SETTINGS,
 	// CharacterMovementComponent refactor of AdjustUpperHemisphereImpact and deprecation of some associated vars.
 	VER_UE4_CHARACTER_MOVEMENT_UPPER_IMPACT_BEHAVIOR,
+	// Changed Blueprint math equality functions for vectors and rotators to operate as a "nearly" equals rather than "exact"
+	VER_UE4_BP_MATH_VECTOR_EQUALITY_USES_EPSILON,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

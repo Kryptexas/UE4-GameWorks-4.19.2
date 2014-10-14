@@ -683,19 +683,14 @@ FVector  UKismetMathLibrary::RotateAngleAxis(FVector InVect, float AngleDeg, FVe
 	return InVect.RotateAngleAxis(AngleDeg, Axis.SafeNormal());
 }
 
-bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B)
-{
-	return (A.X == B.X) && (A.Y == B.Y) && (A.Z == B.Z);
-}	
-
-bool UKismetMathLibrary::NearlyEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
+bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
 {
 	return A.Equals(B, ErrorTolerance);
-}
+}	
 
-bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B)
+bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
 {
-	return (A.X != B.X) || (A.Y != B.Y) || (A.Z != B.Z);
+	return !A.Equals(B, ErrorTolerance);
 }	
 
 float UKismetMathLibrary::Dot_VectorVector(FVector A, FVector B)
@@ -838,19 +833,14 @@ FVector UKismetMathLibrary::GetDirectionVector(FVector From, FVector To)
 }
 
 
-bool UKismetMathLibrary::EqualEqual_RotatorRotator(FRotator A, FRotator B)
-{
-	return (A.Pitch == B.Pitch) && (A.Yaw == B.Yaw) && (A.Roll == B.Roll);
-}	
-
-bool UKismetMathLibrary::NearlyEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
+bool UKismetMathLibrary::EqualEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
 {
 	return A.Equals(B, ErrorTolerance);
-}
+}	
 
-bool UKismetMathLibrary::NotEqual_RotatorRotator(FRotator A, FRotator B)
+bool UKismetMathLibrary::NotEqual_RotatorRotator(FRotator A, FRotator B, float ErrorTolerance)
 {
-	return (A.Pitch != B.Pitch) || (A.Yaw != B.Yaw) || (A.Roll != B.Roll);
+	return !A.Equals(B, ErrorTolerance);
 }	
 
 FRotator UKismetMathLibrary::Multiply_RotatorFloat(FRotator A, float B)

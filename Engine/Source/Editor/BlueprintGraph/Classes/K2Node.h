@@ -131,6 +131,10 @@ class UK2Node : public UEdGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
+	// UObject interface
+	BLUEPRINTGRAPH_API virtual void PostLoad() override;
+	// End of UObject interface
+
 	// UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void ReconstructNode() override;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
@@ -411,6 +415,8 @@ protected:
 			ReferencedObject->GetLinker()->Preload(ReferencedObject);
 		}
 	}
+
+	void FixupPinDefaultValues();
 };
 
 
