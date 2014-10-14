@@ -33,6 +33,7 @@ public:
 		SLATE_ARGUMENT( FIntPoint, ThumbnailSize )
 		SLATE_ATTRIBUTE( FString, ObjectPath )
 		SLATE_ARGUMENT( UClass*, Class )
+		SLATE_ARGUMENT( TOptional<TArray<UFactory*>>, NewAssetFactories )
 		SLATE_EVENT( FOnSetObject, OnSetObject )
 		SLATE_EVENT(FOnShouldFilterAsset, OnShouldFilterAsset)
 		SLATE_NAMED_SLOT( FArguments, CustomContentSlot )
@@ -250,6 +251,9 @@ private:
 
 	/** The class of the object we are editing */
 	UClass* ObjectClass;
+
+	/** A list of the factories we can use to create new assets */
+	TArray<UFactory*> NewAssetFactories;
 
 	/** Whether the asset can be 'None' in this case */
 	bool bAllowClear;

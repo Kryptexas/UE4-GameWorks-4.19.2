@@ -203,14 +203,14 @@ namespace PropertyCustomizationHelpers
 			.OnAssetSelected( OnAssetSelectedFromPicker );
 	}
 
-	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, TArray<const UClass*> AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose)
+	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose)
 	{
 		return
 			SNew(SPropertyMenuAssetPicker)
 			.InitialObject(InitialObject)
 			.AllowClear(AllowClear)
 			.AllowedClasses(AllowedClasses)
-			.NewAssetFactories(GetNewAssetFactoriesForClasses(AllowedClasses))
+			.NewAssetFactories(NewAssetFactories)
 			.OnShouldFilterAsset(OnShouldFilterAsset)
 			.OnSet(OnSet)
 			.OnClose(OnClose);
@@ -349,6 +349,7 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 			SAssignNew(PropertyEditorAsset, SPropertyEditorAsset)
 				.ObjectPath( this, &SObjectPropertyEntryBox::OnGetObjectPath )
 				.Class( InArgs._AllowedClass )
+				.NewAssetFactories( InArgs._NewAssetFactories )
 				.OnSetObject(this, &SObjectPropertyEntryBox::OnSetObject)
 				.ThumbnailPool(InArgs._ThumbnailPool)
 				.DisplayThumbnail(bDisplayThumbnail)

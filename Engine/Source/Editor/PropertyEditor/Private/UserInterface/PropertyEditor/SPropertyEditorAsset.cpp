@@ -93,6 +93,17 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		bIsActor = ObjectClass->IsChildOf( AActor::StaticClass() );
 	}
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
+
+	if (InArgs._NewAssetFactories.IsSet())
+	{
+		NewAssetFactories = InArgs._NewAssetFactories.GetValue();
+	}
+	else if (ObjectClass->GetClass() != UObject::StaticClass())
+	{
+		TArray<const UClass*> AllowedClasses;
+		AllowedClasses.Add(ObjectClass);
+		NewAssetFactories = PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses);
+	}
 	
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
 	ChildSlot
@@ -303,6 +314,7 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData,
 																	 bAllowClear,
 																	 AllowedClasses,
+																	 NewAssetFactories,
 																	 OnShouldFilterAsset,
 																	 FOnAssetSelected::CreateSP(this, &SPropertyEditorAsset::OnAssetSelected),
 																	 FSimpleDelegate::CreateSP(this, &SPropertyEditorAsset::CloseComboButton));

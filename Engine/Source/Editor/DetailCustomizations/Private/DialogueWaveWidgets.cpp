@@ -207,7 +207,14 @@ TSharedRef<SWidget> SDialogueVoicePropertyEditor::OnGetMenuContent()
 		DialogueVoice = Cast<UDialogueVoice>(Object);
 	}
 
-	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(DialogueVoice, false, AllowedClasses, OnShouldFilterAsset, FOnAssetSelected::CreateSP(this, &SDialogueVoicePropertyEditor::OnAssetSelectedFromPicker), FSimpleDelegate::CreateSP(this, &SDialogueVoicePropertyEditor::CloseMenu));
+	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+		DialogueVoice,
+		false,
+		AllowedClasses,
+		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
+		OnShouldFilterAsset,
+		FOnAssetSelected::CreateSP(this, &SDialogueVoicePropertyEditor::OnAssetSelectedFromPicker),
+		FSimpleDelegate::CreateSP(this, &SDialogueVoicePropertyEditor::CloseMenu));
 }
 
 void SDialogueVoicePropertyEditor::CloseMenu()
