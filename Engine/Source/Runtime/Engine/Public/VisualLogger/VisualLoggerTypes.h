@@ -18,8 +18,52 @@ namespace VisualLogger
 	};
 }
 
+struct FVisualLogEventBase
+{
+	virtual FString GetName() const { return FString(); }
+	virtual FString GetUserFriendlyDesc() const { return FString(); }
+	virtual ELogVerbosity::Type GetVerbosity() const { return ELogVerbosity::All; }
+};
+
+#define DECLARE_VLOG_EVENT(EventName, Verbosity, UserFriendlyDesc) \
+struct FVisualLogEventBase_##EventName : public FVisualLogEventBase \
+{ \
+	virtual FString GetName() const override { return TEXT(#EventName); } \
+	virtual FString GetUserFriendlyDesc() const override { return TEXT(UserFriendlyDesc); } \
+	virtual ELogVerbosity::Type GetVerbosity() const override { return ELogVerbosity::Verbosity; } \
+};
+
+#define DEFINE_VLOG_EVENT(EventName) FVisualLogEventBase_##EventName EventName;
+
+
 struct ENGINE_API FVisualLogEntry
 {
+	struct FLogEvent
+	{
+		FString Name;
+		FString UserFriendlyDesc;
+		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		TMap<FName, int32>	 EventTags;
+		int32 Counter;
+		int64 UserData;
+		FName TagName;
+
+		FLogEvent() : Counter(1) {}
+		FLogEvent(const FVisualLogEventBase& Event) : Counter(1)
+		{
+			Name = Event.GetName();
+			UserFriendlyDesc = Event.GetUserFriendlyDesc();
+			Verbosity = Event.GetVerbosity();
+		}
+
+		FLogEvent& operator = (const FVisualLogEventBase& Event)
+		{
+			Name = Event.GetName();
+			UserFriendlyDesc = Event.GetUserFriendlyDesc();
+			Verbosity = Event.GetVerbosity();
+			return *this;
+		}
+	};
 	struct FLogLine
 	{
 		FString Line;
@@ -162,6 +206,7 @@ struct ENGINE_API FVisualLogEntry
 		float TimeStamp;
 		FVector Location;
 
+		TArray<FLogEvent> Events;
 		TArray<FLogLine> LogLines;
 		TArray<FStatusCategory> Status;
 		TArray<FElementToDraw> ElementsToDraw;
@@ -177,6 +222,7 @@ struct ENGINE_API FVisualLogEntry
 		{
 			TimeStamp = -1;
 			Location = FVector::ZeroVector;
+			Events.Reset();
 			LogLines.Reset();
 			Status.Reset();
 			ElementsToDraw.Reset();
@@ -203,20 +249,32 @@ struct ENGINE_API FVisualLogEntry
 		FVisualLogEntry::FDataBlock& AddDataBlock(const FString& TagName, const TArray<uint8>& BlobDataArray, const FName& CategoryName);
 		// capsule
 		void AddCapsule(FVector const& Center, float HalfHeight, float Radius, const FQuat & Rotation, const FName& CategoryName, const FColor& Color = FColor::White, const FString& Description = TEXT(""));
+		// Event
+		int32 AddEvent(const FVisualLogEventBase& Event);
+
+		int32 FindStatusIndex(const FString& CategoryName);
 
 		// find index of status category
-		FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
-		{
-			for (int32 TestCategoryIndex = 0; TestCategoryIndex < Status.Num(); TestCategoryIndex++)
-			{
-				if (Status[TestCategoryIndex].Category == CategoryName)
-				{
-					return TestCategoryIndex;
-				}
-			}
-
-			return INDEX_NONE;
-		}
 
 #endif // ENABLE_VISUAL_LOG
 	};
+
+#if  ENABLE_VISUAL_LOG
+	FORCEINLINE int32 FVisualLogEntry::FindStatusIndex(const FString& CategoryName)
+	{
+		for (int32 TestCategoryIndex = 0; TestCategoryIndex < Status.Num(); TestCategoryIndex++)
+		{
+			if (Status[TestCategoryIndex].Category == CategoryName)
+			{
+				return TestCategoryIndex;
+			}
+		}
+
+		return INDEX_NONE;
+	}
+
+	FORCEINLINE bool operator==(const FVisualLogEntry::FLogEvent& Left, const FVisualLogEntry::FLogEvent& Right)
+	{
+		return Left.Name == Right.Name;
+	}
+#endif // ENABLE_VISUAL_LOG

@@ -122,18 +122,19 @@ bool FVisualLogTest::RunTest(const FString& Parameters)
 		CHECK_SUCCESS(Context.Device.LastObject != GWorld);
 		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
 		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
-		CHECK_SUCCESS(CurrentEntry != NULL);
-		CHECK_SUCCESS(CurrentEntry->TimeStamp == GWorld->TimeSeconds);
-		CHECK_SUCCESS(CurrentEntry->LogLines.Num() == 1);
-		CHECK_SUCCESS(CurrentEntry->LogLines[0].Category == LogVisual.GetCategoryName());
-		CHECK_SUCCESS(CurrentEntry->LogLines[0].Line == TextToLog);
+		
+		float CurrentTimestamp = GWorld->TimeSeconds;
+		for (int32 Index = 0; Index < 2; ++Index)
+		{
+			CHECK_SUCCESS(CurrentEntry != NULL);
+			CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+			CHECK_SUCCESS(CurrentEntry->LogLines.Num() == 1);
+			CHECK_SUCCESS(CurrentEntry->LogLines[0].Category == LogVisual.GetCategoryName());
+			CHECK_SUCCESS(CurrentEntry->LogLines[0].Line == TextToLog);
 
-		FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds+0.1); //generate new entry and serialize old one
-		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == GWorld->TimeSeconds);
-		CHECK_SUCCESS(Context.Device.LastObject == GWorld);
-		CHECK_SUCCESS(Context.Device.LastEntry.LogLines.Num() == 1);
-		CHECK_SUCCESS(Context.Device.LastEntry.LogLines[0].Category == LogVisual.GetCategoryName());
-		CHECK_SUCCESS(Context.Device.LastEntry.LogLines[0].Line == TextToLog);
+			FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp + 0.1); //generate new entry and serialize old one
+			CurrentEntry = &Context.Device.LastEntry;
+		}
 	}
 
 	FVisualLogger::Get().SetIsRecording(false);
@@ -163,14 +164,118 @@ bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 		CHECK_SUCCESS(Context.Device.LastObject == NULL);
 		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
 		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
-		CHECK_SUCCESS(CurrentEntry != NULL);
-		CHECK_SUCCESS(CurrentEntry->TimeStamp == GWorld->TimeSeconds);
-		CHECK_SUCCESS(CurrentEntry->ElementsToDraw.Num() == 1);
-		CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].GetType() == FVisualLogEntry::FElementToDraw::Segment);
-		CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points.Num() == 2);
-		CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[0] == StartPoint);
-		CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[1] == EndPoint);
+
+		float CurrentTimestamp = GWorld->TimeSeconds;
+		for (int32 Index = 0; Index < 2; ++Index)
+		{
+			CHECK_SUCCESS(CurrentEntry != NULL);
+			CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+			CHECK_SUCCESS(CurrentEntry->ElementsToDraw.Num() == 1);
+			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].GetType() == FVisualLogEntry::FElementToDraw::Segment);
+			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points.Num() == 2);
+			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[0] == StartPoint);
+			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[1] == EndPoint);
+
+			FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp + 0.1); //generate new entry and serialize old one
+			CurrentEntry = &Context.Device.LastEntry;
+		}
 	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogEventsTest, "Engine.VisualLogger.Logging events", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
+
+DECLARE_VLOG_EVENT(EventTest, All, "Simple event for tests")
+DEFINE_VLOG_EVENT(EventTest)
+
+DECLARE_VLOG_EVENT(EventTest2, All, "Second simple event for tests")
+DEFINE_VLOG_EVENT(EventTest2)
+
+DECLARE_VLOG_EVENT(EventTest3, All, "Third simple event for tests")
+DEFINE_VLOG_EVENT(EventTest3)
+
+bool FVisualLogEventsTest::RunTest(const FString& Parameters)
+{
+	FTestDeviceContext Context;
+	FVisualLogger::Get().SetIsRecording(true);
+
+	CHECK_SUCCESS(EventTest.GetName() == TEXT("EventTest"));
+	CHECK_SUCCESS(EventTest.GetUserFriendlyDesc() == TEXT("Simple event for tests"));
+
+	CHECK_SUCCESS(EventTest2.GetName() == TEXT("EventTest2"));
+	CHECK_SUCCESS(EventTest2.GetUserFriendlyDesc() == TEXT("Second simple event for tests"));
+
+	CHECK_SUCCESS(EventTest3.GetName() == TEXT("EventTest3"));
+	CHECK_SUCCESS(EventTest3.GetUserFriendlyDesc() == TEXT("Third simple event for tests"));
+
+	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
+	float CurrentTimestamp = GWorld->TimeSeconds;
+	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest);
+	CHECK_SUCCESS(CurrentEntry != NULL);
+	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+	CHECK_SUCCESS(CurrentEntry->Events.Num() == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[0].Name == TEXT("EventTest"));
+
+	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest, EventTest2);
+	CHECK_SUCCESS(CurrentEntry != NULL);
+	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+	CHECK_SUCCESS(CurrentEntry->Events.Num() == 2);
+	CHECK_SUCCESS(CurrentEntry->Events[0].Counter == 2);
+	CHECK_SUCCESS(CurrentEntry->Events[0].Name == TEXT("EventTest"));
+	CHECK_SUCCESS(CurrentEntry->Events[1].Counter == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[1].Name == TEXT("EventTest2"));
+
+	CurrentTimestamp = GWorld->TimeSeconds;
+	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest, EventTest2, EventTest3);
+
+	for (int32 Index = 0; Index < 2; ++Index)
+	{
+		CHECK_SUCCESS(CurrentEntry != NULL);
+		CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+		CHECK_SUCCESS(CurrentEntry->Events.Num() == 3);
+		CHECK_SUCCESS(CurrentEntry->Events[0].Counter == 3);
+		CHECK_SUCCESS(CurrentEntry->Events[0].Name == TEXT("EventTest"));
+		CHECK_SUCCESS(CurrentEntry->Events[1].Counter == 2);
+		CHECK_SUCCESS(CurrentEntry->Events[1].Name == TEXT("EventTest2"));
+		CHECK_SUCCESS(CurrentEntry->Events[2].Counter == 1);
+		CHECK_SUCCESS(CurrentEntry->Events[2].Name == TEXT("EventTest3"));
+
+		CHECK_SUCCESS(CurrentEntry->Events[0].UserFriendlyDesc == TEXT("Simple event for tests"));
+		CHECK_SUCCESS(CurrentEntry->Events[1].UserFriendlyDesc == TEXT("Second simple event for tests"));
+		CHECK_SUCCESS(CurrentEntry->Events[2].UserFriendlyDesc == TEXT("Third simple event for tests"));
+
+		FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp+0.1); //generate new entry and serialize old one
+		CurrentEntry = &Context.Device.LastEntry;
+	}
+
+	const FName EventTag1 = TEXT("ATLAS_C_0");
+	const FName EventTag2 = TEXT("ATLAS_C_1");
+	const FName EventTag3 = TEXT("ATLAS_C_2");
+
+	CurrentTimestamp = GWorld->TimeSeconds + 0.2;
+	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp); //generate new entry and serialize old one
+	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag1);
+	CHECK_SUCCESS(CurrentEntry != NULL);
+	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+	CHECK_SUCCESS(CurrentEntry->Events.Num() == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[0].Name == TEXT("EventTest"));
+	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags.Num() == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags[EventTag1] == 1);
+
+	CurrentTimestamp = GWorld->TimeSeconds + 0.2;
+	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp); //generate new entry and serialize old one
+	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag1, EventTag2, EventTag3);
+	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag3);
+	CHECK_SUCCESS(CurrentEntry != NULL);
+	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
+	CHECK_SUCCESS(CurrentEntry->Events.Num() == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[0].Name == TEXT("EventTest"));
+	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags.Num() == 3);
+	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags[EventTag1] == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags[EventTag2] == 1);
+	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags[EventTag3] == 2);
+
+
 	return true;
 }
 

@@ -85,6 +85,10 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
+#if ENABLE_VISUAL_LOG
+#	include "VisualLogger/VisualLogger.h"
+#endif
+
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
 class FOutputDeviceStdOutput : public FOutputDevice
@@ -1910,6 +1914,11 @@ void FEngineLoop::Exit()
 {
 	GIsRunning	= 0;
 	GLogConsole	= NULL;
+
+	// shutdown visual logger and flush all data
+#if ENABLE_VISUAL_LOG
+	FVisualLogger::Get().Shutdown();
+#endif
 
 	GetMoviePlayer()->Shutdown();
 

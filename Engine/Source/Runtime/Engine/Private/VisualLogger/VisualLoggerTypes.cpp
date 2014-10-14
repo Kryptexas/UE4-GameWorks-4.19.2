@@ -11,6 +11,7 @@ FVisualLogEntry::FVisualLogEntry(const FVisualLogEntry& Entry)
 	TimeStamp = Entry.TimeStamp;
 	Location = Entry.Location;
 
+	Events = Entry.Events;
 	LogLines = Entry.LogLines;
 	Status = Entry.Status;
 	ElementsToDraw = Entry.ElementsToDraw;
@@ -67,6 +68,11 @@ FVisualLogEntry::FVisualLogEntry(float InTimeStamp, FVector InLocation, const UO
 			}
 		}
 	}
+}
+
+int32 FVisualLogEntry::AddEvent(const FVisualLogEventBase& Event)
+{
+	return Events.Add(Event);
 }
 
 void FVisualLogEntry::AddText(const FString& TextLine, const FName& CategoryName)

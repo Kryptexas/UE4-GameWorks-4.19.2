@@ -141,7 +141,7 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 
 #define UE_VLOG_EQS(Query, CategoryName, Verbosity) \
 { \
-	UEnvQueryDebugHelpers::LogQuery(Query->Owner.Get(), Query, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, \
+	UEnvQueryDebugHelpers::LogQuery(Query, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, \
 		FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query->QueryName, Query->QueryID, Query->OptionIndex, Query->ItemDetails.Num(), Query->NumValidItems)); \
 }
 
@@ -160,6 +160,46 @@ class AIMODULE_API UEnvQueryDebugHelpers : public UObject
 	static void QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData);
 	static void QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
 	static void BlobArrayToDebugData(const TArray<uint8>& BlobArray, EQSDebug::FQueryData& EQSLocalData, bool bUseCompression = false);
-	static void LogQuery(const class UObject* QueryOwner, struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type, const FString& AdditionalLogInfo);
+	static void LogQuery(struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type, const FString& AdditionalLogInfo);
 #endif
 };
+
+#if USE_EQS_DEBUGGER
+FORCEINLINE void UEnvQueryDebugHelpers::LogQuery(struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type Type, const FString& AdditionalLogInfo)
+{
+#if ENABLE_VISUAL_LOG
+	if (GEngine && GEngine->bDisableAILogging || Query == NULL || FVisualLogger::Get().IsRecording() == false || (FVisualLogger::Get().IsBlockedForAllCategories() && FVisualLogger::Get().GetWhiteList().Find(CategoryName) == INDEX_NONE))
+	{
+		return;
+	}
+
+	const UObject* LogOwner = FVisualLogger::Get().FindRedirection(Query->Owner.Get());
+	if (LogOwner == NULL || LogOwner->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		return;
+	}
+
+	UWorld* World = GEngine->GetWorldFromContextObject(Query->Owner.Get(), false);
+	if (!World)
+	{
+		return;
+	}
+
+	TArray<uint8> BlobArray;
+	UEnvQueryDebugHelpers::QueryToBlobArray(Query, BlobArray);
+
+	FVisualLogEntry* EntryToWrite = FVisualLogger::Get().GetEntryToWrite(LogOwner, World->TimeSeconds);
+	const int32 UniqueId = FVisualLogger::Get().GetUniqueId(World->TimeSeconds);
+	if (EntryToWrite)
+	{
+		FVisualLogEntry::FLogLine Line(CategoryName, Type, AdditionalLogInfo, Query->QueryID);
+		Line.TagName = *EVisLogTags::TAG_EQS;
+		Line.UniqueId = UniqueId;
+		EntryToWrite->LogLines.Add(Line);
+
+		EntryToWrite->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, CategoryName).UniqueId = UniqueId;
+	}
+#endif
+}
+#endif
+

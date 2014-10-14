@@ -26,10 +26,13 @@ FVisualLogger::FVisualLogger()
 
 FVisualLogger::~FVisualLogger()
 {
+	RemoveDevice(&FVisualLog::GetStatic());
+}
+
+void FVisualLogger::Shutdown()
+{
 	SetIsRecording(false);
 	SetIsRecordingToFile(false);
-
-	RemoveDevice(&FVisualLog::GetStatic());
 }
 
 void FVisualLogger::Cleanup(bool bReleaseMemory)
@@ -108,7 +111,7 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 
 	FString BaseFileName = TEXT("VisualLog");
 	FString UserDefinedName;
-	FString MapName = GWorld ? GWorld->GetMapName() : TEXT("");
+	FString MapName = GWorld.GetReference() ? GWorld->GetMapName() : TEXT("");
 	if (LogFileNameGetter.IsBound())
 	{
 		UserDefinedName = LogFileNameGetter.Execute();
@@ -131,13 +134,13 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 		{
 			if (Device->HasFlags(VisualLogger::CanSaveToFile))
 			{
-				Device->StopRecordingToFile(GWorld ? GWorld->TimeSeconds : StartRecordingToFileTime);
+				Device->StopRecordingToFile(GWorld.GetReference() ? GWorld->TimeSeconds : StartRecordingToFileTime);
 			}
 		}
 	}
 	else if (!bIsRecordingToFile && InIsRecording)
 	{
-		StartRecordingToFileTime = GWorld ? GWorld->TimeSeconds : 0;
+		StartRecordingToFileTime = GWorld.GetReference() ? GWorld->TimeSeconds : 0;
 		for (auto* Device : OutputDevices)
 		{
 			if (Device->HasFlags(VisualLogger::CanSaveToFile))

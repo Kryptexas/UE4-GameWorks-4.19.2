@@ -143,7 +143,7 @@ protected:
 
 	void LogElementImpl(FVisLogSelfDrawingElement* Element);
 
-	FORCEINLINE_DEBUGGABLE TSharedPtr<FActorsVisLog> GetLog(const class UObject* Object)
+	FORCEINLINE TSharedPtr<FActorsVisLog> GetLog(const class UObject* Object)
 	{
 		TSharedPtr<FActorsVisLog>* Log = LogsMap.Find(Object);
 		if (Log == NULL)

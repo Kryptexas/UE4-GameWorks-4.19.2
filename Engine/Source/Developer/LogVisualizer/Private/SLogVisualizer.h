@@ -114,6 +114,9 @@ public:
 
 	FOnHistogramWindowChanged& OnHistogramWindowChanged() { return HistogramWindowChangedNotify; }
 
+	TSharedPtr<SWidget> GetListRightClickMenuContent();
+	void GenerateReport();
+
 	void OnListDoubleClick(TSharedPtr<FLogsListItem>);
 	void DoFullUpdate();
 	void DoTickUpdate();

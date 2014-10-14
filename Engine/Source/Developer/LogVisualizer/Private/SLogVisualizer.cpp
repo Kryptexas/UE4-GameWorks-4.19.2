@@ -21,6 +21,7 @@
 
 #include "GameplayDebuggingComponent.h"
 #include "LogVisualizerModule.h"
+#include "SLogVisualizerReport.h"
 
 #include "SFilterList.h"
 
@@ -373,6 +374,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.ItemHeight(20)
 						// Called when the user double-clicks with LMB on an item in the list
 						.OnMouseButtonDoubleClick(this, &SLogVisualizer::OnListDoubleClick)
+						.OnContextMenuOpening(this, &SLogVisualizer::GetListRightClickMenuContent)
 						.ListItemsSource(&LogsList)
 						.SelectionMode(ESelectionMode::Multi)
 						.OnGenerateRow(this, &SLogVisualizer::LogsListGenerateRow)
@@ -648,6 +650,54 @@ void SLogVisualizer::OnListDoubleClick(TSharedPtr<FLogsListItem> LogListItem)
 #endif
 }
 
+TSharedPtr<SWidget> SLogVisualizer::GetListRightClickMenuContent()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	if (IsEnabled())
+	{
+		MenuBuilder.BeginSection("VisualLogReports", LOCTEXT("VisualLogReports", "VisualLog Reports"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("GenarateReport", "Genarate Report"),
+				LOCTEXT("GenarateReportTooltip", "Genarate report from Visual Log events."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &SLogVisualizer::GenerateReport))
+				);
+		}
+		MenuBuilder.EndSection();
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+void SLogVisualizer::GenerateReport()
+{
+	TArray< TSharedPtr<FLogsListItem> > ItemsToSave = LogsListWidget->GetSelectedItems();
+	TArray< TSharedPtr<FActorsVisLog> > AllLogs;
+
+	TSharedPtr<FLogsListItem>* LogListItem = ItemsToSave.GetData();
+	for (int32 ItemIndex = 0; ItemIndex < ItemsToSave.Num(); ++ItemIndex, ++LogListItem)
+	{
+		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
+		{
+			TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[(*LogListItem)->LogIndex];
+			AllLogs.Add(Log);
+		}
+	}
+
+
+	TSharedRef<SWindow> NewWindow = SNew(SWindow)
+		.ClientSize(FVector2D(720, 768))
+		.Title(NSLOCTEXT("LogVisualizerReport", "WindowTitle", "Log Visualizer Report"))
+		[
+			SNew(SLogVisualizerReport, this, AllLogs)
+		];
+
+	FSlateApplication::Get().AddWindow(NewWindow);
+}
+
+
 int32 SLogVisualizer::GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisualLogEntry> >& InVisibleEntries)
 {
 	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
@@ -774,6 +824,26 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 				continue;
 			}
 
+			if (!bAddedEntry)
+			{
+				for (int32 LogLineIndex = 0; LogLineIndex < CurrentEntry->Events.Num(); ++LogLineIndex)
+				{
+					const FVisualLogEntry::FLogEvent &CurrentLine = CurrentEntry->Events[LogLineIndex];
+					const FString CurrentCategory = CurrentLine.Name;
+					if (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentLine.Verbosity))
+					{
+						OutEntriesCached[CachedLogIndex].CachedEntries.Add(CurrentEntry);
+						bAddedEntry = true;
+						break;
+					}
+				}
+			}
+
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
 			for (const auto CurrentBlock : CurrentEntry->DataBlocks)
 			{
 				const bool bCurrentCategoryPassed = FilterListPtr->IsFilterEnabled(CurrentBlock.Category.ToString(), ELogVerbosity::All);
@@ -884,6 +954,22 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 					continue;
 				}
 
+				for (int32 j = 0; j < CurrentEntry->Events.Num(); ++j)
+				{
+					const FString CurrentCategory = CurrentEntry->Events[j].Name;
+					FVisualLogEntry::FLogEvent &CurrentElement = CurrentEntry->Events[j];
+					if (CurrentElement.Name.Len() > 0 && (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentElement.Verbosity)))
+					{
+						OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
+						bAddedEntry = true;
+						break;
+					}
+				}
+				if (bAddedEntry)
+				{
+					continue;
+				}
+
 				for (const auto CurrentData : CurrentEntry->DataBlocks)
 				{
 					const bool bCurrentCategoryPassed = FilterListPtr->IsFilterEnabled(CurrentData.Category.ToString(), ELogVerbosity::All);
@@ -975,6 +1061,22 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 				continue;
 			}
 
+			for (int32 ElementIndex = 0; ElementIndex < LogEntry->Events.Num(); ++ElementIndex)
+			{
+				FString CurrentCategory = LogEntry->Events[ElementIndex].Name;
+				if (bHistogramGraphsFilter || CurrentCategory.Find(QuickFilterText) != INDEX_NONE)
+				{
+					OutEntries.AddUnique(LogEntry);
+					bAddedEntry = true;
+					break;
+				}
+			}
+			if (bAddedEntry)
+			{
+				continue;
+			}
+
+
 			for (const auto CurrentData : LogEntry->DataBlocks)
 			{
 				const bool bCurrentCategoryPassed = bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentData.Category.ToString().Find(QuickFilterText) != INDEX_NONE);
@@ -1040,6 +1142,7 @@ void SLogVisualizer::Tick( const FGeometry& AllottedGeometry, const double InCur
 	UWorld* World = GetWorld();
 	if (World && !World->bPlayersOnly && TimeTillNextUpdate < 0 && LogVisualizer->IsRecording())
 	{
+		FVisualLogger::Get().Flush();
 		DoTickUpdate();
 		//DoFullUpdate();
 	}
@@ -1190,6 +1293,18 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 
 			if (!bShouldShow)
 			{
+				for (int32 LineIndex = 0; LineIndex < Log->Entries[NewEntryIndex]->Events.Num(); ++LineIndex)
+				{
+					if (Log->Entries[NewEntryIndex]->Events[LineIndex].Name.Len() == 0 || FilterListPtr->IsFilterEnabled(Log->Entries[NewEntryIndex]->Events[LineIndex].Name, Log->Entries[NewEntryIndex]->Events[LineIndex].Verbosity))
+					{
+						bShouldShow = true;
+						break;
+					}
+				}
+			}
+
+			if (!bShouldShow)
+			{
 				for (const auto CurrentData : Log->Entries[NewEntryIndex]->DataBlocks)
 				{
 					const FName CurrentCategory = CurrentData.Category;
@@ -1292,6 +1407,18 @@ void SLogVisualizer::AddOrUpdateLog(int32 LogIndex, const FActorsVisLog* Log)
 			const FString GraphNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].GraphName.ToString();
 			const FString DataNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].DataName.ToString();
 			FilterListPtr->AddGraphFilter(GraphNameAsString, DataNameAsString, FColor::White);
+		}
+
+		for (auto Iter(Log->Entries[EntryIndex]->Events.CreateConstIterator()); Iter; Iter++)
+		{
+			const FString CategoryAsString = Iter->Name.Len() != 0 ? Iter->Name : TEXT("Event");
+
+			int32 Index = UsedCategories.Find(CategoryAsString);
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(CategoryAsString);
+				FilterListPtr->AddFilter(CategoryAsString, GetColorForUsedCategory(Index));
+			}
 		}
 
 		for (const auto CurrentData : Log->Entries[EntryIndex]->DataBlocks)
@@ -1763,6 +1890,42 @@ void SLogVisualizer::ShowEntry(const FVisualLogEntry* LogEntry)
 
 			LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
 		}
+	}
+
+	for (auto& Event : LogEntry->Events)
+	{
+		bool bShowLine = true;
+
+		if (FilterListPtr.IsValid())
+		{
+			FString CurrentCategory = Event.Name;
+			bShowLine = FilterListPtr->IsFilterEnabled(CurrentCategory, Event.Verbosity) && (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE));
+		}
+
+		if (bShowLine)
+		{
+			FLogEntryItem EntryItem;
+			EntryItem.Category = Event.Name;
+
+			int32 Index = UsedCategories.Find(EntryItem.Category);
+			if (Index == INDEX_NONE)
+			{
+				Index = UsedCategories.Add(EntryItem.Category);
+			}
+			EntryItem.CategoryColor = GetColorForUsedCategory(Index);
+
+			EntryItem.Verbosity = Event.Verbosity;
+			EntryItem.Line = FString::Printf(TEXT("Registered event: '%s' (%d times)%s"), *Event.Name, Event.Counter, Event.EventTags.Num() ? TEXT("\n") : TEXT(""));
+			for (auto& EventTag : Event.EventTags)
+			{
+				EntryItem.Line += FString::Printf(TEXT("%d times for tag: '%s'\n"), EventTag.Value, *EventTag.Key.ToString());
+			}
+			EntryItem.UserData = Event.UserData;
+			EntryItem.TagName = Event.TagName;
+
+			LogEntryLines.Add(MakeShareable(new FLogEntryItem(EntryItem)));
+		}
+
 	}
 
 	SetCurrentViewedTime(LogEntry->TimeStamp);

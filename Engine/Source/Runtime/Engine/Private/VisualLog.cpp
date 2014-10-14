@@ -464,6 +464,7 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 		if (FileAr)
 		{
 			// dump remaining logs
+			FVisualLogger::Get().Flush();
 			DumpRecordedLogs();
 
 			// close JSON data correctly

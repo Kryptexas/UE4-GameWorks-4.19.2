@@ -10,12 +10,15 @@
 		return; \
 	} \
 	UObject* LogOwner = FindRedirection(Object); \
-	UWorld* World = GEngine->GetWorldFromContextObject(Object); \
-	if (World == NULL) \
+	if (LogOwner == NULL) \
 	{ \
-		ensure(World); \
 		return; \
 	} \
+	UWorld* World = GEngine->GetWorldFromContextObject(Object); \
+	if(ensure(World) == false) \
+	{ \
+		return; \
+	}
 
 FORCEINLINE_DEBUGGABLE
 FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, float TimeStamp, VisualLogger::ECreateIfNeeded ShouldCreate)
@@ -28,9 +31,12 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 		CurrentEntry = &CurrentEntryPerObject[Object];
 		if (TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == VisualLogger::Create)
 		{
-			for (auto* Device : OutputDevices)
+			if (CurrentEntry->TimeStamp >= 0) //-1 means not initialized entry information
 			{
-				Device->Serialize(Object, *CurrentEntry);
+				for (auto* Device : OutputDevices)
+				{
+					Device->Serialize(Object, *CurrentEntry);
+				}
 			}
 			InitializeNewEntry = true;
 		}
@@ -66,6 +72,23 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 
 	return CurrentEntry;
 }
+
+FORCEINLINE_DEBUGGABLE
+void FVisualLogger::Flush()
+{
+	for (auto &CurrentEntry : CurrentEntryPerObject)
+	{
+		if (CurrentEntry.Value.TimeStamp >= 0)
+		{
+			for (auto* Device : OutputDevices)
+			{
+				Device->Serialize(CurrentEntry.Key, CurrentEntry.Value);
+			}
+			CurrentEntry.Value.Reset();
+		}
+	}
+}
+
 
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::CategorizedLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId))
@@ -169,6 +192,82 @@ VARARG_BODY(void, FVisualLogger::HistogramDataLogf, const TCHAR*, VARARG_EXTRA(c
 	GROWABLE_LOGF(
 		CurrentEntry->AddHistogramData(Data, CategoryName, GraphName, DataName);
 	);
+}
+
+FORCEINLINE
+void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3, const FVisualLogEventBase& Event4, const FVisualLogEventBase& Event5, const FVisualLogEventBase& Event6)
+{
+	EventLog(Object, EventTag1, Event1, Event2, Event3, Event4, Event5);
+	EventLog(Object, EventTag1, Event6);
+}
+
+FORCEINLINE
+void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3, const FVisualLogEventBase& Event4, const FVisualLogEventBase& Event5)
+{
+	EventLog(Object, EventTag1, Event1, Event2, Event3, Event4);
+	EventLog(Object, EventTag1, Event5);
+}
+
+FORCEINLINE
+void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3, const FVisualLogEventBase& Event4)
+{
+	EventLog(Object, EventTag1, Event1, Event2, Event3);
+	EventLog(Object, EventTag1, Event4);
+}
+
+FORCEINLINE
+void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3)
+{
+	EventLog(Object, EventTag1, Event1, Event2);
+	EventLog(Object, EventTag1, Event3);
+}
+
+FORCEINLINE
+void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2)
+{
+	EventLog(Object, EventTag1, Event1);
+	EventLog(Object, EventTag1, Event2);
+}
+
+FORCEINLINE_DEBUGGABLE_ACTUAL
+void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event, const FName EventTag2, const FName EventTag3, const FName EventTag4, const FName EventTag5, const FName EventTag6)
+{
+	const FName CategoryName = *Event.GetName();
+
+	float CurrentTime = 0;
+	if (GEngine && GEngine->bDisableAILogging || FVisualLogger::Get().bIsRecording == false || !Object || Object->HasAnyFlags(RF_ClassDefaultObject) || (FVisualLogger::Get().IsBlockedForAllCategories() && FVisualLogger::Get().CategoriesWhiteList.Find(CategoryName) == INDEX_NONE))
+	{
+		return;
+	}
+	UObject* LogOwner = FindRedirection(Object);
+	UWorld* World = GEngine->GetWorldFromContextObject(Object);
+	if (World == NULL) 
+	{ 
+		ensure(World); 
+		return; 
+	} 
+
+	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(LogOwner, World->TimeSeconds);
+	if (ensure(CurrentEntry))
+	{
+		int32 Index = CurrentEntry->Events.Find(FVisualLogEntry::FLogEvent(Event));
+		if (Index != INDEX_NONE)
+		{
+			CurrentEntry->Events[Index].Counter++;
+		}
+		else
+		{
+			Index = CurrentEntry->AddEvent(Event);
+		}
+
+		CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag1)++;
+		CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag2)++;
+		CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag3)++;
+		CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag4)++;
+		CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag5)++;
+		CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag6)++;
+		CurrentEntry->Events[Index].EventTags.Remove(NAME_None);
+	}
 }
 
 #undef  CHECK_VLOG_DATA
