@@ -400,7 +400,6 @@ void SClassPropertyEntryBox::Construct(const FArguments& InArgs)
 	[	
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
-		.AutoWidth()
 		.VAlign(VAlign_Center)
 		[
 			SAssignNew(PropertyEditorClass, SPropertyEditorClass)
