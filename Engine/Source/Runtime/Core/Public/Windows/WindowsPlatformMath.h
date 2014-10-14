@@ -1,11 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	WindowsPlatformMath.h: Windows platform Math functions
-==============================================================================================*/
-
 #pragma once
+#include "GenericPlatform/GenericPlatformMath.h"
+#include "HAL/Platform.h"
+
+// This implementation is used by both Windows and XBoxOne
+#if PLATFORM_WINDOWS
+#include "Windows/WindowsSystemIncludes.h"
+#elif PLATFORM_XBOXONE
+#include "XboxOne/XboxOneSystemIncludes.h"
+#endif
 
 /**
 * Windows implementation of the Math OS functions
