@@ -315,7 +315,7 @@ const FSlateBrush* USpinBox::GetEditorIcon()
 
 const FText USpinBox::GetPaletteCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif

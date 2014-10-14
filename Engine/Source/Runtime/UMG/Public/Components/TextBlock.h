@@ -7,7 +7,7 @@
 /**
  * A simple static text widget
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS(meta=(DisplayName="Text"))
 class UMG_API UTextBlock : public UWidget
 {
 	GENERATED_UCLASS_BODY()

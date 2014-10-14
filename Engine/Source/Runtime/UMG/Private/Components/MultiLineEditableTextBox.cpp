@@ -138,7 +138,7 @@ const FSlateBrush* UMultiLineEditableTextBox::GetEditorIcon()
 
 const FText UMultiLineEditableTextBox::GetPaletteCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Input", "Input");
 }
 
 #endif

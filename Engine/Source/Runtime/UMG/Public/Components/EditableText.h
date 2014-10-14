@@ -9,7 +9,7 @@
 /**
  * Editable text box widget
  */
-UCLASS(meta=( Category="Primitive" ), ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()

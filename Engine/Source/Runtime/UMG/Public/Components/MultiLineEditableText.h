@@ -7,7 +7,7 @@
 /**
  * Editable text box widget
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS(meta=( DisplayName="Editable Text (Multi-Line)" ))
 class UMG_API UMultiLineEditableText : public UWidget
 {
 	GENERATED_UCLASS_BODY()

@@ -238,7 +238,7 @@ const FSlateBrush* USizeBox::GetEditorIcon()
 
 const FText USizeBox::GetPaletteCategory()
 {
-	return LOCTEXT("Common", "Common");
+	return LOCTEXT("Panel", "Panel");
 }
 
 #endif

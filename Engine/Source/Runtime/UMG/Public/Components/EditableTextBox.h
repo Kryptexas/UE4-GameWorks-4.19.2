@@ -4,8 +4,10 @@
 
 #include "EditableTextBox.generated.h"
 
-/** Editable text box widget */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * Allows the user to type in custom text.  Only permits a single line of text to be entered.
+ */
+UCLASS(meta=(DisplayName="Text Box"))
 class UMG_API UEditableTextBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()

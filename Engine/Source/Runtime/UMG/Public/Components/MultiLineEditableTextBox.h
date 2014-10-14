@@ -4,8 +4,10 @@
 
 #include "MultiLineEditableTextBox.generated.h"
 
-/** Editable text box widget */
-UCLASS(ClassGroup=UserInterface)
+/**
+ * Allows a user to enter multiple lines of text
+ */
+UCLASS(meta=(DisplayName="Text Box (Multi-Line)"))
 class UMG_API UMultiLineEditableTextBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
