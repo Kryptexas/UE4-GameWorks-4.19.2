@@ -78,6 +78,10 @@ void UBTService_BlueprintBase::OnSearchStart(struct FBehaviorTreeSearchData& Sea
 	if (bImplementsReceiveSearchStart)
 	{
 		ReceiveSearchStart(SearchData.OwnerComp->GetOwner());
+
+		const float NextTickTime = FMath::FRandRange(FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation));
+		uint8* NodeMemory = GetNodeMemory<uint8>(SearchData);
+		SetNextTickTime(NodeMemory, NextTickTime);
 	}
 	else
 	{
