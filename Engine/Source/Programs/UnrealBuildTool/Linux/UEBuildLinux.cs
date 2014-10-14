@@ -214,7 +214,6 @@ namespace UnrealBuildTool
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
         {
             UEBuildConfiguration.bCompileSimplygon = false;
-            UEBuildConfiguration.bCompileICU = true;
         }
 
         /**
