@@ -33,4 +33,17 @@ private:
 
 	/** Use MakeInstance to create an instance of this class */
 	FFbxImportUIDetails();
+
+	/** Sets a custom widget for the StaticMeshLODGroup property */
+	void SetStaticMeshLODGroupWidget(IDetailPropertyRow& PropertyRow, const TSharedPtr<IPropertyHandle>& Handle);
+
+	/** Called when the StaticMeshLODGroup spinbox is changed */
+	void OnLODGroupChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo, TWeakPtr<IPropertyHandle> HandlePtr);
+
+	/** LOD group options. */
+	TArray<FName> LODGroupNames;
+	TArray<TSharedPtr<FString>> LODGroupOptions;
+
+	/** Cached StaticMeshLODGroup property handle */
+	TSharedPtr<IPropertyHandle> StaticMeshLODGroupPropertyHandle;
 };
