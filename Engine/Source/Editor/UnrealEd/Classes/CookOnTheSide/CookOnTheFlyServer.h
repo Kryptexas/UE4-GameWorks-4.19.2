@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "IPlatformFileSandboxWrapper.h"
 #include "CookOnTheFlyServer.generated.h"
 
 
@@ -38,7 +39,7 @@ namespace ECookMode
 }
 
 UCLASS()
-class UCookOnTheFlyServer : public UObject, public FTickableEditorObject
+class UNREALED_API UCookOnTheFlyServer : public UObject, public FTickableEditorObject
 {
 	GENERATED_UCLASS_BODY()
 private:
@@ -103,7 +104,7 @@ private:
 			return Items.Num();
 		}
 
-		void Empty() 
+		void Empty()
 		{
 			ScopeLockType ScopeLock( &SynchronizationObject );
 			Items.Empty();
@@ -411,10 +412,10 @@ private:
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return FilesProcessed.Remove( Filename );
 		}
-		void Empty()
+		void Empty(int32 ExpectedNumElements = 0)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
-			FilesProcessed.Empty();
+			FilesProcessed.Empty(ExpectedNumElements);
 		}
 	};
 
@@ -608,6 +609,7 @@ private:
 
 public:
 
+	void WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames);
 
 	
 

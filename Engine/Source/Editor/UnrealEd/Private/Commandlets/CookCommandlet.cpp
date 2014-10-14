@@ -1029,6 +1029,18 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//////////////////////////////////////////////////////////////////////////
 	// parse commandline options 
 
+	FString AssetRegistry;
+	if (FParse::Value(*Params, TEXT("SHIPPEDASSETREGISTRY="), AssetRegistry))
+	{
+		TArray<FName> TargetPlatformNames;
+		for (const auto &Platform : Platforms)
+		{
+			FName PlatformName = FName(*Platform->PlatformName());
+			TargetPlatformNames.Add(PlatformName); // build list of all target platform names
+		}
+		CookOnTheFlyServer->WarmCookedPackages(FPaths::GameContentDir() / AssetRegistry, TargetPlatformNames);
+	}
+
 	TArray<FString> CmdLineIniSections;
 	FString SectionStr;
 	if (FParse::Value(*Params, TEXT("MAPINISECTION="), SectionStr))

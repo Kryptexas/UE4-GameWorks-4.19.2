@@ -2422,3 +2422,39 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 		RecompileData.ModifiedFiles,
 		RecompileData.bCompileChangedShaders);
 }
+
+void UCookOnTheFlyServer::WarmCookedPackages(const FString& AssetRegistryPath, const TArray<FName>& TargetPlatformNames)
+{
+	FArrayReader SerializedAssetData;
+	if (FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryPath))
+	{
+		int32 LocalNumAssets = 0;
+		SerializedAssetData << LocalNumAssets;
+
+		// allocate one single block for all asset data structs (to reduce tens of thousands of heap allocations)
+		FAssetData* PreallocatedAssetDataBuffer = new FAssetData[LocalNumAssets];
+		CookedPackages.Empty(LocalNumAssets);
+
+		FFilePlatformRequest FileRequest;
+		for (const auto &Platform : TargetPlatformNames)
+		{
+			FileRequest.AddPlatform(Platform);
+		}
+
+		for (int32 AssetIndex = 0; AssetIndex < LocalNumAssets; AssetIndex++)
+		{
+			// make a new asset data object
+			FAssetData* NewAssetData = &PreallocatedAssetDataBuffer[AssetIndex];
+
+			// load it
+			SerializedAssetData << *NewAssetData;
+
+			UE_LOG(LogCookOnTheFly, Verbose, TEXT("Read package %s from %s"), *GetCachedStandardPackageFilename(NewAssetData->ObjectPath), *AssetRegistryPath);
+
+			FileRequest.SetFilename(GetCachedStandardPackageFilename(NewAssetData->ObjectPath));
+			CookedPackages.Add(FileRequest);
+		}
+
+		delete[] PreallocatedAssetDataBuffer;
+	}
+}
