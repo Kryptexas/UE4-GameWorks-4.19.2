@@ -4176,6 +4176,7 @@ namespace BuildPromotionTestHelper
 			GUnrealEd->Exec(World, TEXT("MAP REBUILD ALLVISIBLE"));
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Rebuilt the map"));
 
+#if WITH_NAVIGATION_GENERATOR
 			if (World->GetWorldSettings()->bEnableNavigationSystem &&
 				World->GetNavigationSystem())
 			{
@@ -4183,6 +4184,7 @@ namespace BuildPromotionTestHelper
 				World->GetNavigationSystem()->Build();
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Built navigation"));
 			}
+#endif
 
 			//Force AutoApplyLighting on
 			ULevelEditorMiscSettings* LevelEdSettings = GetMutableDefault<ULevelEditorMiscSettings>();

@@ -15,8 +15,8 @@ class ANavMeshBoundsVolume : public AVolume
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
-	virtual void PostRegisterAllComponents() override;
-	virtual void PostUnregisterAllComponents() override;
+	virtual void PostInitializeComponents() override;
+	virtual void PostLoad() override;
 	// End AActor Interface
 #if WITH_EDITOR
 	// Begin UObject Interface

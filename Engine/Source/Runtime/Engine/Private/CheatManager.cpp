@@ -890,11 +890,13 @@ void UCheatManager::WidgetReflector()
 
 void UCheatManager::RebuildNavigation()
 {
+#if WITH_NAVIGATION_GENERATOR
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys)
 	{
 		NavSys->Build();
 	}
+#endif // WITH_NAVIGATION_GENERATOR
 }
 
 void UCheatManager::SetNavDrawDistance(float DrawDistance)

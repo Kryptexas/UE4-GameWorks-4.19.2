@@ -58,6 +58,11 @@ class ANavigationGraph : public ANavigationData
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
+#if WITH_NAVIGATION_GENERATOR
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) override;
+#endif // WITH_NAVIGATION_GENERATOR
+
 public:
 	static ANavigationData* CreateNavigationInstances(UNavigationSystem* NavSys);
 };

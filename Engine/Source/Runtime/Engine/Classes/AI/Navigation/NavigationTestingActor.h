@@ -129,7 +129,6 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 #endif
 
 	FNavPathSharedPtr LastPath;
-	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
 
 	/** Dtor */
 	virtual ~ANavigationTestingActor();
@@ -159,11 +158,6 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	void UpdatePathfinding();
 	void GatherDetailedData(class ANavigationTestingActor* Goal);
 	void SearchPathTo(class ANavigationTestingActor* Goal);
-
-	/*	Called when given path becomes invalid (via @see PathObserverDelegate)
-	 *	NOTE: InvalidatedPath doesn't have to be instance's current Path
-	 */
-	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
 
 	// Virtual method to override if you want to customize the query being 
 	// constructed for the path find (e.g. change the filter or add 

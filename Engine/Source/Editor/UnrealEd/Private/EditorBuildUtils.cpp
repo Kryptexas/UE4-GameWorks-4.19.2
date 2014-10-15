@@ -735,6 +735,7 @@ void FEditorBuildUtils::SubmitPackagesForAutomatedBuild( const TSet<UPackage*>& 
 
 void FEditorBuildUtils::TriggerNavigationBuilder(UWorld* InWorld, EBuildOptions::Type Id)
 {
+#if WITH_NAVIGATION_GENERATOR
 	if( InWorld->GetWorldSettings()->bEnableNavigationSystem &&
 		InWorld->GetNavigationSystem() )
 	{
@@ -759,6 +760,7 @@ void FEditorBuildUtils::TriggerNavigationBuilder(UWorld* InWorld, EBuildOptions:
 		// Invoke navmesh generator
 		InWorld->GetNavigationSystem()->Build();
 	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

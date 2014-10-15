@@ -4,7 +4,10 @@
 #include "NavigationOctree.h"
 #include "RecastHelpers.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+
+#if NAVOCTREE_CONTAINS_COLLISION_DATA
 #include "RecastNavMeshGenerator.h"
+#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 
 //----------------------------------------------------------------------//
 // FNavigationOctree
@@ -33,6 +36,7 @@ void FNavigationOctree::AddNode(UObject* ElementOb, INavRelevantInterface* NavEl
 	Data.Owner = ElementOb;
 	Data.Bounds = Bounds;
 
+#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	UActorComponent* ActorComp = Cast<UActorComponent>(ElementOb);
 	if (bGatherGeometry && ActorComp)
 	{
@@ -52,6 +56,7 @@ void FNavigationOctree::AddNode(UObject* ElementOb, INavRelevantInterface* NavEl
 	const int32 ElementMemory = Data.GetAllocatedSize();
 	NodesMemory += ElementMemory;
 	INC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, ElementMemory);
+#endif
 
 	AddElement(Data);
 }
@@ -63,6 +68,7 @@ void FNavigationOctree::AppendToNode(const FOctreeElementId& Id, INavRelevantInt
 	Data = OrgData;
 	Data.Bounds = Bounds + OrgData.Bounds.GetBox();
 
+#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	if (NavElement)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_GatheringNavigationModifiersSync);
@@ -79,6 +85,7 @@ void FNavigationOctree::AppendToNode(const FOctreeElementId& Id, INavRelevantInt
 
 	NodesMemory += MemoryDelta;
 	INC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, MemoryDelta);
+#endif
 
 	RemoveElement(Id);
 	AddElement(Data);
@@ -86,10 +93,12 @@ void FNavigationOctree::AppendToNode(const FOctreeElementId& Id, INavRelevantInt
 
 void FNavigationOctree::RemoveNode(const FOctreeElementId& Id)
 {
+#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	FNavigationOctreeElement& Data = GetElementById(Id);
 	const int32 ElementMemory = Data.GetAllocatedSize();
 	NodesMemory -= ElementMemory;
 	DEC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, ElementMemory);
+#endif
 
 	RemoveElement(Id);
 }
