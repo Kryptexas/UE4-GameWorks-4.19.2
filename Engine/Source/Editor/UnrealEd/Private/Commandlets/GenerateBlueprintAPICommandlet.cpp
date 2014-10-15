@@ -7,6 +7,7 @@
 #include "EdGraphSchema_K2_Actions.h"
 #include "K2Node.h"
 #include "K2Node_CommutativeAssociativeBinaryOperator.h"
+#include "K2Node_SwitchEnum.h"
 #include "AnimationGraph.h"
 #include "AnimGraphNode_StateMachine.h"
 #include "BlueprintEditorUtils.h"
@@ -834,12 +835,21 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 		{
 			ActionEntry += IndentedNewline + "\"NodeType\"     : \"pure\"";
 		}
+		else if (Node->IsA<UK2Node_Event>())
+		{
+			ActionEntry += IndentedNewline + "\"NodeType\"     : \"event\"";
+		}
+		else if (Node->IsA<UK2Node_Switch>())
+		{
+			ActionEntry += IndentedNewline + "\"NodeType\"     : \"switch\"";
+		}
 		else
 		{
 			ActionEntry += IndentedNewline + "\"NodeType\"     : \"function\"";
 		}
 
-		if (Node->IsA<UK2Node_CommutativeAssociativeBinaryOperator>())
+		if (Node->IsA<UK2Node_CommutativeAssociativeBinaryOperator>()
+			|| (Node->IsA<UK2Node_Switch>() && !Node->IsA<UK2Node_SwitchEnum>()))
 		{
 			ActionEntry += IndentedNewline + "\"ShowAddPin\"   : \"true\"";
 		}
