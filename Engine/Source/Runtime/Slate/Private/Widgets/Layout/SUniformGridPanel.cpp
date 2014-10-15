@@ -96,6 +96,16 @@ void SUniformGridPanel::SetSlotPadding(TAttribute<FMargin> InSlotPadding)
 	SlotPadding = InSlotPadding;
 }
 
+void SUniformGridPanel::SetMinDesiredSlotWidth(TAttribute<float> InMinDesiredSlotWidth)
+{
+	MinDesiredSlotWidth = InMinDesiredSlotWidth;
+}
+
+void SUniformGridPanel::SetMinDesiredSlotHeight(TAttribute<float> InMinDesiredSlotHeight)
+{
+	MinDesiredSlotHeight = InMinDesiredSlotHeight;
+}
+
 SUniformGridPanel::FSlot& SUniformGridPanel::AddSlot( int32 Column, int32 Row )
 {
 	FSlot& NewSlot = *(new FSlot( Column, Row ));
