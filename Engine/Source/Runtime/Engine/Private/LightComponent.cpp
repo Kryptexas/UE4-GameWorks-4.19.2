@@ -12,6 +12,7 @@
 #include "UObjectToken.h"
 #include "ComponentInstanceDataCache.h"
 #include "TargetPlatform.h"
+#include "ComponentReregisterContext.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {

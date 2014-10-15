@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "DynamicMeshBuilder.h"
+#include "Engine/Font.h"
 #include "Engine/TextRenderActor.h"
 #include "LocalVertexFactory.h"
 

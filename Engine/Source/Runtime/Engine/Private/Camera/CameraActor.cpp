@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

@@ -18,6 +18,7 @@
 #include "VectorField/VectorFieldAnimated.h"
 #include "VectorField/VectorFieldStatic.h"
 #include "SceneUtils.h"
+#include "ComponentReregisterContext.h"
 
 #define MAX_GLOBAL_VECTOR_FIELDS (16)
 DEFINE_LOG_CATEGORY(LogVectorField)

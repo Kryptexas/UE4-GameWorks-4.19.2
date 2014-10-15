@@ -5,9 +5,11 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "ComponentReregisterContext.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
+#include "Engine/SaveGameSummary.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/Console.h"
 #include "Engine/WorldComposition.h"

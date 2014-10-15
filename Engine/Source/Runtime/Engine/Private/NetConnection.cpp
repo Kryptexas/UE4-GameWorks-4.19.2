@@ -10,6 +10,7 @@
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "DataChannel.h"
+#include "Engine/PackageMapClient.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.

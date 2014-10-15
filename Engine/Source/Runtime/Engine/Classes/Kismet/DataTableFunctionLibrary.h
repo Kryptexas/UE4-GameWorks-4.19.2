@@ -5,6 +5,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "DataTableFunctionLibrary.generated.h"
 
+class UCurveTable;
+
 /** Enum used to indicate success or failure of EvaluateCurveTableRow */
 UENUM()
 namespace EEvaluateCurveTableResult

@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
-
+#include "Sound/DialogueVoice.h"
 bool operator==(const FDialogueContext& LHS, const FDialogueContext& RHS)
 {
 	return	LHS.Speaker == RHS.Speaker &&

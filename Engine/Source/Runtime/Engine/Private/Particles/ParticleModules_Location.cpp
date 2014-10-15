@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
 #include "ParticleDefinitions.h"
 #include "RawIndexBuffer.h"
 #include "../DistributionHelpers.h"

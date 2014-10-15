@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Size/ParticleModuleSize_Seeded.h"

@@ -6,6 +6,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniform.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"

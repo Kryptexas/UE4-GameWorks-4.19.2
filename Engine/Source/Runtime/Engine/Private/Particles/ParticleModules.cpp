@@ -5,6 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionFloatParticleParameter.h"
+#include "Distributions/DistributionVectorParticleParameter.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniformCurve.h"
 #include "FXSystem.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"

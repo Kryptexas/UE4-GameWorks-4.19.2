@@ -5,6 +5,7 @@
 #include "Atmosphere.h"
 #include "ComponentInstanceDataCache.h"
 #include "Atmosphere/AtmosphericFog.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"

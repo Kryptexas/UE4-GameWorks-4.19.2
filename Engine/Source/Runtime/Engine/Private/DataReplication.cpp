@@ -10,6 +10,7 @@
 #include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/PackageMapClient.h"
 
 class FNetSerializeCB : public INetSerializeCB
 {

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/SCS_Node.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
 #include "Kismet2/CompilerResultsLog.h"

@@ -7,6 +7,7 @@
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "RepLayout.h"
+#include "Engine/PackageMapClient.h"
 
 // ( OutPacketId == GUID_PACKET_NOT_ACKED ) == NAK'd		(this GUID is not acked, and is not pending either, so sort of waiting)
 // ( OutPacketId == GUID_PACKET_ACKED )		== FULLY ACK'd	(this GUID is fully acked, and we no longer need to send full path)

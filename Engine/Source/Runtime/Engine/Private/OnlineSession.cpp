@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "GameFramework/OnlineSession.h"
 
 UOnlineSession::UOnlineSession(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

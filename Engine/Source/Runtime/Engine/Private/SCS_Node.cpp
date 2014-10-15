@@ -7,6 +7,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif
 #include "DeferRegisterComponents.h"
+#include "Engine/SCS_Node.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USCS_Node

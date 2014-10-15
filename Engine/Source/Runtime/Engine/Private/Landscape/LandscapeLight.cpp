@@ -9,6 +9,7 @@ LandscapeLight.cpp: Static lighting for LandscapeComponents
 #include "Landscape/LandscapeInfo.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_EDITOR
 

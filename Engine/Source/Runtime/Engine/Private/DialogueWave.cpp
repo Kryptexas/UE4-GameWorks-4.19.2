@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "ActiveSound.h"
+#include "Sound/DialogueWave.h"
 #include "Sound/DialogueSoundWaveProxy.h"
 #include "Sound/SoundWave.h"
 #include "SubtitleManager.h"

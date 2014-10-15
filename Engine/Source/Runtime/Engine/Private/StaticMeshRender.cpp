@@ -11,6 +11,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "DistanceFieldAtlas.h"
+#include "ComponentReregisterContext.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;

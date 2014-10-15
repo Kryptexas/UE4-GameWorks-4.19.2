@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions/DistributionFloatParameterBase.h"
 #include "DistributionFloatSoundParameter.generated.h"
 
 UCLASS(deprecated)

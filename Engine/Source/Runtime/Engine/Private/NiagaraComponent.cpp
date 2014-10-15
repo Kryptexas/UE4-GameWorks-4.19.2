@@ -10,6 +10,7 @@
 #include "Engine/NiagaraEffectRenderer.h"
 #include "MeshBatch.h"
 #include "SceneUtils.h"
+#include "ComponentReregisterContext.h"
 
 DECLARE_CYCLE_STAT(TEXT("Tick"),STAT_NiagaraTick,STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Simulate"),STAT_NiagaraSimulate,STATGROUP_Niagara);

@@ -9,9 +9,11 @@
 #include "SlateBasics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/Character.h"
+#include "Sound/DialogueWave.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundCue.h"
 #include "Engine/GameInstance.h"
+#include "GameFramework/SaveGame.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics

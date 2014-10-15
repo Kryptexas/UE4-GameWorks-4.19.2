@@ -143,6 +143,8 @@
 #include "NotificationManager.h"
 #endif //WITH_EDITOR
 
+#include "Engine/Font.h"
+
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
 #define SWAP_REFERENCE_TO( ExpressionInput, ToBeRemovedExpression, ToReplaceWithExpression )	\

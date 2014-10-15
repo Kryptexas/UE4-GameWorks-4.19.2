@@ -5,7 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "Engine/Font.h"
+#include "Engine/FontImportOptions.h"
 
 UFontImportOptions::UFontImportOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -5,7 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-
+#include "Engine/Font.h"
+#include "Engine/ObjectReferencer.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Console.h"
 #include "VisualLog.h"

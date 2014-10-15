@@ -10,6 +10,7 @@
 #include "StaticMeshLight.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "ComponentReregisterContext.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.

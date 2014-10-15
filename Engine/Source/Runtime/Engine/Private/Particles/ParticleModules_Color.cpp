@@ -5,6 +5,8 @@
 	Color-related particle module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
+#include "Distributions/DistributionFloatParticleParameter.h"
+#include "Distributions/DistributionVectorParticleParameter.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Color/ParticleModuleColor.h"
@@ -16,6 +18,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
 
 UParticleModuleColorBase::UParticleModuleColorBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -3,6 +3,7 @@
 
 #include "EnginePrivate.h"
 #include "UObjectAnnotation.h"
+#include "Engine/Selection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSelection, Log, All);
 

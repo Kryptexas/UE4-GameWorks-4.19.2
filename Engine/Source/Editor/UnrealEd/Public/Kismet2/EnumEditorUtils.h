@@ -7,6 +7,8 @@
 
 #include "ListenerManager.h"
 
+class UUserDefinedEnum;
+
 class UNREALED_API FEnumEditorUtils
 {
 	static void PrepareForChange(const UUserDefinedEnum* Enum);

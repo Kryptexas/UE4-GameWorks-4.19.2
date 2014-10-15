@@ -15,6 +15,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "NetworkingDistanceConstants.h"
 #include "DataChannel.h"
+#include "Engine/PackageMapClient.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);

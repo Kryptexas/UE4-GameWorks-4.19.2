@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "EngineModule.h"
 #include "EditorSupportDelegates.h"
+#include "ComponentReregisterContext.h"
 
 /*-----------------------------------------------------------------------------
 	Globals.

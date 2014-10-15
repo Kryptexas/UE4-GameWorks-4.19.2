@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "AssetRegistryModule.h"
+#include "Engine/ObjectLibrary.h"
 
 UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

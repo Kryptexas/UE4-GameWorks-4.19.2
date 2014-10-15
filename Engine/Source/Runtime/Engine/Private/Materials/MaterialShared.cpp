@@ -17,6 +17,7 @@
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+#include "Engine/Font.h"
 
 #include "LocalVertexFactory.h"
 

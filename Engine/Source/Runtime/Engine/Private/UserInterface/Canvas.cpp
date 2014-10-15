@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "SlateBasics.h"
+#include "Engine/Font.h"
 #include "TileRendering.h"
 #include "RHIStaticStates.h"
 #include "WordWrapper.h"

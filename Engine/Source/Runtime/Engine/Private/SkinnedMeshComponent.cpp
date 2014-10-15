@@ -12,6 +12,7 @@
 #include "AnimationUtils.h"
 #include "AnimTree.h"
 #include "Animation/VertexAnim/MorphTarget.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 

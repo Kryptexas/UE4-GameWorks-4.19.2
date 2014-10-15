@@ -6,6 +6,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
 

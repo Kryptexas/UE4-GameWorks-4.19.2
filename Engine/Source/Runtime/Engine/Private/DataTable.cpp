@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Json.h"
 #include "CsvParser.h"
+#include "Engine/DataTable.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 

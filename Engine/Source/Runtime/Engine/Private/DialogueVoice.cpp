@@ -6,6 +6,7 @@
 #include "TargetPlatform.h"
 #include "AudioDerivedData.h"
 #include "SubtitleManager.h"
+#include "Sound/DialogueVoice.h"
 
 UDialogueVoice::UDialogueVoice(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

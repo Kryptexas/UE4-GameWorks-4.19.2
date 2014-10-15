@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniform.h"
 #include "StaticMeshResources.h"
 #include "ParticleDefinitions.h"
 #include "Particles/EmitterCameraLensEffectBase.h"

@@ -10,6 +10,7 @@
 #include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 

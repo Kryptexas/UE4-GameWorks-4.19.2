@@ -11,6 +11,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/ControlChannel.h"
+#include "Engine/PackageMapClient.h"
 
 DEFINE_LOG_CATEGORY(LogNet);
 DEFINE_LOG_CATEGORY(LogNetPlayerMovement);

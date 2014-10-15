@@ -6,6 +6,9 @@
 
 #include "EnginePrivate.h"
 #include "DistributionHelpers.h"
+#include "Distributions/DistributionVectorParameterBase.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Distributions/DistributionVectorUniformCurve.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "Sound/SoundNode.h"

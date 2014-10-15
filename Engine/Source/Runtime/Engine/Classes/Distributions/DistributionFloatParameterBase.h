@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions/DistributionFloatConstant.h"
 #include "DistributionFloatParameterBase.generated.h"
 
 UENUM()

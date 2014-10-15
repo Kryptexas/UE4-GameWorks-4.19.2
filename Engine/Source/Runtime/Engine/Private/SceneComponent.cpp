@@ -9,6 +9,7 @@
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
