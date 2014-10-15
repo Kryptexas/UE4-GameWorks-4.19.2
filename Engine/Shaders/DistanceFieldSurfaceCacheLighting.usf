@@ -297,7 +297,8 @@ void IrradianceCacheSplatVS(
 
 	// +1 = behind volume (safe from near plane clipping without depth testing), 
 	// -1 = in front of volume (required for conservative results with depth testing)
-	float BoundingDirection = -1;
+	//@todo - using -1 currently causes artifacts
+	float BoundingDirection = +1;
 	float OffsetFromCenter = BoundingDirection * PositionAndRadius.w;
 	// Distance from the camera position that NormalizedViewToCenter will intersect the near plane
 	float NearPlaneDistance = View.NearPlane / dot(View.ViewForward, NormalizedViewToCenter);

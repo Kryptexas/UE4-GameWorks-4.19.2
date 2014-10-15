@@ -203,7 +203,7 @@ FAutoConsoleVariableRef CVarAOInterpolationStencilTesting(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
-int32 GAOInterpolationDepthTesting = 1;
+int32 GAOInterpolationDepthTesting = 0;
 FAutoConsoleVariableRef CVarAOInterpolationDepthTesting(
 	TEXT("r.AOInterpolationDepthTesting"),
 	GAOInterpolationDepthTesting,

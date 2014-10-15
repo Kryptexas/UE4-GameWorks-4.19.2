@@ -420,7 +420,7 @@ void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& 
 {
 	OutIrradianceMap = FSHVectorRGB3();
 
-	if (GetScene())
+	if (GetScene() && (SourceType != SLS_SpecifiedCubemap || Cubemap))
 	{
 		// Capture emissive scene lighting only for the lighting build
 		// This is necessary to avoid a feedback loop with the last lighting build results
