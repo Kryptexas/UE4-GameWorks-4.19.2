@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
 #include "Engine/LevelScriptActor.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "DefaultValueHelper.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;

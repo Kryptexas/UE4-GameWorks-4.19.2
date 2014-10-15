@@ -9,6 +9,7 @@
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpace1D, Log, All);
 

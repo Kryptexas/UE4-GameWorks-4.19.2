@@ -4,6 +4,8 @@
 #include "GraphEditorCommon.h"
 #include "SGraphEditorImpl.h"
 #include "GraphEditorModule.h"
+#include "SNotificationList.h"
+#include "SGraphPanel.h"
 
 #define LOCTEXT_NAMESPACE "GraphEditorModule"
 

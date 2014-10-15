@@ -4,6 +4,9 @@
 #include "SPlatformSetupMessage.h"
 #include "ISourceControlModule.h"
 #include "EditorStyleSet.h"
+#include "SWidgetSwitcher.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SPlatformSetupMessage"
 

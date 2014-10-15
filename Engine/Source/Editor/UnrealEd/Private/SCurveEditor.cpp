@@ -6,6 +6,8 @@
 #include "SCurveEditor.h"
 #include "ScopedTransaction.h"
 #include "SColorGradientEditor.h"
+#include "GenericCommands.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 

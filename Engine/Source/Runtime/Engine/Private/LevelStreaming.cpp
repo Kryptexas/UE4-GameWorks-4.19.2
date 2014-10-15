@@ -5,7 +5,9 @@
 #include "Engine/LevelBounds.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR
-	#include "Slate.h"
+	#include "SlateBasics.h"
+	#include "SNotificationList.h"
+	#include "NotificationManager.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);

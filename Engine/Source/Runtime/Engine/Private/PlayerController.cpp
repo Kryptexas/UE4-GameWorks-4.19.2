@@ -14,7 +14,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "IHeadMountedDisplay.h"
 #include "IForceFeedbackSystem.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
 #include "Matinee/InterpTrackInstDirector.h"
@@ -27,6 +27,7 @@
 #include "Camera/CameraActor.h"
 #include "GenericPlatform/IForceFeedbackSystem.h"
 #include "Engine/InputDelegateBinding.h"
+#include "SVirtualJoystick.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 

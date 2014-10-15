@@ -12,6 +12,7 @@
 #include "BehaviorTreeEditorCommands.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardEditor"
 

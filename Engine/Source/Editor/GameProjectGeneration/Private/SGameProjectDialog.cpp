@@ -8,6 +8,7 @@
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
+#include "SWidgetSwitcher.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 

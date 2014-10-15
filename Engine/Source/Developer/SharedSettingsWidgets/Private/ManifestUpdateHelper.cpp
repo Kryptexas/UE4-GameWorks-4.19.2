@@ -2,6 +2,8 @@
 
 #include "SharedSettingsWidgetsPrivatePCH.h"
 #include "ManifestUpdateHelper.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "FManifestUpdateHelper"
 

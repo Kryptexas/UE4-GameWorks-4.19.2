@@ -13,7 +13,7 @@
 
 #include "RenderCore.h"
 #include "ColorList.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer

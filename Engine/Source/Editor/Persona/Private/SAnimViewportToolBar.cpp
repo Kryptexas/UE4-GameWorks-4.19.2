@@ -15,6 +15,8 @@
 #include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
 #include "SEditorViewportViewMenu.h"
 #include "SColorPicker.h"
+#include "SNumericEntryBox.h"
+#include "STextComboBox.h"
 
 
 #define LOCTEXT_NAMESPACE "AnimViewportToolBar"

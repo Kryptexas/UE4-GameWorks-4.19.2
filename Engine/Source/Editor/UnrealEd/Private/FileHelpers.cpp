@@ -27,6 +27,8 @@
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 
 #include "PackageTools.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 

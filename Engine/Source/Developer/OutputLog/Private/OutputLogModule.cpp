@@ -4,6 +4,7 @@
 #include "SDebugConsole.h"
 #include "SOutputLog.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FOutputLogModule, OutputLog );
 

@@ -13,7 +13,7 @@
 	#include "Engine.h"
 	#include "Messaging.h"
 	#include "SessionServices.h"
-	#include "Slate.h"
+	#include "SlateBasics.h"
 
 	#include "MallocProfilerEx.h"
 #endif

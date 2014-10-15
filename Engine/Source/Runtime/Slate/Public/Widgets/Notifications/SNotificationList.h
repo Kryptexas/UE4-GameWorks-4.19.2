@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SlateFwd.h"
+#include "SCheckBox.h"
 
 /**
  * Interface class for an item in the event message list.

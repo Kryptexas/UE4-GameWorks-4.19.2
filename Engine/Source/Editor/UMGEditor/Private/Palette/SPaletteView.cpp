@@ -20,6 +20,7 @@
 #include "Developer/HotReload/Public/IHotReload.h"
 
 #include "AssetRegistryModule.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

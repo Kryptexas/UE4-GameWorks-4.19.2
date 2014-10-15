@@ -11,6 +11,8 @@
 #include "Engine/DestructibleMesh.h"
 
 #include "FbxMeshUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

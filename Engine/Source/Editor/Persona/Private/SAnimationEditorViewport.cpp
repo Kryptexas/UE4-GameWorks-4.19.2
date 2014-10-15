@@ -18,6 +18,7 @@
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/LODUtilities.h"
 #include "DetailLayoutBuilder.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 

@@ -22,6 +22,7 @@
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
 #include "KismetEditorUtilities.h"
 #include "ISourceControlModule.h"
+#include "SVolumeControl.h"
 
 namespace LevelEditorActionHelpers
 {

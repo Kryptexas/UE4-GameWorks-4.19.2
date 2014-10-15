@@ -9,6 +9,7 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "SAssetDialog.h"
 #include "TutorialMetaData.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

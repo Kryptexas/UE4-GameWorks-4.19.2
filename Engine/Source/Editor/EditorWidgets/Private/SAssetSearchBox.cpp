@@ -2,6 +2,7 @@
 
 #include "EditorWidgetsPrivatePCH.h"
 #include "SAssetSearchBox.h"
+#include "SSearchBox.h"
 
 void SAssetSearchBox::Construct( const FArguments& InArgs )
 {

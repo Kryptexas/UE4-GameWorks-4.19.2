@@ -3,6 +3,10 @@
 
 #include "MainFramePrivatePCH.h"
 #include "MessageLog.h"
+#include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"

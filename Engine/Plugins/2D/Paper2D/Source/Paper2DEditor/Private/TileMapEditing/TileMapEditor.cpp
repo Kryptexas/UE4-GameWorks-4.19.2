@@ -13,6 +13,7 @@
 #include "WorkspaceMenuStructureModule.h"
 #include "Paper2DEditorModule.h"
 #include "STileMapEditorViewportToolbar.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 

@@ -6,6 +6,7 @@
 #include "GraphEditorSettings.h"
 #include "BehaviorTreeConnectionDrawingPolicy.h"
 #include "ScopedTransaction.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeDecoratorSchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

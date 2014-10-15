@@ -2,6 +2,7 @@
 
 #include "GameMenuBuilderPrivatePCH.h"
 #include "Engine/Console.h"
+#include "SDPIScaler.h"
 
 
 FMenuPanel::FMenuPanel()

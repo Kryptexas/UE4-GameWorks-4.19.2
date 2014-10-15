@@ -8,6 +8,8 @@
 #include "ScopedTransaction.h"
 #include "BSPOps.h"
 #include "SnappingUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 

@@ -3,6 +3,7 @@
 #include "PerforceSourceControlPrivatePCH.h"
 #include "SPerforceSourceControlSettings.h"
 #include "PerforceSourceControlModule.h"
+#include "SThrobber.h"
 
 TWeakPtr<SEditableTextBox> SPerforceSourceControlSettings::PasswordTextBox;
 

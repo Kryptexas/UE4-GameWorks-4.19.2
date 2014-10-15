@@ -12,6 +12,8 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "ToolkitManager.h"
 #include "BlueprintEditorModule.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorManager"
 

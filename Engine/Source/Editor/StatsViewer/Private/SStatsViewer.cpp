@@ -15,6 +15,9 @@
 #include "ActorArrayHyperlinkColumn.h"
 #include "StatsViewerUtils.h"
 #include "EngineVersion.h"
+#include "SSearchBox.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStatsViewer, Log, All);
 

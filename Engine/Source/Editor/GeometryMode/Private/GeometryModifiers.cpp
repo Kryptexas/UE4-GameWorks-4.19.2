@@ -8,6 +8,8 @@
 #include "GeomTools.h"
 #include "Layers/ILayers.h"
 #include "ActorEditorUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomModifier, Log, All);
 

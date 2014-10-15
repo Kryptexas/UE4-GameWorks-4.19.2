@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CollisionAnalyzerPCH.h"
-
 #include "WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 namespace CollisionAnalyzerModule
 {

@@ -5,7 +5,9 @@
 #include "Sound/SoundMix.h"
 #include "AudioDevice.h"
 #if WITH_EDITOR
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #endif
 
 /*-----------------------------------------------------------------------------

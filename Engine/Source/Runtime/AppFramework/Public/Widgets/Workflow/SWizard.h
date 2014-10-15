@@ -208,10 +208,7 @@ public:
 	 *
 	 * @return The number of pages.
 	 */
-	int32 GetNumPages( ) const
-	{
-		return WidgetSwitcher->GetNumWidgets();
-	}
+	int32 GetNumPages( ) const;
 
 	/**
 	 * Gets the index of the specified wizard page widget.
@@ -219,10 +216,7 @@ public:
 	 * @param PageWidget The page widget to get the index for.
 	 * @return The index of the page, or INDEX_NONE if not found.
 	 */
-	int32 GetPageIndex( const TSharedRef<SWidget>& PageWidget ) const
-	{
-		return WidgetSwitcher->GetWidgetIndex(PageWidget);
-	}
+	int32 GetPageIndex( const TSharedRef<SWidget>& PageWidget ) const;
 
 	/**
 	 * Attempts to show the page with the specified index.

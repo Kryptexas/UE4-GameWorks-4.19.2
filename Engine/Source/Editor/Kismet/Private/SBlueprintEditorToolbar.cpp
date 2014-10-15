@@ -23,6 +23,7 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "Merge.h"
 #include "DesktopPlatformModule.h"
+#include "SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 

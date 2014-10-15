@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "NewsFeedPrivatePCH.h"
+#include "SThrobber.h"
+#include "SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "SNewsFeed"

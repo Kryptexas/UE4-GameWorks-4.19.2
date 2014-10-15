@@ -58,7 +58,7 @@ class KISMET_API FWorkflowTabFactory : public TSharedFromThis<FWorkflowTabFactor
 {
 protected:
 	FName TabIdentifier;
-	ETabRole::Type TabRole;
+	ETabRole TabRole;
 
 	FText TabLabel;
 	FSlateIcon TabIcon;
@@ -163,9 +163,5 @@ public:
 	virtual TSharedRef<struct FGenericTabHistory> CreateTabHistoryNode(TSharedPtr<FTabPayload> Payload);
 
 protected:
-	FDocumentTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-		: FWorkflowTabFactory(InIdentifier, InHostingApp)
-	{
-		TabRole = ETabRole::DocumentTab;
-	}
+	FDocumentTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 };

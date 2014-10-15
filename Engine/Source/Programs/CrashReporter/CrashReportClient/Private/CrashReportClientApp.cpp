@@ -91,6 +91,7 @@ FPlatformErrorReport LoadErrorReport()
 	FString XMLWerFilename;
 	ErrorReport.FindFirstReportFileWithExtension( XMLWerFilename, TEXT( ".xml" ) );
 
+	extern FCrashDescription& GetCrashDescription();
 	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );
 
 #if CRASH_REPORT_UNATTENDED_ONLY
@@ -129,6 +130,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	if( ErrorReport.HasFilesToUpload() )
 	{
 		// Send analytics.
+		extern FCrashDescription& GetCrashDescription();
 		GetCrashDescription().SendAnalytics();
 	}
 

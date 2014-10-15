@@ -8,7 +8,7 @@
 
 #include "CoreUObject.h"
 #include "AssetToolsModule.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Engine.h"
 #include "SlateStyle.h"
 #include "EditorStyle.h"

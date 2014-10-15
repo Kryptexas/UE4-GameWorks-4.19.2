@@ -12,7 +12,7 @@
 
 #include "Core.h"
 #include "ModuleInterface.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 #include "ScreenShotComparisonTools.h"
 

@@ -16,6 +16,8 @@
 #include "ScopedTransaction.h"
 #include "Toolkits/IToolkitHost.h"
 #include "SSoundClassActionMenu.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundClassEditor, Log, All );

@@ -8,7 +8,7 @@
 
 #include "ModuleInterface.h"
 #include "Settings.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 
 

@@ -6,6 +6,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "SNiagaraEffectEditorWidget.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectEditor"
 

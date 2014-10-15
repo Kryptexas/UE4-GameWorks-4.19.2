@@ -9,6 +9,8 @@
 #include "TextLocalizationManager.h"
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);

@@ -7,6 +7,10 @@
 #include "SSkeletonSlotNames.h"
 #include "AssetRegistryModule.h"
 #include "ScopedTransaction.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSlotNames"
 

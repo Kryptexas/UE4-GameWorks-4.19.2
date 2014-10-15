@@ -30,6 +30,7 @@
 #include "Landscape/Landscape.h"
 #include "Landscape/LandscapeLayerInfoObject.h"
 #include "TutorialMetaData.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.NewLandscape"
 

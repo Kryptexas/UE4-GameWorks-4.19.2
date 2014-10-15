@@ -4,6 +4,7 @@
 #include "MessageLogModule.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "TokenizedMessage.h"
+#include "SDockTab.h"
 #include "SMessageLog.h"
 #include "SMessageLogListing.h"
 #include "MessageLogModel.h"

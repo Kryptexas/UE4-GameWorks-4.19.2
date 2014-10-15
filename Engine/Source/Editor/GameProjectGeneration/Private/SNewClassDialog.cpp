@@ -10,6 +10,7 @@
 #include "Editor/Documentation/Public/IDocumentation.h"
 #include "EditorClassUtils.h"
 #include "SWizard.h"
+#include "SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"

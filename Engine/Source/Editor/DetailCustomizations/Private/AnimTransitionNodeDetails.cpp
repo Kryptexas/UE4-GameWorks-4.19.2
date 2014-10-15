@@ -11,6 +11,8 @@
 #include "AnimTransitionNodeDetails.h"
 #include "KismetEditorUtilities.h"
 #include "SKismetLinearExpression.h"
+#include "STextEntryPopup.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "FAnimStateNodeDetails"
 

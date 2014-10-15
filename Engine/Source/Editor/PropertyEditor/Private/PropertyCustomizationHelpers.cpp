@@ -15,6 +15,7 @@
 #include "SPropertyEditorAsset.h"
 #include "SPropertyEditorClass.h"
 #include "SPropertyEditorInteractiveActorPicker.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "PropertyCustomizationHelpers"
 

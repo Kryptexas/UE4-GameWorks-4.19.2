@@ -31,6 +31,9 @@
 #include "EditorViewportCommands.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SScissorRectBox.h"
+#include "SDPIScaler.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 static const FName LevelEditorName("LevelEditor");
 

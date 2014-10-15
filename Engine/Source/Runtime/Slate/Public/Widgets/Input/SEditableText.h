@@ -5,6 +5,7 @@
 #include "ITextEditorWidget.h"
 #include "ITextInputMethodSystem.h"
 #include "IVirtualKeyboardEntry.h"
+#include "SlateScrollHelper.h"
 
 /**
  * Editable text widget

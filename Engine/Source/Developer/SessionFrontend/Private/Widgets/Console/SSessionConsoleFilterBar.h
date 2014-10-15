@@ -40,10 +40,7 @@ public:
 	 *
 	 * @return Filter string.
 	 */
-	FText GetFilterText( ) const
-	{
-		return FilterStringTextBox->GetText();
-	}
+	FText GetFilterText( ) const;
 
 	/**
 	 * Resets the categories and filter counters.

@@ -17,6 +17,7 @@
 #include "SPropertyEditorEditInline.h"
 #include "ObjectEditorUtils.h"
 #include "SColorPicker.h"
+#include "SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SDetailsView"

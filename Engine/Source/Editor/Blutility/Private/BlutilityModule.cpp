@@ -10,6 +10,7 @@
 
 #include "BlutilityDetailsPanel.h"
 #include "BlutilityShelf.h"
+#include "SDockTab.h"
 
 /////////////////////////////////////////////////////
 

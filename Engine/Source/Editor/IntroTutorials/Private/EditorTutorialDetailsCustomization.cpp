@@ -4,6 +4,7 @@
 #include "EditorTutorialDetailsCustomization.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "EditorTutorial.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "EditorTutorialDetailsCustomization"
 

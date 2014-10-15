@@ -1,10 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
+#include "SSearchBox.h"
+#include "SDockTab.h"
 #include "SWidgetGallery.h"
 #include "TestStyle.h"
 
 #include "SUserWidgetTest.h"
+#include "SBreadcrumbTrail.h"
+#include "SThrobber.h"
+#include "SHyperlink.h"
+#include "STextComboBox.h"
+#include "SVolumeControl.h"
+#include "STextComboPopup.h"
 
 
 #define LOCTEXT_NAMESPACE "WidgetGallery"
@@ -485,6 +493,7 @@ public:
 								.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 								[
 									SNew(SSearchBox)
+										.DelayChangeNotificationsWhileTyping(true)
 										.OnSearch(this, &SWidgetGallery::HandleSearchBoxSearch)
 								]			
 						]

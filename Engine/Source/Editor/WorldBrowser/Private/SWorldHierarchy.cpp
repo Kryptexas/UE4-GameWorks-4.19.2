@@ -8,6 +8,7 @@
 
 #include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

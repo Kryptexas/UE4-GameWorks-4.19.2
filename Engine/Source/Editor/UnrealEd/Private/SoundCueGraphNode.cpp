@@ -10,6 +10,7 @@
 #include "GraphEditorActions.h"
 #include "SoundCueGraphEditorCommands.h"
 #include "ScopedTransaction.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode"
 

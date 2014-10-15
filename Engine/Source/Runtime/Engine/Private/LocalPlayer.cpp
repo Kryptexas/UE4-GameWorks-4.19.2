@@ -12,7 +12,7 @@
 
 #include "RenderCore.h"
 #include "ColorList.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "UObjectAnnotation.h"
 
 #include "IHeadMountedDisplay.h"

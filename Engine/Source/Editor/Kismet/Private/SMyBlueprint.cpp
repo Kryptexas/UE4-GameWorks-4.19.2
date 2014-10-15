@@ -36,6 +36,8 @@
 #include "IDocumentation.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 #include "EditorCategoryUtils.h"
+#include "SSearchBox.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "MyBlueprint"
 

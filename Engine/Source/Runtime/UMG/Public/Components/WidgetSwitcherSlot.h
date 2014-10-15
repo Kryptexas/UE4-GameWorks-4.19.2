@@ -4,6 +4,7 @@
 
 #include "SlateWrapperTypes.h"
 
+#include "SWidgetSwitcher.h"
 #include "WidgetSwitcherSlot.generated.h"
 
 /** The Slot for the UWidgetSwitcher, contains the widget that is flowed vertically */

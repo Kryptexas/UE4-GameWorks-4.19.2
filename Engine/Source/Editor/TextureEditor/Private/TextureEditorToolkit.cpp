@@ -2,6 +2,8 @@
 
 #include "TextureEditorPrivatePCH.h"
 #include "Factories.h"
+#include "SDockTab.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "FTextureEditorToolkit"
 

@@ -7,7 +7,7 @@
  *****************************************************************************/
 
 #include "Core.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateCore.h"
 
 

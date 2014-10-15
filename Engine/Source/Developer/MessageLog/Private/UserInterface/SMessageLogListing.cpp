@@ -4,6 +4,7 @@
 #include "SMessageLogListing.h"
 #include "IMessageLogListing.h"
 #include "SMessageLogMessageListRow.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"

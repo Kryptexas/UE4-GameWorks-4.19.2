@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SComponentClassCombo.h"
 #include "ComponentAssetBroker.h"
 #include "ClassIconFinder.h"
@@ -9,6 +9,7 @@
 #include "IDocumentation.h"
 #include "SListViewSelectorDropdownMenu.h"
 #include "EditorClassUtils.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ComponentClassCombo"
 

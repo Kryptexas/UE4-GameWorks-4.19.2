@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "XmlParser.h"
 #include "../Private/PListNode.h"
 #include "../Private/PListNodeArray.h"

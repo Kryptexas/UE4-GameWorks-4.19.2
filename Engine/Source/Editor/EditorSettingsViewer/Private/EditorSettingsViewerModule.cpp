@@ -3,6 +3,7 @@
 #include "EditorSettingsViewerPrivatePCH.h"
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 

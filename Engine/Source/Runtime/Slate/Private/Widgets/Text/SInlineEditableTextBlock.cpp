@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SInlineEditableTextBlock.h"
 
 
 void SInlineEditableTextBlock::Construct( const FArguments& InArgs )

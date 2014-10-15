@@ -3,6 +3,7 @@
 #include "HighresScreenshotUI.h"
 #include "SCaptureRegionWidget.h"
 #include "HighResScreenshot.h"
+#include "SNumericEntryBox.h"
 
 TWeakPtr<class SWindow> SHighResScreenshotDialog::CurrentWindow = NULL;
 TWeakPtr<class SHighResScreenshotDialog> SHighResScreenshotDialog::CurrentDialog = NULL;

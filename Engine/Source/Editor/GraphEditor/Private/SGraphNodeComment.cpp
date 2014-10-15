@@ -6,6 +6,7 @@
 //#include "TextWrapperHelpers.h"
 #include "BlueprintEditorUtils.h"
 #include "TutorialMetaData.h"
+#include "SInlineEditableTextBlock.h"
 
 namespace SCommentNodeDefs
 {

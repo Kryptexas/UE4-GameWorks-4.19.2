@@ -8,6 +8,8 @@
 #include "SWidgetBlock.h"
 #include "MultiBoxCustomization.h"
 #include "SClippingHorizontalBox.h"
+#include "UICommandInfo.h"
+#include "UICommandDragDropOp.h"
 
 
 TAttribute<bool> FMultiBoxSettings::UseSmallToolBarIcons;

@@ -20,4 +20,3 @@
 
 #include "SettingsEditorModel.h"
 
-#include "SSettingsEditor.h"

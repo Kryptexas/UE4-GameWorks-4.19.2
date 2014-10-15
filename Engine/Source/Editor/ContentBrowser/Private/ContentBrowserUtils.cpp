@@ -10,6 +10,8 @@
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
 #include "EngineBuildSettings.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

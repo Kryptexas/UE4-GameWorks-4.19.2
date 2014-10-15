@@ -109,35 +109,7 @@ private:
 	}
 
 	/** Returns the ListView for the ComboButton */
-	TSharedRef<SWidget> GetListContent()
-	{
-		SAssignNew( RowNameComboListView, SListView<TSharedPtr<FString> > )
-			.ListItemsSource( &RowNames )
-			.OnSelectionChanged( this, &FDataTableCustomizationLayout::OnSelectionChanged )			
-			.OnGenerateRow( this, &FDataTableCustomizationLayout::HandleRowNameComboBoxGenarateWidget )
-			.SelectionMode(ESelectionMode::Single);
-
-		// Ensure no filter is applied at the time the menu opens
-		OnFilterTextChanged(FText::GetEmpty());
-
-		if( CurrentSelectedItem.IsValid() )
-		{
-			RowNameComboListView->SetSelection(CurrentSelectedItem);
-		}
-
-		return SNew( SVerticalBox )
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew( SSearchBox )
-					.OnTextChanged( this, &FDataTableCustomizationLayout::OnFilterTextChanged )
-				]
-				+SVerticalBox::Slot()
-				.FillHeight( 1.f )
-				[
-					RowNameComboListView.ToSharedRef()
-				];				
-	}
+	TSharedRef<SWidget> GetListContent();
 
 	/** Delegate to refresh the drop down when the datatable changes */
 	void OnDataTableChanged()

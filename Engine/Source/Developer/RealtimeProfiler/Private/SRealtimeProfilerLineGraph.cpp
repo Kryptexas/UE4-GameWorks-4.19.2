@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 #include "SRealtimeProfilerLineGraph.h"
 #include "SRealtimeProfilerVisualizer.h"

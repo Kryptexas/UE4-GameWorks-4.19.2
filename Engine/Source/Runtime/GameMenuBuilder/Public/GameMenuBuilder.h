@@ -2,7 +2,7 @@
 
 #include "GameMenuBuilderModule.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "GameMenuBuilderStyle.h"
 #include "GameMenuWidgetStyle.h"
 #include "SGameMenuPageWidget.h"

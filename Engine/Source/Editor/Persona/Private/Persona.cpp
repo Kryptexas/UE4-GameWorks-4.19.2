@@ -63,6 +63,10 @@
 #include "FbxMeshUtils.h"
 #include "AnimationEditorUtils.h"
 #include "SAnimationSequenceBrowser.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
 

@@ -5,6 +5,7 @@
 #include "GraphEditor.h"
 #include "Editor/GraphEditor/Public/GraphEditorModule.h"
 #include "BlueprintUtilities.h"
+#include "SMissingWidget.h"
 
 // List of all active GraphEditor wrappers
 TArray< TWeakPtr<SGraphEditor> > SGraphEditor::AllInstances;

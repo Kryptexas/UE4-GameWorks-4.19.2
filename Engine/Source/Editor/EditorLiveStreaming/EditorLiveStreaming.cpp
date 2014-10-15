@@ -8,6 +8,8 @@
 #include "Developer/Settings/Public/Settings.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 IMPLEMENT_MODULE( FEditorLiveStreaming, EditorLiveStreaming );
 

@@ -5,6 +5,7 @@
 #include "MathStructCustomizations.h"
 #include "IPropertyUtilities.h"
 #include "SColorPicker.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "FMathStructCustomization"

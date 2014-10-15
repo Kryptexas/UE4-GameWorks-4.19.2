@@ -5,6 +5,7 @@
 #include "Editor/ClassViewer/Private/SClassViewer.h"
 #include "SClassPickerDialog.h"
 #include "EditorClassUtils.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "SClassPicker"
 

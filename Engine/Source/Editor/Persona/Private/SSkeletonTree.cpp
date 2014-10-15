@@ -28,6 +28,11 @@
 #include "Factories.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "UnrealExporter.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 

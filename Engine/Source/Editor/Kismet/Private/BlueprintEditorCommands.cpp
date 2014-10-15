@@ -2,7 +2,7 @@
 
 
 #include "BlueprintEditorPrivatePCH.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "BlueprintEditorCommands.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h" // for AddEventForFunction(), ...

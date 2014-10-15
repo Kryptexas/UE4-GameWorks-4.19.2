@@ -17,6 +17,7 @@
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "EditorViewportCommands.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 

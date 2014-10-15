@@ -3,6 +3,8 @@
 #include "MessageLogPrivatePCH.h"
 #include "MessageLogListingViewModel.h"
 #include "MessageLogModule.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "MessageLog"
 

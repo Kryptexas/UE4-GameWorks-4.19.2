@@ -7,6 +7,7 @@
 #include "TextEditHelper.h"
 #include "SlateWordWrapper.h"
 #include "PlainTextLayoutMarshaller.h"
+#include "GenericCommands.h"
 
 void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition)
 {

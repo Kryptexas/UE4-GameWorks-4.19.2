@@ -5,6 +5,7 @@
 
 #include "ModuleManager.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FTaskBrowserModule, TaskBrowser );
 

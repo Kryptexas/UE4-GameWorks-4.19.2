@@ -36,6 +36,8 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 ///// UTILS
 

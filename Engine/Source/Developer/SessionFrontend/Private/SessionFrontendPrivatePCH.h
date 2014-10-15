@@ -13,7 +13,7 @@
 #include "Json.h"
 #include "Messaging.h"
 #include "ModuleManager.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
 #include "PlatformInfo.h"

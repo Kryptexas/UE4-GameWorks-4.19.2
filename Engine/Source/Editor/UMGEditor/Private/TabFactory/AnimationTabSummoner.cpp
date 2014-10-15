@@ -8,6 +8,9 @@
 #include "WidgetAnimation.h"
 #include "MovieScene.h"
 #include "UMGStyle.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

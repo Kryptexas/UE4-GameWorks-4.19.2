@@ -2,7 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/TouchInterface.h"
-#include "Slate.h"
+#include "SlateBasics.h"
+#include "SVirtualJoystick.h"
 
 UTouchInterface::UTouchInterface(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

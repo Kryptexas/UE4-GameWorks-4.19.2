@@ -6,7 +6,7 @@
 
 #include "WorkspaceMenuStructure.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 
 IMPLEMENT_MODULE( FWorkspaceMenuStructureModule, WorkspaceMenuStructure );

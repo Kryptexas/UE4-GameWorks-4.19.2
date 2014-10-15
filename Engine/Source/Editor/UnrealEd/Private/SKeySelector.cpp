@@ -6,6 +6,7 @@
 #include "ScopedTransaction.h"
 #include "IDocumentation.h"
 #include "SListViewSelectorDropdownMenu.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "KeySelector"
 

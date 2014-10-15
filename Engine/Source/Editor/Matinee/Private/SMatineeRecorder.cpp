@@ -5,6 +5,7 @@
 #include "SMatineeRecorder.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "IMatinee.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "SMatineeRecorder"
 

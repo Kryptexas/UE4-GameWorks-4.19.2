@@ -18,7 +18,7 @@
 #include "Engine/RendererSettings.h"
 #include "AVIWriter.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SceneViewport.h"
 #include "SVirtualJoystick.h"
 
@@ -29,6 +29,7 @@
 #include "IHeadMountedDisplay.h"
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"
+#include "SDPIScaler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

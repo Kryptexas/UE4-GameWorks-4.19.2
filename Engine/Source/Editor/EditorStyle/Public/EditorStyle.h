@@ -8,7 +8,7 @@
 
 #include "CoreUObject.h"
 #include "ModuleInterface.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 
 /* Interfaces

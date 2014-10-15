@@ -9,6 +9,7 @@
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "ContentBrowserUtils.h"
 #include "CollectionViewUtils.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -608,9 +609,5 @@ const FSlateBrush* SCollectionListItem::GetBorderImage() const
 	return bDraggedOver ? FEditorStyle::GetBrush("Menu.Background") : FEditorStyle::GetBrush("NoBorder");
 }
 
-
-//////////////////////////
-// SSourcesTab
-//////////////////////////
 
 #undef LOCTEXT_NAMESPACE

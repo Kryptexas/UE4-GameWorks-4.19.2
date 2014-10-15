@@ -2,6 +2,8 @@
 
 #include "PhATModule.h"
 #include "SPhATNewAssetDlg.h"
+#include "SNumericEntryBox.h"
+#include "STextComboBox.h"
 
 // Add in the constants from the static mesh editor as we need them here too
 const int32 DefaultHullCount = 4;

@@ -9,6 +9,7 @@
 #include "SourceCodeNavigation.h"
 #include "TargetPlatform.h"
 #include "PlatformInfo.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 

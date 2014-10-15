@@ -6,6 +6,7 @@
 #include "SAnimCompositePanel.h"
 #include "SAnimSegmentsPanel.h"
 #include "SAnimCompositeEditor.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "AnimCompositePanel"
 

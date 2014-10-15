@@ -16,7 +16,7 @@
 #include "AutomationMessages.h"
 #include "Messaging.h"
 #include "ModuleManager.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 
 /* Private includes

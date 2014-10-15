@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "InertialScrollManager.h"
+
 /** SScrollBox can scroll through an arbitrary number of widgets. */
 class SLATE_API SScrollBox : public SCompoundWidget
 {

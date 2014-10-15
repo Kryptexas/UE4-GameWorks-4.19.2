@@ -42,95 +42,22 @@ public:
 	 * @param InOwnerTable The table that owns this tree item.
 	 * @param InItem The actual item to be displayed.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FGestureTreeItem> InItem )
-	{
-		TreeItem = InItem;
-
-		SMultiColumnTableRow< TSharedPtr<FGestureTreeItem> >::Construct( FSuperRowType::FArguments(), InOwnerTable );
-	}
+	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FGestureTreeItem> InItem );
 
 	/**
 	 * Called to generate a widget for each column.
 	 *
 	 * @param ColumnName The name of the column that needs a widget.
 	 */
-	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName )
-	{
-		if( ColumnName == "Name")
-		{
-			return SNew(SHorizontalBox)
-
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding( 2.0f )
-					.VAlign(VAlign_Center)
-					[
-						SNew( SExpanderArrow, SharedThis( this ) )
-					]
-
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew( SVerticalBox )
-
-						+ SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								SNew( STextBlock )
-								.Text( TreeItem->CommandInfo->GetLabel() )
-								.ToolTipText( TreeItem->CommandInfo->GetDescription() )
-							]
-
-						+ SVerticalBox::Slot()
-							.Padding(0.0f,0.0f,0.0f,5.0f)
-							.AutoHeight()
-							[
-								SNew( STextBlock )
-									.Font( FEditorStyle::GetFontStyle("InputBindingEditor.SmallFont") )
-									.ColorAndOpacity( FLinearColor::Gray )
-									.Text( TreeItem->CommandInfo->GetDescription() )
-							]
-					];
-		}
-		else if( ColumnName == "Binding")
-		{
-			return SNew( SBox )
-				.Padding(2.0f)
-				.VAlign( VAlign_Center )
-				[
-					SNew( SGestureEditBox, TreeItem )
-				];
-		}
-		else
-		{
-			return SNew(STextBlock) .Text(NSLOCTEXT("GestureTreeItem", "UnknownColumn", "Unknown Column"));
-		}
-	}
+	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName );
 
 public:
 
 	// SWidget interface
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
-	{
-		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && FMultiBoxSettings::IsInToolbarEditMode() )
-		{
-			return FReply::Handled().DetectDrag( SharedThis(this), MouseEvent.GetEffectingButton() );
-		}
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
-		return FReply::Unhandled();
-	}
-
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
-	{
-		FToolBarBuilder TempBuilder( MakeShareable(new FUICommandList), FMultiBoxCustomization::None );
-		TempBuilder.AddToolBarButton( TreeItem->CommandInfo.ToSharedRef() );
-
-		TSharedRef<SWidget> CursorDecorator = TempBuilder.MakeWidget();
-
-		return FReply::Handled().BeginDragDrop( FUICommandDragDropOp::New( TreeItem->CommandInfo.ToSharedRef(), NAME_None, TempBuilder.MakeWidget(), FVector2D::ZeroVector ) );
-	}
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 private:
 

@@ -4,6 +4,8 @@
 #include "MoviePlayerSettingsDetails.h"
 #include "SourceControlHelpers.h"
 #include "SFilePathPicker.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 #define LOCTEXT_NAMESPACE "MoviePlayerSettingsDetails"

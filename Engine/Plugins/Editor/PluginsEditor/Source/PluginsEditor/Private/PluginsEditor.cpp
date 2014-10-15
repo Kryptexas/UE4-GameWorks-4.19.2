@@ -5,6 +5,7 @@
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Editor/UnrealEd/Public/Features/EditorFeatures.h"
 #include "PluginStyle.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 

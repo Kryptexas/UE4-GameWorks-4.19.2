@@ -4,6 +4,8 @@
 
 #if WITH_FANCY_TEXT
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SRichTextBlock"), STAT_SlateOnPaint_SRichTextBlock, STATGROUP_Slate );
+
 #include "TextLayoutEngine.h"
 #include "TextBlockLayout.h"
 #include "IRichTextMarkupParser.h"

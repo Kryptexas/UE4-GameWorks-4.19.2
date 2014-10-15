@@ -36,7 +36,9 @@
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
-#include "Slate.h"  // For AddNotification
+#include "SlateBasics.h"  // For AddNotification
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "Material"

@@ -232,9 +232,3 @@ private:
 	/** Widget to display the name of the collection item and allows for renaming */
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
 };
-
-/** A tab which may not be dragged */
-class SSourcesTab : public SDockableTab
-{
-
-};

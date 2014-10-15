@@ -5,6 +5,9 @@
 #include "SSimpleGradient.h"
 #include "SColorValueSlider.h"
 #include "SEyeDropperButton.h"
+#include "SColorWheel.h"
+#include "SColorSpectrum.h"
+#include "SExpandableArea.h"
 
 
 #define LOCTEXT_NAMESPACE "ColorPicker"

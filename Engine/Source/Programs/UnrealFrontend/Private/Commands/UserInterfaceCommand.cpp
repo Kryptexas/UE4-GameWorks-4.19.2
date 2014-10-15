@@ -3,7 +3,7 @@
 #include "UnrealFrontendPrivatePCH.h"
 #include "AutomationController.h"
 #include "Projects.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateReflector.h"
 #include "StandaloneRenderer.h"
 #include "TaskGraphInterfaces.h"

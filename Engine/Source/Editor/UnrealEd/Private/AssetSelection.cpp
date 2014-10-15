@@ -25,6 +25,8 @@
 #include "Animation/SkeletalMeshActor.h"
 
 #include "ObjectEditorUtils.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 namespace AssetSelectionUtils

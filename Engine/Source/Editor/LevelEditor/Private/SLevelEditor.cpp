@@ -37,6 +37,7 @@
 #include "IDocumentation.h"
 #include "NewsFeed.h"
 #include "TutorialMetaData.h"
+#include "SDockTab.h"
 
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");

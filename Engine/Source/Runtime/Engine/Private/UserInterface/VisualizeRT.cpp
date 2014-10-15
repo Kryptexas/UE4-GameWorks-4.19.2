@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "RendererInterface.h"
 
 #define ENABLE_IMAGES	0

@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "FbxImportUIDetails.h"
 #include "Factories/FbxAnimSequenceImportData.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "FbxImportUIDetails"
 

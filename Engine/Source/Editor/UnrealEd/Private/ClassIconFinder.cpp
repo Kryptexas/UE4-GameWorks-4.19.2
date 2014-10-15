@@ -2,7 +2,7 @@
 
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ClassIconFinder.h"
 
 TArray < const ISlateStyle* > FClassIconFinder::Styles;

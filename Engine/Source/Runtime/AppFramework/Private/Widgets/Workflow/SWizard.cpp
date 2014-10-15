@@ -2,6 +2,7 @@
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SWizard.h"
+#include "SWidgetSwitcher.h"
 
 
 #define LOCTEXT_NAMESPACE "SWizard"
@@ -346,6 +347,16 @@ EVisibility SWizard::HandlePrevButtonVisibility( ) const
 	}
 
 	return EVisibility::Hidden;
+}
+
+int32 SWizard::GetNumPages() const
+{
+	return WidgetSwitcher->GetNumWidgets();
+}
+
+int32 SWizard::GetPageIndex(const TSharedRef<SWidget>& PageWidget) const
+{
+	return WidgetSwitcher->GetWidgetIndex(PageWidget);
 }
 
 

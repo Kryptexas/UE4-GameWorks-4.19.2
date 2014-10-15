@@ -5,6 +5,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 #include "PropertyCustomizationHelpers.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedEnumEditor"
 

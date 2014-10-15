@@ -11,6 +11,7 @@
 #include "FbxImporter.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/DestructibleMesh.h"
+#include "SDockableTab.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 

@@ -12,7 +12,7 @@
 #include "FileManagerGeneric.h"
 #include "Database.h"
 #include "SkeletalMeshMerge.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "RenderCore.h"
 #include "ShaderCompiler.h"
 #include "ColorList.h"
@@ -85,6 +85,7 @@
 #include "HotReloadInterface.h"
 #include "STestSuite.h"
 #include "Engine/DemoNetDriver.h"
+#include "SThrobber.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

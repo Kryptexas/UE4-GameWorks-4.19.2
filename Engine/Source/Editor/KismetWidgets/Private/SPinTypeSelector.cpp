@@ -5,6 +5,7 @@
 #include "SPinTypeSelector.h"
 #include "IDocumentation.h"
 #include "Editor/UnrealEd/Public/SListViewSelectorDropdownMenu.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "PinTypeSelector"
 

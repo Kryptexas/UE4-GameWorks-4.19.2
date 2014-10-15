@@ -22,6 +22,8 @@
 #include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Matinee/MatineeAnimInterface.h"
+#include "STextComboPopup.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 

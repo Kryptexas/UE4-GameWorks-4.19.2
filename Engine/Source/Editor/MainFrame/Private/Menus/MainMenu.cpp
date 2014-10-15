@@ -11,6 +11,7 @@
 #include "TranslationEditorMenu.h"
 #include "Editor/DeviceProfileEditor/Public/DeviceProfileEditorModule.h"
 #include "UndoHistoryModule.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "MainFileMenu"
 

@@ -4,6 +4,7 @@
 #include "MathStructProxyCustomizations.h"
 #include "IPropertyUtilities.h"
 #include "ScopedTransaction.h"
+#include "SNumericEntryBox.h"
 
 void FMathStructProxyCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {

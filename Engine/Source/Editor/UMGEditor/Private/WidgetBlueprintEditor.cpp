@@ -19,6 +19,7 @@
 #include "WidgetBlueprintEditorToolbar.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

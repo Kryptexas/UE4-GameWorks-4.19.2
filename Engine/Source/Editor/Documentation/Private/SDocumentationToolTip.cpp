@@ -7,6 +7,9 @@
 #include "Developer/SourceControl/Public/SourceControlHelpers.h"
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
+#include "SHyperlink.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 void SDocumentationToolTip::Construct( const FArguments& InArgs )
 {

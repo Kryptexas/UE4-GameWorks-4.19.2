@@ -10,6 +10,7 @@
 #include "AssetToolsModule.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
 #include "SColorPicker.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"

@@ -14,6 +14,7 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "STextComboBox.h"
 
 const int32 DefaultHullCount = 4;
 const int32 DefaultVertsPerHull = 12;

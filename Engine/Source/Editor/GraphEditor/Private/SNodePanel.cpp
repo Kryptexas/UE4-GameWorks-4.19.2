@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "ScopedTransaction.h"
+#include "MarqueeOperation.h"
 
 struct FZoomLevelEntry
 {

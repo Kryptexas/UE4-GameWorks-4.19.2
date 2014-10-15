@@ -3,6 +3,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "IDocumentation.h"
 #include "WorkflowTabFactory.h"
+#include "SDockTab.h"
 
 /////////////////////////////////////////////////////
 // FWorkflowTabFactory
@@ -126,6 +127,11 @@ void FWorkflowTabFactory::CreateViewMenuEntry(FMenuBuilder& MenuBuilder, const F
 
 /////////////////////////////////////////////////////
 // FDocumentTabFactory
+
+FDocumentTabFactory::FDocumentTabFactory(FName InIdentifier, TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(InIdentifier, InHostingApp)
+{
+	TabRole = ETabRole::DocumentTab;
+}
 
 TSharedRef<FGenericTabHistory> FDocumentTabFactory::CreateTabHistoryNode(TSharedPtr<FTabPayload> Payload)
 {

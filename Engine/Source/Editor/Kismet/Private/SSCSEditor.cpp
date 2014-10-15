@@ -26,6 +26,8 @@
 #include "Kismet2NameValidators.h"
 #include "UnrealExporter.h"
 #include "TutorialMetaData.h"
+#include "SInlineEditableTextBlock.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 

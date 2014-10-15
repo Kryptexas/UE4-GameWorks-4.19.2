@@ -10,7 +10,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "DisplayDebugHelpers.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 

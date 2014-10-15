@@ -6,7 +6,7 @@
 /* Dependencies
  *****************************************************************************/
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Ticker.h"
 #include "SlateStyle.h"
 #include "FriendsAndChat.h"

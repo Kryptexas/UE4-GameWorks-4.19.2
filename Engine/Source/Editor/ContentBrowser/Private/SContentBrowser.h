@@ -82,7 +82,7 @@ private:
 	void OnContainingTabClosed(TSharedRef<SDockTab> DockTab);
 
 	/** Called when a containing tab is activated, if there is one */
-	void OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause::Type InActivationCause);
+	void OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause InActivationCause);
 
 	/** Loads settings from config based on the browser's InstanceName*/
 	void LoadSettings(const FName& InstanceName);

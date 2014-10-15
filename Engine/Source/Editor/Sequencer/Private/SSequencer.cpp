@@ -22,6 +22,7 @@
 #include "K2Node_PlayMovieScene.h"
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
+#include "SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "Sequencer"

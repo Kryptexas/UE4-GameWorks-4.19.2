@@ -10,7 +10,7 @@
 #include "CoreUObject.h"
 #include "Engine.h"
 #include "InputCore.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateCore.h"
 
 #include "Anchors.h"

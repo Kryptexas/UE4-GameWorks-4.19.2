@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SDockableTab.h"
+#include "SDockTabStack.h"
 
 
 void SDockableTab::SetContent( TSharedRef<SWidget> InContent )
@@ -38,7 +40,7 @@ void SDockableTab::RemoveTabFromParent()
 
 }
 
-void SDockableTab::ActivateInParent(ETabActivationCause::Type InActivationCause)
+void SDockableTab::ActivateInParent(ETabActivationCause InActivationCause)
 {
 }
 

@@ -4,7 +4,7 @@
 #include "PropertyEditorPrivatePCH.h"
 #include "AssetSelection.h"
 #include "SPropertyTreeViewImpl.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "PropertyNode.h"
 #include "ItemPropertyNode.h"
 #include "CategoryPropertyNode.h"

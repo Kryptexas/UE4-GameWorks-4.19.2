@@ -46,6 +46,12 @@
 #include "EngineAnalytics.h"
 
 #include "SColorPicker.h"
+#include "SDockTab.h"
+#include "STextEntryPopup.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "SNumericEntryBox.h"
+#include "STextComboPopup.h"
 
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"

@@ -9,6 +9,8 @@
 #include "IBspModeModule.h"
 #include "KismetEditorUtilities.h"
 #include "EditorClassUtils.h"
+#include "SSearchBox.h"
+#include "SWidgetSwitcher.h"
 
 /**
  * These are the tab indexes, if the tabs are reorganized you need to adjust the

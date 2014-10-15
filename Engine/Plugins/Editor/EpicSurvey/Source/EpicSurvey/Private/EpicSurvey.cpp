@@ -15,6 +15,8 @@
 #include "SSurveyNotification.h"
 #include "SurveyTitleLocalStorage.h"
 #include "SurveyPage.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "EpicSurvey"
 

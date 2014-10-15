@@ -105,33 +105,7 @@ private:
 	}
 
 	/** Returns the ListView for the ComboButton */
-	TSharedRef<SWidget> GetListContent()
-	{
-		SAssignNew( RowNameComboListView, SListView<TSharedPtr<FString> > )
-			.ListItemsSource( &RowNames )
-			.OnSelectionChanged( this, &FCurveTableCustomizationLayout::OnSelectionChanged )
-			.OnGenerateRow( this, &FCurveTableCustomizationLayout::HandleRowNameComboBoxGenarateWidget )
-			.SelectionMode(ESelectionMode::Single);
-
-
-		if( CurrentSelectedItem.IsValid() )
-		{
-			RowNameComboListView->SetSelection(CurrentSelectedItem);
-		}
-
-		return SNew( SVerticalBox )
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew( SSearchBox )
-					.OnTextChanged( this, &FCurveTableCustomizationLayout::OnFilterTextChanged )
-				]
-				+SVerticalBox::Slot()
-				.FillHeight( 1.f )
-				[
-					RowNameComboListView.ToSharedRef()
-				];				
-	}
+	TSharedRef<SWidget> GetListContent();
 
 	/** Delegate to refresh the drop down when the datatable changes */
 	void OnCurveTableChanged()

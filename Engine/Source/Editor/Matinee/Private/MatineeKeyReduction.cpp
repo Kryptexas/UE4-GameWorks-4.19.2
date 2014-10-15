@@ -4,8 +4,10 @@
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Matinee.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SNumericEntryBox.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 /**

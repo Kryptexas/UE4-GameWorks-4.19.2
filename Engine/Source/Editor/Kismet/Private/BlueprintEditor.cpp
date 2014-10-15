@@ -25,6 +25,7 @@
 #include "BlueprintEditorModule.h"
 #include "GraphEditorActions.h"
 #include "SNodePanel.h"
+#include "SDockTab.h"
 
 #include "SBlueprintEditorToolbar.h"
 #include "FindInBlueprints.h"
@@ -78,6 +79,10 @@
 
 // Blueprint merging
 #include "Merge.h"
+#include "SHyperlink.h"
+#include "GenericCommands.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 

@@ -16,6 +16,7 @@
 #include "InstancedStaticMeshSCSEditorCustomization.h"
 #include "UserDefinedStructureEditor.h"
 #include "BlueprintGraphPanelPinFactory.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 

@@ -30,7 +30,7 @@
 #include "MaterialEditorActions.h"
 #include "NormalMapIdentification.h"
 #include "EngineBuildSettings.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "DesktopPlatformModule.h"
 #include "ShaderCompiler.h"
 #include "NavigationBuildingNotification.h"

@@ -4,6 +4,7 @@
 #include "SReferenceNode.h"
 #include "AssetThumbnail.h"
 #include "AssetRegistryModule.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 

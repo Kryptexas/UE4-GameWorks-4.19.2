@@ -12,6 +12,7 @@
 	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 	#include "Runtime/Engine/Public/EngineAnalytics.h"
 #endif // WITH_EDITOR
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
 

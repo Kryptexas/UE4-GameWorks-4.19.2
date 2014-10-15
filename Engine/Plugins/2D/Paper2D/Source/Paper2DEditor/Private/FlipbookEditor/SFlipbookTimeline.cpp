@@ -6,6 +6,7 @@
 #include "Editor/UnrealEd/Public/ScopedTransaction.h"
 #include "FlipbookEditorCommands.h"
 #include "PaperStyle.h"
+#include "STimelineTrack.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -14,7 +15,6 @@
 
 #include "SFlipbookTrackHandle.h"
 #include "STimelineHeader.h"
-#include "STimelineTrack.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SFlipbookTimeline

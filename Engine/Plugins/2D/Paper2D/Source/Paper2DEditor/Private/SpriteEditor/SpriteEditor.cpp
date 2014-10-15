@@ -15,6 +15,7 @@
 #include "SSpriteEditorViewportToolbar.h"
 
 #include "SSpriteList.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 

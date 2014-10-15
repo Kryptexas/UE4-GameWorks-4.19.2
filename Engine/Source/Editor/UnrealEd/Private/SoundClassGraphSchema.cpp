@@ -9,6 +9,7 @@
 #include "ScopedTransaction.h"
 #include "GraphEditorActions.h"
 #include "SoundClassEditorUtilities.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassSchema"
 

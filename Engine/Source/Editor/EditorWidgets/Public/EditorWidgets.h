@@ -4,6 +4,6 @@
 
 #include "Core.h"
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 #include "EditorWidgetsModule.h"

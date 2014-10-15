@@ -12,6 +12,7 @@
 #include "ScopedTransaction.h"
 #include "EnvironmentQueryColors.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 

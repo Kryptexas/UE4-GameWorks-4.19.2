@@ -8,6 +8,7 @@
 #include "LevelViewportLayoutThreePanes.h"
 #include "LevelViewportLayoutFourPanes.h"
 #include "SLevelViewport.h"
+#include "SDockTab.h"
 
 
 // FLevelViewportTabContent ///////////////////////////

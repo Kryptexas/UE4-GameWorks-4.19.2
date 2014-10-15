@@ -28,6 +28,7 @@
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
 #include "EditorClassUtils.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 

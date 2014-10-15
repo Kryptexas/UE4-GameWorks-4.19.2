@@ -9,6 +9,8 @@
 #include "AbilitySystemGlobals.h"
 #include "GameplayAbilitiesModule.h"
 #include "SGameplayAttributeGraphPin.h"
+#include "SSearchBox.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
 

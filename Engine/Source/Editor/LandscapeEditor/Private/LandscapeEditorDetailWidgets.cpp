@@ -2,6 +2,7 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEditorDetailWidgets.h"
+#include "SToolBarButtonBlock.h"
 
 
 // Based on a stripped-down FToolBarComboButtonBlock

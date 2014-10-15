@@ -8,6 +8,7 @@
 #include "Editor/PropertyEditor/Public/IPropertyTableCell.h"
 #include "Editor/PropertyEditor/Public/PropertyHandle.h"
 #include "ScopedTransaction.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer"
 

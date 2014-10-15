@@ -4,6 +4,9 @@
 #include "Toolkits/BaseToolkit.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/ToolkitManager.h"
+#include "SDockableTab.h"
+#include "SDockTabStack.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "BaseToolkit"
 

@@ -4,7 +4,7 @@
 #include "EdGraph/EdGraphNode_Documentation.h"
 
 #if WITH_EDITOR
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 #endif
 

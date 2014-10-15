@@ -12,6 +12,7 @@
 #include "EditorWidgetsModule.h"
 #include "SequencerActorBindingManager.h"
 #include "SequencerObjectChangeListener.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

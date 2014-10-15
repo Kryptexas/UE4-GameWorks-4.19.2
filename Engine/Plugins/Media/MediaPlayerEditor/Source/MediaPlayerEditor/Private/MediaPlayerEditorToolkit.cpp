@@ -2,7 +2,7 @@
 
 #include "MediaPlayerEditorPrivatePCH.h"
 #include "Factories.h"
-
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FMediaPlayerEditorToolkit"
 

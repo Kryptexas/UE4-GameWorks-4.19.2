@@ -10,6 +10,8 @@
 #include "SLevelOfDetailBranchNode.h"
 #include "IDocumentation.h"
 #include "TutorialMetaData.h"
+#include "SGraphPanel.h"
+#include "SInlineEditableTextBlock.h"
 
 /////////////////////////////////////////////////////
 // SNodeTitle

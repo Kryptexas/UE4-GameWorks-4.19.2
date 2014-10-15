@@ -7,6 +7,7 @@
 #include "Toolkits/ToolkitManager.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Toolkits/SAssetEditorCommon.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "ToolkitDisplay"
 

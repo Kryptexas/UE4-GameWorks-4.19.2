@@ -6,7 +6,7 @@
 #include "PlatformFeatures.h"
 #include "LatentActions.h"
 #include "IForceFeedbackSystem.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/Character.h"
 #include "Sound/SoundBase.h"

@@ -6,6 +6,7 @@
 #include "SGraphNodeK2Composite.h"
 #include "SGraphPreviewer.h"
 #include "IDocumentation.h"
+#include "SInlineEditableTextBlock.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeK2Composite

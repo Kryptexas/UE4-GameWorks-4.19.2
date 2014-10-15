@@ -14,6 +14,7 @@
 #include "ReferenceViewer.h"
 #include "IIntroTutorials.h"
 #include "SuperSearchModule.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "AssetEditorToolkit"
 

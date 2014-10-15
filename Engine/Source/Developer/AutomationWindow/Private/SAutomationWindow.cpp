@@ -5,6 +5,9 @@
 #include "AutomationController.h"
 #include "AutomationPresetManager.h"
 #include "SAutomationWindow.h"
+#include "SSearchBox.h"
+#include "SNotificationList.h"
+#include "SThrobber.h"
 
 
 #define LOCTEXT_NAMESPACE "AutomationTest"

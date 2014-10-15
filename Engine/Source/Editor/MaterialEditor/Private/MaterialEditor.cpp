@@ -63,9 +63,11 @@
 #include "SColorPicker.h"
 #include "EditorClassUtils.h"
 #include "IDocumentation.h"
+#include "SDockTab.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 

@@ -9,11 +9,17 @@
 #include "WebBrowserModule.h"
 #include "IWebBrowserSingleton.h"
 #endif
-
+#include "IWidgetReflector.h"
+#include "GenericCommands.h"
+#include "NotificationManager.h"
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Update Tooltip Time"), STAT_SlateUpdateTooltip, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("Tick Window And Children Time"), STAT_SlateTickWindowAndChildren, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("Total Slate Tick Time"), STAT_SlateTickTime, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("SlatePrepass"), STAT_SlateCacheDesiredSize, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("TickWidgets"), STAT_SlateTickWidgets, STATGROUP_Slate );
+DECLARE_CYCLE_STAT( TEXT("DrawWindows"), STAT_SlateDrawWindowTime, STATGROUP_Slate );
 
 
 // Slate Event Logging is enabled to allow crash log dumping
@@ -4723,4 +4729,14 @@ void FSlateApplication::InitializeAsStandaloneApplication( const TSharedRef<FSla
 
 	// set the normal UE4 GIsRequestingExit when outer frame is closed
 	FSlateApplication::Get().SetExitRequestedHandler(FSimpleDelegate::CreateStatic(&OnRequestExit));
+}
+
+void FSlateApplication::SetWidgetReflector(const TSharedRef<IWidgetReflector>& WidgetReflector)
+{
+	if (SourceCodeAccessDelegate.IsBound())
+	{
+		WidgetReflector->SetSourceAccessDelegate(SourceCodeAccessDelegate);
+	}
+
+	WidgetReflectorPtr = WidgetReflector;
 }

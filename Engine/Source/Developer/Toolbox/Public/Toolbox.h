@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 #include "ModuleInterface.h"
 

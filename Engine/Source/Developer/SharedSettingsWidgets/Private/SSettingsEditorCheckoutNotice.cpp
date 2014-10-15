@@ -4,6 +4,10 @@
 #include "EditorStyle.h"
 #include "SSettingsEditorCheckoutNotice.h"
 #include "ISourceControlModule.h"
+#include "SWidgetSwitcher.h"
+#include "SThrobber.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 #define LOCTEXT_NAMESPACE "SSettingsEditorCheckoutNotice"

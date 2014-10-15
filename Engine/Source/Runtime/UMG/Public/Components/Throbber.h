@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SThrobber.h"
 #include "Throbber.generated.h"
 
 class USlateBrushAsset;

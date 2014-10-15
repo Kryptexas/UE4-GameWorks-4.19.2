@@ -6,6 +6,7 @@
 #include "IDocumentation.h"
 #include "SLevelOfDetailBranchNode.h"
 #include "TutorialMetaData.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNodeDocumentation"
 

@@ -2,6 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STATGROUP_Slate );
 
 /* SViewport structors
  *****************************************************************************/

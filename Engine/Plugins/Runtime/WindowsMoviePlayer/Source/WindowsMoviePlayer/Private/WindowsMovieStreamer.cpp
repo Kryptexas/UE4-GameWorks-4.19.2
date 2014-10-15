@@ -2,7 +2,7 @@
 
 #include "WindowsMoviePlayerPrivatePCH.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "RenderingCommon.h"
 #include "Slate/SlateTextures.h"
 #include "MoviePlayer.h"

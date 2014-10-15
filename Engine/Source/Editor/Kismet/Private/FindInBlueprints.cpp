@@ -9,6 +9,8 @@
 #include "AssetRegistryModule.h"
 #include "Json.h"
 #include "IDocumentation.h"
+#include "SSearchBox.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprints"
 

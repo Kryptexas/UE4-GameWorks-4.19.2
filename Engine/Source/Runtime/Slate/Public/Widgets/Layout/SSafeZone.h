@@ -47,31 +47,9 @@ class SLATE_API SSafeZone : public SBox
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs )
-	{
-		SBox::Construct( SBox::FArguments()
-			.HAlign(InArgs._HAlign)
-			.VAlign(InArgs._VAlign)
-			.Padding( this, &SSafeZone::GetSafeZonePadding )
-			[
-				InArgs._Content.Widget
-			]
-		);
+	void Construct( const FArguments& InArgs );
 
-		IsTitleSafe = InArgs._IsTitleSafe;
-		Padding = InArgs._Padding;
-	}
-
-	FMargin GetSafeZonePadding() const
-	{
-		// @todo: should we have a function that just returns the safe area size?
-		FDisplayMetrics Metrics;
-		FSlateApplication::Get().GetDisplayMetrics(Metrics);
-
-		// return either the TitleSafe or the ActionSafe size, added to the user padding
-		return Padding.Get() + (IsTitleSafe ? FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) : 
-			FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y));
-	}
+	FMargin GetSafeZonePadding() const;
 
 private:
 	/** Cached values from the args */

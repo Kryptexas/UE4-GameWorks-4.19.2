@@ -2,6 +2,7 @@
 
 #include "ProfilerPrivatePCH.h"
 #include "SEventGraphTooltip.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SEventGraph"
 

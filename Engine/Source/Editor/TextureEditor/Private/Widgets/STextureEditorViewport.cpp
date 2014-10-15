@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureEditorPrivatePCH.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "STextureEditorViewport"

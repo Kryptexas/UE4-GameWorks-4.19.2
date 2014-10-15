@@ -7,6 +7,8 @@
 #include "EditorViewportCommands.h"
 #include "IDocumentation.h"
 #include "TutorialMetaData.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 

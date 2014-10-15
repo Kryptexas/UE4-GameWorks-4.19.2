@@ -9,6 +9,7 @@
 #include "SKismetDebuggingView.h"
 #include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
 #include "KismetDebugCommands.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "DebugViewUI"
 

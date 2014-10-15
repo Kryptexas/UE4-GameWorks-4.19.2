@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "NormalMapIdentification.h"
 #include "Factories/TextureFactory.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define NORMALMAP_IDENTIFICATION_TIMING	(1)
 

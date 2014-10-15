@@ -11,6 +11,7 @@
 #include "MaterialEditor.h"
 #include "SMaterialEditorViewportToolBar.h"
 #include "ComponentReregisterContext.h"
+#include "SDockTab.h"
 
 /** Viewport Client for the preview viewport */
 class FMaterialEditorViewportClient : public FEditorViewportClient

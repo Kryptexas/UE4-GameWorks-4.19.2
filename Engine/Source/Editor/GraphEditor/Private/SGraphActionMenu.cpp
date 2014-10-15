@@ -7,6 +7,8 @@
 #include "SScrollBorder.h"
 #include "IDocumentation.h"
 #include "EditorCategoryUtils.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "GraphActionMenu"
 

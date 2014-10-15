@@ -1,12 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "TaskGraphInterfaces.h"
 #include "VisualizerEvents.h"
 #include "STaskGraph.h"
 #include "SGraphBar.h"
 #include "Tickable.h"
 #include "SProfileVisualizer.h"
+#include "SDockTab.h"
 
 /**
  * Creates Visualizer using Visualizer profile data format

@@ -10,6 +10,8 @@
 #include "AssetRegistryModule.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "SSearchBox.h"
+#include "SBreadcrumbTrail.h"
 
 #define LOCTEXT_NAMESPACE "TutorialsBrowser"
 

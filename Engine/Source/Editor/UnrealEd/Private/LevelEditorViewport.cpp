@@ -45,6 +45,8 @@
 #include "InstancedFoliage.h"
 
 #include "Editor/ActorPositioning.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 

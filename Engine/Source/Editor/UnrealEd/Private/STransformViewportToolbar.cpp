@@ -7,6 +7,7 @@
 #include "EditorViewportCommands.h"
 #include "SViewportToolBarIconMenu.h"
 #include "SViewportToolBarComboMenu.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "TransformToolBar"
 

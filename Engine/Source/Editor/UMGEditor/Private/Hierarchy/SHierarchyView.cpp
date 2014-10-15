@@ -14,6 +14,7 @@
 #include "BlueprintEditorUtils.h"
 #include "WidgetTemplateClass.h"
 #include "WidgetBlueprintEditor.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

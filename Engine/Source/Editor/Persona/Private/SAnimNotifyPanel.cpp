@@ -10,6 +10,8 @@
 #include "AssetRegistryModule.h"
 #include "Editor/UnrealEd/Public/AssetNotifications.h"
 #include "AssetSelection.h"
+#include "STextEntryPopup.h"
+#include "SExpandableArea.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;

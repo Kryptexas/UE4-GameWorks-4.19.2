@@ -8,6 +8,10 @@
 #include "SDistributionCurveEditor.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SColorPicker.h"
+#include "STextComboBox.h"
+#include "STextEntryPopup.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "CurveEditor"
 

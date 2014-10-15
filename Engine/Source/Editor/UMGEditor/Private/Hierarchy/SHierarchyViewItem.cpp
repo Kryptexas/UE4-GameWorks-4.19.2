@@ -16,6 +16,7 @@
 #include "Kismet2NameValidators.h"
 
 #include "WidgetBlueprintEditor.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

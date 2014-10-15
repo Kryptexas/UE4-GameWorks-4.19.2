@@ -7,6 +7,8 @@
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "SNumericEntryBox.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 

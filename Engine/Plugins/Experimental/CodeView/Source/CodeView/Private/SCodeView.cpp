@@ -2,6 +2,8 @@
 
 #include "CodeViewPrivatePCH.h"
 #include "SCodeView.h"
+#include "SSearchBox.h"
+#include "SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "SCodeView"
 

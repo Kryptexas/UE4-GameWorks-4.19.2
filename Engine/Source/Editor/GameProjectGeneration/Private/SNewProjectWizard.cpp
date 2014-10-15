@@ -13,6 +13,7 @@
 #include "SDecoratedEnumCombo.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
 #include "BreakIterator.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 

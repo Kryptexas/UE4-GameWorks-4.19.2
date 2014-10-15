@@ -33,6 +33,7 @@
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 #include "EditorClassUtils.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 

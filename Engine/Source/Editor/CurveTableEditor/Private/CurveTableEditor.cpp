@@ -5,6 +5,7 @@
 #include "CurveTableEditor.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
  
 #define LOCTEXT_NAMESPACE "CurveTableEditor"
 

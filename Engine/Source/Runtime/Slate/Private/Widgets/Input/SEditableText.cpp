@@ -2,6 +2,9 @@
 
 #include "SlatePrivatePCH.h"
 #include "TextEditHelper.h"
+#include "GenericCommands.h"
+
+DECLARE_CYCLE_STAT( TEXT("OnPaint SEditableText"), STAT_SlateOnPaint_SEditableText, STATGROUP_Slate );
 
 /** A pointer to the editable text currently under the mouse cursor. nullptr when there isn't one. */
 SEditableText* SEditableText::EditableTextUnderCursor = nullptr;

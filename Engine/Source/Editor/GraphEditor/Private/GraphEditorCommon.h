@@ -7,7 +7,7 @@
 #include "UnrealEd.h"
 #include "GraphEditor.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 
 #include "GraphEditorSettings.h"
 #include "SNodePanel.h"

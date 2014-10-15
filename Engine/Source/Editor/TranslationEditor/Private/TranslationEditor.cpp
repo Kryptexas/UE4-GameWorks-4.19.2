@@ -20,6 +20,7 @@
 
 #include "TranslationUnit.h"
 #include "SSearchBox.h"
+#include "SDockTab.h"
 #include "InternationalizationExportSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LocalizationExport, Log, All);

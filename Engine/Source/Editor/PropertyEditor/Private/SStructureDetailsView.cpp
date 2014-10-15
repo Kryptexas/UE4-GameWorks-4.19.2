@@ -11,6 +11,7 @@
 #include "SStructureDetailsView.h"
 #include "StructurePropertyNode.h"
 #include "SColorPicker.h"
+#include "SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SStructureDetailsView"

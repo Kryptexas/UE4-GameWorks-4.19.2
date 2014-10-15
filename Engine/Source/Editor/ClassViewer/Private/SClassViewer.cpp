@@ -31,6 +31,7 @@
 
 #include "SourceCodeNavigation.h"
 #include "HotReloadInterface.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 

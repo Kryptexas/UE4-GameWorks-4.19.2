@@ -39,6 +39,9 @@
 #include "EngineAnalytics.h"
 
 #include "SColorPicker.h"
+#include "SDockTab.h"
+#include "STextComboBox.h"
+#include "GenericCommands.h"
 
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);

@@ -31,6 +31,7 @@
 #include "BlueprintEditor.h"
 #include "EngineBuildSettings.h"
 #include "IDocumentation.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 

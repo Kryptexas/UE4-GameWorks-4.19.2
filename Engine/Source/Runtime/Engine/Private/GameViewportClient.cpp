@@ -9,7 +9,7 @@
 #include "ImageUtils.h"
 #include "RenderCore.h"
 #include "ColorList.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SceneViewExtension.h"
 #include "IHeadMountedDisplay.h"
 #include "SVirtualJoystick.h"

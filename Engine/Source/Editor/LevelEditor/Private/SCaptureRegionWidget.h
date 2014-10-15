@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 
 DECLARE_DELEGATE_OneParam( FOnCaptureRegionChanged, const FIntRect& )
 DECLARE_DELEGATE_OneParam( FOnCaptureRegionCompleted, bool )

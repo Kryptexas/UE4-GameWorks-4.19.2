@@ -17,6 +17,10 @@
 #include "SceneOutlinerFilters.h"
 
 #include "EditorActorFolders.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneOutliner, Log, All);
 

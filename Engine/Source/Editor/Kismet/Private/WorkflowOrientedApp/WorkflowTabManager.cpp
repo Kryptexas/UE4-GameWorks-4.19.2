@@ -3,6 +3,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "WorkflowTabFactory.h"
 #include "WorkflowTabManager.h"
+#include "SDockTab.h"
 
 /////////////////////////////////////////////////////
 // FTabInfo

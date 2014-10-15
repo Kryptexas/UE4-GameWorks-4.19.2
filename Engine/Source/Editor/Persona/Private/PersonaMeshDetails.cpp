@@ -20,6 +20,7 @@
 #include "FbxMeshUtils.h"
 
 #include "AnimGraphNodeDetails.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 

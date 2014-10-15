@@ -4,7 +4,7 @@
 
 #include "Engine.h"
 #include "ModuleInterface.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SlateTextures.h"
 
 /** This viewport is a simple interface for the loading to use to display the video textures */

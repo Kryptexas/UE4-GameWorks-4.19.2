@@ -13,6 +13,10 @@
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "DlgPickAssetPath.h"
+#include "SInlineEditableTextBlock.h"
+#include "GenericCommands.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "STimelineEditor"
 

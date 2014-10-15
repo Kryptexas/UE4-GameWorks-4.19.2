@@ -7,6 +7,8 @@
 #include "PropertyRestriction.h"
 #include "IPropertyUtilities.h"
 #include "ComponentTransformDetails.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponentDetails"
 

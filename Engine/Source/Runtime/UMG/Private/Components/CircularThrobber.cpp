@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
+#include "SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

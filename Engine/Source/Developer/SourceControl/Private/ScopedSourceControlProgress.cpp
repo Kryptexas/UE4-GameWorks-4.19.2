@@ -2,6 +2,7 @@
 
 #include "SourceControlPrivatePCH.h"
 #include "ScopedSourceControlProgress.h"
+#include "SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "SourceControlProgress"
 

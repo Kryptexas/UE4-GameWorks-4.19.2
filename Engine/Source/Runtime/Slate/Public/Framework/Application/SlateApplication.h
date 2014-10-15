@@ -3,13 +3,15 @@
 #pragma once
 
 #include "GenericApplicationMessageHandler.h"
-
+#include "MenuStack.h"
 
 class SToolTip;
 class SViewport;
 class SWindow;
 class FHittestGrid;
-
+struct FPopupTransitionEffect;
+class FMenuStack;
+class IWidgetReflector;
 
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
@@ -467,15 +469,7 @@ public:
 	 *
 	 * @param WidgetReflector The widget reflector to set.
 	 */
-	void SetWidgetReflector( const TSharedRef<IWidgetReflector>& WidgetReflector )
-	{
-		if (SourceCodeAccessDelegate.IsBound())
-		{
-			WidgetReflector->SetSourceAccessDelegate(SourceCodeAccessDelegate);
-		}
-
-		WidgetReflectorPtr = WidgetReflector;
-	}
+	void SetWidgetReflector( const TSharedRef<IWidgetReflector>& WidgetReflector );
 
 	/** @param AccessDelegate The delegate to pass along to the widget reflector */
 	void SetWidgetReflectorSourceAccessDelegate(FAccessSourceCode AccessDelegate)

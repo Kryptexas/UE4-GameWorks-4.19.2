@@ -8,6 +8,7 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialFunction.h"
 #include "MaterialEditorUtilities.h"
+#include "GenericCommands.h"
 
 /////////////////////////////////////////////////////
 // UMaterialGraphNode_Comment

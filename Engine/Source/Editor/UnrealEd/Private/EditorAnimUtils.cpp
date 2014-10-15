@@ -11,6 +11,7 @@
 #include "NotificationManager.h"
 #include "Editor/Persona/Public/PersonaModule.h"
 #include "ObjectEditorUtils.h"
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 

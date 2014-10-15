@@ -89,6 +89,8 @@
 #include "BehaviorTree/BehaviorTreeManager.h"
 
 #include "HotReloadInterface.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 

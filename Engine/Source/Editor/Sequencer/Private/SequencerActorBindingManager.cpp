@@ -10,6 +10,8 @@
 #include "MovieSceneInstance.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Editor/Kismet/Public/BlueprintEditorModule.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

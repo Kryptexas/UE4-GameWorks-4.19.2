@@ -9,6 +9,7 @@
 #include "PropertyEditorAssetConstants.h"
 #include "EditorStyleSet.h"
 #include "ClassIconFinder.h"
+#include "SPropertyEditorNewAsset.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 

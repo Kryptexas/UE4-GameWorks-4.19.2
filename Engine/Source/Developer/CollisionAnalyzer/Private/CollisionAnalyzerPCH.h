@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 
 #include "CollisionAnalyzerModule.h"

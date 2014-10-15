@@ -3,7 +3,7 @@
 #include "GameLiveStreaming.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "ScreenRendering.h"
 #include "RenderCore.h"
 #include "RHIStaticStates.h"

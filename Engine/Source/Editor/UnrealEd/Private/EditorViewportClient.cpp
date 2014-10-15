@@ -16,6 +16,8 @@
 #include "Matinee/MatineeActor.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 

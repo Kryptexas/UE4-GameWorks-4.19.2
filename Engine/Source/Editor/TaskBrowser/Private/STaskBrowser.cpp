@@ -28,6 +28,7 @@
 #include <IOKit/network/IOEthernetController.h>
 #include <CommonCrypto/CommonCryptor.h>
 #endif
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "STaskBrowser"
 DEFINE_LOG_CATEGORY_STATIC( LogTaskBrowser, Log, All );

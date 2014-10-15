@@ -33,6 +33,7 @@
 #include "PropertyEditorModule.h"
 
 #include "IDocumentation.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDetailsCustomization"
 

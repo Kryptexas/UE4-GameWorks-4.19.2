@@ -10,6 +10,7 @@
 #include "Editor/KismetWidgets/Public/SPinTypeSelector.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "StructureEditor"
 

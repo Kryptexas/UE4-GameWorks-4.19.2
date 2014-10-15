@@ -4,5 +4,5 @@
 
 #include "UnrealEd.h"
 #include "OutputLogModule.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 

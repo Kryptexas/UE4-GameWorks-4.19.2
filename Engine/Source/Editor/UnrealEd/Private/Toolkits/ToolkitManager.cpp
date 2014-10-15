@@ -4,6 +4,7 @@
 #include "Toolkits/IToolkit.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Toolkits/ToolkitManager.h"
+#include "SDockTab.h"
 
 static TSharedRef<SDockTab> SpawnStandaloneToolkitHost( const FSpawnTabArgs& Args )
 {

@@ -2,6 +2,8 @@
 
 #include "UnrealEd.h"
 #include "GlobalEditorNotification.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 TSharedPtr<SNotificationItem> FGlobalEditorNotification::BeginNotification()
 {

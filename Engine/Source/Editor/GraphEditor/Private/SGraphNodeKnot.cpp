@@ -5,6 +5,8 @@
 #include "SGraphNodeKnot.h"
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
+#include "GenericCommands.h"
+#include "SInlineEditableTextBlock.h"
 
 
 class FAmbivalentDirectionDragConnection : public FDragConnection

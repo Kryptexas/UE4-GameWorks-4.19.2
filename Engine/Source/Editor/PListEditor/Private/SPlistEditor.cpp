@@ -6,6 +6,9 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 
+#include "SSearchBox.h"
+#include "SExpandableArea.h"
+#include "SNotificationList.h"
 #define LOCTEXT_NAMESPACE "PListEditor"
 
 /** Ticks any internals of the widget as necessary. */

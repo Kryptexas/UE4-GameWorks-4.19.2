@@ -6,6 +6,7 @@
 #include "CookerSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 

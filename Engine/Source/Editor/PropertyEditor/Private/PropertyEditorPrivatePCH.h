@@ -4,7 +4,7 @@
 #define __PropertyEditorPrivatePCH_h__
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 #include "PropertyNode.h"
 #include "CategoryPropertyNode.h"

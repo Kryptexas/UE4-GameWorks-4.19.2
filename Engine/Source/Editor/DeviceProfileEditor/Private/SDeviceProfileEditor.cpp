@@ -7,6 +7,8 @@
 #include "ISourceControlModule.h"
 #include "PropertyEditorModule.h"
 #include "PropertyPath.h"
+#include "SDockTab.h"
+#include "SWidgetSwitcher.h"
 
 
 #define LOCTEXT_NAMESPACE "DeviceProfileEditor"

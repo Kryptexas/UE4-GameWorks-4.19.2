@@ -5,6 +5,10 @@
 #include "SourceControlModule.h"
 #include "SSourceControlPicker.h"
 #include "MessageLog.h"
+#include "SExpandableArea.h"
+#include "SThrobber.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #if SOURCE_CONTROL_WITH_SLATE
 

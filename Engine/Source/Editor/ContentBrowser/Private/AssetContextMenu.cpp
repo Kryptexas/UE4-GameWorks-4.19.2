@@ -29,6 +29,9 @@
 #include "EditorClassUtils.h"
 
 #include "SColorPicker.h"
+#include "GenericCommands.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"

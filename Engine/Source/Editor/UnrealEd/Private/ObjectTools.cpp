@@ -30,6 +30,8 @@
 #include "LevelUtils.h"
 #include "ConsolidateWindow.h"
 #include "ComponentReregisterContext.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 

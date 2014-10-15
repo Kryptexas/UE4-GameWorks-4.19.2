@@ -13,6 +13,14 @@
 #include "SlateRenderTransform.h"
 #include "SlateLayoutTransform.h"
 #include "SWebBrowser.h"
+#include "SInlineEditableTextBlock.h"
+#include "STextEntryPopup.h"
+#include "SDPIScaler.h"
+#include "SNotificationList.h"
+#include "SNumericEntryBox.h"
+#include "SDockTab.h"
+#include "SSearchBox.h"
+#include "SVolumeControl.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 

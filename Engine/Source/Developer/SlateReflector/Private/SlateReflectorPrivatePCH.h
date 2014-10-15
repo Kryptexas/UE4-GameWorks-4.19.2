@@ -9,7 +9,7 @@
  *****************************************************************************/
 
 #include "InputCore.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateCore.h"
 
 

@@ -15,6 +15,8 @@
 #include "SFlipbookEditorViewportToolbar.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
 #include "SFlipbookTimeline.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 

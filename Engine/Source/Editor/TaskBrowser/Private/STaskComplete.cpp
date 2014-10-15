@@ -3,6 +3,7 @@
 #include "TaskBrowserPrivatePCH.h"
 #include "STaskComplete.h"
 #include "STaskBrowser.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "STaskComplete"
 

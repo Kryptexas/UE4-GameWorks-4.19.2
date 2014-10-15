@@ -40,7 +40,7 @@
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 	#include "Editor/UnrealEd/Classes/ThumbnailRendering/WorldThumbnailInfo.h"
-	#include "Slate.h"
+	#include "SlateBasics.h"
 #endif
 
 #include "MallocProfiler.h"

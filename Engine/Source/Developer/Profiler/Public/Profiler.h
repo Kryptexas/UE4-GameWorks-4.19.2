@@ -15,7 +15,7 @@
 #include "Ticker.h"
 #include "ModuleInterface.h"
 #include "SessionServices.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorStyle.h"
 #include "IFilter.h"
 #include "TextFilter.h"

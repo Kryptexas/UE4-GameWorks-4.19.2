@@ -21,9 +21,9 @@ struct FSHAHashData
 
 	FSHAHashData();
 
-	FORCEINLINE bool operator==(const FSHAHashData& Other) const;
-	FORCEINLINE bool operator!=(const FSHAHashData& Other) const;
-	FORCEINLINE FString ToString() const;
+	bool operator==(const FSHAHashData& Other) const;
+	bool operator!=(const FSHAHashData& Other) const;
+	FString ToString() const;
 };
 
 /**

@@ -5,6 +5,7 @@
 
 #include "IDocumentation.h"
 #include "SourceCodeNavigation.h"
+#include "SHyperlink.h"
 
 FString FEditorClassUtils::GetDocumentationPage(const UClass* Class)
 {

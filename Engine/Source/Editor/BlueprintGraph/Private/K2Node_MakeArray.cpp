@@ -3,7 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetArrayLibrary.h"
 #include "ScopedTransaction.h"
 #include "KismetCompiler.h"

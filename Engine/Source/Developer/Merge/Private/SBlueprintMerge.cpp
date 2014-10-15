@@ -11,6 +11,8 @@
 #include "SMergeDetailsView.h"
 #include "SMergeGraphView.h"
 #include "SMergeTreeView.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 

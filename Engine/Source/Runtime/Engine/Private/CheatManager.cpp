@@ -2,7 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "UnrealNetwork.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateReflector.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"

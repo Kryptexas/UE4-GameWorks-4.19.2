@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

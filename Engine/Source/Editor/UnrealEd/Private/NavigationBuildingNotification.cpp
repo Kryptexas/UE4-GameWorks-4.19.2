@@ -5,6 +5,8 @@
 #include "Kismet2/DebuggerCommands.h"
 #include "EditorBuildUtils.h"
 #include "NavigationBuildingNotification.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 void FNavigationBuildingNotificationImpl::BuildStarted()
 {

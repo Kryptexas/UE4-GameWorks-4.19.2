@@ -3,6 +3,7 @@
 
 #include "PersonaPrivatePCH.h"
 #include "BoneSelectionWidget.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SBoneSelectionWidget"
 

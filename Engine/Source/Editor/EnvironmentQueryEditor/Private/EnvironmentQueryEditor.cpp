@@ -13,6 +13,8 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
  
 #define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 

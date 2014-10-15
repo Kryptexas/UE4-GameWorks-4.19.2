@@ -2,6 +2,7 @@
 #pragma once
 
 #include "PropertyEditorConstants.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -39,40 +40,40 @@ public:
 		NumericType ClampMin = TNumericLimits<NumericType>::Lowest();
 		NumericType ClampMax = TNumericLimits<NumericType>::Max();
 
-		if( !ClampMinString.IsEmpty() )
+		if (!ClampMinString.IsEmpty())
 		{
-			 TTypeFromString<NumericType>::FromString(ClampMin, *ClampMinString );
+			TTypeFromString<NumericType>::FromString(ClampMin, *ClampMinString);
 		}
 
-		if( !ClampMaxString.IsEmpty() )
+		if (!ClampMaxString.IsEmpty())
 		{
-			TTypeFromString<NumericType>::FromString(ClampMax, *ClampMaxString );
+			TTypeFromString<NumericType>::FromString(ClampMax, *ClampMaxString);
 		}
 
 		NumericType UIMin = TNumericLimits<NumericType>::Lowest();
 		NumericType UIMax = TNumericLimits<NumericType>::Max();
-		TTypeFromString<NumericType>::FromString( UIMin, *UIMinString );
-		TTypeFromString<NumericType>::FromString( UIMax, *UIMaxString );
+		TTypeFromString<NumericType>::FromString(UIMin, *UIMinString);
+		TTypeFromString<NumericType>::FromString(UIMax, *UIMaxString);
 
 		NumericType SliderExponent = NumericType(1);
 		if (SliderExponentString.Len())
 		{
-			TTypeFromString<NumericType>::FromString( SliderExponent, *SliderExponentString );
+			TTypeFromString<NumericType>::FromString(SliderExponent, *SliderExponentString);
 		}
 
 		NumericType Delta = NumericType(0);
-		if ( DeltaString.Len() )
+		if (DeltaString.Len())
 		{
-			TTypeFromString<NumericType>::FromString( Delta, *DeltaString );
-		}
-		
-		if (ClampMin >= ClampMax && (ClampMinString.Len() || ClampMaxString.Len()))
-		{
-			UE_LOG(LogPropertyNode, Warning, TEXT("Clamp Min (%s) >= Clamp Max (%s) for Ranged Numeric"), *ClampMinString, *ClampMaxString );
+			TTypeFromString<NumericType>::FromString(Delta, *DeltaString);
 		}
 
-		const NumericType ActualUIMin = FMath::Max(UIMin,ClampMin);
-		const NumericType ActualUIMax = FMath::Min(UIMax,ClampMax);
+		if (ClampMin >= ClampMax && (ClampMinString.Len() || ClampMaxString.Len()))
+		{
+			UE_LOG(LogPropertyNode, Warning, TEXT("Clamp Min (%s) >= Clamp Max (%s) for Ranged Numeric"), *ClampMinString, *ClampMaxString);
+		}
+
+		const NumericType ActualUIMin = FMath::Max(UIMin, ClampMin);
+		const NumericType ActualUIMax = FMath::Min(UIMax, ClampMax);
 
 		TOptional<NumericType> MinValue = ClampMinString.Len() ? ClampMin : TOptional<NumericType>();
 		TOptional<NumericType> MaxValue = ClampMaxString.Len() ? ClampMax : TOptional<NumericType>();
@@ -81,7 +82,7 @@ public:
 
 		if (ActualUIMin >= ActualUIMax && (MetaUIMinString.Len() || MetaUIMaxString.Len()))
 		{
-			UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString );
+			UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString);
 		}
 
 		FObjectPropertyNode* ObjectPropertyNode = PropertyNode->FindObjectItemParent();
@@ -90,25 +91,25 @@ public:
 
 		ChildSlot
 			[
-				SAssignNew( PrimaryWidget, SNumericEntryBox<NumericType> )
+				SAssignNew(PrimaryWidget, SNumericEntryBox<NumericType>)
 				// Only allow spinning if we have a single value
 				.AllowSpin(bAllowSpin)
-				.Value( this, &SPropertyEditorNumeric<NumericType>::OnGetValue )
-				.Font( InArgs._Font )
+				.Value(this, &SPropertyEditorNumeric<NumericType>::OnGetValue)
+				.Font(InArgs._Font)
 				.MinValue(MinValue)
 				.MaxValue(MaxValue)
 				.MinSliderValue(SliderMinValue)
 				.MaxSliderValue(SliderMaxValue)
 				.SliderExponent(SliderExponent)
 				.Delta(Delta)
-				.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values").ToString() )
-				.OnValueChanged( this, &SPropertyEditorNumeric<NumericType>::OnValueChanged )
-				.OnValueCommitted( this, &SPropertyEditorNumeric<NumericType>::OnValueCommitted )
-				.OnBeginSliderMovement( this, &SPropertyEditorNumeric<NumericType>::OnBeginSliderMovement )
-				.OnEndSliderMovement( this, &SPropertyEditorNumeric<NumericType>::OnEndSliderMovement )
+				.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
+				.OnValueChanged(this, &SPropertyEditorNumeric<NumericType>::OnValueChanged)
+				.OnValueCommitted(this, &SPropertyEditorNumeric<NumericType>::OnValueCommitted)
+				.OnBeginSliderMovement(this, &SPropertyEditorNumeric<NumericType>::OnBeginSliderMovement)
+				.OnEndSliderMovement(this, &SPropertyEditorNumeric<NumericType>::OnEndSliderMovement)
 			];
 
-		SetEnabled( TAttribute<bool>( this, &SPropertyEditorNumeric<NumericType>::CanEdit ) );
+		SetEnabled(TAttribute<bool>(this, &SPropertyEditorNumeric<NumericType>::CanEdit));
 	}
 
 	virtual bool SupportsKeyboardFocus() const override

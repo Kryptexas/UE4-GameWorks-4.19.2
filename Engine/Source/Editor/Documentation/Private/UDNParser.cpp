@@ -10,6 +10,9 @@
 #include "AssetEditorManager.h"
 #include "SourceCodeNavigation.h"
 #include "DesktopPlatformModule.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 

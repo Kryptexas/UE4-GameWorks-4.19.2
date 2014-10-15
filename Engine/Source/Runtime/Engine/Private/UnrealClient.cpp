@@ -10,13 +10,14 @@
 #include "../../Renderer/Private/ScenePrivate.h"
 #include "HighResScreenshot.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SNotificationList.h"
 #include "Engine/PostProcessVolume.h"
 #include "EngineModule.h"
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "SceneUtils.h"
+#include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 

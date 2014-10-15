@@ -4,7 +4,7 @@
 
 #include "MoviePlayer.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SlateTextures.h"
 
 #import <AVFoundation/AVFoundation.h>

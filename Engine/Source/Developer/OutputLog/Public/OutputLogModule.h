@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 
 /** Style of the debug console */
 namespace EDebugConsoleStyle

@@ -11,6 +11,7 @@
 #include "WidgetTemplateClass.h"
 #include "Factories.h"
 #include "UnrealExporter.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

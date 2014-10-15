@@ -19,6 +19,7 @@
 #include "ScopedTransaction.h"
 #include "PropertyEditorHelpers.h"
 #include "SColorPicker.h"
+#include "SSearchBox.h"
 
 
 class FPropertyUtilitiesTreeView : public IPropertyUtilities

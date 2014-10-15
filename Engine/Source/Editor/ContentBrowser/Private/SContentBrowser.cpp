@@ -9,6 +9,8 @@
 #include "ContentBrowserCommands.h"
 #include "CollectionManagerModule.h"
 #include "AssetRegistryModule.h"
+#include "SDockTab.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -867,7 +869,7 @@ void SContentBrowser::OnContainingTabClosed(TSharedRef<SDockTab> DockTab)
 	FContentBrowserSingleton::Get().ContentBrowserClosed( SharedThis(this) );
 }
 
-void SContentBrowser::OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause::Type InActivationCause)
+void SContentBrowser::OnContainingTabActivated(TSharedRef<SDockTab> DockTab, ETabActivationCause InActivationCause)
 {
 	if(InActivationCause == ETabActivationCause::UserClickedOnTab)
 	{

@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "GlobalEditorNotification.h"
 #include "ContentStreaming.h"
+#include "SNotificationList.h"
 
 /** Notification class for texture streaming. */
 class FTextureStreamingNotificationImpl : public FGlobalEditorNotification

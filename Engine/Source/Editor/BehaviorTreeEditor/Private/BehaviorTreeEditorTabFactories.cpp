@@ -7,6 +7,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "SBehaviorTreeBlackboardView.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditorFactories"
 

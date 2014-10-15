@@ -12,6 +12,7 @@
 #include "BehaviorTreeEditorCommands.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardView"
 

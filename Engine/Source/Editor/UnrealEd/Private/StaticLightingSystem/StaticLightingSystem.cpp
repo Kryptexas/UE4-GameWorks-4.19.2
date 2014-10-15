@@ -32,6 +32,8 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "../Lightmass/Lightmass.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "MessageLog.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 

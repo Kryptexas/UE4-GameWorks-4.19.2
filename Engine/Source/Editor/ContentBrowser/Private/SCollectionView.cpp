@@ -7,6 +7,7 @@
 #include "ObjectTools.h"
 #include "SourcesViewWidgets.h"
 #include "ContentBrowserModule.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

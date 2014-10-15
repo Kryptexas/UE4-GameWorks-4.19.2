@@ -5,6 +5,7 @@
 #include "CascadeEmitterCanvasClient.h"
 #include "SCascadeEmitterCanvas.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "SDockTab.h"
 
 
 SCascadeEmitterCanvas::~SCascadeEmitterCanvas()

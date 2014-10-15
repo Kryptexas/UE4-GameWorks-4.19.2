@@ -5,6 +5,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 #include "ModuleManager.h"
+#include "SDockTab.h"
 
 IMPLEMENT_MODULE( FClassViewerModule, ClassViewer );
 

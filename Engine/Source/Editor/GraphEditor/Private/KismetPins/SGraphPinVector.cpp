@@ -3,6 +3,7 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphPinVector.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "VectorTextBox"

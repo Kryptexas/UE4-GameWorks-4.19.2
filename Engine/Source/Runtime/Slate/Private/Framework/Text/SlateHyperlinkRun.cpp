@@ -5,6 +5,7 @@
 #if WITH_FANCY_TEXT
 
 #include "SlateHyperlinkRun.h"
+#include "SRichTextHyperlink.h"
 
 TSharedRef< FSlateHyperlinkRun > FSlateHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate )
 {

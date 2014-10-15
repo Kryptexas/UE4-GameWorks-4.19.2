@@ -2,15 +2,12 @@
 
 #pragma once
 
-
-/** A Delegate for passing along a string of a source code location to access */
-DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*FileName*/, int32 /*InLineNumber*/, int32 /*InColumnNumber*/);
-
+#include "IWidgetReflector.h"
 
 /**
  * Abstract base class for widget reflectors.
  */
-class SWidgetReflector
+class SLATEREFLECTOR_API SWidgetReflector
 	: public SCompoundWidget
 	, public IWidgetReflector
 {

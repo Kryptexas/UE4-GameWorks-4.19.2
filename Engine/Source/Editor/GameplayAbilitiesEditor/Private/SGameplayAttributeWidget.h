@@ -3,7 +3,7 @@
 #pragma once
 
 #include "AttributeSet.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 class SGameplayAttributeWidget : public SCompoundWidget
 {

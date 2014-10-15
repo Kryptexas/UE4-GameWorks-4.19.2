@@ -3,6 +3,7 @@
 #include "UndoHistoryPrivatePCH.h"
 #include "UndoHistoryModule.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FUndoHistoryModule"
 

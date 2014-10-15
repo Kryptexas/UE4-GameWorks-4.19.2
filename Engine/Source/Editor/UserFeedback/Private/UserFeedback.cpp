@@ -1,13 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "IUserFeedbackModule.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 #include "ModuleManager.h"
 
 #include "IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 #include "UnrealEd.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "UserFeedback"
 

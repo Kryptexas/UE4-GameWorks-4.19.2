@@ -37,6 +37,8 @@
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
 #include "Engine/DestructibleMesh.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);

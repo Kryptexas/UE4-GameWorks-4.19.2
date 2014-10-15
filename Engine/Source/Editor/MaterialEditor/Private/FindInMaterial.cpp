@@ -3,6 +3,7 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "FindInMaterial.h"
 #include "MaterialEditor.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "FindInMaterial"
 

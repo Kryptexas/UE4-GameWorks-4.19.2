@@ -1,12 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "LODSettingsWindow.h"
 #include "LODUtilities.h"
 #include "MeshUtilities.h"
 #include "FbxMeshUtils.h"
 #include "SAssetSearchBox.h"
+#include "SExpandableArea.h"
+#include "STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshSimplification"
 

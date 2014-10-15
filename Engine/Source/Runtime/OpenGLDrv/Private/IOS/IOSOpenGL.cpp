@@ -3,7 +3,7 @@
 #include "OpenGLDrvPrivate.h"
 #include "IOSAppDelegate.h"
 #include "IOSView.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 // This header file gives access to the thread_policy_set function.
 #include <mach/thread_act.h>

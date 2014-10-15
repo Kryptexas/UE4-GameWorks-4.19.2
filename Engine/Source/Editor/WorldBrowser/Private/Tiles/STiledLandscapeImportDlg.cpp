@@ -7,6 +7,7 @@
 #include "DesktopPlatformModule.h"
 #include "ContentBrowserModule.h"
 #include "Landscape/LandscapeProxy.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

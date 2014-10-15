@@ -4,7 +4,7 @@
 #define __PersonaPrivatePCH_h__
 
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 #include "Editor/Kismet/Public/WorkflowOrientedApp/ApplicationMode.h"
 #include "Editor/Kismet/Public/WorkflowOrientedApp/WorkflowTabFactory.h"

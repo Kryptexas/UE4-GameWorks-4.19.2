@@ -7,6 +7,9 @@
 #include "ScopedTransaction.h"
 #include "AssetRegistryModule.h"
 #include "AssetData.h"
+#include "SSearchBox.h"
+#include "SInlineEditableTextBlock.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSmartNameManager"
 

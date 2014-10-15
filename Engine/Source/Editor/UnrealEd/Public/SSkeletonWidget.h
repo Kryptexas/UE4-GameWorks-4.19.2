@@ -4,7 +4,7 @@
 #ifndef __SSkeletonWidget_h__
 #define __SSkeletonWidget_h__
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "PreviewScene.h"
 
 class UAnimSet;

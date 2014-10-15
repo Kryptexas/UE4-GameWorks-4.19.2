@@ -4,6 +4,7 @@
 #include "ReferenceViewer.h"
 
 #include "EdGraphUtilities.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 //DEFINE_LOG_CATEGORY(LogReferenceViewer);

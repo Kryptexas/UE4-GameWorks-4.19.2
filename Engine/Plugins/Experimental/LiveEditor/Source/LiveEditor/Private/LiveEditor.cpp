@@ -10,6 +10,7 @@
 #include "BlueprintEditorModes.h"
 #include "BlueprintEditorTabs.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "SDockTab.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LiveEditor, Log, All);
 

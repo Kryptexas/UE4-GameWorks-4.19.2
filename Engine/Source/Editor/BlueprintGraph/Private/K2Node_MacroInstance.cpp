@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionFilter.h"
 

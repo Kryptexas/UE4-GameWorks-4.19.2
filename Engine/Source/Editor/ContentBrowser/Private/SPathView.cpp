@@ -7,6 +7,7 @@
 #include "PathViewTypes.h"
 #include "ObjectTools.h"
 #include "SourcesViewWidgets.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

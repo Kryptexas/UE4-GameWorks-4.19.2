@@ -23,6 +23,7 @@
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "LevelEditor"
 

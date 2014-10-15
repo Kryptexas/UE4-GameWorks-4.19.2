@@ -4,6 +4,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 
 #include "SFilterableObjectList.h"
+#include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SFilterableObjectList"
 

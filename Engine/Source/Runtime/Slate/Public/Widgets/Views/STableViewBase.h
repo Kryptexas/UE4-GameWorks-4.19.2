@@ -3,7 +3,7 @@
 #pragma once
 
 #include "IScrollableWidget.h"
-
+#include "InertialScrollManager.h"
 
 class SListPanel;
 class SHeaderRow;

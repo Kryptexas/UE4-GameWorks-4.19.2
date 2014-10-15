@@ -10,7 +10,7 @@
 #include "ModuleManager.h"
 #include "Networking.h"
 #include "Settings.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateCore.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"

@@ -21,6 +21,7 @@
 #include "SSCSEditor.h"
 #include "SCSDiff.h"
 #include "WorkflowOrientedApp/SModeWidget.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintDif"
 

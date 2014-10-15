@@ -2,6 +2,7 @@
 
 #include "SlateCorePrivatePCH.h"
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SPanel"), STAT_SlateOnPaint_SPanel, STATGROUP_Slate );
 
 /* SWidget overrides
  *****************************************************************************/

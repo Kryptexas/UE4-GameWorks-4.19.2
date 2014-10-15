@@ -2,7 +2,7 @@
 #pragma once
 
 #include "Scalability.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 /**
  * Scalability settings configuration widget                                                                  

@@ -2,6 +2,7 @@
 
 #include "GameProjectGenerationPrivatePCH.h"
 #include "SVerbChoiceDialog.h"
+#include "SHyperlink.h"
 
 int32 SVerbChoiceDialog::ShowModal( const FText& InTitle, const FText& InMessage, const TArray<FText>& InButtons )
 {

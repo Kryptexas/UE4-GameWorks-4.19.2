@@ -10,6 +10,7 @@
 #include "AssetRegistryModule.h"
 
 #include "IDocumentation.h"
+#include "SInlineEditableTextBlock.h"
 
 void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData)
 {

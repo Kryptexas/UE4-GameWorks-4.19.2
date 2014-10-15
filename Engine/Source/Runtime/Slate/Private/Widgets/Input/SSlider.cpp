@@ -2,6 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 
+DECLARE_CYCLE_STAT( TEXT("OnPaint SSlider"), STAT_SlateOnPaint_SSlider, STATGROUP_Slate );
 
 void SSlider::Construct( const SSlider::FArguments& InDeclaration )
 {

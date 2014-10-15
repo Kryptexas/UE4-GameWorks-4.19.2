@@ -3,7 +3,7 @@
 #include "MoviePlayer.h"
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "RenderingCommon.h"
 #include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"

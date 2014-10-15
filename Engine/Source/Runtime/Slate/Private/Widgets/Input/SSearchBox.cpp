@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "SSearchBox.h"
 
 
 void SSearchBox::Construct( const FArguments& InArgs )
@@ -115,8 +116,8 @@ void SSearchBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	CurrentTime = InCurrentTime;
 
 	if ( bTypingFilterText && InCurrentTime > LastTypeTime + FilterDelayAfterTyping)
-	{
-		OnTextChangedDelegate.ExecuteIfBound( LastPendingTextChangedValue );
+{
+	OnTextChangedDelegate.ExecuteIfBound( LastPendingTextChangedValue );
 		bTypingFilterText = false;
 	}
 }

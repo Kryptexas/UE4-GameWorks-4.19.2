@@ -20,6 +20,7 @@
 #include "GraphEditor.h"
 #include "Persona.h"
 #include "BoneSelectionWidget.h"
+#include "SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 

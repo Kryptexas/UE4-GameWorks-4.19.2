@@ -4,6 +4,8 @@
 #include "PackageAutoSaver.h"
 #include "PackageRestore.h"
 #include "Json.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 namespace PackageAutoSaverJson
 {

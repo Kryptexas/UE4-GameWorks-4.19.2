@@ -9,7 +9,7 @@
 #include "Core.h"
 #include "ModuleManager.h"
 #include "Http.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemMcp.h"

@@ -5,6 +5,7 @@
 #include "LevelViewportTabContent.h"
 #include "LevelViewportLayout.h"
 #include "SLevelViewport.h"
+#include "SDockTab.h"
 
 namespace ViewportLayoutDefs
 {

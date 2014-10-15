@@ -5,6 +5,8 @@
 #include "SScalabilitySettings.h"
 #include "PerformanceMonitor.h"
 #include "ShaderCompiler.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "PerformanceMonitor"
 

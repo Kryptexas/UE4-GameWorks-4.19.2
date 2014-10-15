@@ -2,10 +2,12 @@
 
 #include "LevelEditor.h"
 #include "SSurfaceProperties.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "SurfaceIterators.h"
+#include "SNumericEntryBox.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "SSurfaceProperties"
 

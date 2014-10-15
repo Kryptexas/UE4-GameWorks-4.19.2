@@ -7,6 +7,7 @@
 #include "AssetEditorManager.h"
 #include "LevelEditor.h"
 #include "ObjectTools.h"
+#include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SDeleteAssetsDialog"
 

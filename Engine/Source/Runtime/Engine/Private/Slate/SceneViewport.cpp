@@ -2,7 +2,7 @@
 
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"
 #include "DebugCanvas.h"

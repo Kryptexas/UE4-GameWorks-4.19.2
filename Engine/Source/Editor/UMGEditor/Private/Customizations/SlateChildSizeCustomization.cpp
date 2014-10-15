@@ -9,6 +9,7 @@
 #include "BlueprintEditorUtils.h"
 
 #include "SlateChildSizeCustomization.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

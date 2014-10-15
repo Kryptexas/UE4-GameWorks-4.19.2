@@ -24,7 +24,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Components/TimelineComponent.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "AI/Navigation/RecastHelpers.h"

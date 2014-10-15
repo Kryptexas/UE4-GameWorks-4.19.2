@@ -8,7 +8,7 @@
 
 #include "Messaging.h"
 #include "ModuleManager.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "SlateStyle.h"
 
 

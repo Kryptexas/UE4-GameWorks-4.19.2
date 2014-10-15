@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SCheckBox.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "SMultipleOptionTable"
 

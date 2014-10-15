@@ -14,6 +14,8 @@
 #include "IAnalyticsProvider.h"
 #include "MessageLog.h"
 #include "UnrealExporter.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "AssetTools"
 

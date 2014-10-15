@@ -19,6 +19,8 @@
 #include "DesignerCommands.h"
 #include "STransformHandle.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "SDPIScaler.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

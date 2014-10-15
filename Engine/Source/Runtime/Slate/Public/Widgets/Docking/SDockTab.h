@@ -7,27 +7,21 @@ class SDockingTabWell;
 class SDockingTabStack;
 
 /** How will this tab be used. */
-namespace ETabRole
+enum ETabRole : uint8
 {
-	enum Type
-	{
-		MajorTab,
-		PanelTab,
-		NomadTab,
-		DocumentTab,
-		NumRoles
-	};
-}
+	MajorTab,
+	PanelTab,
+	NomadTab,
+	DocumentTab,
+	NumRoles
+};
 
-namespace ETabActivationCause
-{
 	/** The cause of a tab activation */
-	enum Type
-	{
-		UserClickedOnTab,
-		SetDirectly
-	};
-}
+enum ETabActivationCause : uint8
+{
+	UserClickedOnTab,
+	SetDirectly
+};
 
 /**
  * A tab widget that also holds on to some content that should be shown when this tab is selected.
@@ -42,7 +36,7 @@ public:
 	DECLARE_DELEGATE_OneParam(FOnTabClosedCallback, TSharedRef<SDockTab>);
 	
 	/** Invoked when a tab is activated */
-	DECLARE_DELEGATE_TwoParams(FOnTabActivatedCallback, TSharedRef<SDockTab>, ETabActivationCause::Type);
+	DECLARE_DELEGATE_TwoParams(FOnTabActivatedCallback, TSharedRef<SDockTab>, ETabActivationCause);
 
 	/** Invoked when this tab should save some information about its content. */
 	DECLARE_DELEGATE(FOnPersistVisualState);
@@ -70,7 +64,7 @@ public:
 		SLATE_NAMED_SLOT( FArguments, TabWellContentLeft )
 		SLATE_NAMED_SLOT( FArguments, TabWellContentRight )
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
-		SLATE_ARGUMENT( ETabRole::Type, TabRole )
+		SLATE_ARGUMENT( ETabRole, TabRole )
 		SLATE_ATTRIBUTE( FText, Label )
 		SLATE_ATTRIBUTE( const FSlateBrush*, Icon )
 		SLATE_EVENT( FOnTabClosedCallback, OnTabClosed )
@@ -115,7 +109,7 @@ public:
 	bool IsForeground() const;
 
 	/** Is this an MajorTab? A tool panel tab? */
-	ETabRole::Type GetTabRole() const;
+	ETabRole GetTabRole() const;
 
 	/** Returns true if the tab role is NomadTab, but is being visualized as a major tab. */
 	bool IsNomadTabWithMajorTabStyle() const;
@@ -195,7 +189,7 @@ public:
 	 * Make this tab active in its tabwell 
 	 * @param	InActivationMethod	How this tab was activated.
 	 */
-	void ActivateInParent(ETabActivationCause::Type InActivationCause);
+	void ActivateInParent(ETabActivationCause InActivationCause);
 
 	/** Set the tab manager that is controlling this tab */
 	void SetTabManager( const TSharedPtr<FTabManager>& InTabManager );
@@ -295,7 +289,7 @@ protected:
 	FTabId LayoutIdentifier;
 
 	/** Is this an MajorTab? A tool panel tab? */
-	ETabRole::Type TabRole;
+	ETabRole TabRole;
 
 	/** The tab's parent tab well. Null if it is a floating tab. */
 	TWeakPtr<SDockingTabWell> ParentPtr;

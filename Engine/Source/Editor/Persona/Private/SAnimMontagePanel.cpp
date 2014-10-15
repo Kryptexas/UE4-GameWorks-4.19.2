@@ -10,6 +10,8 @@
 #include "SAnimSegmentsPanel.h"
 #include "SMontageEditor.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
+#include "SExpandableArea.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "AnimMontagePanel"
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "Sorting.h"
 
 extern FText GetErrorMessageForSequence(UBlendSpaceBase* BlendSpace, UAnimSequence* AnimSequence, FVector SampleValue, int32 OriginalIndex);
@@ -14,6 +14,7 @@ DECLARE_DELEGATE(FOnSamplesUpdated);
 // delegate to refresh sample list
 DECLARE_DELEGATE( FOnRefreshSamples )
 
+struct FNotificationInfo;
 // delegate to show user notifications
 DECLARE_DELEGATE_OneParam( FOnNotifyUser, FNotificationInfo& )
 

@@ -31,6 +31,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "TutorialMetaData.h"
 #include "BlueprintEditorSettings.h" // for bShowActionMenuItemSignatures
+#include "SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 

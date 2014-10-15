@@ -136,9 +136,11 @@
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
 #if WITH_EDITOR
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "UnrealEd.h"
 #include "UObjectAnnotation.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #endif //WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"

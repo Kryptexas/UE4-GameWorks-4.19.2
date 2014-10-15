@@ -5,7 +5,7 @@
 #define __DIALOGS_H__
 
 #include "Engine.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 
 /**
  * Opens a modal/blocking message box dialog (with an additional 'copy message text' button), and returns the result immediately

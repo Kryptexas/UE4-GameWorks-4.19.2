@@ -2,7 +2,7 @@
 
 #include "Engine.h"
 #include "UnrealEd.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "OnlineSubsystem.h"
 #include "OnlineTitleFileInterface.h"
 

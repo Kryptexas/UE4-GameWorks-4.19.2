@@ -8,6 +8,8 @@
 #include "DerivedDataPluginInterface.h"
 
 #include "JsonUtilities.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprintManager"
 

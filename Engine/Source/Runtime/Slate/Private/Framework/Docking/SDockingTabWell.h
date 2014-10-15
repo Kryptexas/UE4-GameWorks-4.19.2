@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "SDockTab.h"
 
 struct FDockingConstants
 {
 	static const FVector2D MaxMinorTabSize;
 	static const FVector2D MaxMajorTabSize;
-	static const FVector2D SLATE_API GetMaxTabSizeFor( ETabRole::Type TabRole );
+	static const FVector2D SLATE_API GetMaxTabSizeFor( ETabRole TabRole );
 };
 
 

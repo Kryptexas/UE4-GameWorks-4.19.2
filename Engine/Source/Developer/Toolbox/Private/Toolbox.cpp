@@ -7,6 +7,9 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "SDockTab.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 

@@ -18,6 +18,8 @@
 
 #include "UProjectInfo.h"
 #include "DesktopPlatformModule.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 

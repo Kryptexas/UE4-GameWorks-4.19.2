@@ -9,6 +9,8 @@
 #include "Editor/KismetWidgets/Public/SScrubWidget.h"
 #include "AssetRegistryModule.h"
 #include "Kismet2NameValidators.h"
+#include "SExpandableArea.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurvePanel"
 

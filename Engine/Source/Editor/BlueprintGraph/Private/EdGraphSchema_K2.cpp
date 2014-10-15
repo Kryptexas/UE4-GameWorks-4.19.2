@@ -30,6 +30,7 @@
 #include "K2Node_GetEnumeratorNameAsString.h"
 #include "K2Node_Tunnel.h"
 #include "K2Node_SetFieldsInStruct.h"
+#include "GenericCommands.h"
 
 
 //////////////////////////////////////////////////////////////////////////

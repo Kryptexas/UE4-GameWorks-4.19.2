@@ -2,7 +2,7 @@
 
 #include "DeviceProfileEditorPCH.h"
 #include "WorkspaceMenuStructureModule.h"
-
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "DeviceProfileEditor"
 

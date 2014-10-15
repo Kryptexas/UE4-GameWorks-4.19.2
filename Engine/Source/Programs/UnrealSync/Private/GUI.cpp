@@ -2,13 +2,16 @@
 
 #include "UnrealSync.h"
 
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "StandaloneRenderer.h"
 #include "LaunchEngineLoop.h"
 
 #include "P4Env.h"
 
 #include "ProcessHelper.h"
+#include "SWidgetSwitcher.h"
+#include "SDockTab.h"
+#include "SlateFwd.h"
 
 /**
  * Simple text combo box widget.

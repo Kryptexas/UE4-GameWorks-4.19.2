@@ -7,6 +7,7 @@
 #include "SPluginList.h"
 #include "PluginStyle.h"
 #include "GameProjectGenerationModule.h"
+#include "SHyperlink.h"
 
 #define LOCTEXT_NAMESPACE "PluginListTile"
 

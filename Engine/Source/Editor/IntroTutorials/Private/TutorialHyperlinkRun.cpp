@@ -2,6 +2,7 @@
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "TutorialHyperlinkRun.h"
+#include "SRichTextHyperlink.h"
 
 TSharedRef< FTutorialHyperlinkRun > FTutorialHyperlinkRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FHyperlinkStyle& InStyle, FOnClick NavigateDelegate, FOnGenerateTooltip InTooltipDelegate, FOnGetTooltipText InTooltipTextDelegate )
 {

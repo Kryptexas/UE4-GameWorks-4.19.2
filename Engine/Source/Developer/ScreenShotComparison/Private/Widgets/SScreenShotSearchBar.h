@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 class SScreenShotSearchBar : public SCompoundWidget
 {
 public:

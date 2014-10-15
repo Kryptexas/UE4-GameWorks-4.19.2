@@ -9,7 +9,7 @@
 #include "FXSystem.h"
 #include "RenderCore.h"
 #include "GlobalShader.h"
-#include "Slate.h"
+#include "SlateBasics.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"

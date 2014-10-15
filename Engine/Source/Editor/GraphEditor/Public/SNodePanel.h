@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GraphEditorModule.h"
+#include "MarqueeOperation.h"
 
 //@TODO: Too generic of a name to expose at this scope
 typedef class UObject* SelectedItemType;
@@ -28,109 +29,6 @@ namespace EGraphRenderingLOD
 		FullyZoomedIn,
 	};
 }
-
-/** Helper for managing marquee operations */
-struct FMarqueeOperation
-{
-	FMarqueeOperation()
-		: Operation(Add)
-	{
-	}
-
-	enum Type
-	{
-		/** Holding down Ctrl removes nodes */
-		Remove,
-		/** Holding down Shift adds to the selection */
-		Add,
-		/** When nothing is pressed, marquee replaces selection */
-		Replace
-	} Operation;
-
-	bool IsValid() const
-	{
-		return Rect.IsValid();
-	}
-
-	void Start(const FVector2D& InStartLocation, FMarqueeOperation::Type InOperationType)
-	{
-		Rect = FMarqueeRect(InStartLocation);
-		Operation = InOperationType;
-	}
-
-	void End()
-	{
-		Rect = FMarqueeRect();
-	}
-
-
-	/** Given a mouse event, figure out what the marquee selection should do based on the state of Shift and Ctrl keys */
-	static FMarqueeOperation::Type OperationTypeFromMouseEvent(const FPointerEvent& MouseEvent)
-	{
-		if (MouseEvent.IsControlDown())
-		{
-			return FMarqueeOperation::Remove;
-		}
-		else if (MouseEvent.IsShiftDown())
-		{
-			return FMarqueeOperation::Add;
-		}
-		else
-		{
-			return FMarqueeOperation::Replace;
-		}
-	}
-
-public:
-	/** The marquee rectangle being dragged by the user */
-	FMarqueeRect Rect;
-
-	/** Nodes that will be selected or unselected by the current marquee operation */
-	FGraphPanelSelectionSet AffectedNodes;
-};
-
-struct GRAPHEDITOR_API FGraphSelectionManager
-{
-	FGraphPanelSelectionSet SelectedNodes;
-
-	/** Invoked when the selected graph nodes have changed. */
-	SGraphEditor::FOnSelectionChanged OnSelectionChanged;
-public:
-	/** @return the set of selected nodes */
-	const FGraphPanelSelectionSet& GetSelectedNodes() const;
-
-	/** Select just the specified node */
-	void SelectSingleNode(SelectedItemType Node);
-
-	/** Reset the selection state of all nodes */
-	void ClearSelectionSet();
-
-	/** Returns true if any nodes are selected */
-	bool AreAnyNodesSelected() const
-	{
-		return SelectedNodes.Num() > 0;
-	}
-
-	/** Changes the selection set to contain exactly all of the passed in nodes */
-	void SetSelectionSet(FGraphPanelSelectionSet& NewSet);
-
-	/**
-	 * Add or remove a node from the selection set
-	 *
-	 * @param Node      Node the affect.
-	 * @param bSelect   true to select the node; false to unselect.
-	 */
-	void SetNodeSelection(SelectedItemType Node, bool bSelect);
-
-	/** @return true if Node is selected; false otherwise */
-	bool IsNodeSelected(SelectedItemType Node) const;
-
-	// Handle the selection mechanics of starting to drag a node
-	void StartDraggingNode(SelectedItemType NodeBeingDragged, const FPointerEvent& MouseEvent);
-
-	// Handle the selection mechanics when a node is clicked on
-	void ClickedOnNode(SelectedItemType Node, const FPointerEvent& MouseEvent);
-};
 
 // Context passed in when getting popup info
 struct FNodeInfoContext
@@ -259,6 +157,49 @@ struct FZoomLevelsContainer
 
 	// Necessary for Mac OS X to compile 'delete <pointer_to_this_object>;'
 	virtual ~FZoomLevelsContainer( void ) {};
+};
+
+struct GRAPHEDITOR_API FGraphSelectionManager
+{
+	FGraphPanelSelectionSet SelectedNodes;
+
+	/** Invoked when the selected graph nodes have changed. */
+	SGraphEditor::FOnSelectionChanged OnSelectionChanged;
+public:
+	/** @return the set of selected nodes */
+	const FGraphPanelSelectionSet& GetSelectedNodes() const;
+
+	/** Select just the specified node */
+	void SelectSingleNode(SelectedItemType Node);
+
+	/** Reset the selection state of all nodes */
+	void ClearSelectionSet();
+
+	/** Returns true if any nodes are selected */
+	bool AreAnyNodesSelected() const
+	{
+		return SelectedNodes.Num() > 0;
+	}
+
+	/** Changes the selection set to contain exactly all of the passed in nodes */
+	void SetSelectionSet(FGraphPanelSelectionSet& NewSet);
+
+	/**
+	 * Add or remove a node from the selection set
+	 *
+	 * @param Node      Node the affect.
+	 * @param bSelect   true to select the node; false to unselect.
+	 */
+	void SetNodeSelection(SelectedItemType Node, bool bSelect);
+
+	/** @return true if Node is selected; false otherwise */
+	bool IsNodeSelected(SelectedItemType Node) const;
+
+	// Handle the selection mechanics of starting to drag a node
+	void StartDraggingNode(SelectedItemType NodeBeingDragged, const FPointerEvent& MouseEvent);
+
+	// Handle the selection mechanics when a node is clicked on
+	void ClickedOnNode(SelectedItemType Node, const FPointerEvent& MouseEvent);
 };
 
 /**

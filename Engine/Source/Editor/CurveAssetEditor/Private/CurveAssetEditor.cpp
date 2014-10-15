@@ -7,6 +7,7 @@
 #include "RichCurveEditorCommands.h"
 //#include "Toolkits/IToolkitHost.h"
 #include "WorkspaceMenuStructureModule.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "CurveAssetEditor"
 
