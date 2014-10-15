@@ -728,8 +728,6 @@ void UStruct::InitTaggedPropertyRedirectsMap()
 
 void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {
-	FName PropertyName(NAME_None);
-
 	check(Ar.IsLoading() || Ar.IsSaving());
 
 	UClass* DefaultsClass = dynamic_cast<UClass*>(DefaultsStruct);
@@ -755,7 +753,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				break;
 			}
-			PropertyName = Tag.Name;
 
 			// Move to the next property to be serialized
 			if( AdvanceProperty && --RemainingArrayDim <= 0 )
@@ -1198,7 +1195,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 		{
 			if( Property->ShouldSerializeValue(Ar) )
 			{
-				PropertyName = Property->GetFName();
 				for( int32 Idx=0; Idx<Property->ArrayDim; Idx++ )
 				{
 					uint8* DataPtr      = Property->ContainerPtrToValuePtr           <uint8>(Data, Idx);

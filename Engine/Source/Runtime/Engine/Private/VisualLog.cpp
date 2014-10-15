@@ -570,10 +570,19 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 
 FVisualLogEntry*  FVisualLog::GetEntryToWrite(const class UObject* Object, float Timestamp, const FVector& Location)
 {
+	if (Object == NULL)
+	{
+		return NULL;
+	}
 	const class AActor* RedirectionActor = GetVisualLogRedirection(Object);
 
-	UWorld* World = RedirectionActor && RedirectionActor->GetWorld() ? RedirectionActor->GetWorld() : GEngine->GetWorldFromContextObject(Object);
+	UWorld* World = RedirectionActor && RedirectionActor->GetWorld() ? RedirectionActor->GetWorld() : GEngine->GetWorldFromContextObject(Object, false);
 	ensure(World);
+
+	if (!World)
+	{
+		return NULL;
+	}
 
 	const float TimeStamp = Timestamp < 0 ? World->TimeSeconds : Timestamp;
 	TSharedPtr<FActorsVisLog> Log = GetLog(RedirectionActor ? RedirectionActor : Object);
