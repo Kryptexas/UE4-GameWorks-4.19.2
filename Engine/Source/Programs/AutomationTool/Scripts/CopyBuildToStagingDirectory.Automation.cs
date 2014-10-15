@@ -147,7 +147,7 @@ public partial class Project : CommandUtils
     {
         int FilesAdded = 0;
 
-        string[] LocaleTags = CultureName.Split('_');
+        string[] LocaleTags = CultureName.Replace('-', '_').Split('_');
 
         List<string> PotentialParentCultures = new List<string>();
         
