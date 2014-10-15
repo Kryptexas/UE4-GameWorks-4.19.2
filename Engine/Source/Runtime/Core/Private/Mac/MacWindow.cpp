@@ -8,8 +8,6 @@
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
 
-TArray< FCocoaWindow* > FMacWindow::RunningModalWindows;
-
 FMacWindow::~FMacWindow()
 {
 	// While on Windows invalid HWNDs fail silently, accessing an invalid NSWindow is fatal.
@@ -309,13 +307,9 @@ void FMacWindow::Destroy()
 	{
 		SCOPED_AUTORELEASE_POOL;
 		FCocoaWindow* Window = WindowHandle;
-		if(Definition->IsModalWindow)
-		{
-			RemoveModalWindow(Window);
-		}
-		
+
 		bIsClosed = true;
-		
+
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
 			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
@@ -380,12 +374,7 @@ void FMacWindow::Show()
 	SCOPED_AUTORELEASE_POOL;
 	if (!bIsClosed && !bIsVisible)
 	{
-		if(Definition->IsModalWindow)
-		{
-			AddModalWindow(WindowHandle);
-		}
-		
-		bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
+		const bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
 		
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
@@ -402,10 +391,6 @@ void FMacWindow::Hide()
 	{
 		SCOPED_AUTORELEASE_POOL;
 		bIsVisible = false;
-		if(Definition->IsModalWindow)
-		{
-			RemoveModalWindow(WindowHandle);
-		}
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderOut:nil];
@@ -632,27 +617,4 @@ bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
 	{
 		return false;
 	}
-}
-
-void FMacWindow::AddModalWindow(FCocoaWindow* Window)
-{
-	if(!RunningModalWindows.Contains(Window))
-	{
-		RunningModalWindows.Add(Window);
-	}
-}
-
-void FMacWindow::RemoveModalWindow(FCocoaWindow* Window)
-{
-	RunningModalWindows.Remove(Window);
-}
-
-FCocoaWindow* FMacWindow::CurrentModalWindow(void)
-{
-	FCocoaWindow* Window = nil;
-	if(RunningModalWindows.Num() > 0)
-	{
-		Window = RunningModalWindows.Last();
-	}
-	return Window;
 }

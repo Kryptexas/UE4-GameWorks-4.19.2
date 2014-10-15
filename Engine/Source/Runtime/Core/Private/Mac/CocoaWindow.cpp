@@ -8,8 +8,6 @@
 #include "CocoaThread.h"
 #include "MacCursor.h"
 
-TArray< FCocoaWindow* > GRunningModalWindows;
-
 NSString* NSWindowRedrawContents = @"NSWindowRedrawContents";
 NSString* NSDraggingExited = @"NSDraggingExited";
 NSString* NSDraggingUpdated = @"NSDraggingUpdated";
@@ -148,15 +146,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (void)orderWindow:(NSWindowOrderingMode)OrderingMode relativeTo:(NSInteger)OtherWindowNumber
 {
 	SCOPED_AUTORELEASE_POOL;
-	bool bModal = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask;
-	if(OrderingMode == NSWindowOut || bModal)
+	if([self alphaValue] > 0.0f)
 	{
-		if([self alphaValue] > 0.0f)
-		{
-			[self performDeferredSetFrame];
-		}
-		[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
+		[self performDeferredSetFrame];
 	}
+	[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
 }
 
 - (bool)roundedCorners
@@ -205,12 +199,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	SCOPED_AUTORELEASE_POOL;
 	if ([NSApp isHidden] == NO)
 	{
-		bool bBringToFront = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask;
-		if (bBringToFront)
-		{
-			[self orderFront:nil];
-		}
-		
+		[self orderFront:nil];
+
 		if (bMain && [self canBecomeMainWindow] && self != [NSApp mainWindow])
 		{
 			[self makeMainWindow];
@@ -226,8 +216,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (BOOL)canBecomeMainWindow
 {
 	SCOPED_AUTORELEASE_POOL;
-	bool bNoModalOrCurrent = FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self;
-	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask) && bNoModalOrCurrent;
+	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask);
 }
 
 - (BOOL)canBecomeKeyWindow
@@ -399,16 +388,9 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	SCOPED_AUTORELEASE_POOL;
 	if([NSApp isHidden] == NO)
 	{
-		if(FMacWindow::CurrentModalWindow() == nil || FMacWindow::CurrentModalWindow() == self || [self styleMask] == NSBorderlessWindowMask)
-		{
-			[self orderFrontAndMakeMain:false andKey:false];
-		}
-		else
-		{
-			[FMacWindow::CurrentModalWindow() orderFrontAndMakeMain:true andKey:true];
-		}
+		[self orderFrontAndMakeMain:false andKey:false];
 	}
-	
+
 	if(self.bForwardEvents)
 	{
 		FMacEvent::SendToGameRunLoop(Notification, self, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ]);

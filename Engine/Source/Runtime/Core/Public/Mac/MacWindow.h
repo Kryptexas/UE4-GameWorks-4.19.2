@@ -24,10 +24,6 @@ public:
 	void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags);
 	
 	bool OnIMKKeyDown(NSEvent* Event);
-	
-	static void AddModalWindow(FCocoaWindow* Window);
-	static void RemoveModalWindow(FCocoaWindow* Window);
-	static FCocoaWindow* CurrentModalWindow(void);
 
 public:
 
@@ -101,8 +97,6 @@ private:
 
 
 private:
-	/** Currently open modal windows. */
-	static TArray< FCocoaWindow* > RunningModalWindows;
 
 	FMacApplication* OwningApplication;
 
