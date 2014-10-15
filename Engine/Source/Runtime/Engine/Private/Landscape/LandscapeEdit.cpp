@@ -4757,11 +4757,78 @@ bool ALandscapeProxy::GetSelectedComponents(TArray<UObject*>& SelectedObjects)
 	return false;
 }
 
+struct FMobileLayerAllocation
+{
+	FWeightmapLayerAllocationInfo Allocation;
+
+	friend bool operator<(const FMobileLayerAllocation& lhs, const FMobileLayerAllocation& rhs)
+	{
+		if (!lhs.Allocation.LayerInfo && !rhs.Allocation.LayerInfo) return false; // equally broken :P
+		if (!lhs.Allocation.LayerInfo && rhs.Allocation.LayerInfo) return false; // broken layers sort to the end
+		if (!rhs.Allocation.LayerInfo && lhs.Allocation.LayerInfo) return true;
+
+		if (lhs.Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer) return true; // visibility layer to the front
+		if (rhs.Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer) return false;
+
+		if (lhs.Allocation.LayerInfo->bNoWeightBlend && !rhs.Allocation.LayerInfo->bNoWeightBlend) return false; // non-blended layers sort to the end
+		if (rhs.Allocation.LayerInfo->bNoWeightBlend && !lhs.Allocation.LayerInfo->bNoWeightBlend) return true;
+
+		// TODO: If we want to support cleanly decaying a pc landscape for mobile
+		// we should probably add other sort criteria, e.g. coverage
+		// or e.g. add an "importance" to layerinfos and sort on that
+
+		return false; // equal, preserve order
+	}
+};
+
 UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTexture2D*>& InWeightmapTextures, bool bIsCooking)
 {
 	if (IsTemplate() || HeightmapTexture == NULL)
 	{
 		return MaterialInstance;
+	}
+
+	TArray<FMobileLayerAllocation> MobileLayerAllocations;
+	MobileLayerAllocations.Reserve(WeightmapLayerAllocations.Num());
+	for (const auto& Allocation : WeightmapLayerAllocations)
+	{
+		MobileLayerAllocations.Add(FMobileLayerAllocation{ Allocation });
+	}
+	MobileLayerAllocations.StableSort();
+
+	// in the current mobile shader only 3 layers are supported (the 3rd only as a blended layer)
+	// so make sure we have a blended layer for layer 3 if possible
+	if (MobileLayerAllocations.Num() >= 3 &&
+		MobileLayerAllocations[2].Allocation.LayerInfo && MobileLayerAllocations[2].Allocation.LayerInfo->bNoWeightBlend)
+	{
+		int32 BlendedLayerToMove = INDEX_NONE;
+
+		// First try to swap layer 3 with an earlier blended layer
+		// this will allow both to work
+		for (int32 i = 1; i >= 0; --i)
+		{
+			if (MobileLayerAllocations[i].Allocation.LayerInfo && !MobileLayerAllocations[i].Allocation.LayerInfo->bNoWeightBlend)
+			{
+				BlendedLayerToMove = i;
+				break;
+			}
+		}
+
+		// otherwise swap layer 3 with the first weight-blended layer found
+		// as non-blended layers aren't supported for layer 3 it wasn't going to work anyway, might as well swap it out for one that will work
+		if (BlendedLayerToMove == INDEX_NONE)
+		{
+			// I wish I could specify a start index here, but it doesn't affect the result
+			BlendedLayerToMove = MobileLayerAllocations.IndexOfByPredicate([](const FMobileLayerAllocation& MobileAllocation){ return MobileAllocation.Allocation.LayerInfo && !MobileAllocation.Allocation.LayerInfo->bNoWeightBlend; });
+		}
+
+		if (BlendedLayerToMove != INDEX_NONE)
+		{
+			// Preserve order of all but the blended layer we're moving into slot 3
+			FMobileLayerAllocation TempAllocation = MoveTemp(MobileLayerAllocations[BlendedLayerToMove]);
+			MobileLayerAllocations.RemoveAt(BlendedLayerToMove, 1, false);
+			MobileLayerAllocations.Insert(MoveTemp(TempAllocation), 2);
+		}
 	}
 
 	int32 WeightmapSize = (SubsectionSizeQuads + 1) * NumSubsections;
@@ -4773,27 +4840,22 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 
 		if (InWeightmapTextures.Num() > 0)
 		{
-			// Reordering weight map channels
 			int32 CurrentIdx = 0;
-			int32 FromTextures[3] = { 0, 0, 0 };
-			int32 FromChannels[3] = { 0, 0, 0 };
-			for (int32 i = 0; i < WeightmapLayerAllocations.Num(); ++i)
+			for (const auto& MobileAllocation : MobileLayerAllocations)
 			{
 				// Only for valid Layers
-				if (WeightmapLayerAllocations[i].LayerInfo)
+				if (MobileAllocation.Allocation.LayerInfo)
 				{
-					FromTextures[CurrentIdx] = WeightmapLayerAllocations[i].WeightmapTextureIndex;
-					FromChannels[CurrentIdx] = WeightmapLayerAllocations[i].WeightmapTextureChannel;
+					uint8 TextureIndex = MobileAllocation.Allocation.WeightmapTextureIndex;
+					uint8 TextureChannel = MobileAllocation.Allocation.WeightmapTextureChannel;
+					LandscapeEdit.CopyTextureChannel(WeightmapTexture, CurrentIdx, InWeightmapTextures[TextureIndex], TextureChannel);
 					CurrentIdx++;
-				}
-				if (CurrentIdx >= 3) // ignore 4th channel
-				{
-					break;
+					if (CurrentIdx >= 2) // Only support 2 layers in texture
+					{
+						break;
+					}
 				}
 			}
-
-			LandscapeEdit.CopyTextureChannel(WeightmapTexture, 0, InWeightmapTextures[FromTextures[0]], FromChannels[0]);
-			LandscapeEdit.CopyTextureChannel(WeightmapTexture, 1, InWeightmapTextures[FromTextures[1]], FromChannels[1]);
 		}
 
 		LandscapeEdit.CopyTextureFromHeightmap(WeightmapTexture, 2, this, 2);
@@ -4804,28 +4866,30 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	InWeightmapTextures.Empty();
 	InWeightmapTextures.Add(WeightmapTexture);
 
-	FLinearColor Masks[4];
-	Masks[0] = FLinearColor(1.f, 0.f, 0.f, 0.f);
-	Masks[1] = FLinearColor(0.f, 1.f, 0.f, 0.f);
-	Masks[2] = FLinearColor(0.f, 0.f, 1.f, 0.f);
-	Masks[3] = FLinearColor(0.f, 0.f, 0.f, 1.f);
+	FLinearColor Masks[5];
+	Masks[0] = FLinearColor(1, 0, 0, 0);
+	Masks[1] = FLinearColor(0, 1, 0, 0);
+	Masks[2] = FLinearColor(0, 0, 1, 0);
+	Masks[3] = FLinearColor(0, 0, 0, 1);
+	Masks[4] = FLinearColor(0, 0, 0, 0); // mask out layers 4+ altogether
 
 	if (!bIsCooking)
 	{
 		UMaterialInstanceDynamic* MobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost());
+
+		MobileBlendableLayerMask = 0;
+
 		// Set the layer mask
 		int32 CurrentIdx = 0;
-		for (int32 AllocIdx = 0; AllocIdx < WeightmapLayerAllocations.Num(); AllocIdx++)
+		for (const auto& MobileAllocation : MobileLayerAllocations)
 		{
-			FWeightmapLayerAllocationInfo& Allocation = WeightmapLayerAllocations[AllocIdx];
-			FName LayerName = Allocation.LayerInfo ? Allocation.LayerInfo->LayerName : NAME_None;
+			const FWeightmapLayerAllocationInfo& Allocation = MobileAllocation.Allocation;
 			if (Allocation.LayerInfo)
 			{
-				MobileMaterialInstance->SetVectorParameterValue(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(3, CurrentIdx++)]);
-			}
-			else
-			{
-				MobileMaterialInstance->SetVectorParameterValue(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[3]);
+				FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
+				MobileMaterialInstance->SetVectorParameterValue(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
+				MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
+				CurrentIdx++;
 			}
 		}
 		return MobileMaterialInstance;
@@ -4837,19 +4901,19 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 
 		MobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 
+		MobileBlendableLayerMask = 0;
+
 		// Set the layer mask
 		int32 CurrentIdx = 0;
-		for (int32 AllocIdx = 0; AllocIdx < WeightmapLayerAllocations.Num(); AllocIdx++)
+		for (const auto& MobileAllocation : MobileLayerAllocations)
 		{
-			FWeightmapLayerAllocationInfo& Allocation = WeightmapLayerAllocations[AllocIdx];
-			FName LayerName = Allocation.LayerInfo ? Allocation.LayerInfo->LayerName : NAME_None;
+			const FWeightmapLayerAllocationInfo& Allocation = MobileAllocation.Allocation;
 			if (Allocation.LayerInfo)
 			{
-				MobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(3, CurrentIdx++)]);
-			}
-			else
-			{
-				MobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[3]);
+				FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
+				MobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
+				MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
+				CurrentIdx++;
 			}
 		}
 

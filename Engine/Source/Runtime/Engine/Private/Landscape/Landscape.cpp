@@ -91,7 +91,9 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 
 	Mobility = EComponentMobility::Static;
 
+#if WITH_EDITORONLY_DATA
 	EditToolRenderData = NULL;
+#endif
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
 }

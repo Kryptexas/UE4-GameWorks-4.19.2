@@ -68,7 +68,7 @@ public:
 		const FLandscapeBatchElementParams* BatchElementParams = (const FLandscapeBatchElementParams*)BatchElement.UserData;
 		check(BatchElementParams);
 
-		const FLandscapeComponentSceneProxy* SceneProxy = BatchElementParams->SceneProxy;
+		const FLandscapeComponentSceneProxyMobile* SceneProxy = (const FLandscapeComponentSceneProxyMobile*)BatchElementParams->SceneProxy;
 		SetUniformBufferParameter(RHICmdList, VertexShader->GetVertexShader(),VertexShader->GetUniformBufferParameter<FLandscapeUniformShaderParameters>(),*BatchElementParams->LandscapeUniformShaderParametersResource);
 
 		FVector CameraLocalPos3D = SceneProxy->WorldToLocal.TransformPosition(View.ViewMatrices.ViewOrigin); 
@@ -137,6 +137,55 @@ protected:
 	TShaderUniformBufferParameter<FLandscapeUniformShaderParameters> LandscapeShaderParameters;
 };
 
+/** Shader parameters for use with FLandscapeVertexFactory */
+class FLandscapeVertexFactoryMobilePixelShaderParameters : public FLandscapeVertexFactoryPixelShaderParameters
+{
+public:
+	/**
+	* Bind shader constants by name
+	* @param	ParameterMap - mapping of named shader constants to indices
+	*/
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
+	{
+		FLandscapeVertexFactoryPixelShaderParameters::Bind(ParameterMap);
+		BlendableLayerMaskParameter.Bind(ParameterMap, TEXT("BlendableLayerMask"));
+	}
+
+	/**
+	* Serialize shader params to an archive
+	* @param	Ar - archive to serialize to
+	*/
+	virtual void Serialize(FArchive& Ar) override
+	{
+		FLandscapeVertexFactoryPixelShaderParameters::Serialize(Ar);
+		Ar << BlendableLayerMaskParameter;
+	}
+	/**
+	* Set any shader data specific to this vertex factory
+	*/
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override
+	{
+		SCOPE_CYCLE_COUNTER(STAT_LandscapeVFDrawTime);
+
+		FLandscapeVertexFactoryPixelShaderParameters::SetMesh(RHICmdList, PixelShader, VertexFactory, View, BatchElement, DataFlags);
+
+		const FLandscapeBatchElementParams* BatchElementParams = (const FLandscapeBatchElementParams*)BatchElement.UserData;
+		check(BatchElementParams);
+		const FLandscapeComponentSceneProxyMobile* SceneProxy = (const FLandscapeComponentSceneProxyMobile*)BatchElementParams->SceneProxy;
+
+		if (BlendableLayerMaskParameter.IsBound())
+		{
+			FVector MaskVector;
+			MaskVector[0] = (SceneProxy->BlendableLayerMask & (1 << 0)) ? 1 : 0;
+			MaskVector[1] = (SceneProxy->BlendableLayerMask & (1 << 1)) ? 1 : 0;
+			MaskVector[2] = (SceneProxy->BlendableLayerMask & (1 << 2)) ? 1 : 0;
+			SetShaderValue(RHICmdList, PixelShader->GetPixelShader(), BlendableLayerMaskParameter, MaskVector);
+		}
+	}
+protected:
+	FShaderParameter BlendableLayerMaskParameter;
+};
+
 FVertexFactoryShaderParameters* FLandscapeVertexFactoryMobile::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
 {
 	switch( ShaderFrequency )
@@ -144,7 +193,7 @@ FVertexFactoryShaderParameters* FLandscapeVertexFactoryMobile::ConstructShaderPa
 	case SF_Vertex:
 		return new FLandscapeVertexFactoryMobileVertexShaderParameters();
 	case SF_Pixel:
-		return new FLandscapeVertexFactoryPixelShaderParameters();
+		return new FLandscapeVertexFactoryMobilePixelShaderParameters();
 	default:
 		return NULL;
 	}
@@ -179,7 +228,9 @@ FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandsc
 		InComponent->MobileNormalmapTexture = WeightmapTextures[0];
 	}
 #endif
-	NormalmapTexture = WeightmapTextures[0]; // Use Weightmap0 as Normal Texture
+	NormalmapTexture = WeightmapTextures[0]; // Use Weightmap0 as Normal/Weightmap Texture
+
+	BlendableLayerMask = InComponent->MobileBlendableLayerMask;
 }
 
 FLandscapeComponentSceneProxyMobile::~FLandscapeComponentSceneProxyMobile()

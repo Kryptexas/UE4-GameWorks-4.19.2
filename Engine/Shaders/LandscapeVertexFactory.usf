@@ -52,6 +52,10 @@ Texture2D XYOffsetmapTexture;
 SamplerState XYOffsetmapTextureSampler;
 #endif
 
+#if ES2_PROFILE || ES3_1_PROFILE
+float3 BlendableLayerMask;
+#endif
+
 struct FVertexFactoryInput
 {
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -336,8 +340,8 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #else
 	Result.LayerWeights.xy = Texture2DSample(NormalmapTexture, NormalmapTextureSampler, Interpolants.WeightMapTexCoord).rg;
 #endif 
- 
-	Result.LayerWeights.z = saturate(1.f - Result.LayerWeights.x - Result.LayerWeights.y);
+
+	Result.LayerWeights.z = saturate(BlendableLayerMask.z - dot(Result.LayerWeights.xy, BlendableLayerMask.xy));
 	Result.LayerWeights.w = 0; // Total weight need to be 1
 #endif
 

@@ -126,6 +126,8 @@ public:
 
 	virtual void CreateRenderThreadResources() override;
 
+	uint8 BlendableLayerMask;
+
 	friend class FLandscapeVertexBufferMobile;
 };
 

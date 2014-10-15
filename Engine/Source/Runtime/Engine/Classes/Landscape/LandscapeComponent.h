@@ -218,6 +218,9 @@ public:
 	UPROPERTY(Transient, DuplicateTransient)
 	UTexture2D* SelectDataTexture; // Data texture used for selection mask
 
+	/** Pointer to data shared with the render thread, used by the editor tools */
+	struct FLandscapeEditToolRenderData* EditToolRenderData;
+
 	/** Runtime-generated editor data for ES2 emulation */
 	UPROPERTY(Transient, DuplicateTransient)
 	UTexture2D* MobileNormalmapTexture;
@@ -227,10 +230,11 @@ public:
 	UMaterialInterface* MobileMaterialInterface;
 #endif
 
+	/** For ES2 */
+	UPROPERTY()
+	uint8 MobileBlendableLayerMask;
 
 public:
-	/** Pointer to data shared with the render therad, used by the editor tools */
-	struct FLandscapeEditToolRenderData* EditToolRenderData;
 	/** Platform Data where don't support texture sampling in vertex buffer */
 	FLandscapeComponentDerivedData PlatformData;
 
