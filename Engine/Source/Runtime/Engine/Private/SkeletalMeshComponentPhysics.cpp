@@ -848,6 +848,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			{
 				BodyInst->LockedAxisMode = BodyInstance.LockedAxisMode;
 				BodyInst->CustomLockedAxis = BodyInstance.CustomLockedAxis;
+
+				BodyInst->COMNudge = BodyInstance.COMNudge;
 			}
 			else
 			{

@@ -108,6 +108,7 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	SteeringInputRate.FallRate = 5.0f;
 
 
+
 #if WITH_VEHICLE
 	// tire load filtering
 	PxVehicleTireLoadFilterData PTireLoadFilterDef;
@@ -159,6 +160,7 @@ void UWheeledVehicleMovementComponent::CreateVehicle()
 		{
 			check(UpdatedComponent);
 			check(UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic());
+
 
 			SetupVehicle();
 
@@ -253,9 +255,8 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 	PVehicleActor->setMassSpaceInertiaTensor( PInertiaTensor );
 	PVehicleActor->setMass( Mass );
 
-	// Adding shapes fudges with the local pose, fix it now
-	const PxVec3 PCOMOffset = U2PVector( GetCOMOffset() );
-	PVehicleActor->setCMassLocalPose( PxTransform( PCOMOffset, PxQuat::createIdentity() ) );
+	const PxVec3 PCOMOffset = U2PVector(GetLocalCOM());
+	PVehicleActor->setCMassLocalPose(PxTransform(PCOMOffset, PxQuat::createIdentity()));
 }
 
 void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWheelsSimData )
@@ -281,8 +282,8 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 	}
 
 	// Now that we have all the wheel offsets, calculate the sprung masses
-	PxVec3 PCOMOffset = U2PVector(GetCOMOffset());
-	PxVehicleComputeSprungMasses( WheelSetups.Num(), WheelOffsets, PCOMOffset, PVehicleActor->getMass(), 2, SprungMasses );
+	PxVec3 PLocalCOM = U2PVector(GetLocalCOM());
+	PxVehicleComputeSprungMasses(WheelSetups.Num(), WheelOffsets, PLocalCOM, PVehicleActor->getMass(), 2, SprungMasses);
 
 	for ( int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx )
 	{
@@ -320,8 +321,8 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		const PxVec3 PWheelOffset = WheelOffsets[WheelIdx];
 
 		PxVec3 PSuspTravelDirection = PxVec3( 0.0f, 0.0f, -1.0f );
-		PxVec3 PWheelCentreCMOffset = PWheelOffset - PCOMOffset;
-		PxVec3 PSuspForceAppCMOffset = PxVec3( PWheelOffset.x, PWheelOffset.y, Wheel->SuspensionForceOffset );
+		PxVec3 PWheelCentreCMOffset = PWheelOffset - PLocalCOM;
+		PxVec3 PSuspForceAppCMOffset = PxVec3(PWheelCentreCMOffset.x, PWheelCentreCMOffset.y, Wheel->SuspensionForceOffset);
 		PxVec3 PTireForceAppCMOffset = PSuspForceAppCMOffset;
 
 		// finalize sim data
@@ -501,9 +502,18 @@ FVector UWheeledVehicleMovementComponent::GetWheelRestingPosition( const FWheelS
 	return Offset;
 }
 
-FVector UWheeledVehicleMovementComponent::GetCOMOffset()
+FVector UWheeledVehicleMovementComponent::GetLocalCOM() const
 {
-	return COMOffset;
+	if (const FBodyInstance* BodyInst = UpdatedComponent->GetBodyInstance())
+	{
+		if (PxRigidDynamic* PVehicleActor = BodyInst->GetPxRigidDynamic())
+		{
+			PxTransform PCOMTransform = PVehicleActor->getCMassLocalPose();
+			return P2UVector(PCOMTransform.p);
+		}
+	}
+
+	return FVector::ZeroVector;
 }
 
 USkinnedMeshComponent* UWheeledVehicleMovementComponent::GetMesh()
@@ -1226,6 +1236,10 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 {
 	if (USkeletalMeshComponent * Mesh = Cast<USkeletalMeshComponent>(GetMesh()))
 	{
+
+					//in skeletal mesh case we must set the offset on the PrimitiveComponent's BodyInstance, which will later update the actual root body
+					//this is needed for UI
+
 		if (UPhysicsAsset * PhysicsAsset = Mesh->GetPhysicsAsset())
 		{
 			for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)

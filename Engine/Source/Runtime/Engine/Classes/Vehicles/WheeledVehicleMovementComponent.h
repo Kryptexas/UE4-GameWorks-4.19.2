@@ -198,12 +198,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UPROPERTY(transient)
 	float DebugDragMagnitude;
 
+	// Used for backwards compat to fixup incorrect COM of vehicles
+
 	/** When vehicle is created we want to compute some helper data like drag area, etc.... Derived classes should use this to properly compute things like engine RPM */
 	virtual void ComputeConstants();
-
-	/** Override center of mass offset, makes tweaking easier [uu] */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	FVector COMOffset;
 
 	/** Scales the vehicle's inertia in each direction (forward, right, up) */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
@@ -426,6 +424,8 @@ protected:
 	/** Clear all interpolated inputs to default values */
 	virtual void ClearInput();
 
+	/** Updates the COMOffset on the actual body instance */
+
 	/** Read current state for simulation */
 	void UpdateState(float DeltaTime);
 
@@ -466,8 +466,8 @@ protected:
 	/** Get the local position of the wheel at rest */
 	virtual FVector GetWheelRestingPosition(const FWheelSetup& WheelSetup);
 
-	/** Get the local COM offset */
-	virtual FVector GetCOMOffset();
+	/** Get the local COM */
+	virtual FVector GetLocalCOM() const;
 
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
