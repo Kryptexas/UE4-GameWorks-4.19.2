@@ -3,19 +3,20 @@
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserWindow.h"
 #include "SlateCore.h"
+#include "SlateBasics.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(TWeakPtr<FSlateRenderer> InSlateRenderer, FIntPoint InViewportSize)
-	: SlateRenderer(InSlateRenderer)
-	, UpdatableTexture(nullptr)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize)
+	: UpdatableTexture(nullptr)
 	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
 {
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
-	if (SlateRenderer.IsValid())
+
+	if (FSlateApplication::Get().GetRenderer().IsValid())
 	{
-		UpdatableTexture = SlateRenderer.Pin()->CreateUpdatableTexture(ViewportSize.X, ViewportSize.Y);
+		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(ViewportSize.X, ViewportSize.Y);
 	}
 }
 
@@ -23,9 +24,9 @@ FWebBrowserWindow::~FWebBrowserWindow()
 {
 	CloseBrowser();
 
-	if (SlateRenderer.IsValid() && UpdatableTexture != nullptr)
+	if (FSlateApplication::Get().GetRenderer().IsValid() && UpdatableTexture != nullptr)
 	{
-		SlateRenderer.Pin()->ReleaseUpdatableTexture(UpdatableTexture);
+		FSlateApplication::Get().GetRenderer()->ReleaseUpdatableTexture(UpdatableTexture);
 	}
 	UpdatableTexture = nullptr;
 }

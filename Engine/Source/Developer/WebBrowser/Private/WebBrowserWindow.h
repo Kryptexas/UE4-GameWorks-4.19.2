@@ -31,10 +31,9 @@ public:
 	/**
 	 * Default Constructor
 	 * 
-	 * @param InSlateRenderer Slate renderer to allow creation of texture to render to
 	 * @param InViewportSize Initial size of the browser window
 	 */
-	FWebBrowserWindow(TWeakPtr<FSlateRenderer> InSlateRenderer, FIntPoint InViewportSize);
+	FWebBrowserWindow(FIntPoint InViewportSize);
 	/**
 	 * Virtual Destructor
 	 */
@@ -142,8 +141,6 @@ private:
 	 */
 	static int32 GetCefInputModifiers(const FInputEvent& InputEvent);
 
-	/** Pointer to Slate renderer to allow creation of texture to render to */
-	TWeakPtr<FSlateRenderer>		SlateRenderer;
 	/** Interface to the texture we are rendering to */
 	FSlateUpdatableTexture*			UpdatableTexture;
 	/** Temporary storage for the raw texture data */

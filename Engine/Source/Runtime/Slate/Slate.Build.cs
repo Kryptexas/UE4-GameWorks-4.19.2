@@ -18,12 +18,6 @@ public class Slate : ModuleRules
 			}
 		);
 
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
-				"WebBrowser"
-			}
-		);
-
         if (!UEBuildConfiguration.bBuildDedicatedServer && UEBuildConfiguration.bCompileFreeType)
         {
 			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");

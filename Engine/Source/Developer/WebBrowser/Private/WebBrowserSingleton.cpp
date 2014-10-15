@@ -45,7 +45,8 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefString(&Settings.browser_subprocess_path) = *SubProcessPath;
 
 	// Initialize CEF.
-	CefInitialize(MainArgs, Settings, WebBrowserApp.get(), nullptr);
+	bool bSuccess = CefInitialize(MainArgs, Settings, WebBrowserApp.get(), nullptr);
+	check(bSuccess);
 #endif
 }
 
@@ -68,31 +69,11 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 #endif
 }
 
-void FWebBrowserSingleton::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer)
-{
-	SlateRenderer = InSlateRenderer;
-}
-
-void FWebBrowserSingleton::PumpMessages()
-{
-#if WITH_CEF3
-	// Remove any windows that have been deleted
-	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
-	{
-		if (!WindowInterfaces[Index].IsValid())
-		{
-			WindowInterfaces.RemoveAtSwap(Index);
-		}
-	}
-	CefDoMessageLoopWork();
-#endif
-}
-
 TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency)
 {
 #if WITH_CEF3
 	// Create new window
-	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(SlateRenderer, FIntPoint(Width, Height)));
+	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height)));
 
 	// WebBrowserHandler implements browser-level callbacks.
 	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
@@ -119,6 +100,22 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OS
 	}
 #endif
 	return NULL;
+}
+
+bool FWebBrowserSingleton::Tick(float DeltaTime)
+{
+#if WITH_CEF3
+	// Remove any windows that have been deleted
+	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
+	{
+		if (!WindowInterfaces[Index].IsValid())
+		{
+			WindowInterfaces.RemoveAtSwap(Index);
+		}
+	}
+	CefDoMessageLoopWork();
+#endif
+	return true;
 }
 
 FString FWebBrowserSingleton::GetCurrentLocaleCode()

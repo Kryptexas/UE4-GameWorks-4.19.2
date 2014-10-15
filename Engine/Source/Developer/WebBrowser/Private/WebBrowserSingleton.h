@@ -22,7 +22,7 @@ class FWebBrowserWindow;
 /**
  * Implementation of singleton class that takes care of general web browser tasks
  */
-class FWebBrowserSingleton : public IWebBrowserSingleton
+class FWebBrowserSingleton : public IWebBrowserSingleton, public FTickerObjectBase
 {
 public:
 	/**
@@ -35,9 +35,10 @@ public:
 	virtual ~FWebBrowserSingleton();
 
 	// IWebBrowserSingleton Interface
-	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override;
-	virtual void PumpMessages() override;
 	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency) override;
+
+	// FTickerObjectBase Interface
+	virtual bool Tick(float DeltaTime) override;
 
 	/**
 	 * Gets the Current Locale Code in the format CEF expects
@@ -47,8 +48,6 @@ public:
 	static FString GetCurrentLocaleCode();
 
 private:
-	/** Pointer to the Slate Renderer so that we can render web pages to textures */
-	TWeakPtr<FSlateRenderer>			SlateRenderer;
 #if WITH_CEF3
 	/** Pointer to the CEF App implementation */
 	CefRefPtr<FWebBrowserApp>			WebBrowserApp;

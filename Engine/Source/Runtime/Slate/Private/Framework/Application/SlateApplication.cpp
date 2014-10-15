@@ -5,10 +5,6 @@
 #include "SWindowTitleBar.h"
 #include "HittestGrid.h"
 
-#if WITH_EDITOR || IS_PROGRAM
-#include "WebBrowserModule.h"
-#include "IWebBrowserSingleton.h"
-#endif
 #include "IWidgetReflector.h"
 #include "GenericCommands.h"
 #include "NotificationManager.h"
@@ -456,11 +452,6 @@ void FSlateApplication::InitializeRenderer( TSharedRef<FSlateRenderer> InRendere
 {
 	Renderer = InRenderer;
 	Renderer->Initialize();
-
-#if WITH_EDITOR || IS_PROGRAM
-	// Pass renderer on to the Web Browser module
-	IWebBrowserModule::Get().GetSingleton()->SetSlateRenderer(InRenderer);
-#endif
 }
 
 void FSlateApplication::InitializeSound( const TSharedRef<ISlateSoundDevice>& InSlateSoundDevice )
@@ -937,11 +928,6 @@ void FSlateApplication::Tick()
 	// Update any notifications - this needs to be done after windows have updated themselves 
 	// (so they know their size)
 	FSlateNotificationManager::Get().Tick();
-
-#if WITH_EDITOR || IS_PROGRAM
-	// Calling this after Tick gives web browser a chance to render pages to texture after size changes
-	IWebBrowserModule::Get().GetSingleton()->PumpMessages();
-#endif
 
 	// Draw all windows
 	DrawWindows();

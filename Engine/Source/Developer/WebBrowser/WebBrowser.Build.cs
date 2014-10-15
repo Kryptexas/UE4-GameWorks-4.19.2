@@ -15,6 +15,7 @@ public class WebBrowser : ModuleRules
 				"Core",
 				"InputCore",
 				"SlateCore",
+				"Slate",
 				"CEF3Utils",
 			}
 		);

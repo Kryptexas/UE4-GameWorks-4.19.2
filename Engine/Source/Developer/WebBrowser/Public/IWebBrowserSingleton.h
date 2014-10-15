@@ -18,18 +18,6 @@ public:
 	virtual ~IWebBrowserSingleton() {};
 
 	/**
-	 * The Web Browser singleton needs the slate renderer in order to render pages to textures.
-	 *
-	 * @param  InSlateRenderer The Slate renderer
-	 */
-	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) = 0;
-
-	/**
-	 * Update the web browsers internal message loop
-	 */
-	virtual void PumpMessages() = 0;
-
-	/**
 	 * Create a new web browser window
 	 *
 	 * @param OSWindowHandle Handle of OS Window that the browser will be displayed in (can be null)
