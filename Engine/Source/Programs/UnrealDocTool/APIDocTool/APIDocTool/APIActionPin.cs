@@ -117,7 +117,7 @@ namespace APIDocTool
 			}
 		}
 
-		private string GetTypeText()
+		public string GetTypeText()
 		{
 			if (PinCategory == "struct")
 			{
