@@ -4,6 +4,8 @@
 
 #include "IWidgetReflector.h"
 
+struct FLoggedEvent;
+
 /**
  * Abstract base class for widget reflectors.
  */
@@ -35,6 +37,8 @@ public:
 public:
 
 	// IWidgetReflector interface
+
+	virtual void OnEventProcessed( const FInputEvent& Event, const FReply& InReply ) override;
 
 	virtual bool IsInPickingMode( ) const override
 	{
@@ -169,7 +173,12 @@ private:
 		SelectedNodes = ReflectorTree->GetSelectedItems();
 	}
 
+	TSharedRef<ITableRow> GenerateEventLogRow( TSharedRef<FLoggedEvent> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
+
 private:
+
+	TArray< TSharedRef<FLoggedEvent> > LoggedEvents;
+	TSharedPtr< SListView< TSharedRef< FLoggedEvent > > > EventListView;
 
 	TSharedPtr<SReflectorTree> ReflectorTree;
 

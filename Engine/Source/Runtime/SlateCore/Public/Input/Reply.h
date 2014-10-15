@@ -135,13 +135,6 @@ public:
 		return *this;
 	}
 
-	/** Set the widget that handled the event; undefined if never handled. This method is to be used by SlateApplication only! */
-	FReply& SetHandler( const TSharedRef<SWidget>& InHandler )
-	{
-		this->EventHandler = InHandler;
-		return *this;
-	}
-		
 	/** Ensures throttling for Slate UI responsiveness is not done on mouse down */
 	FReply& PreventThrottling()
 	{
@@ -251,6 +244,19 @@ private:
 		, bEndDragDrop(false)
 	{ }
 		
+
+private:
+
+	friend class FEventRouter;
+	friend class FSlateApplication;
+
+	/** Set the widget that handled the event; undefined if never handled. This method is to be used by SlateApplication only! */
+	FReply& SetHandler( const TSharedRef<SWidget>& InHandler )
+	{
+		this->EventHandler = InHandler;
+		return *this;
+	}
+
 private:
 
 	TOptional<FIntPoint> RequestedMousePos;

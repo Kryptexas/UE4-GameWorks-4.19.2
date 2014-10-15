@@ -277,6 +277,8 @@ public:
 		EventPath = &InEventPath;
 	}
 
+	SLATECORE_API virtual FText ToText() const;
+
 protected:
 
 	// State of modifier keys when this event happened.
@@ -356,6 +358,8 @@ public:
 		return KeyCode;
 	}
 
+	SLATECORE_API virtual FText ToText() const override;
+
 private:
 
 	// Name of the key that was pressed.
@@ -402,6 +406,8 @@ public:
 	{
 		return Character;
 	}
+
+	SLATECORE_API virtual FText ToText() const override;	
 
 private:
 
@@ -611,6 +617,8 @@ public:
 		WheelOrGestureDelta = Other.WheelOrGestureDelta;
 	}
 
+	SLATECORE_API virtual FText ToText() const override;
+
 private:
 
 	FVector2D ScreenSpacePosition;
@@ -664,6 +672,8 @@ public:
 
 	/** @return Analog value between 0 and 1.  1 being fully pressed, 0 being not pressed at all */
 	float GetAnalogValue() const { return AnalogValue; }
+
+	SLATECORE_API virtual FText ToText() const override;
 
 private:
 

@@ -3,12 +3,18 @@
 #pragma once
 
 
+/** A Delegate for passing along a string of a source code location to access */
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*FileName*/, int32 /*InLineNumber*/, int32 /*InColumnNumber*/);
+
 
 /**
  * Interface for widget reflectors.
  */
 class IWidgetReflector
 {
+public:
+	virtual void OnEventProcessed( const FInputEvent& Event, const FReply& InReply ) = 0;
+
 public:
 
 	/** Called when the user has picked a widget to observe. */

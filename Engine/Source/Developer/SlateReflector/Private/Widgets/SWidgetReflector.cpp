@@ -5,130 +5,167 @@
 
 #define LOCTEXT_NAMESPACE "SWidgetReflector"
 
+static const int32 MaxLoggedEvents = 100;
+
+#define WITH_EVENT_LOGGING 0
+
+struct FLoggedEvent
+{
+	FLoggedEvent( const FInputEvent& InEvent, const FReply& InReply )
+	: Event( InEvent )
+	, Handler( InReply.GetHandler() )
+	, EventText( InEvent.ToText() )
+	, HandlerText( InReply.GetHandler().IsValid() ? FText::FromString(InReply.GetHandler()->ToString()) : LOCTEXT("NullHandler", "null") )
+	{		
+	}
+
+	FText ToText( )
+	{
+		return FText::Format( NSLOCTEXT("","","{0}  |  {1}"), EventText, HandlerText );
+	}
+	
+	FInputEvent Event;
+	TWeakPtr<SWidget> Handler;
+	FText EventText;
+	FText HandlerText;
+};
+
 
 /* SWidgetReflector interface
  *****************************************************************************/
 
 void SWidgetReflector::Construct( const FArguments& InArgs )
 {
+	LoggedEvents.Reserve(MaxLoggedEvents);
+
 	bShowFocus = false;
 	bIsPicking = false;
 
 	this->ChildSlot
 	[
 		SNew(SBorder)
-			.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
-			[
-				SNew(SVerticalBox)
+		.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+		[
+			SNew(SVerticalBox)
 				
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SHorizontalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
 					
-						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-									.Text(LOCTEXT("AppScale", "Application Scale: ").ToString())
-							]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+						.Text(LOCTEXT("AppScale", "Application Scale: ").ToString())
+				]
 
-						+ SHorizontalBox::Slot()
-						.MaxWidth(250)
-						[
-							SNew(SSpinBox<float>)
-								.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
-								.MinValue(0.1f)
-								.MaxValue(3.0f)
-								.Delta(0.01f)
-								.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
-						]
-					]
-
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.Padding(5.0f)
-							[
-								// Check box that controls LIVE MODE
-								SNew(SCheckBox)
-									.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
-									.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
-									[
-										SNew(STextBlock)
-											.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
-									]
-							]
-
-						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.Padding(5.0f)
-							[
-								// Check box that controls PICKING A WIDGET TO INSPECT
-								SNew(SButton)
-									.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
-									.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
-									[
-										SNew(STextBlock)
-											.Text(this, &SWidgetReflector::HandlePickButtonText)
-									]
-							]
-					]
-
-				+ SVerticalBox::Slot()
-					.FillHeight(1.0f)
-					[
-						// The tree view that shows all the info that we capture.
-						SAssignNew(ReflectorTree, SReflectorTree)
-							.ItemHeight(24.0f)
-							.TreeItemsSource(&ReflectorTreeRoot)
-							.OnGenerateRow(this, &SWidgetReflector::HandleReflectorTreeGenerateRow)
-							.OnGetChildren(this, &SWidgetReflector::HandleReflectorTreeGetChildren)
-							.OnSelectionChanged(this, &SWidgetReflector::HandleReflectorTreeSelectionChanged)
-							.HeaderRow
-							(
-								SNew(SHeaderRow)
-
-								+ SHeaderRow::Column("WidgetName")
-									.DefaultLabel(LOCTEXT("WidgetName", "Widget Name").ToString())
-									.FillWidth(0.65f)
-
-								+ SHeaderRow::Column("ForegroundColor")
-									.FixedWidth(24.0f)
-									.VAlignHeader(VAlign_Center)
-									.HeaderContent()
-									[
-										SNew(STextBlock)
-											.Text(LOCTEXT("ForegroundColor", "FG").ToString())
-											.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color").ToString())
-									]
-
-								+ SHeaderRow::Column("Visibility")
-									.DefaultLabel(LOCTEXT("Visibility", "Visibility" ).ToString())
-									.FixedWidth(125.0f)
-
-								+ SHeaderRow::Column("WidgetInfo")
-									.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
-									.FillWidth(0.25f)
-
-								+ SHeaderRow::Column("Address")
-									.DefaultLabel( LOCTEXT("Address", "Address") )
-									.FillWidth( 0.10f )
-							)
-					]
-
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						// Frame rate counter
-						SNew(STextBlock)
-							.Text(this, &SWidgetReflector::HandleFrameRateText)
-					]
+				+ SHorizontalBox::Slot()
+				.MaxWidth(250)
+				[
+					SNew(SSpinBox<float>)
+					.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
+					.MinValue(0.1f)
+					.MaxValue(3.0f)
+					.Delta(0.01f)
+					.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
+				]
 			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5.0f)
+				[
+					// Check box that controls LIVE MODE
+					SNew(SCheckBox)
+						.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
+						[
+							SNew(STextBlock)
+								.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
+						]
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(5.0f)
+				[
+					// Check box that controls PICKING A WIDGET TO INSPECT
+					SNew(SButton)
+						.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
+						.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
+						[
+							SNew(STextBlock)
+								.Text(this, &SWidgetReflector::HandlePickButtonText)
+						]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				// The tree view that shows all the info that we capture.
+				SAssignNew(ReflectorTree, SReflectorTree)
+				.ItemHeight(24.0f)
+				.TreeItemsSource(&ReflectorTreeRoot)
+				.OnGenerateRow(this, &SWidgetReflector::HandleReflectorTreeGenerateRow)
+				.OnGetChildren(this, &SWidgetReflector::HandleReflectorTreeGetChildren)
+				.OnSelectionChanged(this, &SWidgetReflector::HandleReflectorTreeSelectionChanged)
+				.HeaderRow
+				(
+					SNew(SHeaderRow)
+
+					+ SHeaderRow::Column("WidgetName")
+					.DefaultLabel(LOCTEXT("WidgetName", "Widget Name").ToString())
+					.FillWidth(0.65f)
+
+					+ SHeaderRow::Column("ForegroundColor")
+					.FixedWidth(24.0f)
+					.VAlignHeader(VAlign_Center)
+					.HeaderContent()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("ForegroundColor", "FG").ToString())
+						.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color").ToString())
+					]
+
+					+ SHeaderRow::Column("Visibility")
+					.DefaultLabel(LOCTEXT("Visibility", "Visibility" ).ToString())
+					.FixedWidth(125.0f)
+
+					+ SHeaderRow::Column("WidgetInfo")
+					.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
+					.FillWidth(0.25f)
+
+					+ SHeaderRow::Column("Address")
+					.DefaultLabel( LOCTEXT("Address", "Address") )
+					.FillWidth( 0.10f )
+				)
+			]
+
+			#if WITH_EVENT_LOGGING
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SAssignNew(EventListView, SListView<TSharedRef<FLoggedEvent>>)
+				.ListItemsSource( &LoggedEvents )
+				.OnGenerateRow(this, &SWidgetReflector::GenerateEventLogRow)
+			]
+			#endif //WITH_EVENT_LOGGING
+			
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				// Frame rate counter
+				SNew(STextBlock)
+					.Text(this, &SWidgetReflector::HandleFrameRateText)
+			]
+		]
 	];
 }
 
@@ -139,7 +176,20 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 void SWidgetReflector::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-	ReflectorTree->RequestTreeRefresh();
+}
+
+void SWidgetReflector::OnEventProcessed( const FInputEvent& Event, const FReply& InReply )
+{
+	#if WITH_EVENT_LOGGING
+		if (LoggedEvents.Num() >= MaxLoggedEvents)
+		{
+			LoggedEvents.Empty();
+		}
+
+		LoggedEvents.Add( MakeShareable( new FLoggedEvent( Event, InReply ) ) );
+		EventListView->RequestListRefresh();
+		EventListView->RequestScrollIntoView( LoggedEvents.Last() );
+	#endif //WITH_EVENT_LOGGING
 }
 
 
@@ -329,6 +379,15 @@ TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( TSharedP
 		.WidgetInfoToVisualize(InReflectorNode)
 		.ToolTip(GenerateToolTipForReflectorNode(InReflectorNode))
 		.SourceCodeAccessor(SourceAccessDelegate);
+}
+
+TSharedRef<ITableRow> SWidgetReflector::GenerateEventLogRow( TSharedRef<FLoggedEvent> InLoggedEvent, const TSharedRef<STableViewBase>& OwnerTable )
+{
+	return SNew(STableRow<TSharedRef<FLoggedEvent>>, OwnerTable)
+	[
+		SNew(STextBlock)
+		.Text( InLoggedEvent->ToText() )
+	];
 }
 
 
