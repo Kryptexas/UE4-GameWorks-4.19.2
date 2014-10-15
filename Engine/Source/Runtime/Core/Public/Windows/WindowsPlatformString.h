@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "MicrosoftPlatformString.h"
+#include "GenericPlatform/MicrosoftPlatformString.h"
 
 /**
 * Windows string implementation

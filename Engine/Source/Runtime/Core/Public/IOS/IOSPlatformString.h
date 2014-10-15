@@ -5,7 +5,7 @@
 ==================================================================================*/
 
 #pragma once
-
+#include "HAL/Platform.h"
 #import <Foundation/NSString.h>
 
 class FString;

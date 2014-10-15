@@ -10,9 +10,9 @@
 // to just be stubs to the non-wide versions.  This doesn't work for obvious reasons.
 
 #pragma once
-
-#include "Char.h"
-#include "GenericPlatformStricmp.h"
+#include "Misc/Char.h"
+#include "GenericPlatform/GenericPlatformStricmp.h"
+#include "GenericPlatform/GenericPlatformString.h"
 
 /**
  * Android string implementation

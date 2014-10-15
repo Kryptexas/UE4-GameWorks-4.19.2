@@ -6,8 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
-
-#include "StandardPlatformString.h"
+#include "GenericPlatform/StandardPlatformString.h"
+#include "HAL/Platform.h"
 
 struct FHTML5PlatformString : public FStandardPlatformString
 {
