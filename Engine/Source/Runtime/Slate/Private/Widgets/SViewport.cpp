@@ -272,3 +272,12 @@ FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEv
 {
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMotionDetected(MyGeometry, MotionEvent) : FReply::Unhandled();
 }
+
+void SViewport::OnFinishedPointerInput()
+{
+	TSharedPtr<ISlateViewport> PinnedInterface = ViewportInterface.Pin();
+	if (PinnedInterface.IsValid())
+	{
+		PinnedInterface->OnFinishedPointerInput();
+	}
+}

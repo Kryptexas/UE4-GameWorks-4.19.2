@@ -804,6 +804,54 @@ void FSlateApplication::PollGameDeviceState()
 	}
 }
 
+void FSlateApplication::FinishedInputThisFrame()
+{
+	const float DeltaTime = GetDeltaTime();
+
+	// All the input events have been processed.
+
+	// Any widgets that may have received pointer input events
+	// are given a chance to process accumulated values.
+	if (MouseCaptor.HasCapture())
+	{
+		TArray<TSharedRef<SWidget>> Captors = MouseCaptor.ToSharedWidgets();
+		for (const auto & Captor : Captors )
+		{
+			Captor->OnFinishedPointerInput();
+		}
+	}
+	else
+	{
+		for ( const TWeakPtr<SWidget>& WidgetPtr : WidgetsUnderCursorLastEvent.Widgets )
+		{
+			const TSharedPtr<SWidget>& Widget = WidgetPtr.Pin();
+			if (Widget.IsValid())
+			{
+				Widget->OnFinishedPointerInput();
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	// Any widgets that may have recieved key events
+	// are given a chance to process accumulated values.
+	for( const TWeakPtr<SWidget>& WidgetPtr : FocusedWidgetPath.Widgets )
+	{
+		const TSharedPtr<SWidget>& Widget = WidgetPtr.Pin();
+		if (Widget.IsValid())
+		{
+			Widget->OnFinishedKeyInput();
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
 /**
  * Ticks this application
  */
@@ -3082,13 +3130,10 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 				const bool bIsWidgetReflectorPicking = WidgetReflector.IsValid() && WidgetReflector->IsInPickingMode();
 				if ( bIsWidgetReflectorPicking )
 				{
-					if ( WidgetReflector.IsValid() )
-					{
-						WidgetReflector->OnWidgetPicked();
-						Reply = FReply::Handled();
+					WidgetReflector->OnWidgetPicked();
+					Reply = FReply::Handled();
 
-						return Reply.IsEventHandled();
-					}
+					return Reply.IsEventHandled();
 				}
 			}
 

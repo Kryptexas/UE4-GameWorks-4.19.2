@@ -404,6 +404,20 @@ public:
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent );
 
 	/**
+	 * All the pointer (mouse, touch, stylus, etc.) events from this frame have been routed.
+	 * This is a widget's chance to act on any accumulated data.
+	 *
+	 * 
+	 */
+	virtual void OnFinishedPointerInput();
+
+	/**
+	 * All the key (keyboard, gamepay, joystick, etc.) input from this frame has been routed.
+	 * This is a widget's chance to act on any accumulated data.
+	 */
+	virtual void OnFinishedKeyInput();
+
+	/**
 	 * Called when the mouse is moved over the widget's window, to determine if we should report whether
 	 * OS-specific features should be active at this location (such as a title bar grip, system menu, etc.)
 	 * Usually you should not need to override this function.

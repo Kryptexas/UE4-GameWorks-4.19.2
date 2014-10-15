@@ -162,6 +162,11 @@ void FSceneViewport::SetMouse( int32 X, int32 Y )
 	CachedMousePos = FIntPoint(X, Y);
 }
 
+void FSceneViewport::ProcessInput( float DeltaTime )
+{
+	// Required 
+}
+
 void FSceneViewport::UpdateCachedMousePos( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
 {
 	CachedMousePos = InGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition() ).IntPoint();
@@ -216,7 +221,7 @@ void FSceneViewport::ApplyModifierKeys( const FModifierKeysState& InKeysState )
 	}
 }
 
-void FSceneViewport::ProcessInput( float DeltaTime )
+void FSceneViewport::ProcessAccumulatedPointerInput()
 {
 	if( !ViewportClient )
 	{
@@ -230,6 +235,7 @@ void FSceneViewport::ProcessInput( float DeltaTime )
 
 	if (NumMouseSamplesX > 0 || NumMouseSamplesY > 0)
 	{
+		const float DeltaTime = FApp::GetDeltaTime();
 		ViewportClient->InputAxis( this, 0, EKeys::MouseX, MouseDelta.X, DeltaTime, NumMouseSamplesX );
 		ViewportClient->InputAxis( this, 0, EKeys::MouseY, MouseDelta.Y, DeltaTime, NumMouseSamplesY );
 	}
@@ -716,6 +722,11 @@ FReply FSceneViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMot
 	}
 
 	return CurrentReplyState;
+}
+
+void FSceneViewport::OnFinishedPointerInput()
+{
+	ProcessAccumulatedPointerInput();
 }
 
 FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )

@@ -473,6 +473,13 @@ public:
 	}
 
 	/**
+	 * Called after all input for this frame is processed.
+	 */
+	virtual void OnFinishedPointerInput()
+	{
+	}
+
+	/**
 	 * Called when the viewport loses keyboard focus.  
 	 *
 	 * @param InKeyboardFocusEvent	Information about what caused the viewport to lose focus

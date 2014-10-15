@@ -2184,6 +2184,9 @@ void FEngineLoop::Tick()
 			FSlateApplication::Get().PollGameDeviceState();
 		}
 
+		// Gives widgets a chance to process any accumulated input
+		FSlateApplication::Get().FinishedInputThisFrame();
+
 		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
 
 		if (GShaderCompilingManager)

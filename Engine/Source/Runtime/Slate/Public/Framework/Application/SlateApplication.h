@@ -211,6 +211,11 @@ public:
 	void PollGameDeviceState();
 
 	/**
+	 * Occurs before Tick(), after all pointer and keyboard input has been processed.
+	 */
+	void FinishedInputThisFrame();
+
+	/**
 	 * Ticks this application
 	 */
 	void Tick();

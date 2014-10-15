@@ -236,6 +236,16 @@ FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEven
 	return FReply::Unhandled();
 }
 
+void SWidget::OnFinishedPointerInput()
+{
+
+}
+
+void SWidget::OnFinishedKeyInput()
+{
+
+}
+
 
 EWindowZone::Type SWidget::GetWindowZoneOverride() const
 {
