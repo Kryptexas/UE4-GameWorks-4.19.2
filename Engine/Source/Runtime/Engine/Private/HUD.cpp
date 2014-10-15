@@ -74,7 +74,7 @@ void AHUD::NotifyBindPostProcessEffects()
 
 FVector2D AHUD::GetCoordinateOffset() const
 {
-	FVector2D Offset;
+	FVector2D Offset(0.f, 0.f);
 
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(GetOwningPlayerController()->Player);
 
