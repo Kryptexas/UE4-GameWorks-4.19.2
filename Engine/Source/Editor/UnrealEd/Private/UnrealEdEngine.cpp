@@ -1136,6 +1136,37 @@ void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiv
 }
 
 
+void UUnrealEdEngine::DrawComponentVisualizersHUD(const FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
+{
+	// Iterate over all selected actors
+	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = Cast<AActor>(*It);
+		if (Actor != NULL)
+		{
+			// Then iterate over components of that actor
+			TArray<UActorComponent*> Components;
+			Actor->GetComponents(Components);
+
+			for (int32 CompIdx = 0; CompIdx<Components.Num(); CompIdx++)
+			{
+				UActorComponent* Comp = Components[CompIdx];
+				if (Comp->IsRegistered())
+				{
+					// Try and find a visualizer
+
+					TSharedPtr<FComponentVisualizer> Visualizer = FindComponentVisualizer(Comp->GetClass());
+					if (Visualizer.IsValid())
+					{
+						Visualizer->DrawVisualizationHUD(Comp, Viewport, View, Canvas);
+					}
+				}
+			}
+		}
+	}
+}
+
+
 EWriteDisallowedWarningState UUnrealEdEngine::GetWarningStateForWritePermission(const FString& PackageName) const
 {
 	EWriteDisallowedWarningState WarningState = WDWS_WarningUnnecessary;

@@ -4031,6 +4031,12 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 
 void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas )
 {
+	// HUD for components visualizers
+	if (GUnrealEd != NULL)
+	{
+		GUnrealEd->DrawComponentVisualizersHUD(&InViewport, &View, &Canvas);
+	}
+
 	// Information string
 	Canvas.DrawShadowedString( 4,4, *GLevelEditorModeTools().InfoString, GEngine->GetSmallFont(), FColor(255,255,255) );
 

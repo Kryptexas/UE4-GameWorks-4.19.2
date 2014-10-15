@@ -242,6 +242,26 @@ void FSCSEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 	AActor* PreviewActor = GetPreviewActor();
 	if(PreviewActor)
 	{
+		if (GUnrealEd != NULL)
+		{
+			TArray<FSCSEditorTreeNodePtrType> SelectedNodes = BlueprintEditorPtr.Pin()->GetSelectedSCSEditorTreeNodes();
+			for (int32 SelectionIndex = 0; SelectionIndex < SelectedNodes.Num(); ++SelectionIndex)
+			{
+				FSCSEditorTreeNodePtrType SelectedNode = SelectedNodes[SelectionIndex];
+
+				UActorComponent* Comp = Cast<USceneComponent>(SelectedNode->FindComponentInstanceInActor(PreviewActor, true));
+				if (Comp != NULL && Comp->IsRegistered())
+				{
+					// Try and find a visualizer
+					TSharedPtr<FComponentVisualizer> Visualizer = GUnrealEd->FindComponentVisualizer(Comp->GetClass());
+					if (Visualizer.IsValid())
+					{
+						Visualizer->DrawVisualizationHUD(Comp, &InViewport, &View, &Canvas);
+					}
+				}
+			}
+		}
+
 		TGuardValue<bool> AutoRestore(GAllowActorScriptExecutionInEditor, true);
 
 		const int32 HalfX = 0.5f * Viewport->GetSizeXY().X;
