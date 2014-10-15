@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTime.h"
+#include "Windows/WindowsSystemIncludes.h"
 
 /**
  * Please see following UDN post about using rdtsc on processors that support

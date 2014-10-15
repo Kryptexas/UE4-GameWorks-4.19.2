@@ -5,6 +5,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTime.h"
+#include "WinRT/WinRTSystemIncludes.h"
 
 /**
  * WinRT implementation of the Time OS functions

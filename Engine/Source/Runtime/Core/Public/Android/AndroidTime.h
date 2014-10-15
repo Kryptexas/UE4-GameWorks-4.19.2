@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformTime.h"
 //@todo android: this entire file
 
 /**

@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTime.h"
+#include "HTML5/HTML5SystemIncludes.h"
 
 #if PLATFORM_HTML5_WIN32
 #include <time.h>
