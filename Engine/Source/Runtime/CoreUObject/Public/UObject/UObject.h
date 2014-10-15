@@ -974,6 +974,8 @@ public:
 	DECLARE_FUNCTION(execBindDelegate);
 	DECLARE_FUNCTION(execCallMulticastDelegate);
 
+	DECLARE_FUNCTION(execLetValueOnPersistentFrame);
+
 	// -- K2 support functions
 	struct Object_eventExecuteUbergraph_Parms
 	{

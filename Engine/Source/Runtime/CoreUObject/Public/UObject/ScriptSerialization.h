@@ -129,6 +129,12 @@
 			SerializeExpr( iCode, Ar ); // Assignment expr.
 			break;
 		}
+		case Ex_LetValueOnPersistentFrame:
+		{
+			XFER_PROP_POINTER;			// Destination property.
+			SerializeExpr(iCode, Ar);	// Assignment expr.
+			break;
+		}
 		case EX_StructMemberContext:
 		{
 			XFERPTR(UProperty*);        // struct member expr.

@@ -177,6 +177,7 @@ bool UObject::IsInBlueprint() const
 void UObject::DestroyNonNativeProperties()
 {
 	// Destroy properties that won't be destroyed by the native destructor
+	GetClass()->DestroyPersistentUberGraphFrame(this);
 	{
 		for (UProperty* P = GetClass()->DestructorLink; P; P = P->DestructorLinkNext)
 		{

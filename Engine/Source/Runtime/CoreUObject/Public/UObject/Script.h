@@ -234,6 +234,7 @@ enum EExprToken
 	EX_BindDelegate			= 0x61, // bind object and name to delegate
 	EX_RemoveMulticastDelegate = 0x62, // Remove a delegate from a multicast delegate's targets
 	EX_CallMulticastDelegate = 0x63, // Call multicast delegate
+	Ex_LetValueOnPersistentFrame = 0x64,
 	EX_Max					= 0x100,
 };
 

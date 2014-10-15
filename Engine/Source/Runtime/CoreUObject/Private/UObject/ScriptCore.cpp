@@ -402,9 +402,13 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 	}
 	else
 	{
-		// Make new stack frame in the current context.
-		uint8* Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
-		FMemory::Memzero( Frame, Function->PropertiesSize );
+		uint8* Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+		const bool bUsePersistentFrame = (NULL != Frame);
+		if (!bUsePersistentFrame)
+		{
+			Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
+			FMemory::Memzero(Frame, Function->PropertiesSize);
+		}
 		FFrame NewStack( this, Function, Frame, &Stack, Function->Children );
 		FOutParmRec** LastOut = &NewStack.OutParms;
 		UProperty* Property;
@@ -457,7 +461,7 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 				// warning: Stack.MostRecentPropertyAddress could be NULL for optional out parameters
 				// if that's the case, we use the extra memory allocated for the out param in the function's locals
 				// so there's always a valid address
-				Out->PropAddr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : Property->ContainerPtrToValuePtr<uint8>(Frame);
+				Out->PropAddr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : Property->ContainerPtrToValuePtr<uint8>(NewStack.Locals);
 				Out->Property = Property;
 
 				// add the new out param info to the stack frame's linked list
@@ -489,10 +493,13 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 		}
 #endif
 
-		// Initialize any local struct properties with defaults
-		for ( UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next )
+		if (!bUsePersistentFrame)
 		{
-			LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			// Initialize any local struct properties with defaults
+			for (UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next)
+			{
+				LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			}
 		}
 
 		const bool bIsValidFunction = (Function->FunctionFlags & FUNC_Native) || (Function->Script.Num() > 0);
@@ -503,12 +510,15 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 			ProcessInternal( NewStack, Result );
 		}
 
-		// destruct properties on the stack, except for out params since we know we didn't use that memory
-		for (UProperty* Destruct = Function->DestructorLink; Destruct; Destruct = Destruct->DestructorLinkNext)
+		if (!bUsePersistentFrame)
 		{
-			if (!Destruct->HasAnyPropertyFlags(CPF_OutParm))
+			// destruct properties on the stack, except for out params since we know we didn't use that memory
+			for (UProperty* Destruct = Function->DestructorLink; Destruct; Destruct = Destruct->DestructorLinkNext)
 			{
-				Destruct->DestroyValue_InContainer(NewStack.Locals);
+				if (!Destruct->HasAnyPropertyFlags(CPF_OutParm))
+				{
+					Destruct->DestroyValue_InContainer(NewStack.Locals);
+				}
 			}
 		}
 	}
@@ -829,15 +839,24 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 
 	// Scope required for scoped script stats.
 	{
-		// Create a new local execution stack.
-		FFrame NewStack( this, Function, FMemory_Alloca(Function->PropertiesSize), NULL, Function->Children );
-		checkSlow(NewStack.Locals || Function->ParmsSize == 0);
+		uint8* Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+		const bool bUsePersistentFrame = (NULL != Frame);
+		if (!bUsePersistentFrame)
+		{
+			Frame = (uint8*)FMemory_Alloca(Function->PropertiesSize);
+			// zero the local property memory
+			FMemory::Memzero(Frame + Function->ParmsSize, Function->PropertiesSize - Function->ParmsSize);
+		}
 
 		// initialize the parameter properties
-		FMemory::Memcpy( NewStack.Locals, Parms, Function->ParmsSize );
+		FMemory::Memcpy(Frame, Parms, Function->ParmsSize);
 
-		// zero the local property memory
-		FMemory::Memzero( NewStack.Locals+Function->ParmsSize, Function->PropertiesSize-Function->ParmsSize );
+		// Create a new local execution stack.
+		FFrame NewStack(this, Function, Frame, NULL, Function->Children);
+
+		checkSlow(NewStack.Locals || Function->ParmsSize == 0);
+
+
 
 		// if the function has out parameters, fill the stack frame's out parameter info with the info for those params 
 		if ( Function->HasAnyFunctionFlags(FUNC_HasOutParms) )
@@ -879,10 +898,14 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #endif
 		}
 
-		for ( UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next )
+		if (!bUsePersistentFrame)
 		{
-			LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			for (UProperty* LocalProp = Function->FirstPropertyToInit; LocalProp != NULL; LocalProp = (UProperty*)LocalProp->Next)
+			{
+				LocalProp->InitializeValue_InContainer(NewStack.Locals);
+			}
 		}
+
 		// Call native function or UObject::ProcessInternal.
 		if (Function->FunctionFlags & FUNC_Native)
 		{
@@ -895,17 +918,20 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 			Function->Invoke(this, NewStack, (uint8*)Parms + Function->ReturnValueOffset);
 		}
 
-		// Destroy local variables except function parameters.!! see also UObject::CallFunctionByNameWithArguments
-		// also copy back constructed value parms here so the correct copy is destroyed when the event function returns
-		for (UProperty* P = Function->DestructorLink; P; P = P->DestructorLinkNext)
+		if (!bUsePersistentFrame)
 		{
-			if (!P->IsInContainer(Function->ParmsSize))
+			// Destroy local variables except function parameters.!! see also UObject::CallFunctionByNameWithArguments
+			// also copy back constructed value parms here so the correct copy is destroyed when the event function returns
+			for (UProperty* P = Function->DestructorLink; P; P = P->DestructorLinkNext)
 			{
-				P->DestroyValue_InContainer(NewStack.Locals);
-			}
-			else if (!(P->PropertyFlags & CPF_OutParm))
-			{
-				FMemory::Memcpy(P->ContainerPtrToValuePtr<uint8>(Parms), P->ContainerPtrToValuePtr<uint8>(NewStack.Locals), P->ArrayDim * P->ElementSize);
+				if (!P->IsInContainer(Function->ParmsSize))
+				{
+					P->DestroyValue_InContainer(NewStack.Locals);
+				}
+				else if (!(P->PropertyFlags & CPF_OutParm))
+				{
+					FMemory::Memcpy(P->ContainerPtrToValuePtr<uint8>(Parms), P->ContainerPtrToValuePtr<uint8>(NewStack.Locals), P->ArrayDim * P->ElementSize);
+				}
 			}
 		}
 	}
@@ -1186,6 +1212,21 @@ void UObject::execPopExecutionFlowIfNot( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_PopExecutionFlowIfNot, execPopExecutionFlowIfNot );
 
+void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
+{
+	Stack.MostRecentProperty = NULL;
+	Stack.MostRecentPropertyAddress = NULL;
+
+	auto DestProperty = Stack.ReadProperty();
+	checkSlow(DestProperty);
+	auto UberGraphFunction = CastChecked<UFunction>(DestProperty->GetOwnerStruct());
+	auto FrameBase = Stack.Object->GetClass()->GetPersistentUberGraphFrame(Stack.Object, UberGraphFunction);
+	checkSlow(FrameBase);
+	auto DestAddress = DestProperty->ContainerPtrToValuePtr<uint8>(FrameBase);
+
+	Stack.Step(Stack.Object, DestAddress);
+}
+IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
 void UObject::execLet( FFrame& Stack, RESULT_DECL )
 {

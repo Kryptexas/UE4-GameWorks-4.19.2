@@ -401,3 +401,140 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 		}
 	}
 }
+
+uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const
+{
+	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
+	{
+		if (UberGraphFunction == FuncToCheck)
+		{
+			auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+			checkSlow(PointerToUberGraphFrame && PointerToUberGraphFrame->RawPointer);
+			return PointerToUberGraphFrame->RawPointer;
+		}
+	}
+	auto ParentClass = GetSuperClass();
+	checkSlow(ParentClass);
+	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
+}
+
+void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj) const
+{
+	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
+	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
+	{
+		auto FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
+		FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
+		for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+		{
+			Property->InitializeValue_InContainer(FrameMemory);
+		}
+		
+		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+		checkSlow(PointerToUberGraphFrame && !PointerToUberGraphFrame->RawPointer);
+		PointerToUberGraphFrame->RawPointer = FrameMemory;
+	}
+
+	auto ParentClass = GetSuperClass();
+	checkSlow(ParentClass);
+	return ParentClass->CreatePersistentUberGraphFrame(Obj);
+}
+
+void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) const
+{
+	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
+	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
+	{
+		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+		checkSlow(PointerToUberGraphFrame && PointerToUberGraphFrame->RawPointer);
+		auto FrameMemory = PointerToUberGraphFrame->RawPointer;
+		PointerToUberGraphFrame->RawPointer = NULL;
+
+		for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+		{
+			Property->DestroyValue_InContainer(FrameMemory);
+		}
+		FMemory::Free(FrameMemory);
+	}
+
+	auto ParentClass = GetSuperClass();
+	checkSlow(ParentClass);
+	return ParentClass->DestroyPersistentUberGraphFrame(Obj);
+}
+
+void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
+{
+	Super::Link(Ar, bRelinkExistingProperties);
+
+	if (UsePersistentUberGraphFrame() && UberGraphFunction)
+	{
+		for (auto Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
+		{
+			if (Property->GetFName() == GetUberGraphFrameName())
+			{
+				UberGraphFramePointerProperty = Property;
+				break;
+			}
+		}
+		checkSlow(UberGraphFramePointerProperty);
+	}
+}
+
+void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
+{
+	Super::PurgeClass(bRecompilingOnLoad);
+
+	UberGraphFramePointerProperty = NULL;
+	UberGraphFunction = NULL;
+}
+
+void UBlueprintGeneratedClass::Bind()
+{
+	Super::Bind();
+
+	if (UsePersistentUberGraphFrame() && UberGraphFunction)
+	{
+		ClassAddReferencedObjects = &UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame;
+	}
+}
+
+void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector)
+{
+	checkSlow(InThis);
+	for (UClass* CurrentClass = InThis->GetClass(); CurrentClass; CurrentClass = CurrentClass->GetSuperClass())
+	{
+		if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
+		{
+			if (BPGC->UberGraphFramePointerProperty)
+			{
+				checkSlow(BPGC->UberGraphFunction);
+				auto PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
+				checkSlow(PointerToUberGraphFrame && PointerToUberGraphFrame->RawPointer);
+
+				FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(InThis, Collector);
+				BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer, 0);
+			}
+		}
+		else if (CurrentClass->HasAllClassFlags(CLASS_Native))
+		{
+			CurrentClass->CallAddReferencedObjects(InThis, Collector);
+			break;
+		}
+		else
+		{
+			checkSlow(false);
+		}
+	}
+}
+
+FName UBlueprintGeneratedClass::GetUberGraphFrameName()
+{
+	static const FName UberGraphFrameName(TEXT("UberGraphFrame"));
+	return UberGraphFrameName;
+}
+
+bool UBlueprintGeneratedClass::UsePersistentUberGraphFrame()
+{
+	static const FBoolConfigValueHelper PersistentUberGraphFrame(TEXT("Kismet"), TEXT("bPersistentUberGraphFrame"), GEngineIni);
+	return PersistentUberGraphFrame;
+}

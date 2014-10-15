@@ -1953,6 +1953,19 @@ public:
 	*/
 	FName GetDefaultObjectName();
 
+	virtual uint8* GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const
+	{
+		return NULL;
+	}
+
+	virtual void CreatePersistentUberGraphFrame(UObject* Obj) const
+	{
+	}
+
+	virtual void DestroyPersistentUberGraphFrame(UObject* Obj) const
+	{
+	}
+
 	/**
 	  * Get the default object from the class and cast to a particular type
 	  * @return		the CDO for this class

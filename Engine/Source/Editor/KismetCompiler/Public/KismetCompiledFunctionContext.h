@@ -65,6 +65,7 @@ public:
 	TIndirectArray<FBPTerminal> Parameters;
 	TIndirectArray<FBPTerminal> Results;
 	TIndirectArray<FBPTerminal> VariableReferences;
+	TIndirectArray<FBPTerminal> PersistentFrameVariableReferences;
 	TIndirectArray<FBPTerminal> Literals;
 	TIndirectArray<FBPTerminal> Locals;
 	TIndirectArray<FBPTerminal> EventGraphLocals;

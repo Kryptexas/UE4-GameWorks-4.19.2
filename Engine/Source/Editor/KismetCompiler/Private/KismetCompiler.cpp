@@ -18,6 +18,7 @@
 #include "UserDefinedStructureCompilerUtils.h"
 #include "EditorCategoryUtils.h"
 #include "K2Node_EnumLiteral.h"
+#include "K2Node_SetVariableOnPersistentFrame.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
 #include "Engine/DynamicBlueprintBinding.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -605,7 +606,8 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 
 			if (Term.bPassedByReference)
 			{
-				if (!NewProperty->HasAnyPropertyFlags(CPF_OutParm))
+				// special case for BlueprintImplementableEvent
+				if (NewProperty->HasAnyPropertyFlags(CPF_Parm) && !NewProperty->HasAnyPropertyFlags(CPF_OutParm))
 				{
 					NewProperty->SetPropertyFlags(CPF_OutParm | CPF_ReferenceParm);
 				}
@@ -698,6 +700,10 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 
 void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context)
 {
+	ensure(Context.IsEventGraph() || !Context.EventGraphLocals.Num());
+	ensure(!Context.IsEventGraph() || !Context.Locals.Num());
+
+	const bool bPersistentUberGraphFrame = UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && Context.bIsUbergraph;
 	// Local stack frame (or maybe class for the ubergraph)
 	{
 		const bool bArePropertiesLocal = true;
@@ -709,6 +715,11 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Parameters, CPF_Parm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Results, CPF_Parm | CPF_OutParm, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
 		CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.Locals, 0, bArePropertiesLocal, /*bPropertiesAreParameters=*/ true);
+
+		if (bPersistentUberGraphFrame)
+		{
+			CreatePropertiesFromList(Context.Function, PropertyStorageLocation, Context.EventGraphLocals, 0, bArePropertiesLocal, true);
+		}
 
 		// If there were local properties, place them at the end of the property storage location
 		if(LocalProperties)
@@ -746,8 +757,6 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 
 	// Class
 	{
-		const bool bArePropertiesLocal = false;
-		
 		int32 PropertySafetyCounter = 100000;
 		UField** PropertyStorageLocation = &(NewClass->Children);
 		while (*PropertyStorageLocation != NULL)
@@ -760,8 +769,12 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 			PropertyStorageLocation = &((*PropertyStorageLocation)->Next);
 		}
 
+		const bool bArePropertiesLocal = false;
 		const uint64 UbergraphHiddenVarFlags = CPF_Transient | CPF_DuplicateTransient;
-		CreatePropertiesFromList(NewClass, PropertyStorageLocation, Context.EventGraphLocals, UbergraphHiddenVarFlags, bArePropertiesLocal);
+		if (!bPersistentUberGraphFrame)
+		{
+			CreatePropertiesFromList(NewClass, PropertyStorageLocation, Context.EventGraphLocals, UbergraphHiddenVarFlags, bArePropertiesLocal);
+		}
 
 		// Handle level actor references
 		const uint64 LevelActorReferenceVarFlags = 0/*CPF_Edit*/;
@@ -1165,6 +1178,11 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Add the function to it's owner class function name -> function map
 		Context.NewClass->AddFunctionToFunctionMap(Context.Function);
+		if (UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && Context.bIsUbergraph)
+		{
+			ensure(!NewClass->UberGraphFunction);
+			NewClass->UberGraphFunction = Context.Function;
+		}
 
 		// Create any user defined variables, this must occur before registering nets so that the properties are in place
 		UField** PropertyStorageLocation = &(Context.Function->Children);
@@ -2328,7 +2346,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	}
 
 	// Copy each event parameter to the assignment node, if there are any inputs
-	UK2Node_VariableSet* AssignmentNode = NULL;
+	UK2Node* AssignmentNode = NULL;
 	for (int32 PinIndex = 0; PinIndex < EntryNode->Pins.Num(); ++PinIndex)
 	{
 		UEdGraphPin* SourcePin = EntryNode->Pins[PinIndex];
@@ -2337,8 +2355,16 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 			if (AssignmentNode == NULL)
 			{
 				// Create a variable write node to store the parameters into the ubergraph frame storage
-				AssignmentNode = SpawnIntermediateNode<UK2Node_VariableSet>(SrcEventNode, ChildStubGraph);
-				AssignmentNode->VariableReference.SetSelfMember(NAME_None);
+				if (UBlueprintGeneratedClass::UsePersistentUberGraphFrame())
+				{
+					AssignmentNode = SpawnIntermediateNode<UK2Node_SetVariableOnPersistentFrame>(SrcEventNode, ChildStubGraph);
+				}
+				else
+				{
+					auto VariableSetNode = SpawnIntermediateNode<UK2Node_VariableSet>(SrcEventNode, ChildStubGraph);
+					VariableSetNode->VariableReference.SetSelfMember(NAME_None);
+					AssignmentNode = VariableSetNode;
+				}
 				AssignmentNode->AllocateDefaultPins();
 			}
 
@@ -2558,15 +2584,6 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 	// Merge all of the top-level pages
 	MergeUbergraphPagesIn(ConsolidatedEventGraph);
 
-	// Add a dummy entry point to the uber graph, to get the function signature correct
-	{
-		UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(NULL, ConsolidatedEventGraph);
-		EntryNode->SignatureClass = UObject::StaticClass();
-		EntryNode->SignatureName = Schema->FN_ExecuteUbergraphBase;
-		EntryNode->CustomGeneratedFunctionName = ConsolidatedEventGraph->GetFName();
-		EntryNode->AllocateDefaultPins();
-	}
-
 	// Loop over implemented interfaces, and add dummy event entry points for events that aren't explicitly handled by the user
 	TArray<UK2Node_Event*> EntryPoints;
 	ConsolidatedEventGraph->GetNodesOfClass(EntryPoints);
@@ -2607,40 +2624,51 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		}
 	}
 
-	// Expand out nodes that need it
-	ExpansionStep(ConsolidatedEventGraph, true);
-
-	// If a function in the graph cannot be overridden/placed as event make sure that it is not.
-	VerifyValidOverrideEvent(ConsolidatedEventGraph);
-
-	// Do some cursory validation (pin types match, inputs to outputs, pins never point to their parent node, etc...)
+	if (ConsolidatedEventGraph->Nodes.Num())
 	{
-		UbergraphContext = new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
-		UbergraphContext->SourceGraph = ConsolidatedEventGraph;
-		UbergraphContext->MarkAsEventGraph();
-		UbergraphContext->MarkAsInternalOrCppUseOnly();
-		UbergraphContext->SetExternalNetNameMap(&ClassScopeNetNameMap);
-
-		Blueprint->EventGraphs.Empty();
-
-		// Validate all the nodes in the graph
-		for (int32 ChildIndex = 0; ChildIndex < ConsolidatedEventGraph->Nodes.Num(); ++ChildIndex)
+		// Add a dummy entry point to the uber graph, to get the function signature correct
 		{
-			const UEdGraphNode* Node = ConsolidatedEventGraph->Nodes[ChildIndex];	
-			const int32 SavedErrorCount = MessageLog.NumErrors;
-			ValidateNode(Node);
+			UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(NULL, ConsolidatedEventGraph);
+			EntryNode->SignatureClass = UObject::StaticClass();
+			EntryNode->SignatureName = Schema->FN_ExecuteUbergraphBase;
+			EntryNode->CustomGeneratedFunctionName = ConsolidatedEventGraph->GetFName();
+			EntryNode->AllocateDefaultPins();
+		}
 
-			// If the node didn't generate any errors then generate function stubs for event entry nodes etc.
-			if (SavedErrorCount == MessageLog.NumErrors)
+		// Expand out nodes that need it
+		ExpansionStep(ConsolidatedEventGraph, true);
+
+		// If a function in the graph cannot be overridden/placed as event make sure that it is not.
+		VerifyValidOverrideEvent(ConsolidatedEventGraph);
+
+		// Do some cursory validation (pin types match, inputs to outputs, pins never point to their parent node, etc...)
+		{
+			UbergraphContext = new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
+			UbergraphContext->SourceGraph = ConsolidatedEventGraph;
+			UbergraphContext->MarkAsEventGraph();
+			UbergraphContext->MarkAsInternalOrCppUseOnly();
+			UbergraphContext->SetExternalNetNameMap(&ClassScopeNetNameMap);
+
+			Blueprint->EventGraphs.Empty();
+
+			// Validate all the nodes in the graph
+			for (int32 ChildIndex = 0; ChildIndex < ConsolidatedEventGraph->Nodes.Num(); ++ChildIndex)
 			{
-				if (UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]))
+				const UEdGraphNode* Node = ConsolidatedEventGraph->Nodes[ChildIndex];
+				const int32 SavedErrorCount = MessageLog.NumErrors;
+				ValidateNode(Node);
+
+				// If the node didn't generate any errors then generate function stubs for event entry nodes etc.
+				if (SavedErrorCount == MessageLog.NumErrors)
 				{
-					CreateFunctionStubForEvent(SrcEventNode, Blueprint);
+					if (UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]))
+					{
+						CreateFunctionStubForEvent(SrcEventNode, Blueprint);
+					}
 				}
 			}
 		}
 	}
-
 }
 
 void FKismetCompilerContext::AutoAssignNodePosition(UEdGraphNode* Node)
@@ -2680,6 +2708,11 @@ void FKismetCompilerContext::AdvanceMacroPlacement(int32 Width, int32 Height)
 
 void FKismetCompilerContext::CreateCommentBlockAroundNodes(const TArray<UEdGraphNode*>& Nodes, UObject* SourceObject, UEdGraph* TargetGraph, FString CommentText, FLinearColor CommentColor, int32& Out_OffsetX, int32& Out_OffsetY)
 {
+	if (!Nodes.Num())
+	{
+		return;
+	}
+
 	FIntRect Bounds = FEdGraphUtilities::CalculateApproximateNodeBoundaries(Nodes);
 
 	// Figure out how to offset the expanded nodes to fit into our tile
@@ -3259,6 +3292,14 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
+	if (UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && UbergraphContext)
+	{
+		//UBER GRAPH PERSISTENT FRAME
+		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false);
+		auto Property = CreateVariable(UBlueprintGeneratedClass::GetUberGraphFrameName(), Type);
+		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
+	}
+
 	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_BindAndLinkClass);
 
 		// Relink the class
@@ -3467,6 +3508,26 @@ void FKismetCompilerContext::Compile()
 				{
 					UE_LOG(LogK2Compiler, Log, TEXT("\n\n[function %s]:\n"), *(Function.Function->GetName()));
 					Disasm.DisassembleStructure(Function.Function);
+				}
+			}
+		}
+
+		static const FBoolConfigValueHelper DisplayLayout(TEXT("Kismet"), TEXT("bDisplaysLayout"), GEngineIni);
+		if (!Blueprint->bIsRegeneratingOnLoad && bIsFullCompile && DisplayLayout && NewClass)
+		{
+			UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT CLASS %s:"), *GetNameSafe(NewClass));
+
+			for (auto Prop : TFieldRange<UProperty>(NewClass, EFieldIteratorFlags::ExcludeSuper))
+			{
+				UE_LOG(LogK2Compiler, Log, TEXT("%5d:\t%-64s\t%s"), Prop->GetOffset_ForGC(), *GetNameSafe(Prop), *Prop->GetCPPType());
+			}
+
+			if (NewClass->UberGraphFunction)
+			{
+				UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT FRAME %s:"), *GetNameSafe(NewClass->UberGraphFunction));
+				for (auto Prop : TFieldRange<UProperty>(NewClass->UberGraphFunction))
+				{
+					UE_LOG(LogK2Compiler, Log, TEXT("%5d:\t%-64s\t%s"), Prop->GetOffset_ForGC(), *GetNameSafe(Prop), *Prop->GetCPPType());
 				}
 			}
 		}

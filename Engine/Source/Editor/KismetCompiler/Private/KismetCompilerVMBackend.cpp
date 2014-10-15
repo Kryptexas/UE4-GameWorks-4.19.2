@@ -849,6 +849,18 @@ public:
 		EmitTerm(SourceExpression, DestinationExpression->AssociatedVarProperty);
 	}
 
+	void EmitAssignmentOnPersistentFrameStatment(FBlueprintCompiledStatement& Statement)
+	{
+		FBPTerminal* DestinationExpression = Statement.LHS;
+		FBPTerminal* SourceExpression = Statement.RHS[0];
+
+		Writer << Ex_LetValueOnPersistentFrame;
+		check(ClassBeingBuilt && ClassBeingBuilt->UberGraphFunction);
+		Writer << DestinationExpression->AssociatedVarProperty;
+
+		EmitTerm(SourceExpression, DestinationExpression->AssociatedVarProperty);
+	}
+
 	void EmitCastObjToInterfaceStatement(FBlueprintCompiledStatement& Statement)
 	{
 		FBPTerminal* DestinationExpression = Statement.LHS;
@@ -1160,6 +1172,9 @@ public:
 			break;
 		case KCST_Assignment:
 			EmitAssignmentStatment(Statement);
+			break;
+		case KCST_AssignmentOnPersistentFrame:
+			EmitAssignmentOnPersistentFrameStatment(Statement);
 			break;
 		case KCST_CastObjToInterface:
 			EmitCastObjToInterfaceStatement(Statement);

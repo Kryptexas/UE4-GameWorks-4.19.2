@@ -32,6 +32,7 @@ enum EKismetCompiledStatementType
 	KCST_CreateArray = 22,		// Creates and sets an array literal term
 	KCST_CrossInterfaceCast = 23,	// TargetInterface(Interface)
 	KCST_MetaCast = 24,	    // Cast<TargetClass>(TargetObject)
+	KCST_AssignmentOnPersistentFrame = 25, //
 };
 
 //@TODO: Too rigid / icky design

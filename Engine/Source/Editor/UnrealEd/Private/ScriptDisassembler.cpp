@@ -277,6 +277,22 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			DropIndent();
 			break;
 		}
+	case Ex_LetValueOnPersistentFrame:
+		{
+			Ar.Logf(TEXT("%s $%X: LetValueOnPersistentFrame"), *Indents, (int32)Opcode);
+			AddIndent();
+
+			auto Prop = ReadPointer<UProperty>(ScriptIndex);
+			Ar.Logf(TEXT("%s Destination variable: %s, offset: %d"), *Indents, *GetNameSafe(Prop), 
+				Prop ? Prop->GetOffset_ForDebug() : 0);
+			
+			Ar.Logf(TEXT("%s Expression:"), *Indents);
+			SerializeExpr(ScriptIndex);
+
+			DropIndent();
+
+			break;
+		}
 	case EX_StructMemberContext:
 		{
 			Ar.Logf(TEXT("%s $%X: Struct member context "), *Indents, (int32)Opcode);
