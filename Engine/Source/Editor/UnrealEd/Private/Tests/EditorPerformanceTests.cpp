@@ -80,25 +80,27 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 			}
 		}
 	}
-
 }
 
 bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 {
+	//This is used to hold the data that is being captured.
+	EditorPerfCaptureParameters EditorPerformanceData;
+
 	//Get the map name from the parameters.
 	FString MapName = Parameters;
-
+	
 	//Gets the main frame module to get the name of our current level.
 	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >("MainFrame");
-	FString ShortMapName = MainFrameModule.GetLoadedLevelName();
+	EditorPerformanceData.MapName = MainFrameModule.GetLoadedLevelName();
 
 	//Duration variable will be used to indicate how long the test will run for.  Defaults to a minute.
-	float Duration = 0;
+	EditorPerformanceData.TestDuration = 60;
 
-	if (!MapName.Equals(TEXT("CurrentLevel")))
+	if (!MapName.Equals(TEXT("CurrentLevel"), ESearchCase::IgnoreCase))
 	{
 		//Get the base filename for the map that will be used.
-		ShortMapName = FPaths::GetBaseFilename(MapName);
+		EditorPerformanceData.MapName = FPaths::GetBaseFilename(MapName);
 
 		//Load Map and get the time it took to take to load the map.
 		ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
@@ -112,26 +114,25 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 	for (auto Iter = AutomationTestSettings->EditorPerformanceTestMaps.CreateConstIterator(); Iter; ++Iter)
 	{
 		FString IterMapName = FPaths::GetBaseFilename(Iter->PerformanceTestmap.FilePath);
-		if ((IterMapName == ShortMapName) || (IterMapName == TEXT("CurrentLevel")))
+		if ((IterMapName == EditorPerformanceData.MapName || (IterMapName == TEXT("CurrentLevel"))))
 		{
-			Duration = ((Iter->TestTimer));
+			EditorPerformanceData.TestDuration = ((Iter->TestTimer));
 			//If the duration is equal to 0 then we simply warn the user that they need to set the test timer option for the performance test.
 			//If the duration is less than 0 then we fail this test.
-			if (Duration == 0)
+			if (EditorPerformanceData.TestDuration == 0)
 			{
-				UE_LOG(LogEditorAutomationTests, Warning, TEXT("Please set the test timer for '%s' in the automation preferences or engine.ini."), *ShortMapName);
+				UE_LOG(LogEditorAutomationTests, Warning, TEXT("Please set the test timer for '%s' in the automation preferences or engine.ini."), *EditorPerformanceData.MapName);
 			}
 			else
-			if (Duration < 0)
+			if (EditorPerformanceData.TestDuration < 0)
 			{
-				UE_LOG(LogEditorAutomationTests, Error, TEXT("Test timer preference option '%s' is less than 0."), *ShortMapName);
+				UE_LOG(LogEditorAutomationTests, Error, TEXT("Test timer preference option for '%s' is less than 0."), *EditorPerformanceData.MapName);
 				return false;
 			}
 		}
 	}
 
-
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Running the performance capture test for %.0f seconds on %s"), Duration, *ShortMapName);
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Running the performance capture test for %.0i seconds on %s"), EditorPerformanceData.TestDuration, *EditorPerformanceData.MapName);
 	
 	//Move the viewport views to the first bookmark
 	ADD_LATENT_AUTOMATION_COMMAND(FChangeViewportToFirstAvailableBookmarkCommand);
@@ -142,12 +143,7 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 	
 	//Grab the performance numbers based on the duration.
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
-	ADD_LATENT_AUTOMATION_COMMAND(FEditorPerformanceCommand(Duration));
-	
-
-	//Combine performance data into one chart.
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.5f));
-	ADD_LATENT_AUTOMATION_COMMAND(FGenerateEditorPerformanceCharts(ShortMapName));
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorPerfCaptureCommand(EditorPerformanceData));
 
 	return true;
 }

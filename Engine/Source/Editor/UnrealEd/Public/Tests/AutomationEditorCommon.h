@@ -4,7 +4,6 @@
 #include "AssetRegistryModule.h"
 #include "ModuleManager.h"
 #include "AutomationCommon.h"
-
 #include "Tests/AutomationTestSettings.h"
 
 //Includes needed for opening certain assets
@@ -96,7 +95,33 @@ namespace AutomationEditorCommonUtils
 	void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings);
 }
 
+struct EditorPerfCaptureParameters
+{
+	//Basic Test Info
+	FString MapName;
+	int32 TestDuration;
 
+	//Saved Performance Values
+	float MapLoadTime;
+	TArray<FTimespan> TimeBetweenCaptures;
+	TArray<float> AverageFPS;
+	TArray<float> AverageFrameTime;
+	TArray<float> UsedPhysical;
+	TArray<float> AvailablePhysical;
+	TArray<float> AvailableVirtual;
+	TArray<float> UsedVirtual;
+	TArray<float> PeakUsedVirtual;
+	TArray<float> PeakUsedPhysical;
+	TArray<FDateTime> TimeStamp;
+	TArray<FString> FormattedTimeStamp;
+
+	EditorPerfCaptureParameters()
+		: MapName(TEXT("None"))
+		, TestDuration(60)
+		, MapLoadTime(0)
+	{
+	}
+};
 
 //////////////////////////////////////////////////////////////////////////
 //Common latent commands used for automated editor testing.
@@ -130,7 +155,19 @@ DEFINE_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
 /**
 * This will display the average FPS and Memory numbers over a duration of time.
 */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerformanceCommand, float, Duration);
+//DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerformanceCommand, float, Duration);
+
+/**
+* This will capture the average FPS and Memory numbers over a duration of time.
+* @param The name of the EditorPerfCaptureParameters struct that will be used to hold the data.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerfCaptureCommand, EditorPerfCaptureParameters, EditorPerfStats);
+
+/**
+* Generates the editor performance capture chart.
+* @param The name of the EditorPerfCaptureParameters struct that will be used to hold the data.
+*/
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerfCaptureCommand, EditorPerfCaptureParameters, EditorPerfStats);
 
 /**
 * Loads a map
@@ -141,7 +178,8 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorLoadMap, FString, MapName)
 * Generates the editor performance capture chart.
 * @param Input the name of the map.
 */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerformanceCharts, FString, MapName);
+//DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerformanceCharts, FString, MapName);
+
 
 /**
 * Waits for shaders to finish compiling before moving on to the next thing.
