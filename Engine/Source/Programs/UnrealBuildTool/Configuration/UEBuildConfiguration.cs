@@ -197,6 +197,7 @@ namespace UnrealBuildTool
 			bCompileAPEX = true;
             bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
+			bCompileICU = true;
 			bBuildDedicatedServer = false;
 			bBuildEditor = true;
 			bBuildRequiresCookedData = false;
