@@ -8,6 +8,20 @@
 
 #include "RenderingCompositionGraph.h"
 
+// ePId_Input0: SceneColor
+// derives from TRenderingCompositePassBase<InputCount, OutputCount> 
+// uses some GBuffer attributes
+// alpha is unused
+class FRCPassPostProcessSubsurfaceVisualize : public TRenderingCompositePassBase<1, 1>
+{
+public:
+	FRCPassPostProcessSubsurfaceVisualize();
+
+	// interface FRenderingCompositePass ---------
+	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+	virtual void Release() override { delete this; }
+};
 
 // ePId_Input0: SceneColor
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
@@ -16,17 +30,10 @@
 class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 1>
 {
 public:
-	// @param bInHalfRes if the output shoudl be half resolution to scene color
-	FRCPassPostProcessSubsurfaceSetup(bool bInVisualize, bool bInHalfRes = false);
-
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 	virtual void Release() override { delete this; }
-
-	bool bVisualize;
-	// if the output shoudl be half resolution to scene color
-	bool bHalfRes;
 };
 
 
@@ -38,8 +45,7 @@ class FRCPassPostProcessSubsurface : public TRenderingCompositePassBase<1, 1>
 public:
 	// constructor
 	// @param InDirection 0:horizontal/1:vertical
-	// @param InRadius in pixels in the full res image
-	FRCPassPostProcessSubsurface(uint32 InDirection, float InRadius, bool bInHalfRes = false);
+	FRCPassPostProcessSubsurface(uint32 InDirection);
 
 	// interface FRenderingCompositePass ---------
 
@@ -48,12 +54,8 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
-	// in pixels in the full res image
-	float Radius;
 	// 0:horizontal/1:vertical
 	uint32 Direction;
-	// if the output should be half resolution to scene color
-	bool bHalfRes;
 };
 
 
