@@ -27,6 +27,11 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 
 	// Pre-init the HMD module (optional).
 	virtual void PreInit() override;
+
+	FString GetModulePriorityKeyName() const
+	{
+		return FString(TEXT("OculusRift"));
+	}
 };
 
 IMPLEMENT_MODULE( FOculusRiftPlugin, OculusRift )

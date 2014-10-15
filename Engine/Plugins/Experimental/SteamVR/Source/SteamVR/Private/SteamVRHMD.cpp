@@ -16,6 +16,11 @@ class FSteamVRPlugin : public ISteamVRPlugin
 {
 	/** IHeadMountedDisplayModule implementation */
 	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() override;
+
+	FString GetModulePriorityKeyName() const
+	{
+		return FString(TEXT("SteamVR"));
+	}
 };
 
 IMPLEMENT_MODULE( FSteamVRPlugin, SteamVR )

@@ -1730,6 +1730,7 @@ bool UEngine::InitializeHMDDevice()
 		{
 			// Get a list of plugins that implement this feature
 			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>( IHeadMountedDisplayModule::GetModularFeatureName() );
+			HMDImplementations.Sort(FHMDPluginSorter());
 			for( auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt && !HMDDevice.IsValid(); ++HMDModuleIt )
 			{
 				HMDDevice = (*HMDModuleIt)->CreateHeadMountedDisplay();
