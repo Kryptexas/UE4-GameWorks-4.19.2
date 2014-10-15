@@ -19,7 +19,7 @@ public:
 		MAX_GPUSKINCACHE_CHUNKS_PER_LOD = 16,
 	};
 
-	FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource);
+	FSkeletalMeshObject(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type FeatureLevel);
 	virtual ~FSkeletalMeshObject() {}
 
 	/** 
@@ -232,4 +232,7 @@ protected:
 
 	/** Used for dynamic stats */
 	TStatId StatId;
+
+	/** Feature level to render for. */
+	ERHIFeatureLevel::Type FeatureLevel;
 };

@@ -241,7 +241,7 @@ class FSkeletalMeshObjectGPUSkin : public FSkeletalMeshObject
 {
 public:
 	/** @param	InSkeletalMeshComponent - skeletal mesh primitive we want to render */
-	FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource);
+	FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectGPUSkin();
 
 	// Begin FSkeletalMeshObject interface
@@ -344,7 +344,7 @@ private:
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
 		 * @param Chunks - relevant chunk information (either original or from swapped influence)
 		 */
-		void InitVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks);
+		void InitVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, ERHIFeatureLevel::Type FeatureLevel);
 		/** 
 		 * Release default vertex factory resources for this LOD 
 		 */
@@ -355,7 +355,7 @@ private:
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
 		 * @param Chunks - relevant chunk information (either original or from swapped influence)
 		 */
-		void InitMorphVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, bool bInUsePerBoneMotionBlur);
+		void InitMorphVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type InFeatureLevel);
 		/** 
 		 * Release morph vertex factory resources for this LOD 
 		 */
@@ -366,7 +366,7 @@ private:
 		 * @param VertexBuffers - available vertex buffers to reference in vertex factory streams
 		 * @param Chunks - relevant chunk information (either original or from swapped influence)
 		 */
-		void InitAPEXClothVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks);
+		void InitAPEXClothVertexFactories(const FVertexFactoryBuffers& VertexBuffers, const TArray<FSkelMeshChunk>& Chunks, ERHIFeatureLevel::Type InFeatureLevel);
 		/** 
 		 * Release morph vertex factory resources for this LOD 
 		 */
@@ -421,7 +421,7 @@ private:
 		 * @param bUseLocalVertexFactory - use non-gpu skinned factory when rendering in ref pose
 		 * @param MeshLODInfo - information about the state of the bone influence swapping
 		 */
-		void InitResources(const FSkelMeshObjectLODInfo& MeshLODInfo);		
+		void InitResources(const FSkelMeshObjectLODInfo& MeshLODInfo, ERHIFeatureLevel::Type FeatureLevel);		
 
 		/** 
 		 * Release rendering resources for this LOD 
@@ -433,7 +433,7 @@ private:
 		 * @param MeshLODInfo - information about the state of the bone influence swapping
 		 * @param Chunks - relevant chunk information (either original or from swapped influence)
 		 */
-		void InitMorphResources(const FSkelMeshObjectLODInfo& MeshLODInfo, bool bInUsePerBoneMotionBlur);
+		void InitMorphResources(const FSkelMeshObjectLODInfo& MeshLODInfo, bool bInUsePerBoneMotionBlur, ERHIFeatureLevel::Type FeatureLevel);
 
 		/** 
 		 * Release rendering resources for the morph stream of this LOD

@@ -62,11 +62,11 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || (GIsEditor && ShouldCPUSkin());
 			if(bIsCPUSkinned)
 			{
-				MeshObject = ::new FSkeletalMeshObjectCPUSkin(this,SkelMeshResource);
+				MeshObject = ::new FSkeletalMeshObjectCPUSkin(this, SkelMeshResource, SceneFeatureLevel);
 			}
 			else
 			{
-				MeshObject = ::new FSkeletalMeshObjectGPUSkin(this,SkelMeshResource);
+				MeshObject = ::new FSkeletalMeshObjectGPUSkin(this, SkelMeshResource, SceneFeatureLevel);
 			}
 
 			//Allow the editor a chance to manipulate it before its added to the scene
@@ -748,6 +748,7 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 		FComponentReregisterContext ReregisterContext(this);
 		check(MeshObject == NULL);
 		SkeletalMesh = InSkelMesh;
+		InvalidateCachedBounds();
 	}
 	
 	// TODO: (LH) find better way to call this 

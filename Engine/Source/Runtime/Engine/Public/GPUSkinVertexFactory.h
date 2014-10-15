@@ -355,7 +355,7 @@ public:
 			return true;
 		}
 
-		void UpdateBoneData();
+		void UpdateBoneData(ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseBoneData()
 		{
@@ -399,8 +399,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	FGPUBaseSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	:	ShaderData( InBoneMatrices )
+	FGPUBaseSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+	:	FVertexFactory(InFeatureLevel), ShaderData( InBoneMatrices )
 	{}
 
 	/** accessor */
@@ -490,8 +490,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	:	FGPUBaseSkinVertexFactory( InBoneMatrices )
+	TGPUSkinVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+		: FGPUBaseSkinVertexFactory(InBoneMatrices, InFeatureLevel)
 	{}
 
 	virtual bool UsesExtraBoneInfluences() const
@@ -548,8 +548,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	FGPUSkinPassthroughVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-		: TGPUSkinVertexFactory<false>(InBoneMatrices)
+	FGPUSkinPassthroughVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+		: TGPUSkinVertexFactory<false>(InBoneMatrices, InFeatureLevel)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
@@ -581,8 +581,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinMorphVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices)
+	TGPUSkinMorphVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices, InFeatureLevel)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
@@ -647,7 +647,7 @@ public:
 		}
 
 
-		void UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
+		void UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseClothSimulData()
 		{
@@ -735,8 +735,8 @@ public:
 	 *
 	 * @param	InBoneMatrices	Reference to shared bone matrices array.
 	 */
-	TGPUSkinAPEXClothVertexFactory(TArray<FBoneSkinning>& InBoneMatrices)
-	: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices)
+	TGPUSkinAPEXClothVertexFactory(TArray<FBoneSkinning>& InBoneMatrices, ERHIFeatureLevel::Type InFeatureLevel)
+		: TGPUSkinVertexFactory<bExtraBoneInfluencesT>(InBoneMatrices, InFeatureLevel)
 	{}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);

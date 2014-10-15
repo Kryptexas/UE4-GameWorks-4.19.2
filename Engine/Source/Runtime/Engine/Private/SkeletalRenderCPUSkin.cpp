@@ -117,8 +117,8 @@ void FFinalSkinVertexBuffer::ReleaseDynamicRHI()
 -----------------------------------------------------------------------------*/
 
 
-FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource) 
-:	FSkeletalMeshObject(InMeshComponent,InSkeletalMeshResource)
+FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel)
+	: FSkeletalMeshObject(InMeshComponent, InSkeletalMeshResource, InFeatureLevel)
 ,	DynamicData(NULL)
 ,	CachedVertexLOD(INDEX_NONE)
 ,	bRenderBoneWeight(false)

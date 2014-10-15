@@ -112,11 +112,11 @@ TStatId FBoneBufferPool::GetStatId() const
 TConsoleVariableData<int32>* FGPUBaseSkinVertexFactory::ShaderDataType::MaxBonesVar = NULL;
 uint32 FGPUBaseSkinVertexFactory::ShaderDataType::MaxGPUSkinBones = 0;
 
-void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData()
+void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData(ERHIFeatureLevel::Type FeatureLevel)
 {
 	uint32 NumBones = BoneMatrices.Num();
 	check(NumBones <= MaxGPUSkinBones);
-	if (GRHIFeatureLevel_DEPRECATED >= ERHIFeatureLevel::SM4)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		static FSharedPoolPolicyData PoolPolicy;
 		uint32 NumVectors = NumBones*3;
@@ -313,7 +313,7 @@ template <bool bExtraBoneInfluencesT>
 void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::InitDynamicRHI()
 {
 	FVertexFactory::InitDynamicRHI();
-	ShaderData.UpdateBoneData();
+	ShaderData.UpdateBoneData(GetFeatureLevel());
 }
 
 template <bool bExtraBoneInfluencesT>
@@ -686,11 +686,11 @@ protected:
 /*-----------------------------------------------------------------------------
 	TGPUSkinAPEXClothVertexFactory::ClothShaderType
 -----------------------------------------------------------------------------*/
-void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals)
+void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, ERHIFeatureLevel::Type FeatureLevel)
 {
 	uint32 NumSimulVerts = InSimulPositions.Num();
 
-	if (GRHIFeatureLevel_DEPRECATED >= ERHIFeatureLevel::SM4)
+	if (FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FMath::Min(NumSimulVerts, (uint32)MAX_APEXCLOTH_VERTICES_FOR_VB);
 
