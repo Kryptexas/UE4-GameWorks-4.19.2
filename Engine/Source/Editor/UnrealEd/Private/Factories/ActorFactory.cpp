@@ -83,7 +83,8 @@ FQuat FindActorAlignmentRotation(const FQuat& InActorRotation, const FVector& In
 		// Transform the model axis with this new pitch rotation to see if there is any need for yaw
 		TransformedModelAxis = (InActorRotation * DeltaRotation).RotateVector(InModelAxis);
 
-		if (!FVector::Parallel(InWorldNormal, TransformedModelAxis))
+		const float ParallelDotThreshold = 0.98f; // roughly 11.4 degrees (!)
+		if (!FVector::Coincident(InWorldNormal, TransformedModelAxis, ParallelDotThreshold))
 		{
 			const float Yaw = FMath::Atan2(InWorldNormal.X, InWorldNormal.Y) - FMath::Atan2(TransformedModelAxis.X, TransformedModelAxis.Y);
 

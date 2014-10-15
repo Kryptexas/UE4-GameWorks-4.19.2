@@ -794,7 +794,9 @@ void UEditorEngine::polySelectCoplanars(UWorld* InWorld, UModel* InModel)
 					const FVector Base = Model->Points[Model->Verts[Node.iVertPool].pVertex];
 					const FVector Normal = Model->Vectors[Surf.vNormal];
 
-					if(FVector::Coplanar(SelectedBase,SelectedNormal,Base,Normal) && !(Surf.PolyFlags & PF_Selected))
+					const float ParallelDotThreshold = 0.98f; // roughly 11.4 degrees (!), but this is the long-standing behavior.
+					if (FVector::Coincident(SelectedNormal, Normal, ParallelDotThreshold) &&
+						FVector::Coplanar(SelectedBase, SelectedNormal, Base, Normal, ParallelDotThreshold) && !(Surf.PolyFlags & PF_Selected))
 					{
 						Flags2[Node.iSurf] = 1;
 					}

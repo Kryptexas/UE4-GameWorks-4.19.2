@@ -790,35 +790,46 @@ public:
 	static FORCEINLINE float BoxPushOut( const FVector& Normal, const FVector& Size );
 
 	/**
-	 * See if two normal vectors (or plane normals) are nearly parallel.
+	 * See if two normal vectors are nearly parallel, meaning the angle between them is close to 0 degrees.
 	 *
-	 * @param Normal1 First normalized vector.
-	 * @param Normal1 Second normalized vector.
-	 * @param  DotTolerance Vectors are parallel if dot product varies less than this.
+	 * @param  Normal1 First normalized vector.
+	 * @param  Normal1 Second normalized vector.
+	 * @param  ParallelCosineThreshold Normals are parallel if absolute value of dot product (cosine of angle between them) is greater than or equal to this. For example: cos(1.0 degrees).
 	 * @return true if vectors are nearly parallel, false otherwise.
 	 */
-	static bool Parallel(const FVector& Normal1, const FVector& Normal2, float DotTolerance = THRESH_VECTORS_ARE_PARALLEL);
+	static bool Parallel(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold = THRESH_NORMALS_ARE_PARALLEL);
 
 	/**
-	 * See if two normal vectors (or plane normals) are coincident (nearly parallel and point in the same direction).
+	 * See if two normal vectors are coincident (nearly parallel and point in the same direction).
 	 * 
 	 * @param  Normal1 First normalized vector.
 	 * @param  Normal2 Second normalized vector.
-	 * @param  DotTolerance Vectors are parallel if dot product varies less than this.
-	 * @return true if vectors are coincident (nearly parallel and point in the same direction).
+	 * @param  ParallelCosineThreshold Normals are coincident if dot product (cosine of angle between them) is greater than or equal to this. For example: cos(1.0 degrees).
+	 * @return true if vectors are coincident (nearly parallel and point in the same direction), false otherwise.
 	 */
-	static bool Coincident(const FVector& Normal1, const FVector& Normal2, float DotTolerance = THRESH_VECTORS_ARE_PARALLEL);
+	static bool Coincident(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold = THRESH_NORMALS_ARE_PARALLEL);
 
 	/**
-	 * See if two planes are coplanar.
+	 * See if two normal vectors are nearly orthogonal (perpendicular), meaning the angle between them is close to 90 degrees.
+	 * 
+	 * @param  Normal1 First normalized vector.
+	 * @param  Normal2 Second normalized vector.
+	 * @param  OrthogonalCosineThreshold Normals are orthogonal if absolute value of dot product (cosine of angle between them) is less than or equal to this. For example: cos(89.0 degrees).
+	 * @return true if vectors are orthogonal (perpendicular), false otherwise.
+	 */
+	static bool Orthogonal(const FVector& Normal1, const FVector& Normal2, float OrthogonalCosineThreshold = THRESH_NORMALS_ARE_ORTHOGONAL);
+
+	/**
+	 * See if two planes are coplanar. They are coplanar if the normals are nearly parallel and the planes include the same set of points.
 	 *
 	 * @param Base1 The base point in the first plane.
 	 * @param Normal1 The normal of the first plane.
 	 * @param Base2 The base point in the second plane.
 	 * @param Normal2 The normal of the second plane.
+	 * @param ParallelCosineThreshold Normals are parallel if absolute value of dot product is greater than or equal to this.
 	 * @return true if the planes are coplanar, false otherwise.
 	 */
-	static bool Coplanar( const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2 );
+	static bool Coplanar(const FVector& Base1, const FVector& Normal1, const FVector& Base2, const FVector& Normal2, float ParallelCosineThreshold = THRESH_NORMALS_ARE_PARALLEL);
 
 	/**
 	 * Triple product of three vectors: X dot (Y cross Z).
@@ -1058,23 +1069,29 @@ inline FVector FVector::VectorPlaneProject(const FVector& V, const FVector& Plan
 	return V - V.ProjectOnToNormal(PlaneNormal);
 }
 
-inline bool FVector::Parallel(const FVector &Normal1, const FVector &Normal2, float DotTolerance)
+inline bool FVector::Parallel(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold)
 {
 	const float NormalDot = Normal1 | Normal2;
-	return (FMath::Abs(NormalDot - 1.f) <= DotTolerance);
+	return FMath::Abs(NormalDot) >= ParallelCosineThreshold;
 }
 
-inline bool FVector::Coincident(const FVector &Normal1, const FVector &Normal2, float DotTolerance)
+inline bool FVector::Coincident(const FVector& Normal1, const FVector& Normal2, float ParallelCosineThreshold)
 {
 	const float NormalDot = Normal1 | Normal2;
-	return (1.f - NormalDot) <= DotTolerance;
+	return NormalDot >= ParallelCosineThreshold;
 }
 
-inline bool FVector::Coplanar( const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2 )
+inline bool FVector::Orthogonal(const FVector& Normal1, const FVector& Normal2, float OrthogonalCosineThreshold)
 {
-	if      (!FVector::Parallel(Normal1,Normal2)) return false;
+	const float NormalDot = Normal1 | Normal2;
+	return FMath::Abs(NormalDot) <= OrthogonalCosineThreshold;
+}
+
+inline bool FVector::Coplanar(const FVector &Base1, const FVector &Normal1, const FVector &Base2, const FVector &Normal2, float ParallelCosineThreshold)
+{
+	if      (!FVector::Parallel(Normal1,Normal2,ParallelCosineThreshold)) return false;
 	else if (FVector::PointPlaneDist (Base2,Base1,Normal1) > THRESH_POINT_ON_PLANE) return false;
-	else    return true;
+	else return true;
 }
 
 inline float FVector::Triple( const FVector& X, const FVector& Y, const FVector& Z )

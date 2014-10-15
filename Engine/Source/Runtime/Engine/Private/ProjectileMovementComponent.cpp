@@ -173,7 +173,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			
 			// if velocity still into wall (after HandleHitWall() had a chance to adjust), slide along wall
 			const float DotTolerance = 0.01f;
-			const bool bSliding = (bMultiHit && FVector::Coincident(OldHitNormal, Hit.Normal, DotTolerance)) ||
+			const bool bSliding = (bMultiHit && FVector::Coincident(OldHitNormal, Hit.Normal)) ||
 								  ((Velocity.SafeNormal() | Hit.Normal) <= DotTolerance);
 			
 			if (bSliding)
