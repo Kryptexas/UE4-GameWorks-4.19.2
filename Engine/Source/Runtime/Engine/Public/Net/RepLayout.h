@@ -69,13 +69,20 @@ public:
 class FUnmappedGuidMgrElement
 {
 public:
-	FUnmappedGuidMgrElement() : Array( NULL ) {}
-	FUnmappedGuidMgrElement( const FNetworkGUID& InGuid, const int32 InParentIndex, const int32 InCmdIndex ) : Guid( InGuid ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
-	FUnmappedGuidMgrElement( class FUnmappedGuidMgr * InArray, const int32 InParentIndex, const int32 InCmdIndex ) : Array( InArray ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
+	FUnmappedGuidMgrElement() : NumBufferBits( 0 ), Array( NULL ) {}
+	FUnmappedGuidMgrElement( FBitReader & InReader, FBitReaderMark & InMark, const TArray< FNetworkGUID > & InUnmappedGUIDs, const int32 InParentIndex, const int32 InCmdIndex ) : UnmappedGUIDs( InUnmappedGUIDs ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) 
+	{
+		NumBufferBits = InReader.GetPosBits() - InMark.GetPos();
+		InMark.Copy( InReader, Buffer );
+	}
+	FUnmappedGuidMgrElement( class FUnmappedGuidMgr * InArray, const int32 InParentIndex, const int32 InCmdIndex ) : NumBufferBits( 0 ), Array( InArray ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
 
 	~FUnmappedGuidMgrElement();
 
-	FNetworkGUID				Guid;
+	TArray< FNetworkGUID >		UnmappedGUIDs;
+	TArray< uint8 >				Buffer;
+	int32						NumBufferBits;
+
 	class FUnmappedGuidMgr *	Array;
 	int32						ParentIndex;
 	int32						CmdIndex;
@@ -455,7 +462,8 @@ private:
 		FUnmappedGuidMgr *	UnmappedGuids, 
 		UObject *			OriginalObject,
 		UPackageMap *		PackageMap, 
-		uint8* RESTRICT	Data, 
+		uint8* RESTRICT		StoredData, 
+		uint8* RESTRICT		Data, 
 		const int32			MaxAbsOffset,
 		bool &				bOutSomeObjectsWereMapped,
 		bool &				bOutHasMoreUnmapped ) const;

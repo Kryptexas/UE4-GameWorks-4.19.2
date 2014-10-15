@@ -114,10 +114,9 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 			Object = NULL;
 		}
 
-		if ( NetGUID.IsValid() && Object == NULL )
+		if ( NetGUID.IsValid() && Object == NULL && bShouldTrackUnmappedGuids )
 		{
-			bLoadedUnmappedObject = true;
-			LastUnmappedNetGUID = NetGUID;
+			TrackedUnmappedNetGuids.AddUnique( NetGUID );
 		}
 
 		UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("UPackageMapClient::SerializeObject Serialized Object %s as <%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString() );

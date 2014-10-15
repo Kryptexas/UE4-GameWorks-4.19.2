@@ -112,9 +112,8 @@ class COREUOBJECT_API UPackageMap : public UObject
 	void				SetDebugContextString( const FString& Str ) { DebugContextString = Str; }
 	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
-	void				ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
-	bool				GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
-	FNetworkGUID		GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
+	void							ResetTrackedUnmappedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
+	const TArray< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
 	virtual UObject*	GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
@@ -122,12 +121,12 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 protected:
 
-	bool				bSuppressLogs;
+	bool					bSuppressLogs;
 
-	bool				bLoadedUnmappedObject;
-	FNetworkGUID		LastUnmappedNetGUID;
+	bool					bShouldTrackUnmappedGuids;
+	TArray< FNetworkGUID >	TrackedUnmappedNetGuids;
 
-	FString				DebugContextString;
+	FString					DebugContextString;
 };
 
 /** Represents a range of PacketIDs, inclusive */

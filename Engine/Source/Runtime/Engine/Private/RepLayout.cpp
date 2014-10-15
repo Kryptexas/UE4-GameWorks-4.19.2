@@ -1040,7 +1040,11 @@ bool FRepLayout::ReadProperty(
 	// This swaps Role/RemoteRole as we write it
 	const FRepLayoutCmd& SwappedCmd = Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
 
-	ReaderState.Bunch.PackageMap->ResetLoadedUnmappedObject();
+	// Let package map know we want to track and know about any guids that are unmapped during the serialize call
+	ReaderState.Bunch.PackageMap->ResetTrackedUnmappedGuids( true );
+
+	// Remember where we started reading from, so that if we have unmapped properties, we can re-deserialize from this data later
+	FBitReaderMark Mark( ReaderState.Bunch );
 
 	if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 	{
@@ -1060,16 +1064,38 @@ bool FRepLayout::ReadProperty(
 	{
 		Cmd.Property->NetSerializeItem( ReaderState.Bunch, ReaderState.Bunch.PackageMap, Data + SwappedCmd.Offset );
 	}
+	
+	const TArray< FNetworkGUID > & TrackedUnmappedGuids = ReaderState.Bunch.PackageMap->GetTrackedUnmappedGuids();
 
-	if ( ReaderState.Bunch.PackageMap->GetLoadedUnmappedObject() )
+	if ( TrackedUnmappedGuids.Num() > 0 )
 	{
 		// If we have an unmapped guid, we need to remember it, so we can fix up this object pointer when it finally arrives at a other time
 		const int32 LocalAbsOffset = AbsOffset + SwappedCmd.Offset;
-		UnmappedGuids->Map.Add( LocalAbsOffset, FUnmappedGuidMgrElement( ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID(), Cmd.ParentIndex, CmdIndex ) );
+		
+		// Note - If we already have an existing entry for this offset, we will replace it with this most recent data
+		UnmappedGuids->Map.Add( LocalAbsOffset, FUnmappedGuidMgrElement( ReaderState.Bunch, Mark, TrackedUnmappedGuids, Cmd.ParentIndex, CmdIndex ) );
 
-		UE_LOG( LogNet, Verbose, TEXT( "ADDED unmapped property: Offset: %i, Guid: %s, Name: %s"), LocalAbsOffset, *ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID().ToString(), *Cmd.Property->GetName() );
+		UE_LOG( LogNet, Verbose, TEXT( "ADDED unmapped property: Offset: %i, Name: %s"), LocalAbsOffset, *Cmd.Property->GetName() );
+
+		// List all the guids that were unmapped
+		for ( int32 i = 0; i < TrackedUnmappedGuids.Num(); i++ )
+		{
+			UE_LOG( LogNet, Verbose, TEXT( "  Guid: %s"), *TrackedUnmappedGuids[i].ToString() );
+		}
+
 		ReaderState.bHasUnmapped = true;
 	}
+	else
+	{
+		// If we don't have any unmapped guids, then make sure to remove the entry so we don't serialize old data when we update unmapped objects
+		const int32 LocalAbsOffset = AbsOffset + SwappedCmd.Offset;
+
+		// Remove the entry
+		UnmappedGuids->Map.Remove( LocalAbsOffset );
+	}
+
+	// Stop tracking unmapped objects
+	ReaderState.Bunch.PackageMap->ResetTrackedUnmappedGuids( false );
 
 #ifdef ENABLE_PROPERTY_CHECKSUMS
 	if ( ReaderState.bDoChecksum )
@@ -1282,13 +1308,12 @@ void FRepLayout::UpdateUnmappedObjects_r(
 	FUnmappedGuidMgr *	UnmappedGuids, 
 	UObject *			OriginalObject,
 	UPackageMap *		PackageMap, 
-	uint8* RESTRICT	Data, 
+	uint8* RESTRICT		StoredData, 
+	uint8* RESTRICT		Data, 
 	const int32			MaxAbsOffset,
 	bool &				bOutSomeObjectsWereMapped,
 	bool &				bOutHasMoreUnmapped ) const
 {
-	bool bHasUnmapped = false;
-
 	for ( auto It = UnmappedGuids->Map.CreateIterator(); It; ++It )
 	{
 		const int32 AbsOffset = It.Key();
@@ -1301,60 +1326,88 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			continue;
 		}
 
-		const FRepLayoutCmd& Cmd = Cmds[It.Value().CmdIndex];
-		const FRepParentCmd& Parent = Parents[It.Value().ParentIndex];
+		FUnmappedGuidMgrElement&		UnmappedProperty = It.Value();
+		const FRepLayoutCmd&			Cmd = Cmds[UnmappedProperty.CmdIndex];
+		const FRepParentCmd&			Parent = Parents[UnmappedProperty.ParentIndex];
 
-		if ( It.Value().Array != NULL )
+		if ( UnmappedProperty.Array != NULL )
 		{
 			check( Cmd.Type == REPCMD_DynamicArray );
-			FScriptArray * Array = (FScriptArray *)( Data + AbsOffset );
-			UpdateUnmappedObjects_r( RepState, It.Value().Array, OriginalObject, PackageMap, (uint8*)Array->GetData(), Array->Num() * Cmd.ElementSize, bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
+			
+			FScriptArray* StoredArray = (FScriptArray *)( StoredData + AbsOffset );
+			FScriptArray* Array = (FScriptArray *)( Data + AbsOffset );
+			
+			const int32 NewMaxOffset = FMath::Min( StoredArray->Num() * Cmd.ElementSize, Array->Num() * Cmd.ElementSize );
+
+			UpdateUnmappedObjects_r( RepState, UnmappedProperty.Array, OriginalObject, PackageMap, (uint8*)StoredArray->GetData(), (uint8*)Array->GetData(), NewMaxOffset, bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 			continue;
 		}
 
-		check( Cmd.Type == REPCMD_PropertyObject );
+		bool bMappedSomeGUIDs = false;
 
-		UObject* Object = PackageMap->GetObjectFromNetGUID( It.Value().Guid, false );
+		for ( int32 i = UnmappedProperty.UnmappedGUIDs.Num() - 1; i >= 0 ; i-- )
+		{			
+			const FNetworkGUID& GUID = UnmappedProperty.UnmappedGUIDs[i];
 
-		if ( Object != NULL )
-		{
-			UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
-			UObjectPropertyBase * ObjProperty = CastChecked< UObjectPropertyBase>( Cmd.Property );
-
-			UObject* OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
-
-			if (Parent.RepNotifyCondition == REPNOTIFY_Always || OldObject != Object)
+			if ( PackageMap->IsGUIDBroken( GUID, false ) )
 			{
-				if ( !bOutSomeObjectsWereMapped )
-				{
-					// Call PreNetReceive if we are going to change a value (some game code will need to think this is an actual replicated value)
-					OriginalObject->PreNetReceive();
-					bOutSomeObjectsWereMapped = true;
-				}
+				UE_LOG( LogNet, Warning, TEXT( "UpdateUnmappedObjects_r: Broken GUID. NetGuid: %s" ), *GUID.ToString() );
+				UnmappedProperty.UnmappedGUIDs.RemoveAt( i );
+				continue;
+			}
 
-				ObjProperty->SetObjectPropertyValue( Data + AbsOffset, Object );
+			UObject* Object = PackageMap->GetObjectFromNetGUID( GUID, false );
 
-				// If this properties needs an OnRep, queue that up to be handled later
-				if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+			if ( Object != NULL )
+			{
+				UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *GUID.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
+				UnmappedProperty.UnmappedGUIDs.RemoveAt( i );
+				bMappedSomeGUIDs = true;
+			}
+		}
+
+		// If we resolved some guids, re-deserialize the data which will hook up the object pointer with the property
+		if ( bMappedSomeGUIDs )
+		{
+			if ( !bOutSomeObjectsWereMapped )
+			{
+				// Call PreNetReceive if we are going to change a value (some game code will need to think this is an actual replicated value)
+				OriginalObject->PreNetReceive();
+				bOutSomeObjectsWereMapped = true;
+			}
+
+			// Copy current value over so we can check to see if it changed
+			if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+			{
+				StoreProperty( Cmd, StoredData + AbsOffset, Data + AbsOffset );
+			}
+
+			// Initialize the reader with the stored buffer that we need to read from
+			FBitReader Reader( UnmappedProperty.Buffer.GetData(), UnmappedProperty.NumBufferBits );
+
+			// Read the property
+			Cmd.Property->NetSerializeItem( Reader, PackageMap, Data + AbsOffset );
+
+			// Check to see if this property changed
+			if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+			{
+				if ( Parent.RepNotifyCondition == REPNOTIFY_Always || !PropertiesAreIdentical( Cmd, StoredData + AbsOffset, Data + AbsOffset ) )
 				{
+					// If this properties needs an OnRep, queue that up to be handled later
 					RepState->RepNotifies.AddUnique( Parent.Property );
 				} 
 			}
-
-			It.RemoveCurrent();
-			continue;
 		}
 
-		if ( PackageMap->IsGUIDBroken( It.Value().Guid, false ) )
+		// If we still have more unmapped guids, we need to keep processing this entry
+		if ( UnmappedProperty.UnmappedGUIDs.Num() > 0 )
 		{
-			UE_LOG( LogNet, Warning, TEXT( "UpdateUnmappedObjects_r: Broken GUID. NetGuid: %s" ), *It.Value().Guid.ToString() );
-			It.RemoveCurrent();
-			continue;
+			bOutHasMoreUnmapped = true;
 		}
-
-		UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: Still unmapped. Offset: %i, NetGuid: %s" ), AbsOffset, *It.Value().Guid.ToString() );
-
-		bOutHasMoreUnmapped = true;
+		else
+		{
+			It.RemoveCurrent();
+		}
 	}
 }
 
@@ -1363,7 +1416,7 @@ void FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * Pack
 	bOutSomeObjectsWereMapped	= false;
 	bOutHasMoreUnmapped			= false;
 
-	UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, OriginalObject, PackageMap, (uint8*)OriginalObject, RepState->StaticBuffer.Num(), bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
+	UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, OriginalObject, PackageMap, (uint8*)RepState->StaticBuffer.GetData(), (uint8*)OriginalObject, RepState->StaticBuffer.Num(), bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 }
 
 void FRepLayout::CallRepNotifies( FRepState * RepState, UObject* Object ) const
