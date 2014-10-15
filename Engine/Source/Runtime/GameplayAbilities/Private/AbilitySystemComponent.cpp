@@ -570,6 +570,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 	if (IsOwnerActorAuthoritative())
 	{
 		ActiveGameplayCues.RemoveCue(GameplayCueTag);
+		NetMulticast_InvokeGameplayCueRemoved(GameplayCueTag, PredictionKey);
 	}
 	else if (PredictionKey.IsValidKey())
 	{
@@ -616,6 +617,14 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+	}
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueRemoved_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+{
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
 }
 
