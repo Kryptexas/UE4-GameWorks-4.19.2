@@ -302,13 +302,13 @@ TSharedPtr<FVisualLogEntry> JsonToVisualLogEntry(TSharedPtr<FJsonValue> FromJson
 				Event.UserFriendlyDesc = JsonSampleObject->GetStringField(VisualLogJson::TAG_DESCRIPTION);
 				Event.Counter = (int64)(JsonSampleObject->GetNumberField(VisualLogJson::TAG_COUNTER));
 
-				TArray< TSharedPtr<FJsonValue> > JsonEventTags = JsonEntryObject->GetArrayField(VisualLogJson::TAG_EVENTAGS);
+				TArray< TSharedPtr<FJsonValue> > JsonEventTags = JsonSampleObject->GetArrayField(VisualLogJson::TAG_EVENTAGS);
 				if (JsonEventTags.Num() > 0)
 				{
 					Event.EventTags.Reserve(JsonEventSamples.Num());
 					for (int32 TagIndex = 0; TagIndex < JsonEventTags.Num(); ++TagIndex)
 					{
-						TSharedPtr<FJsonObject> JsonTagObject = JsonEventTags[SampleIndex]->AsObject();
+						TSharedPtr<FJsonObject> JsonTagObject = JsonEventTags[TagIndex]->AsObject();
 						if (JsonTagObject.IsValid())
 						{
 							FString TagName = JsonTagObject->GetStringField(VisualLogJson::TAG_EVENTNAME);
