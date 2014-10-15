@@ -81,10 +81,10 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 :	UObject(ObjectInitializer)
 ,	FeatureLevel(GMaxRHIFeatureLevel)
+,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
-,	FXSystem(NULL)
 {
 	TimerManager = new FTimerManager();
 #if WITH_EDITOR
@@ -97,10 +97,10 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 :	UObject(ObjectInitializer)
 ,	FeatureLevel(GMaxRHIFeatureLevel)
 ,	URL(InURL)
+,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
-,	FXSystem(NULL)
 {
 	SetFlags( RF_Transactional );
 	TimerManager = new FTimerManager();
