@@ -7,10 +7,12 @@
 /**
  * An arbitrary scrollable collection of widgets.  Great for presenting 10-100 widgets in a list.  Doesn't support virtualization.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UScrollBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
+
+public:
 
 	/** The style */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
@@ -27,8 +29,12 @@ class UMG_API UScrollBox : public UPanelWidget
 	USlateWidgetStyleAsset* BarStyle_DEPRECATED;
 
 	/** The orientation of the scrolling and stacking in the box. */
-	UPROPERTY(EditDefaultsOnly, Category = "Behavior")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Behavior" )
 	TEnumAsByte<EOrientation> Orientation;
+
+	//TODO UMG Add SetOrientation
+
+public:
 
 	/** Updates the scroll offset of the scrollbox */
 	UFUNCTION(BlueprintCallable, Category="Widget")

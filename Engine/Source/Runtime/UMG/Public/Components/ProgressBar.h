@@ -37,14 +37,14 @@ public:
 	USlateBrushAsset* MarqueeImage_DEPRECATED;
 
 	/** Defines if this progress bar fills Left to right or right to left */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	TEnumAsByte<EProgressBarFillType::Type> BarFillType;
 	
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	bool bIsMarquee;
 
 	/** Used to determine the fill position of the progress bar ranging 0..1 */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( UIMin = "0", UIMax = "1" ))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, meta=( UIMin = "0", UIMax = "1" ))
 	float Percent;
 
 	/** A bindable delegate to allow logic to drive the text of the widget */
@@ -52,7 +52,7 @@ public:
 	FGetFloat PercentDelegate;
 
 	/** Fill Color and Opacity */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor FillColorAndOpacity;
 
 	/** */
@@ -72,6 +72,10 @@ public:
 	/** Sets the progress bar to show as a marquee. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetIsMarquee(bool InbIsMarquee);
+
+	//TODO UMG Add Set BarFillType.
+
+public:
 	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

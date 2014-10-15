@@ -7,7 +7,7 @@
 /**
  * A numerical entry box that allows for direct entry of the number or allows the user to click and slide the number.
  */
-UCLASS(ClassGroup = UserInterface)
+UCLASS()
 class UMG_API USpinBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -18,6 +18,16 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSpinBoxBeginSliderMovement);
 
 public:
+
+	/** Value stored in this spin box */
+	UPROPERTY(EditDefaultsOnly, Category=Content)
+	float Value;
+
+	/** A bindable delegate to allow logic to drive the value of the widget */
+	UPROPERTY()
+	FGetFloat ValueDelegate;
+
+public:
 	/** The Style */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
 	FSpinBoxStyle WidgetStyle;
@@ -25,65 +35,64 @@ public:
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
-	/** Value stored in this spin box */
-	UPROPERTY(EditDefaultsOnly, Category = Content)
-	float Value;
-
 	/** The amount by which to change the spin box value as the slider moves. */
-	UPROPERTY(EditDefaultsOnly, Category = Content)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Slider")
 	float Delta;
 
 	/** The exponent by which to increase the delta as the mouse moves. 1 is constant (never increases the delta). */
-	UPROPERTY(EditDefaultsOnly, Category = Content)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Slider")
 	float SliderExponent;
 	
 	/** Font color and opacity (overrides style) */
-	UPROPERTY(EditDefaultsOnly, Category = Content)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
 	FSlateFontInfo Font;
 
 	/** The minimum width of the spin box */
-	UPROPERTY(EditDefaultsOnly, Category = Content, AdvancedDisplay, DisplayName = "Minimum Desired Width")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", AdvancedDisplay, DisplayName = "Minimum Desired Width")
 	float MinDesiredWidth;
 
 	/** Whether to remove the keyboard focus from the spin box when the value is committed */
-	UPROPERTY(EditDefaultsOnly, Category = Content, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input", AdvancedDisplay)
 	bool ClearKeyboardFocusOnCommit;
 
 	/** Whether to select the text in the spin box when the value is committed */
-	UPROPERTY(EditDefaultsOnly, Category = Content, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input", AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
-	UPROPERTY(EditDefaultsOnly, Category="Style")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Style")
 	FSlateColor ForegroundColor;
 
 public:
 	/** Called when the value is changed interactively by the user */
-	UPROPERTY(BlueprintAssignable, Category = "Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="SpinBox|Events")
 	FOnSpinBoxValueChangedEvent OnValueChanged;
 
 	/** Called when the value is committed. Occurs when the user presses Enter or the text box loses focus. */
-	UPROPERTY(BlueprintAssignable, Category = "Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="SpinBox|Events")
 	FOnSpinBoxValueCommittedEvent OnValueCommitted;
 
 	/** Called right before the slider begins to move */
-	UPROPERTY(BlueprintAssignable, Category = "Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="SpinBox|Events")
 	FOnSpinBoxBeginSliderMovement OnBeginSliderMovement;
 
 	/** Called right after the slider handle is released by the user */
-	UPROPERTY(BlueprintAssignable, Category = "Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="SpinBox|Events")
 	FOnSpinBoxValueChangedEvent OnEndSliderMovement;
 
+public:
+
 	/** Get the current value of the spin box. */
-	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	UFUNCTION(BlueprintCallable, Category="Behavior")
 	float GetValue() const;
 
 	/** Set the value of the spin box. */
-	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetValue(float NewValue);
 
-	// MIN VALUE
+public:
+
 	/** Get the current minimum value that can be manually set in the spin box. */
-	UFUNCTION(BlueprintCallable, Category = "Behavior")
+	UFUNCTION(BlueprintCallable, Category="Behavior")
 	float GetMinValue() const;
 
 	/** Set the minimum value that can be manually set in the spin box. */
@@ -94,7 +103,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	void ClearMinValue();
 
-	// MAX VALUE
 	/** Get the current maximum value that can be manually set in the spin box. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	float GetMaxValue() const;
@@ -107,7 +115,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	void ClearMaxValue();
 
-	// MIN SLIDER VALUE
 	/** Get the current minimum value that can be specified using the slider. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	float GetMinSliderValue() const;
@@ -120,7 +127,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	void ClearMinSliderValue();
 
-	// MAX SLIDER VALUE
 	/** Get the current maximum value that can be specified using the slider. */
 	UFUNCTION(BlueprintCallable, Category = "Behavior")
 	float GetMaxSliderValue() const;
@@ -136,6 +142,8 @@ public:
 	/**  */
 	UFUNCTION(BlueprintCallable, Category = "Appearance")
 	void SetForegroundColor(FSlateColor InForegroundColor);
+
+public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
@@ -154,10 +162,6 @@ public:
 	virtual const FText GetPaletteCategory() override;
 #endif
 	// End of UWidget interface
-
-	/** A bindable delegate to allow logic to drive the value of the widget */
-	UPROPERTY()
-	FGetFloat ValueDelegate;
 
 protected:
 	// UWidget interface

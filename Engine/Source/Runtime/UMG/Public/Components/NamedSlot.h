@@ -8,7 +8,7 @@
  * Allows you to expose an external slot for your user widget.  When others reuse your user control, 
  * they can put whatever they want in this named slot.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UNamedSlot : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()

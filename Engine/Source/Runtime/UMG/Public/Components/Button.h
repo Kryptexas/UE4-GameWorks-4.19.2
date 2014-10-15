@@ -11,7 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 /**
  * The button is a clickable primitive widget to enable basic interaction.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UButton : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -26,23 +26,23 @@ public:
 	FButtonStyle WidgetStyle;
 	
 	/** The color multiplier for the button content */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance )
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor ColorAndOpacity;
 	
 	/** The color multiplier for the button background */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance )
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor BackgroundColor;
 
 	/** The type of mouse action required by the user to trigger the buttons 'Click' */
-	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interaction", AdvancedDisplay)
 	TEnumAsByte<EButtonClickMethod::Type> ClickMethod;
 
 	/** The type of touch action required by the user to trigger the buttons 'Click' */
-	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interaction", AdvancedDisplay)
 	TEnumAsByte<EButtonTouchMethod::Type> TouchMethod;
 
 	/** Sometimes a button should only be mouse-clickable and never keyboard focusable. */
-	UPROPERTY(EditDefaultsOnly, Category="Interaction", AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interaction", AdvancedDisplay)
 	bool IsFocusable;
 
 public:
@@ -50,6 +50,8 @@ public:
 	/** Called when the button is clicked */
 	UPROPERTY(BlueprintAssignable)
 	FOnButtonClickedEvent OnClicked;
+
+public:
 	
 	/** Sets the color multiplier for the button content */
 	UFUNCTION(BlueprintCallable, Category="Button|Appearance")
@@ -66,6 +68,8 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Button")
 	bool IsPressed() const;
+
+public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

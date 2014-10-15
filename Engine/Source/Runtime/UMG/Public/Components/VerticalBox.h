@@ -10,7 +10,7 @@ class UVerticalBoxSlot;
  * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
  * vertically.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UVerticalBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()

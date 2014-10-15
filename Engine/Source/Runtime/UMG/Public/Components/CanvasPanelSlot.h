@@ -34,15 +34,15 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	GENERATED_UCLASS_BODY()
 
 	/** The anchoring information for the slot */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Canvas Slot)")
 	FAnchorData LayoutData;
 
 	/** When AutoSize is true we use the widget's desired size */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)", AdvancedDisplay, meta=(DisplayName="Size To Content"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Canvas Slot)", AdvancedDisplay, meta=( DisplayName="Size To Content" ))
 	bool bAutoSize;
 
 	/** The order priority this widget is rendered in.  Higher values are rendered last (and so they will appear to be on top). */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Canvas Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Canvas Slot)")
 	int32 ZOrder;
 
 	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);

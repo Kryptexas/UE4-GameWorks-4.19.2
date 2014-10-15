@@ -73,7 +73,7 @@ public:
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
 	bool bIsEnabled;
 
 	/** A bindable delegate for bIsEnabled */
@@ -81,7 +81,7 @@ public:
 	FGetBool bIsEnabledDelegate;
 
 	/** Tooltip text to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
 	FText ToolTipText;
 
 	/** A bindable delegate for ToolTipText */
@@ -89,7 +89,7 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** The visibility of the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
 	TEnumAsByte<ESlateVisibility::Type> Visiblity;
 
 	/** A bindable delegate for Visibility */
@@ -97,7 +97,7 @@ public:
 	FGetSlateVisibility VisiblityDelegate;
 
 	/** The cursor to show when the mouse is over the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	/** A bindable delegate for Cursor */

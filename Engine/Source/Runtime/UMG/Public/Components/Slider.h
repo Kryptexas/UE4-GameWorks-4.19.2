@@ -11,17 +11,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Va
 /**
  * A simple widget that shows a sliding bar with a handle that allows you to control the value between 0..1.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	
-	/** The progress bar style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
-	FSliderStyle WidgetStyle;
-
 	/** The volume value to display. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float Value;
@@ -30,25 +25,33 @@ public:
 	UPROPERTY()
 	FGetFloat ValueDelegate;
 
+public:
+	
+	/** The progress bar style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FSliderStyle WidgetStyle;
+
 	/** The slider's orientation. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	TEnumAsByte<EOrientation> Orientation;
 
 	/** The color to draw the slider bar in. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor SliderBarColor;
 
 	/** The color to draw the slider handle in. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor SliderHandleColor;
 
 	/** Whether the slidable area should be indented to fit the handle. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	bool IndentHandle;
 
 	/** Whether the handle is interactive or fixed. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
 	bool Locked;
+
+public:
 
 	/** Invoked when the mouse is pressed and a capture begins. */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event")

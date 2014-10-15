@@ -18,6 +18,12 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMultiLineEditableTextBoxCommittedEvent, const FText&, Text, ETextCommit::Type, CommitMethod);
 
 public:
+	
+	/** The text content for this editable text box widget */
+	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
+	FText Text;
+
+public:
 
 	/** The style */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
@@ -30,28 +36,24 @@ public:
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
-	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
-	FText Text;
-
 	/** The justification of the text in the multilinebox */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content)
 	TEnumAsByte<ETextJustify::Type> Justification;
 
 	/** Font color and opacity (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateFontInfo Font;
 
 	/** Text color and opacity (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor ForegroundColor;
 
 	/** The color of the background/border around the editable text (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor BackgroundColor;
 
 	/** Text color and opacity when read-only (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FLinearColor ReadOnlyForegroundColor;
 
 	/** Called whenever the text is changed interactively by the user */
@@ -65,6 +67,8 @@ public:
 	/** Provide a alternative mechanism for error reporting. */
 	//SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
 
+public:
+
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	FText GetText() const;
@@ -75,6 +79,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetError(FText InError);
+
+	//TODO UMG Add Set ReadOnlyForegroundColor
+	//TODO UMG Add Set BackgroundColor
+	//TODO UMG Add Set ForegroundColor
+	//TODO UMG Add Set Font
+	//TODO UMG Add Set Justification
+
+public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

@@ -79,6 +79,16 @@ void UWrapBox::SynchronizeProperties()
 	MyWrapBox->SetInnerSlotPadding(InnerSlotPadding);
 }
 
+void UWrapBox::SetInnerSlotPadding(FVector2D InPadding)
+{
+	InnerSlotPadding = InPadding;
+
+	if ( MyWrapBox.IsValid() )
+	{
+		MyWrapBox->SetInnerSlotPadding(InPadding);
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UWrapBox::GetEditorIcon()

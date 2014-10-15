@@ -26,6 +26,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Layout (Button Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
+public:
+
 	UFUNCTION(BlueprintCallable, Category="Layout (Button Slot)")
 	void SetPadding(FMargin InPadding);
 

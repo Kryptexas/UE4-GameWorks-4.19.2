@@ -20,7 +20,6 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextCommittedEvent, const FText&, Text, ETextCommit::Type, CommitMethod);
 
 public:
-
 	/** The text content for this editable text box widget */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
@@ -29,8 +28,10 @@ public:
 	UPROPERTY()
 	FGetText TextDelegate;
 
+public:
+
 	/** Hint text that appears when there is no text in the text box */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content)
 	FText HintText;
 
 	/** A bindable delegate to allow logic to drive the hint text of the widget */

@@ -7,7 +7,7 @@
 /**
  * A spacer widget; it does not have a visual representation, and just provides padding between other widgets.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API USpacer : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -15,7 +15,7 @@ class UMG_API USpacer : public UWidget
 public:
 
 	/** The size of the spacer */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FVector2D Size;
 
 public:

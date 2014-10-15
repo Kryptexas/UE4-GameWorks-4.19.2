@@ -17,26 +17,26 @@ class UMG_API UWrapBoxSlot : public UPanelSlot
 public:
 
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Wrap Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Wrap Box Slot)")
 	FMargin Padding;
 
 	/** Should this slot fill the remaining space on the line? */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Wrap Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Wrap Box Slot)")
 	bool bFillEmptySpace;
 
 	/**
 	 * If the total available space in the wrap panel drops below this threshold, this slot will attempt to fill an entire line.
 	 * NOTE: A value of 0, denotes no filling will occur.
 	 */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Wrap Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Wrap Box Slot)")
 	float FillSpanWhenLessThan;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Wrap Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Wrap Box Slot)")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, Category="Layout (Wrap Box Slot)")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Wrap Box Slot)")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 public:

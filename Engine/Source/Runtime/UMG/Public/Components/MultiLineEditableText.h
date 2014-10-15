@@ -18,21 +18,22 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMultiLineEditableTextCommittedEvent, const FText&, Text, ETextCommit::Type, CommitMethod);
 
 public:
+	/** The text content for this editable text box widget */
+	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
+	FText Text;
+
+public:
 
 	/** The style */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
 	FTextBlockStyle WidgetStyle;
 
-	/** The text content for this editable text box widget */
-	UPROPERTY(EditDefaultsOnly, Category=Content, meta=(MultiLine="true"))
-	FText Text;
-
 	/** The justification of the text in the multilinebox */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Content)
 	TEnumAsByte<ETextJustify::Type> Justification;
 
 	/** Font color and opacity (overrides Style) */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateFontInfo Font;
 
 	/** Called whenever the text is changed interactively by the user */
@@ -42,6 +43,8 @@ public:
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnMultiLineEditableTextCommittedEvent OnTextCommitted;
+
+public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")

@@ -12,7 +12,7 @@ class UCanvasPanelSlot;
  * for manual layout, but bad when you want to procedurally just generate widgets and place them in a 
  * container (unless you want absolute layout).
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UCanvasPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()

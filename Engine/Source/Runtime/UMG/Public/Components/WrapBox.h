@@ -7,15 +7,19 @@
 /**
  * Arranges widgets left-to-right.  When the widgets exceed the Width it will place widgets on the next line.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UWrapBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 	/** The inner slot padding goes between slots sharing borders */
-	UPROPERTY(EditDefaultsOnly, Category="Conetnt Layout")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Content Layout")
 	FVector2D InnerSlotPadding;
+
+	/** Sets the inner slot padding goes between slots sharing borders */
+	UFUNCTION(BlueprintCallable, Category="Content Layout")
+	void SetInnerSlotPadding(FVector2D InPadding);
 
 public:
 

@@ -19,10 +19,6 @@ class UMG_API UComboBoxString : public UWidget
 
 public:
 
-	/** The style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
-	FComboBoxStyle WidgetStyle;
-
 	/** The list of items to be displayed on the combobox. */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	TArray<FString> DefaultOptions;
@@ -31,19 +27,27 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FString SelectedOption;
 
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+public:
+
+	/** The style */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	FComboBoxStyle WidgetStyle;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content)
 	FMargin ContentPadding;
 
 	/** The max height of the combobox list that opens */
-	UPROPERTY(EditDefaultsOnly, Category=Content, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content, AdvancedDisplay)
 	float MaxListHeight;
 
 	/**
 	 * When false, the down arrow is not generated and it is up to the API consumer
 	 * to make their own visual hint that this is a drop down.
 	 */
-	UPROPERTY(EditDefaultsOnly, Category=Content, AdvancedDisplay)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content, AdvancedDisplay)
 	bool HasDownArrow;
+
+public: // Events
 
 	/** Called when the widget is needed for the item. */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
