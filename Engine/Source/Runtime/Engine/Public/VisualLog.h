@@ -55,6 +55,10 @@ namespace VisualLogJson
 	static const FString TAG_TAGNAME = TEXT("DataBlockTagName");
 	static const FString TAG_USERDATA = TEXT("UserData");
 	static const FString TAG_CAPSULESTODRAW = TEXT("CapsulesToDraw");
+	static const FString TAG_COUNTER = TEXT("Counter");
+	static const FString TAG_EVENTNAME = TEXT("EventName");
+	static const FString TAG_EVENTAGS = TEXT("EventTags");
+	static const FString TAG_EVENTSAMPLES = TEXT("EventTags");
 
 	static const FString TAG_HISTOGRAMSAMPLES = TEXT("HistogramSamples");
 	static const FString TAG_HISTOGRAMSAMPLE = TEXT("Sample");
