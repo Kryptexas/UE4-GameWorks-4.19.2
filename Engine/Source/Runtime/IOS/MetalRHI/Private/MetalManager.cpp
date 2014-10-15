@@ -377,7 +377,7 @@ void FMetalManager::EndFrame(bool bPresent)
 	// enqueue a present if desired
 	if (CurrentDrawable)
 	{
-		if (bPresent && GFrameCounter > 3)
+		if (bPresent && GFrameCounter > 30)
 		{
 			[CurrentCommandBuffer waitUntilScheduled];
 			
