@@ -2,6 +2,7 @@
 
 #include "SourceControlPrivatePCH.h"
 #include "ScopedSourceControlProgress.h"
+#if SOURCE_CONTROL_WITH_SLATE
 #include "SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "SourceControlProgress"
@@ -11,8 +12,6 @@ namespace SourceControlConstants
 	/** The time (in seconds) we wait before letting the user know that an operation is taking a while */
 	float OperationTimeOut = 10.0f;
 }
-
-#if SOURCE_CONTROL_WITH_SLATE
 
 class SSourceControlProgress : public SBorder
 {
