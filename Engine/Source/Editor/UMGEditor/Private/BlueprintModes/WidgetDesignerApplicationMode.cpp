@@ -21,6 +21,7 @@
 #include "SequencerTabSummoner.h"
 #include "DetailsTabSummoner.h"
 #include "AnimationTabSummoner.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 
 #define LOCTEXT_NAMESPACE "WidgetDesignerMode"
 

@@ -1,8 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Components/SlateWrapperTypes.h"
 #include "WidgetBlueprintLibrary.generated.h"
+
+class UDragDropOperation;
+class USlateBrushAsset;
+
+struct FPaintContext;
 
 UCLASS(MinimalAPI)
 class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary

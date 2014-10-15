@@ -20,6 +20,8 @@ namespace EDesignerMessage
 }
 
 class FDesignerExtension;
+class UPanelWidget;
+class UUserWidget;
 
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.

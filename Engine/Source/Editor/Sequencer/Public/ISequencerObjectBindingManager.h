@@ -3,6 +3,7 @@
 #pragma once
 
 class FMovieSceneInstance;
+class UMovieScene;
 
 class ISequencerObjectBindingManager
 {

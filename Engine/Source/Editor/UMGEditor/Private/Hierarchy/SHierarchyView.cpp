@@ -15,6 +15,10 @@
 #include "WidgetTemplateClass.h"
 #include "WidgetBlueprintEditor.h"
 #include "SSearchBox.h"
+#include "WidgetBlueprint.h"
+#include "WidgetBlueprintEditorUtils.h"
+
+#include "Components/PanelWidget.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

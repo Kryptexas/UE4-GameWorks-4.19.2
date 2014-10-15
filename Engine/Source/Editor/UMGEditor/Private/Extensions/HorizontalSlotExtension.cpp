@@ -3,7 +3,9 @@
 #include "UMGEditorPrivatePCH.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Extensions/HorizontalSlotExtension.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

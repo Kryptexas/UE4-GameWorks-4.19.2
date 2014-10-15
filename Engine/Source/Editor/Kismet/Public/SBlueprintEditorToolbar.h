@@ -4,6 +4,8 @@
 
 #include "WorkflowOrientedApp/SModeWidget.h"
 
+class FBlueprintEditor;
+
 /**
  * Kismet menu
  */

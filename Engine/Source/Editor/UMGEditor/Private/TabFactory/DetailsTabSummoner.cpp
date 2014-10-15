@@ -4,7 +4,7 @@
 
 #include "DetailsTabSummoner.h"
 #include "SWidgetDetailsView.h"
-
+#include "WidgetBlueprintEditor.h"
 #define LOCTEXT_NAMESPACE "UMG"
 
 const FName FDetailsTabSummoner::TabID(TEXT("WidgetDetails"));

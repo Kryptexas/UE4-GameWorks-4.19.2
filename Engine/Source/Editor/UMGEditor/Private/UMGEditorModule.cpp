@@ -15,6 +15,7 @@
 #include "Animation/Sequencer2DTransformTrackEditor.h"
 #include "IUMGModule.h"
 #include "DesignerCommands.h"
+#include "WidgetBlueprint.h"
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 

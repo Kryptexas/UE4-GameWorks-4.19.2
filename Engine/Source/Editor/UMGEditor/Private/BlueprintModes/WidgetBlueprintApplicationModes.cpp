@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 
 // Mode constants
 const FName FWidgetBlueprintApplicationModes::DesignerMode("DesignerName");

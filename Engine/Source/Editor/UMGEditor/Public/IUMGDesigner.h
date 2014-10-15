@@ -2,6 +2,8 @@
 
 #pragma once
 
+struct FWidgetReference;
+
 /**
  * The logical type of transform that can be applied to a widget.
  */

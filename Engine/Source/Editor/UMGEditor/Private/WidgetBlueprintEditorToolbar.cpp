@@ -6,6 +6,8 @@
 
 #include "WidgetBlueprintEditor.h"
 #include "SModeWidget.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "WidgetBlueprintApplicationModes.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

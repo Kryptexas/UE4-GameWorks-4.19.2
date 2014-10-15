@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FWidgetBlueprintEditor;
+
 /**
  * Handles all of the toolbar related construction for the widget blueprint editor.
  */

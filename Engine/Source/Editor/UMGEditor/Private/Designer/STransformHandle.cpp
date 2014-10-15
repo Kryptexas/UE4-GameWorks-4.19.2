@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "IUMGDesigner.h"
 #include "ObjectEditorUtils.h"
 #include "STransformHandle.h"
+#include "WidgetReference.h"
+#include "Widget.h"
+#include "Components/PanelSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

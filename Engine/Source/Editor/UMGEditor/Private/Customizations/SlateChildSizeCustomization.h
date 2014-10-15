@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Components/SlateWrapperTypes.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "IPropertyTypeCustomization.h"
 
 class FSlateChildSizeCustomization : public IPropertyTypeCustomization
 {

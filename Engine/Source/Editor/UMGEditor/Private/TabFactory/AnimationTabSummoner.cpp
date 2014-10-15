@@ -11,6 +11,10 @@
 #include "SSearchBox.h"
 #include "SInlineEditableTextBlock.h"
 #include "GenericCommands.h"
+#include "ScopedTransaction.h"
+#include "WidgetBlueprint.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Misc/TextFilter.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

@@ -4,6 +4,8 @@
 #include "Blueprint/WidgetTree.h"
 #include "Runtime/MovieSceneCore/Classes/MovieScene.h"
 #include "PropertyTag.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

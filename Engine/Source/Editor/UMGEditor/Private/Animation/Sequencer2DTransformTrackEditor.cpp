@@ -9,6 +9,7 @@
 #include "Editor/Sequencer/Public/ISectionLayoutBuilder.h"
 #include "Editor/Sequencer/Public/ISequencerObjectChangeListener.h"
 #include "Editor/PropertyEditor/Public/PropertyHandle.h"
+#include "Slate/WidgetTransform.h"
 
 class F2DTransformSection : public FPropertySection
 {

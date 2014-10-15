@@ -12,6 +12,11 @@
 #include "Factories.h"
 #include "UnrealExporter.h"
 #include "GenericCommands.h"
+#include "WidgetBlueprint.h"
+#include "Blueprint/WidgetTree.h"
+#include "ScopedTransaction.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "CanvasPanel.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

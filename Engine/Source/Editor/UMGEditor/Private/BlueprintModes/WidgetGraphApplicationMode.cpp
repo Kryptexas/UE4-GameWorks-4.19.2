@@ -10,6 +10,7 @@
 #include "WidgetBlueprintEditor.h"
 #include "WidgetGraphApplicationMode.h"
 #include "WidgetBlueprintEditorToolbar.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 
 /////////////////////////////////////////////////////
 // FWidgetGraphApplicationMode

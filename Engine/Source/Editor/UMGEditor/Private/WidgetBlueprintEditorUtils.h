@@ -2,6 +2,10 @@
 
 #pragma once
 
+class UWidgetTree;
+class UWidgetBlueprint;
+struct FWidgetReference;
+
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintEditorUtils
 

@@ -3,6 +3,10 @@
 #pragma once
 
 #include "DesignerExtension.h"
+#include "Slate/Anchors.h"
+
+class UCanvasPanel;
+class UCanvasPanelSlot;
 
 /** Set of anchor widget types */
 namespace EAnchorWidget

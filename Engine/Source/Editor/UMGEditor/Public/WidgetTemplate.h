@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+struct FSlateBrush;
+class UWidget;
 
 /**
  * The widget template represents a widget or a set of widgets to create and spawn into the widget tree.

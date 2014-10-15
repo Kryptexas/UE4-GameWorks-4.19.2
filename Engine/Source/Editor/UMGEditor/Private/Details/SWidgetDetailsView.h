@@ -7,6 +7,8 @@
 
 #include "WidgetTemplate.h"
 
+class FWidgetBlueprintEditor;
+
 /**
  * The details view used in the designer section of the widget blueprint editor.
  */

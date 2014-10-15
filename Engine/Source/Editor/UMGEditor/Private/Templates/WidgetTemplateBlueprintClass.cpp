@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
+#include "Blueprint/UserWidget.h"
 #include "WidgetTemplateBlueprintClass.h"
 #include "IDocumentation.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "UMGEditor"
 

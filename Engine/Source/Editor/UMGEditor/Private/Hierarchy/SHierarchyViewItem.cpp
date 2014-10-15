@@ -17,6 +17,14 @@
 
 #include "WidgetBlueprintEditor.h"
 #include "SInlineEditableTextBlock.h"
+#include "Components/Widget.h"
+
+#include "WidgetBlueprintEditorUtils.h"
+#include "Components/PanelSlot.h"
+#include "ScopedTransaction.h"
+#include "WidgetBlueprint.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/PanelWidget.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

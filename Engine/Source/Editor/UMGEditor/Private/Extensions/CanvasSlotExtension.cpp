@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/Widget.h"
 #include "Extensions/CanvasSlotExtension.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

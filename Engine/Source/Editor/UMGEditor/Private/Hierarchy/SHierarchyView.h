@@ -7,6 +7,12 @@
 #include "SCompoundWidget.h"
 #include "SHierarchyViewItem.h"
 #include "TreeFilterHandler.h"
+#include "WidgetBlueprintEditorUtils.h"
+
+class FWidgetBlueprintEditor;
+class UWidget;
+class UWidgetBlueprint;
+
 //TODO rename SUMGEditorHierarchy
 
 /**

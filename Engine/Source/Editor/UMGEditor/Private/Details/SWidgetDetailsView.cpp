@@ -12,6 +12,7 @@
 #include "EditorClassUtils.h"
 
 #include "Customizations/SlateBrushCustomization.h"
+#include "Customizations/DetailCustomizations.h"
 
 #include "WidgetNavigationCustomization.h"
 #include "CanvasSlotCustomization.h"
@@ -19,6 +20,12 @@
 #include "VerticalAlignmentCustomization.h"
 #include "SlateChildSizeCustomization.h"
 #include "TextJustifyCustomization.h"
+#include "PropertyEditorModule.h"
+#include "WidgetBlueprintEditor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Blueprint/WidgetTree.h"
+#include "WidgetBlueprintEditorUtils.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

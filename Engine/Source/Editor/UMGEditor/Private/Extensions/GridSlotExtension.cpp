@@ -2,6 +2,10 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "Components/GridSlot.h"
+#include "Components/Widget.h"
+#include "Extensions/GridSlotExtension.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "WidgetBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

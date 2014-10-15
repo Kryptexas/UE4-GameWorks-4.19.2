@@ -4,6 +4,9 @@
 
 #include "ISequencerObjectBindingManager.h"
 
+class FWidgetBlueprintEditor;
+class UWidgetAnimation;
+
 class FUMGSequencerObjectBindingManager : public ISequencerObjectBindingManager
 {
 public:

@@ -2,6 +2,7 @@
 #pragma once
 #include "Brushes/SlateNoResource.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Misc/Paths.h"
 
 struct FMargin;
 struct FSlateSound;

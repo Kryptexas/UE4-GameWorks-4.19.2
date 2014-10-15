@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+
+#include "Designer/DesignTimeUtils.h"
+
 #include "Extensions/CanvasSlotExtension.h"
 #include "Extensions/GridSlotExtension.h"
 #include "Extensions/HorizontalSlotExtension.h"
@@ -21,6 +24,19 @@
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SDPIScaler.h"
 #include "SNumericEntryBox.h"
+
+#include "Components/PanelWidget.h"
+#include "Components/Widget.h"
+#include "WidgetBlueprint.h"
+#include "WidgetBlueprintCompiler.h"
+#include "WidgetBlueprintEditor.h"
+#include "WidgetBlueprintEditorUtils.h"
+
+#include "ObjectEditorUtils.h"
+#include "Blueprint/WidgetTree.h"
+#include "ScopedTransaction.h"
+#include "Settings/WidgetDesignerSettings.h"
+#include "Components/CanvasPanelSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

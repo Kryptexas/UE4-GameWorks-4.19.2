@@ -4,6 +4,12 @@
 
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
+#include "WidgetReference.h"
+#include "Components/Widget.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "WidgetBlueprintEditor.h"
+
+class FWidgetBlueprintEditor;
 
 class FHierarchyModel : public TSharedFromThis < FHierarchyModel >
 {

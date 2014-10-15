@@ -3,13 +3,20 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "DetailCustomizations.h"
-
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 #include "PropertyEditing.h"
 #include "ObjectEditorUtils.h"
 #include "WidgetGraphSchema.h"
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
 #include "WidgetGraphSchema.h"
+#include "Components/Widget.h"
+#include "WidgetBlueprint.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "WidgetBlueprintEditor.h"
+#include "Components/PanelSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

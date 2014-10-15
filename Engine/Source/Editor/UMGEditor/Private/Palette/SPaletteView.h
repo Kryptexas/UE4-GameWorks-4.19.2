@@ -8,6 +8,8 @@
 
 #include "WidgetTemplate.h"
 
+class UWidgetBlueprint;
+
 /** View model for the items in the widget template list */
 class FWidgetViewModel : public TSharedFromThis<FWidgetViewModel>
 {

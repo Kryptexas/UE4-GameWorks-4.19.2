@@ -6,7 +6,7 @@
 #include "SDesignerView.h"
 #include "SScissorRectBox.h"
 #include "UMGStyle.h"
-
+#include "WidgetBlueprintEditor.h"
 #define LOCTEXT_NAMESPACE "UMG"
 
 const FName FDesignerTabSummoner::TabID(TEXT("SlatePreview"));

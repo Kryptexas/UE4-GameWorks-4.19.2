@@ -22,6 +22,12 @@
 #include "AssetRegistryModule.h"
 #include "SSearchBox.h"
 
+#include "WidgetBlueprintCompiler.h"
+
+#include "Blueprint/UserWidget.h"
+#include "WidgetBlueprint.h"
+#include "ObjectEditorUtils.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 class SPaletteViewItem : public SCompoundWidget

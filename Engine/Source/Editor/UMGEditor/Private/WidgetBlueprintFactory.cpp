@@ -6,6 +6,8 @@
 #include "Kismet2/KismetEditorUtilities.h"
 
 #include "WidgetBlueprintFactory.h"
+#include "WidgetBlueprint.h"
+
 #define LOCTEXT_NAMESPACE "UWidgetBlueprintFactory"
 
 /*------------------------------------------------------------------------------

@@ -8,6 +8,8 @@
 #include "WidgetReference.h"
 
 class ISequencer;
+class UWidgetAnimation;
+class UUserWidget;
 
 /**
  * widget blueprint editor (extends Blueprint editor)
