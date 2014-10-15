@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformProcess.h"
 
 /** Dummy process handle for platforms that use generic implementation. */
 struct FProcHandle : public TProcHandle<void*, nullptr>

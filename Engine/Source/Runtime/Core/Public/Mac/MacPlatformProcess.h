@@ -5,6 +5,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformProcess.h"
 
 
 /** Mac implementation of the process handle. */
