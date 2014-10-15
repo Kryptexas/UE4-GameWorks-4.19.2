@@ -122,6 +122,9 @@ public class Core : ModuleRules
 				"SDL2"
                 );
 
+			// Core uses dlopen()
+			PublicAdditionalLibraries.Add("dl");
+
             // We need FreeType2 and GL for the Splash, but only in the Editor
             if (Target.Type == TargetRules.TargetType.Editor)
             {

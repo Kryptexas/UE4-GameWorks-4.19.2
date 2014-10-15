@@ -250,12 +250,6 @@ public class ICU : ModuleRules
 			}
 		}
 
-
-		if (Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			PublicAdditionalLibraries.Add("dl");
-		}
-
 		// common defines
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
             (Target.Platform == UnrealTargetPlatform.Win32) ||
