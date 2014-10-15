@@ -790,7 +790,8 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			// For static methods, wire up the self to the CDO of the class if it's not us
 			if (!bIsFunctionCompatibleWithSelf)
 			{
-				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+				auto AuthoritativeClass = FunctionOwnerClass->GetAuthoritativeClass();
+				SelfPin->DefaultObject = AuthoritativeClass->GetDefaultObject();
 			}
 
 			// Purity doesn't matter with a static function, we can always hide the self pin since we know how to call the method

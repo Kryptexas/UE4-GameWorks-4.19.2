@@ -157,14 +157,8 @@ UEdGraphPin* UK2Node_FunctionEntry::GetAutoWorldContextPin() const
 
 void UK2Node_FunctionEntry::RemoveUnnecessaryAutoWorldContext()
 {
-	auto WorldContextPin = GetAutoWorldContextPin();
-	if (WorldContextPin)
-	{
-		if (!WorldContextPin->LinkedTo.Num())
-		{
-			Pins.Remove(WorldContextPin);
-		}
-	}
+	// Don't remove. After cl#2310036 Skeleton function must have the same signature as regular one.
+	// For skeleton function, no expansion is done, so the pin is always unconnected. The unconnected pin is removed, so the signature is different.
 }
 
 void UK2Node_FunctionEntry::RemoveOutputPin(UEdGraphPin* PinToRemove)
