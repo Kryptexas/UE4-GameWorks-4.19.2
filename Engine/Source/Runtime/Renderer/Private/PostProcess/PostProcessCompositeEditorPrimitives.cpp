@@ -315,7 +315,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FR
 
 	if (bUseGetMeshElements)
 	{
-		FBasePassOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::SetTextures);
+		FBasePassOpaqueDrawingPolicyFactory::ContextType Context(true, ESceneRenderTargetsMode::SetTextures);
 
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicEditorMeshElements.Num(); MeshBatchIndex++)
 		{
