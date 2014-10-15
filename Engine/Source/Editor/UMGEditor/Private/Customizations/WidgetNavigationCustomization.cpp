@@ -7,7 +7,7 @@
 #include "WidgetGraphSchema.h"
 #include "ScopedTransaction.h"
 #include "BlueprintEditorUtils.h"
-
+#include "Blueprint/WidgetNavigation.h"
 #include "WidgetNavigationCustomization.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
