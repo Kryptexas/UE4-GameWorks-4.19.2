@@ -84,6 +84,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
+,	FXSystem(NULL)
 {
 	TimerManager = new FTimerManager();
 #if WITH_EDITOR
@@ -99,6 +100,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
+,	FXSystem(NULL)
 {
 	SetFlags( RF_Transactional );
 	TimerManager = new FTimerManager();

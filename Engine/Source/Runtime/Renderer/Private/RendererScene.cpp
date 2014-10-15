@@ -2062,6 +2062,7 @@ class FNULLSceneInterface : public FSceneInterface
 public:
 	FNULLSceneInterface( UWorld* InWorld )
 		:	World( InWorld )
+		,	FXSystem( NULL )
 	{
 		World->Scene = this;
 	}
