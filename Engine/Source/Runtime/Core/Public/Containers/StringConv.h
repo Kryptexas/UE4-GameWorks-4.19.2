@@ -7,6 +7,9 @@
  */
 
 #pragma once
+#include "Containers/ContainerAllocationPolicies.h"
+#include "HAL/Platform.h"
+#include "HAL/PlatformString.h"
 
 #define DEFAULT_STRING_CONVERSION_SIZE 128u
 #define UNICODE_BOGUS_CHAR_CODEPOINT   '?'

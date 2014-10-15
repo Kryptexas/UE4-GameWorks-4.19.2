@@ -7,9 +7,12 @@
 =============================================================================*/
 
 #pragma once
-
-#include "Array.h"
-
+#include "Containers/Array.h"
+#include "Math/NumericLimits.h"
+#include "Math/UnrealMathUtility.h"
+#include "Misc/Crc.h"
+#include "Misc/CString.h"
+#include "Templates/MemoryOps.h"
 
 /** Determines case sensitivity options for string comparisons. */
 namespace ESearchCase
