@@ -1769,3 +1769,19 @@ bool USkeletalMeshComponent::IsPlayingRootMotion()
 {
 	return (AnimScriptInstance ? (AnimScriptInstance->GetRootMotionMontageInstance() != NULL) : false);
 }
+
+void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
+{
+	RootBodyData.BodyIndex = InBodyIndex;
+
+	if(Bodies.IsValidIndex(RootBodyData.BodyIndex) && 
+		Bodies[RootBodyData.BodyIndex]->BodySetup.IsValid() && Bodies[RootBodyData.BodyIndex]->BodySetup.Get()->BoneName != NAME_None)
+	{
+		RootBodyData.BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
+	}
+	else
+	{
+		// error
+		RootBodyData.BoneIndex = INDEX_NONE;
+	}
+}

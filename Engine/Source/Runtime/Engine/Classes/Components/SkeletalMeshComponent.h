@@ -642,7 +642,15 @@ public:
 	 *	Index of the 'Root Body', or top body in the asset hierarchy. 
 	 *	Filled in by InitInstance, so we don't need to save it.
 	 */
-	int32 RootBodyIndex;
+	/** To save root body index/bone index consistently **/
+	struct 
+	{
+		int32 BodyIndex;
+		int32 BoneIndex;
+	} RootBodyData;
+
+	/** Set Root Body Index */
+	void SetRootBodyIndex(int32 InBodyIndex);
 
 	/** Array of FBodyInstance objects, storing per-instance state about about each body. */
 	TArray<struct FBodyInstance*> Bodies;

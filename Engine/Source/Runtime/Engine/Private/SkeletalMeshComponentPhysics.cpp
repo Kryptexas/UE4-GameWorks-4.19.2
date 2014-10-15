@@ -626,10 +626,10 @@ void USkeletalMeshComponent::SetAllPhysicsLinearVelocity(FVector NewVel, bool bA
 
 void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngVel, bool bAddToCurrent)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// Find the root actor. We use its location as the center of the rotation.
-		FBodyInstance* RootBodyInst = Bodies[ RootBodyIndex ];
+		FBodyInstance* RootBodyInst = Bodies[ RootBodyData.BodyIndex ];
 		check(RootBodyInst);
 		FTransform RootTM = RootBodyInst->GetUnrealWorldTransform();
 
@@ -648,10 +648,10 @@ void USkeletalMeshComponent::SetAllPhysicsAngularVelocity(FVector const& NewAngV
 
 void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewPos
-		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		FBodyInstance* RootBI = Bodies[RootBodyData.BodyIndex];
 		check(RootBI);
 		if(RootBI->IsValidBodyInstance())
 		{
@@ -669,7 +669,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				if (i != RootBodyIndex)
+				if (i != RootBodyData.BodyIndex)
 				{
 					FBodyInstance* BI = Bodies[i];
 					check(BI);
@@ -688,10 +688,10 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewRot
-		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		FBodyInstance* RootBI = Bodies[RootBodyData.BodyIndex];
 		check(RootBI);
 		if(RootBI->IsValidBodyInstance())
 		{
@@ -705,7 +705,7 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				if (i != RootBodyIndex)
+				if (i != RootBodyData.BodyIndex)
 				{
 					FBodyInstance* BI = Bodies[i];
 					check(BI);
@@ -724,10 +724,10 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 
 void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation)
 {
-	if(RootBodyIndex < Bodies.Num())
+	if(RootBodyData.BodyIndex < Bodies.Num())
 	{
 		// calculate the deltas to get the root body to NewRot
-		FBodyInstance* RootBI = Bodies[RootBodyIndex];
+		FBodyInstance* RootBI = Bodies[RootBodyData.BodyIndex];
 		check(RootBI);
 		if(RootBI->IsValidBodyInstance())
 		{
@@ -740,7 +740,7 @@ void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& Del
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
 			{
-				if (i != RootBodyIndex)
+				if (i != RootBodyData.BodyIndex)
 				{
 					FBodyInstance* BI = Bodies[i];
 					check(BI);
@@ -790,7 +790,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	float Scale = Scale3D.X;
 
 	// Find root physics body
-	RootBodyIndex = INDEX_NONE;
+	int32 RootBodyIndex = INDEX_NONE;
 	for(int32 i=0; i<SkeletalMesh->RefSkeleton.GetNum(); i++)
 	{
 		int32 BodyInstIndex = PhysicsAsset->FindBodyIndex( SkeletalMesh->RefSkeleton.GetBoneName(i) );
@@ -862,6 +862,9 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		}
 	}
 
+	// now update root body index because body has BodySetup now
+	SetRootBodyIndex(RootBodyIndex);
+
 #if WITH_PHYSX
 	// add Aggregate into the scene
 	if(Aggregate && Aggregate->getNbActors() > 0 && PhysScene)
@@ -898,7 +901,6 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	// Update Flag
 	ResetAllBodiesSimulatePhysics();
-
 #if WITH_APEX_CLOTHING
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
 	// pre-compute cloth teleport thresholds for performance
@@ -1499,9 +1501,9 @@ FBodyInstance* USkeletalMeshComponent::GetBodyInstance(FName BoneName, bool) con
 		// A name of NAME_None indicates 'root body'
 		if(BoneName == NAME_None)
 		{
-			if(Bodies.IsValidIndex(RootBodyIndex))
+			if(Bodies.IsValidIndex(RootBodyData.BodyIndex))
 			{
-				BodyInst = Bodies[RootBodyIndex];
+				BodyInst = Bodies[RootBodyData.BodyIndex];
 			}
 		}
 		// otherwise, look for the body
@@ -1912,7 +1914,7 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 {
 	OutOverlaps.Reset();
 
-	if (!Bodies.IsValidIndex(RootBodyIndex))
+	if (!Bodies.IsValidIndex(RootBodyData.BodyIndex))
 	{
 		return false;
 	}
@@ -4950,7 +4952,12 @@ FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyIn
 {
 	// undo root transform so that it only moves according to what actor itself suppose to move
 	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
-	FTransform RootTransform(LocalAtoms[0].GetRotation());
-	return RootTransform.GetRelativeTransformReverse(BodyTransform);
+	if (RootBodyData.BoneIndex != INDEX_NONE)
+	{
+		FTransform RootTransform(SpaceBases[RootBodyData.BoneIndex]);
+		return RootTransform.GetRelativeTransformReverse(BodyTransform);
+	}
+
+	return BodyTransform;
 }
 #undef LOCTEXT_NAMESPACE
