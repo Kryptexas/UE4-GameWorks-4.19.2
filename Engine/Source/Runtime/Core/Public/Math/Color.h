@@ -5,6 +5,13 @@
 =============================================================================*/
 
 #pragma once
+#include "Math/UnrealMathUtility.h"
+#include "Misc/Parse.h"
+#include "Serialization/ArchiveBase.h"
+
+class FColor;
+class FVector;
+class FFloat16Color;
 
 /**
  * A linear, 32-bit/component floating point RGBA color.
@@ -24,9 +31,9 @@ struct FLinearColor
 	: R(0), G(0), B(0), A(0)
 	{}
 	FORCEINLINE FLinearColor(float InR,float InG,float InB,float InA = 1.0f): R(InR), G(InG), B(InB), A(InA) {}
-	CORE_API FLinearColor(const class FColor& C);
-	CORE_API FLinearColor(const class FVector& Vector);
-	CORE_API explicit FLinearColor(const class FFloat16Color& C);
+	CORE_API FLinearColor(const FColor& C);
+	CORE_API FLinearColor(const FVector& Vector);
+	CORE_API explicit FLinearColor(const FFloat16Color& C);
 
 	// Serializer.
 

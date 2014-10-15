@@ -6,6 +6,7 @@
 #endif
 
 #pragma once
+#include "UObject/ScriptDelegates.h"
 
 /**
  * Unicast delegate base object.

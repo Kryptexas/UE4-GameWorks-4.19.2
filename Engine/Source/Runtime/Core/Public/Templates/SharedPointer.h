@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Containers/ContainersFwd.h"
+#include "Containers/Map.h"
+#include "Templates/UnrealTemplate.h"
 
 /**
  *	SharedPointer - Unreal smart pointer library

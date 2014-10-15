@@ -9,9 +9,11 @@
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
 
+class FAssetPtr;
 class FCustomVersionContainer;
+class FLazyObjectPtr;
+struct FStringAssetReference;
 struct FUntypedBulkData;
-
 
 /**
  * Base class for archives that can be used for loading, saving, and garbage

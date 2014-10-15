@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #pragma once
+#include "HAL/Platform.h"
+#include "Misc/Build.h"
 
 #if !defined(STATS)
 #error "STATS must be defined as either zero or one."

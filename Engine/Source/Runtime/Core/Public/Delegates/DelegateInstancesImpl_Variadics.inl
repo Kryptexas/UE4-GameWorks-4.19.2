@@ -11,7 +11,10 @@
 ================================================================================*/
 
 #pragma once
+#include "Delegates/DelegateInstanceInterface_Variadics.h"
+#include "UObject/NameTypes.h"
 
+class UFunction;
 
 /* Macros for function parameter and delegate payload lists
  *****************************************************************************/

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "HAL/Platform.h"
 
 /**
  * Helper object for batching callback requests and firing on destruction of the FScopedCallback object.

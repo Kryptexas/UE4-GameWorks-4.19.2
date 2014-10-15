@@ -5,7 +5,8 @@
 =============================================================================*/
 
 #pragma once
-
+#include "Containers/UnrealString.h"
+#include "HAL/Platform.h"
 
 /**
  * Structure for integer points in 2-d space.

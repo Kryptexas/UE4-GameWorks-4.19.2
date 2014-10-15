@@ -754,7 +754,14 @@ void FName::StaticInit()
 	{
 		// Register all hardcoded names.
 		#define REGISTER_NAME(num,namestr) FName Temp_##namestr(EName(num), TEXT(#namestr));
+		#ifdef _UNREAL_NAMES_H_
+		#undef _UNREAL_NAMES_H_
+		#define _RECOVER_UNREAL_NAMES_H_
+		#endif
 		#include "UObject/UnrealNames.h"
+		#ifdef _RECOVER_UNREAL_NAMES_H_
+		#define _UNREAL_NAMES_H_
+		#endif
 	}
 
 #if DO_CHECK

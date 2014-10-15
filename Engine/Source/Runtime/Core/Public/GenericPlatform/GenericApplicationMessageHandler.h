@@ -1,6 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "HAL/Platform.h"
+#include "Templates/SharedPointer.h"
+
+class FGenericWindow;
 
 namespace EMouseButtons
 {
