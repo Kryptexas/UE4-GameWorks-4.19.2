@@ -2891,7 +2891,7 @@ bool UParticleSystem::HasGPUEmitter() const
 }
 
 UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer), FXSystem(NULL), ReleaseResourcesFence(NULL)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
