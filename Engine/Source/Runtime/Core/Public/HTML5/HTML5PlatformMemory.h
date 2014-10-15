@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformMemory.h"
 /**
  *	HTML5 implementation of the FGenericPlatformMemoryStats.
  */

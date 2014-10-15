@@ -11,6 +11,8 @@
 #include <wchar.h>
 #include <string.h>
 
+class FMalloc;
+class FOutputDevice;
 class FString;
 
 /** Holds generic memory stats, internally implemented as a map. */
@@ -178,7 +180,7 @@ struct CORE_API FGenericPlatformMemory
 	/**
 	 * @return the default allocator.
 	 */
-	static class FMalloc* BaseAllocator();
+	static FMalloc* BaseAllocator();
 
 	/**
 	 * @return platform specific current memory statistics.
@@ -220,10 +222,10 @@ struct CORE_API FGenericPlatformMemory
 	static void BinnedFreeToOS( void* Ptr );
 
 	/** Dumps basic platform memory statistics into the specified output device. */
-	static void DumpStats( class FOutputDevice& Ar );
+	static void DumpStats( FOutputDevice& Ar );
 
 	/** Dumps basic platform memory statistics and allocator specific statistics into the specified output device. */
-	static void DumpPlatformAndAllocatorStats( class FOutputDevice& Ar );
+	static void DumpPlatformAndAllocatorStats( FOutputDevice& Ar );
 
 	/** @name Memory functions */
 

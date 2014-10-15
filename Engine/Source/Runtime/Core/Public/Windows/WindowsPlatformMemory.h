@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMemory.h"
+#include "Windows/WindowsSystemIncludes.h"
 
 /**
  *	Windows implementation of the FGenericPlatformMemoryStats.

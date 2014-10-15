@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMemory.h"
 
 /**
  *	Android implementation of the FGenericPlatformMemoryStats.

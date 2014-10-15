@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformMemory.h"
 
 /**
  *	WinRT implementation of the FGenericPlatformMemoryStats.

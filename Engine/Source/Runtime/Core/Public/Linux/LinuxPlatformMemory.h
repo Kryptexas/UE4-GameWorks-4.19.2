@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformMemory.h"
 /**
  *	Linux implementation of the FGenericPlatformMemoryStats.
  */
