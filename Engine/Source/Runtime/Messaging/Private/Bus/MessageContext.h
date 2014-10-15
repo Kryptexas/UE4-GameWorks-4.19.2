@@ -71,9 +71,14 @@ public:
 	/** Destructor. */
 	~FMessageContext()
 	{
-		if ((Message != nullptr) && TypeInfo.IsValid())
+		if (Message != nullptr)
 		{
-			TypeInfo->DestroyScriptStruct(Message);
+			if (TypeInfo.IsValid())
+			{
+				TypeInfo->DestroyScriptStruct(Message);
+			}
+
+			delete Message;
 		}		
 	}
 
