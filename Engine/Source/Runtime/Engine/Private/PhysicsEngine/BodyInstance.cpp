@@ -1379,7 +1379,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		CreateDOFLock();
 
 		// wakeUp and putToSleep will issue warnings on kinematic actors
-		if (IsRigidDynamicNonKinematic(PNewDynamic))
+		if (IsRigidBodyNonKinematic(PNewDynamic))
 		{
 		    // Sleep/wake up as appropriate
 		    if (bShouldStartAwake)
@@ -2300,7 +2300,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 		// Do nothing if already in correct place
 		{
 			SCOPED_SCENE_READ_LOCK(RigidActor->getScene());
-			if (PRigidDynamic && !IsRigidDynamicNonKinematic(PRigidDynamic) && !bTeleport)
+			if (PRigidDynamic && !IsRigidBodyNonKinematic(PRigidDynamic) && !bTeleport)
 			{
 				const PxScene* PScene = PRigidDynamic->getScene();
 				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
@@ -2336,7 +2336,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 		if (PRigidDynamic)
 		{
 			// If kinematic and not teleporting, set kinematic target
-			if (!IsRigidDynamicNonKinematic(PRigidDynamic) && !bTeleport)
+			if (!IsRigidBodyNonKinematic(PRigidDynamic) && !bTeleport)
 			{
 				const PxScene* PScene = PRigidDynamic->getScene();
 				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
@@ -2386,10 +2386,10 @@ FVector FBodyInstance::GetUnrealWorldVelocity() const
 	FVector LinVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
-		SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
-		LinVel = P2UVector(PRigidDynamic->getLinearVelocity());
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+		LinVel = P2UVector(PRigidBody->getLinearVelocity());
 	}
 #endif // WITH_PHYSX
 
@@ -2409,11 +2409,11 @@ FVector FBodyInstance::GetUnrealWorldAngularVelocity() const
 	FVector AngVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(PRigidDynamic != NULL)
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (PRigidBody != NULL)
 	{
-		SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
-		AngVel = FMath::RadiansToDegrees( P2UVector(PRigidDynamic->getAngularVelocity()) );
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+		AngVel = FMath::RadiansToDegrees(P2UVector(PRigidBody->getAngularVelocity()));
 	}
 #endif // WITH_PHYSX
 
@@ -2432,11 +2432,11 @@ FVector FBodyInstance::GetUnrealWorldVelocityAtPoint(const FVector& Point) const
 	FVector LinVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
-		SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
 		PxVec3 PPoint = U2PVector(Point);
-		LinVel = P2UVector( PxRigidBodyExt::getVelocityAtPos(*PRigidDynamic, PPoint) );
+		LinVel = P2UVector(PxRigidBodyExt::getVelocityAtPos(*PRigidBody, PPoint));
 	}
 #endif // WITH_PHYSX
 
@@ -2454,11 +2454,11 @@ FVector FBodyInstance::GetUnrealWorldVelocityAtPoint(const FVector& Point) const
 FVector FBodyInstance::GetCOMPosition() const
 {
 #if WITH_PHYSX
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
-		SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
-		PxTransform PLocalCOM = PRigidDynamic->getCMassLocalPose();
-		PxVec3 PWorldCOM = PRigidDynamic->getGlobalPose().transform(PLocalCOM.p);
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+		PxTransform PLocalCOM = PRigidBody->getCMassLocalPose();
+		PxVec3 PWorldCOM = PRigidBody->getGlobalPose().transform(PLocalCOM.p);
 		return P2UVector(PWorldCOM);
 	}
 	else
@@ -2482,10 +2482,10 @@ float FBodyInstance::GetBodyMass() const
 	float Retval = 0.f;
 
 #if WITH_PHYSX
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
-		SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
-		Retval = PRigidDynamic->getMass();
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
+		Retval = PRigidBody->getMass();
 	}
 #endif // WITH_PHYSX
 
@@ -2504,12 +2504,12 @@ FBox FBodyInstance::GetBodyBounds() const
 	FBox Bounds;
 
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(PRigidDynamic)
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (PRigidBody)
 	{
-		SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
+		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
 		
-		PxBounds3 PBounds = PRigidDynamic->getWorldBounds();
+		PxBounds3 PBounds = PRigidBody->getWorldBounds();
 
 		Bounds.Min = P2UVector(PBounds.minimum);
 		Bounds.Max = P2UVector(PBounds.maximum);
@@ -2589,6 +2589,24 @@ PxRigidDynamic* FBodyInstance::GetPxRigidDynamic() const
 	else if(RigidActorAsync != NULL)
 	{
 		return RigidActorAsync->isRigidDynamic();
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+PxRigidBody* FBodyInstance::GetPxRigidBody() const
+{
+	// The logic below works because dynamic actors are non-NULL in only one scene.
+	// If this assumption changes, the logic needs to change.
+	if (RigidActorSync != NULL)
+	{
+		return RigidActorSync->isRigidBody();
+	}
+	else if (RigidActorAsync != NULL)
+	{
+		return RigidActorAsync->isRigidBody();
 	}
 	else
 	{
@@ -2716,11 +2734,11 @@ TArray<UPhysicalMaterial*> FBodyInstance::GetComplexPhysicalMaterials() const
 
 #if WITH_PHYSX
 /** Util for finding the number of 'collision sim' shapes on this PxRigidActor */
-int32 GetNumSimShapes(PxRigidDynamic* PRigidDynamic)
+int32 GetNumSimShapes(PxRigidBody* PRigidBody)
 {
 	TArray<PxShape*> PShapes;
-	PShapes.AddZeroed(PRigidDynamic->getNbShapes());
-	int32 NumShapes = PRigidDynamic->getShapes(PShapes.GetData(), PShapes.Num());
+	PShapes.AddZeroed(PRigidBody->getNbShapes());
+	int32 NumShapes = PRigidBody->getShapes(PShapes.GetData(), PShapes.Num());
 
 	int32 NumSimShapes = 0;
 
@@ -2759,16 +2777,15 @@ void FBodyInstance::UpdateMassProperties()
 	check(PhysMat);
 
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if ((PRigidDynamic != NULL) && (GetNumSimShapes(PRigidDynamic) > 0))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if ((PRigidBody != NULL) && (GetNumSimShapes(PRigidBody) > 0))
 	{
-
 		// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
 		float DensityKGPerCubicUU = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
-		PxRigidBodyExt::updateMassAndInertia(*PRigidDynamic, DensityKGPerCubicUU);
+		PxRigidBodyExt::updateMassAndInertia(*PRigidBody, DensityKGPerCubicUU);
 
 		//grab OldMass so we can apply new mass while maintaining inertia tensor
-		float OldMass = PRigidDynamic->getMass();
+		float OldMass = PRigidBody->getMass();
 		float NewMass = 0.f;
 
 		if (bOverrideMass == false)
@@ -2787,18 +2804,18 @@ void FBodyInstance::UpdateMassProperties()
 		check (NewMass > 0.f);
 
 		float MassRatio = NewMass/OldMass;
-		PxVec3 InertiaTensor = PRigidDynamic->getMassSpaceInertiaTensor();
+		PxVec3 InertiaTensor = PRigidBody->getMassSpaceInertiaTensor();
 
-		PRigidDynamic->setMassSpaceInertiaTensor(InertiaTensor * MassRatio);
-		PRigidDynamic->setMass(NewMass);
+		PRigidBody->setMassSpaceInertiaTensor(InertiaTensor * MassRatio);
+		PRigidBody->setMass(NewMass);
 
 		// Apply the COMNudge
 		if (!COMNudge.IsZero())
 		{
 			PxVec3 PCOMNudge = U2PVector(COMNudge);
-			PxTransform PCOMTransform = PRigidDynamic->getCMassLocalPose();
+			PxTransform PCOMTransform = PRigidBody->getCMassLocalPose();
 			PCOMTransform.p += PCOMNudge;
-			PRigidDynamic->setCMassLocalPose(PCOMTransform);
+			PRigidBody->setCMassLocalPose(PCOMTransform);
 		}
 	}
 #endif
@@ -2881,7 +2898,7 @@ void FBodyInstance::WakeInstance()
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidBodyNonKinematic(PRigidDynamic))
 	{
 		SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
 		PRigidDynamic->wakeUp();
@@ -2900,7 +2917,7 @@ void FBodyInstance::PutInstanceToSleep()
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	if (IsRigidBodyNonKinematic(PRigidDynamic))
 	{
 		PRigidDynamic->putToSleep();
 	}
@@ -2917,17 +2934,17 @@ void FBodyInstance::PutInstanceToSleep()
 void FBodyInstance::SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent)
 {
 #if WITH_PHYSX
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
 		PxVec3 PNewVel = U2PVector(NewVel);
 
 		if (bAddToCurrent)
 		{
-			const PxVec3 POldVel = PRigidDynamic->getLinearVelocity();
+			const PxVec3 POldVel = PRigidBody->getLinearVelocity();
 			PNewVel += POldVel;
 		}
 
-		PRigidDynamic->setLinearVelocity(PNewVel);
+		PRigidBody->setLinearVelocity(PNewVel);
 	}
 #endif // WITH_PHYSX
 
@@ -2951,17 +2968,17 @@ void FBodyInstance::SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent)
 void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent)
 {
 #if WITH_PHYSX
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
 		PxVec3 PNewAngVel = U2PVector( FMath::DegreesToRadians(NewAngVel) );
 
 		if (bAddToCurrent)
 		{
-			const PxVec3 POldAngVel = PRigidDynamic->getAngularVelocity();
+			const PxVec3 POldAngVel = PRigidBody->getAngularVelocity();
 			PNewAngVel += POldAngVel;
 		}
 
-		PRigidDynamic->setAngularVelocity(PNewAngVel);
+		PRigidBody->setAngularVelocity(PNewAngVel);
 	}
 #endif //WITH_PHYSX
 
@@ -3019,9 +3036,9 @@ void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
 	//0 from both instance and project settings means 
 	float UseMaxVelocity = MaxVelocity == 0.f ? PX_MAX_F32 : MaxVelocity;
 
-	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
-		PRigidDynamic->setMaxDepenetrationVelocity(UseMaxVelocity);
+		PRigidBody->setMaxDepenetrationVelocity(UseMaxVelocity);
 	}
 #endif
 
@@ -3031,10 +3048,10 @@ void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
 void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		const PxScene* PScene = PRigidDynamic->getScene();
+		const PxScene* PScene = PRigidBody->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 		PhysScene->AddForce(this, Force, bAllowSubstepping);
 		
@@ -3056,10 +3073,10 @@ void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		const PxScene* PScene = PRigidDynamic->getScene();
+		const PxScene* PScene = PRigidBody->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 		PhysScene->AddForceAtPosition(this, Force, Position, bAllowSubstepping);
 	}
@@ -3081,10 +3098,10 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		const PxScene* PScene = PRigidDynamic->getScene();
+		const PxScene* PScene = PRigidBody->getScene();
 		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 		PhysScene->AddTorque(this, Torque, bAllowSubstepping);
 	}
@@ -3105,11 +3122,11 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
 		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
-		PRigidDynamic->addForce(U2PVector(Impulse), Mode, true);
+		PRigidBody->addForce(U2PVector(Impulse), Mode, true);
 	}
 #endif // WITH_PHYSX
 
@@ -3128,11 +3145,11 @@ void FBodyInstance::AddImpulse(const FVector& Impulse, bool bVelChange)
 void FBodyInstance::AddImpulseAtPosition(const FVector& Impulse, const FVector& Position)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if (IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
 		PxForceMode::Enum Mode = PxForceMode::eIMPULSE; // does not support eVELOCITY_CHANGE
-		PxRigidBodyExt::addForceAtPos(*PRigidDynamic, U2PVector(Impulse), U2PVector(Position), Mode, true);
+		PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Impulse), U2PVector(Position), Mode, true);
 	}
 #endif // WITH_PHYSX
 
@@ -3162,7 +3179,7 @@ void FBodyInstance::SetEnableGravity(bool bInGravityEnabled)
 		bEnableGravity = bInGravityEnabled;
 
 #if WITH_PHYSX
-		if (PxRigidDynamic* PActor = GetPxRigidDynamic())
+		if (PxRigidBody* PActor = GetPxRigidBody())
 		{
 			PActor->setActorFlag( PxActorFlag::eDISABLE_GRAVITY, !bEnableGravity );
 		}
@@ -3228,10 +3245,10 @@ void AddRadialImpulseToBox2DBodyInstance(class b2Body* BodyInstancePtr, const FV
 void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		AddRadialImpulseToPxRigidDynamic(*PRigidDynamic, Origin, Radius, Strength, Falloff, bVelChange);
+		AddRadialImpulseToPxRigidBody(*PRigidBody, Origin, Radius, Strength, Falloff, bVelChange);
 	}
 #endif // WITH_PHYSX
 
@@ -3246,10 +3263,10 @@ void FBodyInstance::AddRadialImpulseToBody(const FVector& Origin, float Radius, 
 void FBodyInstance::AddRadialForceToBody(const FVector& Origin, float Radius, float Strength, uint8 Falloff)
 {
 #if WITH_PHYSX
-	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
-	if(IsRigidDynamicNonKinematic(PRigidDynamic))
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
 	{
-		AddRadialForceToPxRigidDynamic(*PRigidDynamic, Origin, Radius, Strength, Falloff);
+		AddRadialForceToPxRigidBody(*PRigidBody, Origin, Radius, Strength, Falloff);
 	}
 #endif // WITH_PHYSX
 

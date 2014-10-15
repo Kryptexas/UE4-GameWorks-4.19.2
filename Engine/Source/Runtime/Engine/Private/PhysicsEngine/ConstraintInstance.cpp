@@ -240,7 +240,7 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 
 	// Do not create joint unless you have two actors
 	// Do not create joint unless one of the actors is dynamic
-	if( (!PActor1 || !PActor1->isRigidDynamic()) && (!PActor2 || !PActor2->isRigidDynamic() ))
+	if ((!PActor1 || !PActor1->isRigidBody()) && (!PActor2 || !PActor2->isRigidBody()))
 	{
 		return;
 	}
@@ -248,13 +248,13 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 	// Need to worry about the case where one is static and one is dynamic, and make sure the static scene is used which matches the dynamic scene
 	if(PActor1 != NULL && PActor2 != NULL)
 	{
-		if(PActor1->isRigidStatic() && PActor2->isRigidDynamic())
+		if (PActor1->isRigidStatic() && PActor2->isRigidBody())
 		{
 			const uint32 SceneType = Body2->RigidActorSync != NULL ? PST_Sync : PST_Async;
 			PActor1 = Body1->GetPxRigidActor(SceneType);
 		}
 		else
-		if(PActor2->isRigidStatic() && PActor1->isRigidDynamic())
+		if (PActor2->isRigidStatic() && PActor1->isRigidBody())
 		{
 			const uint32 SceneType = Body1->RigidActorSync != NULL ? PST_Sync : PST_Async;
 			PActor2 = Body2->GetPxRigidActor(SceneType);
@@ -266,15 +266,15 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		float TotalMass = 0;
 		int NumDynamic = 0;
 
-		if (PActor1 && PActor1->isRigidDynamic())
+		if (PActor1 && PActor1->isRigidBody())
 		{
-			TotalMass += PActor1->isRigidDynamic()->getMass();
+			TotalMass += PActor1->isRigidBody()->getMass();
 			++NumDynamic;
 		}
 
-		if (PActor2 && PActor2->isRigidDynamic())
+		if (PActor2 && PActor2->isRigidBody())
 		{
-			TotalMass += PActor2->isRigidDynamic()->getMass();
+			TotalMass += PActor2->isRigidBody()->getMass();
 			++NumDynamic;
 		}
 
@@ -445,12 +445,12 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 	// creation of joints wakes up rigid bodies, so we put them to sleep again if both were initially asleep
 	if(bActor1Asleep && bActor2Asleep)
 	{
-		if ( PActor1 != NULL && IsRigidDynamicNonKinematic(PActor1->isRigidDynamic()))
+		if ( PActor1 != NULL && IsRigidBodyNonKinematic(PActor1->isRigidDynamic()))
 		{
 			PActor1->isRigidDynamic()->putToSleep();
 		}
 
-		if ( PActor2 != NULL && IsRigidDynamicNonKinematic(PActor2->isRigidDynamic()))
+		if (PActor2 != NULL && IsRigidBodyNonKinematic(PActor2->isRigidDynamic()))
 		{
 			PActor2->isRigidDynamic()->putToSleep();
 		}

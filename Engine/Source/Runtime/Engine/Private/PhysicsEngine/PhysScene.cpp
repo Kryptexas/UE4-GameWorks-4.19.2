@@ -35,7 +35,7 @@ FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance* BodyInstance)
 {
 #if WITH_PHYSX
 	//This is a helper function for dynamic actors - static actors are in both scenes
-	check(BodyInstance->GetPxRigidDynamic());
+	check(BodyInstance->GetPxRigidBody());
 	return UPhysicsSettings::Get()->bEnableAsyncScene && BodyInstance->UseAsyncScene() ? PST_Async : PST_Sync;
 #endif
 
@@ -230,7 +230,7 @@ void FPhysScene::AddForce(FBodyInstance* BodyInstance, const FVector& Force, boo
 {
 #if WITH_PHYSX
 
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 #if WITH_SUBSTEPPING
 		uint32 BodySceneType = SceneType(BodyInstance);
@@ -242,8 +242,8 @@ void FPhysScene::AddForce(FBodyInstance* BodyInstance, const FVector& Force, boo
 		else
 #endif
 		{
-			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
-			PRigidDynamic->addForce(U2PVector(Force), PxForceMode::eFORCE, true);
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			PRigidBody->addForce(U2PVector(Force), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
@@ -253,7 +253,7 @@ void FPhysScene::AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& 
 {
 #if WITH_PHYSX
 
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 #if WITH_SUBSTEPPING
 		uint32 BodySceneType = SceneType(BodyInstance);
@@ -265,8 +265,8 @@ void FPhysScene::AddForceAtPosition(FBodyInstance* BodyInstance, const FVector& 
 		else
 #endif
 		{
-			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
-			PxRigidBodyExt::addForceAtPos(*PRigidDynamic, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			PxRigidBodyExt::addForceAtPos(*PRigidBody, U2PVector(Force), U2PVector(Position), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
@@ -276,7 +276,7 @@ void FPhysScene::AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, b
 {
 #if WITH_PHYSX
 
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 #if WITH_SUBSTEPPING
 		uint32 BodySceneType = SceneType(BodyInstance);
@@ -288,8 +288,8 @@ void FPhysScene::AddTorque(FBodyInstance* BodyInstance, const FVector& Torque, b
 		else
 #endif
 		{
-			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
-			PRigidDynamic->addTorque(U2PVector(Torque), PxForceMode::eFORCE, true);
+			SCOPED_SCENE_WRITE_LOCK(PRigidBody->getScene());
+			PRigidBody->addTorque(U2PVector(Torque), PxForceMode::eFORCE, true);
 		}
 	}
 #endif
@@ -316,7 +316,7 @@ void FPhysScene::RemoveBodyFromActiveTransforms(class PxActor * PActor, uint32 S
 void FPhysScene::TermBody(FBodyInstance* BodyInstance)
 {
 #if WITH_SUBSTEPPING
-	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	if (PxRigidBody * PRigidBody = BodyInstance->GetPxRigidBody())
 	{
 		FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
 		PhysSubStepper->RemoveBodyInstance(BodyInstance);

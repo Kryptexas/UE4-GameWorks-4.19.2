@@ -211,13 +211,13 @@ PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex)
 #endif	// #if WITH_APEX
 
 
-void AddRadialImpulseToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
+void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
 {
 #if WITH_PHYSX
-	if (!(PRigidDynamic.getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC))
+	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
 	{
-		float Mass = PRigidDynamic.getMass();
-		PxTransform PCOMTransform = PRigidDynamic.getGlobalPose().transform(PRigidDynamic.getCMassLocalPose());
+		float Mass = PRigidBody.getMass();
+		PxTransform PCOMTransform = PRigidBody.getGlobalPose().transform(PRigidBody.getCMassLocalPose());
 		PxVec3 PCOMPos = PCOMTransform.p; // center of mass in world space
 		PxVec3 POrigin = U2PVector(Origin); // origin of radial impulse, in world space
 		PxVec3 PDelta = PCOMPos - POrigin; // vector from origin to COM
@@ -242,18 +242,18 @@ void AddRadialImpulseToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVect
 		PxVec3 PImpulse = PDelta * ImpulseMag;
 
 		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
-		PRigidDynamic.addForce(PImpulse, Mode);
+		PRigidBody.addForce(PImpulse, Mode);
 	}
 #endif // WITH_PHYSX
 }
 
-void AddRadialForceToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector& Origin, float Radius, float Strength, uint8 Falloff)
+void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff)
 {
 #if WITH_PHYSX
-	if (!(PRigidDynamic.getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC))
+	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
 	{
-		float Mass = PRigidDynamic.getMass();
-		PxTransform PCOMTransform = PRigidDynamic.getGlobalPose().transform(PRigidDynamic.getCMassLocalPose());
+		float Mass = PRigidBody.getMass();
+		PxTransform PCOMTransform = PRigidBody.getGlobalPose().transform(PRigidBody.getCMassLocalPose());
 		PxVec3 PCOMPos = PCOMTransform.p; // center of mass in world space
 		PxVec3 POrigin = U2PVector(Origin); // origin of radial impulse, in world space
 		PxVec3 PDelta = PCOMPos - POrigin; // vector from
@@ -277,16 +277,16 @@ void AddRadialForceToPxRigidDynamic(PxRigidDynamic& PRigidDynamic, const FVector
 
 		// Apply force
 		PxVec3 PImpulse = PDelta * ForceMag;
-		PRigidDynamic.addForce(PImpulse, PxForceMode::eFORCE);
+		PRigidBody.addForce(PImpulse, PxForceMode::eFORCE);
 	}
 #endif // WITH_PHYSX
 }
 
-bool IsRigidDynamicNonKinematic(PxRigidDynamic* PRigidDynamic)
+bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
 {
-	if(PRigidDynamic != NULL)
+	if (PRigidBody != NULL)
 	{
-		return !(PRigidDynamic->getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC);
+		return !(PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC);
 	}
 
 	return false;

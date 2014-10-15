@@ -18,6 +18,7 @@ namespace physx
 {
 	class PxRigidActor;
 	class PxAggregate;
+	class PxRigidBody;
 	class PxRigidDynamic;
 	class PxGeometry;
 	class PxShape;
@@ -395,6 +396,8 @@ public:
 	physx::PxRigidActor* GetPxRigidActor(int32 SceneType = -1) const;
 	/** Return the PxRigidDynamic if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidDynamic can exist in only one of the two scenes. */
 	physx::PxRigidDynamic* GetPxRigidDynamic() const;
+	/** Return the PxRigidBody if it exists in one of the scenes (NULL otherwise).  Currently a PxRigidBody can exist in only one of the two scenes. */
+	physx::PxRigidBody* GetPxRigidBody() const;
 
 	/** 
 	 *	Utility to get all the shapes from a FBodyInstance 
