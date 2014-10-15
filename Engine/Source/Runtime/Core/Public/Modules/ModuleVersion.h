@@ -9,7 +9,7 @@
 #if BUILT_FROM_CHANGELIST > 0
 #define MODULE_API_VERSION BUILT_FROM_CHANGELIST
 #else
-#define MODULE_API_VERSION 0
+#define MODULE_API_VERSION 2326478
 #endif
 
 // Check that the API version has been set manually for a hotfix release
