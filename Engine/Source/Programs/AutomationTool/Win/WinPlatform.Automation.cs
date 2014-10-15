@@ -125,7 +125,7 @@ public abstract class BaseWinPlatform : Platform
 					// remap the project root.
 					string SourceFile = CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir, Path.GetFileName(Exe));
 					StageExecutable("exe", SC, Path.GetDirectoryName(SourceFile), Path.GetFileNameWithoutExtension(SourceFile) + ".", true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, WorkingFileType);
-					if(Exe == Exes[0])
+					if(Exe == Exes[0] && !Params.NoBootstrapExe)
 					{
 						StageBootstrapExecutable(SC, SourceFile, CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exe)), "");
 					}
@@ -135,7 +135,7 @@ public abstract class BaseWinPlatform : Platform
 					// keep it in the engine directory.
 					string SourceFile = CombinePaths(SC.LocalRoot, "Engine", "Binaries", SC.PlatformDir, Path.GetFileName(Exe));
 					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(SourceFile) + ".", true, null, null, false, WorkingFileType);
-					if(Exe == Exes[0])
+					if(Exe == Exes[0] && !Params.NoBootstrapExe)
 					{
 						StageBootstrapExecutable(SC, SourceFile, CombinePaths("Engine", "Binaries", SC.PlatformDir, Path.GetFileName(Exe)), String.Format("..\\..\\..\\{0}\\{0}.uproject", SC.ShortProjectName));
 					}

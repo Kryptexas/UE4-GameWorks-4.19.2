@@ -271,6 +271,7 @@ namespace AutomationTool
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.Distribution = InParams.Distribution;
 			this.Prereqs = InParams.Prereqs;
+			this.NoBootstrapExe = InParams.NoBootstrapExe;
             this.OBBinAPK = InParams.OBBinAPK;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
@@ -333,6 +334,7 @@ namespace AutomationTool
 			bool? Package = null,
 			bool? Pak = null,
 			bool? Prereqs = null,
+			bool? NoBootstrapExe = null,
             bool? SignedPak = null,
             bool? NullRHI = null,
             bool? FakeClient = null,
@@ -454,6 +456,7 @@ namespace AutomationTool
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.Distribution = GetParamValueIfNotSpecified(Command, Distribution, this.Distribution, "distribution");
 			this.Prereqs = GetParamValueIfNotSpecified(Command, Prereqs, this.Prereqs, "prereqs");
+			this.NoBootstrapExe = GetParamValueIfNotSpecified(Command, NoBootstrapExe, this.NoBootstrapExe, "nobootstrapexe");
             this.OBBinAPK = GetParamValueIfNotSpecified(Command, OBBinAPK, this.OBBinAPK, "obbinapk");
             this.Prebuilt = GetParamValueIfNotSpecified(Command, Prebuilt, this.Prebuilt, "prebuilt");
             if (this.Prebuilt)
@@ -954,13 +957,19 @@ namespace AutomationTool
 		public bool bUsesSlateEditorStyle = false;
 
         /// <summary>
-        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        // so that you can debug your program's code.
+        /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
+        /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
+        /// our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
+        /// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
+        /// so that you can debug your program's code.
         /// </summary>
         public bool bDebugBuildsActuallyUseDebugCRT = false;
+
+        /// <summary>
+        /// On Windows, adds an executable to the root of the staging directory which checks for prerequisites being 
+		/// installed and launches the game with a path to the .uproject file.
+		/// </summary>
+        public bool NoBootstrapExe { get; set; }
 
 		#endregion
 
@@ -1737,6 +1746,7 @@ namespace AutomationTool
                 CommandUtils.Log("OBBinAPK={0}", OBBinAPK);
                 CommandUtils.Log("Prebuilt={0}", Prebuilt);
 				CommandUtils.Log("Prereqs={0}", Prereqs);
+				CommandUtils.Log("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.Log("RawProjectPath={0}", RawProjectPath);
 				CommandUtils.Log("Rocket={0}", Rocket);
 				CommandUtils.Log("Run={0}", Run);
