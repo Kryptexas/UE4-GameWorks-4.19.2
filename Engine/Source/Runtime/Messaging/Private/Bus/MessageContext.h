@@ -78,7 +78,7 @@ public:
 				TypeInfo->DestroyScriptStruct(Message);
 			}
 
-			delete Message;
+			FMemory::Free(Message);
 		}		
 	}
 
