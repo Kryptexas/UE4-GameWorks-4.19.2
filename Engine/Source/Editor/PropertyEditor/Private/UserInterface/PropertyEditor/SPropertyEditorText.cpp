@@ -27,7 +27,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 			.SelectAllTextOnCommit( false )
 			.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 			.AutoWrapText(true)
-			//.ModiferKeyForNewLine(EModifierKey::Shift)
+			.ModiferKeyForNewLine(EModifierKey::Shift)
 		];
 	}
 	else
