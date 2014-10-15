@@ -206,7 +206,7 @@ struct INTROTUTORIALS_API FTutorialStage
 };
 
 /** An asset used to build a stage-by-stage tutorial in the editor */
-UCLASS(Blueprintable, EditInlineNew)
+UCLASS(Blueprintable, hideCategories=(Object), EditInlineNew)
 class INTROTUTORIALS_API UEditorTutorial : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -255,6 +255,9 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY(EditAnywhere, Category="Tutorial")
 	bool bHideInBrowser;
 
+	/** UObject implementation */
+	virtual UWorld* GetWorld() const override;
+
 public:
 	/** Called when a tutorial stage is started */
 	void HandleTutorialStageStarted(FName StageName);
@@ -265,6 +268,12 @@ public:
 	/** Called each tick so the Blueprint can optionally complete or skip stages */
 	void HandleTickCurrentStage(FName StageName);
 
+	/** Called when a tutorial is launched */
+	void HandleTutorialLaunched();
+
+	/** Called when a tutorial is closed */
+	void HandleTutorialClosed();
+
 protected:
 	/** Event fired when a tutorial stage begins */
 	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
@@ -273,6 +282,14 @@ protected:
 	/** Event fired when a tutorial stage ends */
 	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
 	void OnTutorialStageEnded(FName StageName) const;
+
+	/** Event fired when a tutorial is launched */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
+	void OnTutorialLaunched() const;
+
+	/** Event fired when a tutorial is closed */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
+	void OnTutorialClosed() const;
 
 	/** Advance to the next stage of a tutorial */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")

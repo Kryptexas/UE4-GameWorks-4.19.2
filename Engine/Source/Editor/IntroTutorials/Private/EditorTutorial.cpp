@@ -8,6 +8,16 @@ UEditorTutorial::UEditorTutorial(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+UWorld* UEditorTutorial::GetWorld() const
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		return GWorld;
+	}
+#endif // WITH_EDITOR
+	return GEngine->GetWorldContexts()[0].World();
+}
 
 void UEditorTutorial::GoToNextTutorialStage()
 {
@@ -41,6 +51,20 @@ void UEditorTutorial::HandleTutorialStageEnded(FName StageName)
 {
 	FEditorScriptExecutionGuard ScriptGuard;
 	OnTutorialStageEnded(StageName);
+}
+
+
+void UEditorTutorial::HandleTutorialLaunched()
+{
+	FEditorScriptExecutionGuard ScriptGuard;
+	OnTutorialLaunched();
+}
+
+
+void UEditorTutorial::HandleTutorialClosed()
+{
+	FEditorScriptExecutionGuard ScriptGuard;
+	OnTutorialClosed();
 }
 
 

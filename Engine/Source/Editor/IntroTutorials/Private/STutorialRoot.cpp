@@ -144,6 +144,16 @@ void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart,
 				TutorialWidget.Value.Pin()->LaunchTutorial(bIsNavigationWindow, InOnTutorialClosed, InOnTutorialExited);
 			}
 		}
+
+		if (CurrentTutorial != nullptr)
+		{
+			CurrentTutorial->HandleTutorialLaunched();
+		}
+
+		if (CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num())
+		{
+			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		}
 	}
 }
 
@@ -161,15 +171,6 @@ void STutorialRoot::CloseAllTutorialContent()
 void STutorialRoot::HandleNextClicked(TWeakPtr<SWindow> InNavigationWindow)
 {
 	GoToNextStage(InNavigationWindow);
-
-	for(auto& TutorialWidget : TutorialWidgets)
-	{
-		if(TutorialWidget.Value.IsValid())
-		{
-			TSharedPtr<SEditorTutorials> PinnedTutorialWidget = TutorialWidget.Value.Pin();
-			PinnedTutorialWidget->RebuildCurrentContent();
-		}
-	}
 }
 
 void STutorialRoot::HandleBackClicked()
@@ -199,6 +200,7 @@ void STutorialRoot::HandleHomeClicked()
 {
 	if(CurrentTutorial != nullptr)
 	{
+		CurrentTutorial->HandleTutorialClosed();
 		GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
 		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 	}
@@ -287,10 +289,24 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}
 	}
+
+	for(auto& TutorialWidget : TutorialWidgets)
+	{
+		if(TutorialWidget.Value.IsValid())
+		{
+			TSharedPtr<SEditorTutorials> PinnedTutorialWidget = TutorialWidget.Value.Pin();
+			PinnedTutorialWidget->RebuildCurrentContent();
+		}
+	}
 }
 
 void STutorialRoot::HandleCloseClicked()
 {
+	if(CurrentTutorial != nullptr)
+	{
+		CurrentTutorial->HandleTutorialClosed();
+	}
+
 	// submit analytics data
 	if( FEngineAnalytics::IsAvailable() && CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() )
 	{
