@@ -1808,14 +1808,15 @@ namespace UnrealBuildTool
 				{
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeBinaryPaths");
 				}
+
 				var EditorProcessFilename = EditorProcessFilenames[0];
 				var EditorProcessName = Path.GetFileNameWithoutExtension(EditorProcessFilename);
-				var EditorProcesses = Process.GetProcessesByName(EditorProcessName);
+				var EditorProcesses = BuildHostPlatform.Current.GetProcessesByName(EditorProcessName);
 				var BinariesPath = Path.GetFullPath(Path.GetDirectoryName(EditorProcessFilename));
 				var PerProjectBinariesPath = Path.Combine(Target.ProjectDirectory, BinariesPath.Substring(BinariesPath.LastIndexOf("Binaries")));
-				bIsRunning = EditorProcesses.FirstOrDefault(p =>
+				bIsRunning = EditorProcesses.FirstOrDefault(EditorProc =>
 					{
-						if(!Path.GetFullPath(p.MainModule.FileName).StartsWith(BinariesPath, StringComparison.InvariantCultureIgnoreCase))
+						if(!Path.GetFullPath(EditorProc.Filename).StartsWith(BinariesPath, StringComparison.InvariantCultureIgnoreCase))
 						{
 							return false;
 						}
@@ -1825,13 +1826,14 @@ namespace UnrealBuildTool
 							return false;
 						}
 
-						if(!p.Modules.Cast<System.Diagnostics.ProcessModule>().Any(Module => Path.GetFullPath(Module.FileName).StartsWith(PerProjectBinariesPath)))
+						var Modules = BuildHostPlatform.Current.GetProcessModules(EditorProc.PID, EditorProc.Filename);
+						if(!Modules.Any(Module => Module.StartsWith(PerProjectBinariesPath)))
 						{
 							return false;
 						}
 
 						return true;
-					}) != default(Process);
+					}) != default(BuildHostPlatform.ProcessInfo);
 			}
 			return bIsRunning;
 		}
