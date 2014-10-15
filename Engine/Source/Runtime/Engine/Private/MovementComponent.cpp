@@ -411,7 +411,7 @@ bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, c
 
 FVector UMovementComponent::ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const
 {
-	return (Delta - Normal * (Delta | Normal)) * Time;
+	return FVector::VectorPlaneProject(Delta, Normal) * Time;
 }
 
 
