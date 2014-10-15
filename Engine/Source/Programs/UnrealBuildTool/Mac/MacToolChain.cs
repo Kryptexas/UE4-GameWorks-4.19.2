@@ -72,7 +72,6 @@ namespace UnrealBuildTool
 					{
 						// on the Mac, we can just get the directory name
 						SubDirs = System.IO.Directory.GetDirectories(BaseSDKDir);
-						Log.TraceInformation(String.Format("Directories : {0} {1}", SubDirs, SubDirs[0]));
 					}
 					else
 					{
