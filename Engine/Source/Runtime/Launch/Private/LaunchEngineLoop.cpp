@@ -2181,11 +2181,11 @@ void FEngineLoop::Tick()
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
-			FSlateApplication::Get().PollGameDeviceState();
+			FSlateApplication& SlateApp = FSlateApplication::Get();
+			SlateApp.PollGameDeviceState();
+			// Gives widgets a chance to process any accumulated input
+			SlateApp.FinishedInputThisFrame();
 		}
-
-		// Gives widgets a chance to process any accumulated input
-		FSlateApplication::Get().FinishedInputThisFrame();
 
 		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
 
