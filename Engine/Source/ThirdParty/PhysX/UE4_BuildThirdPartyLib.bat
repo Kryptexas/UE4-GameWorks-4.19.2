@@ -1,14 +1,9 @@
 REM PhysX
 setlocal
 
-REM Sync the PhysX branch (external to UE4)
-p4 set
-
-p4 sync //depot/PhysX/...
-
 REM PhysX root is always next to UE4, since that's how p4 is structured, and we know that we are always in UE4\Engine\Source\ThirdParty\PhysX
 REM This batch file wouldn't work otherwise
-set PhysXRoot=..\..\..\..\..\PhysX
+set PhysXRoot=..\NotForLicensees\PhysX
 
 REM Go to the branch
 pushd %PhysXRoot%
