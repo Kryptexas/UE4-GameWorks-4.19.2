@@ -6,7 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformAtomics.h"
 
 /**
  * HTML5 implementation of the Atomics OS functions (no actual atomics, as HTML5 has no threads)

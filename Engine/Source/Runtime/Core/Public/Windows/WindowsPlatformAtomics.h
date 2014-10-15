@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "GenericPlatform/GenericPlatformAtomics.h"
+#include "Windows/WindowsSystemIncludes.h"
 
 /**
  * Windows implementation of the Atomics OS functions
