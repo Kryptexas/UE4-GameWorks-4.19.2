@@ -6,6 +6,8 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTLS.h"
+#include "Android/AndroidSystemIncludes.h"
 
 /**
  * Android implementation of the TLS OS functions

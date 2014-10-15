@@ -5,7 +5,8 @@
 ==============================================================================================*/
 
 #pragma once
-
+#include "GenericPlatform/GenericPlatformTLS.h"
+#include "WinRT/WinRTSystemIncludes.h"
 //@todo.WINRT: Do NOT use the ThreadEmulation if this is ever checked in!!!!
 // Or if we do, it must have a TPS filed.
 // (Legal approved temporary usage for my Free Friday test)

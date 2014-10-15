@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTLS.h"
 
 /**
  * HTML5 implementation of the TLS OS functions

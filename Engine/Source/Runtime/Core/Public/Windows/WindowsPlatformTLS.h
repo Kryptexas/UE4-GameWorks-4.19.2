@@ -6,6 +6,9 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformTLS.h"
+#include "HAL/Platform.h"
+#include "Windows/WindowsSystemIncludes.h"
 
 /**
 * Windows implementation of the TLS OS functions
