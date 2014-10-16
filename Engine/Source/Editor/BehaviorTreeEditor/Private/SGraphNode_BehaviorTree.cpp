@@ -694,7 +694,7 @@ FReply SGraphNode_BehaviorTree::OnMouseDown(const FGeometry& SenderGeometry, con
 {
 	bIsMouseDown = true;
 
-	if (Cast<UBehaviorTreeGraphNode>(GraphNode)->ParentNode)
+	if (Cast<UBehaviorTreeGraphNode>(GraphNode)->ParentNode && GetOwnerPanel().IsValid())
 	{
 		GetOwnerPanel()->SelectionManager.ClickedOnNode(GraphNode,MouseEvent);
 		return FReply::Handled();
