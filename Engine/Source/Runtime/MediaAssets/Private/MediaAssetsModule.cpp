@@ -48,11 +48,11 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override { }
+	virtual void StartupModule() override { }
 
-	virtual void ShutdownModule( ) override { }
+	virtual void ShutdownModule() override { }
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return false;
 	}

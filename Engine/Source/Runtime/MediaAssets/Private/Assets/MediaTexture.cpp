@@ -20,7 +20,7 @@ UMediaTexture::UMediaTexture( const FObjectInitializer& ObjectInitializer )
 }
 
 
-UMediaTexture::~UMediaTexture( )
+UMediaTexture::~UMediaTexture()
 {
 	if (VideoTrack.IsValid())
 	{
@@ -32,7 +32,7 @@ UMediaTexture::~UMediaTexture( )
 /* UMediaTexture interface
  *****************************************************************************/
 
-TSharedPtr<class IMediaPlayer> UMediaTexture::GetPlayer( ) const
+TSharedPtr<class IMediaPlayer> UMediaTexture::GetPlayer() const
 {
 	return (MediaPlayer != nullptr)
 		? MediaPlayer->GetPlayer()
@@ -51,25 +51,25 @@ void UMediaTexture::SetMediaPlayer( UMediaPlayer* InMediaPlayer )
 /* UTexture  overrides
  *****************************************************************************/
 
-FTextureResource* UMediaTexture::CreateResource( )
+FTextureResource* UMediaTexture::CreateResource()
 {
 	return new FMediaTextureResource(this, VideoBuffer);
 }
 
 
-EMaterialValueType UMediaTexture::GetMaterialType( )
+EMaterialValueType UMediaTexture::GetMaterialType()
 {
 	return MCT_Texture2D;
 }
 
 
-float UMediaTexture::GetSurfaceWidth( ) const
+float UMediaTexture::GetSurfaceWidth() const
 {
 	return CachedDimensions.X;
 }
 
 
-float UMediaTexture::GetSurfaceHeight( ) const
+float UMediaTexture::GetSurfaceHeight() const
 {
 	return CachedDimensions.Y;
 }
@@ -78,7 +78,7 @@ float UMediaTexture::GetSurfaceHeight( ) const
 /* UObject  overrides
  *****************************************************************************/
 
-void UMediaTexture::BeginDestroy( )
+void UMediaTexture::BeginDestroy()
 {
 	Super::BeginDestroy();
 
@@ -92,7 +92,7 @@ void UMediaTexture::BeginDestroy( )
 }
 
 
-void UMediaTexture::FinishDestroy( )
+void UMediaTexture::FinishDestroy()
 {
 	delete ReleasePlayerFence;
 	ReleasePlayerFence = nullptr;
@@ -101,7 +101,7 @@ void UMediaTexture::FinishDestroy( )
 }
 
 
-FString UMediaTexture::GetDesc( )
+FString UMediaTexture::GetDesc()
 {
 	TSharedPtr<IMediaPlayer> MediaPlayer = GetPlayer();
 
@@ -120,14 +120,14 @@ SIZE_T UMediaTexture::GetResourceSize( EResourceSizeMode::Type Mode )
 }
 
 
-bool UMediaTexture::IsReadyForFinishDestroy( )
+bool UMediaTexture::IsReadyForFinishDestroy()
 {
 	// ready to call FinishDestroy if the flushing fence has been hit
 	return (Super::IsReadyForFinishDestroy() && ReleasePlayerFence && ReleasePlayerFence->IsFenceComplete());
 }
 
 
-void UMediaTexture::PostLoad( )
+void UMediaTexture::PostLoad()
 {
 	Super::PostLoad();
 
@@ -163,7 +163,7 @@ void UMediaTexture::PostEditChangeProperty( FPropertyChangedEvent& PropertyChang
 /* UMediaTexture implementation
  *****************************************************************************/
 
-void UMediaTexture::InitializeTrack( )
+void UMediaTexture::InitializeTrack()
 {
 	// assign new media player asset
 	if (CurrentMediaPlayer != MediaPlayer)
@@ -231,7 +231,7 @@ void UMediaTexture::InitializeTrack( )
 /* UMediaTexture callbacks
  *****************************************************************************/
 
-void UMediaTexture::HandleMediaPlayerMediaChanged( )
+void UMediaTexture::HandleMediaPlayerMediaChanged()
 {
 	InitializeTrack();
 }

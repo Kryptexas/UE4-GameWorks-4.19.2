@@ -17,7 +17,7 @@ FMediaTextureResource::FMediaTextureResource( const class UMediaTexture* InOwner
 /* FTextureResource overrides
  *****************************************************************************/
 
-void FMediaTextureResource::InitDynamicRHI( )
+void FMediaTextureResource::InitDynamicRHI()
 {
 	if ((Owner->GetSurfaceWidth() > 0) && (Owner->GetSurfaceHeight() > 0))
 	{
@@ -58,7 +58,7 @@ void FMediaTextureResource::InitDynamicRHI( )
 }
 
 
-void FMediaTextureResource::ReleaseDynamicRHI( )
+void FMediaTextureResource::ReleaseDynamicRHI()
 {
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
@@ -75,7 +75,7 @@ void FMediaTextureResource::ReleaseDynamicRHI( )
 /* FRenderTarget overrides
  *****************************************************************************/
 
-FIntPoint FMediaTextureResource::GetSizeXY( ) const
+FIntPoint FMediaTextureResource::GetSizeXY() const
 {
 	return Owner->GetDimensions();
 }

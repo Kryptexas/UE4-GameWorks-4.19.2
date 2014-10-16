@@ -25,14 +25,14 @@ public:
 
 	// FTextureResource overrides
 
-	virtual void InitDynamicRHI( ) override;
-	virtual void ReleaseDynamicRHI( ) override;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 public:
 
 	// FRenderTarget overrides
 
-	virtual FIntPoint GetSizeXY( ) const override;
+	virtual FIntPoint GetSizeXY() const override;
 
 public:
 

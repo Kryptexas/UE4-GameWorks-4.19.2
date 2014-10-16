@@ -29,7 +29,7 @@ class MEDIAASSETS_API UMediaSoundWave
 public:
 
 	/** Destructor. */
-	~UMediaSoundWave( );
+	~UMediaSoundWave();
 
 public:
 
@@ -48,7 +48,7 @@ public:
 	 *
 	 * @return The player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetPlayer( ) const;
+	TSharedPtr<class IMediaPlayer> GetPlayer() const;
 
 public:
 
@@ -71,12 +71,12 @@ public:
 protected:
 
 	/** Initializes the audio track. */
-	void InitializeTrack( );
+	void InitializeTrack();
 
 private:
 
 	/** Callback for when the UMediaPlayer asset changed its media. */
-	void HandleMediaPlayerMediaChanged( );
+	void HandleMediaPlayerMediaChanged();
 
 private:
 

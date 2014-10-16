@@ -16,7 +16,7 @@ UMediaSoundWave::UMediaSoundWave( const FObjectInitializer& ObjectInitializer )
 }
 
 
-UMediaSoundWave::~UMediaSoundWave( )
+UMediaSoundWave::~UMediaSoundWave()
 {
 	if (AudioTrack.IsValid())
 	{
@@ -28,7 +28,7 @@ UMediaSoundWave::~UMediaSoundWave( )
 /* UMediaSoundWave interface
  *****************************************************************************/
 
-TSharedPtr<IMediaPlayer> UMediaSoundWave::GetPlayer( ) const
+TSharedPtr<IMediaPlayer> UMediaSoundWave::GetPlayer() const
 {
 	if (MediaPlayer == nullptr)
 	{
@@ -127,7 +127,7 @@ void UMediaSoundWave::Serialize( FArchive& Ar )
 /* UMediaSoundWave implementation
  *****************************************************************************/
 
-void UMediaSoundWave::InitializeTrack( )
+void UMediaSoundWave::InitializeTrack()
 {
 	// assign new media player asset
 	if (CurrentMediaPlayer != MediaPlayer)
@@ -196,7 +196,7 @@ void UMediaSoundWave::InitializeTrack( )
 /* UMediaSoundWave callbacks
  *****************************************************************************/
 
-void UMediaSoundWave::HandleMediaPlayerMediaChanged( )
+void UMediaSoundWave::HandleMediaPlayerMediaChanged()
 {
 	InitializeTrack();
 }

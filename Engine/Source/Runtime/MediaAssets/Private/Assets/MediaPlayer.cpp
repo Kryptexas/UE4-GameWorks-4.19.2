@@ -19,19 +19,19 @@ UMediaPlayer::UMediaPlayer( const FObjectInitializer& ObjectInitializer )
 /* UMediaPlayer interface
  *****************************************************************************/
 
-bool UMediaPlayer::CanPause( ) const
+bool UMediaPlayer::CanPause() const
 {
 	return Player.IsValid() && Player->IsPlaying();
 }
 
 
-bool UMediaPlayer::CanPlay( ) const
+bool UMediaPlayer::CanPlay() const
 {
 	return Player.IsValid() && Player->IsReady();
 }
 
 
-FTimespan UMediaPlayer::GetDuration( ) const
+FTimespan UMediaPlayer::GetDuration() const
 {
 	if (Player.IsValid())
 	{
@@ -42,7 +42,7 @@ FTimespan UMediaPlayer::GetDuration( ) const
 }
 
 
-float UMediaPlayer::GetRate( ) const
+float UMediaPlayer::GetRate() const
 {
 	if (Player.IsValid())
 	{
@@ -53,7 +53,7 @@ float UMediaPlayer::GetRate( ) const
 }
 
 
-FTimespan UMediaPlayer::GetTime( ) const
+FTimespan UMediaPlayer::GetTime() const
 {
 	if (Player.IsValid())
 	{
@@ -64,31 +64,31 @@ FTimespan UMediaPlayer::GetTime( ) const
 }
 
 
-const FString& UMediaPlayer::GetUrl( ) const
+const FString& UMediaPlayer::GetUrl() const
 {
 	return CurrentUrl;
 }
 
 
-bool UMediaPlayer::IsLooping( ) const
+bool UMediaPlayer::IsLooping() const
 {
 	return Player.IsValid() && Player->IsLooping();
 }
 
 
-bool UMediaPlayer::IsPaused( ) const
+bool UMediaPlayer::IsPaused() const
 {
 	return Player.IsValid() && Player->IsPaused();
 }
 
 
-bool UMediaPlayer::IsPlaying( ) const
+bool UMediaPlayer::IsPlaying() const
 {
 	return Player.IsValid() && Player->IsPlaying();
 }
 
 
-bool UMediaPlayer::IsStopped( ) const
+bool UMediaPlayer::IsStopped() const
 {
 	return !Player.IsValid() || !Player->IsReady();
 }
@@ -103,19 +103,19 @@ bool UMediaPlayer::OpenUrl( const FString& NewUrl )
 }
 
 
-bool UMediaPlayer::Pause( )
+bool UMediaPlayer::Pause()
 {
 	return SetRate(0.0f);
 }
 
 
-bool UMediaPlayer::Play( )
+bool UMediaPlayer::Play()
 {
 	return SetRate(1.0f);
 }
 
 
-bool UMediaPlayer::Rewind( )
+bool UMediaPlayer::Rewind()
 {
 	return Seek(FTimespan::Zero());
 }
@@ -145,13 +145,13 @@ bool UMediaPlayer::SupportsRate( float Rate, bool Unthinned ) const
 }
 
 
-bool UMediaPlayer::SupportsScrubbing( ) const
+bool UMediaPlayer::SupportsScrubbing() const
 {
 	return Player.IsValid() && Player->GetMediaInfo().SupportsScrubbing();
 }
 
 
-bool UMediaPlayer::SupportsSeeking( ) const
+bool UMediaPlayer::SupportsSeeking() const
 {
 	return Player.IsValid() && Player->GetMediaInfo().SupportsSeeking();
 }
@@ -160,7 +160,7 @@ bool UMediaPlayer::SupportsSeeking( ) const
 /* UObject  overrides
  *****************************************************************************/
 
-void UMediaPlayer::BeginDestroy( )
+void UMediaPlayer::BeginDestroy()
 {
 	Super::BeginDestroy();
 
@@ -172,7 +172,7 @@ void UMediaPlayer::BeginDestroy( )
 }
 
 
-FString UMediaPlayer::GetDesc( )
+FString UMediaPlayer::GetDesc()
 {
 	if (Player.IsValid())
 	{
@@ -183,7 +183,7 @@ FString UMediaPlayer::GetDesc( )
 }
 
 
-void UMediaPlayer::PostLoad( )
+void UMediaPlayer::PostLoad()
 {
 	Super::PostLoad();
 
@@ -209,7 +209,7 @@ void UMediaPlayer::PostEditChangeProperty( FPropertyChangedEvent& PropertyChange
 /* UMediaPlayer implementation
  *****************************************************************************/
 
-void UMediaPlayer::InitializePlayer( )
+void UMediaPlayer::InitializePlayer()
 {
 	if (URL != CurrentUrl)
 	{
@@ -295,7 +295,7 @@ void UMediaPlayer::InitializePlayer( )
 /* UMediaPlayer callbacks
  *****************************************************************************/
 
-void UMediaPlayer::HandleMediaPlayerMediaClosed( )
+void UMediaPlayer::HandleMediaPlayerMediaClosed()
 {
 	MediaChangedEvent.Broadcast();
 	OnMediaClosed.Broadcast();

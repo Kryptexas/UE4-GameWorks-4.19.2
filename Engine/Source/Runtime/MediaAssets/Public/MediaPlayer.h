@@ -51,7 +51,7 @@ public:
 	 * @see CanPlay, Pause
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool CanPause( ) const;
+	bool CanPause() const;
 
 	/**
 	 * Checks whether media playback can be started right now.
@@ -60,7 +60,7 @@ public:
 	 * @see CanPause, Play
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool CanPlay( ) const;
+	bool CanPlay() const;
 
 	/**
 	 * Gets the media's duration.
@@ -69,7 +69,7 @@ public:
 	 * @see GetTime, Seek
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	FTimespan GetDuration( ) const;
+	FTimespan GetDuration() const;
 
 	/**
 	 * Gets the media's current playback rate.
@@ -78,7 +78,7 @@ public:
 	 * @see SetRate, SupportsRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	float GetRate( ) const;
+	float GetRate() const;
 
 	/**
 	 * Gets the media's current playback time.
@@ -87,7 +87,7 @@ public:
 	 * @see GetDuration, Seek
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	FTimespan GetTime( ) const;
+	FTimespan GetTime() const;
 
 	/**
 	 * Gets the URL of the currently loaded media, if any.
@@ -96,7 +96,7 @@ public:
 	 * @see OpenUrl
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	const FString& GetUrl( ) const;
+	const FString& GetUrl() const;
 
 	/**
 	 * Checks whether playback is looping.
@@ -105,7 +105,7 @@ public:
 	 * @see SetLooping
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool IsLooping( ) const;
+	bool IsLooping() const;
 
 	/**
 	 * Checks whether playback is currently paused.
@@ -114,7 +114,7 @@ public:
 	 * @see CanPause, IsPlaying, IsStopped, Pause
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool IsPaused( ) const;
+	bool IsPaused() const;
 
 	/**
 	 * Checks whether playback has started.
@@ -123,7 +123,7 @@ public:
 	 * @see CanPlay, IsPaused, IsStopped, Play
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool IsPlaying( ) const;
+	bool IsPlaying() const;
 
 	/**
 	 * Checks whether playback has stopped.
@@ -132,7 +132,7 @@ public:
 	 * @see IsPaused, IsPlaying, Stop
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool IsStopped( ) const;
+	bool IsStopped() const;
 
 	/**
 	 * Opens the specified media URL.
@@ -153,7 +153,7 @@ public:
 	 * @see CanPause, Play, Rewind, Seek, SetRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool Pause( );
+	bool Pause();
 
 	/**
 	 * Starts media playback.
@@ -164,7 +164,7 @@ public:
 	 * @see CanPlay, Pause, Rewind, Seek, SetRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool Play( );
+	bool Play();
 
 	/**
 	 * Rewinds the media to the beginning.
@@ -175,7 +175,7 @@ public:
 	 * @see GetTime, Pause, Play, Seek
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool Rewind( );
+	bool Rewind();
 
 	/**
 	 * Seeks to the specified playback time.
@@ -224,7 +224,7 @@ public:
 	 * @see SupportsRate, SupportsSeeking
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SupportsScrubbing( ) const;
+	bool SupportsScrubbing() const;
 
 	/**
 	 * Checks whether the currently loaded media can jump to a certain position.
@@ -233,13 +233,13 @@ public:
 	 * @see SupportsRate, SupportsScrubbing
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SupportsSeeking( ) const;
+	bool SupportsSeeking() const;
 
 public:
 
 	/** Gets an event delegate that is invoked when media has been opened or closed. */
 	DECLARE_EVENT(UMediaPlayer, FOnMediaChanged)
-	FOnMediaChanged& OnMediaChanged( )
+	FOnMediaChanged& OnMediaChanged()
 	{
 		return MediaChangedEvent;
 	}
@@ -259,7 +259,7 @@ public:
 	 *
 	 * @return The player, or nullptr if no player was created.
 	 */
-	TSharedPtr<class IMediaPlayer> GetPlayer( ) const
+	TSharedPtr<class IMediaPlayer> GetPlayer() const
 	{
 		return Player;
 	}
@@ -268,9 +268,9 @@ public:
 
 	// UObject overrides.
 
-	virtual void BeginDestroy( ) override;
-	virtual FString GetDesc( ) override;
-	virtual void PostLoad( ) override;
+	virtual void BeginDestroy() override;
+	virtual FString GetDesc() override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
@@ -279,7 +279,7 @@ public:
 protected:
 
 	/** Initializes the media player. */
-	void InitializePlayer( );
+	void InitializePlayer();
 
 protected:
 
@@ -306,7 +306,7 @@ protected:
 private:
 
 	/** Callback for when the media player has closed a media source. */
-	void HandleMediaPlayerMediaClosed( );
+	void HandleMediaPlayerMediaClosed();
 
 	/** Callback for when the media player has opened a new media source. */
 	void HandleMediaPlayerMediaOpened( FString OpenedUrl );
