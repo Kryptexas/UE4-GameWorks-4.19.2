@@ -25,7 +25,7 @@ public:
 	 * @return A time span representing the duration.
 	 * @see GetTime
 	 */
-	virtual FTimespan GetDuration( ) const = 0;
+	virtual FTimespan GetDuration() const = 0;
 
 	/**
 	 * Gets the range of supported playback rates in the specified playback direction.
@@ -42,7 +42,7 @@ public:
 	 *
 	 * @return Media URL.
 	 */
-	virtual FString GetUrl( ) const = 0;
+	virtual FString GetUrl() const = 0;
 
 	/**
 	 * Checks whether the specified playback rate is supported.
@@ -62,7 +62,7 @@ public:
 	 * @return true if scrubbing is supported, false otherwise.
 	 * @see SupportsRate, SupportsSeeking
 	 */
-	virtual bool SupportsScrubbing( ) const = 0;
+	virtual bool SupportsScrubbing() const = 0;
 
 	/**
 	 * Checks whether the currently loaded media can jump to certain times.
@@ -70,5 +70,5 @@ public:
 	 * @return true if seeking is supported, false otherwise.
 	 * @see SupportsRate, SupportsScrubbing
 	 */
-	virtual bool SupportsSeeking( ) const = 0;
+	virtual bool SupportsSeeking() const = 0;
 };

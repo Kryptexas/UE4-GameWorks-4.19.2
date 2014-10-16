@@ -11,5 +11,5 @@ class IMediaTrackCaptionDetails
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMediaTrackCaptionDetails( ) { }
+	virtual ~IMediaTrackCaptionDetails() { }
 };

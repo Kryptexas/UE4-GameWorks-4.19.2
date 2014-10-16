@@ -15,7 +15,7 @@ public:
 	 *
 	 * @return The data rate.
 	 */
-	virtual uint32 GetBitRate( ) const = 0;
+	virtual uint32 GetBitRate() const = 0;
 
 	/**
 	 * Gets the video's dimensions in pixels.
@@ -23,14 +23,14 @@ public:
 	 * @return The width and height of the video.
 	 * @see GetAspectRatio
 	 */
-	virtual FIntPoint GetDimensions( ) const = 0;
+	virtual FIntPoint GetDimensions() const = 0;
 
 	/**
 	 * Gets the video's frame rate in frames per second.
 	 *
 	 * @return The frame rate.
 	 */
-	virtual float GetFrameRate( ) const = 0;
+	virtual float GetFrameRate() const = 0;
 
 public:
 
@@ -40,7 +40,7 @@ public:
 	 * @return Aspect ratio.
 	 * @see GetDimensions
 	 */
-	float GetAspectRatio( ) const
+	float GetAspectRatio() const
 	{
 		const FVector2D Dimensions = GetDimensions();
 
@@ -55,5 +55,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMediaTrackVideoDetails( ) { }
+	virtual ~IMediaTrackVideoDetails() { }
 };

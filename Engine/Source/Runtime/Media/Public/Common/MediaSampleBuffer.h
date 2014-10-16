@@ -20,12 +20,12 @@ class FMediaSampleBuffer
 public:
 
 	/** Default constructor. */
-	FMediaSampleBuffer( )
+	FMediaSampleBuffer()
 		: CurrentSampleTime(FTimespan::MinValue())
 	{ }
 
 	/** Virtual destructor. */
-	virtual ~FMediaSampleBuffer( ) { }
+	virtual ~FMediaSampleBuffer() { }
 
 public:
 
@@ -35,7 +35,7 @@ public:
 	 * @return The current sample.
 	 * @see GetCurrentSampleTime
 	 */
-	TSharedPtr<TArray<uint8>, ESPMode::ThreadSafe> GetCurrentSample( ) const
+	TSharedPtr<TArray<uint8>, ESPMode::ThreadSafe> GetCurrentSample() const
 	{
 		return CurrentSample;
 	}
@@ -46,7 +46,7 @@ public:
 	 * @return Sample playback time.
 	 * @see GetCurrentSample
 	 */
-	FTimespan GetCurrentSampleTime( ) const
+	FTimespan GetCurrentSampleTime() const
 	{
 		return CurrentSampleTime;
 	}

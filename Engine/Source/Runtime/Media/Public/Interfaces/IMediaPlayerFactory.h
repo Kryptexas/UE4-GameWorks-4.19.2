@@ -30,7 +30,7 @@ public:
 	 *
 	 * @return A new media player, or nullptr if a player couldn't be created.
 	 */
-	virtual TSharedPtr<IMediaPlayer> CreatePlayer( ) = 0;
+	virtual TSharedPtr<IMediaPlayer> CreatePlayer() = 0;
 
 	/**
 	 * Gets the collection of supported media formats.
@@ -38,7 +38,7 @@ public:
 	 * @return A collection of supported formats.
 	 * @see SupportsFile
 	 */
-	virtual const FMediaFormats& GetSupportedFormats( ) const = 0;
+	virtual const FMediaFormats& GetSupportedFormats() const = 0;
 
 public:
 
@@ -56,5 +56,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMediaPlayerFactory( ) { }
+	virtual ~IMediaPlayerFactory() { }
 };

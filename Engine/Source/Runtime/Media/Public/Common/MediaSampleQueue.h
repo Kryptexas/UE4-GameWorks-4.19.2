@@ -20,7 +20,7 @@ class FMediaSampleQueue
 public:
 
 	/** Virtual destructor. */
-	virtual ~FMediaSampleQueue( ) { }
+	virtual ~FMediaSampleQueue() { }
 
 public:
 

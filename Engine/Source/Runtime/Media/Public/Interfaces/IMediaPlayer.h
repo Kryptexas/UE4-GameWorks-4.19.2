@@ -45,21 +45,21 @@ public:
 	 *
 	 * @see IsReady, Open
 	 */
-	virtual void Close( ) = 0;
+	virtual void Close() = 0;
 
 	/**
 	 * Gets the last error that occurred during media loading or playback.
 	 *
 	 * @return The error string, or an empty string if no error occurred.
 	 */
-//	virtual FString GetLastError( ) const = 0;
+//	virtual FString GetLastError() const = 0;
 
 	/**
 	 * Gets information about the currently loaded media.
 	 *
 	 * @return Interface to media information.
 	 */
-	virtual const IMediaInfo& GetMediaInfo( ) const = 0;
+	virtual const IMediaInfo& GetMediaInfo() const = 0;
 
 	/**
 	 * Gets the nominal playback rate, i.e. 1.0 for real time.
@@ -67,7 +67,7 @@ public:
 	 * @return Playback rate.
 	 * @see Pause, Play, SetRate
 	 */
-	virtual float GetRate( ) const = 0;
+	virtual float GetRate() const = 0;
 
 	/**
 	 * Gets the player's current playback time.
@@ -75,7 +75,7 @@ public:
 	 * @return Playback time.
 	 * @see Seek
 	 */
-	virtual FTimespan GetTime( ) const = 0;
+	virtual FTimespan GetTime() const = 0;
 
 	/**
 	 * Gets access to the media's audio, video and other tracks.
@@ -83,7 +83,7 @@ public:
 	 * @return Media tracks interface.
 	 * @see GetFirstTrack, GetTrack
 	 */
-	virtual const TArray<IMediaTrackRef>& GetTracks( ) const = 0;
+	virtual const TArray<IMediaTrackRef>& GetTracks() const = 0;
 
 	/**
 	 * Checks whether playback is currently looping.
@@ -91,7 +91,7 @@ public:
 	 * @return true if playback is looping, false otherwise.
 	 * @see SetLooping
 	 */
-	virtual bool IsLooping( ) const = 0;
+	virtual bool IsLooping() const = 0;
 
 	/**
 	 * Checks whether media playback is currently paused.
@@ -99,7 +99,7 @@ public:
 	 * @return true if playback is paused, false otherwise.
 	 * @see IsPlaying, IsStopped, Pause, Play, Stop
 	 */
-	virtual bool IsPaused( ) const = 0;
+	virtual bool IsPaused() const = 0;
 
 	/**
 	 * Checks whether media playback has currently in progress.
@@ -107,7 +107,7 @@ public:
 	 * @return true if playback is in progress, false otherwise.
 	 * @see IsPaused, IsStopped, Pause, Play, Stop
 	 */
-	virtual bool IsPlaying( ) const = 0;
+	virtual bool IsPlaying() const = 0;
 
 	/**
 	 * Checks whether this player is ready for playback.
@@ -119,7 +119,7 @@ public:
 	 * @return true if ready, false otherwise.
 	 * @see Close, Open
 	 */
-	virtual bool IsReady( ) const = 0;
+	virtual bool IsReady() const = 0;
 
 	/**
 	 * Opens a media from a file on disk.
@@ -175,11 +175,11 @@ public:
 
 	/** Gets an event delegate that is invoked when media has been closed. */
 	DECLARE_EVENT(IMediaPlayer, FOnMediaClosed)
-	virtual FOnMediaClosed& OnClosed( ) = 0;
+	virtual FOnMediaClosed& OnClosed() = 0;
 
 	/** Gets an event delegate that is invoked when media has been opened. */
 	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaOpened, FString /*OpenedUrl*/)
-	virtual FOnMediaOpened& OnOpened( ) = 0;
+	virtual FOnMediaOpened& OnOpened() = 0;
 
 public:
 
@@ -234,7 +234,7 @@ public:
 	 * @return true if the media is being paused, false otherwise.
 	 * @see Play, Stop
 	 */
-	FORCEINLINE bool Pause( )
+	FORCEINLINE bool Pause()
 	{
 		return SetRate(0.0f);
 	}
@@ -247,7 +247,7 @@ public:
 	 * @return true if playback is starting, false otherwise.
 	 * @see Pause, Stop
 	 */
-	FORCEINLINE bool Play( )
+	FORCEINLINE bool Play()
 	{
 		return SetRate(1.0f);
 	}
@@ -289,5 +289,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMediaPlayer( ) { }
+	virtual ~IMediaPlayer() { }
 };

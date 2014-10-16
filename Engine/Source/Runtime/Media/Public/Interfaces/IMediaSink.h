@@ -35,5 +35,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	~IMediaSink( ) { }
+	~IMediaSink() { }
 };

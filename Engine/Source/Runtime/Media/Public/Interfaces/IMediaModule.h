@@ -50,7 +50,7 @@ public:
 	 * @see FOnFactoryRemoved
 	 */
 	DECLARE_EVENT(IMediaModule, FOnFactoryAdded);
-	virtual FOnFactoryAdded& OnFactoryAdded( ) = 0;
+	virtual FOnFactoryAdded& OnFactoryAdded() = 0;
 
 	/**
 	 * Gets an event delegate that is invoked after a media player factory has been removed.
@@ -59,7 +59,7 @@ public:
 	 * @see FOnFactoryAdded
 	 */
 	DECLARE_EVENT(IMediaModule, FOnFactoryRemoved);
-	virtual FOnFactoryRemoved& OnFactoryRemoved( ) = 0;
+	virtual FOnFactoryRemoved& OnFactoryRemoved() = 0;
 
 public:
 
@@ -69,7 +69,7 @@ public:
 	 * @todo gmp: better implementation using dependency injection.
 	 * @return A reference to the Media module.
 	 */
-	static IMediaModule& Get( )
+	static IMediaModule& Get()
 	{
 #if PLATFORM_IOS
         static IMediaModule& MediaModule = FModuleManager::LoadModuleChecked<IMediaModule>("Media");
@@ -82,5 +82,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IMediaModule( ) { }
+	virtual ~IMediaModule() { }
 };
