@@ -6,7 +6,7 @@
 #include "Engine/World.h"
 #include "Runtime/Engine/Public/Net/UnrealNetwork.h"
 #include "GameplayAbilityTargetTypes.h"
-
+#pragma optimize("",off)
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	AGameplayAbilityTargetActor_Radius
@@ -69,7 +69,7 @@ TArray<TWeakObjectPtr<AActor> >	AGameplayAbilityTargetActor_Radius::PerformOverl
 	{
 		//Should this check to see if these pawns are in the AimTarget list?
 		APawn* PawnActor = Cast<APawn>(Overlaps[i].GetActor());
-		if (PawnActor && FilterHandle.FilterPassesForActor(PawnActor))
+		if (PawnActor && Filter.FilterPassesForActor(PawnActor))
 		{
 			HitActors.Add(PawnActor);
 		}

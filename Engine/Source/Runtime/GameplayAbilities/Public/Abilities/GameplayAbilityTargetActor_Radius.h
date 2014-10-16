@@ -19,10 +19,6 @@ public:
 	
 	virtual void ConfirmTargetingAndContinue() override;
 
-	/** Filter to decide who can be selected. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Targeting)
-	FGameplayTargetDataFilterHandle FilterHandle;
-
 	/** Radius of target acquisition around the ability's start location. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (ExposeOnSpawn = true), Category = Radius)
 	float Radius;
