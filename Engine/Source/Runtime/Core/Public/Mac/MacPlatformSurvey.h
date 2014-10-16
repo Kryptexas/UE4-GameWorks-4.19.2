@@ -8,6 +8,8 @@
 #pragma once
 #include "GenericPlatform/GenericPlatformSurvey.h"
 
+class FString;
+
 /**
 * Mac implementation of FGenericPlatformSurvey
 **/
