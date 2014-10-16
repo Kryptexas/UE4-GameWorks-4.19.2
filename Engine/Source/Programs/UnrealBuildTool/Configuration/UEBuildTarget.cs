@@ -1825,6 +1825,11 @@ namespace UnrealBuildTool
 		{
 			var ModuleName = "AutoStartupModuleListGetter";
 
+			if (!Directory.Exists(GlobalCompileEnvironment.Config.OutputDirectory))
+			{
+				Directory.CreateDirectory(GlobalCompileEnvironment.Config.OutputDirectory);
+			}
+
 			string SourceFilename = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, ModuleName + ".cpp");
 			string HeaderFilename = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, ModuleName + ".h");
 
