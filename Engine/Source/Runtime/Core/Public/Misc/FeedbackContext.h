@@ -242,7 +242,10 @@ public:
 		verifySlow(ExpectedWorkThisFrame <= WorkRemaining);
 		CurrentFrameScope = FMath::Min(WorkRemaining, ExpectedWorkThisFrame);
 
-		Context.RequestUpdateUI(bCreatedDialog || (bEnabled && Context.ScopeStack[0] == this));
+		if (bEnabled)
+		{
+			Context.RequestUpdateUI(bCreatedDialog || Context.ScopeStack[0] == this);
+		}
 	}
 
 	/**

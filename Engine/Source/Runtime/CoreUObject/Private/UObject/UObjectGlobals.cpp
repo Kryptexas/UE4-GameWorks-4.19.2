@@ -76,6 +76,13 @@ FCoreUObjectDelegates::FOnLoadObjectsOnTop FCoreUObjectDelegates::ShouldLoadOnTo
 FCoreUObjectDelegates::FStringAssetReferenceLoaded FCoreUObjectDelegates::StringAssetReferenceLoaded;
 FCoreUObjectDelegates::FStringAssetReferenceSaving FCoreUObjectDelegates::StringAssetReferenceSaving;
 FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCreatedForLoad;
+
+/** Check wehether we should report progress or not */
+bool ShouldReportProgress()
+{
+	return GIsEditor && !IsRunningCommandlet() && !GIsAsyncLoading;
+}
+
 /**
  * Fast version of StaticFindObject that relies on the passed in FName being the object name
  * without any group/ package qualifiers.
@@ -798,7 +805,7 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 	TGuardValue<bool> IsEditorLoadingPackage(GIsEditorLoadingPackage, GIsEditor || GIsEditorLoadingPackage);
 #endif
 
-	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "LoadingPackage_Scope", "Loading Package '{0}'"), FText::FromString(FileToLoad)));
+	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "LoadingPackage_Scope", "Loading Package '{0}'"), FText::FromString(FileToLoad)), ShouldReportProgress());
 	SlowTask.bVisibleOnUI = false;
 	
 	SlowTask.EnterProgressFrame(10);
@@ -1008,9 +1015,7 @@ void EndLoad()
 	}
 
 #if WITH_EDITOR
-	const bool bReportProgress = GIsEditor && !IsRunningCommandlet();
-	
-	FScopedSlowTask SlowTask(0, NSLOCTEXT("Core", "PerformingPostLoad", "Performing post-load..."), bReportProgress);
+	FScopedSlowTask SlowTask(0, NSLOCTEXT("Core", "PerformingPostLoad", "Performing post-load..."), ShouldReportProgress());
 
 	int32 NumObjectsLoaded = 0, NumObjectsFound = 0;
 #endif

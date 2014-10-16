@@ -1380,6 +1380,12 @@ private:
 #if WITH_EDITOR
 	/** Feedback scope that is created to house the slow task of an asynchronous linker load. Raw ptr so we don't pull in TUniquePtr for everything. */
 	FScopedSlowTask* LoadProgressScope;
+
+	/** Test whether we should report progress or not */
+	FORCEINLINE bool ShouldReportProgress() const
+	{
+		return !GIsAsyncLoading && ( LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
+	}
 #endif 
 
 public:

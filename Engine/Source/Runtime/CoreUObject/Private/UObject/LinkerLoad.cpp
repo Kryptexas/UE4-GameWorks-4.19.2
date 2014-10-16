@@ -652,8 +652,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 
 	if (!LoadProgressScope)
 	{
-		const bool bShowProgress = ( LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
-		LoadProgressScope = new FScopedSlowTask(ULinkerDefs::TotalProgressSteps, NSLOCTEXT("Core", "GenericLoading", "Loading..."), bShowProgress);
+		LoadProgressScope = new FScopedSlowTask(ULinkerDefs::TotalProgressSteps, NSLOCTEXT("Core", "GenericLoading", "Loading..."), ShouldReportProgress());
 	}
 
 #endif
@@ -1695,14 +1694,17 @@ void ULinkerLoad::Verify()
 	{
 		if (!bHaveImportsBeenVerified)
 		{
-			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"));
-
+#if WITH_EDITOR
+			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"), ShouldReportProgress());
+#endif
 			// Validate all imports and map them to their remote linkers.
 			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
 			{
 				FObjectImport& Import = ImportMap[ImportIndex];
-				
+
+#if WITH_EDITOR
 				SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "LinkerLoad_LoadingImportName", "Loading Import '{0}'"), FText::FromString(Import.ObjectName.ToString())));
+#endif
 				VerifyImport( ImportIndex );
 			}
 		}
@@ -2074,7 +2076,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 	FObjectImport& Import = ImportMap[ImportIndex];
 
-	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "VerifyPackage_Scope", "Verifying '{0}'"), FText::FromString(Import.ObjectName.ToString())));
+#if WITH_EDITOR
+	FScopedSlowTask SlowTask(100, FText::Format(NSLOCTEXT("Core", "VerifyPackage_Scope", "Verifying '{0}'"), FText::FromString(Import.ObjectName.ToString())), ShouldReportProgress());
+#endif
 
 	if
 	(	(Import.SourceLinker && Import.SourceIndex != INDEX_NONE)
@@ -2112,7 +2116,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			bWasFullyLoaded = TmpPkg && TmpPkg->IsFullyLoaded();
 		}
 
+#if WITH_EDITOR
 		SlowTask.EnterProgressFrame(30);
+#endif
 
 		if (!bWasFullyLoaded)
 		{
@@ -2121,7 +2127,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			TmpPkg = LoadPackage(NULL, *Import.ObjectName.ToString(), InternalLoadFlags);
 		}
 
+#if WITH_EDITOR
 		SlowTask.EnterProgressFrame(30);
+#endif
 
 		// following is the original VerifyImport code
 		// @todo linkers: This could quite possibly be cleaned up
@@ -2143,7 +2151,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			InternalLoadFlags |= LOAD_NoVerify;
 		}
 
+#if WITH_EDITOR
 		SlowTask.EnterProgressFrame(40);
+#endif
 
 		// Get the linker if the package hasn't been fully loaded already.
 		if (!bWasFullyLoaded)
@@ -2156,7 +2166,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 		// this resource's Outer is not a UPackage
 		checkf(Import.OuterIndex.IsImport(),TEXT("Outer for Import %s (%i) is not an import - OuterIndex:%i"), *GetImportFullName(ImportIndex), ImportIndex, Import.OuterIndex.ForDebugging());
 
+#if WITH_EDITOR
 		SlowTask.EnterProgressFrame(50);
+#endif
 
 		VerifyImport( Import.OuterIndex.ToImport() );
 
@@ -2186,7 +2198,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			Import.SourceLinker = OuterImport.SourceLinker;
 		}
 
+#if WITH_EDITOR
 		SlowTask.EnterProgressFrame(50);
+#endif
 
 		//check(Import.SourceLinker);
 		//@todo what does it mean if we don't have a SourceLinker here?
@@ -2468,9 +2482,11 @@ int32 ULinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
  */
 void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 {
-	FScopedSlowTask SlowTask(ExportMap.Num(), NSLOCTEXT("Core", "LinkerLoad_LoadingObjects", "Loading Objects"), (LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0);
+#if WITH_EDITOR
+	FScopedSlowTask SlowTask(ExportMap.Num(), NSLOCTEXT("Core", "LinkerLoad_LoadingObjects", "Loading Objects"), ShouldReportProgress());
 	SlowTask.bVisibleOnUI = false;
-	
+#endif
+
 	if ( (LoadFlags&LOAD_SeekFree) != 0 )
 	{
 		bForcePreload = true;
@@ -2488,7 +2504,9 @@ void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 	
 	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
 	{
+#if WITH_EDITOR
 		SlowTask.EnterProgressFrame(1);
+#endif
 		if(ExportIndex == MetaDataIndex)
 		{
 			continue;
