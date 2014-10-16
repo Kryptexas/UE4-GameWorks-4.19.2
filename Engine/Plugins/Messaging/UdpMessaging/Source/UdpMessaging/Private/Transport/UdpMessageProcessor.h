@@ -31,7 +31,7 @@ class FUdpMessageProcessor
 		TMap<int32, TSharedPtr<FUdpMessageSegmenter> > Segmenters;
 
 		// Default constructor.
-		FNodeInfo( )
+		FNodeInfo()
 			: LastSegmentReceivedTime(FDateTime::MinValue())
 			, NodeId()
 		{ }
@@ -61,7 +61,7 @@ class FUdpMessageProcessor
 
 
 		// Default constructor.
-		FInboundSegment( ) { }
+		FInboundSegment() { }
 
 		// Creates and initializes a new instance.
 		FInboundSegment( const FArrayReaderPtr& InData, const FIPv4Endpoint& InSender )
@@ -82,7 +82,7 @@ class FUdpMessageProcessor
 
 
 		// Default constructor.
-		FOutboundMessage( ) { }
+		FOutboundMessage() { }
 
 		// Creates and initializes a new instance.
 		FOutboundMessage( const IMessageDataRef& InMessageData, const FGuid& InRecipientId )
@@ -102,10 +102,8 @@ public:
 	 */
 	FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint );
 
-	/**
-	 * Destructor.
-	 */
-	~FUdpMessageProcessor( );
+	/** Destructor. */
+	~FUdpMessageProcessor();
 
 public:
 
@@ -129,7 +127,7 @@ public:
 
 public:
 
-	FOnMessageTransportNodeDiscovered& OnNodeDiscovered( )
+	FOnMessageTransportNodeDiscovered& OnNodeDiscovered()
 	{
 		return NodeDiscoveredDelegate;
 	}
@@ -139,7 +137,7 @@ public:
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	FOnMessageTransportNodeLost& OnNodeLost( )
+	FOnMessageTransportNodeLost& OnNodeLost()
 	{
 		return NodeLostDelegate;
 	}
@@ -149,7 +147,7 @@ public:
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	FOnMessageTransportMessageReceived& OnMessageReceived( )
+	FOnMessageTransportMessageReceived& OnMessageReceived()
 	{
 		return MessageReceivedDelegate;
 	}
@@ -158,10 +156,10 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override;
-	virtual uint32 Run( ) override;
-	virtual void Stop( ) override;
-	virtual void Exit( ) override { }
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override { }
 
 protected:
 
@@ -170,7 +168,6 @@ protected:
 	 *
 	 * @param MessageId The identifier of the message to acknowledge.
 	 * @param NodeInfo Details for the node to send the acknowledgment to.
-	 *
 	 * @todo gmp: batch multiple of these into a single message
 	 */
 	void AcknowledgeReceipt( int32 MessageId, const FNodeInfo& NodeInfo );
@@ -180,17 +177,13 @@ protected:
 	 *
 	 * @return Wait time.
 	 */
-	FTimespan CalculateWaitTime( ) const;
+	FTimespan CalculateWaitTime() const;
 
-	/**
-	 * Consumes all inbound segments.
-	 */
-	void ConsumeInboundSegments( );
+	/** Consumes all inbound segments. */
+	void ConsumeInboundSegments();
 
-	/**
-	 * Consumes all outbound messages.
-	 */
-	void ConsumeOutboundMessages( );
+	/** Consumes all outbound messages. */
+	void ConsumeOutboundMessages();
 
 	/**
 	 * Filters the specified message segment.
@@ -274,10 +267,8 @@ protected:
 	 */
 	void RemoveKnownNode( const FGuid& NodeId );
 
-	/**
-	 * Updates all known remote nodes.
-	 */
-	void UpdateKnownNodes( );
+	/** Updates all known remote nodes. */
+	void UpdateKnownNodes();
 
 	/**
 	 * Updates all segmenters of the specified node.
@@ -286,75 +277,73 @@ protected:
 	 */
 	void UpdateSegmenters( FNodeInfo& NodeInfo );
 
-	/**
-	 * Updates all static remote nodes.
-	 */
-	void UpdateStaticNodes( );
+	/** Updates all static remote nodes. */
+	void UpdateStaticNodes();
 
 private:
 
-	// Handles message data state changes.
-	void HandleMessageDataStateChanged( );
+	/** Handles message data state changes. */
+	void HandleMessageDataStateChanged();
 
 private:
 
-	// Holds the queue of outbound messages.
+	// Holds the queue of outbound messages. */
 	TQueue<FInboundSegment, EQueueMode::Mpsc> InboundSegments;
 
-	// Holds the queue of outbound messages.
+	// Holds the queue of outbound messages. */
 	TQueue<FOutboundMessage, EQueueMode::Mpsc> OutboundMessages;
 
 private:
 
-	// Holds the hello sender.
+	/** Holds the hello sender. */
 	FUdpMessageBeacon* Beacon;
 
-	// Holds the current time.
+	/** Holds the current time. */
 	FDateTime CurrentTime;
 
-	// Holds the collection of known remote nodes.
+	/** Holds the collection of known remote nodes. */
 	TMap<FGuid, FNodeInfo> KnownNodes;
 
-	// Holds the last sent message number.
+	/** Holds the last sent message number. */
 	int32 LastSentMessage;
 
-	// Holds the local node identifier.
+	/** Holds the local node identifier. */
 	FGuid LocalNodeId;
 
-	// Holds the multicast endpoint.
+	/** Holds the multicast endpoint. */
 	FIPv4Endpoint MulticastEndpoint;
 
-	// Holds the socket sender.
+	/** Holds the socket sender. */
 	FUdpSocketSender* Sender;
 
-	// Holds the network socket used to transport messages.
+	/** Holds the network socket used to transport messages. */
 	FSocket* Socket;
 
-	// Holds the collection of static remote nodes.
+	/** Holds the collection of static remote nodes. */
 	TMap<FIPv4Endpoint, FNodeInfo> StaticNodes;
 
-	// Holds a flag indicating that the thread is stopping.
+	/** Holds a flag indicating that the thread is stopping. */
 	bool Stopping;
 
-	// Holds the thread object.
+	/** Holds the thread object. */
 	FRunnableThread* Thread;
 
-	// Holds an event signaling that inbound messages need to be processed.
+	/** Holds an event signaling that inbound messages need to be processed. */
 	FEvent* WorkEvent;
 
 private:
 
-	// Holds a delegate to be invoked when a message was received on the transport channel.
+	/** Holds a delegate to be invoked when a message was received on the transport channel. */
 	FOnMessageTransportMessageReceived MessageReceivedDelegate;
 
-	// Holds a delegate to be invoked when a network node was discovered.
+	/** Holds a delegate to be invoked when a network node was discovered. */
 	FOnMessageTransportNodeDiscovered NodeDiscoveredDelegate;
 
-	// Holds a delegate to be invoked when a network node was lost.
+	/** Holds a delegate to be invoked when a network node was lost. */
 	FOnMessageTransportNodeLost NodeLostDelegate;
 
 private:
 
-	// Defines the maximum number of Hello segments that can be dropped before a remote endpoint is considered dead.
+	/** Defines the maximum number of Hello segments that can be dropped before a remote endpoint is considered dead. */
 	static const int32 DeadHelloIntervals;
 };

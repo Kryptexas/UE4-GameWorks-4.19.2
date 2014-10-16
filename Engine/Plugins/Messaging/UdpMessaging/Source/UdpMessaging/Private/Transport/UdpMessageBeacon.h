@@ -22,10 +22,8 @@ public:
 	 */
 	FUdpMessageBeacon( FSocket* InSocket, const FGuid& InSocketId, const FIPv4Endpoint& InMulticastEndpoint );
 
-	/**
-	 * Destructor.
-	 */
-	virtual ~FUdpMessageBeacon( );
+	/** Destructor. */
+	virtual ~FUdpMessageBeacon();
 
 public:
 
@@ -34,7 +32,7 @@ public:
 	 *
 	 * @return Beacon interval.
 	 */
-	FTimespan GetBeaconInterval( )
+	FTimespan GetBeaconInterval()
 	{
 		return BeaconInterval;
 	}
@@ -50,10 +48,10 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override;
-	virtual uint32 Run( ) override;
-	virtual void Stop( ) override;
-	virtual void Exit( ) override { }
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override { }
 
 protected:
 
@@ -66,41 +64,41 @@ protected:
 
 private:
 
-	// Holds the calculated interval between Hello segments.
+	/** Holds the calculated interval between Hello segments. */
 	FTimespan BeaconInterval;
 
-	// Holds an event signaling that an endpoint left.
+	/** Holds an event signaling that an endpoint left. */
 	FEvent* EndpointLeftEvent;
 
-	// Holds the number of known endpoints when NextHelloTime was last calculated.
+	/** Holds the number of known endpoints when NextHelloTime was last calculated. */
 	int32 LastEndpointCount;
 
-	// Holds the time at which the last Hello segment was sent.
+	/** Holds the time at which the last Hello segment was sent. */
 	FDateTime LastHelloSent;
 
-	// Holds the multicast address and port number to send to.
+	/** Holds the multicast address and port number to send to. */
 	TSharedPtr<FInternetAddr> MulticastAddress;
 
-	// Holds the time at which the next Hello segment must be sent.
+	/** Holds the time at which the next Hello segment must be sent. */
 	FDateTime NextHelloTime;
 
-	// Holds local node identifier.
+	/** Holds local node identifier. */
 	FGuid NodeId;
 
-	// Holds the socket used to send Hello segments.
+	/** Holds the socket used to send Hello segments. */
 	FSocket* Socket;
 
-	// Holds a flag indicating that the thread is stopping.
+	/** Holds a flag indicating that the thread is stopping. */
 	bool Stopping;
 
-	// Holds the thread object.
+	/** Holds the thread object. */
 	FRunnableThread* Thread;
 
 private:
 	
-	// Defines the time interval per endpoint.
+	/** Defines the time interval per endpoint. */
 	static const FTimespan IntervalPerEndpoint;
 
-	// Defines the minimum interval for Hello segments.
+	/** Defines the minimum interval for Hello segments. */
 	static const FTimespan MinimumInterval;
 };

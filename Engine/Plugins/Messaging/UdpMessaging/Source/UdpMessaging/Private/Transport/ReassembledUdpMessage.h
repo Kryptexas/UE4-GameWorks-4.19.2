@@ -18,7 +18,7 @@ class FReassembledUdpMessage
 public:
 
 	/** Default constructor. */
-	FReassembledUdpMessage( ) { }
+	FReassembledUdpMessage() { }
 
 	/**
 	 * Creates and initializes a new inbound message info.
@@ -39,7 +39,7 @@ public:
 	}
 
 	/** Virtual destructor. */
-	virtual ~FReassembledUdpMessage( ) { }
+	virtual ~FReassembledUdpMessage() { }
 
 public:
 
@@ -48,7 +48,7 @@ public:
 	 *
 	 * @return Last receive time.
 	 */
-	FDateTime GetLastSegmentTime( ) const
+	FDateTime GetLastSegmentTime() const
 	{
 		return LastSegmentTime;
 	}
@@ -58,7 +58,7 @@ public:
 	 *
 	 * @return List of pending segment numbers.
 	 */
-	TArray<uint16> GetPendingSegments( ) const
+	TArray<uint16> GetPendingSegments() const
 	{
 		TArray<uint16> Result;
 
@@ -78,7 +78,7 @@ public:
 	 *
 	 * @return Number of pending segments.
 	 */
-	uint16 GetPendingSegmentsCount( ) const
+	uint16 GetPendingSegmentsCount() const
 	{
 		return PendingSegmentsCount;
 	}
@@ -88,7 +88,7 @@ public:
 	 *
 	 * @return Number of retransmit requests.
 	 */
-	int32 GetRetransmitRequestsCount( ) const
+	int32 GetRetransmitRequestsCount() const
 	{
 		return RetransmitRequestsCount;
 	}
@@ -98,7 +98,7 @@ public:
 	 *
 	 * @return true if the message is complete, false otherwise.
 	 */
-	bool IsComplete( ) const
+	bool IsComplete() const
 	{
 		return (PendingSegmentsCount == 0);
 	}
@@ -108,7 +108,7 @@ public:
 	 *
 	 * @return true if the message is initialized, false otherwise.
 	 */
-	bool IsInitialized( ) const
+	bool IsInitialized() const
 	{
 		return (Data.Num() < 0);
 	}
@@ -152,7 +152,7 @@ public:
 	 *
 	 * @return Message data.
 	 */
-	virtual const TArray<uint8>& GetData( ) const
+	virtual const TArray<uint8>& GetData() const
 	{
 		return Data;
 	}
@@ -162,7 +162,7 @@ public:
 	 *
 	 * @return Sequence number.
 	 */
-	uint64 GetSequence( ) const
+	uint64 GetSequence() const
 	{
 		return Sequence;
 	}

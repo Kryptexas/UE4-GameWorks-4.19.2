@@ -16,7 +16,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		if (!SupportsNetworkedTransport())
 		{
@@ -54,7 +54,7 @@ public:
 		RestartServices();
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		// unregister application events
 		FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveAll(this);
@@ -73,7 +73,7 @@ public:
 		ShutdownTunnel();
 	}
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -81,7 +81,7 @@ public:
 protected:
 
 	/** Initializes the message bridge with the current settings. */
-	void InitializeBridge( )
+	void InitializeBridge()
 	{
 		ShutdownBridge();
 
@@ -134,7 +134,7 @@ protected:
 	}
 
 	/** Initializes the message tunnel with the current settings. */
-	void InitializeTunnel( )
+	void InitializeTunnel()
 	{
 		ShutdownTunnel();
 
@@ -186,7 +186,7 @@ protected:
 	}
 
 	/** Restarts the bridge and tunnel services. */
-	void RestartServices( )
+	void RestartServices()
 	{
 		const UUdpMessagingSettings& Settings = *GetDefault<UUdpMessagingSettings>();
 
@@ -221,7 +221,7 @@ protected:
 	 * @todo gmp: this should be moved into an Engine module, so it can be shared with other transports
 	 * @return true if networked transport is supported, false otherwise.
 	 */
-	bool SupportsNetworkedTransport( ) const
+	bool SupportsNetworkedTransport() const
 	{
 		if (FApp::IsGame())
 		{
@@ -251,7 +251,7 @@ protected:
 	}
 
 	/** Shuts down the message bridge. */
-	void ShutdownBridge( )
+	void ShutdownBridge()
 	{
 		if (MessageBridge.IsValid())
 		{
@@ -262,7 +262,7 @@ protected:
 	}
 
 	/** Shuts down the message tunnel. */
-	void ShutdownTunnel( )
+	void ShutdownTunnel()
 	{
 		if (MessageTunnel.IsValid())
 		{
@@ -273,21 +273,21 @@ protected:
 
 private:
 
-	// Callback for when an has been reactivated (i.e. return from sleep on iOS).
-	void HandleApplicationHasReactivated( )
+	/** Callback for when an has been reactivated (i.e. return from sleep on iOS). */
+	void HandleApplicationHasReactivated()
 	{
 		RestartServices();
 	}
 
-	// Callback for when the application will be deactivated (i.e. sleep on iOS).
-	void HandleApplicationWillDeactivate( )
+	/** Callback for when the application will be deactivated (i.e. sleep on iOS).*/
+	void HandleApplicationWillDeactivate()
 	{
 		ShutdownBridge();
 		ShutdownTunnel();
 	}
 
-	// Callback for when the settings were saved.
-	bool HandleSettingsSaved( )
+	/** Callback for when the settings were saved. */
+	bool HandleSettingsSaved()
 	{
 		RestartServices();
 
@@ -296,10 +296,10 @@ private:
 
 private:
 
-	// Holds the message bridge if present
+	/** Holds the message bridge if present. */
 	IMessageBridgePtr MessageBridge;
 
-	// Holds the message tunnel if present
+	/** Holds the message tunnel if present. */
 	IUdpMessageTunnelPtr MessageTunnel;
 };
 

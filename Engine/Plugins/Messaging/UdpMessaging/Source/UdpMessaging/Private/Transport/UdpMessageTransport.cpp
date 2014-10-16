@@ -20,7 +20,7 @@ FUdpMessageTransport::FUdpMessageTransport( const FIPv4Endpoint& InLocalEndpoint
 { }
 
 
-FUdpMessageTransport::~FUdpMessageTransport( )
+FUdpMessageTransport::~FUdpMessageTransport()
 {
 	StopTransport();
 }
@@ -29,7 +29,7 @@ FUdpMessageTransport::~FUdpMessageTransport( )
 /* ITransportMessages interface
  *****************************************************************************/
 
-bool FUdpMessageTransport::StartTransport( )
+bool FUdpMessageTransport::StartTransport()
 {
 	// create network sockets
 	MulticastSocket = FUdpSocketBuilder(TEXT("UdpMessageMulticastSocket"))
@@ -86,7 +86,7 @@ bool FUdpMessageTransport::StartTransport( )
 }
 
 
-void FUdpMessageTransport::StopTransport( )
+void FUdpMessageTransport::StopTransport()
 {
 	// shut down threads
 	delete MulticastReceiver;

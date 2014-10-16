@@ -52,10 +52,8 @@ public:
 		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnelConnection"), 128 * 1024, TPri_Normal);
 	}
 
-	/**
-	 * Destructor.
-	 */
-	~FUdpMessageTunnelConnection( )
+	/** Destructor. */
+	~FUdpMessageTunnelConnection()
 	{
 		if (Thread != nullptr)
 		{
@@ -99,12 +97,12 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override
+	virtual bool Init() override
 	{
 		return (Socket != nullptr);
 	}
 
-	virtual uint32 Run( ) override
+	virtual uint32 Run() override
 	{
 		bRun = true;
 
@@ -124,39 +122,39 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) override
+	virtual void Stop() override
 	{
 		Socket->Close();
 		bRun = false;
 	}
 
-	virtual void Exit( ) override { }
+	virtual void Exit() override { }
 
 public:
 
 	// IUdpMessageTunnelConnection interface
 
-	virtual void Close( ) override
+	virtual void Close() override
 	{
 		Stop();
 	}
 
-	virtual uint64 GetTotalBytesReceived( ) const override
+	virtual uint64 GetTotalBytesReceived() const override
 	{
 		return TotalBytesReceived;
 	}
 
-	virtual uint64 GetTotalBytesSent( ) const override
+	virtual uint64 GetTotalBytesSent() const override
 	{
 		return TotalBytesSent;
 	}
 
-	virtual FText GetName( ) const
+	virtual FText GetName() const
 	{
 		return RemoteEndpoint.ToText();
 	}
 
-	virtual FTimespan GetUptime( ) const override
+	virtual FTimespan GetUptime() const override
 	{
 		if (IsOpen())
 		{
@@ -166,7 +164,7 @@ public:
 		return (ClosedTime - OpenedTime);
 	}
 
-	virtual bool IsOpen( ) const override
+	virtual bool IsOpen() const override
 	{
 		return (Socket->GetConnectionState() == SCS_Connected);
 	}
@@ -178,7 +176,7 @@ protected:
 	 *
 	 * @return true on success, false otherwise.
 	 */
-	bool ReceivePayloads( )
+	bool ReceivePayloads()
 	{
 		uint32 PendingDataSize = 0;
 
@@ -239,7 +237,7 @@ protected:
 	 *
 	 * @return true on success, false otherwise.
 	 */
-	bool SendPayloads( )
+	bool SendPayloads()
 	{
 		if (!Outbox.IsEmpty())
 		{
@@ -276,33 +274,33 @@ protected:
 
 private:
 
-	// Holds the time at which the connection was closed.
+	/** Holds the time at which the connection was closed. */
 	FDateTime ClosedTime;
 
-	// Holds the collection of received payloads.
+	/** Holds the collection of received payloads. */
 	TQueue<FArrayReaderPtr> Inbox;
 
-	// Holds the time at which the connection was opened.
+	/** Holds the time at which the connection was opened. */
 	FDateTime OpenedTime;
 
-	// Holds the collection of outbound payloads.
+	/** Holds the collection of outbound payloads. */
 	TQueue<FArrayReaderPtr> Outbox;
 
-	// Holds the IP endpoint of the remote client.
+	/** Holds the IP endpoint of the remote client. */
 	FIPv4Endpoint RemoteEndpoint;
 
-	// Holds the connection socket.
+	/** Holds the connection socket. */
 	FSocket* Socket;
 
-	// Holds the thread object.
+	/** Holds the thread object. */
 	FRunnableThread* Thread;
 
-	// Holds the total number of bytes received from the connection.
+	/** Holds the total number of bytes received from the connection. */
 	uint64 TotalBytesReceived;
 
-	// Holds the total number of bytes sent to the connection.
+	/** Holds the total number of bytes sent to the connection. */
 	uint64 TotalBytesSent;
 
-	// thread should continue running
+	/** thread should continue running. */
 	bool bRun;
 };

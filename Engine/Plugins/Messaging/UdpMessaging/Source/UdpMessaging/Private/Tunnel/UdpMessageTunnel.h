@@ -59,10 +59,8 @@ public:
 		Thread = FRunnableThread::Create(this, TEXT("FUdpMessageTunnel"), 128 * 1024, TPri_AboveNormal);
 	}
 
-	/**
-	 * Destructor.
-	 */
-	~FUdpMessageTunnel( )
+	/** Destructor. */
+	~FUdpMessageTunnel()
 	{
 		if (Thread != nullptr)
 		{
@@ -88,12 +86,12 @@ public:
 
 	// FRunnable interface
 
-	virtual bool Init( ) override
+	virtual bool Init() override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) override
+	virtual uint32 Run() override
 	{
 		while (!Stopping)
 		{
@@ -113,12 +111,12 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) override
+	virtual void Stop() override
 	{
 		Stopping = true;
 	}
 
-	virtual void Exit( ) override { }
+	virtual void Exit() override { }
 
 public:
 
@@ -157,22 +155,22 @@ public:
 		return OutConnections.Num();
 	}
 
-	virtual uint64 GetTotalInboundBytes( ) const override
+	virtual uint64 GetTotalInboundBytes() const override
 	{
 		return TotalInboundBytes;
 	}
 
-	virtual uint64 GetTotalOutboundBytes( ) const override
+	virtual uint64 GetTotalOutboundBytes() const override
 	{
 		return TotalOutboundBytes;
 	}
 
-	virtual bool IsServerRunning( ) const override
+	virtual bool IsServerRunning() const override
 	{
 		return (Listener != nullptr);
 	}
 
-	virtual FSimpleDelegate& OnConnectionsChanged( ) override
+	virtual FSimpleDelegate& OnConnectionsChanged() override
 	{
 		return ConnectionsChangedDelegate;
 	}
@@ -185,7 +183,7 @@ public:
 		Listener->OnConnectionAccepted().BindRaw(this, &FUdpMessageTunnel::HandleListenerConnectionAccepted);
 	}
 
-	virtual void StopServer( ) override
+	virtual void StopServer() override
 	{
 		delete Listener;
 		Listener = nullptr;
@@ -209,10 +207,8 @@ protected:
 		}
 	}
 
-	/**
-	 * Receives all pending payloads from the tunnels and forwards them to the local message bus.
-	 */
-	void TcpToUdp( )
+	/** Receives all pending payloads from the tunnels and forwards them to the local message bus. */
+	void TcpToUdp()
 	{
 		TArray<FUdpMessageTunnelConnectionPtr>::TIterator It(Connections);
 		FArrayReaderPtr Payload;
@@ -333,10 +329,8 @@ protected:
 		}
 	}
 
-	/**
-	 * Updates all active and pending connections.
-	 */
-	void UpdateConnections( )
+	/** Updates all active and pending connections. */
+	void UpdateConnections()
 	{
 		bool ConnectionsChanged = false;
 
@@ -373,7 +367,7 @@ protected:
 
 private:
 
-	// Callback for accepted connections to the local tunnel server.
+	/** Callback for accepted connections to the local tunnel server. */
 	bool HandleListenerConnectionAccepted( FSocket* ClientSocket, const FIPv4Endpoint& ClientEndpoint )
 	{
 		PendingConnections.Enqueue(MakeShareable(new FUdpMessageTunnelConnection(ClientSocket, ClientEndpoint)));
@@ -383,50 +377,50 @@ private:
 
 private:
 
-	// Holds the list of open tunnel connections.
+	/** Holds the list of open tunnel connections. */
 	TArray<FUdpMessageTunnelConnectionPtr> Connections;
 
-	// Holds a critical section for serializing access to the connections list.
+	/** Holds a critical section for serializing access to the connections list. */
 	FCriticalSection CriticalSection;
 
-	// Holds the current time.
+	/** Holds the current time. */
 	FDateTime CurrentTime;
 
-	// Holds the local listener for incoming tunnel connections.
+	/** Holds the local listener for incoming tunnel connections. */
 	FTcpListener* Listener;
 
-	// Holds a collection of information for local transport nodes.
+	/** Holds a collection of information for local transport nodes. */
 	TMap<FGuid, FNodeInfo> LocalNodes;
 
-	// Holds the multicast endpoint.
+	/** Holds the multicast endpoint. */
 	FIPv4Endpoint MulticastEndpoint;
 
-	// Holds the multicast socket.
+	/** Holds the multicast socket. */
 	FSocket* MulticastSocket;
 
-	// Holds a queue of pending connections.
+	/** Holds a queue of pending connections. */
 	TQueue<FUdpMessageTunnelConnectionPtr, EQueueMode::Mpsc> PendingConnections;
 
-	// Holds a collection of information for remote transport nodes.
+	/** Holds a collection of information for remote transport nodes. */
 	TMap<FGuid, FNodeInfo> RemoteNodes;
 
-	// Holds a flag indicating that the thread is stopping.
+	/** Holds a flag indicating that the thread is stopping. */
 	bool Stopping;
 
-	// Holds the thread object.
+	/** Holds the thread object. */
 	FRunnableThread* Thread;
 
-	// Holds the total number of bytes that were received from tunnels.
+	/** Holds the total number of bytes that were received from tunnels. */
 	uint64 TotalInboundBytes;
 
-	// Holds the total number of bytes that were sent out through tunnels.
+	/** Holds the total number of bytes that were sent out through tunnels. */
 	uint64 TotalOutboundBytes;
 
-	// Holds the unicast socket.
+	/** Holds the unicast socket. */
 	FSocket* UnicastSocket;
 
 private:
 
-	// Holds a delegate that is executed when the list of incoming connections changed.
+	/** Holds a delegate that is executed when the list of incoming connections changed. */
 	FSimpleDelegate ConnectionsChangedDelegate;
 };

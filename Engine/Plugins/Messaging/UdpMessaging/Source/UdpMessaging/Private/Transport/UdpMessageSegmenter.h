@@ -13,10 +13,8 @@ class FUdpMessageSegmenter
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FUdpMessageSegmenter( )
+	/** Default constructor. */
+	FUdpMessageSegmenter()
 		: MessageReader(nullptr)
 	{ }
 
@@ -31,10 +29,8 @@ public:
 		, SegmentSize(InSegmentSize)
 	{ }
 
-	/**
-	 * Destructor.
-	 */
-	~FUdpMessageSegmenter( )
+	/** Destructor. */
+	~FUdpMessageSegmenter()
 	{
 		if (MessageReader != nullptr)
 		{
@@ -119,9 +115,7 @@ public:
 		return PendingSegments.Num();
 	}
 
-	/**
-	 * Initializes the segmenter.
-	 */
+	/** Initializes the segmenter. */
 	void Initialize()
 	{
 		if (MessageReader != nullptr)
@@ -209,18 +203,18 @@ public:
 
 private:
 
-	// Holds the message.
+	/** Holds the message. */
 	IMessageDataPtr Message;
 
-	// temp hack to support new transport API
+	/** temp hack to support new transport API. */
 	FArchive* MessageReader;
 
-	// Holds an array of bits that indicate which segments still need to be sent.
+	/** Holds an array of bits that indicate which segments still need to be sent. */
 	TBitArray<> PendingSegments;
 
-	// Holds the number of segments that haven't been sent yet.
+	/** Holds the number of segments that haven't been sent yet. */
 	uint16 PendingSegmentsCount;
 
-	// Holds the segment size.
+	/** Holds the segment size. */
 	uint16 SegmentSize;
 };

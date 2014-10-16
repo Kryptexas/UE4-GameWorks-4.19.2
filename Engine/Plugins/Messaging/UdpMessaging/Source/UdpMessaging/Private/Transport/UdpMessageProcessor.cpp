@@ -43,7 +43,7 @@ FUdpMessageProcessor::FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNo
 }
 
 
-FUdpMessageProcessor::~FUdpMessageProcessor( )
+FUdpMessageProcessor::~FUdpMessageProcessor()
 {
 	Thread->Kill(true);
 		
@@ -89,7 +89,7 @@ bool FUdpMessageProcessor::EnqueueOutboundMessage( const IMessageDataRef& Data, 
 /* FRunnable interface
  *****************************************************************************/
 
-bool FUdpMessageProcessor::Init( )
+bool FUdpMessageProcessor::Init()
 {
 	Beacon = new FUdpMessageBeacon(Socket, LocalNodeId, MulticastEndpoint);
 	Sender = new FUdpSocketSender(Socket, TEXT("FUdpMessageProcessor.Sender"));
@@ -98,7 +98,7 @@ bool FUdpMessageProcessor::Init( )
 }
 
 
-uint32 FUdpMessageProcessor::Run( )
+uint32 FUdpMessageProcessor::Run()
 {
 	while (!Stopping)
 	{
@@ -124,7 +124,7 @@ uint32 FUdpMessageProcessor::Run( )
 }
 
 
-void FUdpMessageProcessor::Stop( )
+void FUdpMessageProcessor::Stop()
 {
 	Stopping = true;
 
@@ -159,13 +159,13 @@ void FUdpMessageProcessor::AcknowledgeReceipt( int32 MessageId, const FNodeInfo&
 }
 
 
-FTimespan FUdpMessageProcessor::CalculateWaitTime( ) const
+FTimespan FUdpMessageProcessor::CalculateWaitTime() const
 {
 	return FTimespan::FromMilliseconds(10);
 }
 
 
-void FUdpMessageProcessor::ConsumeInboundSegments( )
+void FUdpMessageProcessor::ConsumeInboundSegments()
 {
 	FInboundSegment Segment;
 
@@ -228,7 +228,7 @@ void FUdpMessageProcessor::ConsumeInboundSegments( )
 }
 
 
-void FUdpMessageProcessor::ConsumeOutboundMessages( )
+void FUdpMessageProcessor::ConsumeOutboundMessages()
 {
 	FOutboundMessage OutboundMessage;
 
@@ -420,7 +420,7 @@ void FUdpMessageProcessor::RemoveKnownNode( const FGuid& NodeId )
 }
 
 
-void FUdpMessageProcessor::UpdateKnownNodes( )
+void FUdpMessageProcessor::UpdateKnownNodes()
 {
 	// remove dead remote endpoints
 	FTimespan DeadHelloTimespan = DeadHelloIntervals * Beacon->GetBeaconInterval();
@@ -503,7 +503,7 @@ void FUdpMessageProcessor::UpdateSegmenters( FNodeInfo& NodeInfo )
 }
 
 
-void FUdpMessageProcessor::UpdateStaticNodes( )
+void FUdpMessageProcessor::UpdateStaticNodes()
 {
 	for (TMap<FIPv4Endpoint, FNodeInfo>::TIterator It(StaticNodes); It; ++It)
 	{
@@ -515,7 +515,7 @@ void FUdpMessageProcessor::UpdateStaticNodes( )
 /* FUdpMessageProcessor callbacks
  *****************************************************************************/
 
-void FUdpMessageProcessor::HandleMessageDataStateChanged( )
+void FUdpMessageProcessor::HandleMessageDataStateChanged()
 {
 	WorkEvent->Trigger();
 }

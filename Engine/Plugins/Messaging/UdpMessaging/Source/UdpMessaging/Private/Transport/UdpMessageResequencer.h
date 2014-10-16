@@ -10,9 +10,7 @@ class FUdpMessageResequencer
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FUdpMessageResequencer() { }
 
 	/**
@@ -67,9 +65,7 @@ public:
 		return (Message->GetSequence() == NextSequence);
 	}
 
-	/**
-	 * Resets the re-sequencer.
-	 */
+	/** Resets the re-sequencer. */
 	void Reset()
 	{
 		MessageHeap.Reset();
@@ -79,7 +75,7 @@ public:
 
 private:
 
-	// Helper for ordering messages by their sequence numbers.
+	/** Helper for ordering messages by their sequence numbers. */
 	struct FSequenceComparer
 	{
 		bool operator () (const FReassembledUdpMessagePtr& A, const FReassembledUdpMessagePtr& B) const
@@ -90,15 +86,15 @@ private:
 
 private:
 
-	// Holds the next expected sequence number.
+	/** Holds the next expected sequence number. */
 	uint64 NextSequence;
 
-	// Holds the highest received sequence number.
+	/** Holds the highest received sequence number. */
 	uint64 HighestReceivedSequence;
 
-	// Holds the messages that need to be resequenced.
+	/** Holds the messages that need to be resequenced. */
 	TArray<FReassembledUdpMessagePtr> MessageHeap;
 
-	// Holds the maximum resequence window size.
+	/** Holds the maximum resequence window size. */
 	uint16 WindowSize;
 };
