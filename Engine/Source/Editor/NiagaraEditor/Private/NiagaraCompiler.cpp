@@ -286,3 +286,5 @@ TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, const 
 	SetOrAddConstant(false, ConstantName, Default);
 	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Matrix);
 }
+
+#undef LOCTEXT_NAMESPACE
