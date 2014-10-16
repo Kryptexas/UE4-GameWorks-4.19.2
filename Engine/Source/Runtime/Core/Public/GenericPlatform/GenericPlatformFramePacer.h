@@ -7,6 +7,7 @@
 
 
 #pragma once
+#include "HAL/Platform.h"
 
 class FEvent;
 

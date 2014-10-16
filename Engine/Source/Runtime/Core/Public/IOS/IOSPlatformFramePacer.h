@@ -7,6 +7,7 @@
 
 
 #pragma once
+#include "GenericPlatform/GenericPlatformFramePacer.h"
 
 // Forward declare the ios frame pacer class we will be using.
 @class FIOSFramePacer;
