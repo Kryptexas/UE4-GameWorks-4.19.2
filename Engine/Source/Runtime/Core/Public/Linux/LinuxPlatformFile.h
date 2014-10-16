@@ -5,6 +5,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformFile.h"
 
 /**
  * Linux File I/O implementation
