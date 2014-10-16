@@ -860,6 +860,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			// Valid MachineID and EpicAccountId, updated crash from UE4 release
 			else if( !string.IsNullOrEmpty( NewCrashInfo.MachineGuid ) && !string.IsNullOrEmpty( NewCrashInfo.EpicAccountId ) )
 			{
+				NewCrash.ComputerName = NewCrashInfo.MachineGuid;
 				NewCrash.EpicAccountId = NewCrashInfo.EpicAccountId;
 				NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser( UserNameAnonymous );
 			}
