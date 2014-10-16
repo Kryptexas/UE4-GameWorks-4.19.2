@@ -238,10 +238,6 @@ void SMessagingDebugger::FillWindowMenu(FMenuBuilder& MenuBuilder, const TShared
 		return;
 	}
 
-#if !WITH_EDITOR
-	FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, WorkspaceMenu::GetMenuStructure().GetStructureRoot());
-#endif //!WITH_EDITOR
-
 	TabManager->PopulateLocalTabSpawnerMenu(MenuBuilder);
 }
 
