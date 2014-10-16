@@ -10,6 +10,7 @@
 
 #include "GameFramework/Actor.h"
 #include "PhysicsEngine/BodyInstance.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
 
 #include "LandscapeProxy.generated.h"

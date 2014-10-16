@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "Core.h"
+#include "CoreUObject.h"
+#include "Casts.h"
+#include "LazyObjectPtr.h"
+
 #include "LandscapeProxy.h"
 #include "LandscapeInfoMap.h"
 #include "Engine/World.h"

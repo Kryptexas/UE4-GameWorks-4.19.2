@@ -2,6 +2,7 @@
 
 #include "Landscape.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
+#include "EdGraph/EdGraphNode.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
