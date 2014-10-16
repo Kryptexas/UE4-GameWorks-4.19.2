@@ -7,9 +7,8 @@ DECLARE_CYCLE_STAT( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STAT
 /* SViewport structors
  *****************************************************************************/
 
-SViewport::SViewport( )
-	: ViewportInterface(nullptr)
-	, bRenderDirectlyToWindow(false)
+SViewport::SViewport()
+	: bRenderDirectlyToWindow(false)
 	, bEnableGammaCorrection(true)
 { }
 
@@ -24,6 +23,7 @@ void SViewport::Construct( const FArguments& InArgs )
 	bEnableGammaCorrection = InArgs._EnableGammaCorrection;
 	bEnableBlending = InArgs._EnableBlending;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
+	ViewportInterface = InArgs._ViewportInterface;
 	ViewportSize = InArgs._ViewportSize;
 
 	this->ChildSlot
