@@ -90,17 +90,18 @@ struct FConstantHandler
 	FConstantHandler(FVectorVMContext& Context)
 		: Constant(DecodeConstant(Context))
 	{}
-	FORCEINLINE VectorRegister Get(){ return Constant; }
+	FORCEINLINE const VectorRegister& Get(){ return Constant; }
 };
 
 /** Handles reading of a register, advancing the pointer with each read. */
 struct FRegisterHandler
 {
 	VectorRegister* Register;
+	VectorRegister RegisterValue;
 	FRegisterHandler(FVectorVMContext& Context)
 		: Register(DecodeRegister(Context))
 	{}
-	FORCEINLINE VectorRegister Get(){ return *Register++; }
+	FORCEINLINE const VectorRegister& Get(){ RegisterValue = *Register++;  return RegisterValue; }
 };
 
 template<typename Kernel, typename Arg0Handler>
@@ -520,7 +521,10 @@ struct FVectorKernelSplat : public TUnaryVectorKernel<FVectorKernelSplat<Compone
 template<int32 Cmp0, int32 Cmp1, int32 Cmp2, int32 Cmp3>
 struct FVectorKernelCompose : public TQuinaryVectorKernel<FVectorKernelCompose<Cmp0, Cmp1, Cmp2, Cmp3>>
 {
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1, VectorRegister Src2, VectorRegister Src3)
+	//Passing as const refs as some compilers cant handle > 3 aligned vectorregister params.
+	//inlined so shouldn't impact perf
+	//Todo: ^^^^ test this
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0, const VectorRegister& Src1, const VectorRegister& Src2, const VectorRegister& Src3)
 	{
 		//TODO - There's probably a faster way to do this.
 		VectorRegister Tmp0 = VectorShuffle(Src0, Src1, Cmp0, Cmp0, Cmp1, Cmp1);

@@ -35,7 +35,7 @@ struct FNiagaraScriptConstantData
 		InternalConstants.SetOrAdd(Name, Sc);
 	}
 
-	void SetOrAddInternal(FName Name, FVector4 Vc)
+	void SetOrAddInternal(FName Name, const FVector4& Vc)
 	{
 		InternalConstants.SetOrAdd(Name, Vc);
 	}
@@ -50,7 +50,7 @@ struct FNiagaraScriptConstantData
 		ExternalConstants.SetOrAdd(Name, Sc);
 	}
 
-	void SetOrAddExternal(FName Name, FVector4 Vc)
+	void SetOrAddExternal(FName Name, const FVector4& Vc)
 	{
 		ExternalConstants.SetOrAdd(Name, Vc);
 	}

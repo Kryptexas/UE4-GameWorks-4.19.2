@@ -23,7 +23,7 @@ public:
 		ScalarConstants.FindOrAdd(Name) = Sc;
 	}
 
-	void SetOrAdd(FName Name, FVector4 Vc)
+	void SetOrAdd(FName Name, const FVector4& Vc)
 	{
 		VectorConstants.FindOrAdd(Name) = Vc;
 	}
@@ -144,7 +144,7 @@ public:
 		}
 	}
 
-	void SetOrAdd(FName Name, FVector4 Vc)
+	void SetOrAdd(FName Name, const FVector4& Vc)
 	{
 		int32 Idx = VectorNames.Find(Name);
 		if (Idx == INDEX_NONE)

@@ -195,7 +195,7 @@ public:
 		Constants.SetOrAdd(ConstantName,Value);
 	}
 
-	void SetConstant(FName ConstantName, const FVector4 Value)
+	void SetConstant(FName ConstantName, const FVector4& Value)
 	{
 		Constants.SetOrAdd(ConstantName, Value);
 	}
