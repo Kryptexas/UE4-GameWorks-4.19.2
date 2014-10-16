@@ -593,3 +593,5 @@ void FNiagaraCompiler_VectorVM::Inverse_Internal(TArray<TNiagaraExprPtr>& InputE
 
 	
 }
+
+#undef LOCTEXT_NAMESPACE
