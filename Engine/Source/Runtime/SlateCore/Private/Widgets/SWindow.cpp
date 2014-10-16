@@ -458,7 +458,7 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 
 					+ SVerticalBox::Slot()
 					
-						.Padding(TAttribute<FMargin>( this, &SWindow::GetWindowBorderSize ))
+						.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SWindow::GetWindowBorderSize, false)))
 						[
 							MainWindowArea
 						]
@@ -671,7 +671,7 @@ FSlateRect SWindow::GetClippingRectangleInWindow() const
 }
 
 
-FMargin SWindow::GetWindowBorderSize() const
+FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 {
 // Mac didn't want a window border, and consoles don't either, so only do this in Windows
 
@@ -681,8 +681,13 @@ FMargin SWindow::GetWindowBorderSize() const
 #if PLATFORM_WINDOWS // || PLATFORM_LINUX
 	if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 	{
-		int32 OSWindowBorderSize = NativeWindow->GetWindowBorderSize();
-		return FMargin(OSWindowBorderSize);
+		FMargin BorderSize(NativeWindow->GetWindowBorderSize());
+		if(bIncTitleBar)
+		{
+			// Add title bar size (whether it's visible or not)
+			BorderSize.Top += GetSystemMetrics(SM_CYCAPTION);
+		}
+		return BorderSize;
 	}
 
 	return SWindowDefs::WindowBorderSize;

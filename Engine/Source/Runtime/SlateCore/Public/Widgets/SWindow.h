@@ -257,7 +257,7 @@ public:
 	FSlateRect GetClippingRectangleInWindow() const;
 
 	/** Returns the margins used for the window border. This varies based on whether it's maximized or not. */
-	FMargin GetWindowBorderSize() const;
+	FMargin GetWindowBorderSize( bool bIncTitleBar = false ) const;
 
 	/** Relocate the window to a screenspace position specified by NewPosition */
 	void MoveWindowTo( FVector2D NewPosition );
