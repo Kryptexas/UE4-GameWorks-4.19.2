@@ -139,6 +139,9 @@ public:
 	/** Gets OS specific window border size. This is necessary because Win32 does not give control over this size. */
 	virtual int32 GetWindowBorderSize() const;
 
+	/** Gets OS specific window title bar size */
+	virtual int32 GetWindowTitleBarSize() const;
+
 	/** Gets the OS Window handle in the form of a void pointer for other API's */
 	virtual void* GetOSWindowHandle() const;
 

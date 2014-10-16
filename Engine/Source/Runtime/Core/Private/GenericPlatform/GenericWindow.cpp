@@ -135,6 +135,12 @@ int32 FGenericWindow::GetWindowBorderSize() const
 	return 0;
 }
 
+int32 FGenericWindow::GetWindowTitleBarSize() const
+{
+	// empty default functionality
+	return 0;
+}
+
 void* FGenericWindow::GetOSWindowHandle() const
 {
 	// empty default functionality (for platforms that don't need an OS handle)

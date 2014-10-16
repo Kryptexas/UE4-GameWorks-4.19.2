@@ -644,6 +644,11 @@ int32 FWindowsWindow::GetWindowBorderSize() const
 	return WindowInfo.cxWindowBorders;
 }
 
+int32 FWindowsWindow::GetWindowTitleBarSize() const
+{
+	return GetSystemMetrics(SM_CYCAPTION);
+}
+
 bool FWindowsWindow::IsForegroundWindow() const
 {
 	return ::GetForegroundWindow() == HWnd;

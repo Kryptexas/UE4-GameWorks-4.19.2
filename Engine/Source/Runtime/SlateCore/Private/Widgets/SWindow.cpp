@@ -678,18 +678,17 @@ FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 // @TODO This is not working for Linux. The window is not yet valid when this gets
 // called from SWindow::Construct which is causing a default border to be retured even when the
 // window is borderless. This causes problems for menu positioning.
-#if PLATFORM_WINDOWS // || PLATFORM_LINUX
 	if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 	{
 		FMargin BorderSize(NativeWindow->GetWindowBorderSize());
 		if(bIncTitleBar)
 		{
 			// Add title bar size (whether it's visible or not)
-			BorderSize.Top += GetSystemMetrics(SM_CYCAPTION);
+			BorderSize.Top += NativeWindow->GetWindowTitleBarSize();
 		}
 		return BorderSize;
 	}
-
+#if PLATFORM_WINDOWS // || PLATFORM_LINUX
 	return SWindowDefs::WindowBorderSize;
 #else
 	return FMargin();

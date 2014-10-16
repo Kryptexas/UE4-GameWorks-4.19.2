@@ -82,6 +82,8 @@ public:
 
 	virtual int32 GetWindowBorderSize() const override;
 
+	virtual int32 GetWindowTitleBarSize() const override;
+
 	virtual void* GetOSWindowHandle() const  override { return HWnd; }
 
 	virtual bool IsForegroundWindow() const override;
