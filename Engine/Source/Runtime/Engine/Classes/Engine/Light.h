@@ -9,9 +9,11 @@ class ENGINE_API ALight : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** @todo document */
-	UPROPERTY(Category=Light, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Light,Rendering,Rendering|Components|Light"))
-	TSubobjectPtr<class ULightComponent> LightComponent;
+	UPROPERTY(Category = Light, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Light,Rendering,Rendering|Components|Light", AllowPrivateAccess = "true"))
+	class ULightComponent* LightComponent;
+public:
 
 	/** replicated copy of LightComponent's bEnabled property */
 	UPROPERTY(replicatedUsing=OnRep_bEnabled)
@@ -70,6 +72,10 @@ public:
 	void Destroyed();
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
 	// End AActor interface.
+
+public:
+	/** Returns LightComponent subobject **/
+	FORCEINLINE class ULightComponent* GetLightComponent() const { return LightComponent; }
 };
 
 

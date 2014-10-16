@@ -144,9 +144,11 @@ class ENGINE_API APlayerCameraManager : public AActor
 	UPROPERTY()
 	class APlayerController* PCOwner;
 
+private:
 	/** Dummy component we can use to attach things to the camera. */
-	UPROPERTY(Category=PlayerCameraManager, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USceneComponent> TransformComponent;
+	UPROPERTY(Category = PlayerCameraManager, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* TransformComponent;
+public:
 
 	/** Camera Mode */
 	UPROPERTY()
@@ -639,4 +641,8 @@ private:
 
 	// Buried to prevent use; use GetCameraRotation instead
 	FVector GetActorLocation() const { return Super::GetActorLocation(); }
+
+public:
+	/** Returns TransformComponent subobject **/
+	FORCEINLINE class USceneComponent* GetTransformComponent() const { return TransformComponent; }
 };

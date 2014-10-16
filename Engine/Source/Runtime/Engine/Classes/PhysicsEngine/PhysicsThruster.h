@@ -14,19 +14,31 @@ class APhysicsThruster : public ARigidBodyBase
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Thruster component */
-	UPROPERTY(Category=Physics, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Activation,Components|Activation"))
-	TSubobjectPtr<class UPhysicsThrusterComponent> ThrusterComponent;
-
+	UPROPERTY(Category = Physics, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Activation,Components|Activation", AllowPrivateAccess = "true"))
+	class UPhysicsThrusterComponent* ThrusterComponent;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
 
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UArrowComponent* ArrowComponent;
+
+	UPROPERTY()
+	class UBillboardComponent* SpriteComponent;
+public:
 #endif
 
+
+public:
+	/** Returns ThrusterComponent subobject **/
+	FORCEINLINE class UPhysicsThrusterComponent* GetThrusterComponent() const { return ThrusterComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

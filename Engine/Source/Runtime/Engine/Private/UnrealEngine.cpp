@@ -2581,10 +2581,10 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
 		APlayerController* PlayerController = *Iterator;
-		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->Mesh.IsValid())
+		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->GetMesh())
 		{
 			PlayerPawn = PlayerController->GetCharacter();
-			PlayerMesh = PlayerController->GetCharacter()->Mesh->SkeletalMesh;
+			PlayerMesh = PlayerController->GetCharacter()->GetMesh()->SkeletalMesh;
 			break;
 		}
 	}
@@ -2635,7 +2635,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 		ASkeletalMeshActor* const SMA = PlayerPawn->GetWorld()->SpawnActor<ASkeletalMeshActor>( SpawnLocation, PlayerPawn->GetActorRotation()*-1);
 		if (SMA)
 		{
-			SMA->SkeletalMeshComponent->SetSkeletalMesh(CompositeMesh);
+			SMA->GetSkeletalMeshComponent()->SetSkeletalMesh(CompositeMesh);
 		}
 	}
 
@@ -6232,14 +6232,14 @@ static FVector2D TransformLocationToMap(FVector2D TopLeftPos, FVector2D BottomRi
 /** Utility for drawing a volume geometry (as seen from above) onto the canvas */
 static void DrawVolumeOnCanvas(const AVolume* Volume, FCanvas* Canvas, const FVector2D& TopLeftPos, const FVector2D& BottomRightPos, const FVector2D& MapOrigin, const FVector2D& MapSize, const FColor& VolColor)
 {
-	if(Volume && Volume->BrushComponent && Volume->BrushComponent->BrushBodySetup)
+	if(Volume && Volume->GetBrushComponent() && Volume->GetBrushComponent()->BrushBodySetup)
 	{
-		FTransform BrushTM = Volume->BrushComponent->ComponentToWorld;
+		FTransform BrushTM = Volume->GetBrushComponent()->ComponentToWorld;
 
 		// Iterate over each piece
-		for(int32 ConIdx=0; ConIdx<Volume->BrushComponent->BrushBodySetup->AggGeom.ConvexElems.Num(); ConIdx++)
+		for(int32 ConIdx=0; ConIdx<Volume->GetBrushComponent()->BrushBodySetup->AggGeom.ConvexElems.Num(); ConIdx++)
 		{
-			FKConvexElem& ConvElem = Volume->BrushComponent->BrushBodySetup->AggGeom.ConvexElems[ConIdx];
+			FKConvexElem& ConvElem = Volume->GetBrushComponent()->BrushBodySetup->AggGeom.ConvexElems[ConIdx];
 
 #if 0 // @todo UE4 physx fix this once we have convexelem drawing again
 			// Draw each triangle that makes up the convex hull

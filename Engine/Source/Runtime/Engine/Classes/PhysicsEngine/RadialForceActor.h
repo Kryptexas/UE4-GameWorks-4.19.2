@@ -9,13 +9,15 @@ class ARadialForceActor : public ARigidBodyBase
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Force component */
-	UPROPERTY(Category=RadialForceActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Activation,Components|Activation,Physics,Physics|Components|RadialForce"))
-	TSubobjectPtr<class URadialForceComponent> ForceComponent;
+	UPROPERTY(Category = RadialForceActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Activation,Components|Activation,Physics,Physics|Components|RadialForce", AllowPrivateAccess = "true"))
+	class URadialForceComponent* ForceComponent;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
+public:
 #endif
 
 	// BEGIN DEPRECATED (use component functions now in level script)
@@ -34,6 +36,14 @@ class ARadialForceActor : public ARigidBodyBase
 	// Begin AActor interface.
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 	// End AActor interface.
+#endif
+
+public:
+	/** Returns ForceComponent subobject **/
+	FORCEINLINE class URadialForceComponent* GetForceComponent() const { return ForceComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
 #endif
 };
 

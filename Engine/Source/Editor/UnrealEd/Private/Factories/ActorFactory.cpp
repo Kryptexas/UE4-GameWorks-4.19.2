@@ -255,7 +255,7 @@ void UActorFactoryStaticMesh::PostSpawnActor( UObject* Asset, AActor* NewActor)
 
 	// Change properties
 	AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>( NewActor );
-	UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+	UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 	check(StaticMeshComponent);
 
 	StaticMeshComponent->UnregisterComponent();
@@ -272,8 +272,8 @@ UObject* UActorFactoryStaticMesh::GetAssetFromActorInstance(AActor* Instance)
 	check(Instance->IsA(NewActorClass));
 	AStaticMeshActor* SMA = CastChecked<AStaticMeshActor>(Instance);
 
-	check(SMA->StaticMeshComponent);
-	return SMA->StaticMeshComponent->StaticMesh;
+	check(SMA->GetStaticMeshComponent());
+	return SMA->GetStaticMeshComponent()->StaticMesh;
 }
 
 void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -282,7 +282,7 @@ void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 	{
 		UStaticMesh* StaticMesh = CastChecked<UStaticMesh>(Asset);
 		AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>(CDO);
-		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 
 		StaticMeshComponent->StaticMesh = StaticMesh;
 		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
@@ -475,7 +475,7 @@ void UActorFactoryEmitter::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	GEditor->SetActorLabelUnique(NewActor, ParticleSystem->GetName());
 
 	// Term Component
-	NewEmitter->ParticleSystemComponent->UnregisterComponent();
+	NewEmitter->GetParticleSystemComponent()->UnregisterComponent();
 
 	// Change properties
 	NewEmitter->SetTemplate(ParticleSystem);
@@ -491,16 +491,16 @@ void UActorFactoryEmitter::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	}
 
 	// Init Component
-	NewEmitter->ParticleSystemComponent->RegisterComponent();
+	NewEmitter->GetParticleSystemComponent()->RegisterComponent();
 }
 
 UObject* UActorFactoryEmitter::GetAssetFromActorInstance(AActor* Instance)
 {
 	check(Instance->IsA(NewActorClass));
 	AEmitter* Emitter = CastChecked<AEmitter>(Instance);
-	if (Emitter->ParticleSystemComponent.IsValid())
+	if (Emitter->GetParticleSystemComponent())
 	{
-		return Emitter->ParticleSystemComponent->Template;
+		return Emitter->GetParticleSystemComponent()->Template;
 	}
 	else
 	{
@@ -592,28 +592,28 @@ void UActorFactoryPhysicsAsset::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	GEditor->SetActorLabelUnique(NewActor, PhysicsAsset->GetName());
 
 	// Term Component
-	NewSkelActor->SkeletalMeshComponent->UnregisterComponent();
+	NewSkelActor->GetSkeletalMeshComponent()->UnregisterComponent();
 
 	// Change properties
-	NewSkelActor->SkeletalMeshComponent->SkeletalMesh = UseSkelMesh;
+	NewSkelActor->GetSkeletalMeshComponent()->SkeletalMesh = UseSkelMesh;
 	if (NewSkelActor->GetWorld()->IsPlayInEditor())
 	{
 		NewSkelActor->ReplicatedMesh = UseSkelMesh;
 		NewSkelActor->ReplicatedPhysAsset = PhysicsAsset;
 	}
-	NewSkelActor->SkeletalMeshComponent->PhysicsAssetOverride = PhysicsAsset;
+	NewSkelActor->GetSkeletalMeshComponent()->PhysicsAssetOverride = PhysicsAsset;
 
 	// set physics setup
-	NewSkelActor->SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
-	NewSkelActor->SkeletalMeshComponent->BodyInstance.bSimulatePhysics = true;
-	NewSkelActor->SkeletalMeshComponent->bBlendPhysics = true;
+	NewSkelActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+	NewSkelActor->GetSkeletalMeshComponent()->BodyInstance.bSimulatePhysics = true;
+	NewSkelActor->GetSkeletalMeshComponent()->bBlendPhysics = true;
 
 	NewSkelActor->bAlwaysRelevant = true;
 	NewSkelActor->bReplicateMovement = true;
 	NewSkelActor->SetReplicates(true);
 
 	// Init Component
-	NewSkelActor->SkeletalMeshComponent->RegisterComponent();
+	NewSkelActor->GetSkeletalMeshComponent()->RegisterComponent();
 }
 
 void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -628,14 +628,14 @@ void UActorFactoryPhysicsAsset::PostCreateBlueprint( UObject* Asset, AActor* CDO
 
 			USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.Get();
 
-			SkeletalPhysicsActor->SkeletalMeshComponent->SkeletalMesh = UseSkelMesh;
-			SkeletalPhysicsActor->SkeletalMeshComponent->PhysicsAssetOverride = PhysicsAsset;
+			SkeletalPhysicsActor->GetSkeletalMeshComponent()->SkeletalMesh = UseSkelMesh;
+			SkeletalPhysicsActor->GetSkeletalMeshComponent()->PhysicsAssetOverride = PhysicsAsset;
 		}
 
 		// set physics setup
-		SkeletalPhysicsActor->SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
-		SkeletalPhysicsActor->SkeletalMeshComponent->BodyInstance.bSimulatePhysics = true;
-		SkeletalPhysicsActor->SkeletalMeshComponent->bBlendPhysics = true;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->BodyInstance.bSimulatePhysics = true;
+		SkeletalPhysicsActor->GetSkeletalMeshComponent()->bBlendPhysics = true;
 
 		SkeletalPhysicsActor->bAlwaysRelevant = true;
 		SkeletalPhysicsActor->bReplicateMovement = true;
@@ -771,7 +771,7 @@ void UActorFactoryAnimationAsset::PostSpawnActor( UObject* Asset, AActor* NewAct
 	UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 	ASkeletalMeshActor* NewSMActor = CastChecked<ASkeletalMeshActor>(NewActor);
-	USkeletalMeshComponent* NewSASComponent = (NewSMActor->SkeletalMeshComponent);
+	USkeletalMeshComponent* NewSASComponent = (NewSMActor->GetSkeletalMeshComponent());
 
 	if( NewSASComponent )
 	{
@@ -807,7 +807,7 @@ void UActorFactoryAnimationAsset::PostCreateBlueprint( UObject* Asset,  AActor* 
 		UVertexAnimation* VertexAnimation = Cast<UVertexAnimation>(Asset);
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
-		USkeletalMeshComponent* SkeletalComponent = (SkeletalMeshActor->SkeletalMeshComponent);
+		USkeletalMeshComponent* SkeletalComponent = (SkeletalMeshActor->GetSkeletalMeshComponent());
 		if (AnimationAsset)
 		{
 			SkeletalComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
@@ -960,20 +960,20 @@ void UActorFactorySkeletalMesh::PostSpawnActor( UObject* Asset, AActor* NewActor
 	GEditor->SetActorLabelUnique(NewActor, SkeletalMesh->GetName());
 
 	// Term Component
-	NewSMActor->SkeletalMeshComponent->UnregisterComponent();
+	NewSMActor->GetSkeletalMeshComponent()->UnregisterComponent();
 
 	// Change properties
-	NewSMActor->SkeletalMeshComponent->SkeletalMesh = SkeletalMesh;
+	NewSMActor->GetSkeletalMeshComponent()->SkeletalMesh = SkeletalMesh;
 	if (NewSMActor->GetWorld()->IsGameWorld())
 	{
 		NewSMActor->ReplicatedMesh = SkeletalMesh;
 	}
 
 	// Init Component
-	NewSMActor->SkeletalMeshComponent->RegisterComponent();
+	NewSMActor->GetSkeletalMeshComponent()->RegisterComponent();
 	if( AnimBlueprint )
 	{
-		NewSMActor->SkeletalMeshComponent->SetAnimInstanceClass(AnimBlueprint->GeneratedClass);
+		NewSMActor->GetSkeletalMeshComponent()->SetAnimInstanceClass(AnimBlueprint->GeneratedClass);
 	}
 }
 
@@ -985,8 +985,8 @@ void UActorFactorySkeletalMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Asset);
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
-		SkeletalMeshActor->SkeletalMeshComponent->SkeletalMesh = SkeletalMesh;
-		SkeletalMeshActor->SkeletalMeshComponent->AnimBlueprintGeneratedClass = AnimBlueprint ? Cast<UAnimBlueprintGeneratedClass>(AnimBlueprint->GeneratedClass) : NULL;
+		SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh = SkeletalMesh;
+		SkeletalMeshActor->GetSkeletalMeshComponent()->AnimBlueprintGeneratedClass = AnimBlueprint ? Cast<UAnimBlueprintGeneratedClass>(AnimBlueprint->GeneratedClass) : NULL;
 	}
 }
 
@@ -1041,7 +1041,7 @@ void UActorFactoryAmbientSound::PostSpawnActor( UObject* Asset, AActor* NewActor
 	{
 		AAmbientSound* NewSound = CastChecked<AAmbientSound>( NewActor );
 		GEditor->SetActorLabelUnique(NewSound, AmbientSound->GetName());
-		NewSound->AudioComponent->SetSound(AmbientSound);
+		NewSound->GetAudioComponent()->SetSound(AmbientSound);
 	}
 }
 
@@ -1050,8 +1050,8 @@ UObject* UActorFactoryAmbientSound::GetAssetFromActorInstance(AActor* Instance)
 	check(Instance->IsA(NewActorClass));
 	AAmbientSound* SoundActor = CastChecked<AAmbientSound>(Instance);
 
-	check(SoundActor->AudioComponent);
-	return SoundActor->AudioComponent->Sound;
+	check(SoundActor->GetAudioComponent());
+	return SoundActor->GetAudioComponent()->Sound;
 }
 
 void UActorFactoryAmbientSound::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -1063,7 +1063,7 @@ void UActorFactoryAmbientSound::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		if (AmbientSound != NULL)
 		{
 			AAmbientSound* NewSound = CastChecked<AAmbientSound>(CDO);
-			NewSound->AudioComponent->SetSound(AmbientSound);
+			NewSound->GetAudioComponent()->SetSound(AmbientSound);
 		}
 	}
 }
@@ -1475,13 +1475,13 @@ void UActorFactoryDestructible::PostSpawnActor( UObject* Asset, AActor* NewActor
 	GEditor->SetActorLabelUnique(NewActor, DestructibleMesh->GetName());
 
 	// Term Component
-	NewDestructibleActor->DestructibleComponent->UnregisterComponent();
+	NewDestructibleActor->GetDestructibleComponent()->UnregisterComponent();
 
 	// Change properties
-	NewDestructibleActor->DestructibleComponent->SetSkeletalMesh( DestructibleMesh );
+	NewDestructibleActor->GetDestructibleComponent()->SetSkeletalMesh( DestructibleMesh );
 
 	// Init Component
-	NewDestructibleActor->DestructibleComponent->RegisterComponent();
+	NewDestructibleActor->GetDestructibleComponent()->RegisterComponent();
 }
 
 UObject* UActorFactoryDestructible::GetAssetFromActorInstance(AActor* Instance)
@@ -1489,8 +1489,8 @@ UObject* UActorFactoryDestructible::GetAssetFromActorInstance(AActor* Instance)
 	check(Instance->IsA(NewActorClass));
 	ADestructibleActor* DA = CastChecked<ADestructibleActor>(Instance);
 
-	check(DA->DestructibleComponent);
-	return DA->DestructibleComponent->SkeletalMesh;
+	check(DA->GetDestructibleComponent());
+	return DA->GetDestructibleComponent()->SkeletalMesh;
 }
 
 void UActorFactoryDestructible::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -1500,7 +1500,7 @@ void UActorFactoryDestructible::PostCreateBlueprint( UObject* Asset, AActor* CDO
 		UDestructibleMesh* DestructibleMesh = CastChecked<UDestructibleMesh>(Asset);
 		ADestructibleActor* DestructibleActor = CastChecked<ADestructibleActor>(CDO);
 
-		DestructibleActor->DestructibleComponent->SetSkeletalMesh(DestructibleMesh);
+		DestructibleActor->GetDestructibleComponent()->SetSkeletalMesh(DestructibleMesh);
 	}
 }
 
@@ -1539,9 +1539,9 @@ void UActorFactoryVectorFieldVolume::PostSpawnActor( UObject* Asset, AActor* New
 
 	GEditor->SetActorLabelUnique(NewActor, VectorField->GetName());
 
-	if ( VectorFieldVolumeActor && VectorFieldVolumeActor->VectorFieldComponent )
+	if ( VectorFieldVolumeActor && VectorFieldVolumeActor->GetVectorFieldComponent() )
 	{
-		VectorFieldVolumeActor->VectorFieldComponent->VectorField = VectorField;
+		VectorFieldVolumeActor->GetVectorFieldComponent()->VectorField = VectorField;
 		VectorFieldVolumeActor->PostEditChange();
 	}
 }
@@ -1560,7 +1560,7 @@ void CreateBrushForVolumeActor( AVolume* NewActor, UBrushBuilder* BrushBuilder )
 		NewActor->PolyFlags = 0;
 		NewActor->Brush = new( NewActor, NAME_None, RF_Transactional )UModel(FObjectInitializer(), NULL, true );
 		NewActor->Brush->Polys = new( NewActor->Brush, NAME_None, RF_Transactional )UPolys(FObjectInitializer());
-		NewActor->BrushComponent->Brush = NewActor->Brush;
+		NewActor->GetBrushComponent()->Brush = NewActor->Brush;
 		if(BrushBuilder != nullptr)
 		{
 			NewActor->BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder, NewActor);

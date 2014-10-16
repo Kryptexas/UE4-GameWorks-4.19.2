@@ -549,7 +549,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
 				{
 					const FScopedTransaction Transaction( LOCTEXT( "DropSkelMeshOnObject", "Drop Skeletal Mesh On Object" ) );
-					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
 					SkelMeshComponent->Modify();
 					if ( DroppedObjAsSkeletalMesh )
 					{
@@ -583,7 +583,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 					{
 						const FScopedTransaction Transaction(LOCTEXT("DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object"));
 
-						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
 						// if anim blueprint skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
 						bool bShouldChangeMesh = (SkelMeshComponent->SkeletalMesh == NULL ||
 								!NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton));
@@ -636,7 +636,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
 					{
 						const FScopedTransaction Transaction(LOCTEXT("DropAnimationOnObject", "Drop Animation On Object"));
-						USkeletalMeshComponent* SkelComponent = SkelMeshActor->SkeletalMeshComponent;
+						USkeletalMeshComponent* SkelComponent = SkelMeshActor->GetSkeletalMeshComponent();
 						SkelComponent->Modify();
 						// if asset skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
 						bool bShouldChangeMesh = SkelComponent->SkeletalMesh == NULL || 

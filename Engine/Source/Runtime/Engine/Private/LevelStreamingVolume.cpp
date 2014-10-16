@@ -6,10 +6,10 @@
 ALevelStreamingVolume::ALevelStreamingVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
 
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	BrushComponent->bAlwaysCreatePhysicsState = true;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->bAlwaysCreatePhysicsState = true;
 
 	bColored = true;
 	BrushColor.R = 255;

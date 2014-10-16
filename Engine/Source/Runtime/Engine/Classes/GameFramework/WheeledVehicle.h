@@ -11,13 +11,15 @@ class ENGINE_API AWheeledVehicle : public APawn
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/**  The main skeletal mesh associated with this Vehicle */
-	UPROPERTY(Category=Vehicle, VisibleDefaultsOnly, BlueprintReadOnly)
-	TSubobjectPtr<class USkeletalMeshComponent> Mesh;
+	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USkeletalMeshComponent* Mesh;
 
 	/** vehicle simulation component */
-	UPROPERTY(Category=Vehicle, VisibleDefaultsOnly, BlueprintReadOnly)
-	TSubobjectPtr<class UWheeledVehicleMovementComponent> VehicleMovement;
+	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UWheeledVehicleMovementComponent* VehicleMovement;
+public:
 
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName VehicleMeshComponentName;
@@ -34,4 +36,10 @@ class ENGINE_API AWheeledVehicle : public APawn
 	// Begin AActor interface
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	// End Actor interface
+
+public:
+	/** Returns Mesh subobject **/
+	FORCEINLINE class USkeletalMeshComponent* GetMesh() const { return Mesh; }
+	/** Returns VehicleMovement subobject **/
+	FORCEINLINE class UWheeledVehicleMovementComponent* GetVehicleMovement() const { return VehicleMovement; }
 };

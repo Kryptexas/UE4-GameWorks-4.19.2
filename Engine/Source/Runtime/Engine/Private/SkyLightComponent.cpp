@@ -496,12 +496,12 @@ ASkyLight::ASkyLight(const FObjectInitializer& ObjectInitializer)
 	};
 	static FConstructorStatics ConstructorStatics;
 
-		if (SpriteComponent)
+		if (GetSpriteComponent())
 		{
-			SpriteComponent->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Sky;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
-			SpriteComponent->AttachParent = LightComponent;
+			GetSpriteComponent()->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
+			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Sky;
+			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
+			GetSpriteComponent()->AttachParent = LightComponent;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA

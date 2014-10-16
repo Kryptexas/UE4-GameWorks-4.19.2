@@ -13,13 +13,20 @@ class ATriggerBase : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Shape component used for collision */
-	UPROPERTY(Category=TriggerBase, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<UShapeComponent> CollisionComponent;
+	UPROPERTY(Category = TriggerBase, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UShapeComponent* CollisionComponent;
 
 	/** Billboard used to see the trigger in the editor */
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
+
+public:
+	/** Returns CollisionComponent subobject **/
+	FORCEINLINE UShapeComponent* GetCollisionComponent() const { return CollisionComponent; }
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
 };
 
 

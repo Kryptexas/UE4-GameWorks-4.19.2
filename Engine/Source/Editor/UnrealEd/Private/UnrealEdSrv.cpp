@@ -2858,11 +2858,11 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 					{
 						if (Actor->IsA(AStaticMeshActor::StaticClass()))
 						{
-							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->StaticMeshComponent, NULL);
+							Exporter->ExportStaticMesh(Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), NULL);
 						}
 						else if (Actor->IsA(ASkeletalMeshActor::StaticClass()))
 						{
-							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->SkeletalMeshComponent);
+							Exporter->ExportSkeletalMesh(Actor, CastChecked<ASkeletalMeshActor>(Actor)->GetSkeletalMeshComponent());
 						}
 						else if (Actor->IsA(ABrush::StaticClass()))
 						{

@@ -115,7 +115,7 @@ bool UAvoidanceManager::RegisterMovementComponent(UCharacterMovementComponent* M
 {
 	if (MovementComp && MovementComp->GetCharacterOwner())
 	{
-		if (UCapsuleComponent *OurCapsule = MovementComp->GetCharacterOwner()->CapsuleComponent.Get())
+		if (UCapsuleComponent *OurCapsule = MovementComp->GetCharacterOwner()->GetCapsuleComponent())
 		{
 			const int32 NewAvoidanceUID = GetNewAvoidanceUID();
 			MovementComp->AvoidanceUID = NewAvoidanceUID;

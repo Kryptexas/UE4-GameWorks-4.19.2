@@ -20,7 +20,7 @@ ADestructibleActor::ADestructibleActor(const FObjectInitializer& ObjectInitializ
 #if WITH_EDITOR
 bool ADestructibleActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
-	if (DestructibleComponent.IsValid() && DestructibleComponent->SkeletalMesh)
+	if (DestructibleComponent && DestructibleComponent->SkeletalMesh)
 	{
 		Objects.Add(DestructibleComponent->SkeletalMesh);
 	}

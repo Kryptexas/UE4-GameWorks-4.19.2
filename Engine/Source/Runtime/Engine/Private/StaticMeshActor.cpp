@@ -124,7 +124,7 @@ void AStaticMeshActor::CheckForErrors()
 
 	FMessageLog MapCheck("MapCheck");
 
-	if( !StaticMeshComponent.IsValid() )
+	if( !StaticMeshComponent )
 	{
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))
@@ -151,7 +151,7 @@ void AStaticMeshActor::CheckForErrors()
 			if( CurTouchingActor != NULL )
 			{
 				AStaticMeshActor *A = Cast<AStaticMeshActor>( CurTouchingActor );
-				if ( A && (A != this) && (A->GetActorLocation() - GetActorLocation()).IsNearlyZero() && A->StaticMeshComponent.IsValid()
+				if ( A && (A != this) && (A->GetActorLocation() - GetActorLocation()).IsNearlyZero() && A->StaticMeshComponent
 					&& (A->StaticMeshComponent->StaticMesh == StaticMeshComponent->StaticMesh) && (A->GetActorRotation() == GetActorRotation()) 
 					&&  (A->StaticMeshComponent->RelativeScale3D == StaticMeshComponent->RelativeScale3D) )
 				{

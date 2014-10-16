@@ -45,9 +45,10 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 	
 
 #if WITH_EDITORONLY_DATA
+private:
 	/** Editor Preview */
 	UPROPERTY()
-	TSubobjectPtr<class UEQSRenderingComponent> EdRenderComp;
+	class UEQSRenderingComponent* EdRenderComp;
 #endif // WITH_EDITORONLY_DATA
 
 protected:
@@ -82,4 +83,10 @@ protected:
 	void UpdateDrawing();
 
 	static void OnEditorSelectionChanged(UObject* NewSelection);
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns EdRenderComp subobject **/
+	FORCEINLINE class UEQSRenderingComponent* GetEdRenderComp() { return EdRenderComp; }
+#endif
 };

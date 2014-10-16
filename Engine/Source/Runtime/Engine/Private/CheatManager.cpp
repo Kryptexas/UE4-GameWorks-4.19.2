@@ -92,11 +92,11 @@ void UCheatManager::ChangeSize( float F )
 	if (Character)
 	{
 		ACharacter* DefaultCharacter = Character->GetClass()->GetDefaultObject<ACharacter>();
-		Character->CapsuleComponent->SetCapsuleSize( DefaultCharacter->CapsuleComponent->GetUnscaledCapsuleRadius() * F, DefaultCharacter->CapsuleComponent->GetUnscaledCapsuleHalfHeight() * F );
+		Character->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius() * F, DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() * F);
 
-		if (Character->Mesh.IsValid())
+		if (Character->GetMesh())
 		{
-			Character->Mesh->SetRelativeScale3D( FVector(F) );
+			Character->GetMesh()->SetRelativeScale3D(FVector(F));
 		}
 		Character->TeleportTo(Character->GetActorLocation(), Character->GetActorRotation());
 	}
@@ -857,7 +857,7 @@ void UCheatManager::TestCollisionDistance()
 			if (Volume->GetClass()->GetDefaultObject() != Volume)
 			{
 				FVector ClosestPoint(0,0,0);
-				float Distance = Volume->BrushComponent->GetDistanceToCollision(ViewLoc, ClosestPoint);
+				float Distance = Volume->GetBrushComponent()->GetDistanceToCollision(ViewLoc, ClosestPoint);
 				float NormalizedDistance = FMath::Clamp<float>(Distance, 0.f, 1000.f)/1000.f;
 				FColor DrawColor(255*NormalizedDistance, 255*(1-NormalizedDistance), 0);
 				DrawDebugLine(GetWorld(), ViewLoc, ClosestPoint, DrawColor, true);

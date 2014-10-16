@@ -1838,7 +1838,7 @@ TWeakObjectPtr<AWindDirectionalSource> FAnimationViewportClient::CreateWindActor
 
 	check(Wind.IsValid());
 	//initial wind strength value 
-	Wind->Component->Strength = PrevWindStrength;
+	Wind->GetComponent()->Strength = PrevWindStrength;
 	return Wind;
 }
 
@@ -1858,7 +1858,7 @@ void FAnimationViewportClient::EnableWindActor(bool bEnableWind)
 	{
 		PrevWindLocation = WindSourceActor->GetActorLocation();
 		PrevWindRotation = WindSourceActor->GetActorRotation();
-		PrevWindStrength = WindSourceActor->Component->Strength;
+		PrevWindStrength = WindSourceActor->GetComponent()->Strength;
 
 		if(World->DestroyActor(WindSourceActor.Get()))
 		{
@@ -1873,7 +1873,7 @@ void FAnimationViewportClient::SetWindStrength( float SliderPos )
 	if(WindSourceActor.IsValid())
 	{
 		//Clamp grid size slider value between 0 - 1
-		WindSourceActor->Component->Strength = FMath::Clamp<float>(SliderPos, 0.0f, 1.0f);
+		WindSourceActor->GetComponent()->Strength = FMath::Clamp<float>(SliderPos, 0.0f, 1.0f);
 		//to apply this new wind strength
 		WindSourceActor->UpdateComponentTransforms();
 	}
@@ -1883,7 +1883,7 @@ float FAnimationViewportClient::GetWindStrengthSliderValue() const
 {
 	if(WindSourceActor.IsValid())
 	{
-		return WindSourceActor->Component->Strength;
+		return WindSourceActor->GetComponent()->Strength;
 	}
 
 	return 0;

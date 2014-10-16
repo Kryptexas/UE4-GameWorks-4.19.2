@@ -166,7 +166,7 @@ AExponentialHeightFog::AExponentialHeightFog(const FObjectInitializer& ObjectIni
 	bHidden = false;
 
 #if WITH_EDITORONLY_DATA
-	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
+	if (!IsRunningCommandlet() && (GetSpriteComponent() != NULL))
 	{
 		// Structure to hold one-time initialization
 		struct FConstructorStatics
@@ -183,11 +183,11 @@ AExponentialHeightFog::AExponentialHeightFog(const FObjectInitializer& ObjectIni
 		};
 		static FConstructorStatics ConstructorStatics;
 
-		SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
-		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
-		SpriteComponent->AttachParent = Component;
+		GetSpriteComponent()->Sprite = ConstructorStatics.FogTextureObject.Get();
+		GetSpriteComponent()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+		GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Fog;
+		GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
+		GetSpriteComponent()->AttachParent = Component;
 	}
 #endif // WITH_EDITORONLY_DATA
 }

@@ -479,9 +479,9 @@ void UGameplayDebuggingComponent::CollectPathData()
 	PathErrorString.Empty();
 	if (AAIController *MyController = Cast<AAIController>(MyPawn->Controller))
 	{
-		if ( MyController->NavComponent && MyController->NavComponent->HasValidPath())
+		if ( MyController->GetNavComponent() && MyController->GetNavComponent()->HasValidPath())
 		{
-			const FNavPathSharedPtr& NewPath = MyController->NavComponent->GetPath();
+			const FNavPathSharedPtr& NewPath = MyController->GetNavComponent()->GetPath();
 			if (!CurrentPath.HasSameObject(NewPath.Get()))
 			{
 				PathPoints.Reset();

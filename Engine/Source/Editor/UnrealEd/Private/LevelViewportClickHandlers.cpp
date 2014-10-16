@@ -78,8 +78,7 @@ namespace ClickHandlers
 
 			APointLight* Light = CastChecked<APointLight>(NewActor);
 			Light->SetMobility(EComponentMobility::Stationary);
-			UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>( Light->LightComponent );
-
+			UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>( Light->GetLightComponent() );
 			PointLightComponent->LightColor = PixelColor;
 		}
 	}

@@ -609,9 +609,9 @@ bool ULevelExporterSTL::ExportText( const FExportObjectInnerContext* Context, UO
 		// Static meshes
 
 		AStaticMeshActor* Actor = Cast<AStaticMeshActor>(Level->Actors[iActor]);
-		if( Actor && ( !bSelectedOnly || Actor->IsSelected() ) && Actor->StaticMeshComponent->StaticMesh && Actor->StaticMeshComponent->StaticMesh->HasValidRenderData() )
+		if( Actor && ( !bSelectedOnly || Actor->IsSelected() ) && Actor->GetStaticMeshComponent()->StaticMesh && Actor->GetStaticMeshComponent()->StaticMesh->HasValidRenderData() )
 		{
-			FStaticMeshLODResources& LODModel = Actor->StaticMeshComponent->StaticMesh->RenderData->LODResources[0];
+			FStaticMeshLODResources& LODModel = Actor->GetStaticMeshComponent()->StaticMesh->RenderData->LODResources[0];
 			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 			int32 NumSections = LODModel.Sections.Num();
 			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)

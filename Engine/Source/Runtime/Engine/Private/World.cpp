@@ -854,13 +854,13 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	ABrush* DefaultBrush = PersistentLevel->Actors.Num()<2 ? NULL : Cast<ABrush>(PersistentLevel->Actors[1]);
 	if (GIsEditor)
 	{
-		if (!DefaultBrush || !DefaultBrush->IsStaticBrush() || DefaultBrush->BrushType!=Brush_Default || !DefaultBrush->BrushComponent || !DefaultBrush->Brush)
+		if (!DefaultBrush || !DefaultBrush->IsStaticBrush() || DefaultBrush->BrushType!=Brush_Default || !DefaultBrush->GetBrushComponent() || !DefaultBrush->Brush)
 		{
 			// Spawn the default brush.
 			DefaultBrush = SpawnBrush();
-			check(DefaultBrush->BrushComponent);
+			check(DefaultBrush->GetBrushComponent());
 			DefaultBrush->Brush = new( DefaultBrush->GetOuter(), TEXT("Brush") )UModel( FObjectInitializer(), DefaultBrush, 1 );
-			DefaultBrush->BrushComponent->Brush = DefaultBrush->Brush;
+			DefaultBrush->GetBrushComponent()->Brush = DefaultBrush->Brush;
 			DefaultBrush->SetNotForClientOrServer();
 			DefaultBrush->Brush->SetFlags( RF_Transactional );
 			DefaultBrush->Brush->Polys->SetFlags( RF_Transactional );
@@ -878,7 +878,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		else
 		{
 			// Ensure that the Brush and BrushComponent both point to the same model
-			DefaultBrush->BrushComponent->Brush = DefaultBrush->Brush;
+			DefaultBrush->GetBrushComponent()->Brush = DefaultBrush->Brush;
 		}
 
 		// Reset the lightmass settings on the default brush; they can't be edited by the user but could have
@@ -4777,9 +4777,9 @@ void UWorld::UpdateConstraintActors()
 		for( TActorIterator<APhysicsConstraintActor> It(this); It; ++It )
 		{
 			APhysicsConstraintActor* ConstraintActor = *It;
-			if( ConstraintActor->ConstraintComp)
+			if( ConstraintActor->GetConstraintComp())
 			{
-				ConstraintActor->ConstraintComp->UpdateConstraintFrames();
+				ConstraintActor->GetConstraintComp()->UpdateConstraintFrames();
 			}
 		}
 		bAreConstraintsDirty = false;

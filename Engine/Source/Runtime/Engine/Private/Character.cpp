@@ -111,13 +111,13 @@ void ACharacter::PostInitializeComponents()
 			BaseTranslationOffset = Mesh->RelativeLocation;
 
 			// force animation tick after movement component updates
-			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement.IsValid())
+			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement)
 			{
 				Mesh->PrimaryComponentTick.AddPrerequisite(CharacterMovement, CharacterMovement->PrimaryComponentTick);
 			}
 		}
 
-		if (CharacterMovement.IsValid() && CapsuleComponent.IsValid())
+		if (CharacterMovement && CapsuleComponent)
 		{
 			CharacterMovement->UpdateNavAgent(CapsuleComponent);
 		}
@@ -167,7 +167,7 @@ void ACharacter::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 	Super::ApplyWorldOffset(InOffset, bWorldShift);
 
 	// Update cached location values in movement component
-	if (CharacterMovement.IsValid())
+	if (CharacterMovement)
 	{
 		CharacterMovement->OldBaseLocation+= InOffset;
 	}
@@ -334,7 +334,7 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 	UDamageType const* const DmgTypeCDO = DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>();
 	float const ImpulseScale = DmgTypeCDO->DamageImpulse;
 
-	if ( (ImpulseScale > 3.f) && (CharacterMovement.Get() != NULL) )
+	if ( (ImpulseScale > 3.f) && (CharacterMovement != NULL) )
 	{
 		FHitResult HitInfo;
 		FVector ImpulseDir;
@@ -641,13 +641,13 @@ void ACharacter::SaveRelativeBasedMovement(const FVector& NewRelativeLocation, c
 
 void ACharacter::TurnOff()
 {
-	if (CharacterMovement.Get() != NULL)
+	if (CharacterMovement != NULL)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->DisableMovement();
 	}
 
-	if (GetNetMode() != NM_DedicatedServer && Mesh.Get() != NULL)
+	if (GetNetMode() != NM_DedicatedServer && Mesh != NULL)
 	{
 		Mesh->bPauseAnims = true;
 		if (Mesh->IsSimulatingPhysics())
@@ -677,7 +677,7 @@ void ACharacter::Restart()
 
 void ACharacter::PawnClientRestart()
 {
-	if (CharacterMovement.Get() != NULL)
+	if (CharacterMovement != NULL)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->ResetPredictionData_Client();
@@ -759,7 +759,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		FIndenter PhysicsIndent(Indent);
 
 		FString BaseString;
-		if ( CharacterMovement.Get() == NULL || BasedMovement.MovementBase == NULL )
+		if ( CharacterMovement == NULL || BasedMovement.MovementBase == NULL )
 		{
 			BaseString = "Not Based";
 		}
@@ -772,7 +772,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToString(), *BasedMovement.Rotation.ToString(), *BaseString), Indent, YPos);
 		YPos += YL;
 
-		if ( CharacterMovement.Get() != NULL )
+		if ( CharacterMovement != NULL )
 		{
 			CharacterMovement->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}

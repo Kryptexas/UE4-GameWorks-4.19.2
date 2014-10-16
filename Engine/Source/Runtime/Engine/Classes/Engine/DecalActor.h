@@ -18,23 +18,26 @@ class ADecalActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** The decal component for this decal actor */
-	UPROPERTY(Category=Decal, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Decal,Rendering|Components|Decal"))
-	TSubobjectPtr<class UDecalComponent> Decal;
+	UPROPERTY(Category = Decal, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Decal,Rendering|Components|Decal", AllowPrivateAccess = "true"))
+	class UDecalComponent* Decal;
 
 #if WITH_EDITORONLY_DATA
 	/* Reference to the editor only arrow visualization component */
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
 
 	/* Reference to the billboard component */
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
 
 	/* Reference to the selected visualization box component */
 	UPROPERTY()
-	TSubobjectPtr<UBoxComponent> BoxComponent;
+	UBoxComponent* BoxComponent;
 #endif
+
+public:
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal", meta=(DeprecatedFunction))
@@ -56,6 +59,18 @@ class ADecalActor : public AActor
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 	// End AActor interface.
 #endif // WITH_EDITOR
+
+public:
+	/** Returns Decal subobject **/
+	FORCEINLINE class UDecalComponent* GetDecal() const { return Decal; }
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	/** Returns BoxComponent subobject **/
+	FORCEINLINE UBoxComponent* GetBoxComponent() const { return BoxComponent; }
+#endif
 };
 
 

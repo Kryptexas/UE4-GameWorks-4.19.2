@@ -13,10 +13,14 @@ class ASceneCapture : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** To display the 3d camera in the editor. */
 	UPROPERTY()
-	TSubobjectPtr<class UStaticMeshComponent> MeshComp;
+	class UStaticMeshComponent* MeshComp;
+
 public:
+	/** Returns MeshComp subobject **/
+	FORCEINLINE class UStaticMeshComponent* GetMeshComp() const { return MeshComp; }
 };
 
 

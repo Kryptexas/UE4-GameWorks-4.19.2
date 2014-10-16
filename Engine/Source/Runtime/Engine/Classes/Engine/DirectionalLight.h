@@ -11,8 +11,9 @@ class ADirectionalLight : public ALight
 
 #if WITH_EDITORONLY_DATA
 	// Reference to editor visualization arrow
+private:
 	UPROPERTY()
-	TSubobjectPtr<UArrowComponent> ArrowComponent;
+	UArrowComponent* ArrowComponent;
 #endif
 
 public:
@@ -24,6 +25,12 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End UObject Interface
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+#endif
 };
 
 

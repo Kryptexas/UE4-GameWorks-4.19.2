@@ -1988,7 +1988,7 @@ void FMatinee::OnClose()
 		// Set any manipulated cameras back to default frustum colours.
 		if (ACameraActor* Cam = Cast<ACameraActor>(MatineeActor->GroupInst[i]->GroupActor))
 		{
-			Cam->CameraComponent->RestoreFrustumColor();
+			Cam->GetCameraComponent()->RestoreFrustumColor();
 		}
 	}
 

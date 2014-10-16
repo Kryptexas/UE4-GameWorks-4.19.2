@@ -116,10 +116,10 @@ void AInteractiveFoliageActor::CapsuleTouched(AActor* Other, UPrimitiveComponent
 
 void AInteractiveFoliageActor::SetupCollisionCylinder()
 {
-	if (StaticMeshComponent->StaticMesh)
+	if (GetStaticMeshComponent()->StaticMesh)
 	{
-		const FBoxSphereBounds MeshBounds = StaticMeshComponent->StaticMesh->GetBounds();
-		const FVector Scale3D = StaticMeshComponent->RelativeScale3D;
+		const FBoxSphereBounds MeshBounds = GetStaticMeshComponent()->StaticMesh->GetBounds();
+		const FVector Scale3D = GetStaticMeshComponent()->RelativeScale3D;
 		// Set the cylinder's radius based off of the static mesh's bounds radius
 		// CollisionRadius is in world space so apply the actor's scale
 		CapsuleComponent->SetCapsuleSize(MeshBounds.SphereRadius * .7f * FMath::Max(Scale3D.X, Scale3D.Y), MeshBounds.BoxExtent.Z * Scale3D.Z);
@@ -132,7 +132,7 @@ void AInteractiveFoliageActor::SetupCollisionCylinder()
 
 void AInteractiveFoliageActor::Tick(float DeltaSeconds)
 {
-	UInteractiveFoliageComponent* const FoliageComponent = CastChecked<UInteractiveFoliageComponent>(StaticMeshComponent);
+	UInteractiveFoliageComponent* const FoliageComponent = CastChecked<UInteractiveFoliageComponent>(GetStaticMeshComponent());
 	// Can only push updates to the scene proxy if we are being ticked while registered
 	// The proxy will be NULL on dedicated server
 	if (FoliageComponent->IsRegistered() && FoliageComponent->FoliageSceneProxy)

@@ -187,9 +187,9 @@ EPawnActionAbortState::Type UPawnAction_Move::PerformAbort(EAIForceParam::Type S
 
 	AAIController* MyController = Cast<AAIController>(GetController());
 
-	if (MyController && MyController->PathFollowingComponent)
+	if (MyController && MyController->GetPathFollowingComponent())
 	{
-		MyController->PathFollowingComponent->AbortMove(TEXT("BehaviorTree abort"), RequestID);
+		MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), RequestID);
 	}
 
 	return Super::PerformAbort(ShouldForce);
@@ -291,11 +291,11 @@ void UPawnAction_Move::ClearPendingRepath()
 
 bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const FVector& TestLocation, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller->PathFollowingComponent->HasReached(TestLocation, Radius);
+	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestLocation, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller->PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller->PathFollowingComponent->SetLastMoveAtGoal(true);
+		Controller->GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
+		Controller->GetPathFollowingComponent()->SetLastMoveAtGoal(true);
 	}
 
 	return bAlreadyAtGoal;
@@ -303,11 +303,11 @@ bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const
 
 bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const AActor* TestGoal, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller->PathFollowingComponent->HasReached(TestGoal, Radius);
+	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestGoal, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller->PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller->PathFollowingComponent->SetLastMoveAtGoal(true);
+		Controller->GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
+		Controller->GetPathFollowingComponent()->SetLastMoveAtGoal(true);
 	}
 
 	return bAlreadyAtGoal;

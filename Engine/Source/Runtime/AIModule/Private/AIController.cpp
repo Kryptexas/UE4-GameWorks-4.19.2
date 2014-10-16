@@ -127,12 +127,12 @@ void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 		Snapshot->Location = GetPawn()->GetActorLocation();
 	}
 
-	if (NavComponent.IsValid())
+	if (NavComponent)
 	{
 		NavComponent->DescribeSelfToVisLog(Snapshot);
 	}
 
-	if (PathFollowingComponent.IsValid())
+	if (PathFollowingComponent)
 	{
 		PathFollowingComponent->DescribeSelfToVisLog(Snapshot);
 	}
@@ -510,7 +510,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 		}
 		else
 		{
-			FNavPathSharedPtr Path = FindPath(Goal, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(NavComponent.Get() ? NavComponent->GetNavData() : NULL, FilterClass));
+			FNavPathSharedPtr Path = FindPath(Goal, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(NavComponent ? NavComponent->GetNavData() : NULL, FilterClass));
 			if (Path.IsValid())
 			{
 				bAllowStrafe = bCanStrafe;
@@ -557,7 +557,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	FVector GoalLocation = Dest;
 
 	// fail if projection to navigation is required but it either failed or there's not navigation component
-	if (bCanRequestMove && bProjectDestinationToNavigation && (NavComponent.Get() == NULL || !NavComponent->ProjectPointToNavigation(Dest, GoalLocation)))
+	if (bCanRequestMove && bProjectDestinationToNavigation && (NavComponent == NULL || !NavComponent->ProjectPointToNavigation(Dest, GoalLocation)))
 	{
 		UE_VLOG_LOCATION(this, LogAINavigation, Error, Dest, 30.f, FLinearColor::Red, TEXT("AAIController::MoveToLocation failed to project destination location to navmesh"));
 		bCanRequestMove = false;
@@ -579,7 +579,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 
 	if (bCanRequestMove)
 	{
-		FNavPathSharedPtr Path = FindPath(GoalLocation, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(NavComponent.Get() != NULL ? NavComponent->GetNavData() : NULL, FilterClass));
+		FNavPathSharedPtr Path = FindPath(GoalLocation, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(NavComponent != NULL ? NavComponent->GetNavData() : NULL, FilterClass));
 		if (Path.IsValid())
 		{
 			bAllowStrafe = bCanStrafe;
@@ -674,7 +674,7 @@ EPathFollowingStatus::Type AAIController::GetMoveStatus() const
 
 bool AAIController::HasPartialPath() const
 {
-	return (PathFollowingComponent.Get() != NULL) && (PathFollowingComponent->HasPartialPath());
+	return (PathFollowingComponent != NULL) && (PathFollowingComponent->HasPartialPath());
 }
 
 FVector AAIController::GetImmediateMoveDestination() const

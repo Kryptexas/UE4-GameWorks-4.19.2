@@ -278,7 +278,7 @@ void AEmitter::CheckForErrors()
 	UObject* Outer = GetOuter();
 	if( Cast<ULevel>( Outer ) )
 	{
-		if ( !ParticleSystemComponent.IsValid() )
+		if ( !ParticleSystemComponent )
 		{
 			FMessageLog("MapCheck").Warning()
 				->AddToken(FUObjectToken::Create(this))
@@ -294,7 +294,7 @@ FString AEmitter::GetDetailedInfoInternal() const
 {
 	FString Result;  
 
-	if( ParticleSystemComponent.IsValid() )
+	if( ParticleSystemComponent )
 	{
 		Result = ParticleSystemComponent->GetDetailedInfoInternal();
 	}
@@ -354,7 +354,7 @@ void AEmitter::PostInitializeComponents()
 	}
 
 	// Set Notification Delegate
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->OnSystemFinished.BindDynamic( this, &AEmitter::OnParticleSystemFinished );
 		bCurrentlyActive = ParticleSystemComponent->bAutoActivate;
@@ -382,7 +382,7 @@ void AEmitter::OnParticleSystemFinished(UParticleSystemComponent* FinishedCompon
 
 void AEmitter::Activate()
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		ParticleSystemComponent->ActivateSystem(false);
 	}
@@ -391,7 +391,7 @@ void AEmitter::Activate()
 
 void AEmitter::Deactivate()
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		ParticleSystemComponent->DeactivateSystem();
 	}
@@ -400,7 +400,7 @@ void AEmitter::Deactivate()
 
 void AEmitter::ToggleActive()
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		ParticleSystemComponent->ToggleActive();
 		bCurrentlyActive = ParticleSystemComponent->bIsActive;
@@ -409,7 +409,7 @@ void AEmitter::ToggleActive()
 
 bool AEmitter::IsActive() const
 {
-	if(ParticleSystemComponent.IsValid())
+	if(ParticleSystemComponent)
 	{
 		// @todo: I'm not updating bCurrentlyActive flag here. 
 		// Technically I don't have to, and it seems bCurrentlyActive flag can be easily broken if we modify Component directly.
@@ -421,7 +421,7 @@ bool AEmitter::IsActive() const
 
 void AEmitter::SetFloatParameter(FName ParameterName, float Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetFloatParameter(ParameterName, Param);
 	}
@@ -429,7 +429,7 @@ void AEmitter::SetFloatParameter(FName ParameterName, float Param)
 
 void AEmitter::SetVectorParameter(FName ParameterName, FVector Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetVectorParameter(ParameterName, Param);
 	}
@@ -437,7 +437,7 @@ void AEmitter::SetVectorParameter(FName ParameterName, FVector Param)
 
 void AEmitter::SetColorParameter(FName ParameterName, FLinearColor Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetColorParameter(ParameterName, Param);
 	}
@@ -445,7 +445,7 @@ void AEmitter::SetColorParameter(FName ParameterName, FLinearColor Param)
 
 void AEmitter::SetActorParameter(FName ParameterName, AActor* Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetActorParameter(ParameterName, Param);
 	}
@@ -453,7 +453,7 @@ void AEmitter::SetActorParameter(FName ParameterName, AActor* Param)
 
 void AEmitter::SetMaterialParameter(FName ParameterName, UMaterialInterface* Param)
 {
-	if (ParticleSystemComponent.IsValid())
+	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->SetMaterialParameter(ParameterName, Param);
 	}
@@ -6009,8 +6009,8 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 	BaseFOV = 80.0f;
 	bDestroyOnSystemFinish = true;
 
-	ParticleSystemComponent->bOnlyOwnerSee = true;
-	ParticleSystemComponent->SecondsBeforeInactive = 0.0f;
+	GetParticleSystemComponent()->bOnlyOwnerSee = true;
+	GetParticleSystemComponent()->SecondsBeforeInactive = 0.0f;
 }
 
 void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
@@ -6050,7 +6050,7 @@ void AEmitterCameraLensEffectBase::NotifyRetriggered() {}
 
 void AEmitterCameraLensEffectBase::PostInitializeComponents()
 {
-	ParticleSystemComponent->SetDepthPriorityGroup(SDPG_Foreground);
+	GetParticleSystemComponent()->SetDepthPriorityGroup(SDPG_Foreground);
 	Super::PostInitializeComponents();
 	ActivateLensEffect();
 }

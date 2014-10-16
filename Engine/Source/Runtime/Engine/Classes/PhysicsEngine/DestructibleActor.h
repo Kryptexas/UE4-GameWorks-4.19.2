@@ -19,8 +19,10 @@ class ADestructibleActor : public AActor
 	/**
 	 * The component which holds the skinned mesh and physics data for this actor.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Destruction, meta=(ExposeFunctionCategories="Destruction,Components|Destructible"))
-	TSubobjectPtr<UDestructibleComponent> DestructibleComponent;
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Destruction, meta = (ExposeFunctionCategories = "Destruction,Components|Destructible", AllowPrivateAccess = "true"))
+	UDestructibleComponent* DestructibleComponent;
+public:
 
 	UPROPERTY(config, EditAnywhere, BlueprintReadWrite, Category=Navigation)
 	uint32 bAffectNavigation : 1;
@@ -35,6 +37,10 @@ class ADestructibleActor : public AActor
 	// End AActor interface.
 
 
+
+public:
+	/** Returns DestructibleComponent subobject **/
+	FORCEINLINE UDestructibleComponent* GetDestructibleComponent() const { return DestructibleComponent; }
 };
 
 

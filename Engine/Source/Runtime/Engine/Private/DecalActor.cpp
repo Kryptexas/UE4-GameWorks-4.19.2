@@ -91,7 +91,7 @@ void ADecalActor::PostEditMove(bool bFinished)
 {
 	Super::PostEditMove(bFinished);
 
-	if (Decal.IsValid())
+	if (Decal)
 	{
 		Decal->RecreateRenderState_Concurrent();
 	}
@@ -102,7 +102,7 @@ void ADecalActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	// AActor::PostEditChange will ForceUpdateComponents()
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (Decal.IsValid())
+	if (Decal)
 	{
 		Decal->RecreateRenderState_Concurrent();
 	}
@@ -118,7 +118,7 @@ void ADecalActor::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 
 void ADecalActor::SetDecalMaterial(class UMaterialInterface* NewDecalMaterial)
 {
-	if (Decal.IsValid())
+	if (Decal)
 	{
 		Decal->SetDecalMaterial(NewDecalMaterial);
 	}
@@ -126,10 +126,10 @@ void ADecalActor::SetDecalMaterial(class UMaterialInterface* NewDecalMaterial)
 
 class UMaterialInterface* ADecalActor::GetDecalMaterial() const
 {
-	return Decal.IsValid() ? Decal->GetDecalMaterial() : NULL;
+	return Decal ? Decal->GetDecalMaterial() : NULL;
 }
 
 class UMaterialInstanceDynamic* ADecalActor::CreateDynamicMaterialInstance()
 {
-	return Decal.IsValid() ? Decal->CreateDynamicMaterialInstance() : NULL;
+	return Decal ? Decal->CreateDynamicMaterialInstance() : NULL;
 }

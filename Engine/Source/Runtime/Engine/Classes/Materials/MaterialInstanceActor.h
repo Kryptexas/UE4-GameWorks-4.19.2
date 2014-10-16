@@ -18,9 +18,12 @@ class AMaterialInstanceActor : public AActor
 	TArray<class AActor*> TargetActors;
 
 #if WITH_EDITORONLY_DATA
+private:
 	// Reference to actor sprite
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
 #endif
+
+public:
 
 	// Begin UObject Interface
 	virtual void PostLoad() override;
@@ -28,6 +31,12 @@ class AMaterialInstanceActor : public AActor
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

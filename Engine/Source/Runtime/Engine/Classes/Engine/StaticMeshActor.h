@@ -16,8 +16,10 @@ class ENGINE_API AStaticMeshActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=StaticMeshActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Mesh,Rendering,Physics,Components|StaticMesh"))
-	TSubobjectPtr<class UStaticMeshComponent> StaticMeshComponent;
+private:
+	UPROPERTY(Category = StaticMeshActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|StaticMesh", AllowPrivateAccess = "true"))
+	class UStaticMeshComponent* StaticMeshComponent;
+public:
 	
 	virtual void BeginPlay() override;
 
@@ -43,6 +45,10 @@ protected:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR	
 	// End UObject interface.
+
+public:
+	/** Returns StaticMeshComponent subobject **/
+	FORCEINLINE class UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
 };
 
 

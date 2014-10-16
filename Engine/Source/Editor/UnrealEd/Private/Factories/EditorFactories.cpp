@@ -826,9 +826,9 @@ UObject* ULevelFactory::FactoryCreateText
 		// Copy brushes' model pointers over to their BrushComponent, to keep compatibility with old T3Ds.
 		if( Brush && bActorChanged )
 		{
-			if( Brush->BrushComponent ) // Should always be the case, but not asserting so that old broken content won't crash.
+			if( Brush->GetBrushComponent() ) // Should always be the case, but not asserting so that old broken content won't crash.
 			{
-				Brush->BrushComponent->Brush = Brush->Brush;
+				Brush->GetBrushComponent()->Brush = Brush->Brush;
 
 				// We need to avoid duplicating default/ builder brushes. This is done by destroying all brushes that are CSG_Active and are not
 				// the default brush in their respective levels.

@@ -623,7 +623,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	//SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
 
 	const AAIController* MyAI = Cast<AAIController>(GetOwner());
-	const ANavigationData* NavData = MyAI && MyAI->NavComponent ? MyAI->NavComponent->GetNavData() : NULL;
+	const ANavigationData* NavData = MyAI && MyAI->GetNavComponent() ? MyAI->GetNavComponent()->GetNavData() : NULL;
 	if (Path.IsValid())
 	{
 		Path->ShortcutNodeRefs.Reset();
@@ -635,7 +635,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	}
 
 	const APawn* MyPawn = MyAI->GetPawn();
-	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->CapsuleComponent) ? MyAI->GetCharacter()->CapsuleComponent->GetScaledCapsuleHalfHeight() : 0.0f;
+	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->GetCapsuleComponent()) ? MyAI->GetCharacter()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
 	const FVector PawnLocation = MyPawn->GetActorLocation();
 
 #if USE_PHYSIC_FOR_VISIBILITY_TESTS

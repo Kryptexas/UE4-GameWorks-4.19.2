@@ -50,10 +50,10 @@ void FAssetTypeActions_CameraAnim::CreateCameraActorForCameraAnim(UCameraAnim* I
 	PreviewCamera.Get()->SetActorLabel(FText::Format(LOCTEXT("CamerAnimPreviewCameraName", "Preview Camera - {0}"), FText::FromName(InCameraAnim->GetFName())).ToString());
 
 	// copy data from the CamAnim to the CameraActor
-	check(PreviewCamera.Get()->CameraComponent);
+	check(PreviewCamera.Get()->GetCameraComponent());
 	PreviewCamera.Get()->PreviewedCameraAnim = InCameraAnim;
-	PreviewCamera.Get()->CameraComponent->FieldOfView = InCameraAnim->BaseFOV;
-	PreviewCamera.Get()->CameraComponent->PostProcessSettings = InCameraAnim->BasePostProcessSettings;
+	PreviewCamera.Get()->GetCameraComponent()->FieldOfView = InCameraAnim->BaseFOV;
+	PreviewCamera.Get()->GetCameraComponent()->PostProcessSettings = InCameraAnim->BasePostProcessSettings;
 }
 
 void FAssetTypeActions_CameraAnim::CreatePreviewPawnForCameraAnim(UCameraAnim* InCameraAnim)

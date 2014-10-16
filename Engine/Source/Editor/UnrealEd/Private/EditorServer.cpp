@@ -2750,13 +2750,13 @@ ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 	// Spawn builder brush for the buffer level.
 	ABrush* BufferDefaultBrush = InWorld->SpawnActor<ABrush>( SpawnInfo );
 
-	check( BufferDefaultBrush->BrushComponent );
+	check( BufferDefaultBrush->GetBrushComponent() );
 	BufferDefaultBrush->Brush = CastChecked<UModel>(StaticFindObject(UModel::StaticClass(), BufferLevel->OwningWorld->GetOuter(), TEXT("Brush"), true), ECastCheckedType::NullAllowed);
 	if (!BufferDefaultBrush->Brush)
 	{
 		BufferDefaultBrush->Brush = new( InWorld, TEXT("Brush") )UModel( FObjectInitializer(), BufferDefaultBrush, 1 );
 	}
-	BufferDefaultBrush->BrushComponent->Brush = BufferDefaultBrush->Brush;
+	BufferDefaultBrush->GetBrushComponent()->Brush = BufferDefaultBrush->Brush;
 	BufferDefaultBrush->SetNotForClientOrServer();
 	BufferDefaultBrush->SetFlags( RF_Transactional );
 	BufferDefaultBrush->Brush->SetFlags( RF_Transactional );
@@ -3399,17 +3399,17 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			UMeshComponent*		MeshComponent		= NULL;
 			if( StaticMeshActor )
 			{
-				MeshComponent = StaticMeshActor->StaticMeshComponent;
+				MeshComponent = StaticMeshActor->GetStaticMeshComponent();
 			}
 			else if( SkeletalMeshActor )
 			{
-				MeshComponent = SkeletalMeshActor->SkeletalMeshComponent;
+				MeshComponent = SkeletalMeshActor->GetSkeletalMeshComponent();
 			}
 
 			// See whether there are lights that ended up with the same component. This was possible in earlier versions of the engine.
 			if( LightActor )
 			{
-				ULightComponent* LightComponent = LightActor->LightComponent;
+				ULightComponent* LightComponent = LightActor->GetLightComponent();
 				AActor* ExistingLightActor = LightGuidToActorMap.FindRef( LightComponent->LightGuid );
 				if( ExistingLightActor )
 				{
@@ -6192,10 +6192,10 @@ bool UEditorEngine::HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice
 	{
 		AVolume* Volume = *It;
 
-		if(!Volume->IsTemplate() && Volume->BrushComponent.IsValid())
+		if(!Volume->IsTemplate() && Volume->GetBrushComponent())
 		{
 			UE_LOG(LogEditorServer, Log, TEXT("BSBC: %s"), *Volume->GetPathName() );
-			Volume->BrushComponent->BuildSimpleBrushCollision();
+			Volume->GetBrushComponent()->BuildSimpleBrushCollision();
 		}
 	}
 	return true;

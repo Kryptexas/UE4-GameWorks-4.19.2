@@ -231,9 +231,9 @@ namespace AssetSelectionUtils
 					{
 						ActorInfo.bHaveStaticMesh = true;
 						AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>( CurrentActor );
-						if ( StaticMeshActor->StaticMeshComponent )
+						if ( StaticMeshActor->GetStaticMeshComponent() )
 						{
-							UStaticMesh* StaticMesh = StaticMeshActor->StaticMeshComponent->StaticMesh;
+							UStaticMesh* StaticMesh = StaticMeshActor->GetStaticMeshComponent()->StaticMesh;
 
 							ActorInfo.bAllSelectedStaticMeshesHaveCollisionModels &= ( (StaticMesh && StaticMesh->BodySetup) ? true : false );
 						}

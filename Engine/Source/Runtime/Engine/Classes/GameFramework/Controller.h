@@ -54,10 +54,10 @@ public:
 	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
 	class APlayerState* PlayerState;
 
-protected:
+private:
 	/** Component to give controllers a transform and enable attachment if desired. */
 	UPROPERTY()
-	TSubobjectPtr<class USceneComponent> TransformComponent;
+	class USceneComponent* TransformComponent;
 
 public:
 
@@ -304,4 +304,8 @@ private:
 	/** Called when the controller has instigated damage in any way */
 	UPROPERTY(BlueprintAssignable)
 	FInstigatedAnyDamageSignature OnInstigatedAnyDamage;
+
+protected:
+	/** Returns TransformComponent subobject **/
+	FORCEINLINE class USceneComponent* GetTransformComponent() const { return TransformComponent; }
 };

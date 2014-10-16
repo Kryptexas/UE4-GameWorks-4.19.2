@@ -227,7 +227,7 @@ void ARadialForceActor::EditorApplyScale(const FVector& DeltaScale, const FVecto
 	FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? 500.0f : 5.0f );
 
 	const float Multiplier = ( ModifiedScale.X > 0.0f || ModifiedScale.Y > 0.0f || ModifiedScale.Z > 0.0f ) ? 1.0f : -1.0f;
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->Radius += Multiplier * ModifiedScale.Size();
 		ForceComponent->Radius = FMath::Max( 0.f, ForceComponent->Radius );
@@ -237,7 +237,7 @@ void ARadialForceActor::EditorApplyScale(const FVector& DeltaScale, const FVecto
 
 void ARadialForceActor::FireImpulse()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->FireImpulse();
 	}
@@ -245,7 +245,7 @@ void ARadialForceActor::FireImpulse()
 
 void ARadialForceActor::EnableForce()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->Activate();
 	}
@@ -253,7 +253,7 @@ void ARadialForceActor::EnableForce()
 
 void ARadialForceActor::DisableForce()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->Deactivate();
 	}
@@ -261,7 +261,7 @@ void ARadialForceActor::DisableForce()
 
 void ARadialForceActor::ToggleForce()
 {
-	if(ForceComponent.IsValid())
+	if(ForceComponent)
 	{
 		ForceComponent->ToggleActive();
 	}

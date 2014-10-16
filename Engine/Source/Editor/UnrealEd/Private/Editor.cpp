@@ -2129,9 +2129,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 	ABrush* Brush = Cast< ABrush >( InActor );
 	if( Brush )
 	{
-		if( Brush->BrushComponent && Brush->BrushComponent->Brush )
+		if( Brush->GetBrushComponent() && Brush->GetBrushComponent()->Brush )
 		{
-			Brush->BrushComponent->Brush->Polys->Element.ModifyAllItems();
+			Brush->GetBrushComponent()->Brush->Polys->Element.ModifyAllItems();
 		}
 	}
 
@@ -2277,7 +2277,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 				// Scale all of the polygons of the brush.
 				const FScaleMatrix matrix( FVector( ModifiedScale.X , ModifiedScale.Y, ModifiedScale.Z ) );
 				
-				if(Brush->BrushComponent->Brush && Brush->BrushComponent->Brush->Polys)
+				if(Brush->GetBrushComponent()->Brush && Brush->GetBrushComponent()->Brush->Polys)
 				{
 					// @todo UE4 : verify this code
 					// Brush Transform doesn't seem to change from this code path
@@ -2286,9 +2286,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 					// if this causes any issue, please contact LH
 					FTransform BrushActorToWorld = Brush->ActorToWorld();
 
-					for( int32 poly = 0 ; poly < Brush->BrushComponent->Brush->Polys->Element.Num() ; poly++ )
+					for( int32 poly = 0 ; poly < Brush->GetBrushComponent()->Brush->Polys->Element.Num() ; poly++ )
 					{
-						FPoly* Poly = &(Brush->BrushComponent->Brush->Polys->Element[poly]);
+						FPoly* Poly = &(Brush->GetBrushComponent()->Brush->Polys->Element[poly]);
 
 						FBox bboxBefore(0);
 						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
@@ -2344,7 +2344,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						Poly->Finalize((ABrush*)InActor,0);
 					}
 
-					Brush->BrushComponent->Brush->BuildBound();
+					Brush->GetBrushComponent()->Brush->BuildBound();
 
 					if( !Brush->IsStaticBrush() )
 					{
@@ -3778,17 +3778,17 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 			if( SMActor )
 			{
 				SourceActors.Add(Actor);
-				Info.GetFromActor(SMActor, SMActor->StaticMeshComponent);
+				Info.GetFromActor(SMActor, SMActor->GetStaticMeshComponent());
 			}
 			else if( FoliageActor )
 			{
 				SourceActors.Add(Actor);
-				Info.GetFromActor(FoliageActor, FoliageActor->StaticMeshComponent);
+				Info.GetFromActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 			}
 			else if ( bFromSkeletalMesh )
 			{
 				SourceActors.Add(Actor);
-				Info.GetFromActor(SKMActor, SKMActor->SkeletalMeshComponent);
+				Info.GetFromActor(SKMActor, SKMActor->GetSkeletalMeshComponent());
 			}
 
 			// Get the actor group if any
@@ -3832,7 +3832,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				{					
 					AStaticMeshActor* SMActor = CastChecked<AStaticMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ) );
 					SMActor->UnregisterAllComponents();
-					Info.SetToActor(SMActor, SMActor->StaticMeshComponent);
+					Info.SetToActor(SMActor, SMActor->GetStaticMeshComponent());
 					SMActor->RegisterAllComponents();
 					GEditor->SelectActor( SMActor, true, false );
 					Actor = SMActor;
@@ -3841,7 +3841,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				{					
 					AInteractiveFoliageActor* FoliageActor = World->SpawnActor<AInteractiveFoliageActor>( Info.Location, Info.Rotation, SpawnInfo );
 					FoliageActor->UnregisterAllComponents();
-					Info.SetToActor(FoliageActor, FoliageActor->StaticMeshComponent);
+					Info.SetToActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 					FoliageActor->RegisterAllComponents();
 					GEditor->SelectActor( FoliageActor, true, false );
 					Actor = FoliageActor;
@@ -3852,7 +3852,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					// checked
 					ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ));
 					SkeletalMeshActor->UnregisterAllComponents();
-					Info.SetToActor(SkeletalMeshActor, SkeletalMeshActor->SkeletalMeshComponent);
+					Info.SetToActor(SkeletalMeshActor, SkeletalMeshActor->GetSkeletalMeshComponent());
 					SkeletalMeshActor->RegisterAllComponents();
 					GEditor->SelectActor( SkeletalMeshActor, true, false );
 					Actor = SkeletalMeshActor;
@@ -4030,18 +4030,18 @@ bool UEditorEngine::SnapToSocket (AActor* ParentActor, AActor* ChildActor, const
 
 	ASkeletalMeshActor* ParentSkelMeshActor = Cast<ASkeletalMeshActor>(ParentActor);
 	if (ParentSkelMeshActor != NULL &&
-		ParentSkelMeshActor->SkeletalMeshComponent &&
-		ParentSkelMeshActor->SkeletalMeshComponent->SkeletalMesh)
+		ParentSkelMeshActor->GetSkeletalMeshComponent() &&
+		ParentSkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh)
 	{
-		bAttachedToSocket = AttachActorToComponent(ParentActor, ChildActor, ParentSkelMeshActor->SkeletalMeshComponent, SocketName);
+		bAttachedToSocket = AttachActorToComponent(ParentActor, ChildActor, ParentSkelMeshActor->GetSkeletalMeshComponent(), SocketName);
 	}
 
 	AStaticMeshActor* ParentStaticMeshActor = Cast<AStaticMeshActor>(ParentActor);
 	if (ParentStaticMeshActor != NULL &&
-		ParentStaticMeshActor->StaticMeshComponent &&
-		ParentStaticMeshActor->StaticMeshComponent->StaticMesh)
+		ParentStaticMeshActor->GetStaticMeshComponent() &&
+		ParentStaticMeshActor->GetStaticMeshComponent()->StaticMesh)
 	{
-		bAttachedToSocket = AttachActorToComponent(ChildActor, ParentStaticMeshActor->StaticMeshComponent, SocketName);
+		bAttachedToSocket = AttachActorToComponent(ChildActor, ParentStaticMeshActor->GetStaticMeshComponent(), SocketName);
 	}
 
 	// if the component is in a blueprint actor
@@ -5181,7 +5181,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 	// using ULightComponent::StaticClass()->GetDefaultObject() will not work since each light actor sets default component properties differently.
 	ALight* OldActorDefaultObject = InOldActor.GetClass()->GetDefaultObject<ALight>();
 	check(OldActorDefaultObject);
-	UActorComponent* DefaultLightComponent = OldActorDefaultObject->LightComponent;
+	UActorComponent* DefaultLightComponent = OldActorDefaultObject->GetLightComponent();
 	check(DefaultLightComponent);
 
 	// The component we are copying from class

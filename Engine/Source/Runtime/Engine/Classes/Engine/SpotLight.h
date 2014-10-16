@@ -15,8 +15,10 @@ class ASpotLight : public ALight
 
 #if WITH_EDITORONLY_DATA
 	// Reference to editor arrow component visualization 
+private:
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+public:
 #endif
 
 	// BEGIN DEPRECATED (use component functions now in level script)
@@ -44,6 +46,12 @@ class ASpotLight : public ALight
 #endif
 	// End UObject Interface
 
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+#endif
 };
 
 

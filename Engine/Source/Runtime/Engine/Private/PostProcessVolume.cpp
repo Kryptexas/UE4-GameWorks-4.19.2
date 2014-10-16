@@ -6,11 +6,11 @@
 APostProcessVolume::APostProcessVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	// post process volume needs physics data for trace
-	BrushComponent->bAlwaysCreatePhysicsState = true;
-	BrushComponent->Mobility = EComponentMobility::Movable;
+	GetBrushComponent()->bAlwaysCreatePhysicsState = true;
+	GetBrushComponent()->Mobility = EComponentMobility::Movable;
 	
 	bEnabled = true;
 	BlendRadius = 100.0f;

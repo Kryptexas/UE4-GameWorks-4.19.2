@@ -13,13 +13,14 @@ class ASceneCaptureCube : public ASceneCapture
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Scene capture component. */
-	UPROPERTY(Category = DecalActor, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USceneCaptureComponentCube> CaptureComponentCube;
+	UPROPERTY(Category = DecalActor, VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess = "true"))
+	class USceneCaptureComponentCube* CaptureComponentCube;
 
 	/** To allow drawing the camera frustum in the editor. */
 	UPROPERTY()
-	TSubobjectPtr<class UDrawFrustumComponent> DrawFrustum;
+	class UDrawFrustumComponent* DrawFrustum;
 
 public:
 
@@ -35,6 +36,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void OnInterpToggle(bool bEnable);
+
+public:
+	/** Returns CaptureComponentCube subobject **/
+	FORCEINLINE class USceneCaptureComponentCube* GetCaptureComponentCube() const { return CaptureComponentCube; }
+	/** Returns DrawFrustum subobject **/
+	FORCEINLINE class UDrawFrustumComponent* GetDrawFrustum() const { return DrawFrustum; }
 };
 
 

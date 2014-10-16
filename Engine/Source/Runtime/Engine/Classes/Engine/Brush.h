@@ -109,8 +109,10 @@ class ENGINE_API ABrush : public AActor
 	UPROPERTY(export)
 	class UModel* Brush;
 
-	UPROPERTY(Category=Collision, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UBrushComponent> BrushComponent;
+private:
+	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UBrushComponent* BrushComponent;
+public:
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere, Instanced, Category=BrushBuilder)
@@ -251,6 +253,10 @@ public:
 	/** @return the brush builder that created the current brush shape */
 	const UBrushBuilder* GetBrushBuilder() const { return BrushBuilder; }
 #endif
+
+public:
+	/** Returns BrushComponent subobject **/
+	FORCEINLINE class UBrushComponent* GetBrushComponent() const { return BrushComponent; }
 };
 
 

@@ -1664,7 +1664,7 @@ void FEdModeFoliage::BakeFoliage(UFoliageType* Settings, bool bSelectedOnly)
 			UWorld* World = IFA->GetWorld();
 			check(World != nullptr);
 			AStaticMeshActor* SMA = World->SpawnActor<AStaticMeshActor>(Instance.Location, Instance.Rotation);
-			SMA->StaticMeshComponent->StaticMesh = Settings->GetStaticMesh();
+			SMA->GetStaticMeshComponent()->StaticMesh = Settings->GetStaticMesh();
 			SMA->GetRootComponent()->SetRelativeScale3D(Instance.DrawScale3D);
 			SMA->MarkComponentsRenderStateDirty();
 		}

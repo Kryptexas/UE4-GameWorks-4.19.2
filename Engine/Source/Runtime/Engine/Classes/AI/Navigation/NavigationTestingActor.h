@@ -31,14 +31,16 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	class UCapsuleComponent* CapsuleComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Editor Preview */
 	UPROPERTY()
-	TSubobjectPtr<class UNavTestRenderingComponent> EdRenderComp;
+	class UNavTestRenderingComponent* EdRenderComp;
 #endif // WITH_EDITORONLY_DATA
+public:
 
 	/** @todo document */
 	UPROPERTY(EditAnywhere, Category=Agent)
@@ -163,4 +165,12 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	// constructed for the path find (e.g. change the filter or add 
 	// constraints/goal evaluators).
 	virtual FPathFindingQuery BuildPathFindingQuery(const ANavigationTestingActor* Goal) const;
+
+public:
+	/** Returns CapsuleComponent subobject **/
+	FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns EdRenderComp subobject **/
+	FORCEINLINE class UNavTestRenderingComponent* GetEdRenderComp() const { return EdRenderComp; }
+#endif
 };

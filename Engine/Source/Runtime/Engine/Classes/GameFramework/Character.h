@@ -207,22 +207,24 @@ public:
 	 */
 	ACharacter(const FObjectInitializer& ObjectInitializer);
 
+private:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USkeletalMeshComponent> Mesh;
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USkeletalMeshComponent* Mesh;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
 #endif
 
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCharacterMovementComponent> CharacterMovement;
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCharacterMovementComponent* CharacterMovement;
 
 	/** The CapsuleComponent being used for movement collision (by CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
-	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCapsuleComponent* CapsuleComponent;
+public:
 
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
@@ -679,4 +681,16 @@ public:
 
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
+
+public:
+	/** Returns Mesh subobject **/
+	FORCEINLINE class USkeletalMeshComponent* GetMesh() const { return Mesh; }
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+#endif
+	/** Returns CharacterMovement subobject **/
+	FORCEINLINE class UCharacterMovementComponent* GetCharacterMovement() const { return CharacterMovement; }
+	/** Returns CapsuleComponent subobject **/
+	FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
 };

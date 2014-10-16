@@ -13,8 +13,10 @@ class APhysicsConstraintActor : public ARigidBodyBase
 	GENERATED_UCLASS_BODY()
 
 	// Cached reference to constraint component
-	UPROPERTY(Category=ConstraintActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="JointDrive,Physics|Components|PhysicsConstraint"))
-	TSubobjectPtr<class UPhysicsConstraintComponent> ConstraintComp;
+private:
+	UPROPERTY(Category = ConstraintActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "JointDrive,Physics|Components|PhysicsConstraint", AllowPrivateAccess = "true"))
+	class UPhysicsConstraintComponent* ConstraintComp;
+public:
 	
 	UPROPERTY()
 	class AActor* ConstraintActor1_DEPRECATED;
@@ -29,6 +31,10 @@ class APhysicsConstraintActor : public ARigidBodyBase
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif // WITH_EDITOR	
 	// End UObject Interface
+
+public:
+	/** Returns ConstraintComp subobject **/
+	FORCEINLINE class UPhysicsConstraintComponent* GetConstraintComp() const { return ConstraintComp; }
 };
 
 

@@ -23,21 +23,25 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 	UPROPERTY()
 	TArray<FNavigationSegmentLink> SegmentLinks;
 
+private:
 	/** Smart link: can affect path following */
 	UPROPERTY(VisibleAnywhere, Category=SmartLink)
-	TSubobjectPtr<class UNavLinkCustomComponent> SmartLinkComp;
+	class UNavLinkCustomComponent* SmartLinkComp;
+public:
 
 	/** Smart link: toggle relevancy */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
 	bool bSmartLinkIsRelevant;
 
 #if WITH_EDITORONLY_DATA
+private:
 	/** Editor Preview */
 	UPROPERTY()
-	TSubobjectPtr<class UNavLinkRenderingComponent> EdRenderComp;
+	class UNavLinkRenderingComponent* EdRenderComp;
 
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
+public:
 #endif // WITH_EDITORONLY_DATA
 
 	// BEGIN INavRelevantInterface
@@ -86,4 +90,14 @@ protected:
 	FSmartLinkReachedSignature OnSmartLinkReached;
 
 	void NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint);
+
+public:
+	/** Returns SmartLinkComp subobject **/
+	FORCEINLINE class UNavLinkCustomComponent* GetSmartLinkComp() const { return SmartLinkComp; }
+#if WITH_EDITORONLY_DATA
+	/** Returns EdRenderComp subobject **/
+	FORCEINLINE class UNavLinkRenderingComponent* GetEdRenderComp() const { return EdRenderComp; }
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };

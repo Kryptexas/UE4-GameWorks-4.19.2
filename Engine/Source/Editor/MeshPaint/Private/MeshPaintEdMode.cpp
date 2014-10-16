@@ -2820,7 +2820,7 @@ void FEdModeMeshPaint::SaveSettingsForActor( AActor* InActor )
 		UStaticMeshComponent* StaticMeshComponent = NULL;
 		if( StaticMeshActor != NULL )
 		{
-			StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+			StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 		}
 
 		if( StaticMeshComponent != NULL )
@@ -4966,9 +4966,9 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 		{
 			int32 MaterialIndex = MeshData->SelectedMaterialIndex;
 			AStaticMeshActor* StaticMeshActor = Cast< AStaticMeshActor >( ActorBeingEdited.Get() );
-			if (StaticMeshActor != NULL && StaticMeshActor->StaticMeshComponent != NULL)
+			if (StaticMeshActor != NULL && StaticMeshActor->GetStaticMeshComponent() != NULL)
 			{
-				UMaterialInterface* MaterialToCheck = StaticMeshActor->StaticMeshComponent->GetMaterial(MaterialIndex);
+				UMaterialInterface* MaterialToCheck = StaticMeshActor->GetStaticMeshComponent()->GetMaterial(MaterialIndex);
 
 				bool bIsSourceTextureStreamedIn = SelectedTexture->IsFullyStreamedIn();
 
@@ -5060,7 +5060,7 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 				}
 
 				bool bMaterialChanged = false;
-				UStaticMeshComponent* SMComponent = StaticMeshActor->StaticMeshComponent;
+				UStaticMeshComponent* SMComponent = StaticMeshActor->GetStaticMeshComponent();
 				ClearStaticMeshTextureOverrides(SMComponent);
 
 				SMComponent->SetMaterial(MaterialIndex,NewMaterialInstance);

@@ -16,7 +16,7 @@ namespace
 ATriggerCapsule::ATriggerCapsule(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UCapsuleComponent>(TEXT("CollisionComp")))
 {
-	UCapsuleComponent* CapsuleCollisionComponent = CastChecked<UCapsuleComponent>(CollisionComponent);
+	UCapsuleComponent* CapsuleCollisionComponent = CastChecked<UCapsuleComponent>(GetCollisionComponent());
 	CapsuleCollisionComponent->ShapeColor = TriggerBaseColor;
 	CapsuleCollisionComponent->InitCapsuleSize(+40.0f, +80.0f);
 	CapsuleCollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
@@ -25,9 +25,9 @@ ATriggerCapsule::ATriggerCapsule(const FObjectInitializer& ObjectInitializer)
 
 	bCollideWhenPlacing = true;
 
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = CapsuleCollisionComponent;
+		GetSpriteComponent()->AttachParent = CapsuleCollisionComponent;
 	}
 }
 
@@ -84,7 +84,7 @@ void ATriggerCapsule::EditorApplyScale(const FVector& DeltaScale, const FVector*
 ATriggerBox::ATriggerBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UBoxComponent>(TEXT("CollisionComp")))
 {
-	UBoxComponent* BoxCollisionComponent = CastChecked<UBoxComponent>(CollisionComponent);
+	UBoxComponent* BoxCollisionComponent = CastChecked<UBoxComponent>(GetCollisionComponent());
 
 	BoxCollisionComponent->ShapeColor = TriggerBaseColor;
 	BoxCollisionComponent->InitBoxExtent(FVector(40.0f, 40.0f, 40.0f));
@@ -93,9 +93,9 @@ ATriggerBox::ATriggerBox(const FObjectInitializer& ObjectInitializer)
 	static FName CollisionProfileName(TEXT("Trigger"));
 	BoxCollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = BoxCollisionComponent;
+		GetSpriteComponent()->AttachParent = BoxCollisionComponent;
 	}
 }
 
@@ -128,7 +128,7 @@ void ATriggerBox::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 ATriggerSphere::ATriggerSphere(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<USphereComponent>(TEXT("CollisionComp")))
 {
-	USphereComponent* SphereCollisionComponent = CastChecked<USphereComponent>(CollisionComponent);
+	USphereComponent* SphereCollisionComponent = CastChecked<USphereComponent>(GetCollisionComponent());
 
 	SphereCollisionComponent->ShapeColor = TriggerBaseColor;
 	SphereCollisionComponent->InitSphereRadius(+40.0f);
@@ -136,9 +136,9 @@ ATriggerSphere::ATriggerSphere(const FObjectInitializer& ObjectInitializer)
 	static FName CollisionProfileName(TEXT("Trigger"));
 	SphereCollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = SphereCollisionComponent;
+		GetSpriteComponent()->AttachParent = SphereCollisionComponent;
 	}
 }
 

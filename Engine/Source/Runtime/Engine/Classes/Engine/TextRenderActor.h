@@ -15,14 +15,23 @@ class ATextRenderActor : public AActor
 
 	friend class UActorFactoryTextRender;
 
+private:
 	/** Component to render a text in 3d with a font */
-	UPROPERTY(Category=TextRenderActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Rendering|Components|TextRender"))
-	TSubobjectPtr<class UTextRenderComponent> TextRender;
+	UPROPERTY(Category = TextRenderActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Rendering|Components|TextRender", AllowPrivateAccess = "true"))
+	class UTextRenderComponent* TextRender;
 
 #if WITH_EDITORONLY_DATA
 	// Reference to the billboard component
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
+#endif
+
+public:
+	/** Returns TextRender subobject **/
+	FORCEINLINE class UTextRenderComponent* GetTextRender() const { return TextRender; }
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
 #endif
 };
 

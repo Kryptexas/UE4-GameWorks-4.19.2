@@ -10,7 +10,7 @@
 ADocumentationActor::ADocumentationActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;	
 
 #if WITH_EDITORONLY_DATA

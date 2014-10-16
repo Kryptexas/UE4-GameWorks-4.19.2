@@ -97,9 +97,9 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* Owne
 	{
 		AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
 
-		if (MyController && MyController->PathFollowingComponent)
+		if (MyController && MyController->GetPathFollowingComponent())
 		{
-			MyController->PathFollowingComponent->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
+			MyController->GetPathFollowingComponent()->AbortMove(TEXT("BehaviorTree abort"), MyMemory->MoveRequestID);
 		}
 	}
 

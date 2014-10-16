@@ -549,8 +549,8 @@ static const TCHAR* ImportProperties(
 	{
 		check(GIsEditor);
 		ABrush* Actor = (ABrush*)DestData;
-		check(Actor->BrushComponent);
-		if( Actor->BrushComponent->Mobility == EComponentMobility::Static )
+		check(Actor->GetBrushComponent());
+		if( Actor->GetBrushComponent()->Mobility == EComponentMobility::Static )
 		{
 			// Prepare static brush.
 			Actor->SetNotForClientOrServer();

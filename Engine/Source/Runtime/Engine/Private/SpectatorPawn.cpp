@@ -19,7 +19,7 @@ ASpectatorPawn::ASpectatorPawn(const FObjectInitializer& ObjectInitializer)
 	bCollideWhenPlacing = false;
 
 	static FName CollisionProfileName(TEXT("Spectator"));
-	CollisionComponent->SetCollisionProfileName(CollisionProfileName);
+	GetCollisionComponent()->SetCollisionProfileName(CollisionProfileName);
 }
 
 

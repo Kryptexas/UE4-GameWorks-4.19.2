@@ -38,7 +38,7 @@ void ABrush::PostEditMove(bool bFinished)
 {
 	bInManipulation = !bFinished;
 
-	if( BrushComponent.IsValid() )
+	if( BrushComponent )
 	{
 		BrushComponent->ReregisterComponent();
 	}
@@ -143,7 +143,7 @@ void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 FVector ABrush::GetPrePivot() const
 {
 	FVector Result(0.f);
-	if( BrushComponent.IsValid() )
+	if( BrushComponent )
 	{
 		Result = BrushComponent->PrePivot;
 	}
@@ -152,7 +152,7 @@ FVector ABrush::GetPrePivot() const
 
 void ABrush::SetPrePivot( const FVector& InPrePivot )
 {
-	if( BrushComponent.IsValid() )
+	if( BrushComponent )
 	{
 		BrushComponent->PrePivot = InPrePivot;
 		BrushComponent->UpdateComponentToWorld();
@@ -271,7 +271,7 @@ FColor ABrush::GetWireColor() const
 
 bool ABrush::IsStaticBrush() const
 {
-	return BrushComponent.IsValid() && (BrushComponent->Mobility == EComponentMobility::Static);
+	return BrushComponent && (BrushComponent->Mobility == EComponentMobility::Static);
 }
 
 bool ABrush::Modify(bool bAlwaysMarkDirty)

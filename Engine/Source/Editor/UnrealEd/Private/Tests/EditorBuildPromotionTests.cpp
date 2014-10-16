@@ -1078,7 +1078,7 @@ namespace EditorBuildPromotionTestUtils
 				AStaticMeshActor* PlacedMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(DefaultMesh));
 				PlacedMesh->SetActorLocation(Location);
 
-				PlacedMesh->StaticMeshComponent->SetMaterial(0, Material);
+				PlacedMesh->GetStaticMeshComponent()->SetMaterial(0, Material);
 
 				return PlacedMesh;
 			}

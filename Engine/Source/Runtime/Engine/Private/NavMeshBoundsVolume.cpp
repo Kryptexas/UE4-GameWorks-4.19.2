@@ -6,10 +6,10 @@
 ANavMeshBoundsVolume::ANavMeshBoundsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
 
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	BrushComponent->Mobility = EComponentMobility::Static;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->Mobility = EComponentMobility::Static;
 
 	BrushColor = FColor(200, 200, 200, 255);
 

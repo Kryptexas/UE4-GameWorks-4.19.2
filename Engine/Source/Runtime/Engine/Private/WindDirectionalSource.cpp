@@ -40,13 +40,13 @@ AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectI
 			ArrowComponent->bUseInEditorScaling = true;
 		}
 
-		if (SpriteComponent)
+		if (GetSpriteComponent())
 		{
-			SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
-			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
-			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
-			SpriteComponent->AttachParent = Component;
+			GetSpriteComponent()->Sprite = ConstructorStatics.SpriteTexture.Get();
+			GetSpriteComponent()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Wind;
+			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
+			GetSpriteComponent()->AttachParent = Component;
 		}
 	}
 #endif // WITH_EDITORONLY_DATA

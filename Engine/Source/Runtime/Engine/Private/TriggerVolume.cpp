@@ -7,7 +7,7 @@ ATriggerVolume::ATriggerVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	static FName CollisionProfileName(TEXT("Trigger"));
-	BrushComponent->SetCollisionProfileName(CollisionProfileName);
+	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
 
 	bColored = true;
 	BrushColor.R = 100;
@@ -29,7 +29,7 @@ void ATriggerVolume::LoadedFromAnotherClass(const FName& OldClassName)
 
 		if(OldClassName == DynamicTriggerVolume_NAME)
 		{
-			BrushComponent->Mobility = EComponentMobility::Movable;
+			GetBrushComponent()->Mobility = EComponentMobility::Movable;
 		}
 	}
 }

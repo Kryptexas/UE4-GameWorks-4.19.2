@@ -7,10 +7,10 @@ ABrushShape::ABrushShape(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	BrushComponent->AlwaysLoadOnClient = true;
-	BrushComponent->AlwaysLoadOnServer = false;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->AlwaysLoadOnClient = true;
+	GetBrushComponent()->AlwaysLoadOnServer = false;
 
 }
 

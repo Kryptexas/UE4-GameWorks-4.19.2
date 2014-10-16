@@ -1909,7 +1909,7 @@ USkeletalMeshComponent* UParticleModuleLocationBoneSocket::GetSkeletalMeshCompon
 		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
 		if (SkelMeshActor != NULL)
 		{
-			return SkelMeshActor->SkeletalMeshComponent;
+			return SkelMeshActor->GetSkeletalMeshComponent();
 		}
 		else if (Actor)
 		{
@@ -2356,12 +2356,12 @@ void UParticleModuleLocationSkelVertSurface::UpdateBoneIndicesList(FParticleEmit
 
 		if ( SkeletalMeshActor != NULL )
 		{
-			if ( SkeletalMeshActor->SkeletalMeshComponent.IsValid() && (SkeletalMeshActor->SkeletalMeshComponent->SkeletalMesh != NULL) )
+			if (SkeletalMeshActor->GetSkeletalMeshComponent() && (SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh != NULL))
 			{
 				int32 InsertionIndex = 0;
 				for (int32 FindBoneIdx = 0; FindBoneIdx < ValidAssociatedBones.Num(); FindBoneIdx++)
 				{
-					const int32 BoneIdx = SkeletalMeshActor->SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(ValidAssociatedBones[FindBoneIdx]);
+					const int32 BoneIdx = SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh->RefSkeleton.FindBoneIndex(ValidAssociatedBones[FindBoneIdx]);
 					if (BoneIdx != INDEX_NONE && ValidAssociatedBones.Num() > InsertionIndex)
 					{
 						InstancePayload->ValidAssociatedBoneIndices[InsertionIndex++] = BoneIdx;
@@ -2537,7 +2537,7 @@ USkeletalMeshComponent* UParticleModuleLocationSkelVertSurface::GetSkeletalMeshC
 		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
 		if (SkelMeshActor != NULL)
 		{
-			return SkelMeshActor->SkeletalMeshComponent;
+			return SkelMeshActor->GetSkeletalMeshComponent();
 		}
 		else
 		{

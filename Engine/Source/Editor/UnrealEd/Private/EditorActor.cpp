@@ -1681,9 +1681,9 @@ public:
 
 		if( OutStaticMeshActor.IsStaticMeshActor() )
 		{
-			if ( OutStaticMeshActor.StaticMeshActor->StaticMeshComponent )
+			if ( OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent() )
 			{
-				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->StaticMeshComponent->StaticMesh;
+				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent()->StaticMesh;
 			}
 		}
 		return OutStaticMeshActor.HasStaticMesh();
@@ -1776,10 +1776,10 @@ void UUnrealEdEngine::edactSelectMatchingSkeletalMesh(bool bAllClasses)
 
 		// Look for SkelMeshActor
 		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
-		if(SkelMeshActor && SkelMeshActor->SkeletalMeshComponent)
+		if(SkelMeshActor && SkelMeshActor->GetSkeletalMeshComponent())
 		{
 			bSelectSkelMeshActors = true;
-			SelectedMeshes.AddUnique(SkelMeshActor->SkeletalMeshComponent->SkeletalMesh);
+			SelectedMeshes.AddUnique(SkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh);
 			WorldList.AddUnique(Actor->GetWorld());			
 		}
 
@@ -1826,8 +1826,8 @@ void UUnrealEdEngine::edactSelectMatchingSkeletalMesh(bool bAllClasses)
 			{
 				ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(Actor);
 				if( SkelMeshActor && 
-					SkelMeshActor->SkeletalMeshComponent && 
-					SelectedMeshes.Contains(SkelMeshActor->SkeletalMeshComponent->SkeletalMesh) )
+					SkelMeshActor->GetSkeletalMeshComponent() && 
+					SelectedMeshes.Contains(SkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh) )
 				{
 					bSelectActor = true;
 				}
@@ -1953,9 +1953,9 @@ void UUnrealEdEngine::edactSelectMatchingEmitter()
 
 		AEmitter* Emitter = Cast<AEmitter>( Actor );
 		
-		if ( Emitter && Emitter->ParticleSystemComponent && Emitter->ParticleSystemComponent->Template )
+		if ( Emitter && Emitter->GetParticleSystemComponent() && Emitter->GetParticleSystemComponent()->Template )
 		{
-			SelectedParticleSystemTemplates.AddUnique( Emitter->ParticleSystemComponent->Template );
+			SelectedParticleSystemTemplates.AddUnique( Emitter->GetParticleSystemComponent()->Template );
 			WorldList.AddUnique( Actor->GetWorld() );
 		}
 	}
@@ -1977,7 +1977,7 @@ void UUnrealEdEngine::edactSelectMatchingEmitter()
 		AEmitter* ActorAsEmitter = *ActorIterator;
 		if ( !ActorAsEmitter->IsHiddenEd() )
 		{
-			if ( ActorAsEmitter->ParticleSystemComponent && SelectedParticleSystemTemplates.Contains( ActorAsEmitter->ParticleSystemComponent->Template ) )
+			if ( ActorAsEmitter->GetParticleSystemComponent() && SelectedParticleSystemTemplates.Contains( ActorAsEmitter->GetParticleSystemComponent()->Template ) )
 			{
 				SelectActor( ActorAsEmitter, true, false );
 			}

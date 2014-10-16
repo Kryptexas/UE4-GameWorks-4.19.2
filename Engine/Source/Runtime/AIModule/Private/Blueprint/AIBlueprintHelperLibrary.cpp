@@ -188,9 +188,9 @@ void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(class UAnimInstance
 		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
 		if (OwningAI)
 		{
-			if (bLockMovement && OwningAI->PathFollowingComponent)
+			if (bLockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->PathFollowingComponent->LockResource(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->LockResource(EAILockSource::Animation);
 			}
 			if (LockAILogic && OwningAI->BrainComponent)
 			{
@@ -213,9 +213,9 @@ void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(class UAnimInstan
 		AAIController* OwningAI = Cast<AAIController>(PawnOwner->Controller);
 		if (OwningAI)
 		{
-			if (bUnlockMovement && OwningAI->PathFollowingComponent)
+			if (bUnlockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->PathFollowingComponent->ClearResourceLock(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->ClearResourceLock(EAILockSource::Animation);
 			}
 			if (UnlockAILogic && OwningAI->BrainComponent)
 			{

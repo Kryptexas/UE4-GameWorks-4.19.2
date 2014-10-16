@@ -15,13 +15,21 @@ class AInfo : public AActor
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
+private:
 	/** Billboard Component displayed in editor */
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
+public:
 #endif
 
 	/** Indicates whether this actor should participate in level bounds calculations. */
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

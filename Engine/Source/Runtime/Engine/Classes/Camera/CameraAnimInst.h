@@ -17,9 +17,11 @@ class ENGINE_API UCameraAnimInst : public UObject
 	class UCameraAnim* CamAnim;
 
 protected:
+private:
 	/** the UInterpGroupInst used to do the interpolation */
 	UPROPERTY(instanced)
-	TSubobjectPtr<class UInterpGroupInst> InterpGroupInst;
+	class UInterpGroupInst* InterpGroupInst;
+protected:
 
 public:
 	/** Current time for the animation */
@@ -133,6 +135,10 @@ public:
 	void SetDuration(float NewDuration);
 
 	
+
+protected:
+	/** Returns InterpGroupInst subobject **/
+	FORCEINLINE class UInterpGroupInst* GetInterpGroupInst() const { return InterpGroupInst; }
 };
 
 

@@ -3061,13 +3061,7 @@ bool FHeaderParser::GetVarType
 					}
 					else if (bIsSubobjectPtrTemplate)
 					{
-						Flags |= CPF_SubobjectReference;
-
-						if (((Flags & CPF_Edit) && (Flags & CPF_EditConst) == 0) ||
-							  ((Flags & CPF_BlueprintVisible) && (Flags & CPF_BlueprintReadOnly) == 0))
-						{
-							FError::Throwf(TEXT("%s: Subobject properties can't be editable (use VisibleAnywhere or BlueprintReadOnly instead)."), VarType.Identifier);
-						}
+						Flags |= CPF_SubobjectReference | CPF_InstancedReference;
 					}
 
 					bExpectStar = false;
@@ -3187,6 +3181,15 @@ bool FHeaderParser::GetVarType
 			if (!bHandledType)
 			{
 				FError::Throwf(TEXT("Unrecognized type '%s'"), VarType.Identifier );
+			}
+		}
+
+		if ((Flags & CPF_InstancedReference) && CurrentAccessSpecifier == ACCESS_Private && VariableCategory == EVariableCategory::Member)
+		{
+			if (((Flags & CPF_Edit) && (Flags & CPF_EditConst) == 0) ||
+				((Flags & CPF_BlueprintVisible) && (Flags & CPF_BlueprintReadOnly) == 0))
+			{
+				FError::Throwf(TEXT("%s: Subobject (instanced) properties can't be editable (use VisibleAnywhere or BlueprintReadOnly instead)."), VarType.Identifier);
 			}
 		}
 	}

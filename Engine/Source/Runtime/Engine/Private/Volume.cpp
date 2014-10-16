@@ -16,12 +16,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogVolume, Log, All);
 AVolume::AVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->AlwaysLoadOnClient = true;
-	BrushComponent->AlwaysLoadOnServer = true;
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
+	GetBrushComponent()->AlwaysLoadOnClient = true;
+	GetBrushComponent()->AlwaysLoadOnServer = true;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAll"));
-	BrushComponent->SetCollisionProfileName(CollisionProfileName);
-	BrushComponent->bGenerateOverlapEvents = true;
+	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
+	GetBrushComponent()->bGenerateOverlapEvents = true;
 	bReplicateMovement = false;
 #if WITH_EDITORONLY_DATA
 	bActorLabelEditable = true;
@@ -56,11 +56,11 @@ void AVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 bool AVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint)
 {
-	if(BrushComponent)
+	if(GetBrushComponent())
 	{
 #if WITH_PHYSX
 		FVector ClosestPoint;
-		float Distance = BrushComponent->GetDistanceToCollision(Point, ClosestPoint);
+		float Distance = GetBrushComponent()->GetDistanceToCollision(Point, ClosestPoint);
 #else
 		FBoxSphereBounds Bounds = BrushComponent->CalcBounds(BrushComponent->ComponentToWorld);
 		float Distance = FMath::Sqrt(Bounds.GetBox().ComputeSquaredDistanceToPoint(Point));

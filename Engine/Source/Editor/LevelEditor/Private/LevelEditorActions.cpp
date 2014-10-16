@@ -2297,7 +2297,7 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 		UStaticMeshComponent* FoundStaticMeshComponent = NULL;
 		if( Actor->IsA(AStaticMeshActor::StaticClass()) )
 		{
-			FoundStaticMeshComponent = CastChecked<AStaticMeshActor>(Actor)->StaticMeshComponent;
+			FoundStaticMeshComponent = CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent();
 		}
 
 		UStaticMesh* FoundMesh = FoundStaticMeshComponent ? FoundStaticMeshComponent->StaticMesh : NULL;

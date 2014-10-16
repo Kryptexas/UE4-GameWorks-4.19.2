@@ -45,9 +45,11 @@ class ENGINE_API ADocumentationActor : public AActor
 	UPROPERTY(Category = HelpDocumentation, EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	FString DocumentLink; 
 	
- 	UPROPERTY(Category = Sprite, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UMaterialBillboardComponent> Billboard;
+private:
+	UPROPERTY(Category = Sprite, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UMaterialBillboardComponent* Billboard;
 #endif
+public:
 
 	/** Determine the type of link contained in the DocumentLink member */
 	EDocumentationActorType::Type GetLinkType() const;
@@ -59,6 +61,12 @@ private:
 
 	EDocumentationActorType::Type	LinkType;
 
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns Billboard subobject **/
+	FORCEINLINE class UMaterialBillboardComponent* GetBillboard() const { return Billboard; }
+#endif
 };
 
 

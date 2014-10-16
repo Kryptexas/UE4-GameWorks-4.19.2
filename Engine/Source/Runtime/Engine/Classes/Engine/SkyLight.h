@@ -9,9 +9,11 @@ class ENGINE_API ASkyLight : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** @todo document */
-	UPROPERTY(Category=Light, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Light,Rendering,Rendering|Components|SkyLight"))
-	TSubobjectPtr<class USkyLightComponent> LightComponent;
+	UPROPERTY(Category = Light, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Light,Rendering,Rendering|Components|SkyLight", AllowPrivateAccess = "true"))
+	class USkyLightComponent* LightComponent;
+public:
 
 	/** replicated copy of LightComponent's bEnabled property */
 	UPROPERTY(replicatedUsing=OnRep_bEnabled)
@@ -20,6 +22,9 @@ class ENGINE_API ASkyLight : public AInfo
 	/** Replication Notification Callbacks */
 	UFUNCTION()
 	virtual void OnRep_bEnabled();
+
+	/** Returns LightComponent subobject **/
+	FORCEINLINE class USkyLightComponent* GetLightComponent() const { return LightComponent; }
 };
 
 

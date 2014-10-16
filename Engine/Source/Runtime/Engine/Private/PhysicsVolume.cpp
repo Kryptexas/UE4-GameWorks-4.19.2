@@ -6,9 +6,9 @@
 APhysicsVolume::APhysicsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
-	BrushComponent->SetCollisionProfileName(CollisionProfileName);
+	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
 
 	FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
 	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
@@ -28,7 +28,7 @@ void APhysicsVolume::LoadedFromAnotherClass(const FName& OldClassName)
 
 		if(OldClassName == DynamicPhysicsVolume_NAME)
 		{
-			BrushComponent->Mobility = EComponentMobility::Movable;
+			GetBrushComponent()->Mobility = EComponentMobility::Movable;
 		}
 	}
 }

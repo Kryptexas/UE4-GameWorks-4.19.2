@@ -794,9 +794,9 @@ FBox ULevelStreaming::GetStreamingVolumeBounds()
 	for(int32 VolIdx=0; VolIdx<EditorStreamingVolumes.Num(); VolIdx++)
 	{
 		ALevelStreamingVolume* StreamingVol = EditorStreamingVolumes[VolIdx];
-		if(StreamingVol && StreamingVol->BrushComponent)
+		if(StreamingVol && StreamingVol->GetBrushComponent())
 		{
-			Bounds += StreamingVol->BrushComponent->BrushBodySetup->AggGeom.CalcAABB(StreamingVol->BrushComponent->ComponentToWorld);
+			Bounds += StreamingVol->GetBrushComponent()->BrushBodySetup->AggGeom.CalcAABB(StreamingVol->GetBrushComponent()->ComponentToWorld);
 		}
 	}
 

@@ -516,7 +516,7 @@ UModel::UModel( const class FObjectInitializer& ObjectInitializer,ABrush* Owner,
 	EmptyModel( 1, 1 );
 	if( Owner )
 	{
-		check(Owner->BrushComponent);
+		check(Owner->GetBrushComponent());
 		Owner->Brush = this;
 #if WITH_EDITOR
 		Owner->InitPosRotScale();

@@ -90,13 +90,17 @@ public:
 	UPROPERTY()
 	uint32 bWantsPlayerState:1;
 
+private:
 	/** Component used for pathfinding and querying environment's navigation. */
 	UPROPERTY()
-	TSubobjectPtr<UNavigationComponent> NavComponent;
+	UNavigationComponent* NavComponent;
+public:
 
+private:
 	/** Component used for moving along a path. */
 	UPROPERTY()
-	TSubobjectPtr<UPathFollowingComponent> PathFollowingComponent;
+	UPathFollowingComponent* PathFollowingComponent;
+public:
 
 	/** Component responsible for behaviors. */
 	UPROPERTY()
@@ -107,8 +111,10 @@ public:
 	
 public:
 
-	UPROPERTY(BlueprintReadOnly, Category = AI)
-	TSubobjectPtr<UPawnActionsComponent> ActionsComp;
+private:
+	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
+	UPawnActionsComponent* ActionsComp;
+public:
 
 	/** Event called when PossessedPawn is possesed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
@@ -162,7 +168,7 @@ public:
 	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 	/** Returns the Move Request ID for the current move */
-	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
+	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
 
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
@@ -306,6 +312,14 @@ public:
 
 	/** If true, AI controllers will ignore players. */
 	static bool bAIIgnorePlayers;
+
+public:
+	/** Returns NavComponent subobject **/
+	FORCEINLINE UNavigationComponent* GetNavComponent() const { return NavComponent; }
+	/** Returns PathFollowingComponent subobject **/
+	FORCEINLINE UPathFollowingComponent* GetPathFollowingComponent() const { return PathFollowingComponent; }
+	/** Returns ActionsComp subobject **/
+	FORCEINLINE UPawnActionsComponent* GetActionsComp() const { return ActionsComp; }
 };
 
 

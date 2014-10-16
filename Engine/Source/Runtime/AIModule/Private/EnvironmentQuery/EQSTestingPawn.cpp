@@ -34,7 +34,7 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 	, QueryingMode(EEnvQueryRunMode::AllMatching)
 {
 	static FName CollisionProfileName(TEXT("NoCollision"));
-	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
+	GetCapsuleComponent()->SetCollisionProfileName(CollisionProfileName);
 
 #if WITH_EDITORONLY_DATA
 	EdRenderComp = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));
@@ -47,7 +47,7 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 			ArrowComponent->bIsScreenSizeScaled = true;
 		}
 
-		TSubobjectPtr<UBillboardComponent> SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+		UBillboardComponent* SpriteComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 		if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 		{
 			struct FConstructorStatics

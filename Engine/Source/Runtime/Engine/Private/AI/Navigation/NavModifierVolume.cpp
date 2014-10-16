@@ -16,7 +16,7 @@ void ANavModifierVolume::GetNavigationData(struct FNavigationRelevantData& Data)
 {
 	if (Brush && AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 	{
-		FAreaNavModifier AreaMod(BrushComponent, AreaClass);
+		FAreaNavModifier AreaMod(GetBrushComponent(), AreaClass);
 		Data.Modifiers.Add(AreaMod);
 	}
 }

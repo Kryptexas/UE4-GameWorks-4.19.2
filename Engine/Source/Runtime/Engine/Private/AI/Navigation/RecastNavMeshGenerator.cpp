@@ -3445,17 +3445,17 @@ void FRecastNavMeshGenerator::SetUpGeneration(float CellSize, float CellHeight, 
 		for (int32 VolumeIdx = 0; VolumeIdx < InclusionVolumes.Num(); ++VolumeIdx)
 		{
 			AVolume const* const Vol = InclusionVolumes[VolumeIdx];
-			if (Vol != NULL && Vol->BrushComponent.IsValid())
+			if (Vol != NULL && Vol->GetBrushComponent())
 			{
-				FBox Bounds = Vol->BrushComponent->Bounds.GetBox();
+				FBox Bounds = Vol->GetBrushComponent()->Bounds.GetBox();
 				if (Bounds.GetSize().IsZero() == true)
 				{
-					if (Vol->BrushComponent->IsRegistered() == false)
+					if (Vol->GetBrushComponent()->IsRegistered() == false)
 					{
-						Vol->BrushComponent->RegisterComponent();
+						Vol->GetBrushComponent()->RegisterComponent();
 					}
-					Vol->BrushComponent->UpdateBounds();
-					Bounds = Vol->BrushComponent->Bounds.GetBox();
+					Vol->GetBrushComponent()->UpdateBounds();
+					Bounds = Vol->GetBrushComponent()->Bounds.GetBox();
 				}
 
 				if (Bounds.GetSize().IsZero() == false)
@@ -4513,7 +4513,7 @@ void FRecastNavMeshGenerator::RefreshParentReference()
 
 void FRecastNavMeshGenerator::OnNavigationBoundsUpdated(AVolume* Volume)
 {
-	if (Cast<ANavMeshBoundsVolume>(Volume) != NULL && Volume->BrushComponent.IsValid())
+	if (Cast<ANavMeshBoundsVolume>(Volume) != NULL && Volume->GetBrushComponent())
 	{
 		RequestGeneration();
 	}

@@ -113,7 +113,7 @@ void ANavigationObjectBase::PostEditUndo()
 
 class APhysicsVolume* ANavigationObjectBase::GetNavPhysicsVolume()
 {
-	if ( CapsuleComponent.IsValid() )
+	if ( CapsuleComponent )
 	{
 		return CapsuleComponent->GetPhysicsVolume();
 	}	
@@ -164,11 +164,11 @@ void ANavigationObjectBase::FindBase()
 // 			}
 // 		}
 
-		if (GoodSprite.IsValid())
+		if (GoodSprite)
 		{
 			GoodSprite->SetVisibility(true);
 		}
-		if (BadSprite.IsValid())
+		if (BadSprite)
 		{
 			BadSprite->SetVisibility(false);
 		}

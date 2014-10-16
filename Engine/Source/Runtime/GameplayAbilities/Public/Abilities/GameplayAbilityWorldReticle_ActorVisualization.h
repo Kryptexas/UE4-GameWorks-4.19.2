@@ -17,9 +17,11 @@ public:
 
 	void InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
 
+private:
 	/** Hardcoded collision component, so other objects don't think they can collide with the visualization actor */
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CollisionComponent;
+	class UCapsuleComponent* CollisionComponent;
+public:
 
 	UPROPERTY()
 	TArray<UActorComponent*> VisualizationComponents;
@@ -28,4 +30,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 protected:
+
+public:
+	/** Returns CollisionComponent subobject **/
+	FORCEINLINE class UCapsuleComponent* GetCollisionComponent() { return CollisionComponent; }
 };

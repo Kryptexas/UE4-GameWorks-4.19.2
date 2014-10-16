@@ -1983,7 +1983,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				FVector Location = AssetsToSpawnTransform[AssetIdx].GetLocation();
 				FRotator Rotation(ForceInit);
 				AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
-				MeshActor->StaticMeshComponent->StaticMesh = AssetsToSpawn[AssetIdx];
+				MeshActor->GetStaticMeshComponent()->StaticMesh = AssetsToSpawn[AssetIdx];
 				MeshActor->SetActorLabel(AssetsToSpawn[AssetIdx]->GetName());
 			}
 		

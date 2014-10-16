@@ -18,12 +18,14 @@ class ANote : public AActor
 	FString Text;
 
 	// Reference to sprite visualization component
+private:
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
 
 	// Reference to arrow visualization component
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+public:
 
 #endif // WITH_EDITORONLY_DATA
 
@@ -31,6 +33,14 @@ class ANote : public AActor
 	// Begin AActor Interface
 	virtual void CheckForErrors();
 	// End AActor Interface
+#endif
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 };
 

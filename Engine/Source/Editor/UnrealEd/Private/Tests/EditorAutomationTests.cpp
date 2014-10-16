@@ -1326,7 +1326,7 @@ bool FCleanupConvertToValidation::Update()
 				{
 					AStaticMeshActor* StaticMeshActor = *ActorIt;
 
-					if ( StaticMeshActor->StaticMeshComponent->StaticMesh == GeneratedMesh )
+					if ( StaticMeshActor->GetStaticMeshComponent()->StaticMesh == GeneratedMesh )
 					{
 						TestWorld->DestroyActor(StaticMeshActor);
 					}

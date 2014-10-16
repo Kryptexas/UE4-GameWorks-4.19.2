@@ -155,7 +155,7 @@ void ALight::SetAffectTranslucentLighting(bool bNewValue)
 APointLight::APointLight(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPointLightComponent>(TEXT("LightComponent0")))
 {
-	PointLightComponent = CastChecked<UPointLightComponent>(LightComponent);
+	PointLightComponent = CastChecked<UPointLightComponent>(GetLightComponent());
 	PointLightComponent->Mobility = EComponentMobility::Stationary;
 
 	RootComponent = PointLightComponent;
@@ -165,9 +165,9 @@ void APointLight::PostLoad()
 {
 	Super::PostLoad();
 
-	if (LightComponent->Mobility == EComponentMobility::Static)
+	if (GetLightComponent()->Mobility == EComponentMobility::Static)
 	{
-		LightComponent->LightFunctionMaterial = NULL;
+		GetLightComponent()->LightFunctionMaterial = NULL;
 	}
 }
 
@@ -182,19 +182,19 @@ void APointLight::LoadedFromAnotherClass(const FName& OldClassName)
 		static FName PointLightMovable_NAME(TEXT("PointLightMovable"));
 		static FName PointLightStationary_NAME(TEXT("PointLightStationary"));
 
-		check(LightComponent != NULL);
+		check(GetLightComponent() != NULL);
 
 		if(OldClassName == PointLightStatic_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Static;
+			GetLightComponent()->Mobility = EComponentMobility::Static;
 		}
 		else if(OldClassName == PointLightMovable_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Movable;
+			GetLightComponent()->Mobility = EComponentMobility::Movable;
 		}
 		else if(OldClassName == PointLightStationary_NAME)
 		{
-			LightComponent->Mobility = EComponentMobility::Stationary;
+			GetLightComponent()->Mobility = EComponentMobility::Stationary;
 		}
 	}
 }
@@ -216,7 +216,7 @@ ADirectionalLight::ADirectionalLight(const FObjectInitializer& ObjectInitializer
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	UDirectionalLightComponent* DirectionalLightComponent = CastChecked<UDirectionalLightComponent>(LightComponent);
+	UDirectionalLightComponent* DirectionalLightComponent = CastChecked<UDirectionalLightComponent>(GetLightComponent());
 	DirectionalLightComponent->Mobility = EComponentMobility::Stationary;
 	DirectionalLightComponent->RelativeRotation = FRotator(-46.0f, 0.0f, 0.0f);
 	// Make directional light icons big since they tend to be important
@@ -246,9 +246,9 @@ void ADirectionalLight::PostLoad()
 {
 	Super::PostLoad();
 
-	if (LightComponent->Mobility == EComponentMobility::Static)
+	if (GetLightComponent()->Mobility == EComponentMobility::Static)
 	{
-		LightComponent->LightFunctionMaterial = NULL;
+		GetLightComponent()->LightFunctionMaterial = NULL;
 	}
 #if WITH_EDITORONLY_DATA
 	if(ArrowComponent != nullptr)
@@ -269,7 +269,7 @@ void ADirectionalLight::LoadedFromAnotherClass(const FName& OldClassName)
 		static FName DirectionalLightMovable_NAME(TEXT("DirectionalLightMovable"));
 		static FName DirectionalLightStationary_NAME(TEXT("DirectionalLightStationary"));
 
-		UDirectionalLightComponent* DirLightComp = CastChecked<UDirectionalLightComponent>(LightComponent);
+		UDirectionalLightComponent* DirLightComp = CastChecked<UDirectionalLightComponent>(GetLightComponent());
 
 		if(OldClassName == DirectionalLightStatic_NAME)
 		{
@@ -331,7 +331,7 @@ AGeneratedMeshAreaLight::AGeneratedMeshAreaLight(const FObjectInitializer& Objec
 	bEditable = false;
 #endif // WITH_EDITORONLY_DATA
 
-	LightComponent->CastStaticShadows = false;
+	GetLightComponent()->CastStaticShadows = false;
 }
 
 // EOF

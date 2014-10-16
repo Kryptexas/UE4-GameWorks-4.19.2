@@ -1544,7 +1544,7 @@ ABrush* ULevel::GetDefaultBrush() const
 		// If the second actor is not a brush then it certainly cannot be the builder brush.
 		if (DefaultBrush != nullptr)
 		{
-			checkf(DefaultBrush->BrushComponent, *GetPathName());
+			checkf(DefaultBrush->GetBrushComponent(), *GetPathName());
 			checkf(DefaultBrush->Brush != nullptr, *GetPathName());
 		}
 	}

@@ -49,8 +49,10 @@ class ENGINE_API AEmitter : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Emitter, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Particles|Beam,Particles|Parameters,Particles,Effects|Components|ParticleSystem,Rendering,Activation,Components|Activation"))
-	TSubobjectPtr<class UParticleSystemComponent> ParticleSystemComponent;
+private:
+	UPROPERTY(Category = Emitter, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Particles|Beam,Particles|Parameters,Particles,Effects|Components|ParticleSystem,Rendering,Activation,Components|Activation", AllowPrivateAccess = "true"))
+	class UParticleSystemComponent* ParticleSystemComponent;
+public:
 
 	UPROPERTY()
 	uint32 bDestroyOnSystemFinish:1;
@@ -76,11 +78,13 @@ class ENGINE_API AEmitter : public AActor
 
 #if WITH_EDITORONLY_DATA
 
+private:
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
 
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+public:
 
 #endif
 
@@ -135,6 +139,16 @@ class ENGINE_API AEmitter : public AActor
 	 *	Intended for use in editor only
 	 */
 	void ResetInLevel();
+#endif
+
+public:
+	/** Returns ParticleSystemComponent subobject **/
+	FORCEINLINE class UParticleSystemComponent* GetParticleSystemComponent() { return ParticleSystemComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 };
 

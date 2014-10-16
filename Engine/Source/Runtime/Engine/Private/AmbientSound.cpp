@@ -50,7 +50,7 @@ void AAmbientSound::CheckForErrors( void )
 {
 	Super::CheckForErrors();
 
-	if( !AudioComponent.IsValid() )
+	if( !AudioComponent )
 	{
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(this))

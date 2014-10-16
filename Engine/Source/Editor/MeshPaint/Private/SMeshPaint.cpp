@@ -2326,7 +2326,7 @@ FReply SMeshPaint::SaveVertexPaintPackageButtonClicked()
 		AStaticMeshActor* StaticMeshActor = Cast< AStaticMeshActor >( Actor );
 		if( StaticMeshActor != NULL )
 		{
-			StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+			StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 		}
 
 		if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL )
@@ -2451,7 +2451,7 @@ bool SMeshPaint::IsPushInstanceVertexColorsToMeshButtonEnabled() const
 			AStaticMeshActor* LeftStaticMeshActor = Cast< AStaticMeshActor >( LeftCompareActor );
 			if( LeftStaticMeshActor != NULL )
 			{
-				LeftStaticMeshComponent = LeftStaticMeshActor->StaticMeshComponent;
+				LeftStaticMeshComponent = LeftStaticMeshActor->GetStaticMeshComponent();
 			}
 
 			if( LeftStaticMeshComponent != NULL && LeftStaticMeshComponent->StaticMesh != NULL )
@@ -2464,7 +2464,7 @@ bool SMeshPaint::IsPushInstanceVertexColorsToMeshButtonEnabled() const
 					AStaticMeshActor* RightStaticMeshActor = Cast< AStaticMeshActor >( RightCompareActor );
 					if( RightStaticMeshActor != NULL )
 					{
-						RightStaticMeshComponent = RightStaticMeshActor->StaticMeshComponent;
+						RightStaticMeshComponent = RightStaticMeshActor->GetStaticMeshComponent();
 					}
 					
 					if(RightStaticMeshComponent != NULL && RightStaticMeshComponent->StaticMesh != NULL)
@@ -2494,7 +2494,7 @@ bool SMeshPaint::IsSaveVertexPaintPackageButtonEnabled() const
 		AStaticMeshActor* StaticMeshActor = Cast< AStaticMeshActor >( Actor );
 		if( StaticMeshActor != NULL )
 		{
-			StaticMeshComponent = StaticMeshActor->StaticMeshComponent;
+			StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 		}
 
 		if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL )

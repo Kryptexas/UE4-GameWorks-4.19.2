@@ -88,17 +88,17 @@ void AReflectionCapture::PostEditMove(bool bFinished)
 ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<USphereReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
-	USphereReflectionCaptureComponent* SphereComponent = CastChecked<USphereReflectionCaptureComponent>(CaptureComponent);
+	USphereReflectionCaptureComponent* SphereComponent = CastChecked<USphereReflectionCaptureComponent>(GetCaptureComponent());
 	RootComponent = SphereComponent;
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = SphereComponent;
+		GetSpriteComponent()->AttachParent = SphereComponent;
 	}
 #endif	//WITH_EDITORONLY_DATA
 
-	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
-	DrawInfluenceRadius->AttachParent = CaptureComponent;
+	UDrawSphereComponent* DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
 	DrawInfluenceRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -106,7 +106,7 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
 	DrawCaptureRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius1"));
-	DrawCaptureRadius->AttachParent = CaptureComponent;
+	DrawCaptureRadius->AttachParent = GetCaptureComponent();
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
 	DrawCaptureRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -117,21 +117,21 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 #if WITH_EDITOR
 void ASphereReflectionCapture::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
 {
-	USphereReflectionCaptureComponent* SphereComponent = Cast<USphereReflectionCaptureComponent>(CaptureComponent);
+	USphereReflectionCaptureComponent* SphereComponent = Cast<USphereReflectionCaptureComponent>(GetCaptureComponent());
 	check(SphereComponent);
 	const FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? 5000.0f : 50.0f );
 	FMath::ApplyScaleToFloat(SphereComponent->InfluenceRadius, ModifiedScale);
-	CaptureComponent->SetCaptureIsDirty();
+	GetCaptureComponent()->SetCaptureIsDirty();
 	PostEditChange();
 }
 
 void APlaneReflectionCapture::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
 {
-	UPlaneReflectionCaptureComponent* PlaneComponent = Cast<UPlaneReflectionCaptureComponent>(CaptureComponent);
+	UPlaneReflectionCaptureComponent* PlaneComponent = Cast<UPlaneReflectionCaptureComponent>(GetCaptureComponent());
 	check(PlaneComponent);
 	const FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? 5000.0f : 50.0f );
 	FMath::ApplyScaleToFloat(PlaneComponent->InfluenceRadiusScale, ModifiedScale);
-	CaptureComponent->SetCaptureIsDirty();
+	GetCaptureComponent()->SetCaptureIsDirty();
 	PostEditChange();
 }
 #endif
@@ -139,17 +139,17 @@ void APlaneReflectionCapture::EditorApplyScale(const FVector& DeltaScale, const 
 ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UBoxReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
-	UBoxReflectionCaptureComponent* BoxComponent = CastChecked<UBoxReflectionCaptureComponent>(CaptureComponent);
+	UBoxReflectionCaptureComponent* BoxComponent = CastChecked<UBoxReflectionCaptureComponent>(GetCaptureComponent());
 	BoxComponent->RelativeScale3D = FVector(1000, 1000, 400);
 	RootComponent = BoxComponent;
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = BoxComponent;
+		GetSpriteComponent()->AttachParent = BoxComponent;
 	}
 #endif	//WITH_EDITORONLY_DATA
-	TSubobjectPtr<UBoxComponent> DrawInfluenceBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
-	DrawInfluenceBox->AttachParent = CaptureComponent;
+	UBoxComponent* DrawInfluenceBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	DrawInfluenceBox->AttachParent = GetCaptureComponent();
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
 	DrawInfluenceBox->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -157,8 +157,8 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	DrawInfluenceBox->InitBoxExtent(FVector(1, 1, 1));
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
 
-	TSubobjectPtr<UBoxComponent> DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
-	DrawCaptureBox->AttachParent = CaptureComponent;
+	UBoxComponent* DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
 	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
@@ -171,17 +171,17 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlaneReflectionCaptureComponent>(TEXT("NewReflectionComponent")))
 {
-	UPlaneReflectionCaptureComponent* PlaneComponent = CastChecked<UPlaneReflectionCaptureComponent>(CaptureComponent);
+	UPlaneReflectionCaptureComponent* PlaneComponent = CastChecked<UPlaneReflectionCaptureComponent>(GetCaptureComponent());
 	PlaneComponent->RelativeScale3D = FVector(1, 1000, 1000);
 	RootComponent = PlaneComponent;
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GetSpriteComponent())
 	{
-		SpriteComponent->AttachParent = PlaneComponent;
+		GetSpriteComponent()->AttachParent = PlaneComponent;
 	}
 #endif	//#if WITH_EDITORONLY_DATA
-	TSubobjectPtr<UDrawSphereComponent> DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
-	DrawInfluenceRadius->AttachParent = CaptureComponent;
+	UDrawSphereComponent* DrawInfluenceRadius = ObjectInitializer.CreateDefaultSubobject<UDrawSphereComponent>(this, TEXT("DrawRadius0"));
+	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
@@ -189,8 +189,8 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
-	TSubobjectPtr<UBoxComponent> DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
-	DrawCaptureBox->AttachParent = CaptureComponent;
+	UBoxComponent* DrawCaptureBox = ObjectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox1"));
+	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
 	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;

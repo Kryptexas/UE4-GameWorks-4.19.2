@@ -615,7 +615,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 			{
 				UWorld* World = Actors[0]->GetWorld();
 				AStaticMeshActor* WorldActor = Cast<AStaticMeshActor>(World->SpawnActor(AStaticMeshActor::StaticClass(), &ProxyLocation));
-				WorldActor->StaticMeshComponent->StaticMesh = ProxyMesh;
+				WorldActor->GetStaticMeshComponent()->StaticMesh = ProxyMesh;
 				WorldActor->SetActorLabel(ProxyMesh->GetName());
 			}
 		}

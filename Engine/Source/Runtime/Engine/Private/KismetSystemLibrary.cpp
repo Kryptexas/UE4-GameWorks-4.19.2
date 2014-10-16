@@ -2436,7 +2436,7 @@ void UKismetSystemLibrary::DrawDebugCamera(const ACameraActor* CameraActor, FLin
 	{
 		FVector CamLoc = CameraActor->GetActorLocation();
 		FRotator CamRot = CameraActor->GetActorRotation();
-		::DrawDebugCamera(CameraActor->GetWorld(), CameraActor->GetActorLocation(), CameraActor->GetActorRotation(), CameraActor->CameraComponent->FieldOfView, 1.0f, CameraColor, false, Duration, SDPG_World);
+		::DrawDebugCamera(CameraActor->GetWorld(), CameraActor->GetActorLocation(), CameraActor->GetActorRotation(), CameraActor->GetCameraComponent()->FieldOfView, 1.0f, CameraColor, false, Duration, SDPG_World);
 	}
 }
 

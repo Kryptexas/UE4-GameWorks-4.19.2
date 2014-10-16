@@ -3324,7 +3324,7 @@ void FLightmassProcessor::ImportMeshAreaLightData()
 					FActorSpawnParameters SpawnInfo;
 					SpawnInfo.Owner = CurrentLevel->Actors[0];
 					AGeneratedMeshAreaLight* NewGeneratedLight = CurrentLevel->OwningWorld->SpawnActor<AGeneratedMeshAreaLight>(Position, Direction.Rotation());
-					USpotLightComponent* SpotComponent = CastChecked<USpotLightComponent>(NewGeneratedLight->LightComponent);
+					USpotLightComponent* SpotComponent = CastChecked<USpotLightComponent>(NewGeneratedLight->GetLightComponent());
 					// Unregister the component before we change its attributes
 					FComponentReregisterContext Reregister(SpotComponent);
 					// Setup spotlight properties to approximate a mesh area light

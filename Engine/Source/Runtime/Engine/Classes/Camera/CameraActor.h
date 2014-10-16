@@ -19,9 +19,11 @@ private:
 	TEnumAsByte<EAutoReceiveInput::Type> AutoActivateForPlayer;
 
 public:
+private:
 	/** The camera component for this camera */
-	UPROPERTY(Category=CameraActor, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UCameraComponent> CameraComponent;
+	UPROPERTY(Category = CameraActor, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* CameraComponent;
+public:
 
 	/** If this CameraActor is being used to preview a CameraAnim in the editor, this is the anim being previewed. */
 	TWeakObjectPtr<class UCameraAnim> PreviewedCameraAnim;
@@ -60,4 +62,8 @@ public:
 	// Begin AActor interface
 	ENGINE_API virtual void BeginPlay() override;
 	// End AActor interface
+
+public:
+	/** Returns CameraComponent subobject **/
+	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
 };

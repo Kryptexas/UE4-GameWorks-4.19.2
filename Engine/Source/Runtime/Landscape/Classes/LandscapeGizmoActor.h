@@ -33,9 +33,11 @@ class ALandscapeGizmoActor : public AActor
 	UPROPERTY(EditAnywhere, transient, Category=Gizmo)
 	class ULandscapeInfo* TargetLandscapeInfo;
 
+private:
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
 #endif // WITH_EDITORONLY_DATA
+public:
 
 
 #if WITH_EDITOR
@@ -52,6 +54,12 @@ class ALandscapeGizmoActor : public AActor
 	 * Indicates whether this actor should participate in level bounds calculations
 	 */
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

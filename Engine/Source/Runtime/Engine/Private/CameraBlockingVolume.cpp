@@ -6,5 +6,5 @@
 ACameraBlockingVolume::ACameraBlockingVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+	GetBrushComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
 }

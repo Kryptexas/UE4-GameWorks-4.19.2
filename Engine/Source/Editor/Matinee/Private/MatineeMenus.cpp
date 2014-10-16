@@ -1539,7 +1539,7 @@ void FMatinee::OnContextTrackExportAnimFBX()
 		// Someone could have hooked up an invalid actor.  In that case do nothing
 		if( SkelMeshActor )
 		{
-			SkelMesh = SkelMeshActor->SkeletalMeshComponent->SkeletalMesh;
+			SkelMesh = SkelMeshActor->GetSkeletalMeshComponent()->SkeletalMesh;
 		}
 		
 
@@ -1921,7 +1921,7 @@ void FMatinee::OnContextGroupExportAnimFBX()
 					// Someone could have hooked up an invalid actor.  In that case do nothing
 					if( SkelMeshActor )
 					{
-						SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+						SkelMeshComponent = SkelMeshActor->GetSkeletalMeshComponent();
 					}
 				}
 

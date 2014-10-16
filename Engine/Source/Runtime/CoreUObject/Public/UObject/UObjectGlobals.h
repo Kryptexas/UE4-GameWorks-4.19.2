@@ -535,37 +535,12 @@ template<> struct TIsZeroConstructType<FSubobjectPtr> { enum { Value = true }; }
 template<> struct TIsWeakPointerType<FSubobjectPtr> { enum { Value = false }; };
 
 /**
- * TSubobjectPtrConstructor - internal private class to disallow the use of 
- * TSubobjectPtr's assignment operator as well as to disable easy access to
- * TSubobjectPtr::Get() when creating a subobject with ObjectInitializer.CreateDefaultSubobject().Get() <- No public 'Get'
- */
-template <class SubobjectType>
-class TSubobjectPtrConstructor
-{
-	/** Only FObjectInitializer can construct this class. */
-	friend class FObjectInitializer;
-	/** TSubobjectPtr needs to have access to the subobject pointer. */
-	template <class AnySubobjectType> friend class TSubobjectPtr;
-	/** Subobject pointer. */
-	UObject* Object;	
-	/** Constructor used by ObjectInitializer. */
-	TSubobjectPtrConstructor(SubobjectType* InObject)
-		: Object(InObject)
-	{}
-	/** Private constructors. */
-	TSubobjectPtrConstructor() {}
-	TSubobjectPtrConstructor(const TSubobjectPtrConstructor&) {}
-	/** Private assignment operator. */
-	TSubobjectPtrConstructor& operator=(const TSubobjectPtrConstructor&) { return *this; }
-};
-
-/**
  * TSubobjectPtr - Sub-object smart pointer, owns a reference to instanced objects (sub-objects / components).
  * Prevents anything in C++ from overwriting the sub-object pointer.
  * Can (and should) be declared as a UPROPERTY():
  *
  *   UPROPERTY()
- *   TSubobjectPtr<UActorComponent> MyComponent;
+ *   UActorComponent* MyComponent;
  *
  * It can only be assigned to with ObjectInitializer.CreateDefaultSubobject (via TSubobjectPtrConstructor) in the owning object's constructor.
  *
@@ -587,13 +562,19 @@ class TSubobjectPtrConstructor
 template <class SubobjectType>
 class TSubobjectPtr : public FSubobjectPtr
 {
+public:
+
 	/** Internal constructors. */
 	TSubobjectPtr(SubobjectType* InObject)
 		: FSubobjectPtr(InObject)
 	{}
-	TSubobjectPtr& operator=(const TSubobjectPtr& Other) { return *this; }
+	TSubobjectPtr& operator=(const TSubobjectPtr& Other) 
+	{ 
+		Set(Other.Object);
+		return *this; 
+	}
 
-public:
+
 	/** Default constructor. */
 	TSubobjectPtr()
 		: FSubobjectPtr((UObject*)FSubobjectPtr::InvalidPtrValue)
@@ -607,25 +588,10 @@ public:
 	{
 		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 	}
-	/** Initialization constructor. Can only be used with ObjectInitializer.CreateDefaultSubobject(). */
-	template <class DerivedSubobjectType>
-	TSubobjectPtr(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
-		: FSubobjectPtr(Other.Object)
-	{
-		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
-	}
 	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* Get() const
 	{
 		return (SubobjectType*)Object;
-	}
-	/** Assignment operator - can only be used with ObjectInitializer.CreateDefaultSubobject(). */
-	template <class DerivedSubobjectType>
-	FORCEINLINE TSubobjectPtr& operator=(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
-	{
-		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
-		Set(Other.Object);
-		return *this;
 	}
 	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* operator->() const
@@ -695,10 +661,10 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
 		UClass* ReturnType = TReturnType::StaticClass();
-		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient)));
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
 	}
 
 	/**
@@ -710,10 +676,10 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateOptionalDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateOptionalDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
 		UClass* ReturnType = TReturnType::StaticClass();
-		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient)));
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
 	}
 
 	/**
@@ -725,10 +691,10 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateAbstractDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateAbstractDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
 		UClass* ReturnType = TReturnType::StaticClass();
-		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient)));
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
 	}
 
 	/** 
@@ -740,9 +706,9 @@ public:
 	* @param bTransient		true if the component is being assigned to a transient property
 	*/ 
 	template<class TReturnType, class TClassToConstructByDefault> 
-	TSubobjectPtrConstructor<TReturnType> CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const 
+	TReturnType* CreateDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const 
 	{ 
-		return TSubobjectPtrConstructor<TReturnType>(static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, TReturnType::StaticClass(), TClassToConstructByDefault::StaticClass(), /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient)));
+		return static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, TReturnType::StaticClass(), TClassToConstructByDefault::StaticClass(), /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
 	}
 
 	/**
@@ -753,7 +719,7 @@ public:
 	 * @param bTransient		true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
-	TSubobjectPtrConstructor<TReturnType> CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
+	TReturnType* CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
 #if WITH_EDITOR
 		if (GIsEditor)
@@ -765,7 +731,7 @@ public:
 				EditorSubobject->AlwaysLoadOnClient = false;
 				EditorSubobject->AlwaysLoadOnServer = false;
 			}
-			return TSubobjectPtrConstructor<TReturnType>(EditorSubobject);	
+			return EditorSubobject;	
 		}
 #endif
 		return NULL;

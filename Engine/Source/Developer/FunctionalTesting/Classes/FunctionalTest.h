@@ -29,8 +29,10 @@ class AFunctionalTest : public AActor
 
 	static const uint32 DefaultTimeLimit = 60;	// seconds
 
+private:
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
+public:
 
 	UPROPERTY(BlueprintReadWrite, Category=FunctionalTesting)
 	TEnumAsByte<EFunctionalTestResult::Type> Result;
@@ -122,4 +124,8 @@ public:
 protected:
 	uint32 bIsRunning;
 	float TotalTime;
+
+public:
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() { return SpriteComponent; }
 };

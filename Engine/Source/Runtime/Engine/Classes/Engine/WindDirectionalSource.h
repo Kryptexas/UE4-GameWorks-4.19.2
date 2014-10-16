@@ -8,12 +8,22 @@ class ENGINE_API AWindDirectionalSource : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=WindDirectionalSource, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UWindDirectionalSourceComponent> Component;
+private:
+	UPROPERTY(Category = WindDirectionalSource, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UWindDirectionalSourceComponent* Component;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+#endif
+
+public:
+	/** Returns Component subobject **/
+	FORCEINLINE class UWindDirectionalSourceComponent* GetComponent() const { return Component; }
+
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 };
 

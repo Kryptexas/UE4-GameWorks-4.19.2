@@ -6,9 +6,9 @@
 ACullDistanceVolume::ACullDistanceVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	BrushComponent->bAlwaysCreatePhysicsState = true;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->bAlwaysCreatePhysicsState = true;
 
 	CullDistances.Add(FCullDistanceSizePair(0,0));
 	CullDistances.Add(FCullDistanceSizePair(10000,0));
@@ -73,7 +73,7 @@ bool ACullDistanceVolume::CanBeAffectedByVolumes( UPrimitiveComponent* Primitive
 void ACullDistanceVolume::GetPrimitiveMaxDrawDistances(TMap<UPrimitiveComponent*,float>& OutCullDistances)
 {
 	// Nothing to do if there is no brush component or no cull distances are set
-	if( BrushComponent && CullDistances.Num() > 0 && bEnabled )
+	if (GetBrushComponent() && CullDistances.Num() > 0 && bEnabled)
 	{
 		for (auto It(OutCullDistances.CreateIterator()); It; ++It)
 		{

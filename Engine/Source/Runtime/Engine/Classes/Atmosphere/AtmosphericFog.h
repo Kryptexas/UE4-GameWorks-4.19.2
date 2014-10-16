@@ -13,18 +13,29 @@ class AAtmosphericFog : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Main fog component */
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category=Atmosphere)
-	TSubobjectPtr<class UAtmosphericFogComponent> AtmosphericFogComponent;
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Atmosphere, meta = (AllowPrivateAccess = "true"))
+	class UAtmosphericFogComponent* AtmosphericFogComponent;
 
 #if WITH_EDITORONLY_DATA
 	/** Arrow component to indicate default sun rotation */
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
 #endif
+
+public:
 
 #if WITH_EDITOR
 	virtual void PostActorCreated() override;
+#endif
+
+public:
+	/** Returns AtmosphericFogComponent subobject **/
+	FORCEINLINE class UAtmosphericFogComponent* GetAtmosphericFogComponent() { return AtmosphericFogComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() { return ArrowComponent; }
 #endif
 };
 

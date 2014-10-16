@@ -320,7 +320,7 @@ bool AMatineeActor::IgnoreActorSelection()
 AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
@@ -5116,19 +5116,19 @@ void UInterpTrackToggle::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst
 				// We have found the key to the left of the position
 				if (ToggleKey.ToggleAction == ETTA_On)
 				{
-					EmitterActor->ParticleSystemComponent->ActivateSystem(bActivateWithJustAttachedFlag);
+					EmitterActor->GetParticleSystemComponent()->ActivateSystem(bActivateWithJustAttachedFlag);
 				}
 				else
 				if (ToggleKey.ToggleAction == ETTA_Trigger)
 				{
 					if (ToggleKey.Time >= ToggleInst->LastUpdatePosition)
 					{
-						EmitterActor->ParticleSystemComponent->SetActive(true, bActivateWithJustAttachedFlag);
+						EmitterActor->GetParticleSystemComponent()->SetActive(true, bActivateWithJustAttachedFlag);
 					}
 				}
 				else
 				{
-					EmitterActor->ParticleSystemComponent->DeactivateSystem();
+					EmitterActor->GetParticleSystemComponent()->DeactivateSystem();
 				}
 				break;
 			}
@@ -5251,7 +5251,7 @@ void UInterpTrackToggle::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst
 						if( bPlayTriggersWhenJumping || !bJump )
 						{
 							// Use ActivateSystem as multiple triggers should fire it multiple times.
-							EmitterActor->ParticleSystemComponent->ActivateSystem(bActivateWithJustAttachedFlag);
+							EmitterActor->GetParticleSystemComponent()->ActivateSystem(bActivateWithJustAttachedFlag);
 							// don't set bCurrentlyActive (assume it's a one shot effect which the client will perform through its own matinee simulation)
 						}
 					}
@@ -5288,7 +5288,7 @@ void UInterpTrackToggle::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst
 						bShouldActivate = !bShouldActivate;
 					}
 
-					EmitterActor->ParticleSystemComponent->SetActive( bShouldActivate, bActivateWithJustAttachedFlag );
+					EmitterActor->GetParticleSystemComponent()->SetActive( bShouldActivate, bActivateWithJustAttachedFlag );
 					EmitterActor->bCurrentlyActive = bShouldActivate;
 					if (!MatineeActor->bClientSideOnly)
 					{
@@ -5307,7 +5307,7 @@ void UInterpTrackToggle::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst
 							bShouldActivate = !bShouldActivate;
 						}
 
-						LightActor->LightComponent->SetVisibility( bShouldActivate );
+						LightActor->GetLightComponent()->SetVisibility( bShouldActivate );
 					}
 				}
 				else
@@ -8149,7 +8149,7 @@ void UInterpTrackFloatParticleParam::UpdateTrack(float NewPosition, UInterpTrack
 	}
 
 	float NewFloatValue = FloatTrack.Eval(NewPosition, 0.f);
-	Emitter->ParticleSystemComponent->SetFloatParameter( ParamName, NewFloatValue );
+	Emitter->GetParticleSystemComponent()->SetFloatParameter( ParamName, NewFloatValue );
 }
 
 /*-----------------------------------------------------------------------------
@@ -8170,7 +8170,7 @@ void UInterpTrackInstFloatParticleParam::SaveActorState(UInterpTrack* Track)
 		return;
 	}
 
-	bool bFoundParam = Emitter->ParticleSystemComponent->GetFloatParameter( ParamTrack->ParamName, ResetFloat );
+	bool bFoundParam = Emitter->GetParticleSystemComponent()->GetFloatParameter( ParamTrack->ParamName, ResetFloat );
 	if(!bFoundParam)
 	{
 		ResetFloat = 0.f;
@@ -8187,7 +8187,7 @@ void UInterpTrackInstFloatParticleParam::RestoreActorState(UInterpTrack* Track)
 		return;
 	}
 
-	Emitter->ParticleSystemComponent->SetFloatParameter( ParamTrack->ParamName, ResetFloat );
+	Emitter->GetParticleSystemComponent()->SetFloatParameter( ParamTrack->ParamName, ResetFloat );
 }
 
 /*------------------------------------------------------------------------------
@@ -8774,7 +8774,7 @@ static void GetListOfStaticActors(FString& OutString, const TArray<AActor*>& Act
 AMaterialInstanceActor::AMaterialInstanceActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
+	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
@@ -8863,7 +8863,7 @@ void UInterpTrackInstToggle::SaveActorState(UInterpTrack* Track)
 	}
 	else if( LightActor != NULL )
 	{
-		bSavedActiveState = LightActor->LightComponent->bVisible;
+		bSavedActiveState = LightActor->GetLightComponent()->bVisible;
 	}
 }
 
@@ -8879,7 +8879,7 @@ void UInterpTrackInstToggle::RestoreActorState(UInterpTrack* Track)
 	if( EmitterActor )
 	{
 		// Use SetActive to only activate a non-active system...
-		EmitterActor->ParticleSystemComponent->SetActive(bSavedActiveState);
+		EmitterActor->GetParticleSystemComponent()->SetActive(bSavedActiveState);
 		EmitterActor->bCurrentlyActive = bSavedActiveState;
 		EmitterActor->ForceNetRelevant();
 	}
@@ -8888,7 +8888,7 @@ void UInterpTrackInstToggle::RestoreActorState(UInterpTrack* Track)
 		// We'll only allow *toggleable* lights to be toggled like this!  Static lights are ignored.
 		if( LightActor->IsToggleable() )
 		{
-			LightActor->LightComponent->SetVisibility( bSavedActiveState );
+			LightActor->GetLightComponent()->SetVisibility( bSavedActiveState );
 		}
 	}
 }
@@ -9389,7 +9389,7 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 
 	// Particle replay tracks are expecting to be dealing with emitter actors
 	AEmitter* EmitterActor = Cast< AEmitter >( Actor );
-	if( EmitterActor != NULL && EmitterActor->ParticleSystemComponent.IsValid() )
+	if( EmitterActor != NULL && EmitterActor->GetParticleSystemComponent() )
 	{
 		if( ( NewPosition > ParticleReplayInst->LastUpdatePosition ) && !bJump )
 		{
@@ -9405,7 +9405,7 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 					{
 						// Do we already have data for this clip?
 						UParticleSystemReplay* ExistingClipReplay =
-							EmitterActor->ParticleSystemComponent->FindReplayClipForIDNumber( ParticleReplayKey.ClipIDNumber );
+							EmitterActor->GetParticleSystemComponent()->FindReplayClipForIDNumber( ParticleReplayKey.ClipIDNumber );
 						if( ExistingClipReplay != NULL )
 						{
 							// Clear the existing clip's frame data.  We're re-recording the clip now!
@@ -9413,23 +9413,23 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 						}
 
 						// Start capturing!
-						EmitterActor->ParticleSystemComponent->ReplayState = PRS_Capturing;
-						EmitterActor->ParticleSystemComponent->ReplayClipIDNumber = ParticleReplayKey.ClipIDNumber;
-						EmitterActor->ParticleSystemComponent->ReplayFrameIndex = 0;
+						EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Capturing;
+						EmitterActor->GetParticleSystemComponent()->ReplayClipIDNumber = ParticleReplayKey.ClipIDNumber;
+						EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex = 0;
 
 						// Make sure we're alive and kicking
-						EmitterActor->ParticleSystemComponent->SetActive( true );
+						EmitterActor->GetParticleSystemComponent()->SetActive( true );
 					}
 					else
 #endif // WITH_EDITORONLY_DATA
 					{
 						// Start playback!
-						EmitterActor->ParticleSystemComponent->ReplayState = PRS_Replaying;
-						EmitterActor->ParticleSystemComponent->ReplayClipIDNumber = ParticleReplayKey.ClipIDNumber;
-						EmitterActor->ParticleSystemComponent->ReplayFrameIndex = 0;
+						EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Replaying;
+						EmitterActor->GetParticleSystemComponent()->ReplayClipIDNumber = ParticleReplayKey.ClipIDNumber;
+						EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex = 0;
 
 						// Make sure we're alive and kicking
-						EmitterActor->ParticleSystemComponent->SetActive( true );
+						EmitterActor->GetParticleSystemComponent()->SetActive( true );
 					}
 				}
 
@@ -9442,13 +9442,13 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 #endif // WITH_EDITORONLY_DATA
 					{
 						// Done playing back replay sequence, so turn off the particle system
-						EmitterActor->ParticleSystemComponent->SetActive( false );
+						EmitterActor->GetParticleSystemComponent()->SetActive( false );
 
 						// Stop playback/capture!  We'll still keep the particle system in 'replay mode' while
 						// the replay track is bound so that the system doesn't start simulating/rendering
-						EmitterActor->ParticleSystemComponent->ReplayState = PRS_Replaying;
-						EmitterActor->ParticleSystemComponent->ReplayClipIDNumber = INDEX_NONE;
-						EmitterActor->ParticleSystemComponent->ReplayFrameIndex = INDEX_NONE;
+						EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Replaying;
+						EmitterActor->GetParticleSystemComponent()->ReplayClipIDNumber = INDEX_NONE;
+						EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex = INDEX_NONE;
 					}
 				}
 			}
@@ -9462,7 +9462,7 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 			if( bIsCapturingReplay )
 			{
 				// Scrubbing while capturing will stop the capture
-				EmitterActor->ParticleSystemComponent->ReplayState = PRS_Disabled;
+				EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Disabled;
 			}
 			else
 			{
@@ -9493,7 +9493,7 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 
 					// Check to see if we have a clip
 					UParticleSystemReplay* ParticleSystemReplay =
-						EmitterActor->ParticleSystemComponent->FindReplayClipForIDNumber( CurrentReplayStartKey.ClipIDNumber );
+						EmitterActor->GetParticleSystemComponent()->FindReplayClipForIDNumber( CurrentReplayStartKey.ClipIDNumber );
 					if( ParticleSystemReplay != NULL )
 					{
 						if( ReplayFrameIndex < ParticleSystemReplay->Frames.Num() )
@@ -9502,12 +9502,12 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 							bIsReplayingSingleFrame = true;
 
 							// Make sure replay mode is turned on
-							EmitterActor->ParticleSystemComponent->ReplayState = PRS_Replaying;
-							EmitterActor->ParticleSystemComponent->ReplayClipIDNumber = CurrentReplayStartKey.ClipIDNumber;
-							EmitterActor->ParticleSystemComponent->ReplayFrameIndex = ReplayFrameIndex;
+							EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Replaying;
+							EmitterActor->GetParticleSystemComponent()->ReplayClipIDNumber = CurrentReplayStartKey.ClipIDNumber;
+							EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex = ReplayFrameIndex;
 
 							// Make sure we're alive and kicking
-							EmitterActor->ParticleSystemComponent->SetActive( true );
+							EmitterActor->GetParticleSystemComponent()->SetActive( true );
 						}
 					}
 				}
@@ -9516,13 +9516,13 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 				{
 					// Stop playback!  We'll still keep the particle system in 'replay mode' while
 					// the replay track is bound so that the system doesn't start simulating/rendering
-					EmitterActor->ParticleSystemComponent->ReplayState = PRS_Replaying;
-					EmitterActor->ParticleSystemComponent->ReplayClipIDNumber = INDEX_NONE;
-					EmitterActor->ParticleSystemComponent->ReplayFrameIndex = INDEX_NONE;
+					EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Replaying;
+					EmitterActor->GetParticleSystemComponent()->ReplayClipIDNumber = INDEX_NONE;
+					EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex = INDEX_NONE;
 
 					// We're not currently capturing and we're not in the middle of a replay frame,
 					// so turn off the particle system
-					EmitterActor->ParticleSystemComponent->SetActive( false );
+					EmitterActor->GetParticleSystemComponent()->SetActive( false );
 				}
 			}
 		}
@@ -9530,16 +9530,16 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 #endif // WITH_EDITORONLY_DATA
 		{
 			// Okay, we're not scrubbing, but are we replaying a particle system?
-			if( EmitterActor->ParticleSystemComponent->ReplayState == PRS_Replaying )
+			if( EmitterActor->GetParticleSystemComponent()->ReplayState == PRS_Replaying )
 			{
 				// Advance to next frame (or reverse to the previous frame)
 				if( MatineeActor->bReversePlayback )
 				{
-					--EmitterActor->ParticleSystemComponent->ReplayFrameIndex;
+					--EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex;
 				}
 				else
 				{
-					++EmitterActor->ParticleSystemComponent->ReplayFrameIndex;
+					++EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex;
 				}
 			}
 		}
@@ -9610,15 +9610,15 @@ void UInterpTrackInstParticleReplay::RestoreActorState(UInterpTrack* Track)
 	{
 		// Particle replay tracks are expecting to be dealing with emitter actors
 		AEmitter* EmitterActor = Cast< AEmitter >( Actor );
-		if( EmitterActor != NULL && EmitterActor->ParticleSystemComponent.IsValid() )
+		if( EmitterActor != NULL && EmitterActor->GetParticleSystemComponent() )
 		{
 			// Make sure we don't leave the particle system in 'capture mode'
 			
 			// Stop playback/capture!  We'll still keep the particle system in 'replay mode' while
 			// the replay track is bound so that the system doesn't start simulating/rendering
-			EmitterActor->ParticleSystemComponent->ReplayState = PRS_Disabled;
-			EmitterActor->ParticleSystemComponent->ReplayClipIDNumber = 0;
-			EmitterActor->ParticleSystemComponent->ReplayFrameIndex = 0;
+			EmitterActor->GetParticleSystemComponent()->ReplayState = PRS_Disabled;
+			EmitterActor->GetParticleSystemComponent()->ReplayClipIDNumber = 0;
+			EmitterActor->GetParticleSystemComponent()->ReplayFrameIndex = 0;
 		}
 	}
 }

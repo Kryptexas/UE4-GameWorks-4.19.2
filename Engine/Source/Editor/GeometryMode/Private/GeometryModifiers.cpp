@@ -1702,7 +1702,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	check( ClippedBrush->GetClass() == InBrush->GetClass() );
 
 	ClippedBrush->Brush = new( InBrush->GetOuter(), NAME_None )UModel( FObjectInitializer(),NULL );
-	ClippedBrush->BrushComponent->Brush = ClippedBrush->Brush;
+	ClippedBrush->GetBrushComponent()->Brush = ClippedBrush->Brush;
 
 	GeometryClipping::BuildGiantAlignedBrush( *ClippedBrush, InPlane );
 

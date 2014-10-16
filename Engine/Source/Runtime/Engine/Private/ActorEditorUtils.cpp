@@ -17,7 +17,7 @@ namespace FActorEditorUtils
 				// If the builder brush exists then it will be the 2nd actor in the actors array.
 				ABrush* BuilderBrush = Cast<ABrush>(ActorLevel->Actors[1]);
 				// If the second actor is not a brush then it certainly cannot be the builder brush.
-				if ((BuilderBrush != nullptr) && (BuilderBrush->BrushComponent != nullptr) && (BuilderBrush->Brush != nullptr))
+				if ((BuilderBrush != nullptr) && (BuilderBrush->GetBrushComponent() != nullptr) && (BuilderBrush->Brush != nullptr))
 				{
 					bIsBuilder = (BuilderBrush == InActor);
 				}

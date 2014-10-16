@@ -10,7 +10,7 @@ AInteractiveFoliageActor::AInteractiveFoliageActor(const FObjectInitializer& Obj
 		.SetDefaultSubobjectClass<UInteractiveFoliageComponent>("StaticMeshComponent0"))
 {
 
-	UInteractiveFoliageComponent* FoliageMeshComponent = CastChecked<UInteractiveFoliageComponent>(StaticMeshComponent);
+	UInteractiveFoliageComponent* FoliageMeshComponent = CastChecked<UInteractiveFoliageComponent>(GetStaticMeshComponent());
 	FoliageMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	FoliageMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	FoliageMeshComponent->Mobility = EComponentMobility::Static;

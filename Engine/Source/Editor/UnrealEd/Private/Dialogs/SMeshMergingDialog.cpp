@@ -441,7 +441,7 @@ void SMeshMergingDialog::RunMerging()
 			FRotator MergedActorRotation(ForceInit);
 
 			AStaticMeshActor* MergedActor = World->SpawnActor<AStaticMeshActor>(MergedActorLocation, MergedActorRotation, Params);
-			MergedActor->StaticMeshComponent->StaticMesh = Cast<UStaticMesh>(AssetsToSync[0]);
+			MergedActor->GetStaticMeshComponent()->StaticMesh = Cast<UStaticMesh>(AssetsToSync[0]);
 			MergedActor->SetActorLabel(AssetsToSync[0]->GetName());
 
 			// Add source actors as children to merged actor and hide them

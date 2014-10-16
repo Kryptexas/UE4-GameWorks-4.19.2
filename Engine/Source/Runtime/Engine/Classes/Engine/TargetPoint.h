@@ -13,11 +13,18 @@ class ATargetPoint : public AActor
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Display)
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Display, meta = (AllowPrivateAccess = "true"))
+	class UBillboardComponent* SpriteComponent;
 
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+
+public:
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 };
 

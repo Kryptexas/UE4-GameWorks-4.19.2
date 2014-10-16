@@ -1069,7 +1069,7 @@ void SLevelViewportToolBar::OnFOVValueChanged( float NewValue )
 		ACameraActor* CameraActor = Cast< ACameraActor >( ViewportClient.GetActiveActorLock().Get() );
 		if( CameraActor != NULL )
 		{
-			CameraActor->CameraComponent->FieldOfView = NewValue;
+			CameraActor->GetCameraComponent()->FieldOfView = NewValue;
 			bUpdateStoredFOV = false;
 		}
 	}

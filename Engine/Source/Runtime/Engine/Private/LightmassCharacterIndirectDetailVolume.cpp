@@ -7,9 +7,9 @@
 ALightmassCharacterIndirectDetailVolume::ALightmassCharacterIndirectDetailVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BrushComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
+	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
 
-	BrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	bColored = true;
 	BrushColor.R = 155;

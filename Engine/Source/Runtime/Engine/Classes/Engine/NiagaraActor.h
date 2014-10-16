@@ -8,17 +8,29 @@ class ANiagaraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Pointer to effect component */
 	UPROPERTY(VisibleAnywhere, Category=NiagaraActor)
-	TSubobjectPtr<class UNiagaraComponent> NiagaraComponent;
+	class UNiagaraComponent* NiagaraComponent;
 
 #if WITH_EDITORONLY_DATA
 	// Reference to sprite visualization component
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
 
 	// Reference to arrow visualization component
 	UPROPERTY()
-	TSubobjectPtr<class UArrowComponent> ArrowComponent;
+	class UArrowComponent* ArrowComponent;
+
+#endif
+
+public:
+	/** Returns NiagaraComponent subobject **/
+	FORCEINLINE class UNiagaraComponent* GetNiagaraComponent() const { return NiagaraComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	/** Returns ArrowComponent subobject **/
+	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
 #endif
 };

@@ -15,7 +15,7 @@ class AInteractiveFoliageActor : public AStaticMeshActor
 private:
 	/** Collision cylinder */
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	class UCapsuleComponent* CapsuleComponent;
 
 	/**
 	 * Position of the last actor to enter the collision cylinder.

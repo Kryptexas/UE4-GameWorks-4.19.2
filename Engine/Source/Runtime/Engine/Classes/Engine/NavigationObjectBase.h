@@ -9,16 +9,22 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	UPROPERTY()
-	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
+	class UCapsuleComponent* CapsuleComponent;
+public:
 
+private:
 	/** Normal editor sprite. */
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> GoodSprite;
+	class UBillboardComponent* GoodSprite;
+public:
 
+private:
 	/** Used to draw bad collision intersection in editor. */
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> BadSprite;
+	class UBillboardComponent* BadSprite;
+public:
 
 	/** True if this nav point was spawned to be a PIE player start. */
 	UPROPERTY()
@@ -53,6 +59,14 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 	virtual FVector GetNavAgentLocation() const { return GetActorLocation(); }
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const;
 	// INavAgentInterface end
+
+public:
+	/** Returns CapsuleComponent subobject **/
+	FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
+	/** Returns GoodSprite subobject **/
+	FORCEINLINE class UBillboardComponent* GetGoodSprite() const { return GoodSprite; }
+	/** Returns BadSprite subobject **/
+	FORCEINLINE class UBillboardComponent* GetBadSprite() const { return BadSprite; }
 };
 
 

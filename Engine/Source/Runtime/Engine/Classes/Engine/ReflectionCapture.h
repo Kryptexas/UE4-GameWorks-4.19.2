@@ -8,21 +8,32 @@ class AReflectionCapture : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	/** Reflection capture component. */
-	UPROPERTY(Category=DecalActor, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UReflectionCaptureComponent> CaptureComponent;
+	UPROPERTY(Category = DecalActor, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UReflectionCaptureComponent* CaptureComponent;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+	UBillboardComponent* SpriteComponent;
 #endif // WITH_EDITORONLY_DATA
-	
+
+public:	
+
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
-public:
+
 #if WITH_EDITOR
 	virtual void PostEditMove(bool bFinished) override;
 #endif // WITH_EDITOR
 
+
+public:
+	/** Returns CaptureComponent subobject **/
+	FORCEINLINE class UReflectionCaptureComponent* GetCaptureComponent() const { return CaptureComponent; }
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

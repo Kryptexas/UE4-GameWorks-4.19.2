@@ -162,8 +162,10 @@ class AMatineeActor : public AActor
 #if WITH_EDITORONLY_DATA
 
 	// Reference to the actor sprite
+private:
 	UPROPERTY()
-	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
+	class UBillboardComponent* SpriteComponent;
+public:
 
 	UPROPERTY(transient)
 	uint32 bIsBeingEdited:1;
@@ -457,6 +459,12 @@ public:
 
 	/** Util to get the name of the function to find for the given event name */
 	ENGINE_API FName GetFunctionNameForEvent(FName EventName);
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Returns SpriteComponent subobject **/
+	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+#endif
 };
 
 

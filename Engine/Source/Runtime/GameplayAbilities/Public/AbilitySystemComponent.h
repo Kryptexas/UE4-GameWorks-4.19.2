@@ -83,11 +83,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	/** Adds a new AttributeSet that is a DSO (created by called in their CStor) */
 	template <class T>
-	const T*	AddDefaultSubobjectSet(TSubobjectPtr<T> Subobject)
+	const T*	AddDefaultSubobjectSet(T* Subobject)
 	{
-		const T* Set = Subobject.Get();
-		SpawnedAttributes.Add(Set);
-		return Set;
+		SpawnedAttributes.Add(Subobject);
+		return Subobject;
 	}
 
 	const UAttributeSet* InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);

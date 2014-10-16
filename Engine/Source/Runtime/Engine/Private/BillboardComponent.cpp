@@ -63,9 +63,9 @@ public:
 			// to match the lights color.  
 			if (ALight* Light = Cast<ALight>(Owner))
 			{
-				if (Light->LightComponent)
+				if (Light->GetLightComponent())
 				{
-					Color = Light->LightComponent->LightColor.ReinterpretAsLinear();
+					Color = Light->GetLightComponent()->LightColor.ReinterpretAsLinear();
 					Color.A = 255;
 				}
 			}
