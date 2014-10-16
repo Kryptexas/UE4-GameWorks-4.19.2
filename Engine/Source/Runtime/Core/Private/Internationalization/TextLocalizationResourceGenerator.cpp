@@ -185,7 +185,11 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 			continue;
 		}
 
-		ArchiveSerializer.DeserializeArchive(ArchiveContent, InternationalizationArchive);
+		if (!ArchiveSerializer.DeserializeArchive(ArchiveContent, InternationalizationArchive))
+		{
+			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("Failed to serialize archive from file %s."), *ArchiveFilePath);
+			continue;
+		}
 #endif
 
 		// Generate text localization resource from manifest and archive entries.
