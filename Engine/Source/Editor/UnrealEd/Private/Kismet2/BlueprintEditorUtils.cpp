@@ -6595,6 +6595,12 @@ bool FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(UEdGraph* InGraph)
 							return true;
 						}
 					}
+					else if(const UK2Node_BaseAsyncTask* BaseAsyncNode = Cast<UK2Node_BaseAsyncTask>(Node))
+					{
+						// Async tasks are latent nodes
+						TunnelNode->MetaData.HasLatentFunctions = 1;
+						return true;
+					}
 					else if(const UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(Node))
 					{
 						// Any macro graphs that haven't already been checked need to be checked for latent function calls
