@@ -75,7 +75,7 @@ template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME> class RAW_METHOD_
 /**
  * Implements a delegate binding for shared pointer member functions.
  */
-template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME, ESPMode::Type SPMode>
+template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME, ESPMode SPMode>
 class SP_METHOD_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
 {
@@ -243,7 +243,7 @@ protected:
 private:
 
 	// Declare ourselves as a friend so we can access other template permutations in IsSameFunction().
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode::Type SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
+	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members.
 	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
@@ -410,7 +410,7 @@ protected:
 private:
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode::Type SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
+	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW, ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
 	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Pointer to the user's class which contains a method we would like to call.
@@ -583,7 +583,7 @@ protected:
 private:
 
 	// Declare other pointer-based delegates as a friend so IsSameFunction() can compare members
-	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW,ESPMode::Type SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
+	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW,ESPMode SPModeNoShadow> friend class SP_METHOD_DELEGATE_INSTANCE_CLASS;
 	template<class UserClassNoShadow, FUNC_PAYLOAD_TEMPLATE_DECL_NO_SHADOW> friend class RAW_METHOD_DELEGATE_INSTANCE_CLASS;
 
 	// Pointer to the user's class which contains a method we would like to call.

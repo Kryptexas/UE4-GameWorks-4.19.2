@@ -20,7 +20,7 @@ namespace SharedPointerTesting
 	 * Executes various shared pointer tests.  Note that some tests may require the programmer to enable
 	 * some #ifdef statements to verify that code that is not expected to compile in fact does not.
 	 */
-	template< ESPMode::Type Mode >		// Used to test *with* and *without* thread-safety features
+	template< ESPMode Mode >		// Used to test *with* and *without* thread-safety features
 	static void TestSharedPointer()
 	{
 		{

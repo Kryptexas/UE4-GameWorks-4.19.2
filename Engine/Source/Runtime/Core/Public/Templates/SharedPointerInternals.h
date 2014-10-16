@@ -8,36 +8,33 @@
 
 
 /**
- * ESPMode is used select between either 'fast' or 'thread safe' shared pointer types.  This is
- * only used by templates at compile time to generate one code path or another.
+ * ESPMode is used select between either 'fast' or 'thread safe' shared pointer types.
+ * This is only used by templates at compile time to generate one code path or another.
  */
-namespace ESPMode
+enum class ESPMode
 {
-	enum Type
-	{
-		/** Forced to be not thread-safe. */
-		NotThreadSafe = 0,
+	/** Forced to be not thread-safe. */
+	NotThreadSafe = 0,
 
-		/**
-		 *	Fast, doesn't ever use atomic interlocks.
-		 *	Some code requires that all shared pointers are thread-safe.
-		 *	It's better to change it here, instead of replacing ESPMode::Fast to ESPMode::ThreadSafe throughout the code.
-		 */
-		Fast = FORCE_THREADSAFE_SHAREDPTRS ? 1 : 0,
+	/**
+		*	Fast, doesn't ever use atomic interlocks.
+		*	Some code requires that all shared pointers are thread-safe.
+		*	It's better to change it here, instead of replacing ESPMode::Fast to ESPMode::ThreadSafe throughout the code.
+		*/
+	Fast = FORCE_THREADSAFE_SHAREDPTRS ? 1 : 0,
 
-		/** Conditionally thread-safe, never spin locks, but slower */
-		ThreadSafe = 1
-	};
-}
+	/** Conditionally thread-safe, never spin locks, but slower */
+	ThreadSafe = 1
+};
 
 
 // Forward declarations.  Note that in the interest of fast performance, thread safety
 // features are mostly turned off (Mode = ESPMode::Fast).  If you need to access your
 // object on multiple threads, you should use ESPMode::ThreadSafe!
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TSharedRef;
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TSharedPtr;
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TWeakPtr;
-template< class ObjectType, ESPMode::Type Mode = ESPMode::Fast > class TSharedFromThis;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TSharedRef;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TSharedPtr;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TWeakPtr;
+template< class ObjectType, ESPMode Mode = ESPMode::Fast > class TSharedFromThis;
 
 
 /**
@@ -48,9 +45,9 @@ namespace SharedPointerInternals
 {
 
 	// Forward declarations
-	template< ESPMode::Type Mode > class FWeakReferencer;
+	template< ESPMode Mode > class FWeakReferencer;
 
-	/** Dummy structs used internally as template arguments for typecasts */
+	/** Dummy structures used internally as template arguments for typecasts */
 	struct FStaticCastTag {};
 	struct FConstCastTag {};
 
@@ -114,7 +111,7 @@ namespace SharedPointerInternals
 	 *
 	 * It is specialized for different threading modes.
 	 */
-	template< ESPMode::Type Mode >
+	template< ESPMode Mode >
 	struct FReferenceControllerOps;
 
 	template<>
@@ -281,7 +278,7 @@ namespace SharedPointerInternals
 	 * FSharedReferencer is a wrapper around a pointer to a reference controller that is used by either a
 	 * TSharedRef or a TSharedPtr to keep track of a referenced object's lifetime
 	 */
-	template< ESPMode::Type Mode >
+	template< ESPMode Mode >
 	class FSharedReferencer
 	{
 		typedef FReferenceControllerOps<Mode> TOps;
@@ -432,7 +429,7 @@ namespace SharedPointerInternals
 	private:
 
  		// Expose access to ReferenceController to FWeakReferencer
-		template< ESPMode::Type OtherMode > friend class FWeakReferencer;
+		template< ESPMode OtherMode > friend class FWeakReferencer;
 
 	private:
 
@@ -445,7 +442,7 @@ namespace SharedPointerInternals
 	 * FWeakReferencer is a wrapper around a pointer to a reference controller that is used
 	 * by a TWeakPtr to keep track of a referenced object's lifetime.
 	 */
-	template< ESPMode::Type Mode >
+	template< ESPMode Mode >
 	class FWeakReferencer
 	{
 		typedef FReferenceControllerOps<Mode> TOps;
@@ -569,7 +566,7 @@ namespace SharedPointerInternals
 	private:
 
  		/** Expose access to ReferenceController to FSharedReferencer. */
-		template< ESPMode::Type OtherMode > friend class FSharedReferencer;
+		template< ESPMode OtherMode > friend class FSharedReferencer;
 
 	private:
 
@@ -579,7 +576,7 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function (const) that creates a shared pointer from an object instance */
-	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedPtr< SharedPtrType, Mode > const* InSharedPtr, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
 		if( InShareable != nullptr )
@@ -590,7 +587,7 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function that creates a shared pointer from an object instance */
-	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedPtrType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedPtr< SharedPtrType, Mode >* InSharedPtr, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
 		if( InShareable != nullptr )
@@ -601,7 +598,7 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function (const) that creates a shared reference from an object instance */
-	template< class SharedRefType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedRefType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedRef< SharedRefType, Mode > const* InSharedRef, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
 		if( InShareable != nullptr )
@@ -612,7 +609,7 @@ namespace SharedPointerInternals
 
 
 	/** Templated helper function that creates a shared reference from an object instance */
-	template< class SharedRefType, class ObjectType, class OtherType, ESPMode::Type Mode >
+	template< class SharedRefType, class ObjectType, class OtherType, ESPMode Mode >
 	FORCEINLINE void EnableSharedFromThis( TSharedRef< SharedRefType, Mode >* InSharedRef, ObjectType const* InObject, TSharedFromThis< OtherType, Mode > const* InShareable )
 	{
 		if( InShareable != nullptr )

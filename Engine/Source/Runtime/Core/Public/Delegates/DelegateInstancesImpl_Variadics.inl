@@ -200,10 +200,10 @@ public:
 /**
  * Implements a delegate binding for shared pointer member functions.
  */
-template <bool bConst, class UserClass, ESPMode::Type SPMode, typename FuncType, typename... VarTypes>
+template <bool bConst, class UserClass, ESPMode SPMode, typename FuncType, typename... VarTypes>
 class TBaseSPMethodDelegateInstance;
 
-template <bool bConst, class UserClass, ESPMode::Type SPMode, typename WrappedRetValType, typename... ParamTypes, typename... VarTypes>
+template <bool bConst, class UserClass, ESPMode SPMode, typename WrappedRetValType, typename... ParamTypes, typename... VarTypes>
 class TBaseSPMethodDelegateInstance<bConst, UserClass, SPMode, WrappedRetValType (ParamTypes...), VarTypes...> : public IBaseDelegateInstance<typename TUnwrapType<WrappedRetValType>::Type (ParamTypes...)>
 {
 	typedef IBaseDelegateInstance<typename TUnwrapType<WrappedRetValType>::Type (ParamTypes...)> Super;
@@ -355,7 +355,7 @@ protected:
 	TTuple<VarTypes...> Payload;
 };
 
-template <bool bConst, class UserClass, ESPMode::Type SPMode, typename... ParamTypes, typename... VarTypes>
+template <bool bConst, class UserClass, ESPMode SPMode, typename... ParamTypes, typename... VarTypes>
 class TBaseSPMethodDelegateInstance<bConst, UserClass, SPMode, void (ParamTypes...), VarTypes...> : public TBaseSPMethodDelegateInstance<bConst, UserClass, SPMode, TTypeWrapper<void> (ParamTypes...), VarTypes...>
 {
 	typedef TBaseSPMethodDelegateInstance<bConst, UserClass, SPMode, TTypeWrapper<void> (ParamTypes...), VarTypes...> Super;
