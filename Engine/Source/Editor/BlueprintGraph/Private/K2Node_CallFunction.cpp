@@ -1540,12 +1540,12 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
+	const UBlueprint* Blueprint = GetBlueprint();
 	UFunction *Function = GetTargetFunction();
 	if (Function == NULL)
 	{
 		FString OwnerName;
 
-		UBlueprint* Blueprint = GetBlueprint();
 		if (Blueprint != nullptr)
 		{
 			OwnerName = Blueprint->GetName();
@@ -1600,11 +1600,15 @@ void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsL
 		}
 
 		// enforce WorldContext restrictions
-		else if (   Function->HasMetaData(FBlueprintMetadata::MD_WorldContext) 
-			     && !Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
+		const bool bInsideBpFuncLibrary = Blueprint && (BPTYPE_FunctionLibrary == Blueprint->BlueprintType);
+		if (!bInsideBpFuncLibrary && 
+			Function->HasMetaData(FBlueprintMetadata::MD_WorldContext) && 
+			!Function->HasMetaData(FBlueprintMetadata::MD_CallableWithoutWorldContext))
 		{
-			UClass* ParentClass = GetBlueprint()->ParentClass;
-			if (!ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+			check(Blueprint);
+			UClass* ParentClass = Blueprint->ParentClass;
+			check(ParentClass);
+			if (ParentClass && !ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
 			{
 				MessageLog.Warning(*LOCTEXT("FunctionUnsafeInContext", "Function '@@' is unsafe to call from blueprints of class '@@'.").ToString(), this, ParentClass);
 			}
