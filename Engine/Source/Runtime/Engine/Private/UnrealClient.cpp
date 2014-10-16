@@ -792,7 +792,8 @@ void FViewport::HighResScreenshot()
 		}, HyperLinkText);
 		Info.HyperlinkText = FText::FromString(HyperLinkText);
 		
-		FSlateNotificationManager::Get().AddNotification(Info); 
+		FSlateNotificationManager::Get().AddNotification(Info);
+		UE_LOG(LogClient, Log, TEXT("%s %s"), *Message.ToString(), *HyperLinkText);
 	}
 }
 
