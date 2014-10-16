@@ -1,11 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
+#include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerSample.h"
+
+
+#define LOCTEXT_NAMESPACE "Landscape"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionLandscapeLayerSample
 ///////////////////////////////////////////////////////////////////////////////
+
 UMaterialExpressionLandscapeLayerSample::UMaterialExpressionLandscapeLayerSample(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -24,10 +30,12 @@ UMaterialExpressionLandscapeLayerSample::UMaterialExpressionLandscapeLayerSample
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
 }
 
+
 FGuid& UMaterialExpressionLandscapeLayerSample::GetParameterExpressionId()
 {
 	return ExpressionGUID;
 }
+
 
 int32 UMaterialExpressionLandscapeLayerSample::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
@@ -36,15 +44,18 @@ int32 UMaterialExpressionLandscapeLayerSample::Compile(class FMaterialCompiler* 
 	return WeightCode;
 }
 
+
 UTexture* UMaterialExpressionLandscapeLayerSample::GetReferencedTexture()
 {
 	return GEngine->WeightMapPlaceholderTexture;
 }
 
+
 void UMaterialExpressionLandscapeLayerSample::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString::Printf(TEXT("Sample '%s'"), *ParameterName.ToString()));
 }
+
 
 void UMaterialExpressionLandscapeLayerSample::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
@@ -54,3 +65,6 @@ void UMaterialExpressionLandscapeLayerSample::GetAllParameterNames(TArray<FName>
 		OutParameterIds.Add(ExpressionGUID);
 	}
 }
+
+
+#undef LOCTEXT_NAMESPACE

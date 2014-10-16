@@ -1,7 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
+#include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
+
+
+#define LOCTEXT_NAMESPACE "Landscape"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionLandscapeVisibilityMask
@@ -27,20 +32,24 @@ UMaterialExpressionLandscapeVisibilityMask::UMaterialExpressionLandscapeVisibili
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
 }
 
+
 FGuid& UMaterialExpressionLandscapeVisibilityMask::GetParameterExpressionId()
 {
 	return ExpressionGUID;
 }
+
 
 int32 UMaterialExpressionLandscapeVisibilityMask::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	return Compiler->Sub(Compiler->Constant(1.f), Compiler->StaticTerrainLayerWeight(ParameterName, Compiler->Constant(0.f)));
 }
 
+
 UTexture* UMaterialExpressionLandscapeVisibilityMask::GetReferencedTexture()
 {
 	return GEngine->WeightMapPlaceholderTexture;
 }
+
 
 void UMaterialExpressionLandscapeVisibilityMask::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
@@ -53,7 +62,11 @@ void UMaterialExpressionLandscapeVisibilityMask::GetAllParameterNames(TArray<FNa
 	}
 }
 
+
 void UMaterialExpressionLandscapeVisibilityMask::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString(TEXT("Landscape Visibility Mask")));
 }
+
+
+#undef LOCTEXT_NAMESPACE

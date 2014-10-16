@@ -1,11 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
+#include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
+
+
+#define LOCTEXT_NAMESPACE "Landscape"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionLandscapeLayerSwitch
 ///////////////////////////////////////////////////////////////////////////////
+
 UMaterialExpressionLandscapeLayerSwitch::UMaterialExpressionLandscapeLayerSwitch(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -26,6 +32,7 @@ UMaterialExpressionLandscapeLayerSwitch::UMaterialExpressionLandscapeLayerSwitch
 	bCollapsed = false;
 }
 
+
 bool UMaterialExpressionLandscapeLayerSwitch::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	if (ContainsInputLoop())
@@ -33,10 +40,11 @@ bool UMaterialExpressionLandscapeLayerSwitch::IsResultMaterialAttributes(int32 O
 		// If there is a loop anywhere in this expression's inputs then we can't risk checking them
 		return false;
 	}
-	bool bLayerUsedIsMaterialAttributes = LayerUsed.Expression != NULL && LayerUsed.Expression->IsResultMaterialAttributes(LayerUsed.OutputIndex);
-	bool bLayerNotUsedIsMaterialAttributes = LayerNotUsed.Expression != NULL && LayerNotUsed.Expression->IsResultMaterialAttributes(LayerNotUsed.OutputIndex);
+	bool bLayerUsedIsMaterialAttributes = LayerUsed.Expression != nullptr && LayerUsed.Expression->IsResultMaterialAttributes(LayerUsed.OutputIndex);
+	bool bLayerNotUsedIsMaterialAttributes = LayerNotUsed.Expression != nullptr && LayerNotUsed.Expression->IsResultMaterialAttributes(LayerNotUsed.OutputIndex);
 	return bLayerUsedIsMaterialAttributes || bLayerNotUsedIsMaterialAttributes;
 }
+
 
 int32 UMaterialExpressionLandscapeLayerSwitch::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
@@ -56,7 +64,7 @@ int32 UMaterialExpressionLandscapeLayerSwitch::Compile(class FMaterialCompiler* 
 	}
 
 	if (ReturnCode != INDEX_NONE && //If we've already failed for some other reason don't bother with this check. It could have been the reentrant check causing this to loop infinitely!
-		LayerUsed.Expression != NULL && LayerNotUsed.Expression != NULL &&
+		LayerUsed.Expression != nullptr && LayerNotUsed.Expression != nullptr &&
 		LayerUsed.Expression->IsResultMaterialAttributes(LayerUsed.OutputIndex) != LayerNotUsed.Expression->IsResultMaterialAttributes(LayerNotUsed.OutputIndex))
 	{
 		Compiler->Error(TEXT("Cannot mix MaterialAttributes and non MaterialAttributes nodes"));
@@ -65,16 +73,19 @@ int32 UMaterialExpressionLandscapeLayerSwitch::Compile(class FMaterialCompiler* 
 	return ReturnCode;
 }
 
+
 UTexture* UMaterialExpressionLandscapeLayerSwitch::GetReferencedTexture()
 {
 	return GEngine->WeightMapPlaceholderTexture;
 }
+
 
 void UMaterialExpressionLandscapeLayerSwitch::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Layer Switch"));
 	OutCaptions.Add(FString::Printf(TEXT("'%s'"), *ParameterName.ToString()));
 }
+
 
 void UMaterialExpressionLandscapeLayerSwitch::Serialize(FArchive& Ar)
 {
@@ -86,6 +97,7 @@ void UMaterialExpressionLandscapeLayerSwitch::Serialize(FArchive& Ar)
 	}
 }
 
+
 void UMaterialExpressionLandscapeLayerSwitch::PostLoad()
 {
 	Super::PostLoad();
@@ -95,6 +107,7 @@ void UMaterialExpressionLandscapeLayerSwitch::PostLoad()
 		UpdateParameterGuid(true, true);
 	}
 }
+
 
 FGuid& UMaterialExpressionLandscapeLayerSwitch::GetParameterExpressionId()
 {
@@ -112,3 +125,6 @@ void UMaterialExpressionLandscapeLayerSwitch::GetAllParameterNames(TArray<FName>
 		OutParameterIds.Add(ExpressionGUID);
 	}
 }
+
+
+#undef LOCTEXT_NAMESPACE

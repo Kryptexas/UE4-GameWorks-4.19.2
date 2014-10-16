@@ -1,11 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
+#include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
+
+
+#define LOCTEXT_NAMESPACE "Landscape"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionLandscapeLayerCoords
 ///////////////////////////////////////////////////////////////////////////////
+
 UMaterialExpressionLandscapeLayerCoords::UMaterialExpressionLandscapeLayerCoords(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -23,6 +29,7 @@ UMaterialExpressionLandscapeLayerCoords::UMaterialExpressionLandscapeLayerCoords
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
 	bCollapsed = false;
 }
+
 
 int32 UMaterialExpressionLandscapeLayerCoords::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
@@ -88,7 +95,11 @@ int32 UMaterialExpressionLandscapeLayerCoords::Compile(class FMaterialCompiler* 
 	return ResultUV;
 }
 
+
 void UMaterialExpressionLandscapeLayerCoords::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString(TEXT("LandscapeCoords")));
 }
+
+
+#undef LOCTEXT_NAMESPACE

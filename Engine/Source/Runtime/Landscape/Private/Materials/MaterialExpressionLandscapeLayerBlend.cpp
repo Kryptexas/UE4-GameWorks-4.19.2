@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
+#include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "EdGraph/EdGraphNode.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionLandscapeLayerBlend
@@ -28,10 +30,12 @@ UMaterialExpressionLandscapeLayerBlend::UMaterialExpressionLandscapeLayerBlend(c
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
 }
 
+
 FGuid& UMaterialExpressionLandscapeLayerBlend::GetParameterExpressionId()
 {
 	return ExpressionGUID;
 }
+
 
 void UMaterialExpressionLandscapeLayerBlend::Serialize(FArchive& Ar)
 {
@@ -50,6 +54,7 @@ void UMaterialExpressionLandscapeLayerBlend::Serialize(FArchive& Ar)
 	}
 }
 
+
 const TArray<FExpressionInput*> UMaterialExpressionLandscapeLayerBlend::GetInputs()
 {
 	TArray<FExpressionInput*> Result;
@@ -63,6 +68,7 @@ const TArray<FExpressionInput*> UMaterialExpressionLandscapeLayerBlend::GetInput
 	}
 	return Result;
 }
+
 
 FExpressionInput* UMaterialExpressionLandscapeLayerBlend::GetInput(int32 InputIndex)
 {
@@ -81,8 +87,9 @@ FExpressionInput* UMaterialExpressionLandscapeLayerBlend::GetInput(int32 InputIn
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
+
 
 FString UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) const
 {
@@ -104,6 +111,7 @@ FString UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) c
 	return TEXT("");
 }
 
+
 bool UMaterialExpressionLandscapeLayerBlend::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	if (ContainsInputLoop())
@@ -120,6 +128,7 @@ bool UMaterialExpressionLandscapeLayerBlend::IsResultMaterialAttributes(int32 Ou
 	}
 	return false;
 }
+
 
 int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
@@ -250,15 +259,18 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 	return OutputCode;
 }
 
+
 UTexture* UMaterialExpressionLandscapeLayerBlend::GetReferencedTexture()
 {
 	return GEngine->WeightMapPlaceholderTexture;
 }
 
+
 void UMaterialExpressionLandscapeLayerBlend::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(FString(TEXT("Layer Blend")));
 }
+
 
 #if WITH_EDITOR
 
@@ -271,7 +283,7 @@ void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyCha
 	{
 		if (Layers[LayerIdx].BlendType != LB_HeightBlend)
 		{
-			Layers[LayerIdx].HeightInput.Expression = NULL;
+			Layers[LayerIdx].HeightInput.Expression = nullptr;
 		}
 	}
 
@@ -288,6 +300,7 @@ void UMaterialExpressionLandscapeLayerBlend::PostEditChangeProperty(FPropertyCha
 	}
 }
 #endif
+
 
 void UMaterialExpressionLandscapeLayerBlend::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
