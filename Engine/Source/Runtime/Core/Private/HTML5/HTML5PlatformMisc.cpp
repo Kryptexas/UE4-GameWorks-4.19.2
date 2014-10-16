@@ -170,3 +170,26 @@ EAppReturnType::Type FHTML5Misc::MessageBoxExt(EAppMsgType::Type MsgType, const 
 #endif 
 
 }
+
+void (*GHTML5CrashHandler)(const FGenericCrashContext& Context) = nullptr;
+
+extern "C"
+{
+#if PLATFORM_HTML5_BROWSER
+	// callback from javascript. 
+	void on_fatal(const char* msg, const char* error)
+	{
+		// !!JM todo: pass msg & error to a crash context? Must be copied?
+		if (GHTML5CrashHandler)
+		{
+			FGenericCrashContext Ctx;
+			GHTML5CrashHandler(Ctx);
+		}
+	}
+#endif 
+}
+
+void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext& Context))
+{
+	GHTML5CrashHandler = CrashHandler;
+}

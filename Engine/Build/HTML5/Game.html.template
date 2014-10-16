@@ -113,6 +113,13 @@ var UE4 = {
     UE4.resize_game = fn;
     return fn;
   }
+  ,
+  get on_fatal() {
+    var fn = Module.cwrap('on_fatal', null, ['string', 'string'])
+    delete UE4["on_fatal"];
+    UE4.on_fatal = fn;
+    return fn;
+  }
 };
 
 function resizeListener(width, height) {
@@ -241,17 +248,18 @@ if (!isBrowser64Bit()) {
 // setup global error handling. 
 // make exceptions more visible. 
 window.onerror  = function(msg, url, line, column, error) {
-   if ( msg.indexOf("memory") > -1 ) { 
+  UE4.on_fatal(msg, error);
+  if ( msg.indexOf("memory") > -1 ) { 
 
-     var message = !isBrowser64Bit() ? " We are running on a 32 bit browser, please use a 64 bit browser to avoid memory constraints "
-            : " Looks like the game needs more than the allocated " + TOTAL_GAME_MEMORY + " bytes, please edit HTML5Engine.ini and repackage "; 
+   var message = !isBrowser64Bit() ? " We are running on a 32 bit browser, please use a 64 bit browser to avoid memory constraints "
+          : " Looks like the game needs more than the allocated " + TOTAL_GAME_MEMORY + " bytes, please edit HTML5Engine.ini and repackage "; 
 
-     alert ( "We ran out of memory : " + message );
-   }
-   else
-   {
-     alert ( "Error: " + msg );
-   }
+   alert ( "We ran out of memory : " + message );
+  }
+  else
+  {
+   alert ( "Error: " + msg );
+  }
 };
 
 var Module;

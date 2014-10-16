@@ -133,7 +133,7 @@ namespace UnrealBuildTool
             // we want full ES2
             Result += " -s FULL_ES2=1 ";
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
-            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game']\" ";
+            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game', '_on_fatal']\" ";
 
             // NOTE: This may slow down the compiler's startup time!
             { 
