@@ -136,8 +136,11 @@ public:
 public:
 
 	static void Create();
+	static TSharedRef<FSlateApplication> Create(const TSharedRef<class GenericApplication>& InPlatformApplication);
 
-	static void InitializeAsStandaloneApplication( const TSharedRef< class FSlateRenderer >& PlatformRenderer);
+	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer);
+	
+	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer, const TSharedRef<class GenericApplication>& PlatformApplication);
 
 	/**
 	 * Returns true if a Slate application instance is currently initialized and ready
