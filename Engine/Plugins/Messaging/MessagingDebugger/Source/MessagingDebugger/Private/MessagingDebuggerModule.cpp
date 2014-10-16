@@ -2,7 +2,6 @@
 
 #include "MessagingDebuggerPrivatePCH.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
-#include "WorkspaceMenuStructureModule.h"
 #include "SDockTab.h"
 
 
