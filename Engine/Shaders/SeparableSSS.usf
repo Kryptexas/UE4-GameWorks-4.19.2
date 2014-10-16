@@ -240,9 +240,9 @@ float4 SSSSBlurPS(float2 texcoord, float2 dir, bool initStencil)
 	// center sample is added in Recombine pass
 	colorBlurred.a = colorM.a;
 
-#if SSS_DIRECTION == 0
+//#if SSS_DIRECTION == 0
 	colorBlurred.rgb = colorM * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
-#endif
+//#endif
 
 	// Accumulate the other samples:
     SSSS_UNROLL
