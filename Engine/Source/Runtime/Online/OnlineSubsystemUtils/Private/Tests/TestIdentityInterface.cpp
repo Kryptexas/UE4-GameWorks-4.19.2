@@ -4,10 +4,14 @@
 #include "ModuleManager.h"
 #include "TestIdentityInterface.h"
 
-void FTestIdentityInterface::Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials)
+void FTestIdentityInterface::Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials, bool bOnlyRunLogoutTest)
 {
 	// Toggle the various tests to run
-	bRunLoginTest = true;
+	if (bOnlyRunLogoutTest)
+	{
+		bRunLoginTest = false;
+		bRunLogoutTest = true;
+	}
 
 	AccountCredentials = InAccountCredentials;
 
@@ -16,6 +20,7 @@ void FTestIdentityInterface::Test(UWorld* InWorld, const FOnlineAccountCredentia
 	{
 		// Add delegates for the various async calls
 		OnlineIdentity->AddOnLoginCompleteDelegate(LocalUserIdx, OnLoginCompleteDelegate);
+		OnlineIdentity->AddOnLogoutCompleteDelegate(LocalUserIdx, OnLogoutCompleteDelegate);
 		
 		// kick off next test
 		StartNextTest();
@@ -37,6 +42,10 @@ void FTestIdentityInterface::StartNextTest()
 		// no external account credentials so use internal secret key for login
 		OnlineIdentity->Login(LocalUserIdx, AccountCredentials);
 	}
+	else if (bRunLogoutTest)
+	{
+		OnlineIdentity->Logout(LocalUserIdx);
+	}
 	else
 	{
 		// done with the test
@@ -50,6 +59,7 @@ void FTestIdentityInterface::FinishTest()
 	{
 		// Clear delegates for the various async calls
 		OnlineIdentity->ClearOnLoginCompleteDelegate(LocalUserIdx, OnLoginCompleteDelegate);
+		OnlineIdentity->ClearOnLogoutCompleteDelegate(LocalUserIdx, OnLogoutCompleteDelegate);
 	}
 	delete this;
 }
@@ -71,6 +81,24 @@ void FTestIdentityInterface::OnLoginComplete(int32 LocalUserNum, bool bWasSucces
 	}
 	// Mark test as done
 	bRunLoginTest = false;
+	// kick off next test
+	StartNextTest();
+}
+
+void FTestIdentityInterface::OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful)
+{
+	if (bWasSuccessful)
+	{
+		UE_LOG(LogOnline, Log, TEXT("Successful logged out user. LocalUserNum=[%d] "),
+			LocalUserNum);
+	}
+	else
+	{
+		UE_LOG(LogOnline, Warning, TEXT("Failed to log out user."));
+	}
+	UserInfo.Reset();
+	// Mark test as done
+	bRunLogoutTest = false;
 	// kick off next test
 	StartNextTest();
 }

@@ -232,8 +232,10 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						FString Auth = FParse::Token(Cmd, false);
 						FString Type = FParse::Token(Cmd, false);
 
+						bool bLogout = Id.Equals(TEXT("logout"), ESearchCase::IgnoreCase);
+
 						// This class deletes itself once done
-						(new FTestIdentityInterface(SubName))->Test(InWorld, FOnlineAccountCredentials(Type, Id, Auth));
+						(new FTestIdentityInterface(SubName))->Test(InWorld, FOnlineAccountCredentials(Type, Id, Auth), bLogout);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("UNIQUEIDREPL")))
