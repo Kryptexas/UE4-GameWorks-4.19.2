@@ -76,6 +76,13 @@ static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusion(
 	TEXT(" 0: off, sets AmbientOcclusionIntensity to 0\n")
 	TEXT(" 1: on (default)"));
 
+static TAutoConsoleVariable<int32> CVarDefaultAmbientOcclusionStaticFraction(
+	TEXT("r.DefaultFeature.AmbientOcclusionStaticFraction"),
+	1,
+	TEXT("Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: off, sets AmbientOcclusionStaticFraction to 0\n")
+	TEXT(" 1: on (default, costs extra pass, only useful if there is some baked lighting)"));
+
 static TAutoConsoleVariable<int32> CVarDefaultAutoExposure(
 	TEXT("r.DefaultFeature.AutoExposure"),
 	1,
@@ -907,6 +914,15 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 			if (Value >= 0 && Value < AAM_MAX)
 			{
 				FinalPostProcessSettings.AntiAliasingMethod = (EAntiAliasingMethod)Value;
+			}
+		}
+
+		{
+			int32 Value = CVarDefaultAmbientOcclusionStaticFraction.GetValueOnGameThread();
+
+			if(!Value)
+			{
+				FinalPostProcessSettings.AmbientOcclusionStaticFraction = 0.0f;
 			}
 		}
 	}

@@ -845,6 +845,7 @@ struct FPostProcessSettings
 		GrainJitter = 0.0f;
 		// next value might get overwritten by r.DefaultFeature.AmbientOcclusion
 		AmbientOcclusionIntensity = .5f;
+		// next value might get overwritten by r.DefaultFeature.AmbientOcclusionStaticFraction
 		AmbientOcclusionStaticFraction = 1.0f;
 		AmbientOcclusionRadius = 40.0f;
 		AmbientOcclusionDistance = 80.0f;
