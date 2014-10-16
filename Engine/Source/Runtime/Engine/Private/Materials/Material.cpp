@@ -10,11 +10,6 @@
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
-#include "Materials/MaterialExpressionLandscapeLayerBlend.h"
-#include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
-#include "Materials/MaterialExpressionLandscapeLayerSample.h"
-#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
-#include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialExpressionMultiply.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
@@ -985,29 +980,6 @@ bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, co
 	return true;
 }
 
-/**
-* @param	OutParameterNames		Storage array for the parameter names we are returning.
-* @param	OutParameterIds			Storage array for the parameter id's we are returning.
-*
-* @return	Returns a array of vector parameter names used in this material.
-*/
-template<typename ExpressionType>
-void UMaterial::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
-{
-	for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
-	{
-		ExpressionType* ParameterExpression =
-			Cast<ExpressionType>(Expressions[ExpressionIndex]);
-
-		if(ParameterExpression)
-		{
-			ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
-		}
-	}
-
-	check(OutParameterNames.Num() == OutParameterIds.Num());
-}
-
 void UMaterial::GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
 	OutParameterNames.Empty();
@@ -1046,17 +1018,6 @@ void UMaterial::GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParame
 	OutParameterNames.Empty();
 	OutParameterIds.Empty();
 	GetAllParameterNames<UMaterialExpressionStaticComponentMaskParameter>(OutParameterNames, OutParameterIds);
-}
-
-void UMaterial::GetAllTerrainLayerWeightParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
-{
-	OutParameterNames.Empty();
-	OutParameterIds.Empty();
-	GetAllParameterNames<UMaterialExpressionLandscapeLayerWeight>(OutParameterNames, OutParameterIds);
-	GetAllParameterNames<UMaterialExpressionLandscapeLayerSample>(OutParameterNames, OutParameterIds);
-	GetAllParameterNames<UMaterialExpressionLandscapeLayerSwitch>(OutParameterNames, OutParameterIds);
-	GetAllParameterNames<UMaterialExpressionLandscapeLayerBlend>(OutParameterNames, OutParameterIds);
-	GetAllParameterNames<UMaterialExpressionLandscapeVisibilityMask>(OutParameterNames, OutParameterIds);
 }
 
 extern FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProcessSettings& Dest, const UMaterial* Material, FBlendableEntry*& Iterator);
@@ -1660,25 +1621,6 @@ const FMaterialResource* UMaterial::GetMaterialResource(ERHIFeatureLevel::Type I
 	return MaterialResources[QualityLevel][InFeatureLevel];
 }
 
-void UMaterial::FixupTerrainLayerWeightNodes()
-{
-	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
-	{
-		UMaterialExpressionLandscapeLayerWeight* LayerWeight = Cast<UMaterialExpressionLandscapeLayerWeight>(Expressions[ExpressionIndex]);
-		UMaterialExpressionLandscapeLayerSwitch* LayerSwitch = Cast<UMaterialExpressionLandscapeLayerSwitch>(Expressions[ExpressionIndex]);
-
-		// Regenerate parameter guids since the old ones were not generated consistently
-		if (LayerWeight)
-		{
-			LayerWeight->UpdateParameterGuid(true, true);
-		}
-		else if (LayerSwitch)
-		{
-			LayerSwitch->UpdateParameterGuid(true, true);
-		}
-	}
-}
-
 void UMaterial::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -1938,11 +1880,6 @@ void UMaterial::PostLoad()
 		{
 			MaterialParameterCollectionInfos[CollectionIndex].ParameterCollection->ConditionalPostLoad();
 		}
-	}
-
-	if (GetLinkerUE4Version() < VER_UE4_FIXUP_TERRAIN_LAYER_NODES)
-	{
-		FixupTerrainLayerWeightNodes();
 	}
 
 	// Fixup for legacy materials which didn't recreate the lighting guid properly on duplication

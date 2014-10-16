@@ -843,9 +843,6 @@ public:
 private:
 	void BackwardsCompatibilityInputConversion();
 
-	/** Regenerate expression guids for legacy terrain layer nodes. */
-	void FixupTerrainLayerWeightNodes();
-
 	/** Handles setting up an annotation for this object if a flag has changed value */
 	void MarkUsageFlagDirty(EMaterialUsage Usage, bool CurrentValue, bool NewValue);
 
@@ -891,7 +888,21 @@ public:
 	 * @return	Returns a array of parameter names used in this material for the specified expression type.
 	 */
 	template<typename ExpressionType>
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
+	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+	{
+		for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
+		{
+			ExpressionType* ParameterExpression =
+				Cast<ExpressionType>(Expressions[ExpressionIndex]);
+
+			if (ParameterExpression)
+			{
+				ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
+			}
+		}
+
+		check(OutParameterNames.Num() == OutParameterIds.Num());
+	}
 	
 	ENGINE_API void GetAllVectorParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 	ENGINE_API void GetAllScalarParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
@@ -899,7 +910,6 @@ public:
 	ENGINE_API void GetAllFontParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 	void GetAllStaticSwitchParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 	void GetAllStaticComponentMaskParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
-	void GetAllTerrainLayerWeightParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds);
 
 	/** Returns the material's decal blend mode, calculated from the DecalBlendMode property and what inputs are connected. */
 	uint32 GetDecalBlendMode() const { return DecalBlendMode; }

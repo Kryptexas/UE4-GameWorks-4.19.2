@@ -22,7 +22,7 @@
 #include "../Private/GeomFitUtils.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
-#include "Landscape/LandscapeProxy.h"
+#include "LandscapeProxy.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
 #include "Animation/AnimSet.h"
 #include "Matinee/InterpTrackAnimControl.h"

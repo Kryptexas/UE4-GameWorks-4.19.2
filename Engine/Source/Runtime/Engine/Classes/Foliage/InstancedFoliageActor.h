@@ -2,13 +2,15 @@
 
 
 #pragma once
+
 #include "GameFramework/Actor.h"
 #include "Templates/UniqueObj.h"
+#include "Components/InstancedStaticMeshComponent.h"
+
 #include "InstancedFoliageActor.generated.h"
 
 // Forward declarations
 class UFoliageType;
-class ULandscapeHeightfieldCollisionComponent;
 struct FFoliageInstancePlacementInfo;
 struct FFoliageMeshInfo;
 
@@ -42,9 +44,6 @@ public:
 
 	// Called in response to FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::MapRebuild ) so BSP rebuilds migrate foliage from obsolete to new components.
 	ENGINE_API void MapRebuild();
-
-	// Called from editor code to manage instances for components
-	ENGINE_API void SnapInstancesForLandscape(ULandscapeHeightfieldCollisionComponent* InComponent, const FBox& InInstanceBox);
 
 	// Moves instances based on the specified component to the current streaming level
 	ENGINE_API void MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent);

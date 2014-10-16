@@ -47,12 +47,10 @@
 
 #include "MallocProfiler.h"
 
-#include "Landscape/LandscapeInfo.h"
 #include "Particles/ParticleEventManager.h"
 
 #include "EngineModule.h"
 #include "ContentStreaming.h"
-#include "Runtime/Engine/Classes/Landscape/LandscapeComponent.h"
 #include "RendererInterface.h"
 #include "DataChannel.h"
 #include "ShaderCompiler.h"
@@ -73,6 +71,7 @@ TMap<FName, EWorldType::Type> UWorld::WorldTypePreLoadMap;
 
 FWorldDelegates::FWorldInitializationEvent FWorldDelegates::OnPreWorldInitialization;
 FWorldDelegates::FWorldInitializationEvent FWorldDelegates::OnPostWorldInitialization;
+FWorldDelegates::FWorldPostDuplicateEvent FWorldDelegates::OnPostDuplicate;
 FWorldDelegates::FWorldCleanupEvent FWorldDelegates::OnWorldCleanup;
 FWorldDelegates::FWorldEvent FWorldDelegates::OnPreWorldFinishDestroy;
 FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelAddedToWorld;
@@ -139,10 +138,6 @@ void UWorld::Serialize( FArchive& Ar )
 		Ar << GameState;
 		Ar << AuthorityGameMode;
 		Ar << NetworkManager;
-#if WITH_EDITORONLY_DATA
-		Ar << LandscapeInfoMap;
-		//@todo.CONSOLE: How to handle w/out having a cooker/pakcager?
-#endif	//#if WITH_EDITORONLY_DATA
 
 		Ar << NavigationSystem;
 		Ar << AvoidanceManager;
@@ -205,11 +200,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->NavigationSystem, This );
 		Collector.AddReferencedObject( This->AvoidanceManager, This );
 
-#if WITH_EDITORONLY_DATA
-		Collector.AddReferencedObjects(This->LandscapeInfoMap, This);
-		//@todo.CONSOLE: How to handle w/out having a cooker/packager?
-#endif	//#if WITH_EDITORONLY_DATA
-
 		for( int32 Index = 0; Index < This->ExtraReferencedObjects.Num(); Index++ )
 		{
 			Collector.AddReferencedObject( This->ExtraReferencedObjects[Index], This );
@@ -217,6 +207,10 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		for( int32 Index = 0; Index < This->StreamingLevels.Num(); Index++ )
 		{
 			Collector.AddReferencedObject( This->StreamingLevels[Index], This );
+		}
+		for (auto* Object : This->PerModuleDataObjects)
+		{
+			Collector.AddReferencedObject(Object, This);
 		}
 	}
 #endif
@@ -240,16 +234,17 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 		}
 	}
 
-	// Also rename all textures and materials used by landscape components
-	TArray<UObject*> LandscapeTexturesAndMaterials;
-	GetLandscapeTexturesAndMaterials(PersistentLevel, LandscapeTexturesAndMaterials);
+	// UWorld rename is also renaming package, so move all direct children
+	// of the old package.
+
 	UPackage* PersistentLevelPackage = PersistentLevel->GetOutermost();
-	for (auto* OldTexOrMat : LandscapeTexturesAndMaterials)
+	if (PersistentLevelPackage != NewOuter)
 	{
-		if (OldTexOrMat && OldTexOrMat->GetOuter() == PersistentLevelPackage)
+		TArray<UObject*> ReferencedObjects;
+		GetObjectsWithOuter(PersistentLevelPackage, ReferencedObjects, false);
+		for (auto* ReferencedObject : ReferencedObjects)
 		{
-			// The names for these objects are not important, just generate a new name to avoid collisions
-			if ( !OldTexOrMat->Rename(nullptr, NewOuter, Flags) )
+			if (ReferencedObject != this && !ReferencedObject->Rename(nullptr, NewOuter, Flags))
 			{
 				return false;
 			}
@@ -336,86 +331,9 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 
 		// Make sure PKG_ContainsMap is set
 		MyPackage->ThisContainsMap();
-
-#if WITH_EDITOR
-		TArray<UObject*> ObjectsToFixReferences;
-		TMap<UObject*, UObject*> ReplacementMap;
-
-		// Add the world to the list of objects in which to fix up references.
-		ObjectsToFixReferences.Add(this);
-
-		// Gather the textures
-		TArray<UTexture2D*> LightMapsAndShadowMaps;
-		GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
-
-		// Duplicate the textures, if any
-		for (auto* Tex : LightMapsAndShadowMaps)
-		{
-			if (Tex && Tex->GetOutermost() != MyPackage)
-			{
-				UObject* NewTex = StaticDuplicateObject(Tex, MyPackage, *Tex->GetName());
-				ReplacementMap.Add(Tex, NewTex);
-			}
-		}
-
-		// Also duplicate all textures and materials used by landscape components
-		TArray<UObject*> LandscapeTexturesAndMaterials;
-		GetLandscapeTexturesAndMaterials(PersistentLevel, LandscapeTexturesAndMaterials);
-		for (auto* OldTexOrMat : LandscapeTexturesAndMaterials)
-		{
-			if (OldTexOrMat && OldTexOrMat->GetOuter() != MyPackage)
-			{
-				// The names for these objects are not important, just generate a new name to avoid collisions
-				UObject* NewTextureOrMaterial = StaticDuplicateObject(OldTexOrMat, MyPackage, nullptr);
-				ReplacementMap.Add(OldTexOrMat, NewTextureOrMaterial);
-
-				// Materials hold references to the textures being moved, so they will need references fixed up as well
-				if ( OldTexOrMat->IsA(UMaterialInterface::StaticClass()) )
-				{
-					ObjectsToFixReferences.Add(NewTextureOrMaterial);
-				}
-			}
-		}
-
-		// Duplicate the level script blueprint generated classes as well
-		const bool bDontCreate = true;
-		UBlueprint* LevelScriptBlueprint = PersistentLevel->GetLevelScriptBlueprint(bDontCreate);
-		if (LevelScriptBlueprint)
-		{
-			UObject* OldGeneratedClass = LevelScriptBlueprint->GeneratedClass;
-			if (OldGeneratedClass)
-			{
-				UObject* NewGeneratedClass = StaticDuplicateObject(OldGeneratedClass, MyPackage, *OldGeneratedClass->GetName());
-				ReplacementMap.Add(OldGeneratedClass, NewGeneratedClass);
-
-				// The class may have referenced a lightmap or landscape resource that is also being duplicated. Add it to the list of objects that need references fixed up.
-				ObjectsToFixReferences.Add(NewGeneratedClass);
-			}
-
-			UObject* OldSkeletonClass = LevelScriptBlueprint->SkeletonGeneratedClass;
-			if (OldSkeletonClass)
-			{
-				UObject* NewSkeletonClass = StaticDuplicateObject(OldSkeletonClass, MyPackage, *OldSkeletonClass->GetName());
-				ReplacementMap.Add(OldSkeletonClass, NewSkeletonClass);
-
-				// The class may have referenced a lightmap or landscape resource that is also being duplicated. Add it to the list of objects that need references fixed up.
-				ObjectsToFixReferences.Add(NewSkeletonClass);
-			}
-		}
-
-		// Now replace references from the old textures/classes to the new ones, if any were duplicated
-		if (ReplacementMap.Num() > 0)
-		{
-			const bool bNullPrivateRefs = false;
-			const bool bIgnoreOuterRef = true;
-			const bool bIgnoreArchetypeRef = false;
-			for ( auto* Obj : ObjectsToFixReferences )
-			{
-				FArchiveReplaceObjectRef<UObject> ReplaceAr(Obj, ReplacementMap, bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
-			}
-		}
-#endif // WITH_EDITOR
 	}
+
+	FWorldDelegates::OnPostDuplicate.Broadcast(this, bDuplicateForPIE);
 }
 
 void UWorld::FinishDestroy()
@@ -5309,27 +5227,6 @@ void UWorld::CreateFXSystem()
 	{
 		FXSystem = NULL;
 		Scene->SetFXSystem(NULL);
-	}
-}
-
-void UWorld::GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials)
-{
-	UObject* SearchLevel = Level;
-	if (!SearchLevel)
-	{
-		SearchLevel = PersistentLevel;
-	}
-
-	TArray<UObject*> ObjectsInLevel;
-	const bool bIncludeNestedObjects = true;
-	GetObjectsWithOuter(SearchLevel, ObjectsInLevel, bIncludeNestedObjects);
-	for (auto* ObjInLevel : ObjectsInLevel)
-	{
-		ULandscapeComponent* LandscapeComponent = Cast<ULandscapeComponent>(ObjInLevel);
-		if (LandscapeComponent)
-		{
-			LandscapeComponent->GetGeneratedTexturesAndMaterialInstances(OutTexturesAndMaterials);
-		}
 	}
 }
 

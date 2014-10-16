@@ -9,6 +9,7 @@
 #if WITH_PHYSX
 
 #include "PhysXIncludes.h"
+#include "EngineLogs.h"
 
 // Whether or not to use the PhysX scene lock
 #ifndef USE_SCENE_LOCK
@@ -199,10 +200,10 @@ extern int32					GNumPhysXConvexMeshes;
 extern TArray<PxConvexMesh*>	GPhysXPendingKillConvex;
 
 /** Array of PxTriangleMesh objects which are awaiting cleaning up. */
-extern TArray<PxTriangleMesh*>	GPhysXPendingKillTriMesh;
+extern ENGINE_API TArray<PxTriangleMesh*>	GPhysXPendingKillTriMesh;
 
 /** Array of PxHeightField objects which are awaiting cleaning up. */
-extern TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
+extern ENGINE_API TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 
 /** Array of PxMaterial objects which are awaiting cleaning up. */
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;

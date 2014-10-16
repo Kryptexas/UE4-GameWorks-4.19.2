@@ -7007,17 +7007,6 @@ DEFINE_STAT(STAT_PlatformMessageTime);
 DEFINE_STAT(STAT_FrameSyncTime);
 DEFINE_STAT(STAT_DeferredTickTime);
 
-/** Landscape stats */
-
-DEFINE_STAT(STAT_LandscapeDynamicDrawTime);
-DEFINE_STAT(STAT_LandscapeStaticDrawLODTime);
-DEFINE_STAT(STAT_LandscapeVFDrawTime);
-DEFINE_STAT(STAT_LandscapeComponents);
-DEFINE_STAT(STAT_LandscapeDrawCalls);
-DEFINE_STAT(STAT_LandscapeTriangles);
-DEFINE_STAT(STAT_LandscapeVertexMem);
-DEFINE_STAT(STAT_LandscapeComponentMem);
-
 /** Input stat */
 DEFINE_STAT(STAT_InputTime);
 DEFINE_STAT(STAT_InputLatencyTime);

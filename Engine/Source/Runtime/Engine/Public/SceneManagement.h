@@ -1803,7 +1803,8 @@ extern ENGINE_API void ApplyViewModeOverrides(
 extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, class FStaticMeshRenderData* StaticMeshRenderData, class FStaticLODModel* SkeletalMeshRenderData );
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
-bool RequiresAdjacencyInformation( class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel );
+ENGINE_API bool RequiresAdjacencyInformation(class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
+
 /**
  * Computes the screen size of a given sphere bounds in the given view
  * @param Origin - Origin of the bounds in world space

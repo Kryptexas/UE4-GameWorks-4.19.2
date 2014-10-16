@@ -11,20 +11,6 @@
 
 #define LOC_DEFINE_REGION
 
-/** The global namespace that must be defined/undefined to wrap uses of the NS-prefixed macros below */
-#undef LOCTEXT_NAMESPACE
-
-/**	
- * Creates an FText. All parameters must be string literals. All literals will be passed through the localization system.
- * The global LOCTEXT_NAMESPACE macro must be first set to a string literal to specify this localization key's namespace.
- */
-#define LOCTEXT( InKey, InTextLiteral ) FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( TEXT( InTextLiteral ), TEXT(LOCTEXT_NAMESPACE), TEXT( InKey ) )
-
-/**
- * Creates an FText. All parameters must be string literals. All literals will be passed through the localization system.
- */
-#define NSLOCTEXT( InNamespace, InKey, InTextLiteral ) FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( TEXT( InTextLiteral ), TEXT( InNamespace ), TEXT( InKey ) )
-
 class FICUInternationalization;
 class FLegacyInternationalization;
 
@@ -98,5 +84,19 @@ private:
 	FCulturePtr DefaultCulture;
 	FCulturePtr InvariantCulture;
 };
+
+/** The global namespace that must be defined/undefined to wrap uses of the NS-prefixed macros below */
+#undef LOCTEXT_NAMESPACE
+
+/**
+ * Creates an FText. All parameters must be string literals. All literals will be passed through the localization system.
+ * The global LOCTEXT_NAMESPACE macro must be first set to a string literal to specify this localization key's namespace.
+ */
+#define LOCTEXT( InKey, InTextLiteral ) FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( TEXT( InTextLiteral ), TEXT(LOCTEXT_NAMESPACE), TEXT( InKey ) )
+
+/**
+ * Creates an FText. All parameters must be string literals. All literals will be passed through the localization system.
+ */
+#define NSLOCTEXT( InNamespace, InKey, InTextLiteral ) FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( TEXT( InTextLiteral ), TEXT( InNamespace ), TEXT( InKey ) )
 
 #undef LOC_DEFINE_REGION

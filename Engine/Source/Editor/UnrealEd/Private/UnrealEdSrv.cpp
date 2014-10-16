@@ -27,12 +27,13 @@
 #include "Editor/ActorPositioning.h"
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Landscape/LandscapeInfo.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeGizmoActiveActor.h"
-#include "Landscape/LandscapeComponent.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape.h"
+#include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeProxy.h"
+#include "LandscapeGizmoActiveActor.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "ComponentReregisterContext.h"
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
@@ -526,7 +527,9 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 		}
 
 		// Fixed up for Landscape fix match case
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		auto& LandscapeInfoMap = GetLandscapeInfoMap(InWorld);
+
+		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
 			if (LandscapeInfo)
@@ -579,7 +582,7 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 		}
 
 		// Fix proxies relative transformations to LandscapeActor
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->FixupProxiesWeightmaps();
@@ -596,7 +599,7 @@ bool UUnrealEdEngine::HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutput
 
 	if (World && World->GetWorldSettings())
 	{
-		for (auto It = World->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = GetLandscapeInfoMap(World).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			for (auto LandscapeComponentIt = Info->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
@@ -618,7 +621,7 @@ bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, 
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
 	{
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RecreateCollisionComponents();

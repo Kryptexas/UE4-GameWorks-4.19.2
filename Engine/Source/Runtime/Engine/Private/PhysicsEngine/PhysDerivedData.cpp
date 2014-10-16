@@ -2,10 +2,9 @@
 #include "EnginePrivate.h"
 #include "PhysDerivedData.h"
 #include "TargetPlatform.h"
+#include "IPhysXFormatModule.h"
 
 #if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
-#include "IPhysXFormatModule.h"
-#include "Landscape/LandscapeMeshCollisionComponent.h"
 
 FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, UBodySetup* InBodySetup )
 	: BodySetup( InBodySetup )
@@ -23,20 +22,6 @@ FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, UBodySetup* In
 	{
 		CDP->GetMeshId(MeshId);
 	}
-	InitCooker();
-}
-
-// This constructor only used by ULandscapeMeshCollisionComponent, which always only build TriMesh, not Convex...
-FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, ULandscapeMeshCollisionComponent* InMeshCollision, bool bMirrored )
-	: BodySetup( NULL )
-	, CollisionDataProvider( InMeshCollision )
-	, Format( InFormat )
-	, bGenerateNormalMesh( !bMirrored )
-	, bGenerateMirroredMesh( bMirrored )
-	, Cooker( NULL )
-{
-	check( InMeshCollision != NULL );
-	DataGuid = InMeshCollision->MeshGuid;
 	InitCooker();
 }
 

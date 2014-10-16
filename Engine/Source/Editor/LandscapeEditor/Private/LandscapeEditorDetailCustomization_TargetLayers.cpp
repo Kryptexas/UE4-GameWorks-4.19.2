@@ -22,9 +22,9 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 #include "AssetRegistryModule.h"
-#include "LandscapeRender.h"
 
-#include "Landscape/LandscapeLayerInfoObject.h"
+#include "LandscapeRender.h"
+#include "LandscapeLayerInfoObject.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.TargetLayers"
 

@@ -639,10 +639,11 @@ public:
 
 	const FCollisionResponse& GetCollisionResponse() const { return CollisionResponses; }
 
-private:
 #if WITH_PHYSX
+public:
 	FPhysxUserData PhysxUserData;
 
+private:
 	/**
 	 *  Trace a box against just this bodyinstance
 	 *  @param  OutHit          Information about hit against this component, if true is returned
@@ -674,8 +675,6 @@ private:
 
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
-	friend class ULandscapeHeightfieldCollisionComponent;
-	friend class ULandscapeMeshCollisionComponent;
 
 #if WITH_BOX2D
 

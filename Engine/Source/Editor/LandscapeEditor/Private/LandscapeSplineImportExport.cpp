@@ -2,8 +2,8 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeSplineImportExport.h"
-#include "Landscape/LandscapeSplineControlPoint.h"
-#include "Landscape/LandscapeSplineSegment.h"
+#include "LandscapeSplineControlPoint.h"
+#include "LandscapeSplineSegment.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

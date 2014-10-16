@@ -5,7 +5,7 @@
 #include "LandscapeRender.h"
 #include "ImageWrapper.h"
 
-#include "Landscape/LandscapeMaterialInstanceConstant.h"
+#include "LandscapeMaterialInstanceConstant.h"
 
 ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

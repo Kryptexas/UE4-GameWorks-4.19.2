@@ -121,7 +121,7 @@ private:
 
 
 /** Lightmap reference serializer */
-extern FArchive& operator<<(FArchive& Ar,FLightMap*& R);
+extern ENGINE_API FArchive& operator<<(FArchive& Ar, FLightMap*& R);
 
 /** 
  * Incident lighting for a single sample, as produced by a lighting build. 
@@ -209,7 +209,7 @@ public:
 	 * @param	BasisIndex - The basis index.
 	 * @return	true if the specified basis has a valid lightmap texture, otherwise false
 	 */
-	bool IsValid(uint32 BasisIndex) const;
+	ENGINE_API bool IsValid(uint32 BasisIndex) const;
 
 	const FVector2D& GetCoordinateScale() const { return CoordinateScale; }
 	const FVector2D& GetCoordinateBias() const { return CoordinateBias; }
@@ -244,7 +244,7 @@ public:
 	 * @param	InPaddingType - the method for padding the lightmap.
 	 * @param	LightmapFlags - flags that determine how the lightmap is stored (e.g. streamed or not)
 	 */
-	static class FLightMap2D* AllocateLightMap(UObject* LightMapOuter, struct FQuantizedLightmapData*& SourceQuantizedData, 
+	static ENGINE_API class FLightMap2D* AllocateLightMap(UObject* LightMapOuter, struct FQuantizedLightmapData*& SourceQuantizedData,
 		const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags );
 
 	/**
@@ -490,7 +490,7 @@ struct FQuantizedLightmapData
 		bHasSkyShadowing(false)
 	{}
 
-	bool HasNonZeroData() const;
+	ENGINE_API bool HasNonZeroData() const;
 };
 
 /**

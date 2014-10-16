@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
+#include "Landscape.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
 
 //
@@ -625,7 +625,7 @@ struct FHeightmapAccessor
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(CollisionComponent->GetComponentLevel());
 					if (IFA)
 					{
-						IFA->SnapInstancesForLandscape(CollisionComponent, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
+						CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
 					}
 				}
 			}
@@ -800,7 +800,7 @@ struct FXYOffsetmapAccessor
 				{
 					ULandscapeHeightfieldCollisionComponent* CollisionComponent = CollisionComponents[Index];
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(CollisionComponent->GetComponentLevel());
-					IFA->SnapInstancesForLandscape(CollisionComponent, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
+					CollisionComponent->SnapFoliageInstances(*IFA, PreUpdateLocalBoxes[Index].TransformBy(LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale()).ExpandBy(1.f));
 				}
 			}
 			else

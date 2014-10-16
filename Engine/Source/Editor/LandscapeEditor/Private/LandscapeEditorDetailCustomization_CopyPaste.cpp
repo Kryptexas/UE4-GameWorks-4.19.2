@@ -18,7 +18,7 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 
-#include "Landscape/LandscapeLayerInfoObject.h"
+#include "LandscapeLayerInfoObject.h"
 #include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.CopyPaste"

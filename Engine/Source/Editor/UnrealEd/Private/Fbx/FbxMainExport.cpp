@@ -49,9 +49,9 @@
 
 #include "StaticMeshResources.h"
 #include "LandscapeDataAccess.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeInfo.h"
-#include "Landscape/LandscapeComponent.h"
+#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
+#include "LandscapeComponent.h"
 #include "Components/SplineMeshComponent.h"
 
 #include "FbxExporter.h"

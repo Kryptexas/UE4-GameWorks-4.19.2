@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Engine/Engine.h"
+
 //
 //	FLocalPlayerIterator - Iterates over local players in the game.
 //	There are no advantages to using this over GEngine->GetLocalPlayerIterator(GetWorld());

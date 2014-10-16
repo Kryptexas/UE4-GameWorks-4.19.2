@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavLinkDefinition.h"
 
 #if WITH_PHYSX

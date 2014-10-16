@@ -6,10 +6,10 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "Landscape/LandscapeEdit.h"
-#include "Landscape/LandscapeRender.h"
-#include "Landscape/LandscapeDataAccess.h"
-#include "Landscape/LandscapeSplineProxies.h"
+#include "LandscapeEdit.h"
+#include "LandscapeRender.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeSplineProxies.h"
 #include "LandscapeEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -25,11 +25,11 @@
 #include "SLandscapeEditor.h"
 
 // Classes
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
-#include "Landscape/LandscapeMaterialInstanceConstant.h"
-#include "Landscape/LandscapeSplinesComponent.h"
+#include "Landscape.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeMaterialInstanceConstant.h"
+#include "LandscapeSplinesComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
 
@@ -1630,7 +1630,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	if (GetWorld())
 	{
 		int32 Index = 0;
-		for (auto It = GetWorld()->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = GetLandscapeInfoMap(GetWorld()).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
 			if (LandscapeInfo)
@@ -2579,7 +2579,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 							{
 								OldFoliageActor->MoveInstancesToNewComponent(OldCollisionComponent, NewCollisionComponent);
 								AInstancedFoliageActor* NewFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(NewCollisionComponent->GetTypedOuter<ULevel>());
-								NewFoliageActor->SnapInstancesForLandscape(NewCollisionComponent, FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
+								NewCollisionComponent->SnapFoliageInstances(*NewFoliageActor, FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
 							}
 						}
 					}

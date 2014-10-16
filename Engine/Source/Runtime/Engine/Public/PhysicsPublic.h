@@ -309,7 +309,7 @@ public:
 
 #if WITH_PHYSX
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
-	physx::PxScene*					GetPhysXScene(uint32 SceneType);
+	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
 
 #if WITH_VEHICLE
 	/** Get the vehicle manager */

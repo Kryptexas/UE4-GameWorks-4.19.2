@@ -13,6 +13,7 @@ public class WorldBrowser : ModuleRules
 				"AssetTools",
                 "MeshUtilities",
                 "ContentBrowser",
+				"Landscape",
 			}
         );
      
@@ -24,6 +25,7 @@ public class WorldBrowser : ModuleRules
                 "RenderCore",
                 "InputCore",
                 "Engine",
+				"Landscape",
                 "Slate",
 				"SlateCore",
                 "EditorStyle",

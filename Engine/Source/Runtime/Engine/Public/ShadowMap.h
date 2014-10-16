@@ -285,7 +285,7 @@ public:
 	 */
 	static void EncodeSingleTexture(struct FShadowMapPendingTexture& PendingTexture, UShadowMapTexture2D* Texture, TArray< TArray<FFourDistanceFieldSamples> >& MipData);
 
-	static FShadowMap2D* AllocateShadowMap(
+	static ENGINE_API FShadowMap2D* AllocateShadowMap(
 		UObject* LightMapOuter, 
 		const TMap<ULightComponent*,FShadowMapData2D*>& ShadowMapData,
 		const FBoxSphereBounds& Bounds, 
@@ -345,4 +345,4 @@ private:
 
 
 /** Shadowmap reference serializer */
-extern FArchive& operator<<(FArchive& Ar,FShadowMap*& R);
+extern ENGINE_API FArchive& operator<<(FArchive& Ar, FShadowMap*& R);

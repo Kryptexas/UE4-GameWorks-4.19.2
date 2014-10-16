@@ -11,7 +11,6 @@
 #include "MapErrors.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType_InstancedStaticMesh.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -754,122 +753,6 @@ AInstancedFoliageActor* AInstancedFoliageActor::GetInstancedFoliageActorForLevel
 		}
 	}
 	return nullptr;
-}
-
-void AInstancedFoliageActor::SnapInstancesForLandscape(ULandscapeHeightfieldCollisionComponent* InLandscapeComponent, const FBox& InInstanceBox)
-{
-	for (auto& MeshPair : FoliageMeshes)
-	{
-		// Find the per-mesh info matching the mesh.
-		UFoliageType* Settings = MeshPair.Key;
-		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-
-		FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InLandscapeComponent);
-		if (ComponentHashInfo)
-		{
-			float TraceExtentSize = InLandscapeComponent->Bounds.SphereRadius * 2.f + 10.f; // extend a little
-			FVector TraceVector = InLandscapeComponent->GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
-
-			bool bFirst = true;
-			TArray<int32> InstancesToRemove;
-			for (int32 InstanceIndex : ComponentHashInfo->Instances)
-			{
-				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
-
-				// Test location should remove any Z offset
-				FVector TestLocation = FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER
-					? (FVector)Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, -Instance.ZOffset))
-					: Instance.Location;
-
-				if (InInstanceBox.IsInside(TestLocation))
-				{
-					if (bFirst)
-					{
-						bFirst = false;
-						Modify();
-					}
-
-					FVector Start = TestLocation + TraceVector;
-					FVector End = TestLocation - TraceVector;
-
-					static FName TraceTag = FName(TEXT("FoliageSnapToLandscape"));
-					TArray<FHitResult> Results;
-					UWorld* World = InLandscapeComponent->GetWorld();
-					check(World);
-					// Editor specific landscape heightfield uses ECC_Visibility collision channel
-					World->LineTraceMulti(Results, Start, End, FCollisionQueryParams(TraceTag, true), FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility));
-
-					bool bFoundHit = false;
-					for (const FHitResult& Hit : Results)
-					{
-						if (Hit.Component == InLandscapeComponent)
-						{
-							bFoundHit = true;
-							if ((TestLocation - Hit.Location).SizeSquared() > KINDA_SMALL_NUMBER)
-							{
-								// Remove instance location from the hash. Do not need to update ComponentHash as we re-add below.
-								MeshInfo.InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
-
-								// Update the instance editor data
-								Instance.Location = Hit.Location;
-
-								if (Instance.Flags & FOLIAGE_AlignToNormal)
-								{
-									// Remove previous alignment and align to new normal.
-									Instance.Rotation = Instance.PreAlignRotation;
-									Instance.AlignToNormal(Hit.Normal, Settings->AlignMaxAngle);
-								}
-
-								// Reapply the Z offset in local space
-								if (FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER)
-								{
-									Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Instance.ZOffset));
-								}
-
-								// Todo: add do validation with other parameters such as max/min height etc.
-
-								// Update this instances' transform in the UInstancedStaticMeshComponent
-								if (MeshInfo.InstanceClusters.IsValidIndex(Instance.ClusterIndex))
-								{
-									FFoliageInstanceCluster& Cluster = MeshInfo.InstanceClusters[Instance.ClusterIndex];
-
-									Cluster.ClusterComponent->Modify();
-
-									int32 ClusterInstanceDataIndex = Cluster.InstanceIndices.Find(InstanceIndex);
-
-									check(ClusterInstanceDataIndex != INDEX_NONE);
-									check(Cluster.ClusterComponent->PerInstanceSMData.IsValidIndex(ClusterInstanceDataIndex));
-									Cluster.ClusterComponent->MarkRenderStateDirty();
-
-									// Update bounds
-									FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
-									Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
-
-									// Update transform in InstancedStaticMeshComponent
-									FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
-									Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
-									Cluster.ClusterComponent->InvalidateLightingCache();
-								}
-
-								// Re-add the new instance location to the hash
-								MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
-							}
-							break;
-						}
-					}
-
-					if (!bFoundHit)
-					{
-						// Couldn't find new spot - remove instance
-						InstancesToRemove.Add(InstanceIndex);
-					}
-				}
-			}
-
-			// Remove any unused instances
-			MeshInfo.RemoveInstances(this, InstancesToRemove);
-		}
-	}
 }
 
 void AInstancedFoliageActor::MoveInstancesForMovedComponent(UActorComponent* InComponent)

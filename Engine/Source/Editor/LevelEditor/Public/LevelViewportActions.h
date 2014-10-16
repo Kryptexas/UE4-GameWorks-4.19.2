@@ -27,7 +27,7 @@ namespace LevelViewportConfigurationNames
 /**
  * Class containing commands for level viewport actions
  */
-class FLevelViewportCommands : public TCommands<FLevelViewportCommands>
+class LEVELEDITOR_API FLevelViewportCommands : public TCommands<FLevelViewportCommands>
 {
 public:
 	FLevelViewportCommands() 

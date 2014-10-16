@@ -1355,6 +1355,18 @@ void FBlueprintEditorUtils::PropagateParentBlueprintDefaults(UClass* ClassToProp
 	}
 }
 
+void DestroyGeneratedClass(TSubclassOf<UObject> &ClassToDestroy)
+{
+	if (ClassToDestroy != nullptr)
+	{
+		// We just need to rename the object, so the name won't collide.
+		ClassToDestroy->Rename(TEXT("None"), nullptr, REN_DontCreateRedirectors);
+
+		// The rest will do GC after we lose reference to it.
+		ClassToDestroy = nullptr;
+	}
+}
+
 void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 {
 	// Only recompile after duplication if this isn't PIE
@@ -1378,9 +1390,13 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			TArray<UTimelineTemplate*> Timelines = Blueprint->Timelines;
 			Blueprint->Timelines.Empty();
 
-			// Null out the existing class references, the compile will create new ones
-			Blueprint->GeneratedClass = NULL;
-			Blueprint->SkeletonGeneratedClass = NULL;
+			// Delete the existing class references, the compile will create new ones
+			DestroyGeneratedClass(Blueprint->GeneratedClass);
+			DestroyGeneratedClass(Blueprint->SkeletonGeneratedClass);
+				
+
+			Blueprint->GeneratedClass = nullptr;
+			Blueprint->SkeletonGeneratedClass = nullptr;
 
 			// Make sure the new blueprint has a shiny new class
 			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);

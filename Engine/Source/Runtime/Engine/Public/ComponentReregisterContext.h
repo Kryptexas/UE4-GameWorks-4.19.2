@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ContentStreaming.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActorComponent, Log, All);
 

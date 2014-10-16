@@ -26,7 +26,6 @@ public class Engine : ModuleRules
 				"CrashTracker",
 				"OnlineSubsystem", 
 				"TargetPlatform",
-				"DerivedDataCache",
 				"ImageWrapper",
 				"HeadMountedDisplay",
 				"Advertising"

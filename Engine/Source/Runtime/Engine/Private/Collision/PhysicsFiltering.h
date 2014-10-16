@@ -23,7 +23,7 @@ enum EPhysXFilterDataFlags
 
 struct FPhysicsFilterBuilder
 {
-	FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel> InObjectType, const struct FCollisionResponseContainer& ResponseToChannels);
+	ENGINE_API FPhysicsFilterBuilder(TEnumAsByte<enum ECollisionChannel> InObjectType, const struct FCollisionResponseContainer& ResponseToChannels);
 
 	inline void ConditionalSetFlags(EPhysXFilterDataFlags Flag, bool bEnabled)
 	{

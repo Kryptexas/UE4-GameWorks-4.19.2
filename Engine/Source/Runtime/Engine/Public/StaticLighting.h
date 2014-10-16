@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include "Vector.h"
+#include "Vector2D.h"
+#include "Components.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/LightComponent.h"
 
 // Forward declarations.
 class FStaticLightingTextureMapping;
@@ -150,7 +155,7 @@ public:
 	TArray<TRefCountPtr<FStaticLightingMesh> > OtherMeshLODs;
 
 	/** Initialization constructor. */
-	FStaticLightingMesh(
+	ENGINE_API FStaticLightingMesh(
 		int32 InNumTriangles,
 		int32 InNumShadingTriangles,
 		int32 InNumVertices,
@@ -378,7 +383,7 @@ public:
 	const bool bBilinearFilter;
 
 	/** Initialization constructor. */
-	FStaticLightingTextureMapping(FStaticLightingMesh* InMesh,UObject* InOwner,int32 InSizeX,int32 InSizeY,int32 InLightmapTextureCoordinateIndex,bool bInBilinearFilter=true);
+	ENGINE_API FStaticLightingTextureMapping(FStaticLightingMesh* InMesh, UObject* InOwner, int32 InSizeX, int32 InSizeY, int32 InLightmapTextureCoordinateIndex, bool bInBilinearFilter = true);
 
 	/**
 	 * Called when the static lighting has been computed to apply it to the mapping's owner.

@@ -7,7 +7,9 @@
 #pragma once
 
 #include "RenderResource.h"
-#include "HitProxies.h"		
+#include "HitProxies.h"
+#include "InputCoreTypes.h"
+#include "EngineBaseTypes.h"
 
 class FCanvas;
 class FViewportClient;

@@ -20,9 +20,9 @@
 // Classes
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType.h"
-#include "Landscape/LandscapeComponent.h"
-#include "Landscape/LandscapeHeightfieldCollisionComponent.h"
-#include "Landscape/LandscapeInfo.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeInfo.h"
 #include "Components/SplineMeshComponent.h"
 
 #define FOLIAGE_SNAP_TRACE (10000.f)

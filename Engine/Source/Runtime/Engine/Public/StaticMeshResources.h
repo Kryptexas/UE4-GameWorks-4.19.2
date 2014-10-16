@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "PhysicsEngine/BodySetup.h"
+#include "Engine/StaticMesh.h"
 #include "RawIndexBuffer.h"
 #include "TextureLayout3d.h"
 #include "LocalVertexFactory.h"

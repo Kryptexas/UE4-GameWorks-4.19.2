@@ -27,8 +27,8 @@
 #include "AssetRegistryModule.h"
 #include "ImageWrapper.h"
 
-#include "Landscape/Landscape.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
+#include "Landscape.h"
+#include "LandscapeLayerInfoObject.h"
 #include "TutorialMetaData.h"
 #include "SNumericEntryBox.h"
 

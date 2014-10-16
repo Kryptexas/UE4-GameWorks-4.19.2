@@ -6,6 +6,8 @@
 
 #pragma once
 
+struct FObjectInstancingGraph;
+
 /**
  * Archive for counting memory usage.
  */
@@ -923,6 +925,18 @@ private:
 	EObjectFlags							ApplyFlags;
 
 	/**
+	 * A pointer to source package, i.e. to the package the object being
+	 * duplicated is comming from.
+	 */
+	UPackage								*SourcePackage;
+
+	/**
+	 * A pointer to destination package, i.e. to the package the new object
+	 * should be created in.
+	 */
+	UPackage								*DestPackage;
+
+	/**
 	 * This is used to prevent object & component instancing resulting from the calls to StaticConstructObject(); instancing subobjects and components is pointless,
 	 * since we do that manually and replace the current value with our manually created object anyway.
 	 */
@@ -1004,7 +1018,15 @@ public:
 	 * @param	InApplyFlags			the flags that should always be set on the duplicated objects (regardless of whether they're set on the source)
 	 * @param	InInstanceGraph			the instancing graph to use when creating the duplicate objects.
 	 */
-	FDuplicateDataWriter( class FUObjectAnnotationSparse<FDuplicatedObject,false>& InDuplicatedObjects,TArray<uint8>& InObjectData,UObject* SourceObject,UObject* DestObject,EObjectFlags InFlagMask,EObjectFlags InApplyMask,struct FObjectInstancingGraph* InInstanceGraph, uint32 InPortFlags );
+	FDuplicateDataWriter(
+		FUObjectAnnotationSparse<FDuplicatedObject, false>& InDuplicatedObjects,
+		TArray<uint8>& InObjectData,
+		UObject* SourceObject,
+		UObject* DestObject,
+		EObjectFlags InFlagMask,
+		EObjectFlags InApplyMask,
+		FObjectInstancingGraph* InInstanceGraph,
+		uint32 InPortFlags);
 };
 
 /*----------------------------------------------------------------------------

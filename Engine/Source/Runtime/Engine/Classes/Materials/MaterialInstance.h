@@ -136,6 +136,37 @@ class UMaterialInstance : public UMaterialInterface
 	class UMaterialInterface* Parent;
 
 	/**
+	 * Delegate for custom static paramters getter.
+	 *
+	 * @param OutStaticParameterSet Parameter set to append.
+	 * @param Material Material instance to collect parameters.
+	 */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FCustomStaticParametersGetterDelegate, FStaticParameterSet&, UMaterialInstance*);
+
+	/**
+	 * Delegate for custom static parameters updater.
+	 *
+	 * @param StaticParameterSet Parameter set to update.
+	 * @param Material Material to update.
+	 *
+	 * @returns True if any parameter been updated. False otherwise.
+	 */
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FCustomParameterSetUpdaterDelegate, FStaticParameterSet&, UMaterial*);
+
+	// Custom static parameters getter delegate.
+	ENGINE_API static FCustomStaticParametersGetterDelegate CustomStaticParametersGetters;
+
+	// An array of custom paramter set updaters.
+	ENGINE_API static TArray<FCustomParameterSetUpdaterDelegate> CustomParameterSetUpdaters;
+
+	/**
+	 * Gets static parameter set for this material.
+	 *
+	 * @returns Static parameter set.
+	 */
+	ENGINE_API const FStaticParameterSet& GetStaticParameters() const;
+
+	/**
 	 * Indicates whether the instance has static permutation resources (which are required when static parameters are present) 
 	 * Read directly from the rendering thread, can only be modified with the use of a FMaterialUpdateContext.
 	 * When true, StaticPermutationMaterialResources will always be valid and non-null.
@@ -209,39 +240,39 @@ private:
 
 public:
 	// Begin interface IBlendableInterface
-	virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const;
+	virtual ENGINE_API void OverrideBlendableSettings(class FSceneView& View, float Weight) const;
 	// End interface IBlendableInterface
 
 	// Begin UMaterialInterface interface.
-	virtual UMaterial* GetMaterial() override;
-	virtual const UMaterial* GetMaterial() const override;
-	virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
-	virtual FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) override;
-	virtual const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const override;
-	virtual bool GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue, int32& OutFontPage) const override;
-	virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const override;
-	virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const override;
-	virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const override;
-	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
-	virtual void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) override;
-	virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
-	virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
-	virtual bool GetStaticSwitchParameterValue(FName ParameterName,bool &OutValue,FGuid &OutExpressionGuid) override;
-	virtual bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A,FGuid &OutExpressionGuid) override;
-	virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) override;
-	virtual bool IsDependent(UMaterialInterface* TestDependency) override;
-	virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const override;
-	virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
-	virtual bool UpdateLightmassTextureTracking() override;
-	virtual bool GetCastShadowAsMasked() const override;
-	virtual float GetEmissiveBoost() const override;
-	virtual float GetDiffuseBoost() const override;
-	virtual float GetExportResolutionScale() const override;
-	virtual float GetDistanceFieldPenumbraScale() const override;
-	virtual bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures, 
+	virtual ENGINE_API UMaterial* GetMaterial() override;
+	virtual ENGINE_API const UMaterial* GetMaterial() const override;
+	virtual ENGINE_API const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
+	virtual ENGINE_API FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) override;
+	virtual ENGINE_API const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const override;
+	virtual ENGINE_API bool GetFontParameterValue(FName ParameterName, class UFont*& OutFontValue, int32& OutFontPage) const override;
+	virtual ENGINE_API bool GetScalarParameterValue(FName ParameterName, float& OutValue) const override;
+	virtual ENGINE_API bool GetTextureParameterValue(FName ParameterName, class UTexture*& OutValue) const override;
+	virtual ENGINE_API bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const override;
+	virtual ENGINE_API void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
+	virtual ENGINE_API void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) override;
+	virtual ENGINE_API bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
+	virtual ENGINE_API bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
+	virtual ENGINE_API bool GetStaticSwitchParameterValue(FName ParameterName, bool &OutValue, FGuid &OutExpressionGuid) override;
+	virtual ENGINE_API bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A, FGuid &OutExpressionGuid) override;
+	virtual ENGINE_API bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) override;
+	virtual ENGINE_API bool IsDependent(UMaterialInterface* TestDependency) override;
+	virtual ENGINE_API FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered = false) const override;
+	virtual ENGINE_API UPhysicalMaterial* GetPhysicalMaterial() const override;
+	virtual ENGINE_API bool UpdateLightmassTextureTracking() override;
+	virtual ENGINE_API bool GetCastShadowAsMasked() const override;
+	virtual ENGINE_API float GetEmissiveBoost() const override;
+	virtual ENGINE_API float GetDiffuseBoost() const override;
+	virtual ENGINE_API float GetExportResolutionScale() const override;
+	virtual ENGINE_API float GetDistanceFieldPenumbraScale() const override;
+	virtual ENGINE_API bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
-	virtual void RecacheUniformExpressions() const override;
-	virtual bool GetRefractionSettings(float& OutBiasValue) const override;
+	virtual ENGINE_API void RecacheUniformExpressions() const override;
+	virtual ENGINE_API bool GetRefractionSettings(float& OutBiasValue) const override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
@@ -269,20 +300,20 @@ public:
 	// End UMaterialInterface interface.
 
 	// Begin UObject interface.
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	virtual void PostInitProperties() override;	
-	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
-	virtual bool IsCachedCookedPlatformDataLoaded(  const ITargetPlatform* TargetPlatform ) override;
-	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
-	virtual void ClearAllCachedCookedPlatformData() override;
-	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostLoad() override;
-	virtual void BeginDestroy() override;
-	virtual bool IsReadyForFinishDestroy() override;
-	virtual void FinishDestroy() override;
+	virtual ENGINE_API SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual ENGINE_API void PostInitProperties() override;	
+	virtual ENGINE_API void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
+	virtual ENGINE_API bool IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform) override;
+	virtual ENGINE_API void ClearCachedCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
+	virtual ENGINE_API void ClearAllCachedCookedPlatformData() override;
+	virtual ENGINE_API void Serialize(FArchive& Ar) override;
+	virtual ENGINE_API void PostLoad() override;
+	virtual ENGINE_API void BeginDestroy() override;
+	virtual ENGINE_API bool IsReadyForFinishDestroy() override;
+	virtual ENGINE_API void FinishDestroy() override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual ENGINE_API void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/**
 	 * Sets new static parameter overrides on the instance and recompiles the static permutation resources if needed (can be forced with bForceRecompile).
@@ -321,6 +352,8 @@ public:
 	 * Builds a composited set of static parameters, including inherited and overidden values
 	 */
 	ENGINE_API void GetStaticParameterValues(FStaticParameterSet& OutStaticParameters);
+
+	void GetAllStaticSwitchParameterValues(TArray<FStaticTerrainLayerWeightParameter> &TerrainLayerWeightParameters, UMaterial* ParentMaterial);
 
 	void GetBasePropertyOverridesHash(FSHAHash& OutHash)const;
 
@@ -402,5 +435,61 @@ protected:
 	friend class FMaterialUpdateContext;
 };
 
+/**
+ * This function takes a array of parameter structs and attempts to establish a reference to the expression object each parameter represents.
+ * If a reference exists, the function checks to see if the parameter has been renamed.
+ *
+ * @param Parameters		Array of parameters to operate on.
+ * @param ParentMaterial	Parent material to search in for expressions.
+ *
+ * @return Returns whether or not any of the parameters was changed.
+ */
+template <typename ParameterType, typename ExpressionType>
+bool UpdateParameterSet(TArray<ParameterType> &Parameters, UMaterial* ParentMaterial)
+{
+	bool bChanged = false;
 
+	// Loop through all of the parameters and try to either establish a reference to the 
+	// expression the parameter represents, or check to see if the parameter's name has changed.
+	for (int32 ParameterIdx = 0; ParameterIdx < Parameters.Num(); ParameterIdx++)
+	{
+		bool bTryToFindByName = true;
 
+		ParameterType &Parameter = Parameters[ParameterIdx];
+
+		if (Parameter.ExpressionGUID.IsValid())
+		{
+			ExpressionType* Expression = ParentMaterial->FindExpressionByGUID<ExpressionType>(Parameter.ExpressionGUID);
+
+			// Check to see if the parameter name was changed.
+			if (Expression)
+			{
+				bTryToFindByName = false;
+
+				if (Parameter.ParameterName != Expression->ParameterName)
+				{
+					Parameter.ParameterName = Expression->ParameterName;
+					bChanged = true;
+				}
+			}
+		}
+
+		// No reference to the material expression exists, so try to find one in the material expression's array if we are in the editor.
+		if (bTryToFindByName && GIsEditor && !FApp::IsGame())
+		{
+			for (int32 ExpressionIndex = 0; ExpressionIndex < ParentMaterial->Expressions.Num(); ExpressionIndex++)
+			{
+				ExpressionType* ParameterExpression = Cast<ExpressionType>(ParentMaterial->Expressions[ExpressionIndex]);
+
+				if (ParameterExpression && ParameterExpression->ParameterName == Parameter.ParameterName)
+				{
+					Parameter.ExpressionGUID = ParameterExpression->ExpressionGUID;
+					bChanged = true;
+					break;
+				}
+			}
+		}
+	}
+
+	return bChanged;
+}

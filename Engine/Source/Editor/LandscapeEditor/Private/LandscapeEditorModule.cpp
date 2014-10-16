@@ -12,9 +12,9 @@
 #include "PropertyEditorDelegates.h"
 
 #include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "LandscapeRender.h"
 
-#include "Landscape/Landscape.h"
+#include "Landscape.h"
+#include "LandscapeRender.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor"
 

@@ -49,7 +49,8 @@ public class UnrealEd : ModuleRules
 				"ReferenceViewer",
                 "IntroTutorials",
                 "SuperSearch",
-				"OutputLog"
+				"OutputLog",
+				"Landscape"
 			}
 		);
 
@@ -84,7 +85,6 @@ public class UnrealEd : ModuleRules
 				"OnlineBlueprintSupport",
 				"DesktopPlatform",
 				"DirectoryWatcher",
-				"EditorSettingsViewer",
 				"EditorStyle",
 				"EngineSettings",
 				"InputCore",
@@ -115,6 +115,7 @@ public class UnrealEd : ModuleRules
 				"Kismet",
                 "InternationalizationSettings",
                 "JsonUtilities",
+				"Landscape",
 			}
 		);
 

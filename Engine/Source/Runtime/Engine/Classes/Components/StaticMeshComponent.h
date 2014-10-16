@@ -10,6 +10,8 @@
 
 class FColorVertexBuffer;
 class UStaticMesh;
+class FStaticMeshStaticLightingMesh;
+class ULightComponent;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -399,7 +401,7 @@ public:
 	void ReleaseResources();
 
 	/** Allocates an implementation of FStaticLightingMesh that will handle static lighting for this component */
-	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
+	virtual FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
 
 	/** Add or remove elements to have the size in the specified range. Reconstructs elements if MaxSize<MinSize */
 	void SetLODDataCount( const uint32 MinSize, const uint32 MaxSize );

@@ -13,10 +13,10 @@ class FLandscapeToolSplines;
 struct FHeightmapToolTarget;
 template<typename TargetType> class FLandscapeToolCopyPaste;
 
-#include "Landscape/LandscapeInfo.h"
-#include "Landscape/LandscapeLayerInfoObject.h"
-#include "Landscape/LandscapeProxy.h"
-#include "Landscape/LandscapeGizmoActiveActor.h"
+#include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeProxy.h"
+#include "LandscapeGizmoActiveActor.h"
 
 // FLandscapeToolMousePosition - Struct to store mouse positions since the last time we applied the brush
 struct FLandscapeToolMousePosition

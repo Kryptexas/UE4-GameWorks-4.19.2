@@ -1787,9 +1787,27 @@ bool FEngineLoop::LoadStartupCoreModules()
 	return bSuccess;
 }
 
+/**
+ * Calls for each auto-startup module its StartupModule function.
+ */
+void InitializeAutoStartupModules()
+{
+	// UBT generated function for listing all auto-startup module
+	// this binary is loading.
+	extern void GetAutoStartupModuleList(TArray<FString>& Out);
+	TArray<FString> Modules;
+	GetAutoStartupModuleList(Modules);
+
+	for (auto ModuleName : Modules)
+	{
+		FModuleManager::LoadModuleChecked<IModuleInterface>(*ModuleName);
+	}
+}
 
 bool FEngineLoop::LoadStartupModules()
 {
+	InitializeAutoStartupModules();
+
 	// Load any modules that want to be loaded before default modules are loaded up.
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault))
 	{

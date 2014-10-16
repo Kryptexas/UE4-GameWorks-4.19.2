@@ -18,7 +18,7 @@
 #include "SnappingUtils.h"
 #include "ActorEditorUtils.h"
 #include "LevelEditorViewport.h"
-#include "Landscape/Landscape.h"
+#include "Landscape.h"
 
 #include "Particles/Emitter.h"
 #include "Editor/ActorPositioning.h"

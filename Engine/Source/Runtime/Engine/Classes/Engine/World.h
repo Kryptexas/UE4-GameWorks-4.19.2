@@ -532,6 +532,14 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	TArray<UObject*>							ExtraReferencedObjects;
 
+	/**
+	 * External modules can have additional data associated with this UWorld.
+	 * This is a list of per module world data objects. These aren't
+	 * loaded/saved by default.
+	 */
+	UPROPERTY(Transient)
+	TArray<UObject*>							PerModuleDataObjects;
+
 	/** Level collection. ULevels are referenced by FName (Package name) to avoid serialized references. Also contains offsets in world units */
 	UPROPERTY(Transient)
 	TArray<class ULevelStreaming*>				StreamingLevels;
@@ -907,11 +915,6 @@ public:
 
 	/** @todo document */
 	FName CommittedPersistentLevelName;
-
-#if WITH_EDITORONLY_DATA
-	/** Map of LandscapeInfos for all loaded levels, valid in the editor only */
-	TMap< FGuid, class ULandscapeInfo* > LandscapeInfoMap;
-#endif // WITH_EDITORONLY_DATA
 
 	/**
 	 * This is a int on the level which is set when a light that needs to have lighting rebuilt
@@ -2446,9 +2449,6 @@ public:
 	/** Gets all LightMaps and ShadowMaps associated with this world. Specify the level or leave null for persistent */
 	void GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
 
-	/** Gets all textures and materials used by all landscape components in the specified level */
-	void GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials);
-
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
 	static FString StripPIEPrefixFromPackageName(const FString& PackageName, const FString& Prefix);
@@ -2471,6 +2471,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldInitializationEvent, UWorld* /*World*/, const UWorld::InitializationValues /*IVS*/);
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldCleanupEvent, UWorld* /*World*/, bool /*bSessionEnded*/, bool /*bCleanupResources*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FWorldEvent, UWorld* /*World*/);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/);
 	// Delegate type for level change events
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLevelChanged, ULevel*, UWorld*);
 	
@@ -2479,6 +2480,9 @@ public:
 	
 	// Callback for world initialization (post)
 	static FWorldInitializationEvent OnPostWorldInitialization;
+
+	// Post duplication event.
+	static FWorldPostDuplicateEvent OnPostDuplicate;
 
 	// Callback for world cleanup
 	static FWorldCleanupEvent OnWorldCleanup;

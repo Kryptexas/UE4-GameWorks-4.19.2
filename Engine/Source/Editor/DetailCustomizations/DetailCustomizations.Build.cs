@@ -15,6 +15,7 @@ public class DetailCustomizations : ModuleRules
 				"CoreUObject",
 				"DesktopWidgets",
 				"Engine",
+				"Landscape",
                 "InputCore",
 				"Slate",
 				"SlateCore",
@@ -48,6 +49,7 @@ public class DetailCustomizations : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
+				"Landscape",
 				"LandscapeEditor",
 			}
 		);

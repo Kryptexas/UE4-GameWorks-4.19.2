@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Landscape/LandscapeProxy.h"
+#include "LandscapeProxy.h"
 
 class FWorldTileCollectionModel;
 class UWorldTileDetails;

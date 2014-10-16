@@ -7,7 +7,6 @@
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
-#include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "MaterialInstanceSupport.h"
 #include "MaterialShaderType.h"
@@ -56,65 +55,6 @@ void RecacheMaterialInstanceUniformExpressions(const UMaterialInterface* ParentM
 			ReentranceGuards.Reset();
 		}
 	}
-}
-
-/**
- * This function takes a array of parameter structs and attempts to establish a reference to the expression object each parameter represents.
- * If a reference exists, the function checks to see if the parameter has been renamed.
- *
- * @param Parameters		Array of parameters to operate on.
- * @param ParentMaterial	Parent material to search in for expressions.
- *
- * @return Returns whether or not any of the parameters was changed.
- */
-template <typename ParameterType, typename ExpressionType>
-bool UpdateParameterSet(TArray<ParameterType> &Parameters, UMaterial* ParentMaterial)
-{
-	bool bChanged = false;
-
-	// Loop through all of the parameters and try to either establish a reference to the 
-	// expression the parameter represents, or check to see if the parameter's name has changed.
-	for(int32 ParameterIdx=0; ParameterIdx<Parameters.Num(); ParameterIdx++)
-	{
-		bool bTryToFindByName = true;
-
-		ParameterType &Parameter = Parameters[ParameterIdx];
-
-		if(Parameter.ExpressionGUID.IsValid())
-		{
-			ExpressionType* Expression = ParentMaterial->FindExpressionByGUID<ExpressionType>(Parameter.ExpressionGUID);
-
-			// Check to see if the parameter name was changed.
-			if(Expression)
-			{
-				bTryToFindByName = false;
-
-				if(Parameter.ParameterName != Expression->ParameterName)
-				{
-					Parameter.ParameterName = Expression->ParameterName;
-					bChanged = true;
-				}
-			}
-		}
-
-		// No reference to the material expression exists, so try to find one in the material expression's array if we are in the editor.
-		if(bTryToFindByName && GIsEditor && !FApp::IsGame())
-		{
-			for(int32 ExpressionIndex = 0;ExpressionIndex < ParentMaterial->Expressions.Num();ExpressionIndex++)
-			{
-				ExpressionType* ParameterExpression = Cast<ExpressionType>(ParentMaterial->Expressions[ExpressionIndex]);
-
-				if(ParameterExpression && ParameterExpression->ParameterName == Parameter.ParameterName)
-				{
-					Parameter.ExpressionGUID = ParameterExpression->ExpressionGUID;
-					bChanged = true;
-					break;
-				}
-			}
-		}
-	}
-
-	return bChanged;
 }
 
 FFontParameterValue::ValueType FFontParameterValue::GetValue(const FFontParameterValue& Parameter)
@@ -415,7 +355,11 @@ bool UMaterialInstance::UpdateParameters()
 			// Static component mask parameters
 			bDirty = UpdateParameterSet<FStaticComponentMaskParameter, UMaterialExpressionStaticComponentMaskParameter>(StaticParameters.StaticComponentMaskParameters, ParentMaterial) || bDirty;
 
-			bDirty = UpdateParameterSet<FStaticTerrainLayerWeightParameter, UMaterialExpressionLandscapeLayerWeight>(StaticParameters.TerrainLayerWeightParameters, ParentMaterial) || bDirty;
+			// Custom parameters
+			for (const auto& CustomParameterSetUpdater : CustomParameterSetUpdaters)
+			{
+				bDirty |= CustomParameterSetUpdater.Execute(StaticParameters, ParentMaterial);
+			}
 		}
 	}
 	return bDirty;
@@ -1179,42 +1123,10 @@ void UMaterialInstance::GetStaticParameterValues(FStaticParameterSet& OutStaticP
 				}
 			}
 		}
-
-		// TerrainLayerWeight Parameters
-		ParentMaterial->GetAllTerrainLayerWeightParameterNames(ParameterNames, Guids);
-		OutStaticParameters.TerrainLayerWeightParameters.AddZeroed(ParameterNames.Num());
-		for(int32 ParameterIdx=0; ParameterIdx<ParameterNames.Num(); ParameterIdx++)
-		{
-			FStaticTerrainLayerWeightParameter& ParentParameter = OutStaticParameters.TerrainLayerWeightParameters[ParameterIdx];
-			FName ParameterName = ParameterNames[ParameterIdx];
-			FGuid ExpressionId = Guids[ParameterIdx];
-			int32 WeightmapIndex = INDEX_NONE;
-
-			ParentParameter.bOverride = false;
-			ParentParameter.ParameterName = ParameterName;
-			//get the settings from the parent in the MIC chain
-			if(Parent->GetTerrainLayerWeightParameterValue(ParameterName, WeightmapIndex, ExpressionId))
-			{
-				ParentParameter.WeightmapIndex = WeightmapIndex;
-			}
-			ParentParameter.ExpressionGUID = ExpressionId;
-
-			// if the SourceInstance is overriding this parameter, use its settings
-			for(int32 WeightParamIdx = 0; WeightParamIdx < StaticParameters.TerrainLayerWeightParameters.Num(); WeightParamIdx++)
-			{
-				const FStaticTerrainLayerWeightParameter &TerrainLayerWeightParam = StaticParameters.TerrainLayerWeightParameters[WeightParamIdx];
-
-				if(ParameterName == TerrainLayerWeightParam.ParameterName)
-				{
-					ParentParameter.bOverride = TerrainLayerWeightParam.bOverride;
-					if (TerrainLayerWeightParam.bOverride)
-					{
-						ParentParameter.WeightmapIndex = TerrainLayerWeightParam.WeightmapIndex;
-					}
-				}
-			}
-		}
 	}
+
+	// Custom parameters.
+	CustomStaticParametersGetters.Broadcast(OutStaticParameters, this);
 }
 
 void UMaterialInstance::ForceRecompileForRendering()
@@ -2558,3 +2470,11 @@ int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, E
 {
 	return Parent ? Parent->CompilePropertyEx(Compiler, Property) : INDEX_NONE;
 }
+
+const FStaticParameterSet& UMaterialInstance::GetStaticParameters() const
+{
+	return StaticParameters;
+}
+
+UMaterialInstance::FCustomStaticParametersGetterDelegate UMaterialInstance::CustomStaticParametersGetters;
+TArray<UMaterialInstance::FCustomParameterSetUpdaterDelegate> UMaterialInstance::CustomParameterSetUpdaters;

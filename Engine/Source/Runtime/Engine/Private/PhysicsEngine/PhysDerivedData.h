@@ -10,9 +10,6 @@
 #include "PhysXSupport.h"
 #include "IPhysXFormat.h"
 
-// Forward declarations
-class ULandscapeMeshCollisionComponent;
-
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker
 class FDerivedDataPhysXCooker : public FDerivedDataPluginInterface
@@ -30,8 +27,6 @@ private:
 
 public:
 	FDerivedDataPhysXCooker( FName InFormat, UBodySetup* InBodySetup );
-	// This constructor only used by ULandscapeMeshCollisionComponent, which always only build TriMesh, not Convex...
-	FDerivedDataPhysXCooker( FName InFormat, ULandscapeMeshCollisionComponent* InMeshCollision, bool bMirrored );
 
 	virtual const TCHAR* GetPluginName() const override
 	{

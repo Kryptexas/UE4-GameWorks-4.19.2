@@ -17,13 +17,15 @@ public class StatsViewer : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"RHI",
-				"UnrealEd"
+				"UnrealEd",
+				"Landscape"
 			}
 		);
 
         PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-                "PropertyEditor"
+                "PropertyEditor",
+				"Landscape"
 			}
 		);
 

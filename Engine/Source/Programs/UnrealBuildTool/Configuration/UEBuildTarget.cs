@@ -1508,6 +1508,8 @@ namespace UnrealBuildTool
 				CreateLinkerFixupsCPPFile();
 			}
 
+			CreateAutoStartupModuleListGetter();
+
 			// Build the target's binaries.
 			foreach (var Binary in AppBinaries)
 			{
@@ -1798,6 +1800,71 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Gets auto-startup module list.
+		/// </summary>
+		/// <returns>Auto-startup module name list.</returns>
+		private IEnumerable<string> GetAutoStartupModuleList()
+		{
+			var Output = new List<string>();
+
+			foreach(var Module in AppBinaries[0].GetAllDependencyModules(false, true))
+			{
+				if (Module is UEBuildModuleCPP && (Module as UEBuildModuleCPP).bIsAutoStartupModule)
+				{
+					Output.Add(Module.Name);
+				}
+			}
+
+			return Output;
+		}
+
+		/// <summary>
+		/// Creates a getter module that outputs auto-startup module list.
+		/// </summary>
+		private void CreateAutoStartupModuleListGetter()
+		{
+			var ModuleName = "AutoStartupModuleListGetter";
+
+			string SourceFilename = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, ModuleName + ".cpp");
+			string HeaderFilename = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, ModuleName + ".h");
+
+			if (!File.Exists(HeaderFilename))
+			{
+				File.WriteAllText(HeaderFilename, "");
+			}
+
+			var SourceLines = new List<string>();
+
+			SourceLines.Add(string.Format("#include \"{0}\"", ModuleName + ".h"));
+			SourceLines.Add("");
+			SourceLines.Add("#include \"Core.h\"");
+			SourceLines.Add("#include \"Array.h\"");
+			SourceLines.Add("#include \"UnrealString.h\"");
+			SourceLines.Add("");
+			SourceLines.Add("void GetAutoStartupModuleList(TArray<FString>& Out)");
+			SourceLines.Add("{");
+
+			foreach(var AutoStartupModuleName in GetAutoStartupModuleList())
+			{
+				SourceLines.Add(string.Format("\tOut.Add(TEXT(\"{0}\"));", AutoStartupModuleName));
+			}
+
+			SourceLines.Add("}");
+			SourceLines.Add("");
+
+			if (!File.Exists(SourceFilename) || File.ReadAllText(SourceFilename).Trim() != string.Join("\r\n", SourceLines).Trim())
+			{
+				File.WriteAllLines(SourceFilename, SourceLines);
+			}
+
+			BindArtificialModuleToBinary(
+				CreateArtificialModule(
+					ModuleName, GlobalCompileEnvironment.Config.OutputDirectory,
+					new FileItem[] { FileItem.GetItemByPath(SourceFilename) }, new string[] { "Core" }
+				), AppBinaries[0]);
+		}
+
+		/// <summary>
 		/// All non-program monolithic binaries implicitly depend on all static plugin libraries so they are always linked appropriately
 		/// In order to do this, we create a new module here with a cpp file we emit that invokes an empty function in each library.
 		/// If we do not do this, there will be no static initialization for libs if no symbols are referenced in them.
@@ -1901,54 +1968,77 @@ namespace UnrealBuildTool
 
 				// Create the CPP module
 				var FakeModuleDirectory = Path.GetDirectoryName( LinkerFixupCPPFilename );
-				UEBuildModuleCPP NewModule = new UEBuildModuleCPP(
-					InTarget: this,
-					InName: LinkerFixupsName,
-					InType: UEBuildModuleType.Game,
-					InModuleDirectory:FakeModuleDirectory,
-					InOutputDirectory: GlobalCompileEnvironment.Config.OutputDirectory,
-					InIsRedistributableOverride: null,
-					InIntelliSenseGatherer: null,
-					InSourceFiles: SourceFiles,
-					InPublicIncludePaths: new List<string>(),
-					InPublicSystemIncludePaths: new List<string>(),
-					InDefinitions: new List<string>(),
-					InPublicIncludePathModuleNames: new List<string>(),
-					InPublicDependencyModuleNames: new List<string>(),
-					InPublicDelayLoadDLLs: new List<string>(),
-					InPublicAdditionalLibraries: new List<string>(),
-					InPublicFrameworks: new List<string>(),
-					InPublicWeakFrameworks: new List<string>(),
-					InPublicAdditionalShadowFiles: new List<string>(),
-					InPublicAdditionalBundleResources: new List<UEBuildBundleResource>(),
-					InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
-					InPrivateIncludePaths: new List<string>(),
-					InPrivateIncludePathModuleNames: new List<string>(),
-					InPrivateDependencyModuleNames: PrivateDependencyModuleNames,
-					InCircularlyReferencedDependentModules: new List<string>(),
-					InDynamicallyLoadedModuleNames: new List<string>(),
-                    InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
-                    InOptimizeCode: ModuleRules.CodeOptimization.Default,
-					InAllowSharedPCH: false,
-					InSharedPCHHeaderFile: "",
-					InUseRTTI: false,
-					InEnableBufferSecurityChecks: true,
-					InFasterWithoutUnity: true,
-					InMinFilesUsingPrecompiledHeaderOverride: 0,
-					InEnableExceptions: false,
-					bInBuildSourceFiles: true
-					);
+				var NewModule = CreateArtificialModule(LinkerFixupsName, FakeModuleDirectory, SourceFiles, PrivateDependencyModuleNames);
 
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
-				NewModule.Binary = ExecutableBinary;
-				NewModule.bIncludedInTarget = true;
-
-				// Process dependencies for this new module
-				NewModule.CachePCHUsageForModuleSourceFiles(NewModule.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
-
-				// Add module to binary
-				ExecutableBinary.AddModule(NewModule.Name);
+				BindArtificialModuleToBinary(NewModule, ExecutableBinary);
 			}
+		}
+
+		/// <summary>
+		/// Binds artificial module to given binary.
+		/// </summary>
+		/// <param name="Module">Module to bind.</param>
+		/// <param name="Binary">Binary to bind.</param>
+		private void BindArtificialModuleToBinary(UEBuildModuleCPP Module, UEBuildBinary Binary)
+		{
+			Module.Binary = Binary;
+			Module.bIncludedInTarget = true;
+
+			// Process dependencies for this new module
+			Module.CachePCHUsageForModuleSourceFiles(Module.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
+
+			// Add module to binary
+			Binary.AddModule(Module.Name);
+		}
+
+		/// <summary>
+		/// Creates artificial module.
+		/// </summary>
+		/// <param name="Name">Name of the module.</param>
+		/// <param name="Directory">Directory of the module.</param>
+		/// <param name="SourceFiles">Source files.</param>
+		/// <param name="PrivateDependencyModuleNames">Private dependency list.</param>
+		/// <returns>Created module.</returns>
+		private UEBuildModuleCPP CreateArtificialModule(string Name, string Directory, IEnumerable<FileItem> SourceFiles, IEnumerable<string> PrivateDependencyModuleNames)
+		{
+			return new UEBuildModuleCPP(
+				InTarget: this,
+				InName: Name,
+				InType: UEBuildModuleType.Game,
+				InModuleDirectory: Directory,
+				InOutputDirectory: GlobalCompileEnvironment.Config.OutputDirectory,
+				InIsRedistributableOverride: null,
+				InIntelliSenseGatherer: null,
+				InSourceFiles: SourceFiles.ToList(),
+				InPublicIncludePaths: new List<string>(),
+				InPublicSystemIncludePaths: new List<string>(),
+				InDefinitions: new List<string>(),
+				InPublicIncludePathModuleNames: new List<string>(),
+				InPublicDependencyModuleNames: new List<string>(),
+				InPublicDelayLoadDLLs: new List<string>(),
+				InPublicAdditionalLibraries: new List<string>(),
+				InPublicFrameworks: new List<string>(),
+				InPublicWeakFrameworks: new List<string>(),
+				InPublicAdditionalShadowFiles: new List<string>(),
+				InPublicAdditionalBundleResources: new List<UEBuildBundleResource>(),
+				InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
+				InPrivateIncludePaths: new List<string>(),
+				InPrivateIncludePathModuleNames: new List<string>(),
+				InPrivateDependencyModuleNames: PrivateDependencyModuleNames.ToList(),
+				InCircularlyReferencedDependentModules: new List<string>(),
+				InDynamicallyLoadedModuleNames: new List<string>(),
+				InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
+				InOptimizeCode: ModuleRules.CodeOptimization.Default,
+				InAllowSharedPCH: false,
+				InSharedPCHHeaderFile: "",
+				InUseRTTI: false,
+				InEnableBufferSecurityChecks: true,
+				InFasterWithoutUnity: true,
+				InIsAutoStartupModule: false,
+				InMinFilesUsingPrecompiledHeaderOverride: 0,
+				InEnableExceptions: false,
+				bInBuildSourceFiles: true);
 		}
 
 
@@ -2881,6 +2971,7 @@ namespace UnrealBuildTool
 							InUseRTTI: RulesObject.bUseRTTI,
 							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
+							InIsAutoStartupModule: RulesObject.bIsAutoStartupModule,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
 							bInBuildSourceFiles: bBuildSourceFiles
@@ -2921,6 +3012,7 @@ namespace UnrealBuildTool
 							InUseRTTI: RulesObject.bUseRTTI,
 							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
+							InIsAutoStartupModule: RulesObject.bIsAutoStartupModule,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
 							bInBuildSourceFiles : bBuildSourceFiles

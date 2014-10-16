@@ -1,8 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "SplineMeshComponent.generated.h"
 
+#include "Components/StaticMeshComponent.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+
+#include "SplineMeshComponent.generated.h"
 
 UENUM()
 namespace ESplineMeshAxis
