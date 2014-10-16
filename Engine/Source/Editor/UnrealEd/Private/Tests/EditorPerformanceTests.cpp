@@ -147,5 +147,3 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 
 	return true;
 }
-
-

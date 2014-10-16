@@ -95,6 +95,7 @@ namespace AutomationEditorCommonUtils
 	void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings);
 }
 
+//Struct used to hold the data for the Editor Performance test.
 struct EditorPerfCaptureParameters
 {
 	//Basic Test Info
@@ -103,7 +104,6 @@ struct EditorPerfCaptureParameters
 
 	//Saved Performance Values
 	float MapLoadTime;
-	TArray<FTimespan> TimeBetweenCaptures;
 	TArray<float> AverageFPS;
 	TArray<float> AverageFrameTime;
 	TArray<float> UsedPhysical;
@@ -153,33 +153,15 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStartPIECommand, bool, bSimulate
 DEFINE_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
 
 /**
-* This will display the average FPS and Memory numbers over a duration of time.
-*/
-//DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerformanceCommand, float, Duration);
-
-/**
 * This will capture the average FPS and Memory numbers over a duration of time.
 * @param The name of the EditorPerfCaptureParameters struct that will be used to hold the data.
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerfCaptureCommand, EditorPerfCaptureParameters, EditorPerfStats);
 
 /**
-* Generates the editor performance capture chart.
-* @param The name of the EditorPerfCaptureParameters struct that will be used to hold the data.
-*/
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerfCaptureCommand, EditorPerfCaptureParameters, EditorPerfStats);
-
-/**
 * Loads a map
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorLoadMap, FString, MapName);
-
-/**
-* Generates the editor performance capture chart.
-* @param Input the name of the map.
-*/
-//DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGenerateEditorPerformanceCharts, FString, MapName);
-
 
 /**
 * Waits for shaders to finish compiling before moving on to the next thing.
