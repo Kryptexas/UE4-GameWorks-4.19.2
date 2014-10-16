@@ -3,7 +3,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "TickableAttributeSetInterface.h"
 
-UTickableAttributeSetInterface::UTickableAttributeSetInterface(const FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UTickableAttributeSetInterface::UTickableAttributeSetInterface(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
