@@ -265,7 +265,10 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	// @todo UMG Possibly need duplication here 
 	for ( const FDelegateEditorBinding& EditorBinding : Blueprint->Bindings )
 	{
-		BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));
+		if ( EditorBinding.IsBindingValid(Class, Blueprint) )
+		{
+			BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));
+		}
 	}
 
 	Super::FinishCompilingClass(Class);

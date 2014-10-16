@@ -9,6 +9,48 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWidgetBlueprint* Blueprint) const
+{
+	FDelegateRuntimeBinding RuntimeBinding = ToRuntimeBinding(Blueprint);
+
+	// First find the target widget we'll be attaching the binding to.
+	if ( UWidget* TargetWidget = Blueprint->WidgetTree->FindWidget(FName(*ObjectName)) )
+	{
+		// Next find the underlying delegate we're actually binding to, if it's an event the name will be the same,
+		// for properties we need to lookup the delegate property we're actually going to be binding to.
+		UDelegateProperty* BindableProperty = FindField<UDelegateProperty>(TargetWidget->GetClass(), FName(*( PropertyName.ToString() + TEXT("Delegate") )));
+		UDelegateProperty* EventProperty = FindField<UDelegateProperty>(TargetWidget->GetClass(), PropertyName);
+
+		bool bNeedsToBePure = BindableProperty ? true : false;
+		UDelegateProperty* DelegateProperty = BindableProperty ? BindableProperty : EventProperty;
+
+		// Locate the delegate property on the widget that's a delegate for a property we want to bind.
+		if ( DelegateProperty )
+		{
+			// On our incoming blueprint generated class, try and find the function we claim exists that users
+			// are binding their property too.
+			if ( UFunction* Function = BlueprintGeneratedClass->FindFunctionByName(RuntimeBinding.FunctionName, EIncludeSuperFlag::IncludeSuper) )
+			{
+				// Check the signatures to ensure these functions match.
+				if ( Function->IsSignatureCompatibleWith(DelegateProperty->SignatureFunction, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+				{
+					if ( bNeedsToBePure )
+					{
+						// Only allow binding pure functions to property bindings.
+						return Function->HasAllFunctionFlags(FUNC_BlueprintPure);
+					}
+					else
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprint* Blueprint) const
 {
 	FDelegateRuntimeBinding Binding;
@@ -20,7 +62,7 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 	}
 	else
 	{
-		Binding.FunctionName = FunctionName;// Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+		Binding.FunctionName = FunctionName;
 	}
 	Binding.Kind = Kind;
 

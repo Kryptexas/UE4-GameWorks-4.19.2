@@ -26,7 +26,7 @@ protected:
 		UEdGraph* EdGraph;
 	};
 
-	void RefreshBlueprintMemberCache(const UFunction* DelegateSignature);
+	void RefreshBlueprintMemberCache(const UFunction* DelegateSignature, bool bIsPure);
 
 	TSharedRef<SWidget> OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure);
 

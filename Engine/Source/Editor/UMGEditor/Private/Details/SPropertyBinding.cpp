@@ -72,7 +72,7 @@ void SPropertyBinding::Construct(const FArguments& InArgs, TSharedRef<FWidgetBlu
 	];
 }
 
-void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSignature)
+void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSignature, bool bIsPure)
 {
 	const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
@@ -98,7 +98,7 @@ void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSign
 		FName FunctionFName = Graph->GetFName();
 
 		UFunction* Function = SkeletonClass->FindFunctionByName(FunctionFName, EIncludeSuperFlag::IncludeSuper);
-		if ( Function == NULL )
+		if ( Function == nullptr )
 		{
 			continue;
 		}
@@ -106,6 +106,12 @@ void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSign
 		// We ignore CPF_ReturnParm because all that matters for binding to script functions is that the number of out parameters match.
 		if ( Function->IsSignatureCompatibleWith(DelegateSignature, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
 		{
+			// Only allow binding pure functions if we're limited to pure function bindings.
+			if ( bIsPure && !Function->HasAllFunctionFlags(FUNC_BlueprintPure) )
+			{
+				continue;
+			}
+			
 			FGraphDisplayInfo DisplayInfo;
 			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
@@ -139,7 +145,7 @@ void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSign
 
 TSharedRef<SWidget> SPropertyBinding::OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure)
 {
-	RefreshBlueprintMemberCache(DelegateSignature);
+	RefreshBlueprintMemberCache(DelegateSignature, bIsPure);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, NULL);
