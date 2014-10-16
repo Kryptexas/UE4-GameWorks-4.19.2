@@ -251,13 +251,13 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
-	: Ability(nullptr), Level(1), InputID(INDEX_NONE), InputPressed(false), ActiveCount(0)
+	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), InputPressed(false), ActiveCount(0)
 	{
 		
 	}
 
-	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE)
-		: Ability(InAbility), Level(InLevel), InputID(InInputID), InputPressed(false), ActiveCount(0)
+	FGameplayAbilitySpec(UGameplayAbility* InAbility, int32 InLevel=1, int32 InInputID=INDEX_NONE, UObject* InSourceObject=nullptr)
+		: Ability(InAbility), Level(InLevel), InputID(InInputID), SourceObject(InSourceObject), InputPressed(false), ActiveCount(0)
 	{
 		Handle.GenerateNewHandle();
 	}
@@ -277,6 +277,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	/** InputID, if bound */
 	UPROPERTY()
 	int32	InputID;
+
+	/** Object this ability was created from, can be an actor or static object. Useful to bind an ability to a gameplay object */
+	UPROPERTY()
+	UObject* SourceObject;
 
 	/** Is input currently pressed. Set to false when input is released */
 	UPROPERTY(NotReplicated)

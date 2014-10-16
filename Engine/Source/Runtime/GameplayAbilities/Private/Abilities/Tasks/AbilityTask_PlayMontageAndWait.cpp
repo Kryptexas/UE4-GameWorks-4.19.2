@@ -1,5 +1,6 @@
 
 #include "AbilitySystemPrivatePCH.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "AbilitySystemComponent.h"
 

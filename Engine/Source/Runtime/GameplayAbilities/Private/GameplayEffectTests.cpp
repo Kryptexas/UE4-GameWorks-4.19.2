@@ -2002,6 +2002,9 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply Lifesteal"));
 
+		FGameplayModifierCallback LifestealCallback;
+		LifestealCallback.ExtensionClass = UGameplayEffectExtension_LifestealTest::StaticClass();
+
 		UGameplayEffect * LifestealEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("LifestealPassive"))));
 		LifestealEffect->Modifiers.SetNum(1);
 		LifestealEffect->Modifiers[0].Magnitude.SetValue(LifestealPCT);
@@ -2009,7 +2012,7 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 		LifestealEffect->Modifiers[0].ModifierOp = EGameplayModOp::Callback;
 		LifestealEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
 		LifestealEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Lifesteal"))));
-		LifestealEffect->Modifiers[0].Callbacks.ExtensionClasses.Add( UGameplayEffectExtension_LifestealTest::StaticClass() );
+		LifestealEffect->Modifiers[0].Callbacks.Add( LifestealCallback );
 		LifestealEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		LifestealEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -2078,6 +2081,9 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply Shield"));
 
+		FGameplayModifierCallback ShieldCallback;
+		ShieldCallback.ExtensionClass = UGameplayEffectExtension_ShieldTest::StaticClass();
+
 		UGameplayEffect * ShieldEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ShieldPassive"))));
 		ShieldEffect->Modifiers.SetNum(1);
 		ShieldEffect->Modifiers[0].Magnitude.SetValue(ShieldAmount);
@@ -2085,7 +2091,7 @@ bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Te
 		ShieldEffect->Modifiers[0].ModifierOp = EGameplayModOp::Callback;
 		ShieldEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
 		ShieldEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Shield"))));
-		ShieldEffect->Modifiers[0].Callbacks.ExtensionClasses.Add(UGameplayEffectExtension_ShieldTest::StaticClass());
+		ShieldEffect->Modifiers[0].Callbacks.Add(ShieldCallback);
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 
@@ -2194,6 +2200,9 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 	{
 		ABILITY_LOG_SCOPE(TEXT("Apply Shields"));
 
+		FGameplayModifierCallback ShieldCallback;
+		ShieldCallback.ExtensionClass = UGameplayEffectExtension_ShieldTest::StaticClass();
+
 		UGameplayEffect * ShieldEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ShieldPassive"))));
 		ShieldEffect->Modifiers.SetNum(1);
 		ShieldEffect->Modifiers[0].Magnitude.SetValue(ShieldAmount);
@@ -2201,7 +2210,7 @@ bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestB
 		ShieldEffect->Modifiers[0].ModifierOp = EGameplayModOp::Callback;
 		ShieldEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
 		ShieldEffect->Modifiers[0].OwnedTags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Shield"))));
-		ShieldEffect->Modifiers[0].Callbacks.ExtensionClasses.Add(UGameplayEffectExtension_ShieldTest::StaticClass());
+		ShieldEffect->Modifiers[0].Callbacks.Add(ShieldCallback);
 		ShieldEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
 		ShieldEffect->Period.Value = UGameplayEffect::NO_PERIOD;
 

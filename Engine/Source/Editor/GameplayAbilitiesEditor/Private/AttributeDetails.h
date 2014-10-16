@@ -57,14 +57,27 @@ public:
 
 private:
 
+	FScalableFloatDetails()
+		: PreviewLevel(0.f)
+		, MaxPreviewLevel(30.f) // This should perhaps be configurable per scalable float somehow
+	{
+	}
+
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
 
 	bool IsEditable( ) const;
 
+	EVisibility GetRowNameVisibility() const;
+	EVisibility GetPreviewVisibility() const;
+	float GetPreviewLevel() const;
+	void SetPreviewLevel(float NewLevel);
+
 	TSharedRef<SWidget> GetListContent();
 	void OnSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo);
 	FString GetRowNameComboBoxContentText() const;
+	FText GetRowValuePreviewLabel() const;
+	FString GetRowValuePreviewText() const;
 	TSharedRef<ITableRow> HandleRowNameComboBoxGenarateWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnFilterTextChanged(const FText& InFilterText);
 
@@ -83,4 +96,7 @@ private:
 	TSharedPtr<IPropertyHandle> CurveTableHandleProperty;
 	TSharedPtr<IPropertyHandle> CurveTableProperty;
 	TSharedPtr<IPropertyHandle> RowNameProperty;
+
+	float PreviewLevel;
+	float MaxPreviewLevel;
 };

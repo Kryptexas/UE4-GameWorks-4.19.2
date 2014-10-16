@@ -72,7 +72,7 @@ void UAbilitySystemComponent::K2_InitStats(TSubclassOf<class UAttributeSet> Attr
 	InitStats(Attributes, DataTable);
 }
 
-const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
+const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass)
 {
 	AActor *OwningActor = GetOwner();
 	const UAttributeSet *MyAttributes  = NULL;
@@ -81,8 +81,9 @@ const UAttributeSet* UAbilitySystemComponent::GetOrCreateAttributeSubobject(cons
 		MyAttributes = GetAttributeSubobject(AttributeClass);
 		if (!MyAttributes)
 		{
-			MyAttributes = ConstructObject<UAttributeSet>(AttributeClass, OwningActor);
-			SpawnedAttributes.AddUnique(MyAttributes);
+			UAttributeSet *Attributes = ConstructObject<UAttributeSet>(AttributeClass, OwningActor);
+			SpawnedAttributes.AddUnique(Attributes);
+			MyAttributes = Attributes;
 		}
 	}
 
@@ -538,29 +539,29 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	}
 }
 
-void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	if (IsOwnerActorAuthoritative())
 	{
-		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag, PredictionKey);
+		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag, PredictionKey, EffectContext);
 	}
 	else if (PredictionKey.IsValidKey())
 	{
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
 	}
 }
 
-void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	if (IsOwnerActorAuthoritative())
 	{
 		ActiveGameplayCues.AddCue(GameplayCueTag);
-		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, PredictionKey);
+		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, PredictionKey, EffectContext);
 	}
 	else if (PredictionKey.IsValidKey())
 	{
 		// Allow for predictive gameplaycue events? Needs more thought
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
 	}
 }
@@ -578,7 +579,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 	}
 }
 
-void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType)
+void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
 	AActor* ActorOwner = AbilityActorInfo->OwnerActor.Get();
@@ -589,7 +590,16 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 	}
 
 	FGameplayCueParameters CueParameters;
-	CueParameters.EffectContext.AddInstigator(ActorOwner, ActorAvatar); // By default use the owner and avatar as the instigator and causer
+
+	if (EffectContext.IsValid())
+	{
+		CueParameters.EffectContext = EffectContext;
+	}
+	else
+	{
+		CueParameters.EffectContext.AddInstigator(ActorOwner, ActorAvatar); // By default use the owner and avatar as the instigator and causer
+	}
+	
 	CueParameters.NormalizedMagnitude = 1.f;
 	CueParameters.RawMagnitude = 0.f;
 
@@ -604,19 +614,19 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Im
 	}
 }
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
 	}
 }
 
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
 	}
 }
 

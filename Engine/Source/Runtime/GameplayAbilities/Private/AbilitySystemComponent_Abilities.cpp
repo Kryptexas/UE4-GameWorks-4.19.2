@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Abilities/Tasks/AbilityTask.h"
+#include "TickableAttributeSetInterface.h"
 #include "GameplayPrediction.h"
 
 #include "Net/UnrealNetwork.h"
@@ -92,6 +93,15 @@ void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		TickingTasks.SetNum(0, false);
 		UpdateShouldTick();
 	}
+
+	for (UAttributeSet* AttributeSet : SpawnedAttributes)
+	{
+		ITickableAttributeSetInterface* TickableSet = Cast<ITickableAttributeSetInterface>(AttributeSet);
+		if (TickableSet)
+		{
+			TickableSet->Tick(DeltaTime);
+		}
+	}
 }
 
 void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
@@ -104,10 +114,19 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 
 void UAbilitySystemComponent::UpdateShouldTick()
 {
-	bool HasTickingTasks = (TickingTasks.Num() == 0);
-	bool HasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
+	bool bHasTickingTasks = (TickingTasks.Num() != 0);
+	bool bHasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
+	bool bHasTickingAttributes = false;
+	for (const UAttributeSet* AttributeSet : SpawnedAttributes)
+	{
+		const ITickableAttributeSetInterface* TickableAttributeSet = Cast<const ITickableAttributeSetInterface>(AttributeSet);
+		if (TickableAttributeSet && TickableAttributeSet->ShouldTick())
+		{
+			bHasTickingAttributes = true;
+		}
+	}
 
-	if (HasTickingTasks || HasReplicatedMontageInfoToUpdate)
+	if (bHasTickingTasks || bHasReplicatedMontageInfoToUpdate || bHasTickingAttributes)
 	{
 		SetActive(true);
 	}
@@ -1353,10 +1372,13 @@ void UAbilitySystemComponent::CurrentMontageJumpToSection(FName SectionName)
 		{
 			AnimMontage_UpdateReplicatedData();
 		}
+		else
+		{
+			ServerCurrentMontageJumpToSectionName(LocalAnimMontageInfo.AnimMontage, SectionName);
+		}
 	}
 }
 
-/** Set Next Section Name, and update replication for Simulated Proxies if we are on the server. */
 void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName)
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
@@ -1370,12 +1392,80 @@ void UAbilitySystemComponent::CurrentMontageSetNextSectionName(FName FromSection
 		{
 			AnimMontage_UpdateReplicatedData();
 		}
+		else
+		{
+			float CurrentPosition = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+			ServerCurrentMontageSetNextSectionName(LocalAnimMontageInfo.AnimMontage, CurrentPosition, FromSectionName, ToSectionName);
+		}
+	}
+}
+
+bool UAbilitySystemComponent::ServerCurrentMontageSetNextSectionName_Validate(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerCurrentMontageSetNextSectionName_Implementation(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* CurrentAnimMontage = LocalAnimMontageInfo.AnimMontage;
+	if (AnimInstance)
+	{
+		if (ClientAnimMontage == CurrentAnimMontage)
+		{
+			// Set NextSectionName
+			AnimInstance->Montage_SetNextSection(SectionName, NextSectionName);
+
+			// Correct position if we are in an invalid section
+			float CurrentPosition = AnimInstance->Montage_GetPosition(CurrentAnimMontage);
+			int32 CurrentSectionID = CurrentAnimMontage->GetSectionIndexFromPosition(CurrentPosition);
+			FName CurrentSectionName = CurrentAnimMontage->GetSectionName(CurrentSectionID);
+
+			int32 ClientSectionID = CurrentAnimMontage->GetSectionIndexFromPosition(ClientPosition);
+			FName ClientCurrentSectionName = CurrentAnimMontage->GetSectionName(ClientSectionID);
+			if ((CurrentSectionName != ClientCurrentSectionName) || (CurrentSectionName != SectionName) || (CurrentSectionName != NextSectionName))
+			{
+				// We are in an invalid section, jump to client's position.
+				AnimInstance->Montage_SetPosition(CurrentAnimMontage, ClientPosition);
+			}
+
+			// Update replicated version for Simulated Proxies if we are on the server.
+			if (IsOwnerActorAuthoritative())
+			{
+				AnimMontage_UpdateReplicatedData();
+			}
+		}
+	}
+}
+
+bool UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Validate(UAnimMontage* ClientAnimMontage, FName SectionName)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerCurrentMontageJumpToSectionName_Implementation(UAnimMontage* ClientAnimMontage, FName SectionName)
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* CurrentAnimMontage = LocalAnimMontageInfo.AnimMontage;
+	if (AnimInstance)
+	{
+		if (ClientAnimMontage == CurrentAnimMontage)
+		{
+			// Set NextSectionName
+			AnimInstance->Montage_JumpToSection(SectionName);
+
+			// Update replicated version for Simulated Proxies if we are on the server.
+			if (IsOwnerActorAuthoritative())
+			{
+				AnimMontage_UpdateReplicatedData();
+			}
+		}
 	}
 }
 
 UAnimMontage* UAbilitySystemComponent::GetCurrentMontage() const
 {
-	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->AnimInstance.Get() : nullptr;
 	if (AnimInstance)
 	{
 		return AnimInstance->GetCurrentActiveMontage();
@@ -1384,10 +1474,88 @@ UAnimMontage* UAbilitySystemComponent::GetCurrentMontage() const
 	return nullptr;
 }
 
+int32 UAbilitySystemComponent::GetCurrentMontageSectionID() const
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
+
+	if (CurrentAnimMontage && AnimInstance)
+	{
+		float MontagePosition = AnimInstance->Montage_GetPosition(CurrentAnimMontage);
+		return CurrentAnimMontage->GetSectionIndexFromPosition(MontagePosition);
+	}
+
+	return INDEX_NONE;
+}
+
+FName UAbilitySystemComponent::GetCurrentMontageSectionName() const
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
+
+	if (CurrentAnimMontage && AnimInstance)
+	{
+		float MontagePosition = AnimInstance->Montage_GetPosition(CurrentAnimMontage);
+		int32 CurrentSectionID = CurrentAnimMontage->GetSectionIndexFromPosition(MontagePosition);
+
+		return CurrentAnimMontage->GetSectionName(CurrentSectionID);
+	}
+
+	return NAME_None;
+}
+
+float UAbilitySystemComponent::GetCurrentMontageSectionLength() const
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
+
+	if (CurrentAnimMontage && AnimInstance)
+	{
+		int32 CurrentSectionID = GetCurrentMontageSectionID();
+		if (CurrentSectionID != INDEX_NONE)
+		{
+			TArray<FCompositeSection>& CompositeSections = CurrentAnimMontage->CompositeSections;
+
+			// If we have another section after us, then take delta between both start times.
+			if (CurrentSectionID < (CompositeSections.Num() - 1))
+			{
+				return (CompositeSections[CurrentSectionID + 1].StartTime - CompositeSections[CurrentSectionID].StartTime);
+			}
+			// Otherwise we are the last section, so take delta with Montage total time.
+			else
+			{
+				return (CurrentAnimMontage->SequenceLength - CompositeSections[CurrentSectionID].StartTime);
+			}
+		}
+
+		// if we have no sections, just return total length of Montage.
+		return CurrentAnimMontage->SequenceLength;
+	}
+
+	return 0.f;
+}
+
+float UAbilitySystemComponent::GetCurrentMontageSectionTimeLeft() const
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
+	UAnimMontage* CurrentAnimMontage = GetCurrentMontage();
+	if (CurrentAnimMontage && AnimInstance && AnimInstance->Montage_IsActive(CurrentAnimMontage))
+	{
+		const float CurrentPosition = AnimInstance->Montage_GetPosition(CurrentAnimMontage);
+		return CurrentAnimMontage->GetSectionTimeLeftFromPos(CurrentPosition);
+	}
+
+	return -1.f;
+}
+
 bool UAbilitySystemComponent::IsAnimatingAbility(UGameplayAbility* InAbility) const
 {
 	return (LocalAnimMontageInfo.AnimatingAbility == InAbility);
 }
 
+UGameplayAbility* UAbilitySystemComponent::GetAnimatingAbility()
+{
+	return LocalAnimMontageInfo.AnimatingAbility;
+}
 #undef LOCTEXT_NAMESPACE
 

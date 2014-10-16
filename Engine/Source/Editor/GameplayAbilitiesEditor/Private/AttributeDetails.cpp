@@ -3,19 +3,16 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeDetails.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "AttributeSet.h"
-#include "BlueprintUtilities.h"
 #include "KismetEditorUtilities.h"
-#include "AbilitySystemGlobals.h"
+#include "AttributeSet.h"
 #include "GameplayAbilitiesModule.h"
 #include "SGameplayAttributeGraphPin.h"
 #include "SSearchBox.h"
 #include "STextComboBox.h"
+#include "GameplayEffect.h"
+#include "GameplayEffectExtension.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
-
-// default name for base pose
-#define DEFAULT_POSE_NAME	TEXT("Default")
 
 DEFINE_LOG_CATEGORY(LogAttributeDetails);
 
@@ -24,7 +21,6 @@ TSharedRef<IPropertyTypeCustomization> FAttributePropertyDetails::MakeInstance()
 	return MakeShareable(new FAttributePropertyDetails());
 }
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	MyProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayAttribute,Attribute));
@@ -34,36 +30,93 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
 
-	// Gather all UAttriubute classes
-	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	TArray<UProperty*> PropertiesToAdd;
+
+	const bool bIsExtensionAttribute = (StructPropertyHandle->GetProperty()->GetOuter() == FExtensionAttributeModifierInfo::StaticStruct());
+	if (bIsExtensionAttribute)
 	{
-		UClass *Class = *ClassIt;
-		if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
+		// Attributes in FExtensionAttributeModifierInfo in FGameplayModifierInfos can only be set to the attributes in the extension class
+		TSharedPtr<IPropertyHandle> ExtensionAttributeModifierInfoHandle = StructPropertyHandle->GetParentHandle();
+		TSharedPtr<IPropertyHandle> AttributeModifierArrayHandle = ExtensionAttributeModifierInfoHandle.IsValid() ? ExtensionAttributeModifierInfoHandle->GetParentHandle() : nullptr;
+		TSharedPtr<IPropertyHandle> ModifierCallbackHandle = AttributeModifierArrayHandle.IsValid() ? AttributeModifierArrayHandle->GetParentHandle() : nullptr;
+		if ( ModifierCallbackHandle.IsValid() )
 		{
-			if (Class->HasMetaData(TEXT("HideInDetailsView")))
+			TArray<const void*> RawPtrs;
+			ModifierCallbackHandle->AccessRawData(RawPtrs);
+			if ( RawPtrs.Num() > 0 )
 			{
-				continue;
-			}
+				// Only allow setting of attributes of all selected structs have the same extension class
+				const FGameplayModifierCallback& FirstCallback = *reinterpret_cast<const FGameplayModifierCallback*>(RawPtrs[0]);
+				TSubclassOf<UGameplayEffectExtension> CommonExtensionClass = FirstCallback.ExtensionClass;
+				bool bHasCommonExtensionClass = true;
 
-			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
-			{
-				UProperty *Property = *PropertyIt;
-
-				// Allow properties to be filtered by specific meta strings
-				if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+				for( const void* Ptr : RawPtrs )
 				{
-					continue;
+					const FGameplayModifierCallback& Callback = *reinterpret_cast<const FGameplayModifierCallback*>(Ptr);
+					if ( Callback.ExtensionClass != CommonExtensionClass )
+					{
+						bHasCommonExtensionClass = false;
+						break;
+					}
 				}
 
-				// Allow properties to be filtered globally (never show up)
-				if (Property->HasMetaData(TEXT("HideInDetailsView")))
+				if ( bHasCommonExtensionClass && CommonExtensionClass != nullptr )
 				{
-					continue;
+					UGameplayEffectExtension* ExtensionCDO = CommonExtensionClass->GetDefaultObject<UGameplayEffectExtension>();
+					if ( ensure(ExtensionCDO) )
+					{
+						const bool bIsSourceAttributeModifiers = (AttributeModifierArrayHandle->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FGameplayModifierCallback, SourceAttributeModifiers));
+						if ( bIsSourceAttributeModifiers )
+						{
+							for (const FGameplayAttribute& RelevantAttribute : ExtensionCDO->RelevantSourceAttributes)
+							{
+								PropertiesToAdd.Add(RelevantAttribute.GetUProperty());
+							}
+						}
+						else
+						{
+							for (const FGameplayAttribute& RelevantAttribute : ExtensionCDO->RelevantTargetAttributes)
+							{
+								PropertiesToAdd.Add(RelevantAttribute.GetUProperty());
+							}
+						}
+					}
 				}
-				
-				PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *Class->GetName(), *Property->GetName()))));
 			}
 		}
+	}
+	else
+	{
+		// Gather all UAttriubute classes
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass *Class = *ClassIt;
+			if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
+			{
+				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+				{
+					UProperty *Property = *PropertyIt;
+
+					if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+					{
+						continue;
+					}
+
+					// Allow properties to be filtered globally (never show up)
+					if (Property->HasMetaData(TEXT("HideInDetailsView")))
+					{
+						continue;
+					}
+				
+					PropertiesToAdd.Add(Property);
+				}
+			}
+		}
+	}
+
+	for ( auto* Property : PropertiesToAdd )
+	{
+		PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *Property->GetOuter()->GetName(), *Property->GetName()))));
 	}
 
 	// Fixme: this should be unified to use SGameplayATtributeWidget instead of custom combo box
@@ -92,7 +145,6 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 			]
 		];
 }
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void FAttributePropertyDetails::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
@@ -288,13 +340,14 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
-		.MinDesiredWidth( 500 )
+		.MinDesiredWidth( 600 )
 		.MaxDesiredWidth( 4096 )
 		[
 			SNew(SHorizontalBox)
 			.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FScalableFloatDetails::IsEditable)))
+			
 			+SHorizontalBox::Slot()
-			//.FillWidth(1.0f)
+			.FillWidth(0.12f)
 			.HAlign(HAlign_Fill)
 			.Padding(0.f, 0.f, 2.f, 0.f)
 			[
@@ -302,25 +355,62 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 			]
 		
 			+SHorizontalBox::Slot()
-			//.FillWidth(1.f)
+			.FillWidth(0.40f)
 			.HAlign(HAlign_Fill)
-			.Padding(2.f, 2.f, 2.f, 2.f)
+			.Padding(2.f, 0.f, 2.f, 0.f)
+			[
+				CurveTableProperty->CreatePropertyValueWidget()
+			]
+
+			+SHorizontalBox::Slot()
+			.FillWidth(0.23f)
+			.HAlign(HAlign_Fill)
+			.Padding(2.f, 0.f, 2.f, 0.f)
 			[
 				SAssignNew(RowNameComboButton, SComboButton)
 				.OnGetMenuContent(this, &FScalableFloatDetails::GetListContent)
 				.ContentPadding(FMargin(2.0f, 2.0f))
+				.Visibility(this, &FScalableFloatDetails::GetRowNameVisibility)
 				.ButtonContent()
 				[
 					SNew(STextBlock)
 					.Text(this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
 				]
 			]
+
 			+SHorizontalBox::Slot()
-			//.FillWidth(1.f)
+			.FillWidth(0.15f)
 			.HAlign(HAlign_Fill)
-			.Padding(0.f, 0.f, 2.f, 0.f)
+			.Padding(2.f, 0.f, 2.f, 0.f)
 			[
-				CurveTableProperty->CreatePropertyValueWidget()
+				SNew(SVerticalBox)
+				.Visibility(this, &FScalableFloatDetails::GetPreviewVisibility)
+				
+				+SVerticalBox::Slot()
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(this, &FScalableFloatDetails::GetRowValuePreviewLabel)
+				]
+
+				+SVerticalBox::Slot()
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(this, &FScalableFloatDetails::GetRowValuePreviewText)
+				]
+			]
+
+			+SHorizontalBox::Slot()
+			.FillWidth(0.1f)
+			.HAlign(HAlign_Fill)
+			.Padding(2.f, 0.f, 0.f, 0.f)
+			[
+				SNew(SSlider)
+				.Visibility(this, &FScalableFloatDetails::GetPreviewVisibility)
+				.ToolTipText(LOCTEXT("LevelPreviewToolTip", "Adjust the preview level."))
+				.Value(this, &FScalableFloatDetails::GetPreviewLevel)
+				.OnValueChanged(this, &FScalableFloatDetails::SetPreviewLevel)
 			]
 		];	
 }
@@ -335,6 +425,31 @@ void FScalableFloatDetails::OnCurveTableChanged()
 	{
 		RowNameComboListView->SetSelection(CurrentSelectedItem);
 		RowNameComboListView->RequestListRefresh();
+	}
+
+	// Set the default value to 1.0 when using a data table, so the value in the table is used directly. Only do this if the value is currently 0 (default)
+	// Set it back to 0 when setting back. Only do this if the value is currently 1 to go back to the default.
+	{
+		UObject* CurveTable = nullptr;
+		CurveTableProperty->GetValue(CurveTable);
+
+		float Value;
+		ValueProperty->GetValue(Value);
+
+		if ( CurveTable )
+		{
+			if ( Value == 0.f )
+			{
+				ValueProperty->SetValue(1.f);
+			}
+		}
+		else
+		{
+			if ( Value == 1.f )
+			{
+				ValueProperty->SetValue(0.f);
+			}
+		}
 	}
 }
 
@@ -388,6 +503,31 @@ UCurveTable * FScalableFloatDetails::GetCurveTable()
 	}
 
 	return CurveTable;
+}
+
+EVisibility FScalableFloatDetails::GetRowNameVisibility() const
+{
+	UObject* CurveTable = nullptr;
+	CurveTableProperty->GetValue(CurveTable);
+
+	return CurveTable ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+EVisibility FScalableFloatDetails::GetPreviewVisibility() const
+{
+	const bool bRowNameVisible = (GetRowNameVisibility() == EVisibility::Visible);
+	const bool bRowNameValid = CurrentSelectedItem.IsValid() && !CurrentSelectedItem->IsEmpty() && *CurrentSelectedItem.Get() != FName(NAME_None).ToString();
+	return (bRowNameVisible && bRowNameValid) ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+float FScalableFloatDetails::GetPreviewLevel() const
+{
+	return (MaxPreviewLevel != 0) ? PreviewLevel / MaxPreviewLevel : 0;
+}
+
+void FScalableFloatDetails::SetPreviewLevel(float NewLevel)
+{
+	PreviewLevel = FMath::FloorToInt(NewLevel * MaxPreviewLevel);
 }
 
 TSharedRef<SWidget> FScalableFloatDetails::GetListContent()
@@ -457,6 +597,30 @@ FString FScalableFloatDetails::GetRowNameComboBoxContentText() const
 		}
 	}
 	return RowName;
+}
+
+FText FScalableFloatDetails::GetRowValuePreviewLabel() const
+{
+	return FText::Format(LOCTEXT("LevelPreviewLabel", "Preview At {0}"), FText::AsNumber(PreviewLevel));
+}
+
+FString FScalableFloatDetails::GetRowValuePreviewText() const
+{
+	TArray<const void*> RawPtrs;
+	CurveTableHandleProperty->AccessRawData(RawPtrs);
+	if ( RawPtrs.Num() == 1 )
+	{
+		const FCurveTableRowHandle& Curve = *reinterpret_cast<const FCurveTableRowHandle*>(RawPtrs[0]);
+		if ( Curve.CurveTable && Curve.RowName != NAME_None )
+		{
+			float Value;
+			ValueProperty->GetValue(Value);
+
+			return FString::Printf(TEXT("%.3f"), Value * Curve.Eval(PreviewLevel));
+		}
+	}
+
+	return FString();
 }
 
 /** Called by Slate when the filter box changes text. */

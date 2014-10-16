@@ -1,7 +1,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
-#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilitySystemComponent.h"
+#include "Abilities/Tasks/AbilityTask.h"
 
 UAbilityTask::UAbilityTask(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -73,6 +73,10 @@ AActor* UAbilityTask::GetAvatarActor() const
 		{
 			return Info->AvatarActor.Get();
 		}
+	}
+	else if (AbilitySystemComponent.IsValid())
+	{
+		return AbilitySystemComponent->AbilityActorInfo->AvatarActor.Get();
 	}
 
 	return nullptr;

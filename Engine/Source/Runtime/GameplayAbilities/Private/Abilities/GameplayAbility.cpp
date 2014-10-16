@@ -162,12 +162,12 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handl
 		return false;
 	}
 	
-	if (!CheckCooldown(ActorInfo))
+	if (!CheckCooldown(Handle, ActorInfo))
 	{
 		return false;
 	}
 
-	if (!CheckCost(ActorInfo))
+	if (!CheckCost(Handle, ActorInfo))
 	{
 		return false;
 	}
@@ -210,7 +210,7 @@ bool UGameplayAbility::ShouldAbilityRespondToEvent(FGameplayTag EventTag, const 
 bool UGameplayAbility::CommitAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	// Last chance to fail (maybe we no longer have resources to commit since we after we started this ability activation)
-	if (!CommitCheck(ActorInfo, ActivationInfo))
+	if (!CommitCheck(Handle, ActorInfo, ActivationInfo))
 	{
 		return false;
 	}
@@ -226,7 +226,7 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilitySpecHandle Handle, co
 	return true;
 }
 
-bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+bool UGameplayAbility::CommitCheck(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	/**
 	 *	Checks if we can (still) commit this ability. There are some subtleties here.
@@ -236,12 +236,12 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, c
 	 *			-E.g., its possible the act of starting your ability makes it no longer activatable (CanaCtivateAbility() may be false if called here).
 	 */
 
-	if (!CheckCooldown(ActorInfo))
+	if (!CheckCooldown(Handle, ActorInfo))
 	{
 		return false;
 	}
 
-	if (!CheckCost(ActorInfo))
+	if (!CheckCost(Handle, ActorInfo))
 	{
 		return false;
 	}
@@ -362,7 +362,7 @@ void UGameplayAbility::InputReleased(const FGameplayAbilitySpecHandle Handle, co
 	OnInputRelease.Clear();
 }
 
-bool UGameplayAbility::CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	if (CooldownGameplayEffect)
 	{
@@ -383,7 +383,7 @@ void UGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, co
 	}
 }
 
-bool UGameplayAbility::CheckCost(const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	if (CostGameplayEffect)
 	{
@@ -662,6 +662,26 @@ FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
 	check(IsInstantiated()); // You should not call this on non instanced abilities.
 	check(CurrentActorInfo);
 	return CurrentActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
+}
+
+UObject* UGameplayAbility::GetSourceObject(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	FGameplayAbilitySpec* AbilitySpec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+	if (AbilitySpec)
+	{
+		return AbilitySpec->SourceObject;
+	}
+	return nullptr;
+}
+
+UObject* UGameplayAbility::GetCurrentSourceObject() const
+{
+	FGameplayAbilitySpec* AbilitySpec = GetCurrentAbilitySpec();
+	if (AbilitySpec)
+	{
+		return AbilitySpec->SourceObject;
+	}
+	return nullptr;
 }
 
 FGameplayEffectContextHandle UGameplayAbility::GetEffectContext(const FGameplayAbilityActorInfo *ActorInfo) const

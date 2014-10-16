@@ -15,15 +15,45 @@ class UGameplayEffect;
 class UGameplayEffectTemplate;
 class UAbilitySystemComponent;
 
-
-
 USTRUCT()
-struct FGameplayModifierCallbacks
+struct GAMEPLAYABILITIES_API FExtensionAttributeModifierInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
-	TArray<TSubclassOf<class UGameplayEffectExtension> >	ExtensionClasses;
+	FExtensionAttributeModifierInfo()
+		: ModifierOp( EGameplayModOp::Additive )
+	{
+
+	}
+
+	/** The Attribute we modify or the GE we modify modifies. */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	FGameplayAttribute Attribute;
+
+	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
+
+	/** How much this modifies what it is applied to */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	FScalableFloat Magnitude;
+};
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayModifierCallback
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	TSubclassOf<class UGameplayEffectExtension> ExtensionClass;
+
+	/** Modifications to attributes on the source instigator to be used in the extension class */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	TArray<FExtensionAttributeModifierInfo> SourceAttributeModifiers;
+
+	/** Modifications to attributes on the target to be used in the extension class */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	TArray<FExtensionAttributeModifierInfo> TargetAttributeModifiers;
 };
 
 USTRUCT()
@@ -72,28 +102,20 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 
 	FGameplayModifierInfo()
 		: ModifierType( EGameplayMod::Attribute )
-		, ModifierOp( EGameplayModOp::Additive )
 		, EffectType( EGameplayModEffect::Magnitude )
 		, TargetEffect( NULL )
+		, ModifierOp(EGameplayModOp::Additive)
 	{
 
 	}
 
-	/** How much this modifies what it is applied to */
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
-	FScalableFloat Magnitude; // Not modified from defaults
+	/** The Attribute we modify or the GE we modify modifies. */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	FGameplayAttribute Attribute;
 
 	/** What this modifies - Attribute, OutgoingGEs, IncomingGEs, ACtiveGEs. */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	TEnumAsByte<EGameplayMod::Type> ModifierType;
-
-	/** The Attribute we modify or the GE we modify modifies. */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier, meta = (FilterMetaTag="HideFromModifiers"))
-	FGameplayAttribute Attribute;
-
-	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
 
 	/** If we modify an effect, this is what we modify about it (Duration, Magnitude, etc) */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
@@ -103,28 +125,36 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	UGameplayEffect* TargetEffect;
 
+	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
+
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier, meta=(DisplayName="Custom Ops"))
+	TArray<FGameplayModifierCallback> Callbacks;
+
+	/** How much this modifies what it is applied to */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	FScalableFloat Magnitude; // Not modified from defaults
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=GameplayEffect)
+	FGameplayEffectLevelDef	LevelInfo;
+
 	/** The thing I modify requires these tags */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagContainer RequiredTags;
 
 	/** The thing I modify must not have any of these tags */
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagContainer IgnoreTags;
 	
 	/** This modifier's tags. These tags are passed to any other modifiers that this modifies. */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagContainer OwnedTags;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = GameplayEffect)
-	FGameplayEffectLevelDef	LevelInfo;
-
 	FString ToSimpleString() const
 	{
 		return FString::Printf(TEXT("%s %s %s BaseVaue: %s"), *EGameplayModToString(ModifierType), *EGameplayModOpToString(ModifierOp), *EGameplayModEffectToString(EffectType), *Magnitude.ToSimpleString());
 	}
-
-	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
-	FGameplayModifierCallbacks	Callbacks;
 };
 
 /**
@@ -390,7 +420,7 @@ protected:
 
 struct FGameplayEffectLevelSpec
 {
-	static const float INVALID_LEVEL;
+	GAMEPLAYABILITIES_API static const float INVALID_LEVEL;
 
 	FGameplayEffectLevelSpec()
 		:ConstantLevel(INVALID_LEVEL)
@@ -583,7 +613,7 @@ struct FGameplayModifierData
 		RequireTags = Info.RequiredTags;
 		IgnoreTags = Info.IgnoreTags;
 
-		if (Info.Callbacks.ExtensionClasses.Num() > 0)
+		if (Info.Callbacks.Num() > 0)
 		{
 			Callbacks = &Info.Callbacks;
 		}
@@ -596,7 +626,7 @@ struct FGameplayModifierData
 		Callbacks = NULL;
 	}
 
-	FGameplayModifierData(float InMagnitude, const FGameplayModifierCallbacks* InCallbacks)
+	FGameplayModifierData(float InMagnitude, const TArray<FGameplayModifierCallback>* InCallbacks)
 	{
 		// Magnitude will be fixed at this value
 		Magnitude.SetValue(InMagnitude);
@@ -613,7 +643,7 @@ struct FGameplayModifierData
 	FGameplayTagContainer IgnoreTags;
 
 	// Callback information for custom logic pre/post evaluation
-	const FGameplayModifierCallbacks* Callbacks;
+	const TArray<FGameplayModifierCallback>* Callbacks;
 
 	void PrintAll() const;
 };
@@ -631,7 +661,7 @@ struct FGameplayModifierEvaluatedData
 	{
 	}
 
-	FGameplayModifierEvaluatedData(float InMagnitude, const FGameplayModifierCallbacks* InCallbacks = NULL, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle(), const FGameplayTagContainer *InTags = NULL)
+	FGameplayModifierEvaluatedData(float InMagnitude, const TArray<FGameplayModifierCallback>* InCallbacks = NULL, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle(), const FGameplayTagContainer *InTags = NULL)
 		: Magnitude(InMagnitude)
 		, Callbacks(InCallbacks)
 		, Handle(InHandle)
@@ -645,7 +675,7 @@ struct FGameplayModifierEvaluatedData
 
 	float	Magnitude;
 	FGameplayTagContainer Tags;
-	const FGameplayModifierCallbacks* Callbacks;
+	const TArray<FGameplayModifierCallback>* Callbacks;
 	FActiveGameplayEffectHandle	Handle;	// Handle of the active gameplay effect that originated us. Will be invalid in many cases
 	bool IsValid;
 

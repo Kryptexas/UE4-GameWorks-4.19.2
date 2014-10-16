@@ -31,6 +31,14 @@ class GAMEPLAYABILITIES_API UGameplayEffectExtension: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Attributes on the source instigator that are relevant to calculating modifications using this extension */
+	UPROPERTY(EditDefaultsOnly, Category=Calculation)
+	TArray<FGameplayAttribute> RelevantSourceAttributes;
+
+	/** Attributes on the target that are relevant to calculating modifications using this extension */
+	UPROPERTY(EditDefaultsOnly, Category=Calculation)
+	TArray<FGameplayAttribute> RelevantTargetAttributes;
+
 public:
 
 	virtual void PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const

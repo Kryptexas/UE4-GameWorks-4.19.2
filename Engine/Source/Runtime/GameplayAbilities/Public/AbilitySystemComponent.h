@@ -99,7 +99,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	TArray<FAttributeDefaults>	DefaultStartingData;
 
 	UPROPERTY(Replicated)
-	TArray<const UAttributeSet*>	SpawnedAttributes;
+	TArray<UAttributeSet*>	SpawnedAttributes;
 
 	void SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue);
 	float GetNumericAttribute(const FGameplayAttribute &Attribute);
@@ -284,25 +284,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);
 
-	// GameplayCues can also come on their own. For now these will have no additional parameters (just a tag) though that it something we could
-	// support down the road if we wanted.
+	// GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc
 
-	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 
-	void AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void AddGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 	
 	void RemoveGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
 	UFUNCTION(NetMulticast, unreliable)
-	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
+	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueRemoved(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey);
 
-	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType);
+	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 
 	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue handling to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
 	UFUNCTION(BlueprintCallable, Category="GameplayCue", meta=(GameplayTagFilter="GameplayCue"))
@@ -487,8 +486,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Returns true if the passed in ability is the current animating ability */
 	bool IsAnimatingAbility(UGameplayAbility* Ability) const;
 
+	/** Returns the current animating ability */
+	UGameplayAbility* GetAnimatingAbility();
+
 	/** Returns montage that is currently playing */
 	UAnimMontage* GetCurrentMontage() const;
+
+	/** Get SectionID of currently playing AnimMontage */
+	int32 GetCurrentMontageSectionID() const;
+
+	/** Get SectionName of currently playing AnimMontage */
+	FName GetCurrentMontageSectionName() const;
+
+	/** Get length in time of current section */
+	float GetCurrentMontageSectionLength() const;
+
+	/** Returns amount of time left in current section */
+	float GetCurrentMontageSectionTimeLeft() const;
+
+protected:
 
 	/** Called when a prediction key that played a montage is rejected */
 	void OnPredictiveMontageRejected(UAnimMontage* PredictiveMontage);
@@ -507,8 +523,16 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION()
 	void OnRep_ReplicatedAnimMontage();
 
-	// -----------------------------------------------------------------------------
+	/** RPC function called from CurrentMontageSetNextSectopnName, replicates to other clients */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerCurrentMontageSetNextSectionName(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName);
 
+	/** RPC function called from CurrentMontageJumpToSection, replicates to other clients */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerCurrentMontageJumpToSectionName(UAnimMontage* ClientAnimMontage, FName SectionName);
+
+	// -----------------------------------------------------------------------------
+public:
 
 	/** The actor that owns this component logically */
 	UPROPERTY(ReplicatedUsing = OnRep_OwningActor)
@@ -639,7 +663,7 @@ protected:
 
 	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
-	const UAttributeSet*	GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass);
+	const UAttributeSet*	GetOrCreateAttributeSubobject(TSubclassOf<UAttributeSet> AttributeClass);
 
 	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayEffect;

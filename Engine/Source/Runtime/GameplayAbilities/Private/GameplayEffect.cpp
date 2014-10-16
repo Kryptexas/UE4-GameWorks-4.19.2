@@ -1088,8 +1088,9 @@ void FGameplayModifierEvaluatedData::InvokePreExecute(FGameplayEffectModCallback
 {
 	if (Callbacks)
 	{
-		for (TSubclassOf<class UGameplayEffectExtension> ExtClass : Callbacks->ExtensionClasses)
+		for ( const FGameplayModifierCallback& Callback : *Callbacks )
 		{
+			TSubclassOf<UGameplayEffectExtension> ExtClass = Callback.ExtensionClass;
 			if (ExtClass)
 			{
 				UGameplayEffectExtension * Ext = ExtClass->GetDefaultObject<UGameplayEffectExtension>();
@@ -1103,8 +1104,9 @@ void FGameplayModifierEvaluatedData::InvokePostExecute(const FGameplayEffectModC
 {
 	if (Callbacks)
 	{
-		for (TSubclassOf<class UGameplayEffectExtension> ExtClass : Callbacks->ExtensionClasses)
+		for ( const FGameplayModifierCallback& Callback : *Callbacks )
 		{
+			TSubclassOf<class UGameplayEffectExtension> ExtClass = Callback.ExtensionClass;
 			if (ExtClass)
 			{
 				UGameplayEffectExtension * Ext = ExtClass->GetDefaultObject<UGameplayEffectExtension>();
@@ -1386,7 +1388,6 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
 			AttributeSet->PostGameplayEffectExecute(ExecuteData);
-			
 		}
 		else if(Mod.Info.ModifierType == EGameplayMod::ActiveGE)
 		{
