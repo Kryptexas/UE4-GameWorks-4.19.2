@@ -6,7 +6,6 @@
 #include "VectorVM.h"
 #include "ParticleHelper.h"
 #include "Particles/ParticleResources.h"
-#include "Engine/NiagaraConstants.h"
 #include "Engine/NiagaraEffectRenderer.h"
 #include "MeshBatch.h"
 #include "SceneUtils.h"
