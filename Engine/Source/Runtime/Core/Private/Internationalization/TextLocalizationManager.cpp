@@ -715,12 +715,14 @@ void FTextLocalizationManager::RegenerateResources( const FString& ConfigFilePat
 	for(int32 i = 0; i < BackingBuffers.Num(); ++i)
 	{
 		TArray<uint8>& BackingBuffer = BackingBuffers[i];
-
 		FMemoryWriter MemoryWriter(BackingBuffer, true);
 
 		// Read the manifest file from the source path.
 		FString ManifestFilePath = (SourcePath / ManifestName);
 		ManifestFilePath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+		TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable(new FInternationalizationManifest);
+
+#if 0 // @todo Json: Serializing from FArchive is currently broken
 		FArchive* ManifestFile = IFileManager::Get().CreateFileReader(*ManifestFilePath);
 
 		if (ManifestFile == nullptr)
@@ -729,10 +731,18 @@ void FTextLocalizationManager::RegenerateResources( const FString& ConfigFilePat
 			return;
 		}
 
-		TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
+		ManifestSerializer.DeserializeManifest(*ManifestFile, InternationalizationManifest);
+#else
+		FString ManifestContent;
+
+		if (!FFileHelper::LoadFileToString(ManifestContent, *ManifestFilePath))
 		{
-			ManifestSerializer.DeserializeManifest(*ManifestFile, InternationalizationManifest);
+			UE_LOG(LogTextLocalizationManager, Error, TEXT("Failed to load file %s."), *ManifestFilePath);
+			continue;
 		}
+
+		ManifestSerializer.DeserializeManifest(ManifestContent, InternationalizationManifest);
+#endif
 
 		// Write resource.
 		FTextLocalizationResourceGenerator::Generate(SourcePath, InternationalizationManifest, LocaleNames[i], &(MemoryWriter), ArchiveSerializer);
@@ -745,11 +755,8 @@ void FTextLocalizationManager::RegenerateResources( const FString& ConfigFilePat
 	for(int32 i = 0; i < BackingBuffers.Num(); ++i)
 	{
 		TArray<uint8>& BackingBuffer = BackingBuffers[i];
-
 		FMemoryReader MemoryReader(BackingBuffer, true);
-
 		const FString CulturePath = DestinationPath / LocaleNames[i];
-
 		const FString ResourceFilePath = FPaths::ConvertRelativePathToFull(CulturePath / ResourceName);
 
 		FLocalizationEntryTracker& CultureTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];

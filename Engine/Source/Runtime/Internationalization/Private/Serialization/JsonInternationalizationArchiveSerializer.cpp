@@ -59,6 +59,7 @@ struct FCompareStructuredArchiveEntryByNamespace
 };
 
 
+#if 0 // @todo Json: Serializing from FArchive is currently broken
 bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
 {
 	TSharedPtr< FJsonObject > JsonArchiveObj;
@@ -72,6 +73,7 @@ bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( FArchive& A
 
 	return bExecSuccessful;
 }
+#endif
 
 
 bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( const FString& InStr, TSharedRef< FInternationalizationArchive > InternationalizationArchive )
@@ -95,6 +97,7 @@ bool FJsonInternationalizationArchiveSerializer::DeserializeArchive( TSharedRef<
 }
 
 
+#if 0 // @todo Json: Serializing from FArchive is currently broken
 bool FJsonInternationalizationArchiveSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive )
 {
 	TSharedRef< FJsonObject > JsonArchiveObj = MakeShareable( new FJsonObject );
@@ -108,6 +111,7 @@ bool FJsonInternationalizationArchiveSerializer::SerializeArchive( TSharedRef< c
 	}
 	return bExecSuccessful;
 }
+#endif
 
 
 bool FJsonInternationalizationArchiveSerializer::SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FString& Str )

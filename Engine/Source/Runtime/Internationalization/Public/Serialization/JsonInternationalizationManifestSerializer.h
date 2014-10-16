@@ -30,65 +30,37 @@ public:
 	/** Default constructor. */
 	FJsonInternationalizationManifestSerializer() { }
 
-	/**
-	 * Deserializes a Internationalization manifest from archive.
-	 *
-	 * @param Archive The archive to serialize from.
-	 * @param Manifest The populated Internationalization manifest.
-	 *
-	 * @return true if deserialization was successful, false otherwise.
-	 */
-	virtual bool DeserializeManifest( FArchive& Archive, TSharedRef< FInternationalizationManifest > Manifest ) override;
-
-	/**
-	 * Deserializes a Internationalization manifest from a string.
-	 *
-	 * @param InStr The string to serialize from.
-	 * @param Manifest The populated Internationalization manifest.
-	 *
-	 * @return true if deserialization was successful, false otherwise.
-	 */
-	virtual bool DeserializeManifest( const FString& InStr, TSharedRef< FInternationalizationManifest > Manifest );
+public:
 
 	/**
 	 * Deserializes a Internationalization manifest from a JSON object.
 	 *
 	 * @param InJsonObj The JSON object to serialize from.
 	 * @param Manifest The populated Internationalization manifest.
-	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
-	virtual bool DeserializeManifest( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationManifest > Manifest );
-
-	/**
-	 * Serializes a Internationalization manifest into an archive.
-	 *
-	 * @param Manifest The Internationalization manifest data to serialize.
-	 * @param Archive The archive to serialize into.
-	 *
-	 * @return true if serialization was successful, false otherwise.
-	 */
-	virtual bool SerializeManifest(TSharedRef< const FInternationalizationManifest > Manifest, FArchive& Archive ) override;
-
-	/**
-	 * Serializes a Internationalization manifest to a string.
-	 *
-	 * @param Manifest The Internationalization manifest data to serialize.
-	 * @param Str The string to serialize into.
-	 *
-	 * @return true if serialization was successful, false otherwise.
-	 */
-	virtual bool SerializeManifest( TSharedRef< const FInternationalizationManifest > Manifest, FString& Str );
+	bool DeserializeManifest( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationManifest > Manifest );
 
 	/**
 	 * Serializes a Internationalization manifest to a JSON object.
 	 *
 	 * @param Manifest The Internationalization manifest data to serialize.
 	 * @param JsonObj The JSON object to serialize into.
-	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
-	virtual bool SerializeManifest( TSharedRef< const FInternationalizationManifest > Manifest, TSharedRef< FJsonObject > JsonObj );
+	bool SerializeManifest( TSharedRef< const FInternationalizationManifest > Manifest, TSharedRef< FJsonObject > JsonObj );
+
+public:
+
+	// IInternationalizationManifestSerializer interface
+
+	virtual bool DeserializeManifest( const FString& InStr, TSharedRef< FInternationalizationManifest > Manifest ) override;
+	virtual bool SerializeManifest( TSharedRef< const FInternationalizationManifest > Manifest, FString& Str ) override;
+
+#if 0 // @todo Json: Serializing from FArchive is currently broken
+	virtual bool DeserializeManifest( FArchive& Archive, TSharedRef< FInternationalizationManifest > Manifest ) override;
+	virtual bool SerializeManifest(TSharedRef< const FInternationalizationManifest > Manifest, FArchive& Archive ) override;
+#endif
 
 protected:
 

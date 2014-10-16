@@ -164,6 +164,9 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 		// Read each archive file from the culture-named directory in the source path.
 		FString ArchiveFilePath = CulturePath / ArchiveName;
 		ArchiveFilePath = FPaths::ConvertRelativePathToFull(ArchiveFilePath);
+		TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive);
+
+#if 0 // @todo Json: Serializing from FArchive is currently broken
 		FArchive* ArchiveFile = IFileManager::Get().CreateFileReader(*ArchiveFilePath);
 
 		if (ArchiveFile == nullptr)
@@ -171,11 +174,19 @@ bool FTextLocalizationResourceGenerator::Generate(const FString& SourcePath, con
 			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("No archive found at %s."), *ArchiveFilePath);
 			continue;
 		}
+			
+		ArchiveSerializer.DeserializeArchive(*ArchiveFile, InternationalizationArchive);
+#else
+		FString ArchiveContent;
 
-		TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
+		if (!FFileHelper::LoadFileToString(ArchiveContent, *ArchiveFilePath))
 		{
-			ArchiveSerializer.DeserializeArchive(*ArchiveFile, InternationalizationArchive);
+			UE_LOG(LogTextLocalizationResourceGenerator, Error, TEXT("Failed to load file %s."), *ArchiveFilePath);
+			continue;
 		}
+
+		ArchiveSerializer.DeserializeArchive(ArchiveContent, InternationalizationArchive);
+#endif
 
 		// Generate text localization resource from manifest and archive entries.
 		for(TManifestEntryByContextIdContainer::TConstIterator i = InternationalizationManifest->GetEntriesByContextIdIterator(); i; ++i)

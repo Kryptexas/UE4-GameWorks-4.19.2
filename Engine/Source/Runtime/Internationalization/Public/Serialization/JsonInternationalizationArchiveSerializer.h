@@ -33,65 +33,37 @@ public:
 	/** Default constructor. */
 	FJsonInternationalizationArchiveSerializer() { }
 
-	/**
-	 * Deserializes a Internationalization archive from archive.
-	 *
-	 * @param Archive The archive to serialize from.
-	 * @param InternationalizationArchive The populated Internationalization archive.
-	 *
-	 * @return true if deserialization was successful, false otherwise.
-	 */
-	virtual bool DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive ) override;
-
-	/**
-	 * Deserializes a Internationalization archive from a string.
-	 *
-	 * @param InStr The string to serialize from.
-	 * @param InternationalizationArchive The populated Internationalization archive.
-	 *
-	 * @return true if deserialization was successful, false otherwise.
-	 */
-	virtual bool DeserializeArchive( const FString& InStr, TSharedRef< FInternationalizationArchive > InternationalizationArchive );
+public:
 
 	/**
 	 * Deserializes a Internationalization archive from a JSON object.
 	 *
 	 * @param InJsonObj The JSON object to serialize from.
 	 * @param InternationalizationArchive The populated Internationalization archive.
-	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
-	virtual bool DeserializeArchive( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive );
-
-	/**
-	 * Serializes a Internationalization archive into an archive.
-	 *
-	 * @param InternationalizationArchive The Internationalization archive data to serialize.
-	 * @param Archive The archive to serialize into.
-	 *
-	 * @return true if serialization was successful, false otherwise.
-	 */
-	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive ) override;
-
-	/**
-	 * Serializes a Internationalization archive to a string.
-	 *
-	 * @param InternationalizationArchive The Internationalization archive data to serialize.
-	 * @param Str The string to serialize into.
-	 *
-	 * @return true if serialization was successful, false otherwise.
-	 */
-	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FString& Str );
+	bool DeserializeArchive( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive );
 
 	/**
 	 * Serializes a Internationalization archive to a JSON object.
 	 *
 	 * @param InternationalizationArchive The Internationalization archive data to serialize.
 	 * @param JsonObj The JSON object to serialize into.
-	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
-	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, TSharedRef< FJsonObject > JsonObj );
+	bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, TSharedRef< FJsonObject > JsonObj );
+
+public:
+
+	// IInternationalizationArchiveSerializer interface
+
+	virtual bool DeserializeArchive( const FString& InStr, TSharedRef< FInternationalizationArchive > InternationalizationArchive ) override;
+	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FString& Str ) override;
+
+#if 0 // @todo Json: Serializing from FArchive is currently broken
+	virtual bool DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive ) override;
+	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive ) override;
+#endif
 
 protected:
 
@@ -100,7 +72,6 @@ protected:
 	 *
 	 * @param InJsonObj The JSON object to serialize from.
 	 * @param InternationalizationArchive The Internationalization archive that will store the data.
-	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
 	bool DeserializeInternal( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationArchive > InternationalizationArchive );
@@ -110,7 +81,6 @@ protected:
 	 *
 	 * @param InInternationalizationArchive The Internationalization archive object to serialize from.
 	 * @param JsonObj The Json object that will store the data.
-	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
 	bool SerializeInternal( TSharedRef< const FInternationalizationArchive > InInternationalizationArchive, TSharedRef< FJsonObject > JsonObj );
@@ -121,7 +91,6 @@ protected:
 	 * @param InJsonObj The JSON object.
 	 * @param ParentNamespace The namespace of the parent JSON object.
 	 * @param InternationalizationArchive The Internationalization archive that will store the data.
-	 *
 	 * @return true if successful, false otherwise.
 	 */
 	bool JsonObjToArchive( TSharedRef< FJsonObject > InJsonObj, FString ParentNamespace, TSharedRef< FInternationalizationArchive > InternationalizationArchive );
