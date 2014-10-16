@@ -1402,6 +1402,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 			FCompilerResultsLog Results;
 			FKismetCompilerOptions CompileOptions;
+			CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 			CompileOptions.bIsDuplicationInstigated = true;
 
 			//SCS can change structure of the class
@@ -1485,6 +1486,47 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 				Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
 			}
 
+			// Create a new blueprint guid
+			Blueprint->GenerateNewGuid();
+
+			// Give all nodes a new Guid
+			TArray< UEdGraphNode* > AllGraphNodes;
+			GetAllNodesOfClass(Blueprint, AllGraphNodes);
+			for(auto& Node : AllGraphNodes)
+			{
+				Node->CreateNewGuid();
+
+				// Some variable nodes must be fixed up on duplicate, this cannot wait for individual 
+				// node calls to PostDuplicate because it happens after compilation and will still result in errors
+				if(UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(Node))
+				{
+					// Self context variable nodes need to be updated with the new Blueprint class
+					if(VariableNode->VariableReference.IsSelfContext())
+					{
+						const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+						if(UEdGraphPin* SelfPin = K2Schema->FindSelfPin(*VariableNode, EGPD_Input))
+						{
+							UClass* TargetClass = nullptr;
+
+							if(UProperty* Property = VariableNode->VariableReference.ResolveMember<UProperty>(VariableNode))
+							{
+								TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
+							}
+							else
+							{
+								TargetClass = Blueprint->SkeletonGeneratedClass->GetAuthoritativeClass();
+							}
+
+							SelfPin->PinType.PinSubCategoryObject = TargetClass;
+						}
+					}
+				}
+			}
+
+			// Needs a full compile to handle the ArchiveReplaceObjectRef
+			CompileOptions.CompileType = EKismetCompileType::Full;
+			Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
+
 			FArchiveReplaceObjectRef<UObject> ReplaceTemplateRefs(NewBPGC, OldToNewMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 
 			// Now propagate the values from the old CDO to the new one
@@ -1493,43 +1535,6 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			UObject* NewCDO = Blueprint->GeneratedClass->GetDefaultObject();
 			check(NewCDO != NULL);
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
-		}
-
-		// Create a new blueprint guid
-		Blueprint->GenerateNewGuid();
-
-		// Give all nodes a new Guid
-		TArray< UEdGraphNode* > AllGraphNodes;
-		GetAllNodesOfClass(Blueprint, AllGraphNodes);
-		for(auto& Node : AllGraphNodes)
-		{
-			Node->CreateNewGuid();
-
-			// Some variable nodes must be fixed up on duplicate, this cannot wait for individual 
-			// node calls to PostDuplicate because it happens after compilation and will still result in errors
-			if(UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(Node))
-			{
-				// Self context variable nodes need to be updated with the new Blueprint class
-				if(VariableNode->VariableReference.IsSelfContext())
-				{
-					const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-					if(UEdGraphPin* SelfPin = K2Schema->FindSelfPin(*VariableNode, EGPD_Input))
-					{
-						UClass* TargetClass = nullptr;
-
-						if(UProperty* Property = VariableNode->VariableReference.ResolveMember<UProperty>(VariableNode))
-						{
-							TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
-						}
-						else
-						{
-							TargetClass = Blueprint->SkeletonGeneratedClass->GetAuthoritativeClass();
-						}
-
-						SelfPin->PinType.PinSubCategoryObject = TargetClass;
-					}
-				}
-			}
 		}
 
 		// And compile again to make sure they go into the generated class, get cleaned up, etc...
