@@ -587,8 +587,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindo
 					while ((screen = [screenEnumerator nextObject]) && !NSMouseInRect(NSMakePoint(HighPrecisionMousePos.X, HighPrecisionMousePos.Y), screen.frame, NO))
 						;
 					
-					FMacCursor* MacCursor = static_cast<FMacCursor*>( Cursor.Get() );
-					
+				
 					// Clamp to no more than the reported delta - a single event of no mouse movement won't be noticed
 					// but going in the wrong direction will.
 					const FVector2D FullDelta([Event deltaX], [Event deltaY]);

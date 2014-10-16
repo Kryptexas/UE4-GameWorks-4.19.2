@@ -269,9 +269,9 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 			{
 				TArray<FString> PrioritizedParentCultureNames = Culture->GetPrioritizedParentCultureNames();
 
-				for (const FString& CultureName : PrioritizedParentCultureNames)
+				for (const FString& PrioritizedParentCultureName : PrioritizedParentCultureNames)
 				{
-					if(AllLocalizationFolders.Contains(CultureName))
+					if(AllLocalizationFolders.Contains(PrioritizedParentCultureName))
 					{
 						OutAvailableCultures.AddUnique(Culture.ToSharedRef());
 						break;

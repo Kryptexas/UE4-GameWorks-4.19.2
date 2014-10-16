@@ -60,15 +60,15 @@ bool FTransform::InitFromString( const FString& Source )
 	}
 
 	// Translation
-	FVector Translation = FVector::ZeroVector;
-	if( !FDefaultValueHelper::ParseVector(ComponentStrings[0], Translation) )
+	FVector ParsedTranslation = FVector::ZeroVector;
+	if( !FDefaultValueHelper::ParseVector(ComponentStrings[0], ParsedTranslation) )
 	{
 		return false;
 	}
 
 	// Rotation
-	FRotator Rotation = FRotator::ZeroRotator;
-	if( !FDefaultValueHelper::ParseRotator(ComponentStrings[1], Rotation) )
+	FRotator ParsedRotation = FRotator::ZeroRotator;
+	if( !FDefaultValueHelper::ParseRotator(ComponentStrings[1], ParsedRotation) )
 	{
 		return false;
 	}
@@ -80,7 +80,7 @@ bool FTransform::InitFromString( const FString& Source )
 		return false;
 	}
 
-	SetComponents(FQuat(Rotation), Translation, Scale);
+	SetComponents(FQuat(ParsedRotation), ParsedTranslation, Scale);
 
 	return true;
 }

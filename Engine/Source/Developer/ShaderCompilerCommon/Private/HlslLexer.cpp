@@ -578,7 +578,7 @@ namespace CrossCompiler
 				OutIdentifier += Char;
 				do
 				{
-					auto Char = *Current;
+					Char = *Current;
 					if (!IsAlphaOrDigit(Char) && Char != '_')
 					{
 						break;

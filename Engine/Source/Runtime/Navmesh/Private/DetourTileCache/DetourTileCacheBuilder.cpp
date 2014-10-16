@@ -1792,10 +1792,10 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 	// Generate temp vertex array for triangulation.
 	for (int i = 0; i < nhole; ++i)
 	{
-		const unsigned short pi = hole[i];
-		tverts[i*4+0] = mesh.verts[pi*3+0];
-		tverts[i*4+1] = mesh.verts[pi*3+1];
-		tverts[i*4+2] = mesh.verts[pi*3+2];
+		const unsigned short hi = hole[i];
+		tverts[i*4+0] = mesh.verts[hi*3+0];
+		tverts[i*4+1] = mesh.verts[hi*3+1];
+		tverts[i*4+2] = mesh.verts[hi*3+2];
 		tverts[i*4+3] = 0;
 		tpoly[i] = (unsigned short)i;
 	}

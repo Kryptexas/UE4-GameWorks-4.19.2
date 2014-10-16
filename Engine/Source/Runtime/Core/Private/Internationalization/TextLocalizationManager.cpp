@@ -271,25 +271,27 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 
 	FInternationalization& I18N = FInternationalization::Get();
 
-	const FString& CultureName = I18N.GetCurrentCulture()->GetName();
-
 #if ENABLE_LOC_TESTING
-	if(CultureName == TEXT("LEET"))
 	{
-		for(auto NamespaceIterator = LiveTable.NamespaceTable.CreateIterator(); NamespaceIterator; ++NamespaceIterator)
-		{
-			const FString& Namespace = NamespaceIterator.Key();
-			FTextLookupTable::FKeyTable& LiveKeyTable = NamespaceIterator.Value();
-			for(auto KeyIterator = LiveKeyTable.CreateIterator(); KeyIterator; ++KeyIterator)
-			{
-				const FString& Key = KeyIterator.Key();
-				FStringEntry& LiveStringEntry = KeyIterator.Value();
-				LiveStringEntry.bIsLocalized = true;
-				FInternationalization::Leetify( *LiveStringEntry.String );
-			}
-		}
+		const FString& CultureName = I18N.GetCurrentCulture()->GetName();
 
-		return;
+		if(CultureName == TEXT("LEET"))
+		{
+			for(auto NamespaceIterator = LiveTable.NamespaceTable.CreateIterator(); NamespaceIterator; ++NamespaceIterator)
+			{
+				const FString& Namespace = NamespaceIterator.Key();
+				FTextLookupTable::FKeyTable& LiveKeyTable = NamespaceIterator.Value();
+				for(auto KeyIterator = LiveKeyTable.CreateIterator(); KeyIterator; ++KeyIterator)
+				{
+					const FString& Key = KeyIterator.Key();
+					FStringEntry& LiveStringEntry = KeyIterator.Value();
+					LiveStringEntry.bIsLocalized = true;
+					FInternationalization::Leetify( *LiveStringEntry.String );
+				}
+			}
+
+			return;
+		}
 	}
 #endif
 
