@@ -113,10 +113,7 @@ public:
 	// Called after the editor dismisses a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
 	static FSimpleMulticastDelegate PostModal;
 #endif	//WITH_EDITOR
-
-	// Called when SetCurrentCulture is called.
-	static FSimpleMulticastDelegate OnCultureChanged;
-
+	
 	// Called when an error occurred.
 	static FSimpleMulticastDelegate OnShutdownAfterError;
 

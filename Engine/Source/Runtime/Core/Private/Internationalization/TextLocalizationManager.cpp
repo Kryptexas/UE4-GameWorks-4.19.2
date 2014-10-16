@@ -15,7 +15,7 @@ void BeginInitTextLocalization()
 	// twice since FInternationalization::Initialize sets the culture
 	FInternationalization::Get();
 
-	FCoreDelegates::OnCultureChanged.AddRaw( &(FTextLocalizationManager::Get()), &FTextLocalizationManager::OnCultureChanged );
+	FInternationalization::Get().OnCultureChanged().AddRaw( &(FTextLocalizationManager::Get()), &FTextLocalizationManager::OnCultureChanged );
 }
 
 void EndInitTextLocalization()
@@ -471,6 +471,8 @@ void FTextLocalizationManager::UpdateLiveTable(const TArray<FLocalizationEntryTr
 			}
 		}
 	}
+
+	OnTranslationsChanged().Broadcast();
 }
 
 void FTextLocalizationManager::OnCultureChanged()

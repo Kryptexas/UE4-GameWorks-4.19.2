@@ -236,7 +236,7 @@ void FICUInternationalization::SetCurrentCulture(const FString& Name)
 			UErrorCode ICUStatus = U_ZERO_ERROR;
 			uloc_setDefault(StringCast<char>(*Name).Get(), &ICUStatus);
 
-			FCoreDelegates::OnCultureChanged.Broadcast();
+			FInternationalization::Get().BroadcastCultureChanged();
 		}
 	}
 }

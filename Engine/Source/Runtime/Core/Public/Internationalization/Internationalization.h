@@ -61,8 +61,14 @@ public:
 	// Given some paths to look at, populate a list of cultures that we have available localization information for. If bIncludeDerivedCultures, include cultures that are derived from those we have localization data for.
 	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< FCultureRef >& OutAvailableCultures, const bool bIncludeDerivedCultures);
 
+	/** Broadcasts whenever the current culture changes */
+	DECLARE_EVENT(FInternationalization, FCultureChangedEvent)
+	CORE_API FCultureChangedEvent& OnCultureChanged() { return CultureChangedEvent; }
+
 private:
 	FInternationalization();
+
+	void BroadcastCultureChanged() { CultureChangedEvent.Broadcast(); }
 
 	void Initialize();
 	void Terminate();
@@ -70,6 +76,8 @@ private:
 private:
 	static FInternationalization* Instance;
 	bool bIsInitialized;
+
+	FCultureChangedEvent CultureChangedEvent;
 
 #if UE_ENABLE_ICU
 	friend class FICUInternationalization;

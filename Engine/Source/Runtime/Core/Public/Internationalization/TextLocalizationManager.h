@@ -96,6 +96,10 @@ public:
 	/** Returns the current culture revision index */
 	int CORE_API GetHeadCultureRevision() const { return HeadCultureRevisionIndex; }
 
+	/** Broadcasts whenever the new translations are available */
+	DECLARE_EVENT(FInternationalization, FTranslationsChangedEvent)
+	CORE_API FTranslationsChangedEvent&  OnTranslationsChanged() { return TranslationsChangedEvent; }
+
 private:
 	FTextLocalizationManager() 
 		: bIsInitialized(false)
@@ -118,4 +122,6 @@ private:
 
 	/** The current culture revision, increments every time the culture is changed and allows for FTexts to know when to rebuild under a new culture */
 	int32 HeadCultureRevisionIndex;
+
+	FTranslationsChangedEvent TranslationsChangedEvent;
 };

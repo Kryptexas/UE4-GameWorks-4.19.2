@@ -20,7 +20,7 @@ SSettingsEditor::~SSettingsEditor( )
 {
 	Model->OnSelectionChanged().RemoveAll(this);
 	SettingsContainer->OnCategoryModified().RemoveAll(this);
-	FCoreDelegates::OnCultureChanged.RemoveAll(this);
+	FInternationalization::Get().OnCultureChanged().RemoveAll(this);
 }
 
 
@@ -224,7 +224,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 			]
 	];
 
-	FCoreDelegates::OnCultureChanged.AddSP(this, &SSettingsEditor::HandleCultureChanged);
+	FInternationalization::Get().OnCultureChanged().AddSP(this, &SSettingsEditor::HandleCultureChanged);
 	Model->OnSelectionChanged().AddSP(this, &SSettingsEditor::HandleModelSelectionChanged);
 	SettingsContainer->OnCategoryModified().AddSP(this, &SSettingsEditor::HandleSettingsContainerCategoryModified);
 

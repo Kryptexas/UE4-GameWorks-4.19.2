@@ -531,9 +531,6 @@ public:
 	 */
 	void ReinitializeProperties( UObject* SourceObject=NULL, struct FObjectInstancingGraph* InstanceGraph=NULL );
 
-	/** Handle culture change. */
-	virtual void CultureChange();
-
 	/**
 	 * This will return detail info about this specific object. (e.g. AudioComponent will return the name of the cue,
 	 * ParticleSystemComponent will return the name of the ParticleSystem)  The idea here is that in many places

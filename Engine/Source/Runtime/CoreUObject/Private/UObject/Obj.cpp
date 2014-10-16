@@ -1803,10 +1803,6 @@ void UObject::ReinitializeProperties( UObject* SourceObject/*=NULL*/, FObjectIns
 	StaticConstructObject( GetClass(), GetOuter(), GetFName(), GetFlags(), SourceObject, !HasAnyFlags(RF_ClassDefaultObject), InstanceGraph );
 }
 
-void UObject::CultureChange()
-{
-}
-
 
 /*-----------------------------------------------------------------------------
    Shutdown.
@@ -3391,7 +3387,6 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	StaticInit & StaticExit.
 -----------------------------------------------------------------------------*/
 
-void OnCultureChangedUObjectCallback();
 void StaticUObjectInit();
 void InitUObject();
 void StaticExit();
@@ -3403,7 +3398,6 @@ void PreInitUObject()
 
 void InitUObject()
 {
-	FCoreDelegates::OnCultureChanged.AddStatic(OnCultureChangedUObjectCallback);
 	FCoreDelegates::OnShutdownAfterError.AddStatic(StaticShutdownAfterError);
 	FCoreDelegates::OnExit.AddStatic(StaticExit);
 	FModuleManager::Get().OnProcessLoadedObjectsCallback().AddStatic(ProcessNewlyLoadedUObjects);
@@ -3460,14 +3454,6 @@ void StaticUObjectInit()
 	}
 
 	UE_LOG(LogInit, Log, TEXT("Object subsystem initialized") );
-}
-
-void OnCultureChangedUObjectCallback()
-{
-	for( FObjectIterator It; It; ++It )
-	{
-		It->CultureChange();
-	}
 }
 
 //
