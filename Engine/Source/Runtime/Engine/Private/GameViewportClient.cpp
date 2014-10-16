@@ -954,7 +954,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	// Draw FX debug information.
-	GetWorld()->FXSystem->DrawDebug(SceneCanvas);
+	if (GetWorld()->FXSystem)
+	{
+		GetWorld()->FXSystem->DrawDebug(SceneCanvas);
+	}
 
 	// Render the UI.
 	{
