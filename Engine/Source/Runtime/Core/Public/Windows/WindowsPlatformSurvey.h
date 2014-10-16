@@ -6,6 +6,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformSurvey.h"
 
 /**
 * Windows implementation of FGenericPlatformSurvey
