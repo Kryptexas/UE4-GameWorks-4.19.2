@@ -6,7 +6,7 @@
 #include "Engine/World.h"
 #include "Runtime/Engine/Public/Net/UnrealNetwork.h"
 #include "GameplayAbilityTargetTypes.h"
-#pragma optimize("",off)
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	AGameplayAbilityTargetActor_Radius
