@@ -374,10 +374,17 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 
 	if (const UEdGraphSchema_Niagara* NSchema = Cast<const UEdGraphSchema_Niagara>(InPin->GetSchema()))
 	{
-		UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
-		if (InPin->PinType.PinSubCategoryObject == VectorStruct)
+		if (InPin->PinType.PinCategory == NSchema->PC_Float)
+		{
+			return SNew(SGraphPinNum, InPin);
+		}
+		if (InPin->PinType.PinCategory == NSchema->PC_Vector)
 		{
 			return SNew(SGraphPinVector4, InPin);
+		}
+		if (InPin->PinType.PinCategory == NSchema->PC_Matrix)
+		{
+			return SNew(SGraphPin, InPin);
 		}
 	}
 

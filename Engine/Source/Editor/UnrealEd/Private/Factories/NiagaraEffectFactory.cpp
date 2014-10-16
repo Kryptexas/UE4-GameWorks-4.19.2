@@ -3,7 +3,6 @@
 #include "UnrealEd.h"
 #include "Engine/NiagaraEffect.h"
 #include "NiagaraEditorModule.h"
-#include "VectorVM.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectFactory"
 

@@ -479,6 +479,19 @@ FORCEINLINE VectorRegister VectorBitwiseXor(const VectorRegister& Vec1, const Ve
 #define VectorSwizzle( Vec, X, Y, Z, W ) __builtin_shufflevector(Vec, Vec, X, Y, Z, W)
 
 /**
+* Creates a vector through selecting two components from each vector via a shuffle mask.
+*
+* @param Vec1		Source vector1
+* @param Vec2		Source vector2
+* @param X			Index for which component of Vector1 to use for X (literal 0-3)
+* @param Y			Index for which component to Vector1 to use for Y (literal 0-3)
+* @param Z			Index for which component to Vector2 to use for Z (literal 0-3)
+* @param W			Index for which component to Vector2 to use for W (literal 0-3)
+* @return			The swizzled vector
+*/
+#define VectorShuffle( Vec1, Vec2, X, Y, Z, W )	__builtin_shufflevector(Vec1, Vec2, X, Y, Z, W)
+
+/**
  * Calculates the cross product of two vectors (XYZ components). W is set to 0.
  *
  * @param Vec1	1st vector

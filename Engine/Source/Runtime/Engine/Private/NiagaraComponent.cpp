@@ -141,17 +141,10 @@ public:
 		, Component(*InComponent)
 		, UpdateScript(*InComponent->UpdateScript)
 		, SpawnScript(InComponent->SpawnScript)
-		, ConstantTable(InComponent->UpdateScript->ConstantTable)
 		, SpawnRemainder(0.0f)
 		, CachedBounds(ForceInit)
 	{
 		check(InComponent->UpdateScript && UpdateScript.ByteCode.Num());
-
-		// make room for constants
-		while (ConstantTable.Num() < 10)	
-		{
-			ConstantTable.Add( FVector4(0.0f, 0.0f, 0.0f, 0.0f) );
-		}
 	}
 
 	void Tick(float DeltaSeconds)
@@ -197,12 +190,20 @@ public:
 
 	FNiagaraEmitterParticleData &GetData()	{ return Data; }
 
-	void SetConstant(int Idx, const FVector4 &Value)
+	void SetConstant(FName ConstantName, const float Value)
 	{
-		check(Idx < ConstantTable.Num());
-		ConstantTable[Idx] = Value;
+		Constants.SetOrAdd(ConstantName,Value);
 	}
 
+	void SetConstant(FName ConstantName, const FVector4 Value)
+	{
+		Constants.SetOrAdd(ConstantName, Value);
+	}
+
+	void SetConstant(FName ConstantName, const FMatrix& Value)
+	{
+		Constants.SetOrAdd(ConstantName, Value);
+	}
 private:
 	/** Temporary stuff for the prototype. */
 	float SpawnRate;
@@ -213,8 +214,8 @@ private:
 	UNiagaraScript& UpdateScript;
 	/** The particle spawn script. */
 	UNiagaraScript *SpawnScript;
-	/** Local constant table. */
-	TArray<FVector4> ConstantTable;
+	/** Local constant set. */
+	FNiagaraConstantMap Constants;
 	/** particle simulation data */
 	FNiagaraEmitterParticleData Data;
 	/** Keep partial particle spawns from last frame */
@@ -223,22 +224,6 @@ private:
 	FTransform CachedComponentToWorld;
 	/** Cached bounds. */
 	FBox CachedBounds;
-
-
-	/* builtin constants are setup in the tick function, but a script may have additional constants 
-	 derived from unconnected nodes, so we need to merge those into the simulation constant table */
-	void MergeScriptConstants(UNiagaraScript *Script)
-	{
-		// start at NumBuiltinConstants+1, because index 0 is always the fixed zero constant
-		for (int i = NiagaraConstants::NumBuiltinConstants + 1; i < Script->ConstantTable.Num(); i++)
-		{
-			if (ConstantTable.Num() <= i)
-			{
-				ConstantTable.Add(FVector4());
-			}
-			ConstantTable[i] = Script->ConstantTable[i];
-		}
-	}
 
 	/** Calc number to spawn */
 	int32 CalcNumToSpawn(float DeltaSeconds)
@@ -275,8 +260,9 @@ private:
 			OutputRegisters[AttrIndex] = (VectorRegister*)(Particles + AttrIndex * NumVectorsPerAttribute);
 		}
 
-		// copy script specific constants into the constant table
-		MergeScriptConstants(&UpdateScript);
+		//Fill constant table with required emitter constants and internal script constants.
+		TArray<FVector4> ConstantTable;
+		UpdateScript.ConstantData.FillConstantTable(Constants, ConstantTable);
 
 		VectorVM::Exec(
 			UpdateScript.ByteCode.GetData(),
@@ -316,8 +302,9 @@ private:
 				OutputRegisters[AttrIndex] = (VectorRegister*)(NewParticlesStart + AttrIndex * Data.GetParticleAllocation());
 			}
 
-			// copy script specific constants into the constant table
-			MergeScriptConstants(SpawnScript);
+			//Fill constant table with required emitter constants and internal script constants.
+			TArray<FVector4> ConstantTable;
+			SpawnScript->ConstantData.FillConstantTable(Constants, ConstantTable);
 
 			VectorVM::Exec(
 				SpawnScript->ByteCode.GetData(),
@@ -409,14 +396,25 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 	if (Simulation)
 	{
 		EmitterAge += DeltaSeconds;
+	
+		//Todo, open this up to the UI and setting via code and BPs.
+		static FName Const_Zero(TEXT("ZERO"));
+		Simulation->SetConstant(Const_Zero, FVector4(0.0f, 0.0f, 0.0f, 0.0f));	// zero constant
+		static FName Const_DeltaTime(TEXT("Delta Time"));
+		Simulation->SetConstant(Const_DeltaTime, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
+		static FName Const_EmitterPos(TEXT("Emitter Position"));
+		Simulation->SetConstant(Const_EmitterPos, FVector4(ComponentToWorld.GetTranslation()));
+		static FName Const_Age(TEXT("Emitter Age"));
+		Simulation->SetConstant(Const_Age, FVector4(EmitterAge, EmitterAge, EmitterAge, EmitterAge));
+		static FName Const_EmitterX(TEXT("Emitter X Axis"));
+		Simulation->SetConstant(Const_EmitterX, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)));
+		static FName Const_EmitterY(TEXT("Emitter Y Axis"));
+		Simulation->SetConstant(Const_EmitterY, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)));
+		static FName Const_EmitterZ(TEXT("Emitter Z Axis"));
+		Simulation->SetConstant(Const_EmitterZ, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)));
 
-		Simulation->SetConstant(0, FVector4(0.0f, 0.0f, 0.0f, 0.0f) );	// zero constant
-		Simulation->SetConstant(1, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
-		Simulation->SetConstant(2, FVector4(ComponentToWorld.GetTranslation()));
-		Simulation->SetConstant(3, FVector4(EmitterAge, EmitterAge, EmitterAge, EmitterAge));
-		Simulation->SetConstant(4, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)) );
-		Simulation->SetConstant(5, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)) );
-		Simulation->SetConstant(6, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)) );
+		static FName Const_EmitterTransform(TEXT("Emitter Transform"));
+		Simulation->SetConstant(Const_EmitterTransform, ComponentToWorld.ToMatrixWithScale());
 
 		Simulation->Tick(DeltaSeconds);
 		UpdateComponentToWorld();

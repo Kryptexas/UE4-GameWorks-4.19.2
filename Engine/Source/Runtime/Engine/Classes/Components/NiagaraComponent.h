@@ -36,6 +36,9 @@ public:
 	{
 		ParticleBuffers[CurrentBuffer].Reset(NumExpectedParticles * AttrMap.Num());
 		ParticleBuffers[CurrentBuffer].AddUninitialized(NumExpectedParticles * AttrMap.Num());
+
+		//Can we make this a ring buffer and cut memory use in half?
+
 		ParticleAllocation = NumExpectedParticles;
 	}
 

@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Niagara/NiagaraScriptConstantData.h"
+
 #include "NiagaraScript.generated.h"
-
-
 
 /** Runtime script for a Niagara system */
 UCLASS(MinimalAPI)
@@ -15,9 +16,9 @@ class UNiagaraScript : public UObject
 	UPROPERTY()
 	TArray<uint8> ByteCode;
 
-	/** The constant table required for execution. */
+	/** All the data for using constants in the script. */
 	UPROPERTY()
-	TArray<FVector4> ConstantTable;
+	FNiagaraScriptConstantData ConstantData;
 
 	/** Attributes used by this script. */
 	TArray<FName> Attributes;

@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
+#include "INiagaraCompiler.h"
+
 
 UNiagaraNodeGetAttr::UNiagaraNodeGetAttr(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -11,8 +13,7 @@ void UNiagaraNodeGetAttr::AllocateDefaultPins()
 {
 	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();
 
-	UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
-	CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), VectorStruct, false, false, AttrName.ToString());
+	CreatePin(EGPD_Output, Schema->PC_Vector, TEXT(""), NULL, false, false, AttrName.ToString());
 }
 
 FText UNiagaraNodeGetAttr::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -35,3 +36,9 @@ FLinearColor UNiagaraNodeGetAttr::GetNodeTitleColor() const
 		return Super::GetNodeTitleColor();
 	}
 }
+
+void UNiagaraNodeGetAttr::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)
+{
+	Outputs.Add(FNiagaraNodeResult(Compiler->GetAttribute(AttrName), Pins[0]));
+}
+

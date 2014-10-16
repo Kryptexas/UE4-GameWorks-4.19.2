@@ -5,7 +5,11 @@
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorSettings.h"
 
-#include "VectorVM.h"
+
+#include "INiagaraEditor.h"
+#include "INiagaraCompiler.h"
+
+#define LOCTEXT_NAMESPACE "NiagaraSchema"
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
 
@@ -96,7 +100,8 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const FObjectInitializer& ObjectI
 {
 
 	PC_Float = TEXT("float");
-	PC_Struct = TEXT("struct");
+	PC_Vector = TEXT("vector");
+	PC_Matrix = TEXT("matrix");
 }
 
 TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
@@ -113,7 +118,6 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 
 	TArray<FName> InputAttributeNames;
 	Source->GetParticleAttributes(InputAttributeNames);
-	Source->GetEmitterAttributes(InputAttributeNames);
 	for(int32 i=0; i<InputAttributeNames.Num(); i++)
 	{
 		const FName AttrName = InputAttributeNames[i];
@@ -129,20 +133,62 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		GetAttrAction->NodeTemplate = GetAttrNode;
 	}
 
-	// Then get ops.
-	uint8 NumOps = VectorVM::GetNumOpCodes();
-	for(uint8 OpIdx=0; OpIdx<NumOps; OpIdx++)
+	TArray<FName> EmitterConstantNames_Vectors;
+	TArray<FName> EmitterConstantNames_Matrices;
+	Source->GetEmitterAttributes(EmitterConstantNames_Vectors, EmitterConstantNames_Matrices);
+	for (int32 i = 0; i < EmitterConstantNames_Vectors.Num(); i++)
 	{
-		VectorVM::FVectorVMOpInfo const& Info = VectorVM::GetOpCodeInfo(OpIdx);
-		if(Info.IsImplemented())
-		{
-			TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Add Operation"), FText::FromString(Info.FriendlyName), TEXT(""));
+		const FName ConstName = EmitterConstantNames_Vectors[i];
 
-			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries);
-			OpNode->OpIndex = OpIdx;
-			AddOpAction->NodeTemplate = OpNode;
-		}
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Constant"), FText::FromName(ConstName));
+		const FText MenuDesc = FText::Format(NSLOCTEXT("Niagara", "GetConstant", "Get {Constant}"), Args);
+
+		TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Get Constant"), MenuDesc, TEXT(""));
+
+		UNiagaraNodeConstant* GetConstNode = NewObject<UNiagaraNodeConstant>(ContextMenuBuilder.OwnerOfTemporaries);
+		GetConstNode->ConstName = ConstName;
+		GetConstNode->DataType = ENiagaraDataType::Vector;
+		GetConstNode->bNeedsDefault = false;
+		GetAttrAction->NodeTemplate = GetConstNode;
 	}
+
+	for (int32 i = 0; i < EmitterConstantNames_Matrices.Num(); i++)
+	{
+		const FName ConstName = EmitterConstantNames_Matrices[i];
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Constant"), FText::FromName(ConstName));
+		const FText MenuDesc = FText::Format(NSLOCTEXT("Niagara", "GetConstant", "Get {Constant}"), Args);
+
+		TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Get Constant"), MenuDesc, TEXT(""));
+
+		UNiagaraNodeConstant* GetConstNode = NewObject<UNiagaraNodeConstant>(ContextMenuBuilder.OwnerOfTemporaries);
+		GetConstNode->ConstName = ConstName;
+		GetConstNode->DataType = ENiagaraDataType::Matrix;
+		GetConstNode->bNeedsDefault = false;
+		GetAttrAction->NodeTemplate = GetConstNode;
+	}
+
+#define NiagaraOp(OPNAME) \
+		if(const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(FNiagaraOpInfo::##OPNAME##))\
+		{\
+			TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Add Operation"), OpInfo->FriendlyName, TEXT(""));\
+			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries); \
+			OpNode->OpName = OpInfo->Name; \
+			AddOpAction->NodeTemplate = OpNode; \
+		}
+
+		
+	NiagaraOpList
+
+#undef NiagaraOp
+
+	UNiagaraNodeConstant* ConstantNode = NewObject<UNiagaraNodeConstant>(ContextMenuBuilder.OwnerOfTemporaries);
+	ConstantNode->DataType = ENiagaraDataType::Vector;
+	ConstantNode->bNeedsDefault = true;
+	TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Constants"), ConstantNode->GetNodeTitle(ENodeTitleType::ListView), TEXT(""));
+	AddOpAction->NodeTemplate = ConstantNode;
 }
 
 const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const
@@ -196,9 +242,13 @@ FLinearColor UEdGraphSchema_Niagara::GetPinTypeColor(const FEdGraphPinType& PinT
 	{
 		return Settings->FloatPinTypeColor;
 	}
-	else if (TypeString == PC_Struct)
+	else if (TypeString == PC_Vector)
 	{
-		return Settings->StructPinTypeColor;
+		return Settings->VectorPinTypeColor;
+	}
+	else if (TypeString == PC_Matrix)
+	{
+		return Settings->TransformPinTypeColor;
 	}
 
 	return Settings->DefaultPinTypeColor;
@@ -215,3 +265,62 @@ bool UEdGraphSchema_Niagara::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const
 
 	return false;
 }
+
+ENiagaraDataType UEdGraphSchema_Niagara::GetPinDataType(UEdGraphPin* Pin) const
+{
+	if (Pin->PinType.PinCategory == PC_Float)
+	{
+		return ENiagaraDataType::Scalar;
+	}
+	else if (Pin->PinType.PinCategory == PC_Vector)
+	{
+		return ENiagaraDataType::Vector;
+	}
+	else if (Pin->PinType.PinCategory == PC_Matrix)
+	{
+		return ENiagaraDataType::Matrix;
+	}
+	return ENiagaraDataType::Invalid;
+}
+
+void UEdGraphSchema_Niagara::GetPinDefaultValue(UEdGraphPin* Pin, float& OutDefault)const
+{
+	//Ugh, this string parsing is rubbish. Surely there's a consistent api for dealing with default values in the edgraph without all this?
+	FString ResultString = Pin->DefaultValue.IsEmpty() ? Pin->AutogeneratedDefaultValue : Pin->DefaultValue;
+	ResultString.Trim();
+	ResultString.TrimTrailing();
+	OutDefault = FCString::Atof(*ResultString);
+}
+
+void UEdGraphSchema_Niagara::GetPinDefaultValue(UEdGraphPin* Pin, FVector4& OutDefault)const
+{
+	//Ugh, this string parsing is rubbish. Surely there's a consistent api for dealing with default values in the edgraph without all this?
+	TArray<FString> ResultString;
+	FString ValueString = Pin->DefaultValue.IsEmpty() ? Pin->AutogeneratedDefaultValue : Pin->DefaultValue;
+	ValueString.Trim();
+	ValueString.TrimTrailing();
+	ValueString.ParseIntoArray(&ResultString, TEXT(","), true);
+	if (ResultString.Num() == 4)
+	{
+		OutDefault = FVector4(FCString::Atof(*ResultString[0]), FCString::Atof(*ResultString[1]), FCString::Atof(*ResultString[2]), FCString::Atof(*ResultString[3]));
+	}
+}
+
+void UEdGraphSchema_Niagara::GetPinDefaultValue(UEdGraphPin* Pin, FMatrix& OutDefault)const
+{
+	TArray<FString> ResultString;
+	FString ValueString = Pin->DefaultValue.IsEmpty() ? Pin->AutogeneratedDefaultValue : Pin->DefaultValue;
+	ValueString.Trim();
+	ValueString.TrimTrailing();
+	ValueString.ParseIntoArray(&ResultString, TEXT(","), true);
+	check(ResultString.Num() == 16);
+	if (ResultString.Num() == 16)
+	{
+		OutDefault.M[0][0] = FCString::Atof(*ResultString[0]); OutDefault.M[0][1] = FCString::Atof(*ResultString[1]); OutDefault.M[0][2] = FCString::Atof(*ResultString[2]); OutDefault.M[0][3] = FCString::Atof(*ResultString[3]);
+		OutDefault.M[1][0] = FCString::Atof(*ResultString[4]); OutDefault.M[1][1] = FCString::Atof(*ResultString[5]); OutDefault.M[1][2] = FCString::Atof(*ResultString[6]); OutDefault.M[1][3] = FCString::Atof(*ResultString[7]);
+		OutDefault.M[2][0] = FCString::Atof(*ResultString[8]); OutDefault.M[2][1] = FCString::Atof(*ResultString[9]); OutDefault.M[2][2] = FCString::Atof(*ResultString[10]); OutDefault.M[2][3] = FCString::Atof(*ResultString[11]);
+		OutDefault.M[3][0] = FCString::Atof(*ResultString[12]); OutDefault.M[3][1] = FCString::Atof(*ResultString[13]); OutDefault.M[3][2] = FCString::Atof(*ResultString[14]); OutDefault.M[3][3] = FCString::Atof(*ResultString[15]);
+	}
+}
+
+#undef LOCTEXT_NAMESPACE

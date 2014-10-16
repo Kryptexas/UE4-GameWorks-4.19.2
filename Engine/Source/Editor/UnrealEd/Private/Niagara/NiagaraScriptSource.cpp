@@ -53,11 +53,14 @@ void UNiagaraScriptSource::GetParticleAttributes(TArray<FName>& VectorOutputs)
 	VectorOutputs.Add(FName(TEXT("Particle Age")));
 }
 
-void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs)
+void UNiagaraScriptSource::GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs)
 {
 	for (uint32 i=0; i < NiagaraConstants::NumBuiltinConstants; i++)
 	{
 		VectorInputs.Add(NiagaraConstants::ConstantNames[i]);
 	}
+
+	MatrixInputs.Empty();
+	MatrixInputs.Add(FName(TEXT("Emitter Transform")));
 }
 

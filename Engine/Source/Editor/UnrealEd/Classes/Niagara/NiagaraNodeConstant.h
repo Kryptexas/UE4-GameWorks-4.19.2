@@ -1,0 +1,39 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "Niagara/NiagaraCommon.h"
+#include "NiagaraNodeConstant.generated.h"
+
+UCLASS(MinimalAPI)
+class UNiagaraNodeConstant : public UNiagaraNode
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	/** The type of the constant we're creating. */
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Name"), Category="Constant")
+	FName ConstName;
+
+	/** The type of the constant we're creating. */
+	UPROPERTY(EditAnywhere, Category = "Constant")
+	ENiagaraDataType DataType;
+	
+	UPROPERTY(EditAnywhere, Category = "Constant")
+	uint32 bNeedsDefault : 1;
+
+	// Begin UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
+	// End UObject interface
+	
+	// Begin EdGraphNode interface
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	// End EdGraphNode interface
+
+	// Begin UNiagaraNode interface
+	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
+	// End UNiagaraNode interface
+};
+

@@ -1,3 +1,6 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
 
 /**  List of built-in constants
 *	The values of these enums correspond directly to indices for the compiler and interpreter
@@ -15,7 +18,7 @@ namespace NiagaraConstants
 	} ConstantDef;
 
 	FName ConstantNames[] = {
-		"DeltaTime",
+		"Delta Time",
 		"Emitter position",
 		"Emitter age",
 		"Emitter X Axis",

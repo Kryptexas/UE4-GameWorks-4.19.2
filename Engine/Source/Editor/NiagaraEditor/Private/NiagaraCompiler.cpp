@@ -8,210 +8,12 @@
 #include "EdGraphUtilities.h"
 #include "VectorVM.h"
 #include "ComponentReregisterContext.h"
+#include "NiagaraCompiler_VectorVM.h"
+#include "NiagaraEditorCommon.h"
+
+#define LOCTEXT_NAMESPACE "NiagaraCompiler"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNiagaraCompiler,All,All);
-
-/** Information related to an expression. */
-struct FNiagaraExpr
-{
-	/** VM opcode. */
-	uint8 OpIndex;
-	/** Source operands. */
-	int32 Src[3];
-	/* Source operand type vector (bit 0-2, 1=constant)*/
-	uint8 SrcOperandTypeVector;
-
-	/** Default constructor. */
-	FNiagaraExpr()
-	{
-		OpIndex = 0;
-		SrcOperandTypeVector = 0;
-		for (int32 i = 0; i < 3; i++)
-		{
-			Src[i] = INDEX_NONE;
-		}
-	}
-};
-
-/** Compiler context, passed around during compilation. */
-struct FNiagaraCompilerContext
-{
-	/** Expression. */
-	TArray<FNiagaraExpr> Expressions;
-	/** Constant table. */
-	TArray<FVector4> Constants;
-	/** Constant names. */
-	TArray<FName> ConstantNames;
-	/** Map from pin to expression to prevent executing subtrees multiple times. */
-	TMap<UEdGraphPin*,int32> PinToExpression;
-	/** Name of all attributes. */
-	TArray<FName> Attributes;
-	/** The compilation log. */
-	FCompilerResultsLog& Log;
-
-	/** Initialization constructor. */
-	explicit FNiagaraCompilerContext(FCompilerResultsLog& InLog)
-		: Log(InLog)
-	{
-		ConstantNames.Add(TEXT("__zero__"));
-		Constants.Add(FVector4(0.0f, 0.0f, 0.0f, 0.0f));
-
-		// Setup built-in constants.
-		for (uint32 i = 0; i < NiagaraConstants::NumBuiltinConstants; i++)
-		{
-			ConstantNames.Add(NiagaraConstants::ConstantNames[i]);
-			Constants.Add(FVector4(0.0f, 0.0f, 0.0f, 0.0f));
-		}
-	}
-};
-
-/** Convert an expression index to an attribute index. */
-static int32 AttrIndexFromExpressionIndex(int32 ExpressionIndex)
-{
-	return ExpressionIndex & 0x3fffffff;
-}
-
-/** Returns true if the expression index refers to an attribute. */
-static bool IsAttrIndex(int32 ExpressionIndex)
-{
-	return ExpressionIndex != INDEX_NONE && (ExpressionIndex & 0x80000000);
-}
-
-/** Convert an expression index to a constant index. */
-static int32 ConstIndexFromExpressionIndex(int32 ExpressionIndex)
-{
-	return ExpressionIndex & 0x3fffffff;
-}
-
-/** Returns true if the expression index refers to a constant. */
-static bool IsConstIndex(int32 ExpressionIndex)
-{
-	return ExpressionIndex != INDEX_NONE && (ExpressionIndex & 0x40000000);
-}
-
-/** Returns true if the expression index is valid. */
-static bool IsValidExpressionIndex(FNiagaraCompilerContext& Context, int32 ExpressionIndex)
-{
-	if (ExpressionIndex == INDEX_NONE)
-	{
-		return false;
-	}
-	if (IsAttrIndex(ExpressionIndex))
-	{
-		return Context.Attributes.IsValidIndex(AttrIndexFromExpressionIndex(ExpressionIndex));
-	}
-	return Context.Expressions.IsValidIndex(ExpressionIndex);
-}
-
-/** Returns true if the op has valid source operands. */
-static bool IsValidOp(FNiagaraCompilerContext& Context, FNiagaraExpr& Op)
-{
-	bool bValid = true;
-	for (int32 SrcIndex = 0; bValid && SrcIndex < 3; ++SrcIndex)
-	{
-		VectorVM::EOpSrc::Type Type = VectorVM::GetOpCodeInfo(Op.OpIndex).SrcTypes[SrcIndex];
-		int32 ExpressionIndex = Op.Src[SrcIndex];
-		switch (Type)
-		{
-		case VectorVM::EOpSrc::Register:
-			bValid = bValid && IsValidExpressionIndex(Context, ExpressionIndex);
-			break;
-		case VectorVM::EOpSrc::Const:
-			bValid = bValid && IsConstIndex(ExpressionIndex)
-				&& Context.Constants.IsValidIndex(ConstIndexFromExpressionIndex(ExpressionIndex));
-			break;
-		default:
-			break;
-		}
-	}
-	return bValid;
-}
-
-/** Evaluates the graph connected to a pin. */
-static int32 EvaluateGraph(FNiagaraCompilerContext& Context, UEdGraphPin* Pin)
-{
-	int32 ExpressionIndex = INDEX_NONE;
-	if (Pin)
-	{
-		if (Pin->LinkedTo.Num() == 1)
-		{
-			check(Pin->Direction == EGPD_Input);
-			Pin = Pin->LinkedTo[0];
-			check(Pin->Direction == EGPD_Output);
-
-			int32* CachedExpressionIndex = Context.PinToExpression.Find(Pin);
-			if (CachedExpressionIndex)
-			{
-				ExpressionIndex = *CachedExpressionIndex;
-			}
-			else
-			{
-				UEdGraphNode* Node = Pin->GetOwningNode();
-				if (Node->IsA(UNiagaraNodeOp::StaticClass()))
-				{
-					UNiagaraNodeOp* OpNode = (UNiagaraNodeOp*)Node;
-					VectorVM::FVectorVMOpInfo const& OpInfo = VectorVM::GetOpCodeInfo(OpNode->OpIndex);
-
-					FNiagaraExpr NewOp;
-					NewOp.OpIndex = OpNode->OpIndex;
-					NewOp.SrcOperandTypeVector = 0;
-
-					for (int32 SrcIndex = 0; SrcIndex < 3; ++SrcIndex)
-					{
-						if (OpInfo.SrcTypes[SrcIndex] != VectorVM::EOpSrc::Invalid)
-						{
-							UEdGraphPin* SrcPin = OpNode->FindPinChecked(UNiagaraNodeOp::InPinNames[SrcIndex]);
-							NewOp.Src[SrcIndex] = EvaluateGraph(Context,SrcPin);
-							if (NewOp.Src[SrcIndex] & 0x40000000)
-							{
-								NewOp.SrcOperandTypeVector |= (1 << SrcIndex);
-							}
-						}
-					}
-
-					ExpressionIndex = Context.Expressions.Add(NewOp);
-				}
-				else if (Node->IsA(UNiagaraNodeGetAttr::StaticClass()))
-				{
-					UNiagaraNodeGetAttr* AttrNode = (UNiagaraNodeGetAttr*)Node;
-					int32 AttrIndex = INDEX_NONE;
-					if (Context.Attributes.Find(AttrNode->AttrName, AttrIndex))
-					{
-						ExpressionIndex = AttrIndex | 0x80000000;
-					}
-					else if (Context.ConstantNames.Find(AttrNode->AttrName, AttrIndex))
-					{
-						ExpressionIndex = AttrIndex | 0x40000000;
-					}
-				}
-				Context.PinToExpression.Add(Pin, ExpressionIndex);
-			}
-		}
-		else if (!Pin->bDefaultValueIsIgnored)
-		{
-			FString ConstString = Pin->GetDefaultAsString();
-			FName ConstName(*ConstString);
-			int32 ConstIndex = Context.ConstantNames.Find(ConstName);
-			if (ConstIndex == INDEX_NONE)
-			{
-				TArray<FString> ResultString;
-				ConstString.Trim();
-				ConstString.TrimTrailing();
-				ConstString.ParseIntoArray(&ResultString, TEXT(","), true);
-				ConstIndex = 0;
-				if (ResultString.Num() == 4)
-				{
-					ConstIndex = Context.Constants.Add(FVector4(FCString::Atof(*ResultString[0]), FCString::Atof(*ResultString[1]), FCString::Atof(*ResultString[2]), FCString::Atof(*ResultString[3])));
-					check(Context.ConstantNames.Num() == ConstIndex);
-					Context.ConstantNames.Add(ConstName);
-				}
-			}
-			check(Context.Constants.IsValidIndex(ConstIndex));
-			ExpressionIndex = ConstIndex | 0x40000000;			
-		}
-	}
-	return ExpressionIndex;
-}
 
 void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 {
@@ -224,198 +26,263 @@ void FNiagaraEditorModule::CompileScript(UNiagaraScript* ScriptToCompile)
 
 	TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
 
-	UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(ScriptToCompile->Source);
-	check(Source->UpdateGraph);
+	FNiagaraCompiler_VectorVM Compiler;
+	Compiler.CompileScript(ScriptToCompile);
 
-	// Results log.
-	FCompilerResultsLog MessageLog;
+	//Compile for compute here too?
+}
 
-	// Clone the source graph so we can modify it as needed; merging in the child graphs
-	UEdGraph* UpdateGraph = FEdGraphUtilities::CloneGraph(Source->UpdateGraph, Source, &MessageLog, true); 
-	FEdGraphUtilities::MergeChildrenGraphsIn(UpdateGraph, UpdateGraph, /*bRequireSchemaMatch=*/ true);
+//////////////////////////////////////////////////////////////////////////
 
-	// Find the output node.
-	UNiagaraNodeOutputUpdate* OutputNode = NULL;
+/** Expression that gets an input attribute. */
+class FNiagaraExpression_GetAttribute : public FNiagaraExpression
+{
+public:
+
+	FNiagaraExpression_GetAttribute(class FNiagaraCompiler* InCompiler, ENiagaraDataType InType, FName InName)
+		: FNiagaraExpression(InCompiler, InType)
+		, AttributeName(InName)
 	{
-		TArray<UNiagaraNodeOutputUpdate*> OutputNodes;
-		UpdateGraph->GetNodesOfClass(OutputNodes);
-		if (OutputNodes.Num() != 1)
-		{
-			UE_LOG(LogNiagaraCompiler, Error, TEXT("Script contains %s output nodes: %s"),
-				OutputNodes.Num() == 0 ? TEXT("no") : TEXT("too many"),
-				*ScriptToCompile->GetPathName()
-				);
-			return;
-		}
-		OutputNode = OutputNodes[0];
-	}
-	check(OutputNode);
-
-	// Traverse the node graph for each output and generate expressions as we go.
-	FNiagaraCompilerContext Context(MessageLog);
-	Source->GetParticleAttributes(Context.Attributes);
-	TArray<int32> OutputExpressions;
-	OutputExpressions.AddUninitialized(Context.Attributes.Num());
-	FMemory::Memset(OutputExpressions.GetData(), 0xff, Context.Attributes.Num() * sizeof(int32));
-
-	for (int32 PinIndex = 0; PinIndex < OutputNode->Pins.Num(); ++PinIndex)
-	{
-		UEdGraphPin* Pin = OutputNode->Pins[PinIndex];
-		int32 AttrIndex = Context.Attributes.Find(FName(*Pin->PinName));
-		if (AttrIndex != INDEX_NONE)
-		{
-			int32 ExpressionIndex = EvaluateGraph(Context, Pin);
-			OutputExpressions[AttrIndex] = ExpressionIndex;
-		}
+		ResultLocation = ENiagaraExpressionResultLocation::InputData;
 	}
 
-	// Generate pass-thru ops for any outputs that are not connected.
-	for (int32 AttrIndex = 0; AttrIndex < OutputExpressions.Num(); ++AttrIndex)
+	virtual void Process()override
 	{
-		if (OutputExpressions[AttrIndex] == INDEX_NONE)
+		check(ResultLocation == ENiagaraExpressionResultLocation::InputData);
+		ResultIndex = Compiler->GetAttributeIndex(AttributeName);
+	}
+
+	FName AttributeName;
+};
+
+/** Expression that gets a constant. */
+class FNiagaraExpression_GetConstant : public FNiagaraExpression
+{
+public:
+
+	FNiagaraExpression_GetConstant(class FNiagaraCompiler* InCompiler, ENiagaraDataType InType, FName InName, bool bIsInternal)
+		: FNiagaraExpression(InCompiler, InType)
+		, ConstantName(InName)
+		, bInternal(bIsInternal)
+	{
+		ResultLocation = ENiagaraExpressionResultLocation::Constants;
+		//For matrix constants we must add 4 input expressions that will be filled in as the constant is processed.
+		//They must at least exist now so that other expressions can reference them.
+		if (ResultType == ENiagaraDataType::Matrix)
 		{
-			// Generate a pass-thru op.
-			FNiagaraExpr PassThru;
-			PassThru.OpIndex = VectorVM::EOp::add;
-			PassThru.Src[0] = AttrIndex | 0x80000000;
-			PassThru.Src[1] = 0 | 0x40000000;
-			PassThru.Src[2] = INDEX_NONE;
-			PassThru.SrcOperandTypeVector = 0x2;
-			OutputExpressions[AttrIndex] = Context.Expressions.Add(PassThru);
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
+			SourceExpressions.Add(MakeShareable(new FNiagaraExpression(InCompiler, ENiagaraDataType::Vector)));
 		}
 	}
-	
-	// Figure out the lifetime of each expression.
-	TArray<int32> ExpressionLifetimes;
-	ExpressionLifetimes.AddUninitialized(Context.Expressions.Num());
-	for (int32 i = 0; i < Context.Expressions.Num(); ++i)
+
+	virtual void Process()override
 	{
-		ExpressionLifetimes[i] = i;
-		FNiagaraExpr& Expr = Context.Expressions[i];
-		VectorVM::FVectorVMOpInfo const& OpInfo = VectorVM::GetOpCodeInfo(Expr.OpIndex);
-		for (int32 k = 0; k < 3; ++k)
+		check(ResultLocation == ENiagaraExpressionResultLocation::Constants);
+		//Get the index of the constant. Also gets a component index if this is for a packed scalar constant.
+		Compiler->GetConstantResultIndex(ConstantName, bInternal, ResultIndex, ComponentIndex);
+		
+		if (ResultType == ENiagaraDataType::Matrix)
 		{
-			//if (OpInfo.SrcTypes[k] == VectorVM::EOpSrc::Register
-			if ((Expr.SrcOperandTypeVector & (1 << k)) == 0 && OpInfo.SrcTypes[k] != VectorVM::EOpSrc::Invalid
-				&& !IsAttrIndex(Expr.Src[k]))
+			check(SourceExpressions.Num() == 4);
+			TNiagaraExprPtr Src0 = GetSourceExpression(0);
+			TNiagaraExprPtr Src1 = GetSourceExpression(1);
+			TNiagaraExprPtr Src2 = GetSourceExpression(2);
+			TNiagaraExprPtr Src3 = GetSourceExpression(3);
+			Src0->ResultLocation = ENiagaraExpressionResultLocation::Constants;
+			Src0->ResultIndex = ResultIndex;
+			Src1->ResultLocation = ENiagaraExpressionResultLocation::Constants;
+			Src1->ResultIndex = ResultIndex + 1;
+			Src2->ResultLocation = ENiagaraExpressionResultLocation::Constants;
+			Src2->ResultIndex = ResultIndex + 2;
+			Src3->ResultLocation = ENiagaraExpressionResultLocation::Constants;
+			Src3->ResultIndex = ResultIndex + 3;
+		}
+	}
+
+	FName ConstantName;
+	bool bInternal;
+};
+
+/** Expression that just collects some other expressions together. E.g for a matrix. */
+class FNiagaraExpression_Collection : public FNiagaraExpression
+{
+public:
+
+	FNiagaraExpression_Collection(class FNiagaraCompiler* InCompiler, ENiagaraDataType Type, TArray<TNiagaraExprPtr>& InSourceExpressions)
+		: FNiagaraExpression(InCompiler, Type)
+	{
+		SourceExpressions = InSourceExpressions;
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
+
+void FNiagaraCompiler::CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)
+{
+	//check the types of the input expressions.
+	const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpName);
+	check(OpInfo);
+	int32 NumInputs = Inputs.Num();
+	check(OpInfo->Inputs.Num() == NumInputs);
+	for (int32 i = 0; i < NumInputs ; ++i)
+	{
+		if (!(OpInfo->Inputs[i].DataType == Inputs[i]->ResultType || Inputs[i]->ResultType == ENiagaraDataType::Unknown))
+		{
+			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect inputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Inputs[i].DataType, (int32)((TNiagaraExprPtr)Inputs[i])->ResultType);
+		}
+	}
+}
+
+void FNiagaraCompiler::CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)
+{
+	//check the types of the input expressions.
+	const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpName);
+	check(OpInfo);
+	int32 NumOutputs = Outputs.Num();
+	check(OpInfo->Outputs.Num() == NumOutputs);
+	for (int32 i = 0; i < NumOutputs; ++i)
+	{
+		if (!(OpInfo->Outputs[i].DataType == Outputs[i]->ResultType || Outputs[i]->ResultType == ENiagaraDataType::Unknown))
+		{
+			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect outputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Outputs[i].DataType, (int32)((TNiagaraExprPtr)Outputs[i])->ResultType);
+		}
+	}
+}
+
+int32 FNiagaraCompiler::GetAttributeIndex(FName Name)
+{
+	return Attributes.Find(Name);
+}
+
+TNiagaraExprPtr FNiagaraCompiler::CompileOutputPin(UEdGraphPin* Pin)
+{
+	check(Pin->Direction == EGPD_Output);
+
+	TNiagaraExprPtr Ret;
+
+	TNiagaraExprPtr* Expr = PinToExpression.Find(Pin);
+	if (Expr)
+	{
+		Ret = *Expr; //We've compiled this pin before. Return it's expression.
+	}
+	else
+	{
+		//Otherwise we need to compile the node to get its output pins.
+		UNiagaraNode* Node = Cast<UNiagaraNode>(Pin->GetOwningNode());
+		TArray<FNiagaraNodeResult> Outputs;
+		Node->Compile(this, Outputs);
+		for (int32 i=0; i<Outputs.Num(); ++i)
+		{
+			PinToExpression.Add(Outputs[i].OutputPin, Outputs[i].Expression);
+			//We also grab the expression for the pin we're currently interested in. Otherwise we'd have to search the map for it.
+			Ret = Outputs[i].OutputPin == Pin ? Outputs[i].Expression : Ret;
+		}
+	}
+
+	return Ret;
+}
+
+TNiagaraExprPtr FNiagaraCompiler::CompilePin(UEdGraphPin* Pin)
+{
+	check(Pin);
+	TNiagaraExprPtr Ret;
+	if (Pin->Direction == EGPD_Input)
+	{
+		if (Pin->LinkedTo.Num() > 0)
+		{
+			// > 1 ???
+			Ret = CompileOutputPin(Pin->LinkedTo[0]);
+		}
+		else if (!Pin->bDefaultValueIsIgnored)
+		{
+			//No connections to this input so add the default as a const expression.
+			const UEdGraphSchema_Niagara* Schema = Cast<const UEdGraphSchema_Niagara>(Pin->GetSchema());
+			ENiagaraDataType DataType = Schema->GetPinDataType(Pin);
+
+			FString ConstString = Pin->GetDefaultAsString();
+			FName ConstName(*ConstString);
+			
+			if (DataType == ENiagaraDataType::Scalar)
 			{
-				check(Context.Expressions.IsValidIndex(Expr.Src[k]));
-				check(Expr.Src[k] < i);
-				ExpressionLifetimes[Expr.Src[k]] = i;
+				float Default;
+				Schema->GetPinDefaultValue(Pin, Default);
+				ConstantData.SetOrAddInternal(ConstName, Default);
 			}
+			else if (DataType == ENiagaraDataType::Vector)
+			{
+				FVector4 Default;
+				Schema->GetPinDefaultValue(Pin, Default);
+				ConstantData.SetOrAddInternal(ConstName, Default);
+
+			}
+			else if (DataType == ENiagaraDataType::Matrix)
+			{
+				FMatrix Default;
+				Schema->GetPinDefaultValue(Pin, Default);
+				ConstantData.SetOrAddInternal(ConstName, Default);
+			}
+			Ret = Expression_GetInternalConstant(ConstName, DataType);
 		}
 	}
-
-	// Allocate temporary registers for the output of each expression.
-	int32 Registers[VectorVM::NumTempRegisters];
-	FMemory::Memset(Registers, 0xff, sizeof(Registers));
-	TArray<int32> RegisterAssignments;
-	RegisterAssignments.AddUninitialized(Context.Expressions.Num());
-	for (int32 i = 0; i < Context.Expressions.Num(); ++i)
+	else
 	{
-		FNiagaraExpr& Expr = Context.Expressions[i];
-		VectorVM::FVectorVMOpInfo const& OpInfo = VectorVM::GetOpCodeInfo(Expr.OpIndex);
-
-		for (int32 j = 0; j < 3; ++j)
-		{
-			//if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Register)
-			if ((Expr.SrcOperandTypeVector & (1 << j)) == 0 && OpInfo.SrcTypes[j] != VectorVM::EOpSrc::Invalid)
-			{
-				if (IsAttrIndex(Expr.Src[j]))
-				{
-					Expr.Src[j] = VectorVM::FirstInputRegister + AttrIndexFromExpressionIndex(Expr.Src[j]);
-				}
-				else
-				{
-					Expr.Src[j] = RegisterAssignments[Expr.Src[j]];
-				}
-			}
-			//else if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Const)
-			else if ((Expr.SrcOperandTypeVector & (1 << j)) == 1)
-			{
-				// VectorVM::EOpSrc::Const.
-				Expr.Src[j] = ConstIndexFromExpressionIndex(Expr.Src[j]);
-				//Expr.SrcOperandTypeVector |= 1<<j;
-			}
-		}
-
-		// now that we've figured out register/constant assignments, we revert back to the base opcode; the kernel Exec function will handle passing 
-		// the data in correctly based on the SrcOperandTypeVector. It would be good to change the compiler so we don't need the permutation
-		// opcodes at all, i.e. figure out source operand types without needing them in the OpInfo.
-		Expr.OpIndex = OpInfo.BaseOpcode;
-
-
-		int32 AttrIndex = INDEX_NONE;
-		if (OutputExpressions.Find(i, AttrIndex))
-		{
-			// Assign to an output register.
-			RegisterAssignments[i] = VectorVM::FirstOutputRegister + AttrIndex;
-		}
-		else
-		{
-			int32 AssignedRegister = INDEX_NONE;
-			for (int32 j = 0; j < VectorVM::NumTempRegisters; ++j)
-			{
-				if (Registers[j] == INDEX_NONE
-					|| ExpressionLifetimes[Registers[j]] < i)
-				{
-					AssignedRegister = j;
-					break;
-				}
-			}
-			check(AssignedRegister != INDEX_NONE && AssignedRegister < VectorVM::NumTempRegisters);
-
-			Registers[AssignedRegister] = i;
-			RegisterAssignments[i] = AssignedRegister;
-		}
+		Ret = CompileOutputPin(Pin);
 	}
 
-	// Generate bytecode!
-	TArray<uint8>& Code = ScriptToCompile->ByteCode;
-	Code.Empty();
-	for (int32 i = 0; i < Context.Expressions.Num(); ++i)
-	{
-		FNiagaraExpr& Expr = Context.Expressions[i];
-		VectorVM::FVectorVMOpInfo const& OpInfo = VectorVM::GetOpCodeInfo(Expr.OpIndex);
+	return Ret;
+}
 
-		int32 DestRegister = RegisterAssignments[i];
-		check(DestRegister < VectorVM::MaxRegisters);
+void FNiagaraCompiler::GetParticleAttributes(TArray<FName>& OutAttributes)
+{
+	check(Source);
+	Source->GetParticleAttributes(OutAttributes);
+}
 
-		check(Expr.OpIndex < VectorVM::EOp::NumOpcodes);
-		check(Expr.OpIndex == OpInfo.BaseOpcode);
+TNiagaraExprPtr FNiagaraCompiler::Expression_GetAttribute(FName AttributeName)
+{
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetAttribute(this, ENiagaraDataType::Vector, AttributeName)));
+	return Expressions[Index];
+}
 
-		Code.Add(Expr.OpIndex);
-		Code.Add(DestRegister);
-		Code.Add(Expr.SrcOperandTypeVector);
-		for (int32 j = 0; j < 3; ++j)
-		{
-			if (OpInfo.SrcTypes[j] == VectorVM::EOpSrc::Invalid)
-				break;
-			Code.Add(Expr.Src[j]);
-		}
+TNiagaraExprPtr FNiagaraCompiler::Expression_GetExternalConstant(FName ConstantName, ENiagaraDataType Type)
+{
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetConstant(this, Type, ConstantName, false)));
+	return Expressions[Index];
+}
 
-		// If the expression is output to multiple attributes, copy them here.
-		if (DestRegister >= VectorVM::FirstOutputRegister)
-		{
-			int32 AttrIndex = DestRegister - VectorVM::FirstOutputRegister;
-			for (int32 j = AttrIndex+1; j < OutputExpressions.Num(); ++j)
-			{
-				if (OutputExpressions[j] == i)
-				{
-					Code.Add(VectorVM::EOp::add);
-					Code.Add(VectorVM::FirstOutputRegister + j);
-					Code.Add(0x0);	// all inputs are registers
-					Code.Add(DestRegister);
-					Code.Add(0);
-				}
-			}
-		}
-	}
+TNiagaraExprPtr FNiagaraCompiler::Expression_GetInternalConstant(FName ConstantName, ENiagaraDataType Type)
+{
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_GetConstant(this, Type, ConstantName, true)));
+	return Expressions[Index];
+}
 
-	// Terminate with the 'done' opcode.
-	Code.Add(VectorVM::EOp::done);
+TNiagaraExprPtr FNiagaraCompiler::Expression_Collection(TArray<TNiagaraExprPtr>& SourceExpressions)
+{
+	int32 Index = Expressions.Add(MakeShareable(new FNiagaraExpression_Collection(this, ENiagaraDataType::Unknown, SourceExpressions)));
+	return Expressions[Index];
+}
 
-	// And copy the constant table and attributes.
-	ScriptToCompile->ConstantTable = Context.Constants;
-	ScriptToCompile->Attributes = Context.Attributes;
+TNiagaraExprPtr FNiagaraCompiler::GetAttribute(FName AttributeName)
+{
+	return Expression_GetAttribute(AttributeName);
+}
+
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, float Default)
+{
+	SetOrAddConstant(false, ConstantName, Default);
+	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Scalar);
+}
+
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, FVector4 Default)
+{
+	SetOrAddConstant(false, ConstantName, Default);
+	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Vector);
+}
+
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(FName ConstantName, const FMatrix& Default)
+{
+	SetOrAddConstant(false, ConstantName, Default);
+	return Expression_GetExternalConstant(ConstantName, ENiagaraDataType::Matrix);
 }

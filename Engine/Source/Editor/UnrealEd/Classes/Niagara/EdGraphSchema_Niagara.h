@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraphSchema.h"
+#include "INiagaraCompiler.h"
 #include "EdGraphSchema_Niagara.generated.h"
 
 /** Action to add a node to the graph */
@@ -50,7 +51,9 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	UPROPERTY()
 	FString PC_Float;
 	UPROPERTY()
-	FString PC_Struct;
+	FString PC_Vector;
+	UPROPERTY()
+	FString PC_Matrix;
 
 	// Begin EdGraphSchema interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
@@ -58,5 +61,10 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
 	virtual bool ShouldHidePinDefaultValue(UEdGraphPin* Pin) const override;
 	// End EdGraphSchema interface
+
+	UNREALED_API ENiagaraDataType GetPinDataType(UEdGraphPin* Pin)const;
+	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, float& OutDefault)const;
+	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, FVector4& OutDefault)const;
+	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, FMatrix& OutDefault)const;
 };
 

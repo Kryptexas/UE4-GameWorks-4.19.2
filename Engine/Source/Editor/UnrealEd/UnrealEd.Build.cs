@@ -110,7 +110,6 @@ public class UnrealEd : ModuleRules
 				"SwarmInterface",
 				"TargetPlatform",
 				"TargetDeviceServices",
-				"VectorVM",
                 "EditorWidgets",
 				"GraphEditor",
 				"Kismet",
@@ -205,6 +204,7 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
              	"CollectionManager",
 				"BlueprintGraph",
+				"NiagaraEditor",
 			}
 			);
 
