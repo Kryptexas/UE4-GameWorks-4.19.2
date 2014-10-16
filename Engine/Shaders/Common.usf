@@ -117,7 +117,7 @@
 		#define class struct
 	#endif
 #elif METAL_PROFILE
-	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#define FEATURE_LEVEL  FEATURE_LEVEL_ES3_1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif METAL_MRT_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
@@ -315,7 +315,7 @@ MaterialFloat PhongShadingPow(MaterialFloat X, MaterialFloat Y)
 	return ClampedPow(X, Y);
 }
 
-#if FEATURE_LEVEL != FEATURE_LEVEL_SM4 && FEATURE_LEVEL != FEATURE_LEVEL_SM5
+#if FEATURE_LEVEL < FEATURE_LEVEL_ES3_1
 	// DX11 (feature levels >= 10) feature sets natively supports uints in shaders; we just use floats on other platforms.
 	#define uint4	int4
 #endif
