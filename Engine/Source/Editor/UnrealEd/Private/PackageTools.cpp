@@ -327,6 +327,7 @@ namespace PackageTools
 				GWarn->StatusUpdate( PackageIndex, PackagesToUnload.Num(), FText::Format(NSLOCTEXT("UnrealEd", "Unloadingf", "Unloading {0}..."), FText::FromString(PackageBeingUnloaded->GetName()) ) );
 
 				PackageBeingUnloaded->bHasBeenFullyLoaded = false;
+				PackageBeingUnloaded->ClearFlags(RF_WasLoaded);
 				if ( PackageBeingUnloaded->PackageFlags & PKG_ContainsScript )
 				{
 					bScriptPackageWasUnloaded = true;
