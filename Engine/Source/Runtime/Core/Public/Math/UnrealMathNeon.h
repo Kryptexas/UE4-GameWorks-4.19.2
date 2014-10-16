@@ -209,6 +209,14 @@ FORCEINLINE void VectorStoreAligned( VectorRegister Vec, void* Ptr )
 }
 
 /**
+* Same as VectorStoreAligned for Neon. 
+*
+* @param Vec	Vector to store
+* @param Ptr	Aligned memory pointer
+*/
+#define VectorStoreAlignedStreamed( Vec, Ptr )	VectorStoreAligned( Vec, Ptr )
+
+/**
  * Stores a vector to memory (aligned or unaligned).
  *
  * @param Vec	Vector to store
