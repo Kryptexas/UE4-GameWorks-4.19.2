@@ -2,9 +2,10 @@
 #include "EnginePrivate.h"
 #include "PhysDerivedData.h"
 #include "TargetPlatform.h"
-#include "IPhysXFormatModule.h"
 
 #if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+
+#include "IPhysXFormatModule.h"
 
 FDerivedDataPhysXCooker::FDerivedDataPhysXCooker( FName InFormat, UBodySetup* InBodySetup )
 	: BodySetup( InBodySetup )
