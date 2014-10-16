@@ -5,10 +5,11 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformOutputDevices.h"
 
 struct CORE_API FIOSPlatformOutputDevices : public FGenericPlatformOutputDevices
 {
-	static class FOutputDeviceError*	GetError();
+	static FOutputDeviceError*	GetError();
 };
 
 typedef FIOSPlatformOutputDevices FPlatformOutputDevices;

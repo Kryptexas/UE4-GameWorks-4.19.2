@@ -6,10 +6,11 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformOutputDevices.h"
+
 struct CORE_API FAndroidOutputDevices : public FGenericPlatformOutputDevices
 {
-//	static class FOutputDevice*			GetLog();
-	static class FOutputDeviceError*	GetError();
+	static FOutputDeviceError*	GetError();
 };
 
 typedef FAndroidOutputDevices FPlatformOutputDevices;
