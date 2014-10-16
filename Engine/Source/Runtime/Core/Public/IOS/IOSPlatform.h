@@ -70,6 +70,8 @@ typedef FIOSPlatformTypes FPlatformTypes;
 // new/delete operators
 #define OPERATOR_NEW_THROW_SPEC throw (std::bad_alloc)
 #define OPERATOR_DELETE_THROW_SPEC throw()
+#define OPERATOR_NEW_NOTHROW_SPEC throw ()
+#define OPERATOR_DELETE_NOTHROW_SPEC throw()
 
 // DLL export and import definitions
 #define DLLEXPORT

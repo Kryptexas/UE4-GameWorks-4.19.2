@@ -408,6 +408,12 @@
 #ifndef OPERATOR_DELETE_THROW_SPEC
 	#define OPERATOR_DELETE_THROW_SPEC
 #endif
+#ifndef OPERATOR_NEW_NOTHROW_SPEC
+	#define OPERATOR_NEW_NOTHROW_SPEC throw()
+#endif
+#ifndef OPERATOR_DELETE_NOTHROW_SPEC
+	#define OPERATOR_DELETE_NOTHROW_SPEC throw()
+#endif
 
 #ifndef checkAtCompileTime
 	#define checkAtCompileTime(expr, msg) \
