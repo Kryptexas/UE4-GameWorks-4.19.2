@@ -5,6 +5,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformSplash.h"
 
 // default implementation for now
 typedef FGenericPlatformSplash FPlatformSplash;

@@ -4,6 +4,7 @@
 ==============================================================================================*/
 
 #pragma once
+#include "GenericPlatform/GenericPlatformSplash.h"
 
 /**
 * Windows splash implementation
