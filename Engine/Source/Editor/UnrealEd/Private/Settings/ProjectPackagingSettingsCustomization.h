@@ -110,6 +110,7 @@ protected:
 
 	FProjectPackagingSettingsCustomization()
 		: FilterCulturesChoice(EFilterCulturesChoices::AllAvailableCultures)
+		, IsInBatchSelectOperation(false)
 	{
 
 	}
@@ -357,6 +358,7 @@ protected:
 		{
 			RemoveCulture(Culture->GetName());
 		}
+		
 	}
 
 	bool IsCultureSelected(FCulturePtr Culture)
