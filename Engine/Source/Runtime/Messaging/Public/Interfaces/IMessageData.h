@@ -46,6 +46,7 @@ public:
 	 * Gets the state of the message data.
 	 *
 	 * @return Message data state.
+	 * @see OnStateChanged
 	 */
 	virtual EMessageDataState GetState() const = 0;
 
@@ -55,6 +56,7 @@ public:
 	 * Returns a delegate that is executed when the message data's state changed.
 	 *
 	 * @return The delegate.
+	 * @see GetState
 	 */
 	virtual FSimpleDelegate& OnStateChanged() = 0;
 

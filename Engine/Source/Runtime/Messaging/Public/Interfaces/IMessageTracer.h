@@ -211,9 +211,7 @@ public:
 	 */
 	virtual bool IsRunning() const = 0;
 
-	/**
-	 * Resets the tracer.
-	 */
+	/** Resets the tracer. */
 	virtual void Reset() = 0;
 
 	/**

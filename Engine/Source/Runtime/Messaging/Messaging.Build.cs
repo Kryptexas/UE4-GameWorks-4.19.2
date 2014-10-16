@@ -18,7 +18,6 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"Json",
-					"Sockets",
 				}
 			);
 

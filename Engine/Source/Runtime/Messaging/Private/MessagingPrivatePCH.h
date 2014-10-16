@@ -9,8 +9,6 @@
  *****************************************************************************/
 
 #include "Json.h"
-#include "Sockets.h"
-#include "SocketSubsystem.h"
 
 
 /* Private includes
