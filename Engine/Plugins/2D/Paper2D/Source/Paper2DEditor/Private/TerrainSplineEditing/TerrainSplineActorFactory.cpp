@@ -20,7 +20,7 @@ void UTerrainSplineActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor
 		GEditor->SetActorLabelUnique(NewActor, TerrainMaterial->GetName());
 
 		APaperTerrainActor* TypedActor = CastChecked<APaperTerrainActor>(NewActor);
-		UPaperTerrainComponent* RenderComponent = TypedActor->RenderComponent;
+		UPaperTerrainComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();

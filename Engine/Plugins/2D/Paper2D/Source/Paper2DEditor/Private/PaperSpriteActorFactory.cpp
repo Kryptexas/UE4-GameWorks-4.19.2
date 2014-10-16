@@ -20,7 +20,7 @@ void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 		GEditor->SetActorLabelUnique(NewActor, Sprite->GetName());
 
 		APaperSpriteActor* TypedActor = CastChecked<APaperSpriteActor>(NewActor);
-		UPaperSpriteComponent* RenderComponent = TypedActor->RenderComponent;
+		UPaperSpriteComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();
@@ -41,7 +41,7 @@ void UPaperSpriteActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 	{
 		if (APaperSpriteActor* TypedActor = Cast<APaperSpriteActor>(CDO))
 		{
-			UPaperSpriteComponent* RenderComponent = TypedActor->RenderComponent;
+			UPaperSpriteComponent* RenderComponent = TypedActor->GetRenderComponent();
 			check(RenderComponent);
 
 			RenderComponent->SetSprite(Sprite);

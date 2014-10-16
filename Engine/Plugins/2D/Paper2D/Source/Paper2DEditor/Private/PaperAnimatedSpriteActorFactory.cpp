@@ -20,7 +20,7 @@ void UPaperFlipbookActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor
 		GEditor->SetActorLabelUnique(NewActor, Flipbook->GetName());
 
 		APaperFlipbookActor* TypedActor = CastChecked<APaperFlipbookActor>(NewActor);
-		UPaperFlipbookComponent* RenderComponent = TypedActor->RenderComponent;
+		UPaperFlipbookComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();
@@ -35,7 +35,7 @@ void UPaperFlipbookActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO
 	{
 		if (APaperFlipbookActor* TypedActor = Cast<APaperFlipbookActor>(CDO))
 		{
-			UPaperFlipbookComponent* RenderComponent = TypedActor->RenderComponent;
+			UPaperFlipbookComponent* RenderComponent = TypedActor->GetRenderComponent();
 			check(RenderComponent);
 
 			RenderComponent->SetFlipbook(Flipbook);

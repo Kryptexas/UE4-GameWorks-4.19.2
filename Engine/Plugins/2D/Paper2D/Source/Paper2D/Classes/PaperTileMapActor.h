@@ -11,12 +11,17 @@ class APaperTileMapActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
+private:
 	UPROPERTY(Category=TileMapActor, VisibleAnywhere)
-	TSubobjectPtr<class UPaperTileMapRenderComponent> RenderComponent;
+	class UPaperTileMapRenderComponent* RenderComponent;
+public:
 
 	// AActor interface
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 #endif
 	// End of AActor interface
+
+	/** Returns RenderComponent subobject **/
+	FORCEINLINE class UPaperTileMapRenderComponent* GetRenderComponent() const { return RenderComponent; }
 };
