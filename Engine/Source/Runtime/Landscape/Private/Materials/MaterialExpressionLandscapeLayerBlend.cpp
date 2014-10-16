@@ -317,3 +317,6 @@ void UMaterialExpressionLandscapeLayerBlend::GetAllParameterNames(TArray<FName> 
 		}
 	}
 }
+
+
+#undef LOCTEXT_NAMESPACE
