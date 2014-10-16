@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EnableIf.h: Unreal common template definitions.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Includes a function in an overload set if the predicate is true.  It should be used similarly to this:
@@ -30,8 +27,8 @@ public:
 
 template <typename Result>
 class TEnableIf<false, Result>
-{
-};
+{ };
+
 
 /**
  * This is a variant of the above that will determine the return type 'lazily', i.e. only if the function is enabled.
@@ -59,5 +56,4 @@ public:
 
 template <typename Func>
 class TLazyEnableIf<false, Func>
-{
-};
+{ };

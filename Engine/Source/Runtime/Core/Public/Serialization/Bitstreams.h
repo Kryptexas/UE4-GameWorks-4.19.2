@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Bitstreams.h: Unreal bitstream manipulation classes.
-=============================================================================*/
-
 #pragma once
+
 
 /*-----------------------------------------------------------------------------
 	FBitWriter.
@@ -16,17 +13,19 @@
 struct CORE_API FBitWriter : public FArchive
 {
 	friend struct FBitWriterMark;
+
 public:
-	/**
-	 * Default constructor. Zeros everything.
-	 */
+	/** Default constructor. Zeros everything. */
 	FBitWriter(void);
+
 	/**
 	 * Constructor using known size the buffer needs to be
 	 */
 	FBitWriter( int64 InMaxBits, bool AllowResize = false );
+
 	void SerializeBits( void* Src, int64 LengthBits );
 	void SerializeInt( uint32& Value, uint32 Max );
+
 	/** serializes the specified value, but does not bounds check against Max; instead, it will wrap around if the value exceeds Max
 	 * (this differs from SerializeInt(), which clamps)
 	 * @param Result - the value to serialize
@@ -37,23 +36,25 @@ public:
 	void Serialize( void* Src, int64 LengthBytes );
 
 	/**
-	 * Returns a pointer to our internal buffer
+	 * Returns a pointer to our internal buffer.
 	 */
 	FORCEINLINE uint8* GetData(void)
 	{
 		return Buffer.GetData();
 	}
+
 	FORCEINLINE const uint8* GetData(void) const
 	{
 		return Buffer.GetData();
 	}
+
 	FORCEINLINE const TArray<uint8>* GetBuffer(void) const
 	{
 		return &Buffer;
 	}
 
 	/**
-	 * Returns the number of bytes written
+	 * Returns the number of bytes written.
 	 */
 	FORCEINLINE int64 GetNumBytes(void) const
 	{
@@ -61,7 +62,7 @@ public:
 	}
 
 	/**
-	 * Returns the number of bits written
+	 * Returns the number of bits written.
 	 */
 	FORCEINLINE int64 GetNumBits(void) const
 	{
@@ -69,7 +70,7 @@ public:
 	}
 
 	/**
-	 * Returns the number of bits the buffer supports
+	 * Returns the number of bits the buffer supports.
 	 */
 	FORCEINLINE int64 GetMaxBits(void) const
 	{
@@ -77,7 +78,7 @@ public:
 	}
 
 	/**
-	 * Marks this bit writer as overflowed
+	 * Marks this bit writer as overflowed.
 	 */
 	FORCEINLINE void SetOverflowed(void)
 	{
@@ -125,11 +126,13 @@ public:
 	}
 
 private:
+
 	TArray<uint8> Buffer;
 	int64   Num;
 	int64   Max;
 	bool	AllowResize;
 };
+
 
 //
 // For pushing and popping FBitWriter positions.
@@ -137,32 +140,38 @@ private:
 struct CORE_API FBitWriterMark
 {
 public:
+
 	FBitWriterMark()
-	:	Overflowed	( false ),
-		Num			( 0 )
-	{}
+		: Overflowed(false)
+		, Num(0)
+	{ }
+
 	FBitWriterMark( FBitWriter& Writer )
 	{
 		Init(Writer);
 	}
+
 	int64 GetNumBits()
 	{
 		return Num;
 	}
+
 	void Init( FBitWriter& Writer)
 	{
 		Num = Writer.Num;
 		Overflowed = Writer.ArIsError;
 	}
+
 	void Pop( FBitWriter& Writer );
 	void Copy( FBitWriter& Writer, TArray<uint8> &Buffer );
-
 	void PopWithoutClear( FBitWriter& Writer );
 
 private:
+
 	bool			Overflowed;
 	int64			Num;
 };
+
 
 /*-----------------------------------------------------------------------------
 	FBitReader.
@@ -174,8 +183,10 @@ private:
 struct CORE_API FBitReader : public FArchive
 {
 	friend struct FBitReaderMark;
+
 public:
-	FBitReader( uint8* Src=NULL, int64 CountBits=0 );
+
+	FBitReader( uint8* Src = nullptr, int64 CountBits = 0 );
 	void SetData( FBitReader& Src, int64 CountBits );
 	void SerializeBits( void* Dest, int64 LengthBits );
 	void SerializeInt( uint32& Value, uint32 Max );
@@ -195,11 +206,14 @@ public:
 	void AppendDataFromChecked( uint8* Src, uint32 NumBits );
 	void AppendTo( TArray<uint8> &Buffer );
 	void EatByteAlign();
+
 protected:
+
 	TArray<uint8> Buffer;
-	int64   Num;
-	int64   Pos;
+	int64 Num;
+	int64 Pos;
 };
+
 
 //
 // For pushing and popping FBitWriter positions.
@@ -207,18 +221,23 @@ protected:
 struct CORE_API FBitReaderMark
 {
 public:
+
 	FBitReaderMark()
-		:	Pos         ( 0 )
-	{}
+		: Pos(0)
+	{ }
+
 	FBitReaderMark( FBitReader& Reader )
-		:	Pos			( Reader.Pos )
-	{}
+		: Pos(Reader.Pos)
+	{ }
+
 	int64 GetPos()
 	{
 		return Pos;
 	}
+
 	void Copy( FBitReader& Reader, TArray<uint8> &Buffer );
 
 private:
-	int64			Pos;
+
+	int64 Pos;
 };

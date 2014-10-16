@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SharedPointer.h: Smart pointer library
-=============================================================================*/
-
 #pragma once
+
 #include "Containers/ContainersFwd.h"
 #include "Containers/Map.h"
 #include "Templates/UnrealTemplate.h"
+
 
 /**
  *	SharedPointer - Unreal smart pointer library
@@ -112,7 +110,7 @@
 
 
 /**
- * Casts a shared reference of one type to another type. (static_cast)  Useful for downcasting.
+ * Casts a shared reference of one type to another type. (static_cast)  Useful for down-casting.
  *
  * @param  InSharedRef  The shared reference to cast
  */

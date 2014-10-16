@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ScopedPointer.h: Scoped pointer type definition.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Wrapper around a raw pointer that destroys it automatically.
@@ -25,24 +22,25 @@ private:
 public:
 
 	/** Initialization constructor. */
-	explicit TScopedPointer(ReferencedType* InReference = NULL)
-	:	Reference(InReference)
-	{}
+	explicit TScopedPointer(ReferencedType* InReference = nullptr)
+		: Reference(InReference)
+	{ }
 
 	/** Copy constructor. */
 	TScopedPointer(const TScopedPointer& InCopy)
 	{
 		Reference = InCopy.Reference ?
 			new ReferencedType(*InCopy.Reference) :
-			NULL;
+			nullptr;
 	}
 
 	/** Destructor. */
 	~TScopedPointer()
 	{
 		delete Reference;
-		Reference = NULL;
+		Reference = nullptr;
 	}
+
 	/** Assignment operator. */
 	TScopedPointer& operator=(const TScopedPointer& InCopy)
 	{
@@ -51,16 +49,18 @@ public:
 			delete Reference;
 			Reference = InCopy.Reference ?
 				new ReferencedType(*InCopy.Reference) :
-				NULL;
+				nullptr;
 		}
 		return *this;
 	}
+
 	/** Assignment operator. */
 	TScopedPointer& operator=(ReferencedType* InReference)
 	{
 		Reset(InReference);
 		return *this;
 	}
+
 	// Dereferencing operators.
 	ReferencedType& operator*() const
 	{
@@ -99,7 +99,7 @@ public:
 	}
 
 	/** Deletes the current pointer and sets it to a new value. */
-	void Reset(ReferencedType* NewReference = NULL)
+	void Reset(ReferencedType* NewReference = nullptr)
 	{
 		check(!Reference || Reference != NewReference);
 		delete Reference;
@@ -110,7 +110,7 @@ public:
 	ReferencedType* Release()
 	{
 		ReferencedType* Result = GetOwnedPointer();
-		Reference = NULL;
+		Reference = nullptr;
 		return Result;
 	}
 
@@ -127,13 +127,14 @@ public:
 			delete OldReference;
 		}
 
-		// Serialize the value.  The caller of this serializer is responsible to only serialize for saving non-NULL pointers. */
+		// Serialize the value.  The caller of this serializer is responsible to only serialize for saving non-nullptr pointers. */
 		check(P.Reference);
 		Ar << *P.Reference;
 
 		return Ar;
 	}
 };
+
 
 /** specialize container traits */
 template<typename ReferencedType>
@@ -143,11 +144,13 @@ struct TTypeTraits<TScopedPointer<ReferencedType> > : public TTypeTraitsBase<TSc
 	typedef ReferencedType* ConstPointerType;
 };
 
+
 /** Implement movement of a scoped pointer to avoid copying the referenced value. */
 template<typename ReferencedType> void Move(TScopedPointer<ReferencedType>& A,ReferencedType* B)
 {
 	A.Reset(B);
 }
+
 
 /**
  * Wrapper around a raw pointer that destroys it automatically.
@@ -167,7 +170,7 @@ private:
 public:
 
 	/** Initialization constructor. */
-	explicit TAutoPtr(ReferencedType* InReference = NULL)
+	explicit TAutoPtr(ReferencedType* InReference = nullptr)
 		:	Reference(InReference)
 	{}
 
@@ -175,7 +178,7 @@ public:
 	~TAutoPtr()
 	{
 		delete Reference;
-		Reference = NULL;
+		Reference = nullptr;
 	}
 
 	/** Assignment operator. */
@@ -222,7 +225,7 @@ public:
 	}
 
 	/** Deletes the current pointer and sets it to a new value. */
-	void Reset(ReferencedType* NewReference = NULL)
+	void Reset(ReferencedType* NewReference = nullptr)
 	{
 		check(!Reference || Reference != NewReference);
 		delete Reference;
@@ -230,6 +233,7 @@ public:
 	}
 
 };
+
 
 /** specialize container traits */
 template<typename ReferencedType>
@@ -239,10 +243,9 @@ struct TTypeTraits<TAutoPtr<ReferencedType> > : public TTypeTraitsBase<TAutoPtr<
 	typedef ReferencedType* ConstPointerType;
 };
 
+
 /** Implement movement of a scoped pointer to avoid copying the referenced value. */
 template<typename ReferencedType> void Move(TAutoPtr<ReferencedType>& A,ReferencedType* B)
 {
 	A.Reset(B);
 }
-
-

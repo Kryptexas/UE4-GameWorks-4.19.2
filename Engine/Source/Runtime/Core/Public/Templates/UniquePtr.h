@@ -11,7 +11,7 @@
 //
 // TUniquePtr<MyClass> Ptr1(new MyClass);    // The MyClass object is owned by Ptr1.
 // TUniquePtr<MyClass> Ptr2(Ptr1);           // Error - TUniquePtr is not copyable
-// TUniquePtr<MyClass> Ptr3(MoveTemp(Ptr1)); // Ptr3 now owns the MyClass object - Ptr1 is now NULL.
+// TUniquePtr<MyClass> Ptr3(MoveTemp(Ptr1)); // Ptr3 now owns the MyClass object - Ptr1 is now nullptr.
 
 template <typename T>
 class TUniquePtr
@@ -24,7 +24,7 @@ public:
 	 * Default constructor - initializes the TUniquePtr to null.
 	 */
 	FORCEINLINE TUniquePtr()
-		: Ptr(NULL)
+		: Ptr(nullptr)
 	{
 	}
 
@@ -44,7 +44,7 @@ public:
 	FORCEINLINE TUniquePtr(TUniquePtr&& Other)
 		: Ptr(Other.Ptr)
 	{
-		Other.Ptr = NULL;
+		Other.Ptr = nullptr;
 	}
 
 	/**
@@ -54,7 +54,7 @@ public:
 	FORCEINLINE TUniquePtr(TUniquePtr<OtherT>&& Other)
 		: Ptr(Other.Ptr)
 	{
-		Other.Ptr = NULL;
+		Other.Ptr = nullptr;
 	}
 
 	/**
@@ -67,7 +67,7 @@ public:
 			// We delete last, because we don't want odd side effects if the destructor of T relies on the state of this or Other
 			T* OldPtr = Ptr;
 			Ptr = Other.Ptr;
-			Other.Ptr = NULL;
+			Other.Ptr = nullptr;
 			delete OldPtr;
 		}
 
@@ -85,7 +85,7 @@ public:
 			// We delete last, because we don't want odd side effects if the destructor of T relies on the state of this or Other
 			T* OldPtr = Ptr;
 			Ptr = Other.Ptr;
-			Other.Ptr = NULL;
+			Other.Ptr = nullptr;
 			delete OldPtr;
 		}
 
@@ -143,7 +143,7 @@ public:
 	/**
 	 * Returns a pointer to the owned object without relinquishing ownership.
 	 *
-	 * @return A copy of the pointer to the object owned by the TUniquePtr, or NULL if no object is being owned.
+	 * @return A copy of the pointer to the object owned by the TUniquePtr, or nullptr if no object is being owned.
 	 */
 	FORCEINLINE T* Get() const
 	{
@@ -153,12 +153,12 @@ public:
 	/**
 	 * Relinquishes control of the owned object to the caller and nulls the TUniquePtr.
 	 *
-	 * @return The pointer to the object that was owned by the TUniquePtr, or NULL if no object was being owned.
+	 * @return The pointer to the object that was owned by the TUniquePtr, or nullptr if no object was being owned.
 	 */
 	FORCEINLINE T* Release()
 	{
 		T* Result = Ptr;
-		Ptr = NULL;
+		Ptr = nullptr;
 		return Result;
 	}
 
@@ -167,7 +167,7 @@ public:
 	 *
 	 * @param InPtr A pointer to the object to take ownership of.
 	 */
-	FORCEINLINE void Reset(T* InPtr = NULL)
+	FORCEINLINE void Reset(T* InPtr = nullptr)
 	{
 		// We delete last, because we don't want odd side effects if the destructor of T relies on the state of this or Other
 		T* OldPtr = Ptr;

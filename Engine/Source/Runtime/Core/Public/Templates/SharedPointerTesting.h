@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SharedPointerTesting.h: Smart pointer testing suite
-=============================================================================*/
-
 #pragma once
-
 
 #include "SharedPointer.h"
 
@@ -15,7 +10,6 @@
 
 
 #if WITH_SHARED_POINTER_TESTS
-
 
 /**
  * Shared pointer testing suite
@@ -37,11 +31,10 @@ namespace SharedPointerTesting
 			check( !MyEmptyBoolPtr.IsValid() );
 
 			// Test access to raw pointer
-			if( MyEmptyBoolPtr.Get() == NULL )
+			if( MyEmptyBoolPtr.Get() == nullptr )
 			{
 				// ...
 			}
-
 		}
 
 		{
@@ -107,7 +100,6 @@ namespace SharedPointerTesting
 			// NOTE: OtherSharedArrayReference goes out of scope here (object is destroyed)
 		}
 
-
 		{
 			// Test casting
 			class FBase
@@ -116,14 +108,12 @@ namespace SharedPointerTesting
 			};
 			class FDerived
 				: public FBase
-			{
-			};
+			{ };
 
 			{
 				// Explicit downcast to derived shared ptr
 				TSharedPtr< FBase, Mode > DerivedAsBasePtr( new FDerived() );
 				TSharedPtr< FDerived, Mode > DerivedPtr( StaticCastSharedPtr< FDerived >( DerivedAsBasePtr ) );
-
 			}
 
 			{
@@ -137,27 +127,21 @@ namespace SharedPointerTesting
 				TSharedPtr< FDerived, Mode > DerivedPtr( new FDerived() );
 				TSharedPtr< FBase, Mode > BasePtr = DerivedPtr;
 			}
-
-
 		}
 
-
-		// Create a shared pointer to NULL.  Consistent with std::shared_ptr, this results
+		// Create a shared pointer to nullptr.  Consistent with std::shared_ptr, this results
 		// in a non-empty TSharedPtr (heap allocated reference count)
 		{
-			bool* Foo = NULL;
+			bool* Foo = nullptr;
 			TSharedPtr< bool, Mode > NullPtr( Foo );
 			check( !NullPtr.IsValid() );
 		}
-
 
 		// Simple validity test syntax
 		{
 			TSharedPtr< bool, Mode > BoolPtr( new bool( true ) );
 			check( BoolPtr.IsValid() );
 		}
-
-		
 
 		// Empty weak pointer
 		{
@@ -176,7 +160,6 @@ namespace SharedPointerTesting
 			check( WeakInt.Pin().IsValid() );
 		}
 
-
 		// Create weak pointer from shared pointer (assignment)
 		{
 			TSharedPtr< int32, Mode > SharedInt( new int32( 64 ) );
@@ -190,7 +173,6 @@ namespace SharedPointerTesting
 			check( !WeakInt.Pin().IsValid() );
 		}
 
-
 		// Test weak pointer becoming invalid
 		{
 			TSharedPtr< int32, Mode > SharedInt( new int32( 64 ) );
@@ -198,7 +180,6 @@ namespace SharedPointerTesting
 			SharedInt.Reset();
 			check( !WeakInt.Pin().IsValid() );
 		}
-
 
 		// Compare shared pointers
 		{
@@ -210,7 +191,6 @@ namespace SharedPointerTesting
 			check( SharedA != SharedB );
 			check( SharedB == SharedC );
 		}
-
 
 		// Compare weak pointers
 		{
@@ -236,7 +216,6 @@ namespace SharedPointerTesting
 			}
 #endif
 		}
-
 
 		// Test 'const'
 		{
@@ -266,7 +245,6 @@ namespace SharedPointerTesting
 			// Test conversion from mutable to const (this is OK!)
 			FloatPtrA = MutableFloat;
 
-
 			if( FloatPtrB.IsValid() )
 			{
 #if 0			// Won't compile as value is const
@@ -289,7 +267,6 @@ namespace SharedPointerTesting
 			WeakFloat = ConstCastSharedPtr< float >( FloatPtrB );
 
 			*WeakFloat.Pin() = 20.0f;
-
 		}
 
 		// Test forward declaring a smart pointer to an incomplete type
@@ -302,22 +279,20 @@ namespace SharedPointerTesting
 			VecPtr = TSharedPtr< FBarFoo, Mode >( new FBarFoo() );
 			VecPtr->Val = 20;
 		}
-
 		
 		// Test Unreal non-standard extensions (expanded syntax)
 		{
-			// Initialize with NULL
-			TSharedPtr< bool, Mode > EmptyPtr( NULL );
-			TSharedPtr< float, Mode > FloatPtr = NULL;
+			// Initialize with nullptr
+			TSharedPtr< bool, Mode > EmptyPtr( nullptr );
+			TSharedPtr< float, Mode > FloatPtr = nullptr;
 
-			// Initialize with NULL
-			TWeakPtr< bool, Mode > EmptyWeakPtr( NULL );
-			TWeakPtr< float, Mode > FloatWeakPtr = NULL;
+			// Initialize with nullptr
+			TWeakPtr< bool, Mode > EmptyWeakPtr( nullptr );
+			TWeakPtr< float, Mode > FloatWeakPtr = nullptr;
 
-			// Reassign to NULL directly (instead of calling Reset)
+			// Reassign to nullptr directly (instead of calling Reset)
 			FloatPtr = TSharedPtr< float, Mode >( new float( 0.1f ) );
-			FloatPtr = NULL;
-
+			FloatPtr = nullptr;
 
 			// Test implicit construction helper (MakeShareable)
 			FloatPtr = MakeShareable( new float( 30.0f ) );
@@ -340,9 +315,7 @@ namespace SharedPointerTesting
 					return MakeShareable( new float( 123.0f ) );
 				}
 			};
-
 		}
-
 
 		// Test TSharedRef
 		{
@@ -352,15 +325,14 @@ namespace SharedPointerTesting
 				TSharedRef< bool, Mode > EmptyRef;
 #endif
 
-#if 0			// Won't compile as TSharedRef has no implicit constructor that a pointer (including NULL)
-				TSharedRef< bool, Mode > NullRef = NULL;
+#if 0			// Won't compile as TSharedRef has no implicit constructor that a pointer (including nullptr)
+				TSharedRef< bool, Mode > NullRef = nullptr;
 #endif
 
 				// TSharedRef initialized in constructor
 				{
 					TSharedRef< float, Mode > FloatRef( new float( 123.0f ) );
 				}
-
 
 				// Test reference access
 				{
@@ -372,7 +344,6 @@ namespace SharedPointerTesting
 					// Grab another C++ reference to the float object
 					const float& MyFloat2 = FloatRef.Get();
 				}
-
 
 				// Implicit conversion to TSharedRef is never allowed (use MakeShareable!)
 				{
@@ -386,22 +357,20 @@ namespace SharedPointerTesting
 					TSharedRef< float, Mode > FloatRef = MakeShareable( new float( 123.0f ) );
 				}
 
-				// New shared ref with NULL object pointer is not allowed!  The following code will compile
+				// New shared ref with nullptr object pointer is not allowed!  The following code will compile
 				// correctly, but will trigger a runtime assertion.
 				if( 0 )
 				{
 					// NOTE: The following code is unsafe and will trigger an assert
-					int32* NullInt = NULL;
+					int32* NullInt = nullptr;
 					TSharedRef< int32, Mode > RefWithNullObject( NullInt );
 				}
-
 
 				// Implicit conversion from a TSharedRef to a TSharedPtr (always OK)
 				{
 					TSharedRef< int32, Mode > MySharedRef( new int32( 1 ) );
 					TSharedPtr< int32, Mode > MySharedPtr( MySharedRef );
 				}
-
 
 				// Explicit TSharedRef construction from a TSharedPtr is not allowed
 				{
@@ -428,22 +397,22 @@ namespace SharedPointerTesting
 				// Conversion from an invalid TSharedPtr to a TSharedRef.  Never safe, will assert at runtime.
 				if( 0 )		// Will trigger a runtime assert as MySharedPtr.IsValid() == false
 				{
-					int32* NullInt = NULL;
+					int32* NullInt = nullptr;
 					TSharedPtr< int32, Mode > MySharedPtr( NullInt );
 					TSharedRef< int32, Mode > MySharedRef( MySharedPtr.ToSharedRef() );
 				}
 
-				// TSharedRef reassignment.  Safe as long as new object is not NULL.
+				// TSharedRef reassignment.  Safe as long as new object is not nullptr.
 				{
 					TSharedRef< int32, Mode > IntRef( new int32( 10 ) );
 					IntRef = TSharedRef< int32, Mode >( new int32( 20 ) );
 				}
 
-				// TSharedRef reassignment to NULL object is not allowed (asserts at runtime)
+				// TSharedRef reassignment to nullptr object is not allowed (asserts at runtime)
 				if( 0 )
 				{
 					TSharedRef< int32, Mode > IntRef( new int32( 10 ) );
-					int32* NullInt = NULL;
+					int32* NullInt = nullptr;
 					IntRef = TSharedRef< int32, Mode >( NullInt );
 				}
 
@@ -499,7 +468,6 @@ namespace SharedPointerTesting
 			}
 		}
 
-
 		// SharedFromThis
 		{
 			class FMyClass
@@ -527,7 +495,6 @@ namespace SharedPointerTesting
 			}
 		}
 
-
 		// Hash tables
 		{
 			TSharedRef< int32, Mode > FooRef( new int32( 1 ) );
@@ -546,7 +513,7 @@ namespace SharedPointerTesting
 			TMap< int32, TSharedRef< int32, Mode > > SharedRefValueHash;
 			SharedRefValueHash.Add( 10, FooRef );
 			const int32* FoundKey = SharedRefValueHash.FindKey( FooRef );
-			check( FoundKey != NULL && *FoundKey == 10 );
+			check( FoundKey != nullptr && *FoundKey == 10 );
 
 			// Maps and 'const'
 			{
@@ -554,14 +521,11 @@ namespace SharedPointerTesting
 				TMap< int32, TSharedRef< const int32, Mode > > ConstSharedRefValueHash;
 				ConstSharedRefValueHash.Add( 10, ConstFooRef );
 				const int32* FoundKey = ConstSharedRefValueHash.FindKey( ConstFooRef );
-				check( FoundKey != NULL && *FoundKey == 10 );
+				check( FoundKey != nullptr && *FoundKey == 10 );
 			}
 		}
 	}
-
 }
 
 
 #endif		// WITH_SHARED_POINTER_TESTS
-
-

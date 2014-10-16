@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealTemplate.h: Unreal common template definitions.
-=============================================================================*/
-
 #pragma once
+
 #include "EnableIf.h"
 #include "HAL/Platform.h"
 #include "Templates/UnrealTypeTraits.h"
+
 
 /*-----------------------------------------------------------------------------
 	Standard templates.
@@ -88,8 +86,8 @@ template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
 }
 
 /**
- * Chooses between the two parameters based on whether the first is NULL or not.
- * @return If the first parameter provided is non-NULL, it is returned; otherwise the second parameter is returned.
+ * Chooses between the two parameters based on whether the first is nullptr or not.
+ * @return If the first parameter provided is non-nullptr, it is returned; otherwise the second parameter is returned.
  */
 template<typename ReferencedType>
 FORCEINLINE ReferencedType* IfAThenAElseB(ReferencedType* A,ReferencedType* B)

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RefCounting.h: Reference counting definitions.
-=============================================================================*/
-
 #pragma once
+
 
 /** A virtual interface for ref counted objects to implement. */
 class IRefCountedObject
@@ -14,6 +11,7 @@ public:
 	virtual uint32 Release() const = 0;
 	virtual uint32 GetRefCount() const = 0;
 };
+
 
 /**
  * The base class of reference counted objects.
@@ -44,6 +42,7 @@ private:
 	mutable int32 NumRefs;
 };
 
+
 /**
  * A smart pointer to an object which implements AddRef/Release.
  */
@@ -51,11 +50,12 @@ template<typename ReferencedType>
 class TRefCountPtr
 {
 	typedef ReferencedType* ReferenceType;
+
 public:
 
 	TRefCountPtr():
-		Reference(NULL)
-	{}
+		Reference(nullptr)
+	{ }
 
 	TRefCountPtr(ReferencedType* InReference,bool bAddRef = true)
 	{
@@ -121,7 +121,7 @@ public:
 
 	ReferencedType** GetInitReference()
 	{
-		*this = NULL;
+		*this = nullptr;
 		return &Reference;
 	}
 
@@ -132,12 +132,12 @@ public:
 
 	friend bool IsValidRef(const TRefCountPtr& InReference)
 	{
-		return InReference.Reference != NULL;
+		return InReference.Reference != nullptr;
 	}
 
 	void SafeRelease()
 	{
-		*this = NULL;
+		*this = nullptr;
 	}
 
 	uint32 GetRefCount()
@@ -172,5 +172,6 @@ public:
 	}
 
 private:
+
 	ReferencedType* Reference;
 };

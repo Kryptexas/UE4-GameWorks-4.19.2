@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	StatsFile.cpp: Declares stats file related functionality.
-=============================================================================*/
-
 #pragma once
+
 
 #if	STATS
 
 class FAsyncWriteWorker;
+
 
 /**
 * Magic numbers for stats streams, this is for the first version.

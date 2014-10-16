@@ -4,9 +4,6 @@
 
 #include "Misc/Guid.h"
 
-/*=============================================================================
-	CustomVersion.h: Unreal custom versioning system.
-=============================================================================*/
 
 struct ECustomVersionSerializationFormat
 {
@@ -16,6 +13,7 @@ struct ECustomVersionSerializationFormat
 		Enums
 	};
 };
+
 
 /**
  * Structure to hold unique custom key with its version.
@@ -63,7 +61,9 @@ struct CORE_API FCustomVersion
 	CORE_API friend FArchive& operator<<(FArchive& Ar, FCustomVersion& Version);
 };
 
+
 class CORE_API FCustomVersionRegistration;
+
 
 /**
  * Container for all available/serialized custom versions.
@@ -83,7 +83,7 @@ public:
 	 * Gets a custom version from the container.
 	 *
 	 * @param CustomKey Custom key for which to retrieve the version.
-	 * @return The FCustomVersion for the specified custom key, or NULL if the key doesn't exist in the container.
+	 * @return The FCustomVersion for the specified custom key, or nullptr if the key doesn't exist in the container.
 	 */
 	const FCustomVersion* GetVersion(FGuid CustomKey) const;
 
@@ -115,12 +115,14 @@ public:
 	FString ToString(const FString& Indent) const;
 
 private:
+
 	/** Private implementation getter */
 	static FCustomVersionContainer& GetInstance();
 
 	/** Array containing custom versions. */
 	TArray<FCustomVersion> Versions;
 };
+
 
 /**
  * This class will cause the registration of a custom version number and key with the global
@@ -130,9 +132,11 @@ private:
 class FCustomVersionRegistration : FNoncopyable
 {
 public:
+
 	FCustomVersionRegistration(FGuid InKey, int32 Version, const TCHAR*);
 	~FCustomVersionRegistration();
 
 private:
+
 	FGuid Key;
 };

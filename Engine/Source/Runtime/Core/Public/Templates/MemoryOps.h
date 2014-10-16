@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MemoryOps.h: Functions to do bulk operations on contiguous blocks of objects.
-=============================================================================*/
-
 #pragma once
 
 #include <new>
@@ -12,6 +8,7 @@
 #include "Platform.h"
 #include "UnrealTemplate.h"
 #include "UnrealTypeTraits.h"
+
 
 /**
  * Default constructs a range of items in memory.
@@ -31,11 +28,13 @@ FORCEINLINE typename TEnableIf<!TIsZeroConstructType<ElementType>::Value>::Type 
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<TIsZeroConstructType<ElementType>::Value>::Type DefaultConstructItems(void* Elements, int32 Count)
 {
 	FMemory::Memset(Elements, 0, sizeof(ElementType) * Count);
 }
+
 
 /**
  * Destructs a range of items in memory.
@@ -57,10 +56,12 @@ FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsDestructor>::Type 
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsDestructor>::Type DestructItems(ElementType* Elements, int32 Count)
 {
 }
+
 
 /**
  * Copy constructs a range of items into memory.
@@ -81,11 +82,13 @@ FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsCopyConstructor>::
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsCopyConstructor>::Type CopyConstructItems(void* Dest, const ElementType* Source, int32 Count)
 {
 	FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
 }
+
 
 /**
  * Copy assigns a range of items.
@@ -106,11 +109,13 @@ FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::NeedsCopyAssignment>::T
 	}
 }
 
+
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::NeedsCopyAssignment>::Type CopyAssignItems(ElementType* Dest, const ElementType* Source, int32 Count)
 {
 	FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
 }
+
 
 /**
  * Relocates a range of items to a new memory location. This is a so-called 'destructive move' for which
@@ -133,6 +138,7 @@ FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Coun
 
 	FMemory::Memmove(Dest, Source, sizeof(ElementType) * Count);
 }
+
 
 #if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
 
@@ -207,6 +213,7 @@ FORCEINLINE typename TEnableIf<TTypeTraits<ElementType>::IsBytewiseComparable, b
 {
 	return !FMemory::Memcmp(A, B, sizeof(ElementType) * Count);
 }
+
 
 template <typename ElementType>
 FORCEINLINE typename TEnableIf<!TTypeTraits<ElementType>::IsBytewiseComparable, bool>::Type CompareItems(const ElementType* A, const ElementType* B, int32 Count)

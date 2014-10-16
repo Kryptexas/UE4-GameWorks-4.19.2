@@ -1,14 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Sorting.h: Generic sorting definitions.
-=============================================================================*/
-
 #pragma once
 
-/*----------------------------------------------------------------------------
-	Sorting template.
-----------------------------------------------------------------------------*/
 
 /**
  * Default predicate class. Assumes < operator is defined for the template type.

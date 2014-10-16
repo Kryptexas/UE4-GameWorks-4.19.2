@@ -1053,7 +1053,7 @@ public:
 		FThreadStats* Stats = (FThreadStats*)FPlatformTLS::GetTlsValue(TlsSlot);
 		if (Stats)
 		{
-			FPlatformTLS::SetTlsValue(TlsSlot, NULL);
+			FPlatformTLS::SetTlsValue(TlsSlot, nullptr);
 			delete Stats;
 		}
 	}
@@ -1123,7 +1123,7 @@ public:
 	}
 	static FORCEINLINE_STATS bool IsCollectingData(TStatId StatId)
 	{
-		// we don't test StatId for NULL here because we assume it is non-null. If it is NULL, that indicates a problem with higher level code.
+		// we don't test StatId for nullptr here because we assume it is non-null. If it is nullptr, that indicates a problem with higher level code.
 		return !StatId.IsNone() && IsCollectingData();
 	}
 

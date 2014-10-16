@@ -257,7 +257,7 @@ public:
 		if( bFreeOnClose )
 		{
 			FMemory::Free( ReaderData );
-			ReaderData = NULL;
+			ReaderData = nullptr;
 		}
 		return !ArIsError;
 	}

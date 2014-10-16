@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ObjectVersion.h: Unreal object version.
-=============================================================================*/
-
 #pragma once
+
 
 // Prevents incorrect files from being loaded.
 
@@ -20,6 +17,7 @@
 
 // this is forever the UE3 engine version in UE4
 #define VER_LAST_ENGINE_UE3	864
+
 
 enum EUnrealEngineObjectUE4Version
 {

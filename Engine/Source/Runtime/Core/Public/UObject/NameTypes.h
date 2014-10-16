@@ -282,7 +282,7 @@ class TStaticIndirectArrayThreadSafeRead
 			ElementType*** Chunk = &Chunks[ChunkIndex];
 			ElementType** NewChunk = (ElementType**)FMemory::Malloc(sizeof(ElementType*) * ElementsPerChunk);
 			FMemory::Memzero(NewChunk, sizeof(ElementType*) * ElementsPerChunk);
-			if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)Chunk, NewChunk, NULL))
+			if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)Chunk, NewChunk, nullptr))
 			{
 				// someone else beat us to the add, we don't support multiple concurrent adds
 				check(0)
@@ -339,7 +339,7 @@ public:
 	 * Return a reference to an element
 	 * @param	Index	Index to return
 	 * @return	a reference to the pointer to the element
-	 * Thread safe, if it is valid now, it is valid forever. This might return NULL, but by then, some other thread might have made it non-NULL.
+	 * Thread safe, if it is valid now, it is valid forever. This might return nullptr, but by then, some other thread might have made it non-nullptr.
 	**/
 	ElementType const* const& operator[](int32 Index) const
 	{
@@ -557,8 +557,8 @@ public:
 	FORCEINLINE bool IsValid() const
 	{
 		TNameEntryArray& Names = GetNames();
-		return GetComparisonIndexFast()>=0 && GetComparisonIndexFast()<Names.Num() && Names[GetComparisonIndexFast()]!=NULL
-			&& GetDisplayIndexFast()>=0 && GetDisplayIndexFast()<Names.Num() && Names[GetDisplayIndexFast()]!=NULL;
+		return GetComparisonIndexFast() >= 0 && GetComparisonIndexFast() < Names.Num() && Names[GetComparisonIndexFast()] != nullptr
+			&& GetDisplayIndexFast() >= 0 && GetDisplayIndexFast() < Names.Num() && Names[GetDisplayIndexFast()] != nullptr;
 	}
 
 	/**
@@ -578,7 +578,7 @@ public:
 	 *
 	 * @return	true if the name is valid
 	 */
-	bool IsValidXName( FString InvalidChars=INVALID_NAME_CHARACTERS, class FText* Reason=NULL ) const;
+	bool IsValidXName( FString InvalidChars=INVALID_NAME_CHARACTERS, class FText* Reason = nullptr ) const;
 
 	/**
 	 * Takes an FName and checks to see that it follows the rules that Unreal requires.

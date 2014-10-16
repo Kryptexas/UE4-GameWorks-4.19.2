@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	StatsData.h: Performance stats framework.
-=============================================================================*/
 #pragma once
+
 
 #if STATS
 
@@ -264,7 +262,7 @@ struct CORE_API FRawStatStackNode
 	void AddSelf();
 
 	/** Print this tree to the log **/
-	void DebugPrint(TCHAR const* Filter = NULL, int32 MaxDepth = MAX_int32, int32 Depth = 0) const;
+	void DebugPrint(TCHAR const* Filter = nullptr, int32 MaxDepth = MAX_int32, int32 Depth = 0) const;
 
 	/** Condense this tree into a flat list using EStatOperation::ChildrenStart, EStatOperation::ChildrenEnd, EStatOperation::Leaf **/
 	void Encode(TArray<FStatMessage>& OutStats) const;
@@ -448,7 +446,7 @@ private:
 	void FindOrAddMetaData(FStatMessage const& Item);
 
 	/** Parse the raw frame history into a tree representation **/
-	void GetRawStackStats(int64 FrameNumber, FRawStatStackNode& Out, TArray<FStatMessage>* OutNonStackStats = NULL) const;
+	void GetRawStackStats(int64 FrameNumber, FRawStatStackNode& Out, TArray<FStatMessage>* OutNonStackStats = nullptr) const;
 
 	/** Parse the raw frame history into a flat-array-based tree representation **/
 	void Condense(int64 TargetFrame, TArray<FStatMessage>& OutStats) const;
@@ -550,13 +548,13 @@ public:
 	}
 
 	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = NULL, bool bAddNonStackStats = true) const;
+	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true) const;
 
 	/** Gets the old-skool flat grouped exclusive stats. These merge threads, etc and so generally the condensed callstack is less confusing. **/
-	void GetExclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = NULL, bool bAddNonStackStats = true) const;
+	void GetExclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = nullptr, bool bAddNonStackStats = true) const;
 
 	/** Used to turn the condensed version of stack stats back into a tree for easier handling. **/
-	void UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Out, IItemFiler* Filter = NULL, TArray<FStatMessage>* OutNonStackStats = NULL) const;
+	void UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Out, IItemFiler* Filter = nullptr, TArray<FStatMessage>* OutNonStackStats = nullptr) const;
 
 	/** Adds missing stats to the group so it doesn't jitter. **/
 	void AddMissingStats(TArray<FStatMessage>& Dest, TSet<FName> const& EnabledItems) const;
