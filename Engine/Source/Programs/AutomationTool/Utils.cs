@@ -401,7 +401,25 @@ namespace AutomationTool
 			{
 				Log.WriteLine(TraceEventType.Information, "FindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
-			return Directory.GetFiles(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+
+			// filter out symlinks which can cause problems at the later stage
+			List<string> FileNames = new List<string>();
+			DirectoryInfo DirInfo = new DirectoryInfo(Path);
+			foreach( FileInfo File in DirInfo.EnumerateFiles(SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
+			{
+				if (File.Attributes.HasFlag(FileAttributes.ReparsePoint))
+				{
+					if (!bQuiet)
+					{
+						Log.WriteLine(TraceEventType.Warning, "Ignoring symlink {0}", File.FullName);
+					}
+					continue;
+				}
+				
+				FileNames.Add(File.FullName);
+			}
+			
+			return FileNames.ToArray();
 		}
 
 		/// <summary>
