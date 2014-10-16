@@ -11,6 +11,8 @@ FAvfMediaVideoTrack::FAvfMediaVideoTrack( AVAssetTrack* InVideoTrack )
     , SyncStatus(Default)
     , BitRate(0)
 {
+    LatestSamples = nil;
+    
     NSError* nsError = nil;
     AVReader = [[AVAssetReader alloc] initWithAsset: [InVideoTrack asset] error:&nsError];
     if( nsError != nil )
@@ -18,28 +20,37 @@ FAvfMediaVideoTrack::FAvfMediaVideoTrack( AVAssetTrack* InVideoTrack )
         FString ErrorStr( [nsError localizedDescription] );
 		UE_LOG(LogAvfMedia, Error, TEXT("Failed to create asset reader: %s"), *ErrorStr);
     }
-    
-    // Initialize our video output to match the format of the texture we'll be streaming to.
-    NSMutableDictionary* OutputSettings = [NSMutableDictionary dictionary];
-    [OutputSettings setObject: [NSNumber numberWithInt:kCVPixelFormatType_32BGRA] forKey:(NSString*)kCVPixelBufferPixelFormatTypeKey];
+    else
+    {
+        // Initialize our video output to match the format of the texture we'll be streaming to.
+        NSMutableDictionary* OutputSettings = [NSMutableDictionary dictionary];
+        [OutputSettings setObject: [NSNumber numberWithInt:kCVPixelFormatType_32BGRA] forKey:(NSString*)kCVPixelBufferPixelFormatTypeKey];
         
-    AVVideoOutput = [[AVAssetReaderTrackOutput alloc] initWithTrack:InVideoTrack outputSettings:OutputSettings];
-    AVVideoOutput.alwaysCopiesSampleData = NO;
+        AVVideoOutput = [[AVAssetReaderTrackOutput alloc] initWithTrack:InVideoTrack outputSettings:OutputSettings];
+        AVVideoOutput.alwaysCopiesSampleData = NO;
+    
+        FrameRate = 1.0f / [[AVVideoOutput track] nominalFrameRate];
         
-    [AVReader addOutput:AVVideoOutput];
-    [AVReader startReading];
-    
-    bVideoTracksLoaded = true;
-    
-    GetVideoDetails( InVideoTrack );
+        [AVReader addOutput:AVVideoOutput];
+        bVideoTracksLoaded = [AVReader startReading];
+
+        // The initial read of a frame will allow us to gather information on the video track, before we start playing the samples
+        ReadFrameAtTime( kCMTimeZero, true );
+    }
 }
 
 
 FAvfMediaVideoTrack::~FAvfMediaVideoTrack()
 {
-    // Destroyed.
-    [AVReader release];
-    [AVVideoOutput release];
+    if( AVVideoOutput != nil )
+    {
+        AVVideoOutput = nil;
+    }
+    
+    if( AVReader != nil )
+    {
+        AVReader = nil;
+    }
 }
 
 
@@ -60,51 +71,6 @@ bool FAvfMediaVideoTrack::SeekToTime( const CMTime& SeekTime )
 }
 
 
-void FAvfMediaVideoTrack::GetVideoDetails( AVAssetTrack* InVideoTrack )
-{
-    // Setup the asset reader to ascertain some further video details.
-    NSError* nsError = nil;
-    AVAssetReader* DetailsAssetReader = [[AVAssetReader alloc] initWithAsset: [InVideoTrack asset] error:&nsError];
-    if( nsError != nil )
-    {
-        FString ErrorStr( [nsError localizedDescription] );
-		UE_LOG(LogAvfMedia, Error, TEXT("Failed to create asset reader: %s"), *ErrorStr);
-    }
-    
-    // Initialize our video output so we can get some details
-    NSMutableDictionary* OutputSettings = [NSMutableDictionary dictionary];
-    [OutputSettings setObject: [NSNumber numberWithInt:kCVPixelFormatType_32BGRA] forKey:(NSString*)kCVPixelBufferPixelFormatTypeKey];
-    
-    AVAssetReaderTrackOutput* DetailsTrackOutput = [[AVAssetReaderTrackOutput alloc] initWithTrack:InVideoTrack outputSettings:OutputSettings];
-    DetailsTrackOutput.alwaysCopiesSampleData = NO;
-    
-    
-    // Read Frame rate
-    FrameRate = 1.0f / [[DetailsTrackOutput track] nominalFrameRate];
-    
-    
-    // Let's start reading the buffer to get some further details.
-    [DetailsAssetReader addOutput:DetailsTrackOutput];
-    [DetailsAssetReader startReading];
-    
-    // Grab the pixel buffer and lock it for reading.
-    CMSampleBufferRef LatestSamples = [DetailsTrackOutput copyNextSampleBuffer];
-    CVImageBufferRef PixelBuffer = CMSampleBufferGetImageBuffer(LatestSamples);
-    CVPixelBufferLockBaseAddress( PixelBuffer, kCVPixelBufferLock_ReadOnly );
-    
-    // Grab the width and height
-    Width  = (uint32)CVPixelBufferGetWidth(PixelBuffer);
-    Height = (uint32)CVPixelBufferGetHeight(PixelBuffer);
-    
-    CVPixelBufferUnlockBaseAddress( PixelBuffer, kCVPixelBufferLock_ReadOnly );
-    CFRelease(LatestSamples);
-    LatestSamples= nil;
-    
-    [DetailsAssetReader cancelReading];
-    [DetailsAssetReader release];
-}
-
-
 void FAvfMediaVideoTrack::ResetAssetReader()
 {
     [AVReader cancelReading];
@@ -118,15 +84,13 @@ bool FAvfMediaVideoTrack::IsReady() const
 }
 
 
-void FAvfMediaVideoTrack::ReadFrameAtTime( const CMTime& AVPlayerTime )
+void FAvfMediaVideoTrack::ReadFrameAtTime( const CMTime& AVPlayerTime, bool bInIsInitialFrameRead )
 {
     check( bVideoTracksLoaded );
     
     if( AVReader.status == AVAssetReaderStatusReading )
     {
         double CurrentAVTime = CMTimeGetSeconds( AVPlayerTime );
-    
-        CMSampleBufferRef LatestSamples = nil;
     
         // We need to synchronize the video playback with the audio.
         // If the video frame is within tolerance (Ready), update the Texture Data.
@@ -194,7 +158,7 @@ void FAvfMediaVideoTrack::ReadFrameAtTime( const CMTime& AVPlayerTime )
     
             uint8* VideoDataBuffer = (uint8*)CVPixelBufferGetBaseAddress( PixelBuffer );
             uint32 BufferSize = Width * Height * 4;
-    
+            
             // Push the pixel data for the frame to the sinks which are listening for it.
             for( IMediaSinkWeakPtr& SinkPtr : Sinks )
             {
@@ -206,14 +170,19 @@ void FAvfMediaVideoTrack::ReadFrameAtTime( const CMTime& AVPlayerTime )
             }
     
             CVPixelBufferUnlockBaseAddress( PixelBuffer, kCVPixelBufferLock_ReadOnly );
-            CFRelease(LatestSamples);
-            LatestSamples= nil;
+            
+            // If we have are reading the initial frame, do not discard the latest samples.
+            if( bInIsInitialFrameRead == false )
+            {
+                CFRelease(LatestSamples);
+                LatestSamples= nil;
+            }
         }
     
         if( SyncStatus != Ahead )
         {
             // Reset status;
-            SyncStatus = Default;
+            SyncStatus = bInIsInitialFrameRead ? Ready : Default;
         }
     }
 }

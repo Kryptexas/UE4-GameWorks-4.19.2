@@ -67,6 +67,14 @@ public:
 
     virtual bool Tick( float DeltaTime ) override;
 
+
+private:
+
+    // FAVFMediaPlayer interface
+
+    /** Should the media player try and progress */
+    bool ShouldAdvanceFrames() const;
+
 private:
 
     /** The AVFoundation media player */

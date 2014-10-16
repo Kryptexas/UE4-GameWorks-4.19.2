@@ -83,8 +83,9 @@ public:
      * Read the track information for the frame at the given time. This should be provided by the audio manager to ensure the tracks are in sync.
      *
      * @param AVPlayerTime The time the AVPlayer is currently synced to.
+     * @param bInIsInitialFrameRead Flag whether this is the first frame read of the asset.
      */
-    void ReadFrameAtTime( const CMTime& AVPlayerTime );
+    void ReadFrameAtTime( const CMTime& AVPlayerTime, bool bInIsInitialFrameRead = false );
 
     /**
      * Set the Av Asset reader to a specified time.
@@ -101,13 +102,6 @@ public:
     bool IsReady() const;
 
 private:
-
-    /**
-     * Set up the details interface.
-     *
-     * @param InVideoTrack The track for which we can gather the information.
-     */
-    void GetVideoDetails(AVAssetTrack* InVideoTrack);
 
     /** Reset the AVAssetReader to a different point, which will enable us to regrab frames for seeking and restarting. */
     void ResetAssetReader();
@@ -146,4 +140,7 @@ private:
 
     /** The collection of output streams we are writing to. */
     TArray<IMediaSinkWeakPtr> Sinks;
+
+    /** Access to the video samples */
+    CMSampleBufferRef LatestSamples;
 };
