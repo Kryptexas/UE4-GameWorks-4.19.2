@@ -1384,7 +1384,6 @@ bool FMaterial::BeginCompileShaderMap(
 		}
 		else
 		{
-			UE_LOG(LogMaterial, Display, TEXT("Adding new outstanding shader map compilation id %d."), NewShaderMap->GetCompilingId() );
 			OutstandingCompileShaderMapIds.Add( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.
 			OutShaderMap = NULL;

@@ -1413,8 +1413,6 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 				Material->RemoveOutstandingCompileId( ShaderMap->CompilingId );
 			}
 
-			UE_LOG(LogShaderCompilers, Display, TEXT("Received shader map compiling id %d"), ShaderMap->CompilingId );
-
 			if (bShaderMapComplete)
 			{
 				ShaderMap->bCompiledSuccessfully = bSuccess;
