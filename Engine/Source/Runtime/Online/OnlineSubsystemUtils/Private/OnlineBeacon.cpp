@@ -41,7 +41,7 @@ void AOnlineBeacon::DestroyBeacon()
 
 void AOnlineBeacon::HandleNetworkFailure(UWorld *World, UNetDriver *InNetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
-	if (InNetDriver && InNetDriver->NetDriverName == NetDriverName)
+	if (InNetDriver && InNetDriver->NetDriverName == BeaconNetDriverName)
 	{
 		OnFailure();
 	}
