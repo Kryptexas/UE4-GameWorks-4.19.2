@@ -64,6 +64,9 @@ private:
 	/** Callback for when the media player's media has changed. */
 	void HandleMediaPlayerMediaChanged();
 
+	/** Callback for getting the visibility of the 'No media selected' warning text. */
+	EVisibility HandleNoMediaSelectedTextVisibility() const;
+
 	/** Callback for getting the text of the movie captions. */
 	FText HandleOverlayCaptionText() const;
 
@@ -99,6 +102,9 @@ private:
 
 	/** Callback for getting the text of the 'Remaining Time' text block. */
 	FText HandleRemainingTimeTextBlockText() const;
+
+	/** Callback for getting the visibility of the track selection box. */
+	EVisibility HandleTrackSelectionBoxVisibility() const;
 
 	/** Callback for generating a widget for a value in the video track combo box. */
 	TSharedRef<SWidget> HandleVideoTrackComboBoxGenerateWidget( IMediaTrackPtr Value ) const;
