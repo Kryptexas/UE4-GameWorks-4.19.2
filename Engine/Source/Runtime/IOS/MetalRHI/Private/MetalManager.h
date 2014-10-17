@@ -40,7 +40,6 @@ struct FPipelineShadow
 	id<MTLRenderPipelineState> CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS) const;
 
 	MTLRenderPipelineColorAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
-	uint8 RenderTargetFormatKeys[MaxMetalRenderTargets];
 	MTLPixelFormat DepthTargetFormat;
 	MTLPixelFormat StencilTargetFormat;
     uint32 SampleCount;
