@@ -36,7 +36,7 @@ protected:
 	/** 
 	 * Cleans up any voice data remaining in the queue 
 	 */
-	virtual bool CleanUp() override;
+	virtual bool CleanUp( const bool bForDestroy ) override;
 
 	/**
 	 * Processes the in bound bunch to extract the voice data

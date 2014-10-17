@@ -89,20 +89,20 @@ void UChannel::Close()
 	}
 }
 
-void UChannel::ConditionalCleanUp()
+void UChannel::ConditionalCleanUp( const bool bForDestroy )
 {
 	if ( !IsPendingKill() )
 	{
 		// CleanUp can return false to signify that we shouldn't mark pending kill quite yet
 		// We'll need to call cleanup again later on
-		if ( CleanUp() )
+		if ( CleanUp( bForDestroy ) )
 		{
 			MarkPendingKill();
 		}
 	}
 }
 
-bool UChannel::CleanUp()
+bool UChannel::CleanUp( const bool bForDestroy )
 {
 	checkSlow(Connection != NULL);
 	checkSlow(Connection->Channels[ChIndex] == this);
@@ -154,7 +154,7 @@ void UChannel::BeginDestroy()
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		ConditionalCleanUp();
+		ConditionalCleanUp( true );
 	}
 	
 	Super::BeginDestroy();
@@ -1319,7 +1319,7 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	ActorReplicator = NULL;
 }
 
-bool UActorChannel::CleanUp()
+bool UActorChannel::CleanUp( const bool bForDestroy )
 {
 	const bool bIsServer = Connection->Driver->IsServer();
 
@@ -1357,7 +1357,7 @@ bool UActorChannel::CleanUp()
 		Connection->SentTemporaries.Remove(Actor);
 	}
 
-	if ( !bIsServer && Dormant && QueuedBunches.Num() > 0 )
+	if ( !bIsServer && Dormant && QueuedBunches.Num() > 0 && !bForDestroy )
 	{
 		UE_LOG( LogNet, Log, TEXT( "UActorChannel::CleanUp: Adding to KeepProcessingActorChannelBunches. Channel: %i" ), ChIndex );
 
@@ -1366,7 +1366,7 @@ bool UActorChannel::CleanUp()
 
 		// This will unregister the channel, and make it free for opening again
 		// We need to do this, since the server will assume this channel is free once we ack this packet
-		Super::CleanUp();
+		Super::CleanUp( bForDestroy );
 
 		// Restore connection property since we'll need it for processing bunches (the Super::CleanUp call above NULL'd it)
 		Connection = OldConnection;
@@ -1382,7 +1382,7 @@ bool UActorChannel::CleanUp()
 		return false;
 	}
 
-	check( !Connection->KeepProcessingActorChannelBunches.Contains( this ) );
+	check( bForDestroy || !Connection->KeepProcessingActorChannelBunches.Contains( this ) );
 
 	// Remove from hash and stuff.
 	SetClosingFlag();
@@ -1403,7 +1403,7 @@ bool UActorChannel::CleanUp()
 	// We check for -1 here, which will be true if this channel has already been closed but still needed to process bunches before fully closing
 	if ( ChIndex >= 0 )	
 	{
-		return Super::CleanUp();
+		return Super::CleanUp( bForDestroy );
 	}
 
 	return true;

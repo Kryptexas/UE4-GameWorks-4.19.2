@@ -12,12 +12,12 @@
 #include "Engine/VoiceChannel.h"
 
 /** Cleans up any voice data remaining in the queue */
-bool UVoiceChannel::CleanUp()
+bool UVoiceChannel::CleanUp( const bool bForDestroy )
 {
 	// Clear out refs to any voice packets so we don't leak
 	VoicePackets.Empty();
 	// Route to the parent class for their cleanup
-	return Super::CleanUp();
+	return Super::CleanUp( bForDestroy );
 }
 
 /**
