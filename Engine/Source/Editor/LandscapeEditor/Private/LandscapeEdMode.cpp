@@ -523,7 +523,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 {
 	FEdMode::Tick(ViewportClient, DeltaTime);
 
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return;
 	}
@@ -576,7 +576,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 		}
 	}
 
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -943,7 +943,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditPaste()
 
 bool FEdModeLandscape::ProcessEditDuplicate()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -963,7 +963,7 @@ bool FEdModeLandscape::ProcessEditDuplicate()
 
 bool FEdModeLandscape::ProcessEditDelete()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -983,7 +983,7 @@ bool FEdModeLandscape::ProcessEditDelete()
 
 bool FEdModeLandscape::ProcessEditCut()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -1003,7 +1003,7 @@ bool FEdModeLandscape::ProcessEditCut()
 
 bool FEdModeLandscape::ProcessEditCopy()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -1045,7 +1045,7 @@ bool FEdModeLandscape::ProcessEditCopy()
 
 bool FEdModeLandscape::ProcessEditPaste()
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return true;
 	}
@@ -1082,7 +1082,7 @@ bool FEdModeLandscape::ProcessEditPaste()
 
 bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -1104,7 +1104,7 @@ bool FEdModeLandscape::HandleClick(FEditorViewportClient* InViewportClient, HHit
 /** FEdMode: Called when a key is pressed */
 bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -1292,7 +1292,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 /** FEdMode: Called when mouse drag input is applied */
 bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -1803,7 +1803,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 	/** Call parent implementation */
 	FEdMode::Render(View, Viewport, PDI);
 
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return;
 	}
@@ -2163,7 +2163,7 @@ bool FEdModeLandscape::GetCustomInputCoordinateSystem(FMatrix& InMatrix, void* I
 /** FEdMode: Handling SelectActor */
 bool FEdModeLandscape::Select(AActor* InActor, bool bInSelected)
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -2198,7 +2198,7 @@ bool FEdModeLandscape::Select(AActor* InActor, bool bInSelected)
 /** FEdMode: Check to see if an actor can be selected in this mode - no side effects */
 bool FEdModeLandscape::IsSelectionAllowed(AActor* InActor, bool bInSelection) const
 {
-	if (GEditor->PlayWorld != NULL)
+	if (!IsEditingEnabled())
 	{
 		return false;
 	}
@@ -2600,6 +2600,35 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 	}
 
 	return Landscape;
+}
+
+ELandscapeEditingState FEdModeLandscape::GetEditingState() const
+{
+	UWorld* World = GetWorld();
+
+	if (GEditor->bIsSimulatingInEditor)
+	{
+		return ELandscapeEditingState::SIEWorld;
+	}
+	else if (GEditor->PlayWorld != NULL)
+	{
+		return ELandscapeEditingState::PIEWorld;
+	}
+	else if (World == nullptr)
+	{
+		return ELandscapeEditingState::Unknown;
+	}
+	else if (World->FeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		return ELandscapeEditingState::BadFeatureLevel;
+	}
+	else if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None &&
+		!CurrentToolTarget.LandscapeInfo.IsValid())
+	{
+		return ELandscapeEditingState::NoLandscape;
+	}
+
+	return ELandscapeEditingState::Enabled;
 }
 
 bool LandscapeEditorUtils::SetHeightmapData(ALandscapeProxy* Landscape, const TArray<uint16>& Data)

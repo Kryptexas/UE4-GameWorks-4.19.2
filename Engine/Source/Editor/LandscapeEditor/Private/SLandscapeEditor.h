@@ -70,7 +70,7 @@ public:
 protected:
 	class FEdModeLandscape* GetEditorMode() const;
 
-	void UpdateErrorText() const;
+	FText GetErrorText() const;
 
 	bool GetLandscapeEditorIsEnabled() const;
 

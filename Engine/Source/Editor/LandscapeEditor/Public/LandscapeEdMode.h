@@ -400,6 +400,15 @@ namespace ENewLandscapePreviewMode
 	};
 }
 
+enum class ELandscapeEditingState : uint8
+{
+	Unknown,
+	Enabled,
+	BadFeatureLevel,
+	PIEWorld,
+	SIEWorld,
+	NoLandscape,
+};
 
 /**
  * Landscape editor mode
@@ -615,6 +624,13 @@ public:
 
 	// For collision add visualization
 	FLandscapeAddCollision* LandscapeRenderAddCollision;
+
+	ELandscapeEditingState GetEditingState() const;
+
+	bool IsEditingEnabled() const
+	{
+		return GetEditingState() == ELandscapeEditingState::Enabled;
+	}
 
 private:
 	TArray<TSharedRef<FLandscapeTargetListInfo>> LandscapeTargetList;

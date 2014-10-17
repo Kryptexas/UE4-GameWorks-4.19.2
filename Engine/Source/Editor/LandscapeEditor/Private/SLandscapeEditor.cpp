@@ -197,62 +197,72 @@ class FEdModeLandscape* SLandscapeEditor::GetEditorMode() const
 	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
-void SLandscapeEditor::UpdateErrorText() const
+FText SLandscapeEditor::GetErrorText() const
 {
-	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode)
+	const FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	ELandscapeEditingState EditState = LandscapeEdMode->GetEditingState();
+	switch (EditState)
 	{
-		if (GEditor->bIsSimulatingInEditor)
+		case ELandscapeEditingState::SIEWorld:
 		{
+
 			if (LandscapeEdMode->NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
 			{
-				Error->SetError(LOCTEXT("IsSimulatingError_create", "Can't create landscape while simulating!"));
+				return LOCTEXT("IsSimulatingError_create", "Can't create landscape while simulating!");
 			}
 			else
 			{
-				Error->SetError(LOCTEXT("IsSimulatingError_edit", "Can't edit landscape while simulating!"));
+				return LOCTEXT("IsSimulatingError_edit", "Can't edit landscape while simulating!");
 			}
-			return;
+			break;
 		}
-		else if (GEditor->PlayWorld != NULL)
+		case ELandscapeEditingState::PIEWorld:
 		{
 			if (LandscapeEdMode->NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
 			{
-				Error->SetError(LOCTEXT("IsPIEError_create", "Can't create landscape in PIE!"));
+				return LOCTEXT("IsPIEError_create", "Can't create landscape in PIE!");
 			}
 			else
 			{
-				Error->SetError(LOCTEXT("IsPIEError_edit", "Can't edit landscape in PIE!"));
+				return LOCTEXT("IsPIEError_edit", "Can't edit landscape in PIE!");
 			}
-			return;
+			break;
 		}
-		else
+		case ELandscapeEditingState::BadFeatureLevel:
 		{
-			if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::None &&
-				!LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid())
+			if (LandscapeEdMode->NewLandscapePreviewMode != ENewLandscapePreviewMode::None)
 			{
-				Error->SetError(LOCTEXT("NoLandscapeError", "No Landscape!"));
-				return;
+				return LOCTEXT("IsFLError_create", "Can't create landscape with a feature level less than SM4!");
 			}
+			else
+			{
+				return LOCTEXT("IsFLError_edit", "Can't edit landscape with a feature level less than SM4!");
+			}
+			break;
 		}
+		case ELandscapeEditingState::NoLandscape:
+		{
+			return LOCTEXT("NoLandscapeError", "No Landscape!");
+		}
+		case ELandscapeEditingState::Enabled:
+		{
+			return FText::GetEmpty();
+		}
+		default:
+			checkNoEntry();
 	}
 
-	Error->SetError(FText::GetEmpty());
+	return FText::GetEmpty();
 }
 
 bool SLandscapeEditor::GetLandscapeEditorIsEnabled() const
 {
-	UpdateErrorText();
-
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode)
 	{
-		if (GEditor->PlayWorld == NULL)
-		{
-			return true;
-		}
+		Error->SetError(GetErrorText());
+		return LandscapeEdMode->GetEditingState() == ELandscapeEditingState::Enabled;
 	}
-
 	return false;
 }
 
