@@ -7,6 +7,8 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
+#include "GameplayCueManager.h"
+
 
 UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

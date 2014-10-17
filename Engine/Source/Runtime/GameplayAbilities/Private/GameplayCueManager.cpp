@@ -2,6 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AssetRegistryModule.h"
+#include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
 
 #if WITH_EDITOR
