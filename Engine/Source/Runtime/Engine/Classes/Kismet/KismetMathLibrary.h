@@ -581,9 +581,37 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Vector")
 	static FVector MirrorVectorByNormal(FVector InVect, FVector InNormal);
 
-	// Projects one vector (X) onto another (Y) and returns the projected vector.
-	UFUNCTION(BlueprintPure, Category="Math|Vector" )
-	static FVector ProjectOnTo(FVector X, FVector Y);
+	/**
+	* Projects one vector (V) onto another (Target) and returns the projected vector.
+	* If Target is nearly zero in length, returns the zero vector.
+	*
+	* @param  V Vector to project.
+	* @param  Target Vector on which we are projecting.
+	* @return V projected on to Target.
+	*/
+	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
+	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
+
+	 /**
+	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
+	 *
+	 * @param  Point Point to project onto the plane.
+	 * @param  PlaneBase A point on the plane.
+	 * @param  PlaneNormal Normal of the plane.
+	 * @return Point projected onto the plane.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Vector", meta=(Keywords = "ProjectOnTo"))
+	static FVector ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal);
+
+	/**
+	* Projects a vector onto a plane defined by a normalized vector (PlaneNormal).
+	*
+	* @param  V Vector to project onto the plane.
+	* @param  PlaneNormal Normal of the plane.
+	* @return Vector projected onto the plane.
+	*/
+	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
+	static FVector ProjectVectorOnToPlane(FVector V, FVector PlaneNormal);
 
 	/** Negate a vector. */
 	UFUNCTION(BlueprintPure, Category="Math|Vector")

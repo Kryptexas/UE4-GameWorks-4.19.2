@@ -783,9 +783,27 @@ FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
 	return RRot;
 }
 
-FVector UKismetMathLibrary::ProjectOnTo(FVector X, FVector Y)
+FVector UKismetMathLibrary::ProjectVectorOnToVector(FVector V, FVector Target)
 {
-	return X.ProjectOnTo( Y );
+	if (Target.SizeSquared() > SMALL_NUMBER)
+	{
+		return V.ProjectOnTo(Target);
+	}
+	else
+	{
+		FFrame::KismetExecutionMessage(TEXT("Divide by zero: ProjectVectorOnToVector with zero Target vector"), ELogVerbosity::Warning);
+		return FVector::ZeroVector;
+	}
+}
+
+FVector UKismetMathLibrary::ProjectPointOnToPlane(FVector Point, FVector PlaneBase, FVector PlaneNormal)
+{
+	return FVector::PointPlaneProject(Point, PlaneBase, PlaneNormal);
+}
+
+FVector UKismetMathLibrary::ProjectVectorOnToPlane(FVector V, FVector PlaneNormal)
+{
+	return FVector::VectorPlaneProject(V, PlaneNormal);
 }
 
 FVector UKismetMathLibrary::NegateVector(FVector A)
