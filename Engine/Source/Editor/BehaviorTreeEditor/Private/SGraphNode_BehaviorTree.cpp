@@ -207,8 +207,7 @@ FSlateColor SGraphNode_BehaviorTree::GetBorderBackgroundColor() const
 	UBehaviorTreeGraphNode* BTGraphNode = Cast<UBehaviorTreeGraphNode>(GraphNode);
 	const bool bIsInDebuggerActiveState = BTGraphNode && BTGraphNode->bDebuggerMarkCurrentlyActive;
 	const bool bIsInDebuggerPrevState = BTGraphNode && BTGraphNode->bDebuggerMarkPreviouslyActive;
-	const TSharedPtr<SGraphPanel> MyOwnerPanel = GetOwnerPanel();
-	const bool bSelectedSubNode = BTGraphNode && BTGraphNode->ParentNode && MyOwnerPanel.IsValid() && MyOwnerPanel->SelectionManager.SelectedNodes.Contains(GraphNode);
+	const bool bSelectedSubNode = BTGraphNode && BTGraphNode->ParentNode && GetOwnerPanel()->SelectionManager.SelectedNodes.Contains(GraphNode);
 	
 	UBTNode* NodeInstance = BTGraphNode ? Cast<UBTNode>(BTGraphNode->NodeInstance) : NULL;
 	const bool bIsDisconnected = NodeInstance && NodeInstance->GetExecutionIndex() == MAX_uint16;
@@ -694,7 +693,7 @@ FReply SGraphNode_BehaviorTree::OnMouseDown(const FGeometry& SenderGeometry, con
 {
 	bIsMouseDown = true;
 
-	if (Cast<UBehaviorTreeGraphNode>(GraphNode)->ParentNode && GetOwnerPanel().IsValid())
+	if (Cast<UBehaviorTreeGraphNode>(GraphNode)->ParentNode)
 	{
 		GetOwnerPanel()->SelectionManager.ClickedOnNode(GraphNode,MouseEvent);
 		return FReply::Handled();
@@ -1244,6 +1243,27 @@ TSharedRef<SGraphNode> SGraphNode_BehaviorTree::GetNodeUnderMouse(const FGeometr
 {
 	TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, MouseEvent);
 	return SubNode.IsValid() ? SubNode.ToSharedRef() : StaticCastSharedRef<SGraphNode>(AsShared());
+}
+
+void SGraphNode_BehaviorTree::SetOwner( const TSharedRef<SGraphPanel>& OwnerPanel )
+{
+	SGraphNode::SetOwner(OwnerPanel);
+
+	for(auto& DecoratorWidget : DecoratorWidgets)
+	{
+		if(DecoratorWidget.IsValid())
+		{
+			DecoratorWidget->SetOwner(OwnerPanel);
+		}
+	}
+
+	for(auto& ServicesWidget : ServicesWidgets)
+	{
+		if(ServicesWidget.IsValid())
+		{
+			ServicesWidget->SetOwner(OwnerPanel);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

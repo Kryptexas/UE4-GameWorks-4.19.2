@@ -97,7 +97,7 @@ public:
 	void SetDoubleClickEvent(FSingleNodeEvent InDoubleClickEvent);
 
 	/** @param OwnerPanel  The GraphPanel that this node belongs to */
-	void SetOwner( const TSharedRef<SGraphPanel>& OwnerPanel );
+	virtual void SetOwner( const TSharedRef<SGraphPanel>& OwnerPanel );
 
 	/** @return the editable title for a node */
 	FString GetEditableNodeTitle() const;
