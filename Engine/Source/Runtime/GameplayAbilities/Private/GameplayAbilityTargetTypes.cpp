@@ -17,15 +17,8 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 		Level,							// FIXME: Leveling
 		NULL							// FIXME: CurveData override... should we just remove this?
 		);
-	if (HasHitResult())
-	{
-		SpecToApply.EffectContext.AddHitResult(*GetHitResult());
-	}
-
-	if (HasOrigin())
-	{
-		SpecToApply.EffectContext.AddOrigin(GetOrigin().GetLocation());
-	}
+	
+	AddTargetDataToContext(EffectContext);
 
 	TArray<TWeakObjectPtr<AActor> > Actors = GetActors();
 	TArray<FActiveGameplayEffectHandle>	AppliedHandles;
@@ -44,6 +37,19 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 	}
 
 	return AppliedHandles;
+}
+
+void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHandle& Context)
+{
+	if (HasHitResult())
+	{
+		Context.AddHitResult(*GetHitResult());
+	}
+
+	if (HasOrigin())
+	{
+		Context.AddOrigin(GetOrigin().GetLocation());
+	}
 }
 
 FString FGameplayAbilityTargetData::ToString() const

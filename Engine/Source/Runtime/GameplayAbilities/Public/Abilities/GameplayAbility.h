@@ -351,13 +351,17 @@ protected:
 	// -------------------------------------
 	
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), FriendlyName="ExecuteGameplayCue")
-	virtual void K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag);
+	virtual void K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context);
 
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), FriendlyName="AddGameplayCue")
-	virtual void K2_AddGameplayCue(FGameplayTag GameplayCueTag);
+	virtual void K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context);
 
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), FriendlyName="RemoveGameplayCue")
 	virtual void K2_RemoveGameplayCue(FGameplayTag GameplayCueTag);
+
+	/** Generates a GameplayEffectContextHandle from our owner and an optional TargetData.*/
+	UFUNCTION(BlueprintCallable, Category = Ability, meta = (GameplayTagFilter = "GameplayCue"))
+	virtual FGameplayEffectContextHandle GetContextFromOwner(FGameplayAbilityTargetDataHandle OptionalTargetData) const;
 
 
 	// -------------------------------------

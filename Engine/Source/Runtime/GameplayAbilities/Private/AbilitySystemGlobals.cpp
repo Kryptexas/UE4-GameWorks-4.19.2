@@ -12,6 +12,7 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 : Super(ObjectInitializer)
 {
 	AbilitySystemGlobalsClassName = FStringClassReference(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
+	GlobalGameplayCueManagerName = FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueManager"));
 
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
@@ -24,6 +25,8 @@ void UAbilitySystemGlobals::InitGlobalData()
 	GetGlobalAttributeMetaDataTable();
 	
 	InitAtributeDefaults();
+
+	GetGameplayCueManager();
 }
 
 UCurveTable * UAbilitySystemGlobals::GetGlobalCurveTable()
@@ -88,7 +91,7 @@ FGameplayEffectContext* UAbilitySystemGlobals::AllocGameplayEffectContext() cons
 /** This is just some syntax sugar to avoid calling gode to have to IGameplayAbilitiesModule::Get() */
 UAbilitySystemGlobals& UAbilitySystemGlobals::Get()
 {
-	static UAbilitySystemGlobals * GlobalPtr = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
+	static UAbilitySystemGlobals* GlobalPtr = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals();
 	check(GlobalPtr == IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals());
 	check(GlobalPtr);
 
@@ -183,4 +186,20 @@ void UAbilitySystemGlobals::InitAtributeDefaults()
 		AllocAttributeSetInitter();
 		GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
 	}
+}
+
+// --------------------------------------------------------------------
+
+UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
+{
+	if (GlobalGameplayCueManager == nullptr)
+	{
+		GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(NULL, *GlobalGameplayCueManagerName.ToString(), NULL, LOAD_None, NULL);
+		if (GameplayCueNotifyPaths.Num() > 0)
+		{
+			GlobalGameplayCueManager->LoadObjectLibraryFromPaths( GameplayCueNotifyPaths, false );
+		}
+	}
+
+	return GlobalGameplayCueManager;
 }

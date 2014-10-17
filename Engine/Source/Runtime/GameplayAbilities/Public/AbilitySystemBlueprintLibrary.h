@@ -103,6 +103,10 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static FTransform GetInstigatorTransform(FGameplayCueParameters Parameters);
 
+	/** Gets instigating world location */
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static FVector GetOrigin(FGameplayCueParameters Parameters);
+
 
 	// -------------------------------------------------------------------------------
 

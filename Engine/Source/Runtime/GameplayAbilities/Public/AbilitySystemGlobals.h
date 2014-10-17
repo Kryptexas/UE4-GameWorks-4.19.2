@@ -8,6 +8,7 @@ class AActor;
 class UAbilitySystemComponent;
 class UCurveTable;
 class UDataTable;
+class UGameplayCueManager;
 
 struct FGameplayAbilityActorInfo;
 struct FGameplayEffectContext;
@@ -33,6 +34,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Holds default values for attribute sets, keyed off of Name/Levels. */
 	UPROPERTY(config)
 	FString GlobalAttributeSetDefaultsTableName;
+
+	/** The class to instantiate as the global GameplayCue manager. This class is responsible for directing GameplayCue events, loading and cooking assets related to GameplayCues. */
+	UPROPERTY(config)
+	FStringAssetReference GlobalGameplayCueManagerName;
+
+	/** Look in these paths for GameplayCueNotifies */
+	UPROPERTY(config)
+	TArray<FString>	GameplayCueNotifyPaths;
 
 	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
 	UPROPERTY(config)
@@ -71,6 +80,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	FAttributeSetInitter* GetAttributeSetInitter() const;
 
+	virtual UGameplayCueManager* GetGameplayCueManager();
+
 protected:
 
 	virtual void InitAtributeDefaults();
@@ -86,6 +97,9 @@ private:
 
 	UPROPERTY()
 	UDataTable* GlobalAttributeMetaDataTable;
+
+	UPROPERTY()
+	UGameplayCueManager* GlobalGameplayCueManager;
 
 	TSharedPtr<FAttributeSetInitter> GlobalAttributeSetInitter;
 

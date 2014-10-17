@@ -623,22 +623,38 @@ void UGameplayAbility::TaskEnded(UAbilityTask* Task)
  *	work with the PredictionKey system.
  */
 
-void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag)
+void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context)
 {
 	check(CurrentActorInfo);
-	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
+	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction(), Context);
 }
 
-void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag)
+void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context)
 {
 	check(CurrentActorInfo);
-	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
+	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction(), Context);
 }
 
 void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
 {
 	check(CurrentActorInfo);
 	CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag, CurrentActivationInfo.GetPredictionKeyForNewAction());
+}
+
+FGameplayEffectContextHandle UGameplayAbility::GetContextFromOwner(FGameplayAbilityTargetDataHandle OptionalTargetData) const
+{
+	check(CurrentActorInfo);
+	FGameplayEffectContextHandle Context = CurrentActorInfo->AbilitySystemComponent->GetEffectContext();
+	
+	for (auto Data : OptionalTargetData.Data)
+	{
+		if (Data.IsValid())
+		{
+			Data->AddTargetDataToContext(Context);
+		}
+	}
+
+	return Context;
 }
 
 int32 UGameplayAbility::GetAbilityLevel() const

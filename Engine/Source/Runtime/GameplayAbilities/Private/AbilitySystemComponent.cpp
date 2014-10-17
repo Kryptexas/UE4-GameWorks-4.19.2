@@ -6,6 +6,7 @@
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/Tasks/AbilityTask.h"
+#include "GameplayCueManager.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
@@ -197,12 +198,17 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 }
 
 /** This is a helper function used in automated testing, I'm not sure how useful it will be to gamecode or blueprints */
-FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
 	if (HasNetworkAuthorityToApplyGameplayEffect(BaseQualifier))
 	{
-		FGameplayEffectSpec	Spec(GameplayEffect, GetEffectContext(), Level, GetCurveDataOverride());
+		if (!Context.IsValid())
+		{
+			Context = GetEffectContext();
+		}
+
+		FGameplayEffectSpec	Spec(GameplayEffect, Context, Level, GetCurveDataOverride());
 		return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
 	}
 
@@ -497,13 +503,6 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
-	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorAvatar);
-	if (!GameplayCueInterface)
-	{
-		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent %s on Actor %s that is not IGameplayCueInterface"), *Spec.ToSimpleString(), ActorAvatar ? *ActorAvatar->GetName() : TEXT("NULL"));
-		return;
-	}
-
 	// FIXME: Replication of level not finished
 	float ExecuteLevel =  (Spec.ModifierLevel.IsValid() && Spec.ModifierLevel.Get()->IsValid()) ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
 
@@ -529,7 +528,8 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 		}
 
 		CueParameters.NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->HandleGameplayCues(ActorAvatar, CueInfo.GameplayCueTags, EventType, CueParameters);
+
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, CueInfo.GameplayCueTags, EventType, CueParameters);
 
 		if (DebugGameplayCues && Spec.EffectContext.GetHitResult())
 		{
@@ -537,6 +537,33 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 			ABILITY_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
 		}
 	}
+}
+
+void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext)
+{
+	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
+	AActor* ActorOwner = AbilityActorInfo->OwnerActor.Get();
+	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorAvatar);
+	if (!GameplayCueInterface)
+	{
+		return;
+	}
+
+	FGameplayCueParameters CueParameters;
+
+	if (EffectContext.IsValid())
+	{
+		CueParameters.EffectContext = EffectContext;
+	}
+	else
+	{
+		CueParameters.EffectContext.AddInstigator(ActorOwner, ActorAvatar); // By default use the owner and avatar as the instigator and causer
+	}
+
+	CueParameters.NormalizedMagnitude = 1.f;
+	CueParameters.RawMagnitude = 0.f;
+
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, GameplayCueTag, EventType, CueParameters);
 }
 
 void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
@@ -577,33 +604,6 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
-}
-
-void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext)
-{
-	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
-	AActor* ActorOwner = AbilityActorInfo->OwnerActor.Get();
-	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(ActorAvatar);
-	if (!GameplayCueInterface)
-	{
-		return;
-	}
-
-	FGameplayCueParameters CueParameters;
-
-	if (EffectContext.IsValid())
-	{
-		CueParameters.EffectContext = EffectContext;
-	}
-	else
-	{
-		CueParameters.EffectContext.AddInstigator(ActorOwner, ActorAvatar); // By default use the owner and avatar as the instigator and causer
-	}
-	
-	CueParameters.NormalizedMagnitude = 1.f;
-	CueParameters.RawMagnitude = 0.f;
-
-	GameplayCueInterface->HandleGameplayCue(ActorAvatar, GameplayCueTag, EventType, CueParameters);
 }
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpec Spec, FPredictionKey PredictionKey)

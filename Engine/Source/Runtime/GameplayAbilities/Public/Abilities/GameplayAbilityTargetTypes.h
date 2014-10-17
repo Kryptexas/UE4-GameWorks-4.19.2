@@ -65,6 +65,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FModifierQualifier Qualifier = FModifierQualifier());
 
+	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context);
+
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const
 	{
 		return TArray<TWeakObjectPtr<AActor> >();

@@ -18,7 +18,7 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 		{
 			FStringClassReference AbilitySystemClassName = (UAbilitySystemGlobals::StaticClass()->GetDefaultObject<UAbilitySystemGlobals>())->AbilitySystemGlobalsClassName;
 
-			UClass *SingletonClass = LoadClass<UObject>(NULL, *AbilitySystemClassName.ToString(), NULL, LOAD_None, NULL);
+			UClass* SingletonClass = LoadClass<UObject>(NULL, *AbilitySystemClassName.ToString(), NULL, LOAD_None, NULL);
 
 			checkf(SingletonClass != NULL, TEXT("Ability config value AbilitySystemGlobalsClassName is not a valid class name."));
 

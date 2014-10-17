@@ -312,3 +312,13 @@ FTransform UAbilitySystemBlueprintLibrary::GetInstigatorTransform(FGameplayCuePa
 	ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::GetInstigatorTransform called on GameplayCue with no valid instigator"));
 	return FTransform::Identity;
 }
+
+FVector UAbilitySystemBlueprintLibrary::GetOrigin(FGameplayCueParameters Parameters)
+{
+	if (Parameters.EffectContext.HasOrigin())
+	{
+		return Parameters.EffectContext.GetOrigin();
+	}
+
+	return FVector::ZeroVector;
+}
