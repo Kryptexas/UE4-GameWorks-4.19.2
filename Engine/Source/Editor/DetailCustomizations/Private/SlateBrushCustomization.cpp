@@ -1221,10 +1221,10 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	];
 
 	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() );
+	StructBuilder.AddChildProperty(TintProperty.ToSharedRef());
 	StructBuilder.AddChildProperty( DrawAsProperty.ToSharedRef() );
 	StructBuilder.AddChildProperty( TilingProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetTilingPropertyVisibility ) ) );
-	StructBuilder.AddChildProperty( TintProperty.ToSharedRef() );
 	StructBuilder.AddChildProperty( MarginProperty.ToSharedRef() )
 	.Visibility( TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSlateBrushStructCustomization::GetMarginPropertyVisibility ) ) );
 
