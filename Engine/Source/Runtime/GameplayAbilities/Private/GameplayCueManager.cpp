@@ -4,10 +4,13 @@
 #include "AssetRegistryModule.h"
 #include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
+#include "GameplayTagsModule.h"
+
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+
 
 UGameplayCueManager::UGameplayCueManager(const class FObjectInitializer& PCIP)
 : Super(PCIP)

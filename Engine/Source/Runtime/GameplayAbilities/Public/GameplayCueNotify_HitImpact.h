@@ -4,6 +4,7 @@
 
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
+#include "GameplayCueNotify.h"
 #include "GameplayCueNotify_HitImpact.generated.h"
 
 /**
