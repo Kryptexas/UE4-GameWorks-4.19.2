@@ -664,7 +664,10 @@ void UGameplayDebuggingComponent::CollectEQSData()
 			CurrentLocalData = &EQSLocalData[EQSLocalData.Num()-1];
 		}
 
-		UEnvQueryDebugHelpers::QueryToDebugData(CachedQueryInstance.Get(), *CurrentLocalData);
+		if (CachedQueryInstance.IsValid())
+		{
+			UEnvQueryDebugHelpers::QueryToDebugData(*CachedQueryInstance, *CurrentLocalData);
+		}
 		CurrentLocalData->Timestamp = AllQueries[Index].Timestamp;
 	}
 

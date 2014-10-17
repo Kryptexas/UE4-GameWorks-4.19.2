@@ -138,18 +138,9 @@ FArchive& operator<<(FArchive& Ar, EQSDebug::FQueryData& Data)
 #endif //USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
 
 #if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
-
-#define UE_VLOG_EQS(Query, CategoryName, Verbosity) \
-{ \
-	if (Query != NULL) \
-	{ \
-		UEnvQueryDebugHelpers::LogQuery(Query, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query->QueryName, Query->QueryID, Query->OptionIndex, Query->ItemDetails.Num(), Query->NumValidItems)); \
-	} \
-}
-
+#	define UE_VLOG_EQS(Query, Category, Verbosity)  UEnvQueryDebugHelpers::LogQuery(Query, Category, ELogVerbosity::Verbosity);
 #else
-#define UE_VLOG_EQS(Query, CategoryName, Verbosity)
-
+#	define UE_VLOG_EQS(Query, CategoryName, Verbosity)
 #endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
 
 UCLASS(Abstract, CustomConstructor)
@@ -159,49 +150,36 @@ class AIMODULE_API UEnvQueryDebugHelpers : public UObject
 
 	UEnvQueryDebugHelpers(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 #if USE_EQS_DEBUGGER
-	static void QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData);
-	static void QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
+	static void QueryToDebugData(struct FEnvQueryInstance& Query, EQSDebug::FQueryData& EQSLocalData);
+	static void QueryToBlobArray(struct FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression = false);
 	static void BlobArrayToDebugData(const TArray<uint8>& BlobArray, EQSDebug::FQueryData& EQSLocalData, bool bUseCompression = false);
-	static void LogQuery(struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type, const FString& AdditionalLogInfo);
+#endif
+
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
+	static void LogQuery(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type);
 #endif
 };
 
-#if USE_EQS_DEBUGGER
-FORCEINLINE void UEnvQueryDebugHelpers::LogQuery(struct FEnvQueryInstance* Query, const FName& CategoryName, ELogVerbosity::Type Type, const FString& AdditionalLogInfo)
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
+FORCEINLINE void UEnvQueryDebugHelpers::LogQuery(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Type)
 {
-#if ENABLE_VISUAL_LOG
-	if ((GEngine && GEngine->bDisableAILogging) || Query == NULL || FVisualLogger::Get().IsRecording() == false || (FVisualLogger::Get().IsBlockedForAllCategories() && FVisualLogger::Get().GetWhiteList().Find(CategoryName) == INDEX_NONE))
+	UWorld *World = NULL;
+	FVisualLogEntry *CurrentEntry = NULL;
+	if (CheckVisualLogInputInternal(Query.Owner.Get(), Category, Type, &World, &CurrentEntry) == false)
 	{
 		return;
 	}
 
-	const UObject* LogOwner = FVisualLogger::Get().FindRedirection(Query->Owner.Get());
-	if (LogOwner == NULL || LogOwner->HasAnyFlags(RF_ClassDefaultObject))
-	{
-		return;
-	}
-
-	UWorld* World = GEngine->GetWorldFromContextObject(Query->Owner.Get(), false);
-	if (!World)
-	{
-		return;
-	}
-
+	const int32 UniqueId = FVisualLogger::Get().GetUniqueId(World->TimeSeconds);
 	TArray<uint8> BlobArray;
 	UEnvQueryDebugHelpers::QueryToBlobArray(Query, BlobArray);
+	FString AdditionalLogInfo = FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query.QueryName, Query.QueryID, Query.OptionIndex, Query.ItemDetails.Num(), Query.NumValidItems);
+	FVisualLogEntry::FLogLine Line(Category.GetCategoryName(), Type, AdditionalLogInfo, Query.QueryID);
+	Line.TagName = *EVisLogTags::TAG_EQS;
+	Line.UniqueId = UniqueId;
 
-	FVisualLogEntry* EntryToWrite = FVisualLogger::Get().GetEntryToWrite(LogOwner, World->TimeSeconds);
-	const int32 UniqueId = FVisualLogger::Get().GetUniqueId(World->TimeSeconds);
-	if (EntryToWrite)
-	{
-		FVisualLogEntry::FLogLine Line(CategoryName, Type, AdditionalLogInfo, Query->QueryID);
-		Line.TagName = *EVisLogTags::TAG_EQS;
-		Line.UniqueId = UniqueId;
-		EntryToWrite->LogLines.Add(Line);
-
-		EntryToWrite->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, CategoryName).UniqueId = UniqueId;
-	}
-#endif
+	CurrentEntry->LogLines.Add(Line);
+	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, Category.GetCategoryName()).UniqueId = UniqueId;
 }
 #endif
 

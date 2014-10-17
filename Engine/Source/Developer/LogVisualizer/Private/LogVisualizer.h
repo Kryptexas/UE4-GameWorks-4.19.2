@@ -48,7 +48,7 @@ public:
 	virtual class AActor* GetHelperActor(class UWorld* InWorld);
 
 protected:
-	void OnNewLog(const class AActor* Actor, TSharedPtr<FActorsVisLog> Log);
+	void OnNewLog(const class UObject* Object, TSharedPtr<FActorsVisLog> Log);
 	
 public:
 	/** All hosted logs */

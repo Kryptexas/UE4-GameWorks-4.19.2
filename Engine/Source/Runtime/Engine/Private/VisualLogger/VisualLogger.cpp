@@ -8,7 +8,7 @@
 
 DEFINE_LOG_CATEGORY(LogVisual);
 
-TMap<class UObject*, TArray<const class UObject*> > FVisualLogger::RedirectionMap;
+TMap<class UObject*, TArray<TWeakObjectPtr<const class UObject> > > FVisualLogger::RedirectionMap;
 
 FVisualLogger::FVisualLogger()
 {
@@ -66,27 +66,35 @@ int32 FVisualLogger::GetUniqueId(float Timestamp)
 
 void FVisualLogger::Redirect(class UObject* FromObject, class UObject* ToObject)
 {
+	if (FromObject == ToObject)
+	{
+		return;
+	}
+
 	UObject* OldRedirection = FindRedirection(FromObject);
 	UObject* NewRedierection = FindRedirection(ToObject);
 
-	UE_CVLOG(OldRedirection != NULL, OldRedirection, LogVisual, Log, TEXT("Redirected '%s' to '%s'"), *FromObject->GetName(), *NewRedierection->GetName());
+	auto OldArray = RedirectionMap.Find(OldRedirection);
+	if (OldArray)
+	{
+		OldArray->RemoveSingleSwap(FromObject);
+	}
 
-	TArray<const class UObject*>& OldArray = RedirectionMap.FindOrAdd(OldRedirection);
-	OldArray.RemoveSingleSwap(FromObject);
+	RedirectionMap.FindOrAdd(NewRedierection).AddUnique(FromObject);
 
-	TArray<const class UObject*>& NewArray = RedirectionMap.FindOrAdd(NewRedierection);
-	NewArray.AddUnique(FromObject);
-
-	UE_CVLOG(NewRedierection != NULL, NewRedierection, LogVisual, Log, TEXT("Redirected '%s' to '%s'"), *FromObject->GetName(), *NewRedierection->GetName());
+	UE_CVLOG(FromObject != NULL, FromObject, LogVisual, Log, TEXT("Redirected '%s' to '%s'"), *FromObject->GetName(), *NewRedierection->GetName());
 }
 
 class UObject* FVisualLogger::FindRedirection(const class UObject* Object)
 {
-	for (auto& Redirection : RedirectionMap)
+	if (RedirectionMap.Contains(Object) == false)
 	{
-		if (Redirection.Value.Find(Object) != INDEX_NONE)
+		for (auto& Redirection : RedirectionMap)
 		{
-			return FindRedirection(Redirection.Key);
+			if (Redirection.Value.Find(Object) != INDEX_NONE)
+			{
+				return FindRedirection(Redirection.Key);
+			}
 		}
 	}
 

@@ -359,24 +359,17 @@ TSharedPtr<FVisualLogEntry> JsonToVisualLogEntry(TSharedPtr<FJsonValue> FromJson
 //----------------------------------------------------------------------//
 // FActorsVisLog
 //----------------------------------------------------------------------//
+FActorsVisLog::FActorsVisLog(FName InName, TArray<TWeakObjectPtr<UObject> >* Children)
+	: Name(InName)
+{
+	Entries.Reserve(VisLogInitialSize);
+}
+
 FActorsVisLog::FActorsVisLog(const class UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children)
 	: Name(Object->GetFName())
 	, FullName(Object->GetFullName())
 {
-	const class AActor* AsActor = Cast<AActor>(Object);
-
 	Entries.Reserve(VisLogInitialSize);
-	if (!AsActor)
-	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		check(World);
-
-		Entries.Add(MakeShareable(new FVisualLogEntry(World->GetTimeSeconds(), FVector(), Object, Children)));
-	}
-	else
-	{
-		Entries.Add(MakeShareable(new FVisualLogEntry(AsActor, Children)));
-	}
 }
 
 FActorsVisLog::FActorsVisLog(TSharedPtr<FJsonValue> FromJson)
@@ -471,10 +464,20 @@ void FVisualLog::SetFileName(const FString& InFileName)
 	BaseFileName = InFileName;
 }
 
-void FVisualLog::Serialize(const class UObject* LogOwner, const FVisualLogEntry& LogEntry)
+void FVisualLog::Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
 {
-	TSharedPtr<FActorsVisLog> Log = GetLog(LogOwner);
+	const bool bContainsLogOwner = LogsMap.Contains(LogOwner);
+	if (!bContainsLogOwner)
+	{
+		LogsMap.Add(LogOwner, MakeShareable(new FActorsVisLog(OwnerName, NULL)));
+	}
+
+	TSharedPtr<FActorsVisLog> Log = LogsMap[LogOwner];
 	Log->Entries.Add(MakeShareable(new FVisualLogEntry(LogEntry)));
+	if (!bContainsLogOwner)
+	{
+		OnNewLogCreated.ExecuteIfBound(LogOwner, Log);
+	}
 }
 
 FString FVisualLog::GetLogFileFullName() const

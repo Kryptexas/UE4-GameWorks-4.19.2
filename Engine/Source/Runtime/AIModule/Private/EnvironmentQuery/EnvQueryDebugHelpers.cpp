@@ -7,7 +7,7 @@
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 
 #if USE_EQS_DEBUGGER
-void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TArray<uint8>& BlobArray, bool bUseCompression)
+void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression)
 {
 	EQSDebug::FQueryData EQSLocalData;
 	UEnvQueryDebugHelpers::QueryToDebugData(Query, EQSLocalData);
@@ -38,42 +38,42 @@ void UEnvQueryDebugHelpers::QueryToBlobArray(struct FEnvQueryInstance* Query, TA
 	}
 }
 
-void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQSDebug::FQueryData& EQSLocalData)
+void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance& Query, EQSDebug::FQueryData& EQSLocalData)
 {
 	// step 1: data for rendering component
 	EQSLocalData.Reset();
 
-	FEQSSceneProxy::CollectEQSData(Query, Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true, EQSLocalData.RenderDebugHelpers);
+	FEQSSceneProxy::CollectEQSData(&Query, &Query, EQSLocalData.SolidSpheres, EQSLocalData.Texts, true, EQSLocalData.RenderDebugHelpers);
 
 	// step 2: detailed scoring data for HUD
 	const int32 MaxDetailedItems = 10;
 	const int32 FirstItemIndex = 0;
 
-	const int32 NumTests = Query->ItemDetails.IsValidIndex(0) ? Query->ItemDetails[0].TestResults.Num() : 0;
-	const int32 NumItems = FMath::Min(MaxDetailedItems, Query->NumValidItems);
+	const int32 NumTests = Query.ItemDetails.IsValidIndex(0) ? Query.ItemDetails[0].TestResults.Num() : 0;
+	const int32 NumItems = FMath::Min(MaxDetailedItems, Query.NumValidItems);
 
-	EQSLocalData.Name = Query->QueryName;
-	EQSLocalData.Id = Query->QueryID;
+	EQSLocalData.Name = Query.QueryName;
+	EQSLocalData.Id = Query.QueryID;
 	EQSLocalData.Items.Reset(NumItems);
 	EQSLocalData.Tests.Reset(NumTests);
-	EQSLocalData.NumValidItems = Query->NumValidItems;
+	EQSLocalData.NumValidItems = Query.NumValidItems;
 
-	UEnvQueryItemType* ItemCDO = Query->ItemType.GetDefaultObject();
+	UEnvQueryItemType* ItemCDO = Query.ItemType.GetDefaultObject();
 	for (int32 ItemIdx = 0; ItemIdx < NumItems; ItemIdx++)
 	{
 		EQSDebug::FItemData ItemInfo;
 		ItemInfo.ItemIdx = ItemIdx + FirstItemIndex;
-		ItemInfo.TotalScore = Query->Items[ItemInfo.ItemIdx].Score;
+		ItemInfo.TotalScore = Query.Items[ItemInfo.ItemIdx].Score;
 
-		const uint8* ItemData = Query->RawData.GetData() + Query->Items[ItemInfo.ItemIdx].DataOffset;
+		const uint8* ItemData = Query.RawData.GetData() + Query.Items[ItemInfo.ItemIdx].DataOffset;
 		ItemInfo.Desc = FString::Printf(TEXT("[%d] %s"), ItemInfo.ItemIdx, *ItemCDO->GetDescription(ItemData));
 
 		ItemInfo.TestValues.Reserve(NumTests);
 		ItemInfo.TestScores.Reserve(NumTests);
 		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
 		{
-			const float ScoreN = Query->ItemDetails[ItemInfo.ItemIdx].TestResults[TestIdx];
-			const float ScoreW = Query->ItemDetails[ItemInfo.ItemIdx].TestWeightedScores[TestIdx];
+			const float ScoreN = Query.ItemDetails[ItemInfo.ItemIdx].TestResults[TestIdx];
+			const float ScoreW = Query.ItemDetails[ItemInfo.ItemIdx].TestWeightedScores[TestIdx];
 
 			ItemInfo.TestValues.Add(ScoreN);
 			ItemInfo.TestScores.Add(ScoreW);
@@ -82,24 +82,24 @@ void UEnvQueryDebugHelpers::QueryToDebugData(struct FEnvQueryInstance* Query, EQ
 		EQSLocalData.Items.Add(ItemInfo);
 	}
 
-	const int32 NumAllTests = Query->Options[Query->OptionIndex].Tests.Num();
+	const int32 NumAllTests = Query.Options[Query.OptionIndex].Tests.Num();
 	for (int32 TestIdx = 0; TestIdx < NumAllTests; TestIdx++)
 	{
 		EQSDebug::FTestData TestInfo;
 
-		UEnvQueryTest* TestOb = Query->Options[Query->OptionIndex].Tests[TestIdx];
+		UEnvQueryTest* TestOb = Query.Options[Query.OptionIndex].Tests[TestIdx];
 		TestInfo.ShortName = TestOb->GetDescriptionTitle();
 		TestInfo.Detailed = TestOb->GetDescriptionDetails().ToString().Replace(TEXT("\n"), TEXT(", "));
 
 		EQSLocalData.Tests.Add(TestInfo);
 	}
 
-	EQSLocalData.UsedOption = Query->OptionIndex;
-	const int32 NumOptions = Query->Options.Num();
+	EQSLocalData.UsedOption = Query.OptionIndex;
+	const int32 NumOptions = Query.Options.Num();
 	for (int32 OptionIndex = 0; OptionIndex < NumOptions; ++OptionIndex)
 	{
-		const FString UserName = Query->Options[OptionIndex].Generator->OptionName;
-		EQSLocalData.Options.Add(UserName.Len() > 0 ? UserName : Query->Options[OptionIndex].Generator->GetName());
+		const FString UserName = Query.Options[OptionIndex].Generator->OptionName;
+		EQSLocalData.Options.Add(UserName.Len() > 0 ? UserName : Query.Options[OptionIndex].Generator->GetName());
 	}
 }
 

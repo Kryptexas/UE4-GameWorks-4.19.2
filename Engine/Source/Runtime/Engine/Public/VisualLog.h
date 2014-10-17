@@ -79,6 +79,7 @@ struct ENGINE_API FActorsVisLog
 	FString FullName;
 	TArray<TSharedPtr<FVisualLogEntry> > Entries;
 
+	FActorsVisLog(FName Name, TArray<TWeakObjectPtr<UObject> >* Children);
 	FActorsVisLog(const class UObject* Object, TArray<TWeakObjectPtr<UObject> >* Children);
 	FActorsVisLog(TSharedPtr<FJsonValue> FromJson);
 
@@ -94,7 +95,7 @@ public:
 	typedef TMap<const class UObject*, TSharedPtr<FActorsVisLog> > FLogsMap;
 	typedef TMap<const class AActor*, TArray<TWeakObjectPtr<UObject> > > FLogRedirectsMap;
 
-	DECLARE_DELEGATE_TwoParams(FOnNewLogCreatedDelegate, const AActor*, TSharedPtr<FActorsVisLog>);
+	DECLARE_DELEGATE_TwoParams(FOnNewLogCreatedDelegate, const UObject*, TSharedPtr<FActorsVisLog>);
 
 	FVisualLog();
 	~FVisualLog();
@@ -108,7 +109,7 @@ public:
 	virtual void Cleanup(bool bReleaseMemory) override;
 	virtual void StartRecordingToFile(float TImeStamp) override;
 	virtual void StopRecordingToFile(float TImeStamp) override;
-	virtual void Serialize(const class UObject* LogOwner, const FVisualLogEntry& LogEntry) override;
+	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
 	virtual void SetFileName(const FString& InFileName) override;
 
 	void Redirect(class UObject* Source, const class AActor* NewRedirection);
@@ -150,12 +151,6 @@ protected:
 	FORCEINLINE TSharedPtr<FActorsVisLog> GetLog(const class UObject* Object)
 	{
 		TSharedPtr<FActorsVisLog>* Log = LogsMap.Find(Object);
-		if (Log == NULL)
-		{
-			const class AActor* Actor = GetVisualLogRedirection(Object);
-			Log = &(LogsMap.Add(Object, MakeShareable(new FActorsVisLog(Object, RedirectsMap.Find(Actor)))));
-			OnNewLogCreated.ExecuteIfBound(Actor, *Log);
-		}
 		return *Log;
 	}
 			

@@ -187,7 +187,7 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 		QueryInstance->ExecuteOneStep((double)FLT_MAX);
 	}
 
-	UE_VLOG_EQS(QueryInstance.Get(), LogEQS, All);
+	UE_VLOG_EQS(*QueryInstance.Get(), LogEQS, All);
 
 #if USE_EQS_DEBUGGER
 	EQSDebugger.StoreQuery(QueryInstance);
@@ -260,7 +260,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 			
 			if (QueryInstance->Status != EEnvQueryStatus::Processing)
 			{
-				UE_VLOG_EQS(QueryInstance.Get(), LogEQS, All);
+				UE_VLOG_EQS(*QueryInstance.Get(), LogEQS, All);
 
 #if USE_EQS_DEBUGGER
 				EQSDebugger.StoreQuery(QueryInstance);

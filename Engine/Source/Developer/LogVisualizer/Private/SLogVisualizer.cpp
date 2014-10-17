@@ -863,7 +863,10 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 		// if there is no LogFilter widget - show all
 		OutEntriesCached[CachedLogIndex].CachedEntries = Log->Entries;
 	}
-	LogsList[CurrentIndex]->LastEndTimestamp = LogsList[CurrentIndex]->EndTimestamp;
+	if (LogsList.IsValidIndex(CurrentIndex))
+	{
+		LogsList[CurrentIndex]->LastEndTimestamp = LogsList[CurrentIndex]->EndTimestamp;
+	}
 }
 
 void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TArray<TSharedPtr<FVisualLogEntry> >& OutEntries)

@@ -254,11 +254,6 @@ void SLogBar::SelectEntry(const FGeometry& MyGeometry, const float ClickX)
 					BestDistance = Distance;
 					BestIndex = EntryIndex;
 				}
-				else if (Distance > LastDistance)
-				{
-					break;
-				}
-				LastDistance = Distance;
 			}
 		}
 	}

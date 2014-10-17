@@ -155,10 +155,12 @@ public:
 	FORCEINLINE void BlockAllCategories(bool InBlock) { bBlockedAllCategories = InBlock; }
 
 	/** checks if all categories are blocked */
-	FORCEINLINE bool IsBlockedForAllCategories() { return !!bBlockedAllCategories; }
+	FORCEINLINE bool IsBlockedForAllCategories() const { return !!bBlockedAllCategories; }
 
 	/** Returns white list for modifications */
-	TArray<class FName>& GetWhiteList() { return CategoriesWhiteList; }
+	FORCEINLINE TArray<class FName>& GetWhiteList() { return CategoriesWhiteList; }
+
+	FORCEINLINE bool IsWhiteListed(const FName& Name) const { return CategoriesWhiteList.Find(Name) != INDEX_NONE; }
 
 	FORCEINLINE void AddCategortyToWhiteList(class FName Category) { CategoriesWhiteList.AddUnique(Category); }
 
@@ -211,7 +213,7 @@ protected:
 	/** Array of output devices to redirect to */
 	TArray<FVisualLogDevice*> OutputDevices;
 	// Map for inter-objects redirections
-	static TMap<class UObject*, TArray<const class UObject*> > RedirectionMap;
+	static TMap<class UObject*, TArray<TWeakObjectPtr<const class UObject> > > RedirectionMap;
 	// white list of categories to bypass blocking
 	TArray<class FName>	CategoriesWhiteList;
 	// Visual Logger extensions map
@@ -220,6 +222,10 @@ protected:
 	TMap<float, int32> LastUniqueIds;
 	// Current entry with all data
 	TMap<const class UObject*, FVisualLogEntry>	CurrentEntryPerObject;
+	// Map to contain names for Objects (they can be destroyed after while)
+	TMap<const class UObject*, FName> ObjectToNameMap;
+	// Map to contain information about pointers in game
+	TMap<const class UObject*, TWeakObjectPtr<const class UObject> > ObjectToPointerMap;
 	// if set all categories are blocked from logging
 	int32 bBlockedAllCategories : 1;
 	// if set we are recording and collecting all vlog data
@@ -243,7 +249,7 @@ public:
 	virtual void Cleanup(bool bReleaseMemory = false) = 0;
 	virtual void StartRecordingToFile(float TImeStamp) = 0;
 	virtual void StopRecordingToFile(float TImeStamp) = 0;
-	virtual void Serialize(const class UObject* LogOwner, const FVisualLogEntry& LogEntry) = 0;
+	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) = 0;
 	virtual void SetFileName(const FString& InFileName) = 0;
 	virtual bool HasFlags(int32 InFlags) { return !!(InFlags & (VisualLogger::CanSaveToFile | VisualLogger::StoreLogsLocally)); }
 };

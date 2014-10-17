@@ -115,7 +115,7 @@ void FLogVisualizer::PullDataFromVisualLog(const FVisualLog& VisualLog)
 	}
 }
 
-void FLogVisualizer::OnNewLog(const AActor* Actor, TSharedPtr<FActorsVisLog> Log)
+void FLogVisualizer::OnNewLog(const UObject* Object, TSharedPtr<FActorsVisLog> Log)
 {
 	Logs.Add(Log);
 	LogAddedEvent.Broadcast();

@@ -22,7 +22,7 @@ public:
 	virtual void StartRecordingToFile(float TImeStamp) override;
 	virtual void StopRecordingToFile(float TImeStamp) override;
 	virtual void SetFileName(const FString& InFileName) override;
-	virtual void Serialize(const class UObject* LogOwner, const FVisualLogEntry& LogEntry) override;
+	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
 
 	class UObject* LastObject;
 	FVisualLogEntry LastEntry;
@@ -54,7 +54,7 @@ void FVisualLoggerTestDevice::SetFileName(const FString& InFileName)
 
 }
 
-void FVisualLoggerTestDevice::Serialize(const class UObject* LogOwner, const FVisualLogEntry& LogEntry)
+void FVisualLoggerTestDevice::Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
 {
 	LastObject = const_cast<class UObject*>(LogOwner);
 	LastEntry = LogEntry;

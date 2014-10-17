@@ -129,7 +129,7 @@ struct CORE_API FLogCategoryBase
 	}
 	/** Called just after a logging statement being allow to print. Checks a few things and maybe breaks into the debugger. **/
 	void PostTrigger(ELogVerbosity::Type VerbosityLevel);
-	FORCEINLINE FName GetCategoryName()
+	FORCEINLINE FName GetCategoryName() const
 	{
 		return CategoryFName;
 	}
