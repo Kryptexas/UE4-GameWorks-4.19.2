@@ -9,7 +9,6 @@ using AutomationTool;
 using UnrealBuildTool;
 using System.Diagnostics;
 using System.Threading;
-using System.Management;
 
 public class HTML5Platform : Platform
 {
