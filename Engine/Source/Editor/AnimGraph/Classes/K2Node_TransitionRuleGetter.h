@@ -54,5 +54,18 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 
 	// @todo document
 	ANIMGRAPH_API static FText GetFriendlyName(ETransitionGetter::Type TypeID);
+
+private:
+	/** Helper function for GetStateSpecificMenuActions, finds actions for AnimBlueprint states that can be used in AnimGraphSchema graphs */
+	void GetStateSpecificAnimGraphSchemaMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar, const UAnimBlueprint* AnimBlueprint, UAnimStateNode* StateNode) const;
+
+	/** Helper function for GetStateSpecificMenuActions, finds actions for AnimBlueprint states that can be used in AnimTransitionSchema graphs */
+	void GetStateSpecificAnimTransitionSchemaMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar, const UAnimBlueprint* AnimBlueprint, UAnimStateNode* StateNode) const;
+
+	/** Helper function for GetMenuActions, goes through all states in an AnimBlueprint and finds possible actions */
+	void GetStateSpecificMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar, const UAnimBlueprint* AnimBlueprint) const;
+
+	/** Helper function for GetMenuActions, generates non-state specific actions that use this node */
+	void GetNonStateSpecificMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const;
 };
 
