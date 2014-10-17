@@ -248,6 +248,7 @@ public:
 		{
 			DistanceDragged = 0;
 			PreDragValue = InternalValue;
+			CachedMousePosition = MouseEvent.GetScreenSpacePosition().IntPoint();
 			return FReply::Handled().CaptureMouse( SharedThis(this) ).UseHighPrecisionMouseMovement( SharedThis(this) ).SetKeyboardFocus( SharedThis(this), EKeyboardFocusCause::Mouse);
 		}
 		else
