@@ -9,6 +9,7 @@
 #include "HAL/Platform.h"
 #include "Serialization/ArchiveBase.h"
 #include "Templates/EnableIf.h"
+#include "Templates/Sorting.h"
 #include "Templates/UnrealTemplate.h"
 
 #define DEBUG_HEAP 0

@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Containers/StringConv.h"
+#include "Containers/UnrealString.h"
+#include "HAL/Platform.h"
+#include "HAL/PlatformProcess.h"
+#include "UObject/UnrealNames.h"
 
 /*----------------------------------------------------------------------------
 	Definitions.

@@ -2,7 +2,6 @@
 #pragma once
 #include "Containers/ContainersFwd.h"
 #include "HAL/Platform.h"
-#include "Internationalization/Text.h"
 #include "Misc/CoreMiscDefines.h"
 #include "Misc/OutputDevice.h"
 
@@ -10,7 +9,9 @@ class FConfigCacheIni;
 class FExec;
 class FName;
 class FOutputDeviceConsole;
+class FReloadObjectArc;
 class FString;
+class FText;
 class ITransaction;
 
 struct FScriptTraceStackNode;
@@ -128,7 +129,7 @@ extern CORE_API bool GIsGuarded;
 extern CORE_API bool GIsRequestingExit;
 
 /** Archive for serializing arbitrary data to and from memory						*/
-extern CORE_API class FReloadObjectArc* GMemoryArchive;
+extern CORE_API FReloadObjectArc* GMemoryArchive;
 
 /**
 *	Global value indicating on-screen warnings/message should be displayed.

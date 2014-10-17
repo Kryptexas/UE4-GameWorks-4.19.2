@@ -3,6 +3,7 @@
 #pragma once
 #include "Containers/Array.h"
 #include "Containers/Set.h"
+#include "Containers/UnrealString.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
 
