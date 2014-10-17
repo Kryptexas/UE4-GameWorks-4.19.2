@@ -291,3 +291,8 @@ FGameplayTag::FGameplayTag(FName Name)
 {
 	check(IGameplayTagsModule::Get().GetGameplayTagsManager().ValidateTagCreation(Name));
 }
+
+FGameplayTag FGameplayTag::RequestDirectParent() const
+{
+	return IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagDirectParent(*this);
+}

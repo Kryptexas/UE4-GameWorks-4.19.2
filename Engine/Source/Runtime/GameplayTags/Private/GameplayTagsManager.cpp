@@ -303,12 +303,15 @@ void UGameplayTagsManager::OnObjectReimported(UFactory* ImportFactory, UObject* 
 }
 #endif // WITH_EDITOR
 
-FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName) const
+FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorIfNotFound) const
 {
 	const FGameplayTag* Tag = GameplayTagMap.Find(TagName);
 	if (!Tag)
 	{ 
-		ensureMsgf(false, TEXT("Requested Tag %s was not found. Check tag data table."), *TagName.ToString());
+		if (ErrorIfNotFound)
+		{
+			ensureMsgf(false, TEXT("Requested Tag %s was not found. Check tag data table."), *TagName.ToString());
+		}
 		return FGameplayTag();
 	}
 	return *Tag;
@@ -328,6 +331,24 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGa
 	// Note this purposefully does not include the passed in GameplayTag in the container.
 	AddChildrenTags(TagContainer, GameplayTag, true);
 	return TagContainer;
+}
+
+FGameplayTag UGameplayTagsManager::RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const
+{
+	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
+	if (GameplayTagNode)
+	{
+		TSharedPtr<FGameplayTagNode> Parent = (*GameplayTagNode)->GetParentTagNode().Pin();
+		if (Parent.IsValid())
+		{
+			const FGameplayTag* Tag = GameplayTagNodeMap.FindKey(Parent);
+			if (Tag)
+			{
+				return *Tag;
+			}
+		}
+	}
+	return FGameplayTag();
 }
 
 bool UGameplayTagsManager::AddLeafTagToContainer(FGameplayTagContainer& TagContainer, FGameplayTag& Tag)

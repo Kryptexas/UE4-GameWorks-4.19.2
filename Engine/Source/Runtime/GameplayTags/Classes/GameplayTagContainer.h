@@ -86,6 +86,9 @@ struct GAMEPLAYTAGS_API FGameplayTag
 		return Ar;
 	}
 
+	/** Returns direct parent GameplayTag of this GameplayTag */
+	FGameplayTag RequestDirectParent() const;
+
 private:
 
 	/** Intentionally private so only the tag manager can use */
@@ -224,6 +227,17 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 		return GameplayTags.CreateConstIterator();
 	}
 
+	FGameplayTag First() const
+	{
+		return GameplayTags.Num() > 0 ? GameplayTags[0] : FGameplayTag();
+	}
+
+	FGameplayTag Last() const
+	{
+		return GameplayTags.Num() > 0 ? GameplayTags.Last() : FGameplayTag();
+	}
+
+
 protected:
 	/**
 	* Returns true if the tags in this container match the tags in OtherContainer for the specified matching types.
@@ -247,6 +261,14 @@ private:
 	/** Array of gameplay tags */
 	UPROPERTY(VisibleAnywhere, Category=GameplayTags)
 	TArray<FGameplayTag> GameplayTags;
+
+	/**
+	 * DO NOT USE DIRECTLY
+	 * STL-like iterators to enable range-based for loop support.
+	 */
+	
+	FORCEINLINE friend TArray<FGameplayTag>::TConstIterator begin(const FGameplayTagContainer& Array) { return Array.CreateConstIterator(); }
+	FORCEINLINE friend TArray<FGameplayTag>::TConstIterator end(const FGameplayTagContainer& Array) { return TArray<FGameplayTag>::TConstIterator(Array.GameplayTags, Array.GameplayTags.Num()); }
 };
 
 template<>
