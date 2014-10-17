@@ -799,7 +799,7 @@ public:
 	* Initializes the buffer with the given vertices.
 	* @param InVertices - The vertices to initialize the buffer with.
 	*/
-	void Init(const TArray<FSoftSkinVertex>& InVertices);
+	ENGINE_API void Init(const TArray<FSoftSkinVertex>& InVertices);
 
 	/**
 	* Serializer for this class
