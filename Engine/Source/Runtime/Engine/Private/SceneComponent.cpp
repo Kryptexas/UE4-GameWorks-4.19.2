@@ -1161,9 +1161,9 @@ APhysicsVolume* USceneComponent::GetPhysicsVolume() const
 	{
 		return PhysicsVolume;
 	}
-	else if (GetWorld())
+	else if (const UWorld* MyWorld = GetWorld())
 	{
-		return GetWorld()->GetDefaultPhysicsVolume();
+		return MyWorld->GetDefaultPhysicsVolume();
 	}
 
 	return NULL;
