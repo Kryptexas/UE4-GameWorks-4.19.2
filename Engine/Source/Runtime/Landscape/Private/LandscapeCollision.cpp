@@ -23,6 +23,10 @@ LandscapeCollision.cpp: Landscape collision
 #include "Engine/StaticMesh.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "AI/NavigationSystemHelpers.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 
 TMap<FGuid, ULandscapeHeightfieldCollisionComponent::FPhysXHeightfieldRef* > GSharedHeightfieldRefs;
 

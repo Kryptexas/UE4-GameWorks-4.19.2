@@ -6,7 +6,6 @@ LandscapeRender.cpp: New terrain rendering
 
 #include "Landscape.h"
 
-#include "EngineGlobals.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "ShaderParameters.h"
@@ -20,6 +19,9 @@ LandscapeRender.cpp: New terrain rendering
 #include "RawIndexBuffer.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/ShadowMapTexture2D.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "UnrealEngine.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters,TEXT("LandscapeParameters"));
 

@@ -5,6 +5,7 @@ LandscapeEdit.cpp: Landscape editing
 =============================================================================*/
 
 #include "Landscape.h"
+#include "LandscapeProxy.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
@@ -15,7 +16,6 @@ LandscapeEdit.cpp: Landscape editing
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
 #include "LandscapeRenderMobile.h"
-#include "Landscape.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "LandscapeMaterialInstanceConstant.h"
@@ -33,6 +33,10 @@ LandscapeEdit.cpp: Landscape editing
 #include "RawMesh.h"
 #include "ScopedTransaction.h"
 #include "ImageWrapper.h"
+#include "Engine/Level.h"
+#include "EngineUtils.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 #endif
 #include "ComponentReregisterContext.h"
 

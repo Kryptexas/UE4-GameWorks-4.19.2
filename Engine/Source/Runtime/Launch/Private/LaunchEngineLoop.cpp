@@ -1788,13 +1788,30 @@ bool FEngineLoop::LoadStartupCoreModules()
 }
 
 /**
+ * Loads array of module names that needs to be auto-loaded.
+ *
+ * @param OutModules Output array to fill with module names.
+ */
+void GetAutoStartupModuleList(TArray<FString>& OutModules)
+{
+	// UBT generated function for listing all auto-startup module
+	// this binary is loading. If the list is finished then this function
+	// returns nullptr.
+	extern const ANSICHAR* EnumAutoStartupModuleName(int Index);
+
+	const ANSICHAR* NamePtr = nullptr;
+	int32 Index = 0;
+	while ((NamePtr = EnumAutoStartupModuleName(Index++)) != nullptr)
+	{
+		OutModules.Add(FString(NamePtr));
+	}
+}
+
+/**
  * Calls for each auto-startup module its StartupModule function.
  */
 void InitializeAutoStartupModules()
 {
-	// UBT generated function for listing all auto-startup module
-	// this binary is loading.
-	extern void GetAutoStartupModuleList(TArray<FString>& Out);
 	TArray<FString> Modules;
 	GetAutoStartupModuleList(Modules);
 

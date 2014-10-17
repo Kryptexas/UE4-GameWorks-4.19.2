@@ -1823,6 +1823,8 @@ namespace UnrealBuildTool
 		/// </summary>
 		private void CreateAutoStartupModuleListGetter()
 		{
+			var AutoStartupModuleArray = GetAutoStartupModuleList().ToArray();
+
 			var ModuleName = "AutoStartupModuleListGetter";
 			var ModuleDir = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, ModuleName);
 
@@ -1843,17 +1845,20 @@ namespace UnrealBuildTool
 
 			SourceLines.Add(string.Format("#include \"{0}\"", ModuleName + ".h"));
 			SourceLines.Add("");
-			SourceLines.Add("#include \"Core.h\"");
-			SourceLines.Add("#include \"Array.h\"");
-			SourceLines.Add("#include \"UnrealString.h\"");
-			SourceLines.Add("");
-			SourceLines.Add("void GetAutoStartupModuleList(TArray<FString>& Out)");
+			SourceLines.Add("const char* EnumAutoStartupModuleName(int Index)");
 			SourceLines.Add("{");
 
-			foreach(var AutoStartupModuleName in GetAutoStartupModuleList())
+			SourceLines.Add("\tconst char* Names[] = {");
+
+			foreach (var AutoStartupModuleName in AutoStartupModuleArray)
 			{
-				SourceLines.Add(string.Format("\tOut.Add(TEXT(\"{0}\"));", AutoStartupModuleName));
+				SourceLines.Add(string.Format("\t\t\"{0}\",", AutoStartupModuleName));
 			}
+
+			SourceLines.Add("\t\tnullptr");
+			SourceLines.Add("\t};");
+			SourceLines.Add("");
+			SourceLines.Add("\treturn Names[Index];");
 
 			SourceLines.Add("}");
 			SourceLines.Add("");
@@ -1866,7 +1871,7 @@ namespace UnrealBuildTool
 			BindArtificialModuleToBinary(
 				CreateArtificialModule(
 					ModuleName, ModuleDir,
-					new FileItem[] { FileItem.GetItemByPath(SourceFilename) }, new string[] { "Core" }
+					new FileItem[] { FileItem.GetItemByPath(SourceFilename) }, new string[] { }
 				), AppBinaries[0]);
 		}
 
