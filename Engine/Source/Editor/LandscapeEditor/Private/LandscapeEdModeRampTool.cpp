@@ -450,10 +450,11 @@ public:
 	{
 		FScopedTransaction Transaction(LOCTEXT("Ramp_Apply", "Landscape Editing: Add ramp"));
 
-		const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+		const ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
+		const ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
 		const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
 
-		const FVector2D Side = FVector2D(FVector::CrossProduct(Points[1] - Points[0], FVector(0, 0, 1))).SafeNormal();
+		const FVector2D Side = FVector2D(FVector::CrossProduct(Points[1] - Points[0], FVector(0,0,1))).SafeNormal();
 		const FVector2D InnerSide = Side * (EdMode->UISettings->RampWidth * 0.5f * (1 - EdMode->UISettings->RampSideFalloff)) / LandscapeToWorld.GetScale3D().X;
 		const FVector2D OuterSide = Side * (EdMode->UISettings->RampWidth * 0.5f) / LandscapeToWorld.GetScale3D().X;
 
@@ -478,6 +479,24 @@ public:
 		int32 MaxX = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].X, OuterVerts[0][1].X), FMath::Max(OuterVerts[1][0].X, OuterVerts[1][1].X))) + 1;
 		int32 MaxY = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].Y, OuterVerts[0][1].Y), FMath::Max(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) + 1;
 
+		// I'd dearly love to use FIntRect in this code, but Landscape works with "Inclusive Max" and FIntRect is "Exclusive Max"
+		int32 LandscapeMinX, LandscapeMinY, LandscapeMaxX, LandscapeMaxY;
+		if (!LandscapeInfo->GetLandscapeExtent(LandscapeMinX, LandscapeMinY, LandscapeMaxX, LandscapeMaxY))
+		{
+			return;
+		}
+
+		MinX = FMath::Max(MinX, LandscapeMinX);
+		MinY = FMath::Max(MinY, LandscapeMinY);
+		MaxX = FMath::Min(MaxX, LandscapeMaxX);
+		MaxY = FMath::Min(MaxY, LandscapeMaxY);
+
+		if (MinX > MaxX || MinY > MaxY)
+		{
+			// The bounds don't intersect any data, so we skip applying the ramp entirely
+			return;
+		}
+
 		FLandscapeEditDataInterface LandscapeEdit(EdMode->CurrentToolTarget.LandscapeInfo.Get());
 
 		// Heights raster
@@ -496,11 +515,11 @@ public:
 
 			if (ValidMinX > ValidMaxX || ValidMinY > ValidMaxY)
 			{
-				// The bounds don't intersect any data, so we skip it entirely
+				// The bounds don't intersect any data, so we skip applying the ramp entirely
 				return;
 			}
 
-			//ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
+			FLandscapeEditDataInterface::ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
 
 			MinX = ValidMinX;
 			MinY = ValidMinY;

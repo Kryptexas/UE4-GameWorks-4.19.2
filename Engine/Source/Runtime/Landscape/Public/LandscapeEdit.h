@@ -173,6 +173,9 @@ struct LANDSCAPE_API FLandscapeEditDataInterface
 	bool EqualTextureValueTempl(UTexture2D* Src, TData Value);
 	bool EqualTextureValue(UTexture2D* Src, FColor Value);
 
+	template<typename T>
+	static void ShrinkData(TArray<T>& Data, int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY, int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY);
+
 private:
 	int32 ComponentSizeQuads;
 	int32 SubsectionSizeQuads;
@@ -189,6 +192,33 @@ private:
 		const int32& ComponentSizeX, const int32& ComponentSizeY, TData* CornerValues, 
 		TArray<bool>& NoBorderY1, TArray<bool>& NoBorderY2, TArray<bool>& ComponentDataExist, TStoreData& StoreData);
 };
+
+template<typename T>
+void FLandscapeEditDataInterface::ShrinkData(TArray<T>& Data, int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY, int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
+{
+	checkSlow(OldMinX <= OldMaxX && OldMinY <= OldMaxY);
+	checkSlow(NewMinX >= OldMinX && NewMaxX <= OldMaxX);
+	checkSlow(NewMinY >= OldMinY && NewMaxY <= OldMaxY);
+
+	if (NewMinX != OldMinX || NewMinY != OldMinY ||
+		NewMaxX != OldMaxX || NewMaxY != OldMaxY)
+	{
+		// if only the MaxY changes we don't need to do the moving, only the truncate
+		if (NewMinX != OldMinX || NewMinY != OldMinY || NewMaxX != OldMaxX)
+		{
+			for (int32 DestY = 0, SrcY = NewMinY - OldMinY; DestY <= NewMaxY - NewMinY; DestY++, SrcY++)
+			{
+				UE_LOG(LogLandscape, Warning, TEXT("Dest: %d, %d = %d Src: %d, %d = %d Width = %d"), 0, DestY, DestY * (1 + NewMaxX - NewMinX), NewMinX - OldMinX, SrcY, SrcY * (1 + OldMaxX - OldMinX) + NewMinX - OldMinX, (1 + NewMaxX - NewMinX));
+				T* DestData = &Data[DestY * (1 + NewMaxX - NewMinX)];
+				const T* SrcData = &Data[SrcY * (1 + OldMaxX - OldMinX) + NewMinX - OldMinX];
+				FMemory::Memmove(DestData, SrcData, (1 + NewMaxX - NewMinX) * sizeof(T));
+			}
+		}
+
+		const int32 NewSize = (1 + NewMaxY - NewMinY) * (1 + NewMaxX - NewMinX);
+		Data.RemoveAt(NewSize, Data.Num() - NewSize);
+	}
+}
 
 #endif
 

@@ -3,6 +3,15 @@
 #pragma once
 #include "LandscapeInfo.generated.h"
 
+// Forward declarations
+class ALandscapeProxy;
+class ALandscape;
+class ULandscapeComponent;
+class ULandscapeLayerInfoObject;
+class UMaterialInstanceConstant;
+struct FLandscapeEditorLayerSettings;
+struct FLandscapeDataInterface;
+
 /** Structure storing Collision for LandscapeComponent Add */
 USTRUCT()
 struct FLandscapeAddCollision
@@ -31,17 +40,17 @@ struct FLandscapeInfoLayerSettings
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	class ULandscapeLayerInfoObject* LayerInfoObj;
+	ULandscapeLayerInfoObject* LayerInfoObj;
 
 	UPROPERTY()
 	FName LayerName;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)
-	class UMaterialInstanceConstant* ThumbnailMIC;
+	UMaterialInstanceConstant* ThumbnailMIC;
 
 	UPROPERTY()
-	class ALandscapeProxy* Owner;
+	ALandscapeProxy* Owner;
 
 	UPROPERTY(transient)
 	int32 DebugColorChannel;
@@ -62,9 +71,9 @@ struct FLandscapeInfoLayerSettings
 	{
 	}
 
-	LANDSCAPE_API FLandscapeInfoLayerSettings(ULandscapeLayerInfoObject* InLayerInfo, class ALandscapeProxy* InProxy);
+	LANDSCAPE_API FLandscapeInfoLayerSettings(ULandscapeLayerInfoObject* InLayerInfo, ALandscapeProxy* InProxy);
 
-	FLandscapeInfoLayerSettings(FName InPlaceholderLayerName, class ALandscapeProxy* InProxy)
+	FLandscapeInfoLayerSettings(FName InPlaceholderLayerName, ALandscapeProxy* InProxy)
 		: LayerInfoObj(NULL)
 		, LayerName(InPlaceholderLayerName)
 #if WITH_EDITORONLY_DATA
@@ -79,7 +88,7 @@ struct FLandscapeInfoLayerSettings
 	LANDSCAPE_API FName GetLayerName() const;
 
 #if WITH_EDITORONLY_DATA
-	LANDSCAPE_API struct FLandscapeEditorLayerSettings& GetEditorSettings() const;
+	LANDSCAPE_API FLandscapeEditorLayerSettings& GetEditorSettings() const;
 #endif
 };
 
@@ -89,7 +98,7 @@ class ULandscapeInfo : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	TLazyObjectPtr<class ALandscape> LandscapeActor;
+	TLazyObjectPtr<ALandscape> LandscapeActor;
 
 	UPROPERTY()
 	FGuid LandscapeGuid;
@@ -111,23 +120,23 @@ class ULandscapeInfo : public UObject
 	uint32 bIsValid:1;
 
 	UPROPERTY()
-	TArray<struct FLandscapeInfoLayerSettings> Layers;
+	TArray<FLandscapeInfoLayerSettings> Layers;
 #endif // WITH_EDITORONLY_DATA
 
 public:
-	struct FLandscapeDataInterface* DataInterface;
+	FLandscapeDataInterface* DataInterface;
 
 	/** Map of the offsets (in component space) to the component. Valid in editor only. */
-	TMap<FIntPoint,class ULandscapeComponent*> XYtoComponentMap;
+	TMap<FIntPoint, ULandscapeComponent*> XYtoComponentMap;
 
 	/** Map of the offsets to the newly added collision components. Only available near valid LandscapeComponents. Valid in editor only. */
 	TMap<FIntPoint, FLandscapeAddCollision> XYtoAddCollisionMap;
 
-	TSet<class ALandscapeProxy*> Proxies;
+	TSet<ALandscapeProxy*> Proxies;
 
 private:
-	TSet<class ULandscapeComponent*> SelectedComponents;
-	TSet<class ULandscapeComponent*> SelectedRegionComponents;
+	TSet<ULandscapeComponent*> SelectedComponents;
+	TSet<ULandscapeComponent*> SelectedRegionComponents;
 
 public:
 
@@ -145,17 +154,17 @@ public:
 
 	// @todo document 
 	// all below.
-	LANDSCAPE_API struct FLandscapeDataInterface* GetDataInterface();
+	LANDSCAPE_API FLandscapeDataInterface* GetDataInterface();
 
 	LANDSCAPE_API void GetComponentsInRegion(int32 X1, int32 Y1, int32 X2, int32 Y2, TSet<ULandscapeComponent*>& OutComponents);
-	LANDSCAPE_API bool GetLandscapeExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY);
+	LANDSCAPE_API bool GetLandscapeExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const;
 	LANDSCAPE_API void Export(const TArray<ULandscapeLayerInfoObject*>& LayerInfos, const TArray<FString>& Filenames);
 	LANDSCAPE_API void ExportHeightmap(const FString& Filename);
 	LANDSCAPE_API void ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FString& Filename);
 	LANDSCAPE_API bool ApplySplines(bool bOnlySelected);
 	bool ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* Landscape);
 
-	LANDSCAPE_API bool GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY);
+	LANDSCAPE_API bool GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const;
 	FVector GetLandscapeCenterPos(float& LengthZ, int32 MinX = MAX_int32, int32 MinY = MAX_int32, int32 MaxX = MIN_int32, int32 MaxY = MIN_int32);
 	LANDSCAPE_API bool IsValidPosition(int32 X, int32 Y);
 	LANDSCAPE_API void DeleteLayer(ULandscapeLayerInfoObject* LayerInfo);
@@ -163,9 +172,9 @@ public:
 
 	LANDSCAPE_API void UpdateDebugColorMaterial();
 
-	LANDSCAPE_API TSet<class ULandscapeComponent*> GetSelectedComponents() const;
-	LANDSCAPE_API TSet<class ULandscapeComponent*> GetSelectedRegionComponents() const;
-	LANDSCAPE_API void UpdateSelectedComponents(TSet<class ULandscapeComponent*>& NewComponents, bool bIsComponentwise = true);
+	LANDSCAPE_API TSet<ULandscapeComponent*> GetSelectedComponents() const;
+	LANDSCAPE_API TSet<ULandscapeComponent*> GetSelectedRegionComponents() const;
+	LANDSCAPE_API void UpdateSelectedComponents(TSet<ULandscapeComponent*>& NewComponents, bool bIsComponentwise = true);
 	LANDSCAPE_API void SortSelectedComponents();
 	LANDSCAPE_API void ClearSelectedRegion(bool bIsComponentwise = true);
 
@@ -175,10 +184,10 @@ public:
 	LANDSCAPE_API FLandscapeEditorLayerSettings& GetLayerEditorSettings(ULandscapeLayerInfoObject* LayerInfo) const;
 	LANDSCAPE_API void CreateLayerEditorSettingsFor(ULandscapeLayerInfoObject* LayerInfo);
 
-	LANDSCAPE_API ULandscapeLayerInfoObject* GetLayerInfoByName(FName LayerName, class ALandscapeProxy* Owner = NULL) const;
-	LANDSCAPE_API int32 GetLayerInfoIndex(FName LayerName, class ALandscapeProxy* Owner = NULL) const;
-	LANDSCAPE_API int32 GetLayerInfoIndex(ULandscapeLayerInfoObject* LayerInfo, class ALandscapeProxy* Owner = NULL) const;
-	LANDSCAPE_API bool UpdateLayerInfoMap(class ALandscapeProxy* Proxy = NULL, bool bInvalidate = false);
+	LANDSCAPE_API ULandscapeLayerInfoObject* GetLayerInfoByName(FName LayerName, ALandscapeProxy* Owner = NULL) const;
+	LANDSCAPE_API int32 GetLayerInfoIndex(FName LayerName, ALandscapeProxy* Owner = NULL) const;
+	LANDSCAPE_API int32 GetLayerInfoIndex(ULandscapeLayerInfoObject* LayerInfo, ALandscapeProxy* Owner = NULL) const;
+	LANDSCAPE_API bool UpdateLayerInfoMap(ALandscapeProxy* Proxy = NULL, bool bInvalidate = false);
 
 	/** 
 	 *  Returns landscape which is spawned in the current level that was previously added to this landscape info object

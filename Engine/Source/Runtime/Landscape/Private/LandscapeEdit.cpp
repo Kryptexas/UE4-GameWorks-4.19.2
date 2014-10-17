@@ -2418,7 +2418,7 @@ bool ALandscape::HasAllComponent()
 	return false;
 }
 
-bool ULandscapeInfo::GetLandscapeExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY)
+bool ULandscapeInfo::GetLandscapeExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const
 {
 	MinX = MAX_int32;
 	MinY = MAX_int32;
@@ -2426,22 +2426,22 @@ bool ULandscapeInfo::GetLandscapeExtent(int32& MinX, int32& MinY, int32& MaxX, i
 	MaxY = MIN_int32;
 
 	// Find range of entire landscape
-	for (auto It = XYtoComponentMap.CreateIterator(); It; ++It)
+	for (auto& XYComponentPair : XYtoComponentMap)
 	{
-		ULandscapeComponent* Comp = It.Value();
+		const ULandscapeComponent* Comp = XYComponentPair.Value;
 		Comp->GetComponentExtent(MinX, MinY, MaxX, MaxY);
 	}
 	return (MinX != MAX_int32);
 }
 
-bool ULandscapeInfo::GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY)
+bool ULandscapeInfo::GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const
 {
 	MinX = MinY = MAX_int32;
 	MaxX = MaxY = MIN_int32;
-	for (auto It = SelectedRegion.CreateIterator(); It; ++It)
+	for (auto& SelectedPointPair : SelectedRegion)
 	{
 		int32 X, Y;
-		ALandscape::UnpackKey(It.Key(), X, Y);
+		ALandscape::UnpackKey(SelectedPointPair.Key, X, Y);
 		if (MinX > X) MinX = X;
 		if (MaxX < X) MaxX = X;
 		if (MinY > Y) MinY = Y;
@@ -2452,9 +2452,8 @@ bool ULandscapeInfo::GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, in
 		return true;
 	}
 	// if SelectedRegion is empty, try SelectedComponents
-	for (TSet<ULandscapeComponent*>::TIterator It(SelectedComponents); It; ++It)
+	for (const ULandscapeComponent* Comp : SelectedComponents)
 	{
-		ULandscapeComponent* Comp = *It;
 		Comp->GetComponentExtent(MinX, MinY, MaxX, MaxY);
 	}
 	return MinX != MAX_int32;
@@ -2761,33 +2760,6 @@ private:
 	int32 MinX, MinY, MaxX, MaxY;
 };
 
-template<typename T>
-void ShrinkData(TArray<T>& Data, int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY, int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
-{
-	checkSlow(OldMinX <= OldMaxX && OldMinY <= OldMaxY);
-	checkSlow(NewMinX >= OldMinX && NewMaxX <= OldMaxX);
-	checkSlow(NewMinY >= OldMinY && NewMaxY <= OldMaxY);
-
-	if (NewMinX != OldMinX || NewMinY != OldMinY ||
-		NewMaxX != OldMaxX || NewMaxY != OldMaxY)
-	{
-		// if only the MaxY changes we don't need to do the moving, only the truncate
-		if (NewMinX != OldMinX || NewMinY != OldMinY || NewMaxX != OldMaxX)
-		{
-			for (int32 DestY = 0, SrcY = NewMinY - OldMinY; DestY <= NewMaxY - NewMinY; DestY++, SrcY++)
-			{
-				UE_LOG(LogLandscape, Warning, TEXT("Dest: %d, %d = %d Src: %d, %d = %d Width = %d"), 0, DestY, DestY * (1 + NewMaxX - NewMinX), NewMinX - OldMinX, SrcY, SrcY * (1 + OldMaxX - OldMinX) + NewMinX - OldMinX, (1 + NewMaxX - NewMinX));
-				T* DestData = &Data[DestY * (1 + NewMaxX - NewMinX)];
-				const T* SrcData = &Data[SrcY * (1 + OldMaxX - OldMinX) + NewMinX - OldMinX];
-				FMemory::Memmove(DestData, SrcData, (1 + NewMaxX - NewMinX) * sizeof(T));
-			}
-		}
-
-		const int32 NewSize = (1 + NewMaxY - NewMinY) * (1 + NewMaxX - NewMinX);
-		Data.RemoveAt(NewSize, Data.Num() - NewSize);
-	}
-}
-
 bool ULandscapeInfo::ApplySplines(bool bOnlySelected)
 {
 	bool bResult = false;
@@ -2819,6 +2791,13 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 	FLandscapeEditDataInterface LandscapeEdit(this);
 	TSet<ULandscapeComponent*> ModifiedComponents;
 
+	// I'd dearly love to use FIntRect in this code, but Landscape works with "Inclusive Max" and FIntRect is "Exclusive Max"
+	int32 LandscapeMinX, LandscapeMinY, LandscapeMaxX, LandscapeMaxY;
+	if (!GetLandscapeExtent(LandscapeMinX, LandscapeMinY, LandscapeMaxX, LandscapeMaxY))
+	{
+		return false;
+	}
+
 	for (auto It = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); It; ++It)
 	{
 		const ULandscapeSplineControlPoint* ControlPoint = *It;
@@ -2833,13 +2812,24 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			continue;
 		}
 
-		FBox LandscapeBounds = ControlPoint->GetBounds();
-		LandscapeBounds = LandscapeBounds.TransformBy(SplineToLandscape.ToMatrixWithScale());
+		FBox ControlPointBounds = ControlPoint->GetBounds();
+		ControlPointBounds = ControlPointBounds.TransformBy(SplineToLandscape.ToMatrixWithScale());
 
-		int32 MinX = FMath::CeilToInt(LandscapeBounds.Min.X);
-		int32 MinY = FMath::CeilToInt(LandscapeBounds.Min.Y);
-		int32 MaxX = FMath::FloorToInt(LandscapeBounds.Max.X);
-		int32 MaxY = FMath::FloorToInt(LandscapeBounds.Max.Y);
+		int32 MinX = FMath::CeilToInt(ControlPointBounds.Min.X);
+		int32 MinY = FMath::CeilToInt(ControlPointBounds.Min.Y);
+		int32 MaxX = FMath::FloorToInt(ControlPointBounds.Max.X);
+		int32 MaxY = FMath::FloorToInt(ControlPointBounds.Max.Y);
+
+		MinX = FMath::Max(MinX, LandscapeMinX);
+		MinY = FMath::Max(MinY, LandscapeMinY);
+		MaxX = FMath::Min(MaxX, LandscapeMaxX);
+		MaxY = FMath::Min(MaxY, LandscapeMaxY);
+
+		if (MinX > MaxX || MinY > MaxY)
+		{
+			// The control point's bounds don't intersect any data, so we skip it entirely
+			continue;
+		}
 
 		TArray<FLandscapeSplineInterpPoint> Points = ControlPoint->GetPoints();
 		for (int32 j = 0; j < Points.Num(); j++)
@@ -2876,7 +2866,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				continue;
 			}
 
-			ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
+			FLandscapeEditDataInterface::ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
 
 			MinX = ValidMinX;
 			MinY = ValidMinY;
@@ -2935,7 +2925,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				continue;
 			}
 
-			ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
+			FLandscapeEditDataInterface::ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
 
 			MinX = ValidMinX;
 			MinY = ValidMinY;
@@ -2987,13 +2977,24 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			continue;
 		}
 
-		FBox LandscapeBounds = Segment->GetBounds();
-		LandscapeBounds = LandscapeBounds.TransformBy(SplineToLandscape.ToMatrixWithScale());
+		FBox SegmentBounds = Segment->GetBounds();
+		SegmentBounds = SegmentBounds.TransformBy(SplineToLandscape.ToMatrixWithScale());
 
-		int32 MinX = FMath::CeilToInt(LandscapeBounds.Min.X);
-		int32 MinY = FMath::CeilToInt(LandscapeBounds.Min.Y);
-		int32 MaxX = FMath::FloorToInt(LandscapeBounds.Max.X);
-		int32 MaxY = FMath::FloorToInt(LandscapeBounds.Max.Y);
+		int32 MinX = FMath::CeilToInt(SegmentBounds.Min.X);
+		int32 MinY = FMath::CeilToInt(SegmentBounds.Min.Y);
+		int32 MaxX = FMath::FloorToInt(SegmentBounds.Max.X);
+		int32 MaxY = FMath::FloorToInt(SegmentBounds.Max.Y);
+
+		MinX = FMath::Max(MinX, LandscapeMinX);
+		MinY = FMath::Max(MinY, LandscapeMinY);
+		MaxX = FMath::Min(MaxX, LandscapeMaxX);
+		MaxY = FMath::Min(MaxY, LandscapeMaxY);
+
+		if (MinX > MaxX || MinY > MaxY)
+		{
+			// The segment's bounds don't intersect any data, so we skip it entirely
+			continue;
+		}
 
 		TArray<FLandscapeSplineInterpPoint> Points = Segment->GetPoints();
 		for (int32 j = 0; j < Points.Num(); j++)
@@ -3030,7 +3031,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				continue;
 			}
 
-			ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
+			FLandscapeEditDataInterface::ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
 
 			MinX = ValidMinX;
 			MinY = ValidMinY;
@@ -3094,7 +3095,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 				continue;
 			}
 
-			ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
+			FLandscapeEditDataInterface::ShrinkData(Data, MinX, MinY, MaxX, MaxY, ValidMinX, ValidMinY, ValidMaxX, ValidMaxY);
 
 			MinX = ValidMinX;
 			MinY = ValidMinY;
