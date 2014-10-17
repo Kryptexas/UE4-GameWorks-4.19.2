@@ -635,10 +635,7 @@ void FWindowsTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInpu
 			{
 				//  TSF Implementation
 				ITfDocumentMgr* Unused;
-				if(FAILED(TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused)))
-				{
-					UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Deactivating a context failed while setting focus to the disabled TSF document manager."));
-				}
+				TSFThreadManager->AssociateFocus(Hwnd, TSFDisabledDocumentManager, &Unused);
 
 				// IMM Implementation
 				::ImmAssociateContext(InternalContext.WindowHandle, nullptr);
