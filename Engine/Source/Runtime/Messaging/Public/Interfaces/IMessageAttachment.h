@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IMessageAttachment. */
-typedef TSharedPtr<class IMessageAttachment, ESPMode::ThreadSafe> IMessageAttachmentPtr;
-
-/** Type definition for shared references to instances of IMessageAttachment. */
-typedef TSharedRef<class IMessageAttachment, ESPMode::ThreadSafe> IMessageAttachmentRef;
-
-
 /**
  * Interface for message attachments.
  *
@@ -43,3 +36,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageAttachment() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageAttachment. */
+typedef TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> IMessageAttachmentPtr;
+
+/** Type definition for shared references to instances of IMessageAttachment. */
+typedef TSharedRef<IMessageAttachment, ESPMode::ThreadSafe> IMessageAttachmentRef;

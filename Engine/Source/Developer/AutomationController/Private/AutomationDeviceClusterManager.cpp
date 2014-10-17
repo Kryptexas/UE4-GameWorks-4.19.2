@@ -233,7 +233,7 @@ bool FAutomationDeviceClusterManager::FindDevice(const FMessageAddress& MessageA
 }
 
 
-FGuid FAutomationDeviceClusterManager::GetDeviceMessageAddress(const int32 ClusterIndex, const int32 DeviceIndex) const
+FMessageAddress FAutomationDeviceClusterManager::GetDeviceMessageAddress(const int32 ClusterIndex, const int32 DeviceIndex) const
 {
 	//verify cluster/device index
 	check((ClusterIndex >= 0) && (ClusterIndex < Clusters.Num()));

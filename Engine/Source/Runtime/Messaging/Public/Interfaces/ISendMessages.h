@@ -3,11 +3,7 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ISendMessages. */
-typedef TSharedPtr<class ISendMessages, ESPMode::ThreadSafe> ISendMessagesPtr;
-
-/** Type definition for shared references to instances of ISendMessages. */
-typedef TSharedRef<class ISendMessages, ESPMode::ThreadSafe> ISendMessagesRef;
+class IMessageContext;
 
 
 /**
@@ -43,10 +39,17 @@ public:
 	 * @param Context The context of the message that generated the error.
 	 * @param Error The error string.
 	 */
-	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) = 0;
+	virtual void NotifyMessageError( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const FString& Error ) = 0;
 
 public:
 
 	/** Virtual destructor. */
 	virtual ~ISendMessages() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISendMessages. */
+typedef TSharedPtr<ISendMessages, ESPMode::ThreadSafe> ISendMessagesPtr;
+
+/** Type definition for shared references to instances of ISendMessages. */
+typedef TSharedRef<ISendMessages, ESPMode::ThreadSafe> ISendMessagesRef;

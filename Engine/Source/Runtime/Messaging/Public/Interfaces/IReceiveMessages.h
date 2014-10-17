@@ -3,14 +3,7 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IReceiveMessages. */
-typedef TSharedPtr<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesPtr;
-
-/** Type definition for shared references to instances of IReceiveMessages. */
-typedef TSharedRef<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesRef;
-
-/** Type definition for shared pointers to instances of IReceiveMessages. */
-typedef TWeakPtr<class IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesWeakPtr;
+class IMessageContext;
 
 
 /**
@@ -71,7 +64,7 @@ public:
 	 *
 	 * @param Context Will hold the context of the received message.
 	 */
-	virtual void ReceiveMessage( const IMessageContextRef& Context ) = 0;
+	virtual void ReceiveMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) = 0;
 
 public:
 
@@ -94,3 +87,13 @@ public:
 	/** Virtual destructor. */
 	virtual ~IReceiveMessages() { }
 };
+
+
+/** Type definition for shared pointers to instances of IReceiveMessages. */
+typedef TSharedPtr<IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesPtr;
+
+/** Type definition for shared references to instances of IReceiveMessages. */
+typedef TSharedRef<IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesRef;
+
+/** Type definition for shared pointers to instances of IReceiveMessages. */
+typedef TWeakPtr<IReceiveMessages, ESPMode::ThreadSafe> IReceiveMessagesWeakPtr;

@@ -295,7 +295,7 @@ void FTargetDeviceService::HandleUnclaimedMessage(const FTargetDeviceUnclaimed& 
 	{
 		if (Context->GetSender() == ClaimAddress)
 		{
-			ClaimAddress = FGuid();
+			ClaimAddress.Invalidate();
 			ClaimHost.Empty();
 			ClaimUser.Empty();
 		}

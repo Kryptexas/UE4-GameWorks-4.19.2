@@ -2,12 +2,12 @@
 
 #pragma once
 
-
-/** Type definition for shared pointers to instances of FMessageEndpoint. */
-typedef TSharedPtr<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointPtr;
-
-/** Type definition for shared references to instances of FMessageEndpoint. */
-typedef TSharedRef<class FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointRef;
+#include "IMessageAttachment.h"
+#include "IMessageBus.h"
+#include "IMessageContext.h"
+#include "IMessageHandler.h"
+#include "IReceiveMessages.h"
+#include "ISendMessages.h"
 
 
 /**
@@ -67,7 +67,7 @@ public:
 	 * @param InHandlers The collection of message handlers to register.
 	 */
 	FMessageEndpoint( const FName& InName, const IMessageBusRef& InBus, const TArray<IMessageHandlerPtr>& InHandlers )
-		: Address(FGuid::NewGuid())
+		: Address(FMessageAddress::NewAddress())
 		, BusPtr(InBus)
 		, Enabled(true)
 		, Handlers(InHandlers)
@@ -95,7 +95,7 @@ public:
 	 * A disabled endpoint will not receive any subscribed messages until it is enabled again.
 	 * Endpoints should be created in an enabled state by default.
 	 *
-	 * @see Enable
+	 * @see Enable, IsEnabled
 	 */
 	void Disable()
 	{
@@ -108,7 +108,7 @@ public:
 	 * An activated endpoint will receive subscribed messages.
 	 * Endpoints should be created in an enabled state by default.
 	 *
-	 * @see Disable
+	 * @see Disable, IsEnabled
 	 */
 	void Enable()
 	{
@@ -127,6 +127,9 @@ public:
 
 	/**
 	 * Checks whether this endpoint is connected to the bus.
+	 *
+	 * @return true if connected, false otherwise.
+	 * @see IsEnabled
 	 */
 	bool IsConnected() const
 	{
@@ -137,6 +140,7 @@ public:
 	 * Checks whether this endpoint is enabled.
 	 *
 	 * @return true if the endpoint is enabled, false otherwise.
+	 * @see Disable, Enable, IsConnected
 	 */
 	bool IsEnabled() const
 	{
@@ -741,7 +745,7 @@ public:
 	 *
 	 * @param Endpoint The message endpoint to release.
 	 */
-	static void SafeRelease( FMessageEndpointPtr& Endpoint )
+	static void SafeRelease( TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe>& Endpoint )
 	{
 		TWeakPtr<FMessageEndpoint, ESPMode::ThreadSafe> EndpointPtr = Endpoint;
 		Endpoint.Reset();
@@ -825,3 +829,10 @@ private:
 	/** Holds a delegate that is invoked in case of messaging errors. */
 	FOnMessageEndpointError ErrorDelegate;
 };
+
+
+/** Type definition for shared pointers to instances of FMessageEndpoint. */
+typedef TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointPtr;
+
+/** Type definition for shared references to instances of FMessageEndpoint. */
+typedef TSharedRef<FMessageEndpoint, ESPMode::ThreadSafe> FMessageEndpointRef;

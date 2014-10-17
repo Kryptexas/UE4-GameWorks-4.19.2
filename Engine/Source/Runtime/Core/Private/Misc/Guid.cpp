@@ -62,8 +62,9 @@ FString FGuid::ToString( EGuidFormats Format ) const
 
 FGuid FGuid::NewGuid()
 {
-	FGuid Result(0,0,0,0);
+	FGuid Result(0, 0, 0, 0);
 	FPlatformMisc::CreateGuid(Result);
+
 	return Result;
 }
 

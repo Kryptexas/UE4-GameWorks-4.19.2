@@ -3,6 +3,124 @@
 #pragma once
 
 
+class IMessageAttachment;
+
+
+/**
+ * Implements a message endpoint address.
+ */
+struct FMessageAddress
+{
+public:
+
+	/** Default constructor (no initialization). */
+	FMessageAddress() { }
+
+public:
+
+	/**
+	 * Compares two message addresses for equality.
+	 *
+	 * @param X The first address to compare.
+	 * @param Y The second address to compare.
+	 * @return true if the addresses are equal, false otherwise.
+	 */
+	friend bool operator==( const FMessageAddress& X, const FMessageAddress& Y )
+	{
+		return (X.UniqueId == Y.UniqueId);
+	}
+
+	/**
+	 * Compares two message addresses for inequality.
+	 *
+	 * @param X The first address to compare.
+	 * @param Y The second address to compare.
+	 * @return true if the addresses are not equal, false otherwise.
+	 */
+	friend bool operator!=( const FMessageAddress& X, const FMessageAddress& Y )
+	{
+		return (X.UniqueId != Y.UniqueId);
+	}
+
+	/**
+	 * Serializes a message address from or into an archive.
+	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param G The address to serialize.
+	 */
+	friend FArchive& operator<<( FArchive& Ar, FMessageAddress& A )
+	{
+		return Ar << A.UniqueId;
+	}
+
+public:
+
+	/**
+	 * Invalidates the GUID.
+	 *
+	 * @see IsValid
+	 */
+	void Invalidate()
+	{
+		UniqueId.Invalidate();
+	}
+
+	/**
+	 * Checks whether this message address is valid or not.
+	 *
+	 * @return true if valid, false otherwise.
+	 * @see Invalidate
+	 */
+	bool IsValid() const
+	{
+		return UniqueId.IsValid();
+	}
+
+	/**
+	 * Converts this GUID to its string representation.
+	 *
+	 * @return The string representation.
+	 */
+	FString ToString() const
+	{
+		return UniqueId.ToString();
+	}
+
+public:
+
+	/**
+	 * Calculates the hash for a message address.
+	 *
+	 * @param Address The address to calculate the hash for.
+	 * @return The hash.
+	 */
+	friend uint32 GetTypeHash( const FMessageAddress& Address )
+	{
+		return FCrc::MemCrc_DEPRECATED(&Address.UniqueId, sizeof(FGuid));
+	}
+
+public:
+
+	/**
+	 * Returns a new message address.
+	 *
+	 * @return A new address.
+	 */
+	static FMessageAddress NewAddress()
+	{
+		FMessageAddress Result;
+		Result.UniqueId = FGuid::NewGuid();
+
+		return Result;
+	}
+
+private:
+
+	/** Holds a unique identifier. */
+	FGuid UniqueId;
+};
+
+
 /**
  * Enumerates scopes for published messages.
  *
@@ -38,15 +156,6 @@ enum class EMessageScope
 };
 
 
-/** Type definition for message endpoint identifiers. */
-typedef FGuid FMessageAddress;
-
-/** Type definition for shared pointers to instances of IMessageContext. */
-typedef TSharedPtr<class IMessageContext, ESPMode::ThreadSafe> IMessageContextPtr;
-
-/** Type definition for shared references to instances of IMessageContext. */
-typedef TSharedRef<class IMessageContext, ESPMode::ThreadSafe> IMessageContextRef;
-
 /** Type definition for message scope ranges. */
 typedef TRange<EMessageScope> FMessageScopeRange;
 
@@ -80,7 +189,7 @@ public:
 	 *
 	 * @return A pointer to the message attachment, or nullptr if no attachment is present.
 	 */
-	virtual IMessageAttachmentPtr GetAttachment() const = 0;
+	virtual TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> GetAttachment() const = 0;
 
 	/**
 	 * Gets the date and time at which the message expires.
@@ -130,7 +239,7 @@ public:
 	 *
 	 * @return The original message.
 	 */
-	virtual IMessageContextPtr GetOriginalContext() const = 0;
+	virtual TSharedPtr<IMessageContext, ESPMode::ThreadSafe> GetOriginalContext() const = 0;
 
 	/**
 	* Gets the list of message recipients.
@@ -194,3 +303,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageContext() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageContext. */
+typedef TSharedPtr<IMessageContext, ESPMode::ThreadSafe> IMessageContextPtr;
+
+/** Type definition for shared references to instances of IMessageContext. */
+typedef TSharedRef<IMessageContext, ESPMode::ThreadSafe> IMessageContextRef;

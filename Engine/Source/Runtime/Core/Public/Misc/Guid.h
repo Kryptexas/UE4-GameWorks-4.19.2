@@ -207,19 +207,6 @@ public:
 	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
 
 	/**
-	 * Checks whether this GUID is valid or not.
-	 *
-	 * A GUID that has all its components set to zero is considered invalid.
-	 *
-	 * @return true if valid, false otherwise
-	 * @see Invalidate
-	 */
-	bool IsValid() const
-	{
-		return ((A | B | C | D) != 0);
-	}
-
-	/**
 	 * Invalidates the GUID.
 	 *
 	 * @see IsValid
@@ -227,6 +214,19 @@ public:
 	void Invalidate()
 	{
 		A = B = C = D = 0;
+	}
+
+	/**
+	 * Checks whether this GUID is valid or not.
+	 *
+	 * A GUID that has all its components set to zero is considered invalid.
+	 *
+	 * @return true if valid, false otherwise.
+	 * @see Invalidate
+	 */
+	bool IsValid() const
+	{
+		return ((A | B | C | D) != 0);
 	}
 
 	/**
@@ -257,7 +257,7 @@ public:
 	 */
 	friend uint32 GetTypeHash( const FGuid& Guid )
 	{
-		return FCrc::MemCrc_DEPRECATED(&Guid,sizeof(FGuid));
+		return FCrc::MemCrc_DEPRECATED(&Guid, sizeof(FGuid));
 	}
 
 public:

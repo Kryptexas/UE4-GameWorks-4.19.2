@@ -3,19 +3,18 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IMessageBus. */
-typedef TSharedPtr<class IMessageBus, ESPMode::ThreadSafe> IMessageBusPtr;
+enum class EMessageScope;
+struct FMessageAddress;
+class IInterceptMessages;
+class IMessageAttachment;
+class IMessageContext;
+class IMessageSubscription;
+class IMessageTracer;
+class IReceiveMessages;
+class ISendMessages;
 
-/** Type definition for shared references to instances of IMessageBus. */
-typedef TSharedRef<class IMessageBus, ESPMode::ThreadSafe> IMessageBusRef;
 
-/** Type definition for weak pointers to instances of IMessageBus. */
-typedef TWeakPtr<class IMessageBus, ESPMode::ThreadSafe> IMessageBusWeakPtr;
-
-
-/**
- * Delegate type for message bus shutdowns.
- */
+/** Delegate type for message bus shutdowns. */
 DECLARE_MULTICAST_DELEGATE(FOnMessageBusShutdown);
 
 
@@ -76,7 +75,7 @@ DECLARE_MULTICAST_DELEGATE(FOnMessageBusShutdown);
  *
  * It is possible to intercept messages before they are being routed to recipients by registering so called Message Interceptors (objects
  * implementing the IInterceptMessage interface) with the message bus. This feature enables advanced use cases that require inspection or
- * manipulation of messages contents, such as message filtering and enriching, splitting and aggregating, resquencing or authentication[4].
+ * manipulation of messages contents, such as message filtering and enriching, splitting and aggregating, resequencing or authentication[4].
  *
  * The messaging system also provides a facility for debugging the system itself through the so called Message Tracer (an internal object
  * implementing the @see IMessageTracer interface) that can be accessed with the IMessageBus.GetTracer() method. The message tracer is
@@ -114,14 +113,14 @@ public:
 	 * @param Forwarder The sender that forwards the message.
 	 * @see Publish, Send
 	 */
-	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope NewScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) = 0;
+	virtual void Forward( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FMessageAddress>& Recipients, EMessageScope NewScope, const FTimespan& Delay, const TSharedRef<ISendMessages, ESPMode::ThreadSafe>& Forwarder ) = 0;
 
 	/**
 	 * Gets the message bus tracer.
 	 *
 	 * @return Weak pointer to the tracer object.
 	 */
-	virtual IMessageTracerRef GetTracer() = 0;
+	virtual TSharedRef<IMessageTracer, ESPMode::ThreadSafe> GetTracer() = 0;
 
 	/**
 	 * Adds an interceptor for messages of the specified type.
@@ -130,7 +129,7 @@ public:
 	 * @param MessageType The type of messages to intercept.
 	 * @see Unintercept
 	 */
-	virtual void Intercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) = 0;
+	virtual void Intercept( const TSharedRef<IInterceptMessages, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
 
 	/**
 	 * Sends a message to subscribed recipients.
@@ -145,7 +144,7 @@ public:
 	 * @param Publisher The message publisher.
 	 * @see Forward, Send
 	 */
-	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Publisher ) = 0;
+	virtual void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration, const TSharedRef<ISendMessages, ESPMode::ThreadSafe>& Publisher ) = 0;
 
 	/**
 	 * Registers a message recipient with the message bus.
@@ -154,7 +153,7 @@ public:
 	 * @param Recipient The message recipient.
 	 * @see Unregister
 	 */
-	virtual void Register( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient) = 0;
+	virtual void Register( const FMessageAddress& Address, const TSharedRef<IReceiveMessages, ESPMode::ThreadSafe>& Recipient) = 0;
 
 	/**
 	 * Sends a message to multiple recipients.
@@ -168,7 +167,7 @@ public:
 	 * @param Sender The message sender.
 	 * @see Forward, Publish
 	 */
-	virtual void Send( void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration, const ISendMessagesRef& Sender ) = 0;
+	virtual void Send( void* Message, UScriptStruct* TypeInfo, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration, const TSharedRef<ISendMessages, ESPMode::ThreadSafe>& Sender ) = 0;
 
 	/**
 	 * Shuts down the message bus.
@@ -189,7 +188,7 @@ public:
 	 * @return The added subscription, or nullptr if the subscription failed.
 	 * @see Unsubscribe
 	 */
-	virtual IMessageSubscriptionPtr Subscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType, const FMessageScopeRange& ScopeRange ) = 0;
+	virtual TSharedPtr<IMessageSubscription, ESPMode::ThreadSafe> Subscribe( const TSharedRef<IReceiveMessages, ESPMode::ThreadSafe>& Subscriber, const FName& MessageType, const TRange<EMessageScope>& ScopeRange ) = 0;
 
 	/**
 	 * Removes an interceptor for messages of the specified type.
@@ -198,7 +197,7 @@ public:
 	 * @param MessageType The type of messages to stop intercepting.
 	 * @see Intercept
 	 */
-	virtual void Unintercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) = 0;
+	virtual void Unintercept( const TSharedRef<IInterceptMessages, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
 
 	/**
 	 * Unregisters a message recipient from the message bus.
@@ -215,7 +214,7 @@ public:
 	 * @param MessageType The type of messages to unsubscribe from (NAME_All = all types).
 	 * @see Subscribe
 	 */
-	virtual void Unsubscribe( const IReceiveMessagesRef& Subscriber, const FName& MessageType ) = 0;
+	virtual void Unsubscribe( const TSharedRef<IReceiveMessages, ESPMode::ThreadSafe>& Subscriber, const FName& MessageType ) = 0;
 
 public:
 
@@ -232,3 +231,13 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageBus() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageBus. */
+typedef TSharedPtr<IMessageBus, ESPMode::ThreadSafe> IMessageBusPtr;
+
+/** Type definition for shared references to instances of IMessageBus. */
+typedef TSharedRef<IMessageBus, ESPMode::ThreadSafe> IMessageBusRef;
+
+/** Type definition for weak pointers to instances of IMessageBus. */
+typedef TWeakPtr<IMessageBus, ESPMode::ThreadSafe> IMessageBusWeakPtr;

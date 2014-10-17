@@ -3,11 +3,8 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IMessageSubscription. */
-typedef TSharedPtr<class IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionPtr;
-
-/** Type definition for shared references to instances of IMessageSubscription. */
-typedef TSharedRef<class IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionRef;
+enum class EMessageScope;
+class IReceiveMessages;
 
 
 /**
@@ -53,7 +50,7 @@ public:
 	 * @return Message scope range.
 	 * @see GetMessageType, GetSubscriber
 	 */
-	virtual const FMessageScopeRange& GetScopeRange() = 0;
+	virtual const TRange<EMessageScope>& GetScopeRange() = 0;
 
 	/**
 	 * Gets the subscriber.
@@ -61,7 +58,7 @@ public:
 	 * @return The subscriber.
 	 * @see GetMessageType, GetScopeRange
 	 */
-	virtual const IReceiveMessagesWeakPtr& GetSubscriber() = 0;
+	virtual const TWeakPtr<IReceiveMessages, ESPMode::ThreadSafe>& GetSubscriber() = 0;
 
 	/**
 	 * Checks whether the subscription is enabled.
@@ -76,3 +73,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageSubscription() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageSubscription. */
+typedef TSharedPtr<IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionPtr;
+
+/** Type definition for shared references to instances of IMessageSubscription. */
+typedef TSharedRef<IMessageSubscription, ESPMode::ThreadSafe> IMessageSubscriptionRef;

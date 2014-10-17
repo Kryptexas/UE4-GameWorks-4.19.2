@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "IMessagingModule.h"
+#include "MessageEndpoint.h"
+
 
 /**
  * Implements a message endpoint builder.

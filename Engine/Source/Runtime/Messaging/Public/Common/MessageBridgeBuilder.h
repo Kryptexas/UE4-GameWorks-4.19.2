@@ -12,7 +12,7 @@ public:
 
 	/** Default constructor. */
 	FMessageBridgeBuilder()
-		: Address(FMessageAddress::NewGuid())
+		: Address(FMessageAddress::NewAddress())
 		, BusPtr(IMessagingModule::Get().GetDefaultBus())
 		, Disabled(false)
 		, Transport(nullptr)
@@ -24,7 +24,7 @@ public:
 	 * @param InBus The message bus to attach the bridge to.
 	 */
 	FMessageBridgeBuilder( const IMessageBusRef& Bus )
-		: Address(FMessageAddress::NewGuid())
+		: Address(FMessageAddress::NewAddress())
 		, BusPtr(Bus)
 		, Disabled(false)
 		, Transport(nullptr)

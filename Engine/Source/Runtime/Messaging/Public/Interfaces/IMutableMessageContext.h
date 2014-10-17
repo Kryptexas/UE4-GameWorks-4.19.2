@@ -2,12 +2,11 @@
 
 #pragma once
 
+#include "IMessageContext.h"
 
-/** Type definition for shared pointers to instances of IMutableMessageContext. */
-typedef TSharedPtr<class IMutableMessageContext, ESPMode::ThreadSafe> IMutableMessageContextPtr;
 
-/** Type definition for shared references to instances of IMutableMessageContext. */
-typedef TSharedRef<class IMutableMessageContext, ESPMode::ThreadSafe> IMutableMessageContextRef;
+class IMessageAttachment;
+class UScriptStruct;
 
 
 /**
@@ -30,7 +29,7 @@ public:
 	 *
 	 * @param InAttachment The attachment to set.
 	 */
-	virtual void SetAttachment( const IMessageAttachmentPtr& InAttachment ) = 0;
+	virtual void SetAttachment( const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment ) = 0;
 
 	/**
 	 * Sets the message.
@@ -81,3 +80,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMutableMessageContext() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMutableMessageContext. */
+typedef TSharedPtr<IMutableMessageContext, ESPMode::ThreadSafe> IMutableMessageContextPtr;
+
+/** Type definition for shared references to instances of IMutableMessageContext. */
+typedef TSharedRef<IMutableMessageContext, ESPMode::ThreadSafe> IMutableMessageContextRef;

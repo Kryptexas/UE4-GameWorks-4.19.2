@@ -138,7 +138,7 @@ void FAutomationWorkerModule::ReportNetworkCommandComplete()
 {
 	if (GIsAutomationTesting)
 	{
-		MessageEndpoint->Send(new FAutomationWorkerRequestNextNetworkCommand(ExecutionCount), TestRequesterGUID);
+		MessageEndpoint->Send(new FAutomationWorkerRequestNextNetworkCommand(ExecutionCount), TestRequesterAddress);
 		if (StopTestEvent.IsBound())
 		{
 			// this is a local test; the message to continue will never arrive, so lets not wait for it
@@ -212,12 +212,12 @@ void FAutomationWorkerModule::ReportTestComplete()
 			Message->Warnings = ExecutionInfo.Warnings;
 			Message->Logs = ExecutionInfo.LogItems;
 
-			MessageEndpoint->Send(Message, TestRequesterGUID);
+			MessageEndpoint->Send(Message, TestRequesterAddress);
 		}
 
 
 		// reset local state
-		TestRequesterGUID.Invalidate();
+		TestRequesterAddress.Invalidate();
 		ExecutionCount = INDEX_NONE;
 		TestName.Empty();
 		StopTestEvent.Unbind();
@@ -339,14 +339,14 @@ void FAutomationWorkerModule::HandleScreenShotCaptured( int32 Width, int32 Heigh
 		FImageUtils::CompressImageArray(NewWidth, NewHeight, ScaledBitmap, CompressedBitmap);
 
 		// Send the screen shot if we have a target
-		if( TestRequesterGUID.IsValid() )
+		if( TestRequesterAddress.IsValid() )
 		{
 			FAutomationWorkerScreenImage* Message = new FAutomationWorkerScreenImage();
 
 			FString SFilename = ScreenShotName;
 			Message->ScreenShotName = SFilename;
 			Message->ScreenImage = CompressedBitmap;
-			MessageEndpoint->Send(Message, TestRequesterGUID);
+			MessageEndpoint->Send(Message, TestRequesterAddress);
 		}
 		else
 		{
@@ -366,7 +366,7 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 {
 	ExecutionCount = Message.ExecutionCount;
 	TestName = Message.TestName;
-	TestRequesterGUID = Context->GetSender();
+	TestRequesterAddress = Context->GetSender();
 	FAutomationTestFramework::GetInstance().SetScreenshotOptions(Message.bScreenshotsEnabled, Message.bUseFullSizeScreenShots);
 
 	// Always allow the first network command to execute

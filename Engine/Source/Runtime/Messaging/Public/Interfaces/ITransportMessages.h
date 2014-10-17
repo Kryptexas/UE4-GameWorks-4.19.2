@@ -3,11 +3,8 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ITransportMessages. */
-typedef TSharedPtr<class ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesPtr;
-
-/** Type definition for shared references to instances of ITransportMessages. */
-typedef TSharedRef<class ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesRef;
+class IMessageAttachment;
+class IMessageData;
 
 
 /**
@@ -77,7 +74,7 @@ public:
 	 * @param Recipients The transport nodes to send the message to.
 	 * @return true if the message is being transported, false otherwise.
 	 */
-	virtual bool TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients ) = 0;
+	virtual bool TransportMessage( const TSharedRef<IMessageData, ESPMode::ThreadSafe>& Data, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const TArray<FGuid>& Recipients ) = 0;
 
 public:
 
@@ -107,3 +104,10 @@ protected:
 	/** Virtual constructor. */
 	~ITransportMessages() { }
 };
+
+
+/** Type definition for shared pointers to instances of ITransportMessages. */
+typedef TSharedPtr<ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesPtr;
+
+/** Type definition for shared references to instances of ITransportMessages. */
+typedef TSharedRef<ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesRef;

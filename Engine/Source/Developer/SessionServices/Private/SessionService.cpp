@@ -11,7 +11,7 @@ FSessionService::FSessionService( const IMessageBusRef& InMessageBus )
 { }
 
 
-FSessionService::~FSessionService( )
+FSessionService::~FSessionService()
 {
 	Stop();
 }
@@ -20,7 +20,7 @@ FSessionService::~FSessionService( )
 /* ISessionService interface
  *****************************************************************************/
 
-bool FSessionService::Start( )
+bool FSessionService::Start()
 {
 	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
 
@@ -47,7 +47,7 @@ bool FSessionService::Start( )
 }
 
 
-void FSessionService::Stop( )
+void FSessionService::Stop()
 {
 	if (IsRunning())
 	{
@@ -132,7 +132,7 @@ void FSessionService::SendPong( const IMessageContextRef& Context )
 /* FSessionService callbacks
  *****************************************************************************/
 
-void FSessionService::HandleMessageEndpointShutdown( )
+void FSessionService::HandleMessageEndpointShutdown()
 {
 	MessageEndpoint.Reset();
 }

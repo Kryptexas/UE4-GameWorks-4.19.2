@@ -3,11 +3,8 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ISerializeMessages. */
-typedef TSharedPtr<class ISerializeMessages, ESPMode::ThreadSafe> ISerializeMessagesPtr;
-
-/** Type definition for shared references to instances of ISerializeMessages. */
-typedef TSharedRef<class ISerializeMessages, ESPMode::ThreadSafe> ISerializeMessagesRef;
+class IMessageContext;
+class IMutableMessageContext;
 
 
 /**
@@ -27,7 +24,7 @@ public:
 	 * @param OutContext Will hold the context of the deserialized message.
 	 * @return true if deserialization was successful, false otherwise.
 	 */
-	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) = 0;
+	virtual bool DeserializeMessage( FArchive& Archive, TSharedRef<IMutableMessageContext, ESPMode::ThreadSafe>& OutContext ) = 0;
 
 	/**
 	 * Serializes a message into an archive.
@@ -36,10 +33,17 @@ public:
 	 * @param Archive The archive to serialize into.
 	 * @return true if serialization was successful, false otherwise.
 	 */
-	virtual bool SerializeMessage( const IMessageContextRef& Context, FArchive& Archive ) = 0;
+	virtual bool SerializeMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, FArchive& Archive ) = 0;
 
 public:
 
 	/** Virtual destructor. */
 	virtual ~ISerializeMessages() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISerializeMessages. */
+typedef TSharedPtr<ISerializeMessages, ESPMode::ThreadSafe> ISerializeMessagesPtr;
+
+/** Type definition for shared references to instances of ISerializeMessages. */
+typedef TSharedRef<ISerializeMessages, ESPMode::ThreadSafe> ISerializeMessagesRef;

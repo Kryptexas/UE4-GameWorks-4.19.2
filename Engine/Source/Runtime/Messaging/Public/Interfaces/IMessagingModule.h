@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
+
+struct FMessageAddress;
+class IAuthorizeMessageRecipients;
+class IMessageBus;
+class IMessageBridge;
+class ISerializeMessages;
+class ITransportMessages;
+
 
 /**
  * Interface for messaging modules.
@@ -26,7 +36,7 @@ public:
 	 * @return The new message bridge, or nullptr if the bridge couldn't be created.
 	 * @see CreateBus
 	 */
-	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const ITransportMessagesRef& Transport ) = 0;
+	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge( const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const TSharedRef<ISerializeMessages, ESPMode::ThreadSafe>& Serializer, const TSharedRef<ITransportMessages, ESPMode::ThreadSafe>& Transport ) = 0;
 
 	/**
 	 * Creates a new message bus.
@@ -35,30 +45,29 @@ public:
 	 * @return The new message bus, or nullptr if the bus couldn't be created.
 	 * @see CreateBridge
 	 */
-	virtual IMessageBusPtr CreateBus( const IAuthorizeMessageRecipientsPtr& RecipientAuthorizer ) = 0;
+	virtual TSharedPtr<IMessageBus, ESPMode::ThreadSafe> CreateBus( const TSharedPtr<IAuthorizeMessageRecipients>& RecipientAuthorizer ) = 0;
 
 	/**
 	 * Creates a Json message serializer (deprecated).
 	 *
 	 * @return A new serializer.
 	 */
-	virtual ISerializeMessagesPtr CreateJsonMessageSerializer() = 0;
+	virtual TSharedPtr<ISerializeMessages, ESPMode::ThreadSafe> CreateJsonMessageSerializer() = 0;
 
 	/**
 	 * Gets the default message bus if it has been initialized.
 	 *
 	 * @return The default bus.
 	 */
-	virtual IMessageBusPtr GetDefaultBus() const = 0;
+	virtual TSharedPtr<IMessageBus, ESPMode::ThreadSafe> GetDefaultBus() const = 0;
 
 public:
 
 	/**
 	 * Gets a reference to the messaging module instance.
 	 *
-	 * @todo gmp: better implementation using dependency injection.
-	 *
 	 * @return A reference to the Messaging module.
+	 * @todo gmp: better implementation using dependency injection.
 	 */
 	static IMessagingModule& Get()
 	{

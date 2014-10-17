@@ -1,15 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
-
-//#include "Messaging.h"
 //#include "AssetToolsModule.h"
 //#include "Toolkits/AssetEditorManager.h"
 //#include "AssetRegistryModule.h"
 #include "TileSetAssetTypeActions.h"
 #include "TileSetEditor.h"
 
+
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FTileSetAssetTypeActions

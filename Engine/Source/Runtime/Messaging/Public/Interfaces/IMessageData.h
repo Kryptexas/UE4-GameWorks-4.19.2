@@ -19,13 +19,6 @@ enum class EMessageDataState
 };
 
 
-/** Type definition for shared pointers to instances of IMessageData. */
-typedef TSharedPtr<class IMessageData, ESPMode::ThreadSafe> IMessageDataPtr;
-
-/** Type definition for shared references to instances of IMessageData. */
-typedef TSharedRef<class IMessageData, ESPMode::ThreadSafe> IMessageDataRef;
-
-
 /**
  * Interface for serialized message data.
  */
@@ -65,3 +58,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageData() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageData. */
+typedef TSharedPtr<IMessageData, ESPMode::ThreadSafe> IMessageDataPtr;
+
+/** Type definition for shared references to instances of IMessageData. */
+typedef TSharedRef<IMessageData, ESPMode::ThreadSafe> IMessageDataRef;

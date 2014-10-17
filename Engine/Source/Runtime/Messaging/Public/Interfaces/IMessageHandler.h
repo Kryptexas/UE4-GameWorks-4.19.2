@@ -3,11 +3,7 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IMessageHandler. */
-typedef TSharedPtr<class IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerPtr;
-
-/** Type definition for shared references to instances of IMessageHandler. */
-typedef TSharedRef<class IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerRef;
+class IMessageContext;
 
 
 /**
@@ -21,6 +17,7 @@ public:
 	 * Gets the message type handled by this handler.
 	 *
 	 * @return The name of the message type.
+	 * @see HandleMessage
 	 */
 	virtual const FName GetHandledMessageType() const = 0;
 
@@ -28,14 +25,22 @@ public:
 	 * Handles the specified message.
 	 *
 	 * @param Context The context of the message to handle.
+	 * @see GetHandledMessageType
 	 */
-	virtual void HandleMessage( const IMessageContextRef& Context ) = 0;
+	virtual void HandleMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) = 0;
 
 public:
 
 	/** Virtual destructor. */
 	virtual ~IMessageHandler() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageHandler. */
+typedef TSharedPtr<IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerPtr;
+
+/** Type definition for shared references to instances of IMessageHandler. */
+typedef TSharedRef<IMessageHandler, ESPMode::ThreadSafe> IMessageHandlerRef;
 
 
 /**
@@ -47,7 +52,7 @@ public:
 template<typename MessageType, typename HandlerType>
 struct TMessageHandlerFunc
 {
-	typedef void (HandlerType::*Type)( const MessageType&, const IMessageContextRef& );
+	typedef void (HandlerType::*Type)( const MessageType&, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& );
 };
 
 
@@ -85,7 +90,7 @@ public:
 		return MessageType::StaticStruct()->GetFName();
 	}
 
-	virtual void HandleMessage( const IMessageContextRef& Context ) override
+	virtual void HandleMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) override
 	{
 		(Handler->*HandlerFunc)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
 	}

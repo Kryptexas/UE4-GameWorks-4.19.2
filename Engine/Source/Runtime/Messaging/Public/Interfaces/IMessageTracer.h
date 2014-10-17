@@ -2,12 +2,8 @@
 
 #pragma once
 
+#include "IMessageContext.h"
 
-/** Type definition for shared pointers to instances of IMessageTracer. */
-typedef TSharedPtr<class IMessageTracer, ESPMode::ThreadSafe> IMessageTracerPtr;
-
-/** Type definition for shared references to instances of IMessageTracer. */
-typedef TSharedRef<class IMessageTracer, ESPMode::ThreadSafe> IMessageTracerRef;
 
 /** Type definition for shared pointers to instances of FMessageTracerAddressInfo. */
 typedef TSharedPtr<struct FMessageTracerAddressInfo> FMessageTracerAddressInfoPtr;
@@ -304,3 +300,10 @@ protected:
 	/** Hidden destructor. The life time of a message tracer is managed by the message bus. */
 	virtual ~IMessageTracer() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMessageTracer. */
+typedef TSharedPtr<IMessageTracer, ESPMode::ThreadSafe> IMessageTracerPtr;
+
+/** Type definition for shared references to instances of IMessageTracer. */
+typedef TSharedRef<IMessageTracer, ESPMode::ThreadSafe> IMessageTracerRef;
