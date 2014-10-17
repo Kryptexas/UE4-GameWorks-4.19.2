@@ -237,7 +237,6 @@
 #include "Engine/InterpCurveEdSetup.h"
 #include "Engine/IntSerialization.h"
 #include "Layers/Layer.h"
-#include "Engine/LevelBase.h"
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"

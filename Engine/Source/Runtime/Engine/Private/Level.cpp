@@ -31,39 +31,6 @@ Level.cpp: Level-related functions
 DEFINE_LOG_CATEGORY(LogLevel);
 
 /*-----------------------------------------------------------------------------
-ULevelBase implementation.
------------------------------------------------------------------------------*/
-
-ULevelBase::ULevelBase( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
-	: UObject(ObjectInitializer)
-	, URL( InURL )
-	, Actors( this )
-{
-
-}
-
-void ULevelBase::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{	
-	ULevelBase* This = CastChecked<ULevelBase>(InThis);
-	// Let GC know that we're referencing some AActor objects
-	for (auto& Actor : This->Actors)
-	{
-		Collector.AddReferencedObject(Actor, This);
-	}
-	UObject* ActorsOwner = This->Actors.GetOwner();
-	Collector.AddReferencedObject(ActorsOwner, This);
-	Super::AddReferencedObjects(This, Collector);
-}
-
-void ULevelBase::Serialize( FArchive& Ar )
-{
-	Super::Serialize(Ar);
-	Ar << Actors;
-	Ar << URL;
-}
-
-
-/*-----------------------------------------------------------------------------
 ULevel implementation.
 -----------------------------------------------------------------------------*/
 
@@ -254,17 +221,20 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 TMap<FName, UWorld*> ULevel::StreamedLevelsOwningWorld;
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
-	:	ULevelBase( ObjectInitializer )
-	,	OwningWorld(NULL)
-	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+	:   UObject( ObjectInitializer )
+	,   Actors(this)
+	,   OwningWorld(NULL)
+	,   TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 {
 	PrecomputedLightVolume = new FPrecomputedLightVolume();
 }
 
 ULevel::ULevel( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
-	:	ULevelBase( ObjectInitializer, InURL )
-	,	OwningWorld(NULL)
-	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
+	:   UObject( ObjectInitializer )
+	,   URL(InURL)
+	,   Actors(this)
+	,   OwningWorld(NULL)
+	,   TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 {
 	PrecomputedLightVolume = new FPrecomputedLightVolume();
 }
@@ -306,6 +276,14 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( Texture2D, This );
 	}
 
+	// Let GC know that we're referencing some AActor objects
+	for (auto& Actor : This->Actors)
+	{
+		Collector.AddReferencedObject(Actor, This);
+	}
+	UObject* ActorsOwner = This->Actors.GetOwner();
+	Collector.AddReferencedObject(ActorsOwner, This);
+
 	Super::AddReferencedObjects( This, Collector );
 }
 
@@ -338,6 +316,9 @@ struct FLegacyCoverIndexPair
 void ULevel::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
+
+	Ar << Actors;
+	Ar << URL;
 
 	Ar << Model;
 
