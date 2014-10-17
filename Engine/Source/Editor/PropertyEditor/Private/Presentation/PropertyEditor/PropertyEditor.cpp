@@ -438,8 +438,9 @@ bool FPropertyEditor::IsResetToDefaultAvailable() const
 
 	// Should not be able to reset fixed size arrays
 	const bool bFixedSized = Property && Property->PropertyFlags & CPF_EditFixedSize;
+	const bool bCanResetToDefault = !(Property && Property->PropertyFlags & CPF_Config);
 
-	return Property && !PropertyHandle->IsEditConst() && !bFixedSized && PropertyHandle->DiffersFromDefault();
+	return Property && !PropertyHandle->IsEditConst() && bCanResetToDefault && !bFixedSized && PropertyHandle->DiffersFromDefault();
 }
 
 bool FPropertyEditor::ValueDiffersFromDefault() const
