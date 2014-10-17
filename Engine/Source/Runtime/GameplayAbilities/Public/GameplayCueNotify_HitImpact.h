@@ -7,7 +7,8 @@
 #include "GameplayCueNotify_HitImpact.generated.h"
 
 /**
- *	Non instanced GAmeplayCueNotify for spawning particle and sound FX
+ *	Non instanced GAmeplayCueNotify for spawning particle and sound FX.
+ *	Still WIP - needs to be fleshed out more.
  */
 
 UCLASS()

@@ -9,6 +9,13 @@
 
 /**
  *	Instanced GameplayCueNotify which runs arbitrary blueprint code.
+ *	
+ *	
+ *	TODO/Fixme:
+ *		-Unsure: Leave K2_HandleGameplayCue in as generic function?
+ *		-OnExecute/Active/Remove are more clear, easy to use. Make it harder to share info between events.
+ *	
+ *	
  */
 
 UCLASS(Blueprintable,meta=(ShowWorldContextPin))
@@ -24,10 +31,10 @@ class GAMEPLAYABILITIES_API UGameplayCueNotify_Blueprint : public UGameplayCueNo
 
 	virtual void HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters) override;
 
-	/** Event Graph  */
+	/** Generic Event Graph event that will get called for every event type */
 	UFUNCTION(BlueprintImplementableEvent, Category="GameplayCueNotify", FriendlyName="HandleGameplayCue")
 	void K2_HandleGameplayCue(TWeakObjectPtr<AActor> MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
-
+		
 	UFUNCTION(BlueprintImplementableEvent)
 	bool OnExecute(TWeakObjectPtr<AActor> MyTarget, FGameplayCueParameters Parameters);
 
