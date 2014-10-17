@@ -607,48 +607,45 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	/////////////////////////////
+	// Handle the "Reset"
+	/////////////////////////////
+
+	// Redirect the reset pin if linked to
+	UEdGraphPin* ResetPin = GetResetPin();
+	if (ResetPin->LinkedTo.Num() > 0)
 	{
+		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
 		/////////////////////////////
-		// Handle the "Reset"
+		// Temporary Variable node
 		/////////////////////////////
 
-		// Redirect the reset pin if linked to
-		UEdGraphPin* ResetPin = GetResetPin();
-		if (ResetPin->LinkedTo.Num() > 0)
-		{
-			const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+		// Create the node
+		UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
+		TempVarNode->VariableType.PinCategory = Schema->PC_Int;
+		TempVarNode->AllocateDefaultPins();
+		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
+		// Give a reference of the variable node to the multi gate node
+		DataNode = TempVarNode;
 
-			/////////////////////////////
-			// Temporary Variable node
-			/////////////////////////////
+		/////////////////////////////
+		// Assignment node
+		/////////////////////////////
 
-			// Create the node
-			UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
-			TempVarNode->VariableType.PinCategory = Schema->PC_Int;
-			TempVarNode->AllocateDefaultPins();
-			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
-			// Give a reference of the variable node to the multi gate node
-			DataNode = TempVarNode;
+		// Create the node
+		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
+		AssignmentNode->AllocateDefaultPins();
+		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
 
-			/////////////////////////////
-			// Assignment node
-			/////////////////////////////
+		// Coerce the wildcards pin types (set the default of the value to 0)
+		AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+		AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
+		AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+		AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
 
-			// Create the node
-			UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
-			AssignmentNode->AllocateDefaultPins();
-			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
-
-			// Coerce the wildcards pin types (set the default of the value to 0)
-			AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
-			AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
-			AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
-			AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
-
-			// Move the "Reset" link to the Assignment node
-			CompilerContext.MovePinLinksToIntermediate(*ResetPin, *AssignmentNode->GetExecPin());
-		}
+		// Move the "Reset" link to the Assignment node
+		CompilerContext.MovePinLinksToIntermediate(*ResetPin, *AssignmentNode->GetExecPin());
 	}
 }
 

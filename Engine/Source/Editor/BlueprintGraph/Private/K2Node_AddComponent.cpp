@@ -366,34 +366,30 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	
-	if (CompilerContext.bIsFullCompile)
+	auto TransformPin = GetRelativeTransformPin();
+	if (TransformPin && !TransformPin->LinkedTo.Num())
 	{
-		auto TransformPin = GetRelativeTransformPin();
-		if (TransformPin && !TransformPin->LinkedTo.Num())
+		FString DefaultValue;
+
+		// Try and find the template and get relative transform from it
+		UEdGraphPin* TemplateNamePin = GetTemplateNamePinChecked();
+		const FString TemplateName = TemplateNamePin->DefaultValue;
+		check(CompilerContext.Blueprint);
+		USceneComponent* SceneCompTemplate = Cast<USceneComponent>(CompilerContext.Blueprint->FindTemplateByName(FName(*TemplateName)));
+		if (SceneCompTemplate)
 		{
-			FString DefaultValue;
+			FTransform TemplateTransform = FTransform(SceneCompTemplate->RelativeRotation, SceneCompTemplate->RelativeLocation, SceneCompTemplate->RelativeScale3D);
+			DefaultValue = TemplateTransform.ToString();
+		}
 
-			// Try and find the template and get relative transform from it
-			UEdGraphPin* TemplateNamePin = GetTemplateNamePinChecked();
-			const FString TemplateName = TemplateNamePin->DefaultValue;
-			check(CompilerContext.Blueprint);
-			USceneComponent* SceneCompTemplate = Cast<USceneComponent>(CompilerContext.Blueprint->FindTemplateByName(FName(*TemplateName)));
-			if (SceneCompTemplate)
-			{
-				FTransform TemplateTransform = FTransform(SceneCompTemplate->RelativeRotation, SceneCompTemplate->RelativeLocation, SceneCompTemplate->RelativeScale3D);
-				DefaultValue = TemplateTransform.ToString();
-			}
-
-			auto ValuePin = InnerHandleAutoCreateRef(this, TransformPin, CompilerContext, SourceGraph, !DefaultValue.IsEmpty());
-			if (ValuePin)
-			{
-				ValuePin->DefaultValue = DefaultValue;
-			}
+		auto ValuePin = InnerHandleAutoCreateRef(this, TransformPin, CompilerContext, SourceGraph, !DefaultValue.IsEmpty());
+		if (ValuePin)
+		{
+			ValuePin->DefaultValue = DefaultValue;
 		}
 	}
 
-	if (CompilerContext.bIsFullCompile && bHasExposedVariable)
+	if (bHasExposedVariable)
 	{
 		static FString ObjectParamName = FString(TEXT("Object"));
 		static FString ValueParamName = FString(TEXT("Value"));

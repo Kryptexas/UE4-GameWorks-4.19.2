@@ -264,189 +264,186 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	static FName BeginSpawningBlueprintFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, BeginSpawningActorFromBlueprint);
+	static FString BlueprintParamName = FString(TEXT("Blueprint"));
+	static FString WorldContextParamName = FString(TEXT("WorldContextObject"));
+
+	static FName FinishSpawningFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, FinishSpawningActor);
+	static FString ActorParamName = FString(TEXT("Actor"));
+	static FString TransformParamName = FString(TEXT("SpawnTransform"));
+	static FString NoCollisionFailParamName = FString(TEXT("bNoCollisionFail"));
+
+	static FString ObjectParamName = FString(TEXT("Object"));
+	static FString ValueParamName = FString(TEXT("Value"));
+	static FString PropertyNameParamName = FString(TEXT("PropertyName"));
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+	UEdGraphPin* SpawnNodeExec = GetExecPin();
+	UEdGraphPin* SpawnNodeTransform = GetSpawnTransformPin();
+	UEdGraphPin* SpawnNodeNoCollisionFail = GetNoCollisionFailPin();
+	UEdGraphPin* SpawnWorldContextPin = GetWorldContextPin();
+	UEdGraphPin* SpawnBlueprintPin = GetBlueprintPin();
+	UEdGraphPin* SpawnNodeThen = GetThenPin();
+	UEdGraphPin* SpawnNodeResult = GetResultPin();
+
+	UBlueprint* SpawnBlueprint = NULL;
+	if(SpawnBlueprintPin != NULL)
 	{
-		static FName BeginSpawningBlueprintFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, BeginSpawningActorFromBlueprint);
-		static FString BlueprintParamName = FString(TEXT("Blueprint"));
-		static FString WorldContextParamName = FString(TEXT("WorldContextObject"));
-
-		static FName FinishSpawningFuncName = GET_FUNCTION_NAME_CHECKED(UGameplayStatics, FinishSpawningActor);
-		static FString ActorParamName = FString(TEXT("Actor"));
-		static FString TransformParamName = FString(TEXT("SpawnTransform"));
-		static FString NoCollisionFailParamName = FString(TEXT("bNoCollisionFail"));
-
-		static FString ObjectParamName = FString(TEXT("Object"));
-		static FString ValueParamName = FString(TEXT("Value"));
-		static FString PropertyNameParamName = FString(TEXT("PropertyName"));
-
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
-		UEdGraphPin* SpawnNodeExec = GetExecPin();
-		UEdGraphPin* SpawnNodeTransform = GetSpawnTransformPin();
-		UEdGraphPin* SpawnNodeNoCollisionFail = GetNoCollisionFailPin();
-		UEdGraphPin* SpawnWorldContextPin = GetWorldContextPin();
-		UEdGraphPin* SpawnBlueprintPin = GetBlueprintPin();
-		UEdGraphPin* SpawnNodeThen = GetThenPin();
-		UEdGraphPin* SpawnNodeResult = GetResultPin();
-
-		UBlueprint* SpawnBlueprint = NULL;
-		if(SpawnBlueprintPin != NULL)
-		{
-			SpawnBlueprint = Cast<UBlueprint>(SpawnBlueprintPin->DefaultObject);
-		}
-
-		if(0 == SpawnBlueprintPin->LinkedTo.Num())	
-		{
-			if(NULL == SpawnBlueprint)
-			{
-				CompilerContext.MessageLog.Error(*LOCTEXT("SpawnActorNodeMissingBlueprint_Error", "Spawn node @@ must have a blueprint specified.").ToString(), this);
-				// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
-				BreakAllNodeLinks();
-				return;
-			}
-
-			// check if default blueprint is based on Actor
-			const UClass* GeneratedClass = SpawnBlueprint->GeneratedClass;
-			bool bInvalidBase = GeneratedClass && !GeneratedClass->IsChildOf(AActor::StaticClass());
-
-			const UClass* SkeletonGeneratedClass = Cast<UClass>(SpawnBlueprint->SkeletonGeneratedClass);
-			bInvalidBase |= SkeletonGeneratedClass && !SkeletonGeneratedClass->IsChildOf(AActor::StaticClass());
-
-			if(bInvalidBase)
-			{
-				CompilerContext.MessageLog.Error(*LOCTEXT("SpawnActorNodeInvalidBlueprint_Error", "Spawn node @@ must have a blueprint based on Actor specified.").ToString(), this);
-				// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
-				BreakAllNodeLinks();
-				return;
-			}
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// create 'begin spawn' call node
-		UK2Node_CallFunction* CallBeginSpawnNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		CallBeginSpawnNode->FunctionReference.SetExternalMember(BeginSpawningBlueprintFuncName, UGameplayStatics::StaticClass());
-		CallBeginSpawnNode->AllocateDefaultPins();
-
-		UEdGraphPin* CallBeginExec = CallBeginSpawnNode->GetExecPin();
-		UEdGraphPin* CallBeginWorldContextPin = CallBeginSpawnNode->FindPinChecked(WorldContextParamName);
-		UEdGraphPin* CallBeginBlueprintPin = CallBeginSpawnNode->FindPinChecked(BlueprintParamName);
-		UEdGraphPin* CallBeginTransform = CallBeginSpawnNode->FindPinChecked(TransformParamName);
-		UEdGraphPin* CallBeginNoCollisionFail = CallBeginSpawnNode->FindPinChecked(NoCollisionFailParamName);
-		UEdGraphPin* CallBeginResult = CallBeginSpawnNode->GetReturnValuePin();
-
-		// Move 'exec' connection from spawn node to 'begin spawn'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeExec, *CallBeginExec);
-
-		if(SpawnBlueprintPin->LinkedTo.Num() > 0)
-		{
-			// Copy the 'blueprint' connection from the spawn node to 'begin spawn'
-			CompilerContext.MovePinLinksToIntermediate(*SpawnBlueprintPin, *CallBeginBlueprintPin);
-		}
-		else
-		{
-			// Copy blueprint literal onto begin spawn call 
-			CallBeginBlueprintPin->DefaultObject = SpawnBlueprint;
-		}
-
-		// Copy the world context connection from the spawn node to 'begin spawn' if necessary
-		if (SpawnWorldContextPin)
-		{
-			CompilerContext.MovePinLinksToIntermediate(*SpawnWorldContextPin, *CallBeginWorldContextPin);
-		}
-
-		// Copy the 'transform' connection from the spawn node to 'begin spawn'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeTransform, *CallBeginTransform);
-		
-		// Copy the 'bNoCollisionFail' connection from the spawn node to 'begin spawn'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail);
-
-		//////////////////////////////////////////////////////////////////////////
-		// create 'finish spawn' call node
-		UK2Node_CallFunction* CallFinishSpawnNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		CallFinishSpawnNode->FunctionReference.SetExternalMember(FinishSpawningFuncName, UGameplayStatics::StaticClass());
-		CallFinishSpawnNode->AllocateDefaultPins();
-
-		UEdGraphPin* CallFinishExec = CallFinishSpawnNode->GetExecPin();
-		UEdGraphPin* CallFinishThen = CallFinishSpawnNode->GetThenPin();
-		UEdGraphPin* CallFinishActor = CallFinishSpawnNode->FindPinChecked(ActorParamName);
-		UEdGraphPin* CallFinishTransform = CallFinishSpawnNode->FindPinChecked(TransformParamName);
-		UEdGraphPin* CallFinishResult = CallFinishSpawnNode->GetReturnValuePin();
-
-		// Move 'then' connection from spawn node to 'finish spawn'
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *CallFinishThen);
-			
-		// Copy transform connection
-		CompilerContext.CopyPinLinksToIntermediate(*CallBeginTransform, *CallFinishTransform);
-		
-		// Connect output actor from 'begin' to 'finish'
-		CallBeginResult->MakeLinkTo(CallFinishActor);
-
-		// Move result connection from spawn node to 'finish spawn'
-		CallFinishResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
-		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallFinishResult);
-
-		//////////////////////////////////////////////////////////////////////////
-		// create 'set var' nodes
-
-		// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
-		UK2Node_CallFunction* LastNode = CallBeginSpawnNode;
-
-		// Create 'set var by name' nodes and hook them up
-		for(int32 PinIdx=0; PinIdx < Pins.Num(); PinIdx++)
-		{
-			// Only create 'set param by name' node if this pin is linked to something
-			UEdGraphPin* SpawnVarPin = Pins[PinIdx];
-			if(SpawnVarPin->LinkedTo.Num() > 0)
-			{
-				UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(SpawnVarPin->PinType);
-				if(SetByNameFunction)
-				{
-					UK2Node_CallFunction* SetVarNode = NULL;
-					if(SpawnVarPin->PinType.bIsArray)
-					{
-						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(this, SourceGraph);
-					}
-					else
-					{
-						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-					}
-					SetVarNode->SetFromFunction(SetByNameFunction);
-					SetVarNode->AllocateDefaultPins();
-
-					// Connect this node into the exec chain
-					UEdGraphPin* LastThen = LastNode->GetThenPin();
-					UEdGraphPin* SetVarExec = SetVarNode->GetExecPin();
-					LastThen->MakeLinkTo(SetVarExec);
-
-					// Connect the new actor to the 'object' pin
-					UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
-					CallBeginResult->MakeLinkTo(ObjectPin);
-
-					// Fill in literal for 'property name' pin - name of pin is property name
-					UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
-					PropertyNamePin->DefaultValue = SpawnVarPin->PinName;
-
-					// Move connection from the variable pin on the spawn node to the 'value' pin
-					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
-					if(SpawnVarPin->PinType.bIsArray)
-					{
-						SetVarNode->PinConnectionListChanged(ValuePin);
-					}
-
-					// Update 'last node in sequence' var
-					LastNode = SetVarNode;
-				}
-			}
-		}
-
-		// Make exec connection between 'then' on last node and 'finish'
-		UEdGraphPin* LastThen = LastNode->GetThenPin();
-		LastThen->MakeLinkTo(CallFinishExec);
-
-		// Break any links to the expanded node
-		BreakAllNodeLinks();
+		SpawnBlueprint = Cast<UBlueprint>(SpawnBlueprintPin->DefaultObject);
 	}
+
+	if(0 == SpawnBlueprintPin->LinkedTo.Num())	
+	{
+		if(NULL == SpawnBlueprint)
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("SpawnActorNodeMissingBlueprint_Error", "Spawn node @@ must have a blueprint specified.").ToString(), this);
+			// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+			BreakAllNodeLinks();
+			return;
+		}
+
+		// check if default blueprint is based on Actor
+		const UClass* GeneratedClass = SpawnBlueprint->GeneratedClass;
+		bool bInvalidBase = GeneratedClass && !GeneratedClass->IsChildOf(AActor::StaticClass());
+
+		const UClass* SkeletonGeneratedClass = Cast<UClass>(SpawnBlueprint->SkeletonGeneratedClass);
+		bInvalidBase |= SkeletonGeneratedClass && !SkeletonGeneratedClass->IsChildOf(AActor::StaticClass());
+
+		if(bInvalidBase)
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("SpawnActorNodeInvalidBlueprint_Error", "Spawn node @@ must have a blueprint based on Actor specified.").ToString(), this);
+			// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+			BreakAllNodeLinks();
+			return;
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// create 'begin spawn' call node
+	UK2Node_CallFunction* CallBeginSpawnNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	CallBeginSpawnNode->FunctionReference.SetExternalMember(BeginSpawningBlueprintFuncName, UGameplayStatics::StaticClass());
+	CallBeginSpawnNode->AllocateDefaultPins();
+
+	UEdGraphPin* CallBeginExec = CallBeginSpawnNode->GetExecPin();
+	UEdGraphPin* CallBeginWorldContextPin = CallBeginSpawnNode->FindPinChecked(WorldContextParamName);
+	UEdGraphPin* CallBeginBlueprintPin = CallBeginSpawnNode->FindPinChecked(BlueprintParamName);
+	UEdGraphPin* CallBeginTransform = CallBeginSpawnNode->FindPinChecked(TransformParamName);
+	UEdGraphPin* CallBeginNoCollisionFail = CallBeginSpawnNode->FindPinChecked(NoCollisionFailParamName);
+	UEdGraphPin* CallBeginResult = CallBeginSpawnNode->GetReturnValuePin();
+
+	// Move 'exec' connection from spawn node to 'begin spawn'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeExec, *CallBeginExec);
+
+	if(SpawnBlueprintPin->LinkedTo.Num() > 0)
+	{
+		// Copy the 'blueprint' connection from the spawn node to 'begin spawn'
+		CompilerContext.MovePinLinksToIntermediate(*SpawnBlueprintPin, *CallBeginBlueprintPin);
+	}
+	else
+	{
+		// Copy blueprint literal onto begin spawn call 
+		CallBeginBlueprintPin->DefaultObject = SpawnBlueprint;
+	}
+
+	// Copy the world context connection from the spawn node to 'begin spawn' if necessary
+	if (SpawnWorldContextPin)
+	{
+		CompilerContext.MovePinLinksToIntermediate(*SpawnWorldContextPin, *CallBeginWorldContextPin);
+	}
+
+	// Copy the 'transform' connection from the spawn node to 'begin spawn'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeTransform, *CallBeginTransform);
+		
+	// Copy the 'bNoCollisionFail' connection from the spawn node to 'begin spawn'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail);
+
+	//////////////////////////////////////////////////////////////////////////
+	// create 'finish spawn' call node
+	UK2Node_CallFunction* CallFinishSpawnNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	CallFinishSpawnNode->FunctionReference.SetExternalMember(FinishSpawningFuncName, UGameplayStatics::StaticClass());
+	CallFinishSpawnNode->AllocateDefaultPins();
+
+	UEdGraphPin* CallFinishExec = CallFinishSpawnNode->GetExecPin();
+	UEdGraphPin* CallFinishThen = CallFinishSpawnNode->GetThenPin();
+	UEdGraphPin* CallFinishActor = CallFinishSpawnNode->FindPinChecked(ActorParamName);
+	UEdGraphPin* CallFinishTransform = CallFinishSpawnNode->FindPinChecked(TransformParamName);
+	UEdGraphPin* CallFinishResult = CallFinishSpawnNode->GetReturnValuePin();
+
+	// Move 'then' connection from spawn node to 'finish spawn'
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *CallFinishThen);
+			
+	// Copy transform connection
+	CompilerContext.CopyPinLinksToIntermediate(*CallBeginTransform, *CallFinishTransform);
+		
+	// Connect output actor from 'begin' to 'finish'
+	CallBeginResult->MakeLinkTo(CallFinishActor);
+
+	// Move result connection from spawn node to 'finish spawn'
+	CallFinishResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
+	CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallFinishResult);
+
+	//////////////////////////////////////////////////////////////////////////
+	// create 'set var' nodes
+
+	// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
+	UK2Node_CallFunction* LastNode = CallBeginSpawnNode;
+
+	// Create 'set var by name' nodes and hook them up
+	for(int32 PinIdx=0; PinIdx < Pins.Num(); PinIdx++)
+	{
+		// Only create 'set param by name' node if this pin is linked to something
+		UEdGraphPin* SpawnVarPin = Pins[PinIdx];
+		if(SpawnVarPin->LinkedTo.Num() > 0)
+		{
+			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(SpawnVarPin->PinType);
+			if(SetByNameFunction)
+			{
+				UK2Node_CallFunction* SetVarNode = NULL;
+				if(SpawnVarPin->PinType.bIsArray)
+				{
+					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(this, SourceGraph);
+				}
+				else
+				{
+					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+				}
+				SetVarNode->SetFromFunction(SetByNameFunction);
+				SetVarNode->AllocateDefaultPins();
+
+				// Connect this node into the exec chain
+				UEdGraphPin* LastThen = LastNode->GetThenPin();
+				UEdGraphPin* SetVarExec = SetVarNode->GetExecPin();
+				LastThen->MakeLinkTo(SetVarExec);
+
+				// Connect the new actor to the 'object' pin
+				UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
+				CallBeginResult->MakeLinkTo(ObjectPin);
+
+				// Fill in literal for 'property name' pin - name of pin is property name
+				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
+				PropertyNamePin->DefaultValue = SpawnVarPin->PinName;
+
+				// Move connection from the variable pin on the spawn node to the 'value' pin
+				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
+				CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
+				if(SpawnVarPin->PinType.bIsArray)
+				{
+					SetVarNode->PinConnectionListChanged(ValuePin);
+				}
+
+				// Update 'last node in sequence' var
+				LastNode = SetVarNode;
+			}
+		}
+	}
+
+	// Make exec connection between 'then' on last node and 'finish'
+	UEdGraphPin* LastThen = LastNode->GetThenPin();
+	LastThen->MakeLinkTo(CallFinishExec);
+
+	// Break any links to the expanded node
+	BreakAllNodeLinks();
 }
 
 bool UK2Node_SpawnActor::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const

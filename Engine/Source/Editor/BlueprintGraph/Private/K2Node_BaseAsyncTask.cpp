@@ -264,10 +264,6 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 {
     Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (!CompilerContext.bIsFullCompile)
-	{
-		return;
-	}
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 	check(SourceGraph && Schema);
 	bool bIsErrorFree = true;

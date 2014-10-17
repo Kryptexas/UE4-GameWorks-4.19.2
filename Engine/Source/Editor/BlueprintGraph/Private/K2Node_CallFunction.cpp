@@ -1662,196 +1662,193 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	UFunction* Function = GetTargetFunction();
+
+	// connect DefaultToSelf and WorldContext inside static functions to proper 'self'  
+	const bool bInsideBpFuncLibrary = CompilerContext.Blueprint && (BPTYPE_FunctionLibrary == CompilerContext.Blueprint->BlueprintType);
+	if (bInsideBpFuncLibrary && SourceGraph && Function)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-		UFunction* Function = GetTargetFunction();
-
-		// connect DefaultToSelf and WorldContext inside static functions to proper 'self'  
-		const bool bInsideBpFuncLibrary = CompilerContext.Blueprint && (BPTYPE_FunctionLibrary == CompilerContext.Blueprint->BlueprintType);
-		if (bInsideBpFuncLibrary && SourceGraph && Function)
+		TArray<UK2Node_FunctionEntry*> EntryPoints;
+		SourceGraph->GetNodesOfClass(EntryPoints);
+		if (1 != EntryPoints.Num())
 		{
-			TArray<UK2Node_FunctionEntry*> EntryPoints;
-			SourceGraph->GetNodesOfClass(EntryPoints);
-			if (1 != EntryPoints.Num())
-			{
-				CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
-			}
-			else if (auto BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
-			{
-				FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
-				FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
-
-				struct FStructConnectHelper
-				{
-					static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* InSchema, FCompilerResultsLog& MessageLog)
-					{
-						auto Pin = Node->FindPin(PinName);
-						if (!PinName.IsEmpty() && Pin && !Pin->LinkedTo.Num())
-						{
-							const bool bConnected = InSchema->TryCreateConnection(Pin, BetterSelf);
-							if (!bConnected)
-							{
-								MessageLog.Warning(*LOCTEXT("DefaultToSelfNotConnected", "DefaultToSelf pin @@ from node @@ cannot be connected to @@").ToString(), Pin, Node, BetterSelf);
-							}
-						}
-					}
-				};
-				FStructConnectHelper::Connect(DefaultToSelfMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
-				FStructConnectHelper::Connect(WorldContextMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
-			}
+			CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("WrongEntryPointsNum", "%i entry points found while expanding node @@").ToString(), EntryPoints.Num()), this);
 		}
-
-		// If we have an enum param that is expanded, we handle that first
-		if(bWantsEnumToExecExpansion)
+		else if (auto BetterSelfPin = EntryPoints[0]->GetAutoWorldContextPin())
 		{
-			if(Function)
+			FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
+			FString const WorldContextMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
+
+			struct FStructConnectHelper
 			{
-				// Get the metadata that identifies which param is the enum, and try and find it
-				const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
-				UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
-				UEdGraphPin* EnumParamPin = FindPinChecked(EnumParamName);
-				if(EnumProp != NULL && EnumProp->Enum != NULL)
+				static void Connect(const FString& PinName, UK2Node* Node, UEdGraphPin* BetterSelf, const UEdGraphSchema_K2* InSchema, FCompilerResultsLog& MessageLog)
 				{
-					// Expanded as input execs pins
-					if (EnumParamPin->Direction == EGPD_Input)
+					auto Pin = Node->FindPin(PinName);
+					if (!PinName.IsEmpty() && Pin && !Pin->LinkedTo.Num())
 					{
-						// Create normal exec input
-						UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
-
-						// Create temp enum variable
-						UK2Node_TemporaryVariable* TempEnumVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
-						TempEnumVarNode->VariableType.PinCategory = Schema->PC_Byte;
-						TempEnumVarNode->VariableType.PinSubCategoryObject = EnumProp->Enum;
-						TempEnumVarNode->AllocateDefaultPins();
-						// Get the output pin
-						UEdGraphPin* TempEnumVarOutput = TempEnumVarNode->GetVariablePin();
-
-						// Connect temp enum variable to (hidden) enum pin
-						Schema->TryCreateConnection(TempEnumVarOutput, EnumParamPin);
-
-						// Now we want to iterate over other exec inputs...
-						for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
+						const bool bConnected = InSchema->TryCreateConnection(Pin, BetterSelf);
+						if (!bConnected)
 						{
-							UEdGraphPin* Pin = Pins[PinIdx];
-							if( Pin != NULL && 
-								Pin != ExecutePin &&
-								Pin->Direction == EGPD_Input && 
-								Pin->PinType.PinCategory == Schema->PC_Exec )
-							{
-								// Create node to set the temp enum var
-								UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
-								AssignNode->AllocateDefaultPins();
-
-								// Move connections from fake 'enum exec' pint to this assignment node
-									CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
-
-								// Connect this to out temp enum var
-								Schema->TryCreateConnection(AssignNode->GetVariablePin(), TempEnumVarOutput);
-
-								// Connect exec output to 'real' exec pin
-								Schema->TryCreateConnection(AssignNode->GetThenPin(), ExecutePin);
-
-								// set the literal enum value to set to
-								AssignNode->GetValuePin()->DefaultValue = Pin->PinName;
-
-								// Finally remove this 'cosmetic' exec pin
-								Pins.RemoveAt(PinIdx);
-							}
+							MessageLog.Warning(*LOCTEXT("DefaultToSelfNotConnected", "DefaultToSelf pin @@ from node @@ cannot be connected to @@").ToString(), Pin, Node, BetterSelf);
 						}
 					}
-					// Expanded as output execs pins
-					else if (EnumParamPin->Direction == EGPD_Output)
+				}
+			};
+			FStructConnectHelper::Connect(DefaultToSelfMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
+			FStructConnectHelper::Connect(WorldContextMetaValue, this, BetterSelfPin, Schema, CompilerContext.MessageLog);
+		}
+	}
+
+	// If we have an enum param that is expanded, we handle that first
+	if(bWantsEnumToExecExpansion)
+	{
+		if(Function)
+		{
+			// Get the metadata that identifies which param is the enum, and try and find it
+			const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
+			UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
+			UEdGraphPin* EnumParamPin = FindPinChecked(EnumParamName);
+			if(EnumProp != NULL && EnumProp->Enum != NULL)
+			{
+				// Expanded as input execs pins
+				if (EnumParamPin->Direction == EGPD_Input)
+				{
+					// Create normal exec input
+					UEdGraphPin* ExecutePin = CreatePin(EGPD_Input, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
+
+					// Create temp enum variable
+					UK2Node_TemporaryVariable* TempEnumVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
+					TempEnumVarNode->VariableType.PinCategory = Schema->PC_Byte;
+					TempEnumVarNode->VariableType.PinSubCategoryObject = EnumProp->Enum;
+					TempEnumVarNode->AllocateDefaultPins();
+					// Get the output pin
+					UEdGraphPin* TempEnumVarOutput = TempEnumVarNode->GetVariablePin();
+
+					// Connect temp enum variable to (hidden) enum pin
+					Schema->TryCreateConnection(TempEnumVarOutput, EnumParamPin);
+
+					// Now we want to iterate over other exec inputs...
+					for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
 					{
-						// Create normal exec output
-						UEdGraphPin* ExecutePin = CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
-						
-						// Create a SwitchEnum node to switch on the output enum
-						UK2Node_SwitchEnum* SwitchEnumNode = CompilerContext.SpawnIntermediateNode<UK2Node_SwitchEnum>(this, SourceGraph);
-						UEnum* EnumObject = Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get());
-						SwitchEnumNode->SetEnum(EnumObject);
-						SwitchEnumNode->AllocateDefaultPins();
-						
-						// Hook up execution to the switch node
-						Schema->TryCreateConnection(ExecutePin, SwitchEnumNode->GetExecPin());
-						// Connect (hidden) enum pin to switch node's selection pin
-						Schema->TryCreateConnection(EnumParamPin, SwitchEnumNode->GetSelectionPin());
-						
-						// Now we want to iterate over other exec outputs
-						for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
+						UEdGraphPin* Pin = Pins[PinIdx];
+						if( Pin != NULL && 
+							Pin != ExecutePin &&
+							Pin->Direction == EGPD_Input && 
+							Pin->PinType.PinCategory == Schema->PC_Exec )
 						{
-							UEdGraphPin* Pin = Pins[PinIdx];
-							if( Pin != NULL &&
-							   Pin != ExecutePin &&
-							   Pin->Direction == EGPD_Output &&
-							   Pin->PinType.PinCategory == Schema->PC_Exec )
-							{
-								// Move connections from fake 'enum exec' pint to this switch node
-								CompilerContext.MovePinLinksToIntermediate(*Pin, *SwitchEnumNode->FindPinChecked(Pin->PinName));
+							// Create node to set the temp enum var
+							UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(this, SourceGraph);
+							AssignNode->AllocateDefaultPins();
+
+							// Move connections from fake 'enum exec' pint to this assignment node
+								CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
+
+							// Connect this to out temp enum var
+							Schema->TryCreateConnection(AssignNode->GetVariablePin(), TempEnumVarOutput);
+
+							// Connect exec output to 'real' exec pin
+							Schema->TryCreateConnection(AssignNode->GetThenPin(), ExecutePin);
+
+							// set the literal enum value to set to
+							AssignNode->GetValuePin()->DefaultValue = Pin->PinName;
+
+							// Finally remove this 'cosmetic' exec pin
+							Pins.RemoveAt(PinIdx);
+						}
+					}
+				}
+				// Expanded as output execs pins
+				else if (EnumParamPin->Direction == EGPD_Output)
+				{
+					// Create normal exec output
+					UEdGraphPin* ExecutePin = CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, Schema->PN_Execute);
+						
+					// Create a SwitchEnum node to switch on the output enum
+					UK2Node_SwitchEnum* SwitchEnumNode = CompilerContext.SpawnIntermediateNode<UK2Node_SwitchEnum>(this, SourceGraph);
+					UEnum* EnumObject = Cast<UEnum>(EnumParamPin->PinType.PinSubCategoryObject.Get());
+					SwitchEnumNode->SetEnum(EnumObject);
+					SwitchEnumNode->AllocateDefaultPins();
+						
+					// Hook up execution to the switch node
+					Schema->TryCreateConnection(ExecutePin, SwitchEnumNode->GetExecPin());
+					// Connect (hidden) enum pin to switch node's selection pin
+					Schema->TryCreateConnection(EnumParamPin, SwitchEnumNode->GetSelectionPin());
+						
+					// Now we want to iterate over other exec outputs
+					for(int32 PinIdx=Pins.Num()-1; PinIdx>=0; PinIdx--)
+					{
+						UEdGraphPin* Pin = Pins[PinIdx];
+						if( Pin != NULL &&
+							Pin != ExecutePin &&
+							Pin->Direction == EGPD_Output &&
+							Pin->PinType.PinCategory == Schema->PC_Exec )
+						{
+							// Move connections from fake 'enum exec' pint to this switch node
+							CompilerContext.MovePinLinksToIntermediate(*Pin, *SwitchEnumNode->FindPinChecked(Pin->PinName));
 								
-								// Finally remove this 'cosmetic' exec pin
-								Pins.RemoveAt(PinIdx);
-							}
+							// Finally remove this 'cosmetic' exec pin
+							Pins.RemoveAt(PinIdx);
 						}
 					}
 				}
 			}
 		}
+	}
 
-		// AUTO CREATED REFS
+	// AUTO CREATED REFS
+	{
+		if ( Function )
 		{
-			if ( Function )
+			TArray<FString> AutoCreateRefTermPinNames;
+			const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
+			if ( bHasAutoCreateRefTerms )
 			{
-				TArray<FString> AutoCreateRefTermPinNames;
-				const bool bHasAutoCreateRefTerms = Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
-				if ( bHasAutoCreateRefTerms )
-				{
-					CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
-				}
+				CompilerContext.GetSchema()->GetAutoEmitTermParameters(Function, AutoCreateRefTermPinNames);
+			}
 
-				for ( auto Pin : Pins )
+			for ( auto Pin : Pins )
+			{
+				if ( Pin && bHasAutoCreateRefTerms && AutoCreateRefTermPinNames.Contains(Pin->PinName) )
 				{
-					if ( Pin && bHasAutoCreateRefTerms && AutoCreateRefTermPinNames.Contains(Pin->PinName) )
+					const bool bHasDefaultValue = !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject || !Pin->DefaultTextValue.IsEmpty();
+					const bool bValidAutoRefPin = Pin->PinType.bIsReference
+						&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
+						&& ( Pin->Direction == EGPD_Input )
+						&& !Pin->LinkedTo.Num()
+						&& ( Pin->PinType.bIsArray || bHasDefaultValue );
+					if ( bValidAutoRefPin )
 					{
-						const bool bHasDefaultValue = !Pin->DefaultValue.IsEmpty() || Pin->DefaultObject || !Pin->DefaultTextValue.IsEmpty();
-						const bool bValidAutoRefPin = Pin->PinType.bIsReference
-							&& !CompilerContext.GetSchema()->IsMetaPin(*Pin)
-							&& ( Pin->Direction == EGPD_Input )
-							&& !Pin->LinkedTo.Num()
-							&& ( Pin->PinType.bIsArray || bHasDefaultValue );
-						if ( bValidAutoRefPin )
-						{
-							//default values can be reset when the pin is connected
-							const auto DefaultValue = Pin->DefaultValue;
-							const auto DefaultObject = Pin->DefaultObject;
-							const auto DefaultTextValue = Pin->DefaultTextValue;
+						//default values can be reset when the pin is connected
+						const auto DefaultValue = Pin->DefaultValue;
+						const auto DefaultObject = Pin->DefaultObject;
+						const auto DefaultTextValue = Pin->DefaultTextValue;
 
-							auto ValuePin = InnerHandleAutoCreateRef(this, Pin, CompilerContext, SourceGraph, bHasDefaultValue);
-							if ( ValuePin )
-							{
-								ValuePin->DefaultValue = DefaultValue;
-								ValuePin->DefaultObject = DefaultObject;
-								ValuePin->DefaultTextValue = DefaultTextValue;
-							}
+						auto ValuePin = InnerHandleAutoCreateRef(this, Pin, CompilerContext, SourceGraph, bHasDefaultValue);
+						if ( ValuePin )
+						{
+							ValuePin->DefaultValue = DefaultValue;
+							ValuePin->DefaultObject = DefaultObject;
+							ValuePin->DefaultTextValue = DefaultTextValue;
 						}
 					}
 				}
 			}
 		}
+	}
 
-		// Then we go through and expand out array iteration if necessary
-		const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
-		UEdGraphPin* MultiSelf = Schema->FindSelfPin(*this, EEdGraphPinDirection::EGPD_Input);
-		if(bAllowMultipleSelfs && MultiSelf && !MultiSelf->PinType.bIsArray)
+	// Then we go through and expand out array iteration if necessary
+	const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
+	UEdGraphPin* MultiSelf = Schema->FindSelfPin(*this, EEdGraphPinDirection::EGPD_Input);
+	if(bAllowMultipleSelfs && MultiSelf && !MultiSelf->PinType.bIsArray)
+	{
+		const bool bProperInputToExpandForEach = 
+			(1 == MultiSelf->LinkedTo.Num()) && 
+			(NULL != MultiSelf->LinkedTo[0]) && 
+			(MultiSelf->LinkedTo[0]->PinType.bIsArray);
+		if(bProperInputToExpandForEach)
 		{
-			const bool bProperInputToExpandForEach = 
-				(1 == MultiSelf->LinkedTo.Num()) && 
-				(NULL != MultiSelf->LinkedTo[0]) && 
-				(MultiSelf->LinkedTo[0]->PinType.bIsArray);
-			if(bProperInputToExpandForEach)
-			{
-				CallForEachElementInArrayExpansion(this, MultiSelf, CompilerContext, SourceGraph);
-			}
+			CallForEachElementInArrayExpansion(this, MultiSelf, CompilerContext, SourceGraph);
 		}
 	}
 }

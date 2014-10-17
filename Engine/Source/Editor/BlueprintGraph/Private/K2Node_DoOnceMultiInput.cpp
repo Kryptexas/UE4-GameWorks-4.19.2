@@ -327,85 +327,82 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+	/////////////////////////////
+	// Temporary Variable node
+	/////////////////////////////
+
+	// Create the node
+	UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
+	TempVarNode->VariableType.PinCategory = Schema->PC_Boolean;
+	TempVarNode->AllocateDefaultPins();
+	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
+	// Give a reference of the variable node to the multi gate node
+	DataNode = TempVarNode;
+
+	// Create the conditional node we're replacing the enum node for
+
+	for (int32 idx = 0; idx < NumBaseInputs + NumAdditionalInputs + 1 /*ResetPin*/; ++idx)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+		UEdGraphPin* ExecPin = GetInputPin(idx);
+		UEdGraphPin* ThenPin = GetOutputPin(idx);
 
-		/////////////////////////////
-		// Temporary Variable node
-		/////////////////////////////
+		check(ExecPin);
+		check(ThenPin);
 
-		// Create the node
-		UK2Node_TemporaryVariable* TempVarNode = SourceGraph->CreateBlankNode<UK2Node_TemporaryVariable>();
-		TempVarNode->VariableType.PinCategory = Schema->PC_Boolean;
-		TempVarNode->AllocateDefaultPins();
-		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(TempVarNode, this);
-		// Give a reference of the variable node to the multi gate node
-		DataNode = TempVarNode;
-
-		// Create the conditional node we're replacing the enum node for
-
-		for (int32 idx = 0; idx < NumBaseInputs + NumAdditionalInputs + 1 /*ResetPin*/; ++idx)
+		// AssignmentNode
+		UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
+		AssignmentNode->AllocateDefaultPins();
+		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
+		AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+		AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
+		AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+			
+		if (!ExecPin->PinName.Contains(TEXT("Reset"))) // Fixme this wont work for localization
 		{
-			UEdGraphPin* ExecPin = GetInputPin(idx);
-			UEdGraphPin* ThenPin = GetOutputPin(idx);
+			// BranchNode
+			UK2Node_IfThenElse* BranchNode = SourceGraph->CreateBlankNode<UK2Node_IfThenElse>();
+			BranchNode->AllocateDefaultPins();
+			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(BranchNode, this);
 
-			check(ExecPin);
-			check(ThenPin);
+			// -------------------------------------------------
 
-			// AssignmentNode
-			UK2Node_AssignmentStatement* AssignmentNode = SourceGraph->CreateBlankNode<UK2Node_AssignmentStatement>();
-			AssignmentNode->AllocateDefaultPins();
-			CompilerContext.MessageLog.NotifyIntermediateObjectCreation(AssignmentNode, this);
-			AssignmentNode->GetVariablePin()->PinType = TempVarNode->GetVariablePin()->PinType;
-			AssignmentNode->GetVariablePin()->MakeLinkTo(TempVarNode->GetVariablePin());
-			AssignmentNode->GetValuePin()->PinType = TempVarNode->GetVariablePin()->PinType;
+			// Coerce the wildcards pin types (set the default of the value to 0)
+			AssignmentNode->GetValuePin()->DefaultValue = TEXT("1");
+
+			// -------------------------------------------------
+
+			// Link Tempvariable with the branch condtional
+			Schema->TryCreateConnection(TempVarNode->GetVariablePin(), BranchNode->GetConditionPin());
 			
-			if (!ExecPin->PinName.Contains(TEXT("Reset"))) // Fixme this wont work for localization
-			{
-				// BranchNode
-				UK2Node_IfThenElse* BranchNode = SourceGraph->CreateBlankNode<UK2Node_IfThenElse>();
-				BranchNode->AllocateDefaultPins();
-				CompilerContext.MessageLog.NotifyIntermediateObjectCreation(BranchNode, this);
+			// Link our input exec pin into the branch node
+			CompilerContext.MovePinLinksToIntermediate(*ExecPin, *BranchNode->GetExecPin());
 
-				// -------------------------------------------------
+			// link branch else (false) to assigment node (set temp variable to true)
+			Schema->TryCreateConnection(BranchNode->GetElsePin(), AssignmentNode->GetExecPin());
 
-				// Coerce the wildcards pin types (set the default of the value to 0)
-				AssignmentNode->GetValuePin()->DefaultValue = TEXT("1");
+			// link set temp variable node to our ouput then pin
+			CompilerContext.MovePinLinksToIntermediate(*ThenPin, *AssignmentNode->GetThenPin());
 
-				// -------------------------------------------------
-
-				// Link Tempvariable with the branch condtional
-				Schema->TryCreateConnection(TempVarNode->GetVariablePin(), BranchNode->GetConditionPin());
-			
-				// Link our input exec pin into the branch node
-				CompilerContext.MovePinLinksToIntermediate(*ExecPin, *BranchNode->GetExecPin());
-
-				// link branch else (false) to assigment node (set temp variable to true)
-				Schema->TryCreateConnection(BranchNode->GetElsePin(), AssignmentNode->GetExecPin());
-
-				// link set temp variable node to our ouput then pin
-				CompilerContext.MovePinLinksToIntermediate(*ThenPin, *AssignmentNode->GetThenPin());
-
-			}
-			else
-			{
-				// Coerce the wildcards pin types (set the default of the value to 1)				
-				AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
-
-				// -------------------------------------------------
-
-				// Link our input exec pin into the branch node
-				CompilerContext.MovePinLinksToIntermediate(*ExecPin, *AssignmentNode->GetExecPin());
-
-				// link set temp variable node to our ouput then pin
-				CompilerContext.MovePinLinksToIntermediate(*ThenPin, *AssignmentNode->GetThenPin());
-			}
 		}
+		else
+		{
+			// Coerce the wildcards pin types (set the default of the value to 1)				
+			AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
 
-		// Break all links to the Select node so it goes away for at scheduling time
-		BreakAllNodeLinks();
+			// -------------------------------------------------
+
+			// Link our input exec pin into the branch node
+			CompilerContext.MovePinLinksToIntermediate(*ExecPin, *AssignmentNode->GetExecPin());
+
+			// link set temp variable node to our ouput then pin
+			CompilerContext.MovePinLinksToIntermediate(*ThenPin, *AssignmentNode->GetThenPin());
+		}
 	}
+
+	// Break all links to the Select node so it goes away for at scheduling time
+	BreakAllNodeLinks();
 }
 
 void UK2Node_DoOnceMultiInput::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

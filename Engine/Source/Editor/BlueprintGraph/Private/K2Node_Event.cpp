@@ -527,29 +527,26 @@ void UK2Node_Event::ExpandNode(class FKismetCompilerContext& CompilerContext, UE
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	UEdGraphPin* OrgDelegatePin = FindPin(UK2Node_Event::DelegateOutputName);
+	if (OrgDelegatePin && OrgDelegatePin->LinkedTo.Num() > 0)
 	{
-		UEdGraphPin* OrgDelegatePin = FindPin(UK2Node_Event::DelegateOutputName);
-		if (OrgDelegatePin && OrgDelegatePin->LinkedTo.Num() > 0)
+		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+		const FName FunctionName = GetFunctionName();
+		if(FunctionName == NAME_None)
 		{
-			const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
-			const FName FunctionName = GetFunctionName();
-			if(FunctionName == NAME_None)
-			{
-				CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("EventDelegateName_Error", "Event node @@ has no name of function.").ToString()), this);
-			}
-
-			UK2Node_Self* SelfNode = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this, SourceGraph);
-			SelfNode->AllocateDefaultPins();
-
-			UK2Node_CreateDelegate* CreateDelegateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CreateDelegate>(this, SourceGraph);
-			CreateDelegateNode->AllocateDefaultPins();
-			CompilerContext.MovePinLinksToIntermediate(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin());
-			Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
-			// When called UFunction is defined in the same class, it wasn't created yet (previously the Skeletal class was checked). So no "CreateDelegateNode->HandleAnyChangeWithoutNotifying();" is called.
-			CreateDelegateNode->SetFunction(FunctionName);
+			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("EventDelegateName_Error", "Event node @@ has no name of function.").ToString()), this);
 		}
+
+		UK2Node_Self* SelfNode = CompilerContext.SpawnIntermediateNode<UK2Node_Self>(this, SourceGraph);
+		SelfNode->AllocateDefaultPins();
+
+		UK2Node_CreateDelegate* CreateDelegateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CreateDelegate>(this, SourceGraph);
+		CreateDelegateNode->AllocateDefaultPins();
+		CompilerContext.MovePinLinksToIntermediate(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin());
+		Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
+		// When called UFunction is defined in the same class, it wasn't created yet (previously the Skeletal class was checked). So no "CreateDelegateNode->HandleAnyChangeWithoutNotifying();" is called.
+		CreateDelegateNode->SetFunction(FunctionName);
 	}
 }
 

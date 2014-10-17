@@ -570,11 +570,6 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 
 	UK2Node::ExpandNode(CompilerContext, SourceGraph);
 
-	if (!CompilerContext.bIsFullCompile)
-	{
-		return;
-	}
-
 	if (!validatedActorSpawn && !validatedActorArraySpawn)
 	{
 		ValidateActorSpawning(CompilerContext, true);

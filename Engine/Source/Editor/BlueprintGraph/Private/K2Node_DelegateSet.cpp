@@ -263,7 +263,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 	{
 		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "InvalidNodeOutsideUbergraph_Error", "Unexpected node @@ found outside ubergraph.").ToString()), this);
 	}
-	else if (CompilerContext.bIsFullCompile)
+	else
 	{
 		UFunction* TargetFunction = GetDelegateSignature();
 		if(TargetFunction != NULL)

@@ -59,7 +59,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile && bSafe)
+	if (bSafe)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 

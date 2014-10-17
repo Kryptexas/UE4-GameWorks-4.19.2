@@ -159,7 +159,7 @@ void UK2Node_BaseMCDelegate::ExpandNode(class FKismetCompilerContext& CompilerCo
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
 	const bool bAllowMultipleSelfs = AllowMultipleSelfs(true);
-	if(bAllowMultipleSelfs && CompilerContext.bIsFullCompile)
+	if(bAllowMultipleSelfs)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 		check(Schema);

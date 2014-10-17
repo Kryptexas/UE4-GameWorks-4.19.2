@@ -57,43 +57,40 @@ void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& Compile
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	if(NULL == Enum)
 	{
-		if(NULL == Enum)
-		{
-			CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetNumEnumEntries_Error", "@@ must have a valid enum defined").ToString()), this);
-			return;
-		}
-
-		// Force the enum to load its values if it hasn't already
-		if (Enum->HasAnyFlags(RF_NeedLoad))
-		{
-			Enum->GetLinker()->Preload(Enum);
-		}
-
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-		check(NULL != Schema);
-
-		//MAKE LITERAL
-		const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, MakeLiteralInt);
-		UK2Node_CallFunction* MakeLiteralInt = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph); 
-		MakeLiteralInt->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(FunctionName));
-		MakeLiteralInt->AllocateDefaultPins();
-
-		//OPUTPUT PIN
-		UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
-		UEdGraphPin* NewReturnPin = MakeLiteralInt->GetReturnValuePin();
-		check(NULL != NewReturnPin);
-		CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
-
-		//INPUT PIN
-		UEdGraphPin* InputPin = MakeLiteralInt->FindPinChecked(TEXT("Value"));
-		check(EGPD_Input == InputPin->Direction);
-		const FString DefaultValue = FString::FromInt(Enum->NumEnums() - 1);
-		InputPin->DefaultValue = DefaultValue;
-
-		BreakAllNodeLinks();
+		CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetNumEnumEntries_Error", "@@ must have a valid enum defined").ToString()), this);
+		return;
 	}
+
+	// Force the enum to load its values if it hasn't already
+	if (Enum->HasAnyFlags(RF_NeedLoad))
+	{
+		Enum->GetLinker()->Preload(Enum);
+	}
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	check(NULL != Schema);
+
+	//MAKE LITERAL
+	const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, MakeLiteralInt);
+	UK2Node_CallFunction* MakeLiteralInt = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph); 
+	MakeLiteralInt->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(FunctionName));
+	MakeLiteralInt->AllocateDefaultPins();
+
+	//OPUTPUT PIN
+	UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
+	UEdGraphPin* NewReturnPin = MakeLiteralInt->GetReturnValuePin();
+	check(NULL != NewReturnPin);
+	CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
+
+	//INPUT PIN
+	UEdGraphPin* InputPin = MakeLiteralInt->FindPinChecked(TEXT("Value"));
+	check(EGPD_Input == InputPin->Direction);
+	const FString DefaultValue = FString::FromInt(Enum->NumEnums() - 1);
+	InputPin->DefaultValue = DefaultValue;
+
+	BreakAllNodeLinks();
 }
 
 void UK2Node_GetNumEnumEntries::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

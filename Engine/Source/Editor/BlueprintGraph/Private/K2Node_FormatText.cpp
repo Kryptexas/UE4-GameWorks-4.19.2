@@ -183,73 +183,69 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	/**
+		At the end of this, the UK2Node_FormatText will not be a part of the Blueprint, it merely handles connecting
+		the other nodes into the Blueprint.
+	*/
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+
+	// Create a "Make Array" node to compile the list of arguments into an array for the Format function being called
+	UK2Node_MakeArray* MakeArrayNode = CompilerContext.SpawnIntermediateNode<UK2Node_MakeArray>(this, SourceGraph); //SourceGraph->CreateBlankNode<UK2Node_MakeArray>();
+	MakeArrayNode->AllocateDefaultPins();
+	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(MakeArrayNode, this);
+
+	UEdGraphPin* ArrayOut = MakeArrayNode->GetOutputPin();
+
+	// This is the node that does all the Format work.
+	UK2Node_CallFunction* CallFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	CallFunction->SetFromFunction(UKismetTextLibrary::StaticClass()->FindFunctionByName("Format"));
+	CallFunction->AllocateDefaultPins();
+	CompilerContext.MessageLog.NotifyIntermediateObjectCreation(CallFunction, this);
+
+	// Connect the output of the "Make Array" pin to the function's "InArgs" pin
+	ArrayOut->MakeLinkTo(CallFunction->FindPin(TEXT("InArgs")));
+
+	// This will set the "Make Array" node's type, only works if one pin is connected.
+	MakeArrayNode->PinConnectionListChanged(ArrayOut);
+
+	// For each argument, we will need to add in a "Make Struct" node.
+	for(int32 ArgIdx = 0; ArgIdx < PinNames.Num(); ++ArgIdx)
 	{
-		/**
-			At the end of this, the UK2Node_FormatText will not be a part of the Blueprint, it merely handles connecting
-			the other nodes into the Blueprint.
-		*/
+		UEdGraphPin* ArgumentPin = FindArgumentPin(PinNames[ArgIdx]);
 
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+		// Spawn a "Make Struct" node to create the struct needed for formatting the text.
+		UK2Node_MakeStruct* PinMakeStruct = CompilerContext.SpawnIntermediateNode<UK2Node_MakeStruct>(this, SourceGraph);
+		PinMakeStruct->StructType = FFormatTextArgument::StaticStruct();
+		PinMakeStruct->AllocateDefaultPins();
 
-		// Create a "Make Array" node to compile the list of arguments into an array for the Format function being called
-		UK2Node_MakeArray* MakeArrayNode = CompilerContext.SpawnIntermediateNode<UK2Node_MakeArray>(this, SourceGraph); //SourceGraph->CreateBlankNode<UK2Node_MakeArray>();
-		MakeArrayNode->AllocateDefaultPins();
-		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(MakeArrayNode, this);
+		// Set the struct's "ArgumentName" pin literal to be the argument pin's name.
+		PinMakeStruct->GetSchema()->TrySetDefaultText(*PinMakeStruct->FindPin("ArgumentName"), FText::AsCultureInvariant(ArgumentPin->PinName));
 
-		UEdGraphPin* ArrayOut = MakeArrayNode->GetOutputPin();
+		// Move the connection of the argument pin to the struct's "TextValue" pin, this will move the literal value if present.
+		CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *PinMakeStruct->FindPin("TextValue"));
 
-		// This is the node that does all the Format work.
-		UK2Node_CallFunction* CallFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		CallFunction->SetFromFunction(UKismetTextLibrary::StaticClass()->FindFunctionByName("Format"));
-		CallFunction->AllocateDefaultPins();
-		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(CallFunction, this);
-
-		// Connect the output of the "Make Array" pin to the function's "InArgs" pin
-		ArrayOut->MakeLinkTo(CallFunction->FindPin(TEXT("InArgs")));
-
-		// This will set the "Make Array" node's type, only works if one pin is connected.
-		MakeArrayNode->PinConnectionListChanged(ArrayOut);
-
-		// For each argument, we will need to add in a "Make Struct" node.
-		for(int32 ArgIdx = 0; ArgIdx < PinNames.Num(); ++ArgIdx)
+		// The "Make Array" node already has one pin available, so don't create one for ArgIdx == 0
+		if(ArgIdx > 0)
 		{
-			UEdGraphPin* ArgumentPin = FindArgumentPin(PinNames[ArgIdx]);
-
-			// Spawn a "Make Struct" node to create the struct needed for formatting the text.
-			UK2Node_MakeStruct* PinMakeStruct = CompilerContext.SpawnIntermediateNode<UK2Node_MakeStruct>(this, SourceGraph);
-			PinMakeStruct->StructType = FFormatTextArgument::StaticStruct();
-			PinMakeStruct->AllocateDefaultPins();
-
-			// Set the struct's "ArgumentName" pin literal to be the argument pin's name.
-			PinMakeStruct->GetSchema()->TrySetDefaultText(*PinMakeStruct->FindPin("ArgumentName"), FText::AsCultureInvariant(ArgumentPin->PinName));
-
-			// Move the connection of the argument pin to the struct's "TextValue" pin, this will move the literal value if present.
-			CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *PinMakeStruct->FindPin("TextValue"));
-
-			// The "Make Array" node already has one pin available, so don't create one for ArgIdx == 0
-			if(ArgIdx > 0)
-			{
-				MakeArrayNode->AddInputPin();
-			}
-
-			// Find the input pin on the "Make Array" node by index.
-			FString PinName = FString::Printf(TEXT("[%d]"), ArgIdx);
-			UEdGraphPin* InputPin = MakeArrayNode->FindPin(PinName);
-
-			// Find the output for the pin's "Make Struct" node and link it to the corresponding pin on the "Make Array" node.
-			FindOutputStructPinChecked(PinMakeStruct)->MakeLinkTo(InputPin);
-
+			MakeArrayNode->AddInputPin();
 		}
 
-		// Move connection of FormatText's "Result" pin to the call function's return value pin.
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(TEXT("Result")), *CallFunction->GetReturnValuePin());
-		// Move connection of FormatText's "Format" pin to the call function's "InPattern" pin
-		CompilerContext.MovePinLinksToIntermediate(*GetFormatPin(), *CallFunction->FindPin(TEXT("InPattern")));
+		// Find the input pin on the "Make Array" node by index.
+		FString PinName = FString::Printf(TEXT("[%d]"), ArgIdx);
+		UEdGraphPin* InputPin = MakeArrayNode->FindPin(PinName);
 
-		BreakAllNodeLinks();
+		// Find the output for the pin's "Make Struct" node and link it to the corresponding pin on the "Make Array" node.
+		FindOutputStructPinChecked(PinMakeStruct)->MakeLinkTo(InputPin);
+
 	}
 
+	// Move connection of FormatText's "Result" pin to the call function's return value pin.
+	CompilerContext.MovePinLinksToIntermediate(*FindPin(TEXT("Result")), *CallFunction->GetReturnValuePin());
+	// Move connection of FormatText's "Format" pin to the call function's "InPattern" pin
+	CompilerContext.MovePinLinksToIntermediate(*GetFormatPin(), *CallFunction->FindPin(TEXT("InPattern")));
+
+	BreakAllNodeLinks();
 }
 
 UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FText& InPinName) const

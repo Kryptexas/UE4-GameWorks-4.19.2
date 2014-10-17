@@ -314,66 +314,63 @@ void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerC
 {
     Super::ExpandNode(CompilerContext, SourceGraph);
     
-	if (CompilerContext.bIsFullCompile)
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+        
+    UEdGraphPin* OriginalDataTableInPin = GetDataTablePin();
+    UDataTable* Table = (OriginalDataTableInPin != NULL) ? Cast<UDataTable>(OriginalDataTableInPin->DefaultObject) : NULL;
+    if((0 == OriginalDataTableInPin->LinkedTo.Num()) && (NULL == Table))
+    {
+        CompilerContext.MessageLog.Error(*LOCTEXT("GetDataTableRowNoDataTable_Error", "GetDataTableRow must have a DataTable specified.").ToString(), this);
+        // we break exec links so this is the only error we get
+        BreakAllNodeLinks();
+        return;
+    }
+
+	// FUNCTION NODE
+	const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UDataTableFunctionLibrary, GetDataTableRowFromName);
+	UK2Node_CallFunction* GetDataTableRowFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	GetDataTableRowFunction->FunctionReference.SetExternalMember(FunctionName, UDataTableFunctionLibrary::StaticClass());
+	GetDataTableRowFunction->AllocateDefaultPins();
+    CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *(GetDataTableRowFunction->GetExecPin()));
+
+	// Connect the input of our GetDataTableRow to the Input of our Function pin
+    UEdGraphPin* DataTableInPin = GetDataTableRowFunction->FindPinChecked(TEXT("Table"));
+	if(OriginalDataTableInPin->LinkedTo.Num() > 0)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-        
-        UEdGraphPin* OriginalDataTableInPin = GetDataTablePin();
-        UDataTable* Table = (OriginalDataTableInPin != NULL) ? Cast<UDataTable>(OriginalDataTableInPin->DefaultObject) : NULL;
-        if((0 == OriginalDataTableInPin->LinkedTo.Num()) && (NULL == Table))
-        {
-        	CompilerContext.MessageLog.Error(*LOCTEXT("GetDataTableRowNoDataTable_Error", "GetDataTableRow must have a DataTable specified.").ToString(), this);
-        	// we break exec links so this is the only error we get
-            BreakAllNodeLinks();
-            return;
-        }
-
-		// FUNCTION NODE
-		const FName FunctionName = GET_FUNCTION_NAME_CHECKED(UDataTableFunctionLibrary, GetDataTableRowFromName);
-		UK2Node_CallFunction* GetDataTableRowFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		GetDataTableRowFunction->FunctionReference.SetExternalMember(FunctionName, UDataTableFunctionLibrary::StaticClass());
-		GetDataTableRowFunction->AllocateDefaultPins();
-        CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *(GetDataTableRowFunction->GetExecPin()));
-
-		// Connect the input of our GetDataTableRow to the Input of our Function pin
-        UEdGraphPin* DataTableInPin = GetDataTableRowFunction->FindPinChecked(TEXT("Table"));
-		if(OriginalDataTableInPin->LinkedTo.Num() > 0)
-		{
-			// Copy the connection
-			CompilerContext.MovePinLinksToIntermediate(*OriginalDataTableInPin, *DataTableInPin);
-		}
-		else
-		{
-			// Copy literal
-			DataTableInPin->DefaultObject = OriginalDataTableInPin->DefaultObject;
-		}
-		UEdGraphPin* RowNameInPin = GetDataTableRowFunction->FindPinChecked(TEXT("RowName"));
-		CompilerContext.MovePinLinksToIntermediate(*GetRowNamePin(), *RowNameInPin);
-
-		// Get some pins to work with
-		UEdGraphPin* OriginalOutRowPin = FindPinChecked(Schema->PN_ReturnValue);
-		UEdGraphPin* FunctionOutRowPin = GetDataTableRowFunction->FindPinChecked(TEXT("OutRow"));
-        UEdGraphPin* FunctionReturnPin = GetDataTableRowFunction->FindPinChecked(Schema->PN_ReturnValue);
-        UEdGraphPin* FunctionThenPin = GetDataTableRowFunction->GetThenPin();
-        
-        // Set the type of the OutRow pin on this expanded mode to match original
-        FunctionOutRowPin->PinType = OriginalOutRowPin->PinType;
-		FunctionOutRowPin->PinType.PinSubCategoryObject = OriginalOutRowPin->PinType.PinSubCategoryObject;
-        
-        //BRANCH NODE
-        UK2Node_IfThenElse* BranchNode = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
-        BranchNode->AllocateDefaultPins();
-        // Hook up inputs to branch
-        FunctionThenPin->MakeLinkTo(BranchNode->GetExecPin());
-        FunctionReturnPin->MakeLinkTo(BranchNode->GetConditionPin());
-        
-        // Hook up outputs
-        CompilerContext.MovePinLinksToIntermediate(*GetThenPin(), *(BranchNode->GetThenPin()));
-        CompilerContext.MovePinLinksToIntermediate(*GetRowNotFoundPin(), *(BranchNode->GetElsePin()));
-        CompilerContext.MovePinLinksToIntermediate(*OriginalOutRowPin, *FunctionOutRowPin);
-
-		BreakAllNodeLinks();
+		// Copy the connection
+		CompilerContext.MovePinLinksToIntermediate(*OriginalDataTableInPin, *DataTableInPin);
 	}
+	else
+	{
+		// Copy literal
+		DataTableInPin->DefaultObject = OriginalDataTableInPin->DefaultObject;
+	}
+	UEdGraphPin* RowNameInPin = GetDataTableRowFunction->FindPinChecked(TEXT("RowName"));
+	CompilerContext.MovePinLinksToIntermediate(*GetRowNamePin(), *RowNameInPin);
+
+	// Get some pins to work with
+	UEdGraphPin* OriginalOutRowPin = FindPinChecked(Schema->PN_ReturnValue);
+	UEdGraphPin* FunctionOutRowPin = GetDataTableRowFunction->FindPinChecked(TEXT("OutRow"));
+    UEdGraphPin* FunctionReturnPin = GetDataTableRowFunction->FindPinChecked(Schema->PN_ReturnValue);
+    UEdGraphPin* FunctionThenPin = GetDataTableRowFunction->GetThenPin();
+        
+    // Set the type of the OutRow pin on this expanded mode to match original
+    FunctionOutRowPin->PinType = OriginalOutRowPin->PinType;
+	FunctionOutRowPin->PinType.PinSubCategoryObject = OriginalOutRowPin->PinType.PinSubCategoryObject;
+        
+    //BRANCH NODE
+    UK2Node_IfThenElse* BranchNode = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(this, SourceGraph);
+    BranchNode->AllocateDefaultPins();
+    // Hook up inputs to branch
+    FunctionThenPin->MakeLinkTo(BranchNode->GetExecPin());
+    FunctionReturnPin->MakeLinkTo(BranchNode->GetConditionPin());
+        
+    // Hook up outputs
+    CompilerContext.MovePinLinksToIntermediate(*GetThenPin(), *(BranchNode->GetThenPin()));
+    CompilerContext.MovePinLinksToIntermediate(*GetRowNotFoundPin(), *(BranchNode->GetElsePin()));
+    CompilerContext.MovePinLinksToIntermediate(*OriginalOutRowPin, *FunctionOutRowPin);
+
+	BreakAllNodeLinks();
 }
 
 #undef LOCTEXT_NAMESPACE

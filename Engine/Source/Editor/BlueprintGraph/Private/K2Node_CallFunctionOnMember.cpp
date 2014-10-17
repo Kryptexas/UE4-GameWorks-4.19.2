@@ -50,79 +50,76 @@ void UK2Node_CallFunctionOnMember::ExpandNode(class FKismetCompilerContext& Comp
 	// and then that CallFunction node will get its own Expansion to handle the parent portions
 	UK2Node::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	UFunction* Function = GetTargetFunction();
+
+	// Create real 'call function' node.
+	UK2Node_CallFunction* CallFuncNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	CallFuncNode->SetFromFunction(Function);
+	CallFuncNode->AllocateDefaultPins();
+	UEdGraphPin* CallFuncSelfPin = Schema->FindSelfPin(*CallFuncNode, EGPD_Input);
+
+	// Now because you can wire multiple variables to a self pin, need to iterate over each one and create a 'get var' node for each
+	UEdGraphPin* SelfPin = Schema->FindSelfPin(*this, EGPD_Input);
+	if(SelfPin != NULL)
 	{
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-		UFunction* Function = GetTargetFunction();
-
-		// Create real 'call function' node.
-		UK2Node_CallFunction* CallFuncNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		CallFuncNode->SetFromFunction(Function);
-		CallFuncNode->AllocateDefaultPins();
-		UEdGraphPin* CallFuncSelfPin = Schema->FindSelfPin(*CallFuncNode, EGPD_Input);
-
-		// Now because you can wire multiple variables to a self pin, need to iterate over each one and create a 'get var' node for each
-		UEdGraphPin* SelfPin = Schema->FindSelfPin(*this, EGPD_Input);
-		if(SelfPin != NULL)
+		if (SelfPin->LinkedTo.Num() == 0)
 		{
-			if (SelfPin->LinkedTo.Num() == 0)
-			{
-				UK2Node_VariableGet* GetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
-				GetVarNode->VariableReference.SetSelfMember(MemberVariableToCallOn.GetMemberName());
-				GetVarNode->AllocateDefaultPins();
+			UK2Node_VariableGet* GetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
+			GetVarNode->VariableReference.SetSelfMember(MemberVariableToCallOn.GetMemberName());
+			GetVarNode->AllocateDefaultPins();
 
-				if (UEdGraphPin* ValuePin = GetVarNode->GetValuePin())
-				{
-					ValuePin->MakeLinkTo(CallFuncSelfPin);
-				}
+			if (UEdGraphPin* ValuePin = GetVarNode->GetValuePin())
+			{
+				ValuePin->MakeLinkTo(CallFuncSelfPin);
 			}
-			else
+		}
+		else
+		{
+			for (int32 TargetIdx = 0; TargetIdx < SelfPin->LinkedTo.Num(); TargetIdx++)
 			{
-				for (int32 TargetIdx = 0; TargetIdx < SelfPin->LinkedTo.Num(); TargetIdx++)
+				UEdGraphPin* SourcePin = SelfPin->LinkedTo[TargetIdx];
+				if (SourcePin != NULL)
 				{
-					UEdGraphPin* SourcePin = SelfPin->LinkedTo[TargetIdx];
-					if (SourcePin != NULL)
+					// Create 'get var' node to get the member
+					UK2Node_VariableGet* GetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
+					GetVarNode->VariableReference = MemberVariableToCallOn;
+					GetVarNode->AllocateDefaultPins();
+
+					UEdGraphPin* VarNodeSelfPin = Schema->FindSelfPin(*GetVarNode, EGPD_Input);
+					if (VarNodeSelfPin != NULL)
 					{
-						// Create 'get var' node to get the member
-						UK2Node_VariableGet* GetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
-						GetVarNode->VariableReference = MemberVariableToCallOn;
-						GetVarNode->AllocateDefaultPins();
+						VarNodeSelfPin->MakeLinkTo(SourcePin);
 
-						UEdGraphPin* VarNodeSelfPin = Schema->FindSelfPin(*GetVarNode, EGPD_Input);
-						if (VarNodeSelfPin != NULL)
-						{
-							VarNodeSelfPin->MakeLinkTo(SourcePin);
-
-							UEdGraphPin* ValuePin = GetVarNode->GetValuePin();
-							ValuePin->MakeLinkTo(CallFuncSelfPin);
-						}
-						else
-						{
-							// Failed to find the member to call on for this expansion, so warn about it
-							CompilerContext.MessageLog.Warning(*LOCTEXT("CallFunctionOnInvalidMember_Warning", "Function node @@ called on invalid target member.").ToString(), this);
-						}
+						UEdGraphPin* ValuePin = GetVarNode->GetValuePin();
+						ValuePin->MakeLinkTo(CallFuncSelfPin);
+					}
+					else
+					{
+						// Failed to find the member to call on for this expansion, so warn about it
+						CompilerContext.MessageLog.Warning(*LOCTEXT("CallFunctionOnInvalidMember_Warning", "Function node @@ called on invalid target member.").ToString(), this);
 					}
 				}
-			}			
-		}
+			}
+		}			
+	}
 
-		// Now move the rest of the connections (including exec connections...)
-		for(int32 SrcPinIdx=0; SrcPinIdx<Pins.Num(); SrcPinIdx++)
+	// Now move the rest of the connections (including exec connections...)
+	for(int32 SrcPinIdx=0; SrcPinIdx<Pins.Num(); SrcPinIdx++)
+	{
+		UEdGraphPin* SrcPin = Pins[SrcPinIdx];
+		if(SrcPin != NULL && SrcPin != SelfPin) // check its not the self pin
 		{
-			UEdGraphPin* SrcPin = Pins[SrcPinIdx];
-			if(SrcPin != NULL && SrcPin != SelfPin) // check its not the self pin
+			UEdGraphPin* DestPin = CallFuncNode->FindPin(SrcPin->PinName);
+			if(DestPin != NULL)
 			{
-				UEdGraphPin* DestPin = CallFuncNode->FindPin(SrcPin->PinName);
-				if(DestPin != NULL)
-				{
-					CompilerContext.MovePinLinksToIntermediate(*SrcPin, *DestPin); // Source node is assumed to be owner...
-				}
+				CompilerContext.MovePinLinksToIntermediate(*SrcPin, *DestPin); // Source node is assumed to be owner...
 			}
 		}
-
-		// Finally, break any remaining links on the 'call func on member' node
-		BreakAllNodeLinks();
 	}
+
+	// Finally, break any remaining links on the 'call func on member' node
+	BreakAllNodeLinks();
 }
 
 bool UK2Node_CallFunctionOnMember::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const

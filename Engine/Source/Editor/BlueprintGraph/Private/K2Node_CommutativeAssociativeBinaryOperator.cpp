@@ -253,7 +253,7 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile && NumAdditionalInputs > 0)
+	if (NumAdditionalInputs > 0)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 

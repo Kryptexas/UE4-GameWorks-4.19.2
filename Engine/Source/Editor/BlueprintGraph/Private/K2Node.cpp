@@ -667,17 +667,14 @@ void UK2Node::ExpandSplitPin(FKismetCompilerContext* CompilerContext, UEdGraph* 
 
 void UK2Node::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
-	if (CompilerContext.bIsFullCompile)
+	// We iterate the array in reverse so we can both remove the subpins safely after we've read them and
+	// so we have split nested structs we combine them back together in the right order
+	for (int32 PinIndex=Pins.Num() - 1; PinIndex >= 0; --PinIndex)
 	{
-		// We iterate the array in reverse so we can both remove the subpins safely after we've read them and
-		// so we have split nested structs we combine them back together in the right order
-		for (int32 PinIndex=Pins.Num() - 1; PinIndex >= 0; --PinIndex)
+		UEdGraphPin* Pin = Pins[PinIndex];
+		if (Pin->SubPins.Num() > 0)
 		{
-			UEdGraphPin* Pin = Pins[PinIndex];
-			if (Pin->SubPins.Num() > 0)
-			{
-				ExpandSplitPin(&CompilerContext, SourceGraph, Pin);
-			}
+			ExpandSplitPin(&CompilerContext, SourceGraph, Pin);
 		}
 	}
 }

@@ -137,11 +137,8 @@ void UK2Node_InputAction::ExpandNode(FKismetCompilerContext& CompilerContext, UE
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (CompilerContext.bIsFullCompile)
-	{
-		CreateInputActionEvent(CompilerContext, SourceGraph, GetPressedPin(), IE_Pressed);
-		CreateInputActionEvent(CompilerContext, SourceGraph, GetReleasedPin(), IE_Released);
-	}
+	CreateInputActionEvent(CompilerContext, SourceGraph, GetPressedPin(), IE_Pressed);
+	CreateInputActionEvent(CompilerContext, SourceGraph, GetReleasedPin(), IE_Released);
 }
 
 void UK2Node_InputAction::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
