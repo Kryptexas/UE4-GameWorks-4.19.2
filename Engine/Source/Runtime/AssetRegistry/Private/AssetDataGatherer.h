@@ -22,7 +22,7 @@ public:
 	void EnsureCompletion();
 
 	/** Gets search results from the data gatherer */
-	bool GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch);
+	bool GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch);
 
 	/** Adds a root path to the search queue. Only works when searching asynchronously */
 	void AddPathToSearch(const FString& Path);
@@ -67,6 +67,9 @@ private:
 
 	/** True if this gather request is synchronous (i.e, IsRunningCommandlet()) */
 	bool bIsSynchronous;
+
+	/** True if in the process of discovering files in PathsToSearch */
+	bool bIsDiscoveringFiles;
 
 	/** The current search start time */
 	double SearchStartTime;

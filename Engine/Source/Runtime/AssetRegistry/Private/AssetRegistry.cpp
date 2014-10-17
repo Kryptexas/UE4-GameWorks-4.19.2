@@ -1180,11 +1180,12 @@ void FAssetRegistry::Tick(float DeltaTime)
 
 	// Gather results from the background search
 	int32 NumFilesToSearch = 0;
+	int32 NumPathsToSearch = 0;
 	bool bIsSearching = false;
 	TArray<double> SearchTimes;
 	if ( BackgroundAssetSearch.IsValid() )
 	{		
-		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, SearchTimes, NumFilesToSearch);
+		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch);
 	}
 
 	// Report the search times
@@ -1230,7 +1231,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 	}
 
 	// If completing an initial search, refresh the content browser
-	if ( !bInitialSearchCompleted && NumFilesToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 )
+	if ( !bInitialSearchCompleted && NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 )
 	{
 		UE_LOG(LogAssetRegistry, Verbose, TEXT("### Time spent amortizing search results: %0.4f seconds"), TotalAmortizeTime);
 		UE_LOG(LogAssetRegistry, Log, TEXT("Asset discovery search completed in %0.4f seconds"), FPlatformTime::Seconds() - FullSearchStartTime);
@@ -1315,7 +1316,8 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 		TArray<FPackageDependencyData> DependencyResults;
 		TArray<double> SearchTimes;
 		int32 NumFilesToSearch = 0;
-		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
+		int32 NumPathsToSearch = 0;
+		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch);
 
 		// Cache the search results
 		const int32 NumResults = AssetResults.Num();
