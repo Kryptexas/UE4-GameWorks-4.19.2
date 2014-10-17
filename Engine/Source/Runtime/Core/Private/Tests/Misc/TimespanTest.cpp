@@ -4,7 +4,7 @@
 	TimespanTest.cpp: Unit test for the FTimespan class.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 

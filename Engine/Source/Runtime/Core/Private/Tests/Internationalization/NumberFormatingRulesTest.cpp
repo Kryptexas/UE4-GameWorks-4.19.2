@@ -4,7 +4,7 @@
 	NumberFormattingRulesTest.cpp: Unit test for the FNumberFormattingRules class.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 // Disable optimization for NumberFormatingRulesTest as it compiles very slowly in development builds

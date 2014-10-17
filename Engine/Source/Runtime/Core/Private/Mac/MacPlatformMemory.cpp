@@ -4,7 +4,7 @@
 	MacPlatformMemory.cpp: Mac platform memory functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
 #include "MallocBinned.h"

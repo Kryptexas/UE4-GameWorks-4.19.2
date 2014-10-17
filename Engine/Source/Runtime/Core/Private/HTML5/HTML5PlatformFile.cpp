@@ -4,7 +4,7 @@
 	HTML5File.cpp: HTML5 platform implementations of File functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

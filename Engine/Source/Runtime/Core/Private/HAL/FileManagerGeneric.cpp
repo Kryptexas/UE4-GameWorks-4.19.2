@@ -10,7 +10,7 @@
 =============================================================================*/
 
 // for compression
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "FileManagerGeneric.h"
 #include "SecureHash.h"
 #include <time.h>

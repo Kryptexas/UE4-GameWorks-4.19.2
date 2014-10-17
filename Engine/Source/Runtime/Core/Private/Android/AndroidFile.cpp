@@ -4,7 +4,7 @@
 	AndroidFile.cpp: Android platform implementations of File functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include <dirent.h>
 #include <jni.h>

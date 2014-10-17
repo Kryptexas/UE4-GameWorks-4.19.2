@@ -4,5 +4,5 @@
 	WinRTStackWalk.cpp: WinRT implementations of stack walk functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 

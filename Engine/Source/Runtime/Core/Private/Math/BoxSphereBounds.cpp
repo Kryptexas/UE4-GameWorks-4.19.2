@@ -4,7 +4,7 @@
 	BoxSphereBounds.cpp: Implements the FBoxSphereBounds structure.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 
 /* FBoxSphereBounds interface

@@ -3,7 +3,7 @@
 /*================================================================================
 	PlatformTest.cpp: Platform automation test code
 ==================================================================================*/
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 float TheCompilerDoesntKnowThisIsAlwaysZero = 0.0f;
 

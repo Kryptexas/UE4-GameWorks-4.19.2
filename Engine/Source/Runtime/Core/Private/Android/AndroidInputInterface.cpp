@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AndroidInputInterface.h"
 #include "GenericApplicationMessageHandler.h"
 #include <android/input.h>

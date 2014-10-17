@@ -4,7 +4,7 @@
 	IOSPlatformOutputDevices.mm: iOS implementations of OutputDevices functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "FeedbackContextAnsi.h"
 #include "../Private/IOS/IOSPlatformOutputDevicesPrivate.h"

@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "CompressedGrowableBuffer.h"
 #include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
 

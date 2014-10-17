@@ -4,7 +4,7 @@
 	Sphere.cpp: Implements the FSphere class.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 
 /* FSphere structors

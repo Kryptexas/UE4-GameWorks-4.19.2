@@ -4,7 +4,7 @@
 	ApplePlatformTime.mm: Apple implementations of time functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include <sys/resource.h>
 
 namespace

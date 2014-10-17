@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ConfigCacheIni.h"
 #include "RemoteConfigIni.h"
 #include "AES.h"

@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 /*
 ** Copyright (c) 1990- 1993, 1996 Open Software Foundation, Inc.

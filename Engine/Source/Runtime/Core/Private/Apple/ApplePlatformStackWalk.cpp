@@ -4,7 +4,7 @@
 	ApplePlatformStackWalk.mm: Apple implementations of stack walk functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ApplePlatformSymbolication.h"
 #include <execinfo.h>
 #include <dlfcn.h>

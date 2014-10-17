@@ -4,7 +4,7 @@
 	ApplePlatformSymbolication.cpp: Apple platform implementation of symbolication
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include "ApplePlatformSymbolication.h"
 #include <CoreFoundation/CoreFoundation.h>

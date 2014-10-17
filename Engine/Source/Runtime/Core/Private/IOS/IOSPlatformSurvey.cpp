@@ -3,7 +3,7 @@
 /*=============================================================================
 	IOSPlatformSurvey.cpp: HardwareSurvey implementation
 =============================================================================*/
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "IOSAppDelegate.h"
 #include "IOSWindow.h"
 

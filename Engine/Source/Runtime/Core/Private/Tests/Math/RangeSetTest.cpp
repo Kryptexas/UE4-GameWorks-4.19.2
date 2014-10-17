@@ -4,7 +4,7 @@
 	RangeSetTest.cpp: Unit test for the TRangeSet template.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 

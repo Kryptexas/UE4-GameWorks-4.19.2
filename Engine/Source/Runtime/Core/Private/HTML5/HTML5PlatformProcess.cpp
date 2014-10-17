@@ -4,7 +4,7 @@
 	HTML5Process.cpp: HTML5 implementations of Process functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 const TCHAR* FHTML5PlatformProcess::ComputerName()
 {

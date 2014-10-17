@@ -4,7 +4,7 @@
 	Color.cpp: Unreal color implementation.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 // Common colors.
 const FLinearColor FLinearColor::White(1.f,1.f,1.f);

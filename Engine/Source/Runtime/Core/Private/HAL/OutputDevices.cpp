@@ -4,7 +4,7 @@
 	UnOutputDevices.cpp: Collection of FOutputDevice subclasses
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #include <stdio.h>
 #include "Templates/UniquePtr.h"

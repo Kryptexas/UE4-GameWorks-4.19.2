@@ -4,7 +4,7 @@
 	ManifestTest.cpp: Unit test for the FInternationalizationManifest class
 =================================================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 #include "Internationalization/InternationalizationManifest.h"
 #include "Internationalization/InternationalizationMetadata.h"

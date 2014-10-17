@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "LinuxWindow.h"
 #include "LinuxApplication.h"
 

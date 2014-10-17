@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 // Disable optimization for DateTimeFormattingRulesTest as it compiles very slowly in development builds

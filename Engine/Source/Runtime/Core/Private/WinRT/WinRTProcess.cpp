@@ -4,7 +4,7 @@
 WinRTProcess.cpp: WinRT implementations of Process functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 //@todo.WINRT: Remove this usage!!!!
 #include "../Private/WinRT/ThreadEmulation.h"

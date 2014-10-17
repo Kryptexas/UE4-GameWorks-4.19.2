@@ -4,7 +4,7 @@
 	CircularBufferTest.cpp: Unit test for the TCircularBuffer template class.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 

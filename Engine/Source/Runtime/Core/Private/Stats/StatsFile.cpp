@@ -4,7 +4,7 @@
 	StatsFile.cpp: Implements stats file related functionality.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 #if	STATS
 

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 DECLARE_THREAD_SINGLETON( FThreadIdleStats );
 

@@ -4,7 +4,7 @@
 	ApplePlatformCrashContext.cpp: Common implementations of Apple platform crash context.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "Apple/ApplePlatformCrashContext.h"
 
 FApplePlatformCrashContext::FApplePlatformCrashContext()

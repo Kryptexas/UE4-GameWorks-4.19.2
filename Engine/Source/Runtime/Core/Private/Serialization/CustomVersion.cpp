@@ -4,7 +4,7 @@
 	CustomVersion.cpp: Unreal custom versioning system.
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 
 namespace
 {

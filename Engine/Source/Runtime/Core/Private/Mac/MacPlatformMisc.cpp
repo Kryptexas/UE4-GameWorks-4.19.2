@@ -4,7 +4,7 @@
 	MacPlatformMisc.mm: Mac implementations of misc functions
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "VarargsHelper.h"

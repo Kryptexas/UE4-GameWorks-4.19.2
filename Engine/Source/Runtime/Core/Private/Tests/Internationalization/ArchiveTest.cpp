@@ -4,7 +4,7 @@
 	ArchiveTest.cpp: Unit test for the FInternationalizationArchive class and serializers
 =================================================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 #include "Internationalization/InternationalizationArchive.h"
 #include "Internationalization/InternationalizationMetadata.h"

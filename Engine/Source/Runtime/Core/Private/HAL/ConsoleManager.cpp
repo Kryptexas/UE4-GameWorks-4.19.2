@@ -4,7 +4,7 @@
 ConsoleManager.cpp: console command handling
 =============================================================================*/
 
-#include "Core.h"
+#include "CorePrivatePCH.h"
 #include "ConsoleManager.h"
 #include "ModuleManager.h"
 #include "RemoteConfigIni.h"
