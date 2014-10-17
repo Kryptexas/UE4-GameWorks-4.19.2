@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "InputSettingsDetails.h"
 #include "ScopedTransaction.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "InputSettingsDetails"
 
@@ -638,6 +639,24 @@ void FInputSettingsDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 	static const FName AxisMappings = GET_MEMBER_NAME_CHECKED(UInputSettings, AxisMappings);
 
 	IDetailCategoryBuilder& MappingsDetailCategoryBuilder = DetailBuilder.EditCategory(BindingsCategory);
+
+	MappingsDetailCategoryBuilder.AddCustomRow(TEXT("Action Axis Mappings"))
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.FillWidth(1)
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.AutoWrapText(true)
+			.Text(LOCTEXT("Mappings_Description", "Action and Axis Mappings provide a mechanism to conveniently map keys and axes to input behaviors by inserting a layer of indirection between the input behavior and the keys that invoke it. Action Mappings are for key presses and releases, while Axis Mappings allow for inputs that have a continuous range."))
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			IDocumentation::Get()->CreateAnchor(FString("Gameplay/Input"))
+		]
+	];
 
 	// Custom Action Mappings
 	const TSharedPtr<IPropertyHandle> ActionMappingsPropertyHandle = DetailBuilder.GetProperty(ActionMappings, UInputSettings::StaticClass());
