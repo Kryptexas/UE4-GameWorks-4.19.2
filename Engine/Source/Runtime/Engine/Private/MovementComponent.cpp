@@ -266,7 +266,7 @@ FVector UMovementComponent::ConstrainDirectionToPlane(FVector Direction) const
 {
 	if (bConstrainToPlane)
 	{
-		Direction = Direction - (PlaneConstraintNormal * (Direction | PlaneConstraintNormal));
+		Direction = FVector::VectorPlaneProject(Direction, PlaneConstraintNormal);
 	}
 
 	return Direction;
@@ -411,7 +411,15 @@ bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, c
 
 FVector UMovementComponent::ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const
 {
-	return FVector::VectorPlaneProject(Delta, Normal) * Time;
+	if (!bConstrainToPlane)
+	{
+		return FVector::VectorPlaneProject(Delta, Normal) * Time;
+	}
+	else
+	{
+		const FVector ProjectedNormal = ConstrainDirectionToPlane(Normal).SafeNormal();
+		return FVector::VectorPlaneProject(Delta, ProjectedNormal) * Time;
+	}
 }
 
 
