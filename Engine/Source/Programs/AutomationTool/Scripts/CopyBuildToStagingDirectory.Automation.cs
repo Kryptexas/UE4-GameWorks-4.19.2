@@ -428,6 +428,11 @@ public partial class Project : CommandUtils
 
 			Dest = CombinePaths(PathSeparator.Slash, SC.PakFileInternalRoot, Dest);
 
+			// there can be files that only differ in case only, we don't support that in paks as paks are case-insensitive
+			if (UnrealPakResponseFile.ContainsKey(Src))
+			{
+				throw new AutomationException("Staging manifest already contains {0} (or a file that differs in case only)", Src);
+			}
 			UnrealPakResponseFile.Add(Src, Dest);
 		}
 		return UnrealPakResponseFile;
