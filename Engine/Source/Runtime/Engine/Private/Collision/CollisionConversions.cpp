@@ -632,11 +632,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 
 		if (GeometryType == PxGeometryType::eTRIANGLEMESH || GeometryType == PxGeometryType::eHEIGHTFIELD)
 		{
-			if (FindGeomOpposingNormal(PHit, TraceDir, OutResult.ImpactNormal))
-			{
-				// Success
-			}
-			else if (ComputeInflatedMTD(MtdInflation, PHit, OutResult, QueryTM, Geom, PShapeWorldPose))
+			if (ComputeInflatedMTD(MtdInflation, PHit, OutResult, QueryTM, Geom, PShapeWorldPose))
 			{
 				// Success
 			}
