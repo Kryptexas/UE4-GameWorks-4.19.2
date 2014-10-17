@@ -241,11 +241,11 @@ public:
 							GEngine->MatineeCaptureFPS, CaptureViewport->GetSizeXY().X, CaptureViewport->GetSizeXY().Y );
 						if (GEngine->bCompressMatineeCapture)
 						{
-							FCString::Sprintf( File, TEXT("%s_%d.mov"), *(OutputDir + TEXT("/") + GEngine->MatineePackageCaptureName + "_" + GEngine->MatineeCaptureName + FileNameInfo + "_compressed"), MovieCaptureIndex );
+							FCString::Sprintf( File, TEXT("%s_%d.avi"), *(OutputDir + TEXT("/") + GEngine->MatineePackageCaptureName + "_" + GEngine->MatineeCaptureName + FileNameInfo + "_compressed"), MovieCaptureIndex );
 						}
 						else
 						{
-							FCString::Sprintf( File, TEXT("%s_%d.mov"), *(OutputDir + TEXT("/") + GEngine->MatineePackageCaptureName + "_" + GEngine->MatineeCaptureName + FileNameInfo), MovieCaptureIndex );
+							FCString::Sprintf( File, TEXT("%s_%d.avi"), *(OutputDir + TEXT("/") + GEngine->MatineePackageCaptureName + "_" + GEngine->MatineeCaptureName + FileNameInfo), MovieCaptureIndex );
 						}
 						if (IFileManager::Get().FileSize(File) != -1)
 						{
@@ -262,7 +262,7 @@ public:
 					bool bFoundUnusedName = false;
 					while (!bFoundUnusedName)
 					{
-						FString FileName = FString::Printf( TEXT("Movie%i.mov"), MovieCaptureIndex );
+						FString FileName = FString::Printf( TEXT("Movie%i.avi"), MovieCaptureIndex );
 						FCString::Sprintf( File, TEXT("%s"), *(OutputDir / FileName) );
 						if (IFileManager::Get().FileSize(File) != -1)
 						{
