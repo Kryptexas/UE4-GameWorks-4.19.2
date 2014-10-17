@@ -22,6 +22,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 // MAGIC NUMBERS
 const float MAX_STEP_SIDE_Z = 0.08f;	// maximum z value for the normal on the vertical side of steps
 const float SWIMBOBSPEED = -80.f;
+const float VERTICAL_SLOPE_NORMAL_Z = -0.005f; // Slope is vertical or upward if Normal.Z >= Thresh. Accounts for precision problems that sometimes angle normals slightly off horizontal for vertical surface.
 
 const float UCharacterMovementComponent::MIN_TICK_TIME = 0.0002f;
 const float UCharacterMovementComponent::MIN_FLOOR_DIST = 1.9f;
@@ -1955,7 +1956,7 @@ FVector UCharacterMovementComponent::ComputeSlideVector(const FVector& Delta, co
 	FVector Result = Super::ComputeSlideVector(Delta, Time, Normal, Hit);
 
 	// prevent boosting up slopes
-	if (Result.Z > 0.f && IsFalling())
+	if (IsFalling())
 	{
 		Result = HandleSlopeBoosting(Result, Delta, Time, Normal, Hit);
 	}
@@ -1970,28 +1971,27 @@ FVector UCharacterMovementComponent::HandleSlopeBoosting(const FVector& SlideRes
 
 	if (Result.Z > 0.f)
 	{
-		if (Delta.Z < 0.f && (Hit.ImpactNormal.Z < MAX_STEP_SIDE_Z))
+		// Don't move any higher than we originally intended.
+		const float ZLimit = Delta.Z * Time;
+		if (Result.Z - ZLimit > KINDA_SMALL_NUMBER)
 		{
-			// We were moving downward, but a slide was going to send us upward. We want to aim
-			// straight down for the next move to make sure we get the most upward-facing opposing normal.
-			Result = FVector(0.f, 0.f, Delta.Z);
-		}
-		else
-		{
-			// Don't move any higher than we originally intended.
-			const float ZLimit = Delta.Z * Time;
-			if (Result.Z - ZLimit > KINDA_SMALL_NUMBER && ZLimit > KINDA_SMALL_NUMBER)
+			if (ZLimit > 0.f)
 			{
 				// Rescale the entire vector (not just the Z component) otherwise we change the direction and likely head right back into the impact.
 				const float UpPercent = ZLimit / Result.Z;
 				Result *= UpPercent;
-
-				// Make remaining portion of original result horizontal and parallel to impact normal.
-				const FVector RemainderXY = (SlideResult - Result) * FVector(1.f, 1.f, 0.f);
-				const FVector NormalXY = Normal.SafeNormal2D();
-				const FVector Adjust = Super::ComputeSlideVector(RemainderXY, 1.f, NormalXY, Hit);
-				Result += Adjust;
 			}
+			else
+			{
+				// We were heading down but were going to deflect upwards. Just make the deflection horizontal.
+				Result = FVector::ZeroVector;
+			}
+
+			// Make remaining portion of original result horizontal and parallel to impact normal.
+			const FVector RemainderXY = (SlideResult - Result) * FVector(1.f, 1.f, 0.f);
+			const FVector NormalXY = Normal.SafeNormal2D();
+			const FVector Adjust = Super::ComputeSlideVector(RemainderXY, 1.f, NormalXY, Hit);
+			Result += Adjust;
 		}
 	}
 
@@ -2774,35 +2774,23 @@ FVector UCharacterMovementComponent::GetFallingLateralAcceleration(float DeltaTi
 	// bound acceleration, falling object has minimal ability to impact acceleration
 	if (!HasRootMotion() && FallAcceleration.SizeSquared2D() > 0.f)
 	{
-		const float TickAirControl = GetAirControl(DeltaTime, AirControl, FallAcceleration);
-
-		const float MaxAccel = GetMaxAcceleration() * TickAirControl;
-		FallAcceleration = FallAcceleration.ClampMaxSize(MaxAccel);
+		FallAcceleration = GetAirControl(DeltaTime, AirControl, FallAcceleration);
+		FallAcceleration = FallAcceleration.ClampMaxSize(GetMaxAcceleration());
 	}
 
 	return FallAcceleration;
 }
 
 
-float UCharacterMovementComponent::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
+FVector UCharacterMovementComponent::GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration)
 {
 	// Boost
-	if (TickAirControl > 0.f)
+	if (TickAirControl != 0.f)
 	{
 		TickAirControl = BoostAirControl(DeltaTime, TickAirControl, FallAcceleration);
 	}
 
-	// Limit
-	if (TickAirControl > 0.f)
-	{
-		FHitResult HitResult(1.f);
-		if (FindAirControlImpact(DeltaTime, TickAirControl, FallAcceleration, HitResult))
-		{
-			TickAirControl = LimitAirControl(DeltaTime, TickAirControl, FallAcceleration, HitResult);
-		}
-	}
-
-	return TickAirControl;
+	return TickAirControl * FallAcceleration;
 }
 
 
@@ -2827,6 +2815,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 
 	FVector FallAcceleration = GetFallingLateralAcceleration(deltaTime);
 	FallAcceleration.Z = 0.f;
+	const bool bHasAirControl = (FallAcceleration.SizeSquared2D() > 0.f);
 
 	float remainingTime = deltaTime;
 	while( (remainingTime >= MIN_TICK_TIME) && (Iterations < MaxSimulationIterations) )
@@ -2840,20 +2829,42 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		bJustTeleported = false;
 
 		FVector OldVelocity = Velocity;
+		FVector VelocityNoAirControl = Velocity;
 
 		// Apply input
 		if (!HasRootMotion())
 		{
-			// Acceleration = FallAcceleration for CalcVelocity, but we restore it after using it.
-			TGuardValue<FVector> RestoreAcceleration(Acceleration, FallAcceleration);
-			const float SavedVelZ = Velocity.Z;
-			Velocity.Z = 0.f;
-			CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
-			Velocity.Z = SavedVelZ;
+			// Compute VelocityNoAirControl
+			if (bHasAirControl)
+			{
+				// Find velocity *without* acceleration.
+				TGuardValue<FVector> RestoreAcceleration(Acceleration, FVector::ZeroVector);
+				TGuardValue<FVector> RestoreVelocity(Velocity, Velocity);
+				Velocity.Z = 0.f;
+				CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
+				VelocityNoAirControl = FVector(Velocity.X, Velocity.Y, OldVelocity.Z);
+			}
+
+			// Compute Velocity
+			{
+				// Acceleration = FallAcceleration for CalcVelocity(), but we restore it after using it.
+				TGuardValue<FVector> RestoreAcceleration(Acceleration, FallAcceleration);
+				Velocity.Z = 0.f;
+				CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
+				Velocity.Z = OldVelocity.Z;
+			}
+
+			// Just copy Velocity to VelocityNoAirControl if they are the same (ie no acceleration).
+			if (!bHasAirControl)
+			{
+				VelocityNoAirControl = Velocity;
+			}
 		}
 
 		// Apply gravity
-		Velocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), timeTick);
+		const FVector Gravity(0.f, 0.f, GetGravityZ());
+		Velocity = NewFallVelocity(Velocity, Gravity, timeTick);
+		VelocityNoAirControl = NewFallVelocity(VelocityNoAirControl, Gravity, timeTick);
 
 		if( bNotifyApex && CharacterOwner->Controller && (Velocity.Z <= 0.f) )
 		{
@@ -2862,9 +2873,22 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			NotifyJumpApex();
 		}
 
+		// Test air control to see if we should limit it.
+		const FVector AirControlAccel = (Velocity - VelocityNoAirControl) / timeTick;
+		if (bHasAirControl)
+		{
+			FHitResult TestAirResult(1.f);
+			if (FindAirControlImpact(timeTick, AirControlAccel, TestAirResult))
+			{
+				const FVector LimitedAirAccel = LimitAirControl(timeTick, AirControlAccel, TestAirResult, /*bCheckForValidLandingSpot=*/ true);
+				Velocity = VelocityNoAirControl + (LimitedAirAccel * timeTick);
+			}
+		}
+
+
 		// Move
 		FHitResult Hit(1.f);
-		FVector Adjusted = 0.5f*(OldVelocity + Velocity) * timeTick;  
+		FVector Adjusted = 0.5f*(OldVelocity + Velocity) * timeTick;
 		SafeMoveUpdatedComponent( Adjusted, PawnRotation, true, Hit);
 		
 		if (!HasValidData())
@@ -2881,7 +2905,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			StartSwimming(OldLocation, OldVelocity, timeTick, remainingTime, Iterations);
 			return;
 		}
-		else if ( Hit.Time < 1.f )
+		else if ( Hit.bBlockingHit )
 		{
 			if (IsValidLandingSpot(UpdatedComponent->GetComponentLocation(), Hit))
 			{
@@ -2917,6 +2941,15 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 					return;
 				}
 
+				// Limit air control based on what we hit.
+				// We moved to the impact point using air control, but may want to deflect from there based on a non-air control acceleration.
+				if (bHasAirControl)
+				{
+					const bool bCheckLandingSpot = false; // we already checked above.
+					const FVector AirControlDeltaV = LimitAirControl(LastMoveTimeSlice, AirControlAccel, Hit, bCheckLandingSpot) * LastMoveTimeSlice;
+					Adjusted = (VelocityNoAirControl + AirControlDeltaV) * LastMoveTimeSlice;
+				}
+
 				const FVector OldHitNormal = Hit.Normal;
 				const FVector OldHitImpactNormal = Hit.ImpactNormal;				
 				FVector Delta = ComputeSlideVector(Adjusted, 1.f - Hit.Time, OldHitNormal, Hit);
@@ -2933,7 +2966,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 					// Move in deflected direction.
 					SafeMoveUpdatedComponent( Delta, PawnRotation, true, Hit);
 					
-					if (Hit.Time < 1.f)
+					if (Hit.bBlockingHit)
 					{
 						// hit second wall
 						LastMoveTimeSlice = subTimeTickRemaining;
@@ -2954,8 +2987,29 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 							return;
 						}
 
-						const FVector PreTwoWallDelta = Delta;
+						// Act as if there was no air control on the last move when computing new deflection.
+						if (bHasAirControl && Hit.Normal.Z >= VERTICAL_SLOPE_NORMAL_Z)
+						{
+							const FVector LastMoveNoAirControl = VelocityNoAirControl * LastMoveTimeSlice;
+							Delta = ComputeSlideVector(LastMoveNoAirControl, 1.f, OldHitNormal, Hit);
+						}
+
+						FVector PreTwoWallDelta = Delta;
 						TwoWallAdjust(Delta, Hit, OldHitNormal);
+
+						// Limit air control, but allow a slide along the second wall.
+						if (bHasAirControl)
+						{
+							const bool bCheckLandingSpot = false; // we already checked above.
+							const FVector AirControlDeltaV = LimitAirControl(subTimeTickRemaining, AirControlAccel, Hit, bCheckLandingSpot) * subTimeTickRemaining;
+
+							// Only allow if not back in to first wall
+							if (FVector::DotProduct(AirControlDeltaV, OldHitNormal) > 0.f)
+							{
+								Delta += (AirControlDeltaV * subTimeTickRemaining);
+							}
+						}
+
 						if (Delta.Z > 0.f)
 						{
 							Delta = HandleSlopeBoosting(Delta, PreTwoWallDelta, 1.f - Hit.Time, Hit.Normal, Hit);
@@ -3017,11 +3071,12 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 }
 
 
-bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, FHitResult& OutHitResult)
+bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, const FVector& FallAcceleration, FHitResult& OutHitResult)
 {
 	// test for slope to avoid using air control to climb walls
-	const float TestWalkTime = FMath::Max(DeltaTime, 0.05f);
-	const FVector TestWalk = ((TickAirControl * GetMaxAcceleration() * FallAcceleration.SafeNormal() + FVector(0.f,0.f,GetGravityZ())) * TestWalkTime + Velocity) * TestWalkTime;
+	const float TestWalkTime = FMath::Max(DeltaTime, 0.01f);
+	const FVector PostGravityVelocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), TestWalkTime);
+	const FVector TestWalk = ((FallAcceleration * TestWalkTime) + PostGravityVelocity) * TestWalkTime;
 	if (!TestWalk.IsZero())
 	{
 		static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));
@@ -3041,17 +3096,30 @@ bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float Ti
 }
 
 
-float UCharacterMovementComponent::LimitAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, const FHitResult& HitResult)
+FVector UCharacterMovementComponent::LimitAirControl(float DeltaTime, const FVector& FallAcceleration, const FHitResult& HitResult, bool bCheckForValidLandingSpot)
 {
-	if (HitResult.bBlockingHit)
+	FVector Result(FallAcceleration);
+
+	if (HitResult.IsValidBlockingHit() && HitResult.Normal.Z >= VERTICAL_SLOPE_NORMAL_Z)
 	{
-		if (!IsValidLandingSpot(HitResult.Location, HitResult))
+		if (!bCheckForValidLandingSpot || !IsValidLandingSpot(HitResult.Location, HitResult))
 		{
-			TickAirControl = 0.f;
+			// If acceleration is into the wall, limit contribution.
+			if (FVector::DotProduct(FallAcceleration, HitResult.Normal) < 0.f)
+			{
+				// Allow movement parallel to the wall, but not into it because that may push us up.
+				const FVector Normal2D = HitResult.Normal.SafeNormal2D();
+				Result = FVector::VectorPlaneProject(FallAcceleration, Normal2D);
+			}
 		}
 	}
+	else if (HitResult.bStartPenetrating)
+	{
+		// Allow movement out of penetration.
+		return (FVector::DotProduct(Result, HitResult.Normal) > 0.f ? Result : FVector::ZeroVector);
+	}
 
-	return TickAirControl;
+	return Result;
 }
 
 bool UCharacterMovementComponent::CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir)

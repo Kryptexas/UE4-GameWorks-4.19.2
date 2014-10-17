@@ -997,7 +997,8 @@ public:
 
 	/**
 	 * Get the lateral acceleration to use during falling movement. The Z component of the result is ignored.
-	 * Default implementation returns current Acceleration value modified by GetAirControl(), with Z component removed.
+	 * Default implementation returns current Acceleration value modified by GetAirControl(), with Z component removed,
+	 * with magnitude clamped to GetMaxAcceleration().
 	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime Time step for the current update.
@@ -1006,9 +1007,8 @@ public:
 	virtual FVector GetFallingLateralAcceleration(float DeltaTime);
 	
 	/**
-	 * Get the air control to use during falling movement. This is a multiplier applied to the acceleration used when falling.
-	 * Given an initial air control (TickAirControl), applies the result of BoostAirControl(). If non-zero and FindAirControlImpact()
-	 * returns true, we then apply the result of LimitAirControl().
+	 * Get the air control to use during falling movement.
+	 * Given an initial air control (TickAirControl), applies the result of BoostAirControl().
 	 * This function is used internally by GetFallingLateralAcceleration().
 	 *
 	 * @param DeltaTime			Time step for the current update.
@@ -1017,7 +1017,7 @@ public:
 	 * @return Air control to use during falling movement.
 	 * @see AirControl, BoostAirControl(), LimitAirControl(), GetFallingLateralAcceleration()
 	 */
-	virtual float GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
+	virtual FVector GetAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 protected:
 
@@ -1035,29 +1035,28 @@ protected:
 
 	/**
 	 * Checks if air control will cause the player collision shape to hit something given current conditions.
-	 * This function is used internally by GetAirControl().
+	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
-	 * @param TickAirControl	Current air control value.
 	 * @param FallAcceleration	Acceleration used during movement.
 	 * @param OutHitResult		Result of impact, valid if this function returns true.
 	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
 	 * @see GetAirControl()
 	 */
-	virtual bool FindAirControlImpact(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, FHitResult& OutHitResult);
+	virtual bool FindAirControlImpact(float DeltaTime, const FVector& FallAcceleration, FHitResult& OutHitResult);
 
 	/**
 	 * Limits the air control to use during falling movement, given an impact from FindAirControlImpact().
-	 * This function is used internally by GetAirControl().
+	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
-	 * @param TickAirControl	Current air control value.
 	 * @param FallAcceleration	Acceleration used during movement.
-	 * @param HitResult			Result of impact from FindAirControlImpact().
-	 * @return Modified air control to use during falling movement
+	 * @param HitResult			Result of impact.
+	 * @param bCheckForValidLandingSpot If true, will use IsValidLandingSpot() to determine if HitResult is a walkable surface. If false, this check is skipped.
+	 * @return Modified air control acceleration to use during falling movement.
 	 * @see FindAirControlImpact()
 	 */
-	virtual float LimitAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration, const FHitResult& HitResult);
+	virtual FVector LimitAirControl(float DeltaTime, const FVector& FallAcceleration, const FHitResult& HitResult, bool bCheckForValidLandingSpot);
 	
 
 	/** Handle landing against Hit surface over remaingTime and iterations, calling SetPostLandedPhysics() and starting the new movement mode. */
