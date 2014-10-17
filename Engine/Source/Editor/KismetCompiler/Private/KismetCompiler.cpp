@@ -2466,7 +2466,8 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 // Expands out nodes that need it
 void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraphExpansions)
 {
-	if (bIsFullCompile)
+	// Node expansion may affect a signature of function in FunctionLibrary
+	if (bIsFullCompile || (EBlueprintType::BPTYPE_FunctionLibrary == Blueprint->BlueprintType))
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_Expansion);
 
