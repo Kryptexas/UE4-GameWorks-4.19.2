@@ -32,6 +32,11 @@ TSharedRef<SWidget>	SGraphPinNameList::GetDefaultValueWidget()
 			}
 		}
 		check(CurrentlySelectedName.IsValid());
+		// Ensure the pin value is synchronised with the graph pin widget
+		if( PreviousSelection != *CurrentlySelectedName.Get() )
+		{
+			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *CurrentlySelectedName->ToString());
+		}
 	}
 
 	// Create widget
