@@ -93,35 +93,49 @@ namespace AutomationEditorCommonUtils
 	* @param FactorySettings - An array of custom settings to apply to the factory
 	*/
 	void ApplyCustomFactorySettings(UFactory* InFactory, const TArray<FImportFactorySettingValues>& FactorySettings);
+
+	/**
+	* Writes a number to a text file.
+	*
+	* @param InTestName - is the folder that has the same name as the test. (For Example: "Performance").
+	* @param InItemBeingTested - is the name for the thing that is being tested. (For Example: "MapName").
+	* @param InFileName - is the name of the file with an extension
+	* @param InNumberToBeWritten - is the float number that is expected to be written to the file.
+	* @param Delimiter - is the delimiter to be used. TEXT(",")
+	*/
+	void WriteToTextFile(const FString& InTestName, const FString& InItemBeingTested, const FString& InFileName, const float& InNumberToBeWritten, const FString& Delimiter);
+
+	/**
+	* Returns the sum of the numbers available in an array of float.
+
+	* @param InFloatArray - is the name of the array intended to be used.
+	* @param bisAveragedInstead - will return the average of the available numbers instead of the sum.
+	*/
+	float TotalFromFloatArray(const TArray<float>& InFloatArray, bool bisAveragedInstead);
+
+	/**
+	* Returns the largest value from an array of float numbers.
+
+	* @param InFloatArray - is the name of the array intended to be used.
+	*/
+	float LargetValueInFloatArray(const TArray<float>& InFloatArray);
+
+	/**
+	* Returns the contents of a text file as an array of FString.
+
+	* @param InFileLocation - is the location of the file.
+	*/
+	TArray<FString> CreateArrayFromFile(const FString& InFileLocation);
+
+	/**
+	* Returns true if the archive/file can be written to otherwise false.
+
+	* @param InFilePath - is the location of the file.
+	* @param InArchiveName - is the name of the archive to be used.
+	*/
+	bool IsArchiveWriteable(const FString InFilePath, const FArchive* InArchiveName);
 }
 
-//Struct used to hold the data for the Editor Performance test.
-struct EditorPerfCaptureParameters
-{
-	//Basic Test Info
-	FString MapName;
-	int32 TestDuration;
-
-	//Saved Performance Values
-	float MapLoadTime;
-	TArray<float> AverageFPS;
-	TArray<float> AverageFrameTime;
-	TArray<float> UsedPhysical;
-	TArray<float> AvailablePhysical;
-	TArray<float> AvailableVirtual;
-	TArray<float> UsedVirtual;
-	TArray<float> PeakUsedVirtual;
-	TArray<float> PeakUsedPhysical;
-	TArray<FDateTime> TimeStamp;
-	TArray<FString> FormattedTimeStamp;
-
-	EditorPerfCaptureParameters()
-		: MapName(TEXT("None"))
-		, TestDuration(60)
-		, MapLoadTime(0)
-	{
-	}
-};
 
 //////////////////////////////////////////////////////////////////////////
 //Common latent commands used for automated editor testing.
@@ -151,12 +165,6 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FStartPIECommand, bool, bSimulate
 * End PlayMap session
 */
 DEFINE_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
-
-/**
-* This will capture the average FPS and Memory numbers over a duration of time.
-* @param The name of the EditorPerfCaptureParameters struct that will be used to hold the data.
-*/
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FEditorPerfCaptureCommand, EditorPerfCaptureParameters, EditorPerfStats);
 
 /**
 * Loads a map
