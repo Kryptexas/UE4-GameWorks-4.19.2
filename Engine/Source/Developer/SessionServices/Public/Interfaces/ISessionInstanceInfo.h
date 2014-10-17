@@ -38,103 +38,103 @@ public:
 	 *
 	 * @return The build date string.
 	 */
-	virtual const FString GetBuildDate( ) const = 0;
+	virtual const FString GetBuildDate() const = 0;
 
 	/**
 	 * Gets the name of the level that the instance is currently running.
 	 *
 	 * @return The name of the level.
 	 */
-	virtual const FString GetCurrentLevel( ) const = 0;
+	virtual const FString GetCurrentLevel() const = 0;
 
 	/**
 	 * Gets the name of the device that this instance is running on.
 	 *
 	 * @return The device name string.
 	 */
-	virtual const FString GetDeviceName( ) const = 0;
+	virtual const FString GetDeviceName() const = 0;
 
 	/**
 	 * Gets the instance's engine version number.
 	 *
 	 * @return Engine version.
 	 */
-	virtual int32 GetEngineVersion( ) const = 0;
+	virtual int32 GetEngineVersion() const = 0;
 
 	/**
 	 * Gets the instance identifier.
 	 *
 	 * @return Instance identifier.
 	 */
-	virtual const FGuid GetInstanceId( ) const = 0;
+	virtual const FGuid GetInstanceId() const = 0;
 
 	/**
 	 * Gets the name of this instance.
 	 *
 	 * @return The instance name string.
 	 */
-	virtual const FString GetInstanceName( ) const = 0;
+	virtual const FString GetInstanceName() const = 0;
 
 	/**
 	 * Gets the instance type (i.e. Editor or Game).
 	 *
 	 * @return The game instance type string.
 	 */
-	virtual const FString GetInstanceType( ) const = 0;
+	virtual const FString GetInstanceType() const = 0;
 
 	/**
 	 * Gets the time at which the last update was received from this instance.
 	 *
 	 * @return The receive time.
 	 */
-	virtual FDateTime GetLastUpdateTime( ) = 0;
+	virtual FDateTime GetLastUpdateTime() = 0;
 
 	/**
 	 * Gets the collection of log entries received from this instance.
 	 *
 	 * @return Log entries.
 	 */
-	virtual const TArray<FSessionLogMessagePtr>& GetLog( ) = 0;
+	virtual const TArray<FSessionLogMessagePtr>& GetLog() = 0;
 
 	/**
 	 * Gets a reference to the session that owns this instance.
 	 *
 	 * @return Owner session.
 	 */
-	virtual TSharedPtr<class ISessionInfo> GetOwnerSession( ) = 0;
+	virtual TSharedPtr<class ISessionInfo> GetOwnerSession() = 0;
 
 	/**
 	 * Gets the name of the platform that the instance is running on.
 	 *
 	 * @return Platform name string.
 	 */
-	virtual const FString& GetPlatformName( ) const = 0;
+	virtual const FString& GetPlatformName() const = 0;
 
 	/**
 	 * Gets the instance's current game world time.
 	 *
 	 * @return World time in seconds.
 	 */
-	virtual float GetWorldTimeSeconds( ) const = 0;
+	virtual float GetWorldTimeSeconds() const = 0;
 
 	/**
 	 * Checks whether this instance is a console build (i.e. no editor features).
 	 *
 	 * @return true if it is a console build, false otherwise.
 	 */
-	virtual const bool IsConsole( ) const = 0;
+	virtual const bool IsConsole() const = 0;
 
 	/**
 	 * Checks whether this instance has already begun game play.
 	 *
 	 * @return true if game play has begun, false otherwise.
 	 */
-	virtual bool PlayHasBegun( ) const = 0;
+	virtual bool PlayHasBegun() const = 0;
 
 	/**
 	 * Terminates the instance.
 	 */
-	virtual void Terminate( ) = 0;
+	virtual void Terminate() = 0;
 
 public:
 
@@ -143,12 +143,10 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionInstanceLogReceived& OnLogReceived( ) = 0;
+	virtual FOnSessionInstanceLogReceived& OnLogReceived() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISessionInstanceInfo( ) { }
+	/** Virtual destructor. */
+	virtual ~ISessionInstanceInfo() { }
 };

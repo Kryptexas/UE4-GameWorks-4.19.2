@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ISessionManager. */
-typedef TSharedPtr<class ISessionManager> ISessionManagerPtr;
-
-/** Type definition for shared references to instances of ISessionManager. */
-typedef TSharedRef<class ISessionManager> ISessionManagerRef;
-
-
 /**
  * Delegate type for determining whether a session can be selected.
  *
@@ -59,7 +52,7 @@ public:
 	 *
 	 * @return The session ID selected
 	 */
-	virtual const ISessionInfoPtr& GetSelectedSession( ) const = 0;
+	virtual const ISessionInfoPtr& GetSelectedSession() const = 0;
 
 	/**
 	 * Gets the list of all discovered sessions.
@@ -106,47 +99,52 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnCanSelectSession& OnCanSelectSession( ) = 0;
+	virtual FOnCanSelectSession& OnCanSelectSession() = 0;
 
 	/**
 	 * Returns a delegate that is executed when an instance changes its selection state.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionInstanceSelectionChanged& OnInstanceSelectionChanged( ) = 0;
+	virtual FOnSessionInstanceSelectionChanged& OnInstanceSelectionChanged() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the selected session received a log message from one of its instances.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionLogReceived& OnLogReceived( ) = 0;
+	virtual FOnSessionLogReceived& OnLogReceived() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the selected session changed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSelectedSessionChanged& OnSelectedSessionChanged( ) = 0;
+	virtual FOnSelectedSessionChanged& OnSelectedSessionChanged() = 0;
 
 	/**
 	 * Returns a delegate that is executed when the list of sessions has changed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleMulticastDelegate& OnSessionsUpdated( ) = 0;
+	virtual FSimpleMulticastDelegate& OnSessionsUpdated() = 0;
 
 	/**
 	 * Returns a delegate that is executed when a session instance is updated.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated( ) = 0;
+	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISessionManager( ) { }
+	/** Virtual destructor. */
+	virtual ~ISessionManager() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISessionManager. */
+typedef TSharedPtr<ISessionManager> ISessionManagerPtr;
+
+/** Type definition for shared references to instances of ISessionManager. */
+typedef TSharedRef<ISessionManager> ISessionManagerRef;

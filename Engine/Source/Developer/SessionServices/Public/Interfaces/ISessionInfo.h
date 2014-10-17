@@ -47,35 +47,35 @@ public:
 	 *
 	 * @return The receive time.
 	 */
-	virtual FDateTime GetLastUpdateTime( ) = 0;
+	virtual FDateTime GetLastUpdateTime() = 0;
 
 	/**
 	 * Gets the number of engine instances that are part of the session.
 	 *
 	 * @return The number of engine instances.
 	 */
-	virtual const int32 GetNumInstances( ) const = 0;
+	virtual const int32 GetNumInstances() const = 0;
 
 	/**
 	 * Gets the session identifier.
 	 *
 	 * @return Session identifier.
 	 */
-	virtual const FGuid& GetSessionId( ) const = 0;
+	virtual const FGuid& GetSessionId() const = 0;
 
 	/**
 	 * Gets the name of the session.
 	 *
 	 * @return Session name.
 	 */
-	virtual const FString& GetSessionName( ) const = 0;
+	virtual const FString& GetSessionName() const = 0;
 
 	/**
 	 * Gets the name of the user that owns the session.
 	 *
 	 * @return User name.
 	 */
-	virtual const FString& GetSessionOwner( ) const = 0;
+	virtual const FString& GetSessionOwner() const = 0;
 
 	/**
 	 * Checks whether this is a standalone session.
@@ -84,12 +84,12 @@ public:
 	 *
 	 * @return true if this is a standalone session, false otherwise.
 	 */
-	virtual const bool IsStandalone( ) const = 0;
+	virtual const bool IsStandalone() const = 0;
 
 	/**
 	 * Terminates the session.
 	 */
-	virtual void Terminate( ) = 0;
+	virtual void Terminate() = 0;
 
 public:
 
@@ -98,19 +98,17 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered( ) = 0;
+	virtual FOnSessionInstanceDiscovered& OnInstanceDiscovered() = 0;
 
 	/**
 	 * Returns a delegate that is executed when a new log message has been received.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSessionLogReceived& OnLogReceived( ) = 0;
+	virtual FOnSessionLogReceived& OnLogReceived() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISessionInfo( ) { }
+	/** Virtual destructor. */
+	virtual ~ISessionInfo() { }
 };

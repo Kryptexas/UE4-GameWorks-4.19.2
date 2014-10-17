@@ -12,10 +12,8 @@ class FSessionInstanceInfo
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FSessionInstanceInfo( ) { }
+	/** Default constructor. */
+	FSessionInstanceInfo() { }
 
 	/**
 	 * Creates and initializes a new instance.
@@ -111,12 +109,12 @@ public:
 		return DeviceName;
 	}
 
-	virtual int32 GetEngineVersion( ) const override
+	virtual int32 GetEngineVersion() const override
 	{
 		return EngineVersion;
 	}
 
-	virtual const FGuid GetInstanceId( ) const override
+	virtual const FGuid GetInstanceId() const override
 	{
 		return InstanceId;
 	}
@@ -131,27 +129,27 @@ public:
 		return InstanceType;
 	}
 
-	virtual FDateTime GetLastUpdateTime( ) override
+	virtual FDateTime GetLastUpdateTime() override
 	{
 		return LastUpdateTime;
 	}
 
-	virtual const TArray<FSessionLogMessagePtr>& GetLog( ) override
+	virtual const TArray<FSessionLogMessagePtr>& GetLog() override
 	{
 		return LogMessages;
 	}
 
-	virtual ISessionInfoPtr GetOwnerSession( ) override
+	virtual ISessionInfoPtr GetOwnerSession() override
 	{
 		return Owner.Pin();
 	}
 
-	virtual const FString& GetPlatformName( ) const override
+	virtual const FString& GetPlatformName() const override
 	{
 		return PlatformName;
 	}
 
-	virtual float GetWorldTimeSeconds( ) const override
+	virtual float GetWorldTimeSeconds() const override
 	{
 		return WorldTimeSeconds;
 	}
@@ -161,17 +159,17 @@ public:
 		return IsConsoleBuild;
 	}
 
-	virtual FOnSessionInstanceLogReceived& OnLogReceived( ) override
+	virtual FOnSessionInstanceLogReceived& OnLogReceived() override
 	{
 		return LogReceivedDelegate;
 	}
 
-	virtual bool PlayHasBegun( ) const override
+	virtual bool PlayHasBegun() const override
 	{
 		return HasBegunPlay;
 	}
 
-	virtual void Terminate( ) override
+	virtual void Terminate() override
 	{
 		if (MessageEndpoint.IsValid() && EngineAddress.IsValid())
 		{
@@ -201,59 +199,59 @@ private:
 
 private:
 
-	// Holds the message bus address of the application instance.
+	/** Holds the message bus address of the application instance. */
 	FMessageAddress ApplicationAddress;
 
-	// Holds the instance's build date.
+	/** Holds the instance's build date. */
 	FString BuildDate;
 
-	// Holds the instance's current level.
+	/** Holds the instance's current level. */
 	FString	CurrentLevel;
 
-	// Holds the device name.
+	/** Holds the device name. */
 	FString DeviceName;
 
-	// Holds the message bus address of the engine instance.
+	/** Holds the message bus address of the engine instance. */
 	FMessageAddress EngineAddress;
 
-	// Holds the instance's engine version.
+	/** Holds the instance's engine version. */
 	int32 EngineVersion;
 
-	// Holds a flag indicating whether the game has begun.
+	/** Holds a flag indicating whether the game has begun. */
 	bool HasBegunPlay;
 
-	// Holds the instance identifier.
+	/** Holds the instance identifier. */
 	FGuid InstanceId;
 
-	// Holds the instance name.
+	/** Holds the instance name. */
 	FString InstanceName;
 
-	// Holds the instance type (i.e. game, editor etc.)
+	/** Holds the instance type (i.e. game, editor etc.) */
 	FString InstanceType;
 
-	// Holds a flag indicating whether this is a console build.
+	/** Holds a flag indicating whether this is a console build. */
 	bool IsConsoleBuild;
 
-	// Holds the time at which the last pong was received.
+	/** Holds the time at which the last pong was received. */
 	FDateTime LastUpdateTime;
 
-	// Holds the collection of received log messages.
+	/** Holds the collection of received log messages. */
 	TArray<FSessionLogMessagePtr> LogMessages;
 
-	// Holds the message endpoint.
+	/** Holds the message endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
 
-	// Holds a reference to the session that owns this instance.
+	/** Holds a reference to the session that owns this instance. */
 	TWeakPtr<ISessionInfo> Owner;
 
-	// Holds the name of the platform that the instance is running on.
+	/** Holds the name of the platform that the instance is running on. */
 	FString PlatformName;
 
-	// Holds the instance's current game world time.
+	/** Holds the instance's current game world time. */
 	float WorldTimeSeconds;
 
 private:
 
-	// Holds a delegate to be invoked when a log message was received from the remote session.
+	/** Holds a delegate to be invoked when a log message was received from the remote session. */
 	FOnSessionInstanceLogReceived LogReceivedDelegate;
 };
