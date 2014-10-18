@@ -1498,9 +1498,10 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
  */
 void FBodyInstance::TermBody()
 {
-
 	if (UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
 	{
+		OwnerComponentInst->UnWeldFromParent();
+
 		for (USceneComponent * Child : OwnerComponentInst->AttachChildren)
 		{
 			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
