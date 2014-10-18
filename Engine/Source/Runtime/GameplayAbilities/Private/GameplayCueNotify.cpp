@@ -4,7 +4,6 @@
 #include "GameplayCueNotify.h"
 #include "GameplayTagsModule.h"
 
-#pragma optimize( "", off )
 
 
 UGameplayCueNotify::UGameplayCueNotify(const class FObjectInitializer& PCIP)
