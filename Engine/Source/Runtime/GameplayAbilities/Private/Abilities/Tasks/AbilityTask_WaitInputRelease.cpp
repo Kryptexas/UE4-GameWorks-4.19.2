@@ -10,7 +10,7 @@ UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const FObjectInitia
 	RegisteredCallback= false;
 }
 
-void UAbilityTask_WaitInputRelease::OnReleaseCallback(int32 InputID/*UGameplayAbility* InAbility*/)
+void UAbilityTask_WaitInputRelease::OnReleaseCallback(int32 InputID)
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 

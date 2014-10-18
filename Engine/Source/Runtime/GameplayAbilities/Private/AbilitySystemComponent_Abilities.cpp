@@ -965,6 +965,27 @@ void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 	}
 }
 
+void UAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& Spec)
+{
+	Spec.InputPressed = true;
+	if (Spec.IsActive())
+	{
+		// The ability is active, so just pipe the input event to it
+		if (Spec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+		{
+			Spec.Ability->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+		}
+		else
+		{
+			TArray<UGameplayAbility*> Instances = Spec.GetAbilityInstances();
+			for (UGameplayAbility* Instance : Instances)
+			{
+				Instance->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
+			}
+		}
+	}
+}
+
 void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spec)
 {
 	Spec.InputPressed = false;
@@ -1012,6 +1033,22 @@ void UAbilitySystemComponent::InputCancel()
 	}
 
 	CancelCallbacks.Broadcast();
+}
+
+bool UAbilitySystemComponent::ServerInputPress_Validate(FGameplayAbilitySpecHandle Handle, FPredictionKey ScopedPedictionKey)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ServerInputPress_Implementation(FGameplayAbilitySpecHandle Handle, FPredictionKey ScopedPedictionKey)
+{
+	FScopedPredictionWindow ScopedPrediction(this, ScopedPedictionKey);
+
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (Spec)
+	{
+		AbilitySpecInputPressed(*Spec);
+	}
 }
 
 bool UAbilitySystemComponent::ServerInputRelease_Validate(FGameplayAbilitySpecHandle Handle, FPredictionKey ScopedPedictionKey)

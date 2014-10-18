@@ -418,9 +418,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void AbilityInputReleased(int32 InputID);
 
+	void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec);
+
 	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
 
-	/** Sent by abilities when they *need* to tell server when activation input is released. (Not sent by defauly only sent when using AbilityTask_WaitInputRelease) */
+	/** Sent by abilities to tell server when activation input is pressed. (Sent by default in order not to short-circuit WaitInputPress/WaitInputRelease tasks) */
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerInputPress(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey ScopedPedictionKey);
+
+	/** Sent by abilities to tell server when activation input is released. (Sent by default in order not to short-circuit WaitInputPress/WaitInputRelease tasks) */
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerInputRelease(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey ScopedPedictionKey);
 
