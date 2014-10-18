@@ -673,6 +673,12 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
 		}
 	}
+	else
+	{
+		// start location is not on navmesh, treat it as a blocked raycast
+		RaycastResult.HitTime = 0.f;
+		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
+	}
 }
 
 void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
@@ -705,6 +711,12 @@ void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLo
 		{
 			UE_VLOG(NavMeshOwner, LogNavigation, Log, TEXT("FPImplRecastNavMesh::Raycast2D failed"));
 		}
+	}
+	else
+	{
+		// start location is not on navmesh, treat it as a blocked raycast
+		RaycastResult.HitTime = 0.f;
+		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
 	}
 }
 
