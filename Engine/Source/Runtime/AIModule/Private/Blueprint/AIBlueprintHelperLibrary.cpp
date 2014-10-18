@@ -159,17 +159,20 @@ APawn* UAIBlueprintHelperLibrary::SpawnAI(class UObject* WorldContextObject, UBl
 
 UBlackboardComponent* UAIBlueprintHelperLibrary::GetBlackboard(AActor* Target)
 {
-	UBlackboardComponent* BlackboardComp = NULL;
+	UBlackboardComponent* BlackboardComp = nullptr;
 
-	APawn* TargetPawn = Cast<APawn>(Target);
-	if (TargetPawn && TargetPawn->GetController())
+	if (Target != nullptr)
 	{
-		BlackboardComp = TargetPawn->GetController()->FindComponentByClass<UBlackboardComponent>();
-	}
+		APawn* TargetPawn = Cast<APawn>(Target);
+		if (TargetPawn && TargetPawn->GetController())
+		{
+			BlackboardComp = TargetPawn->GetController()->FindComponentByClass<UBlackboardComponent>();
+		}
 
-	if (BlackboardComp == NULL && Target)
-	{
-		BlackboardComp = Target->FindComponentByClass<UBlackboardComponent>();
+		if (BlackboardComp == nullptr)
+		{
+			BlackboardComp = Target->FindComponentByClass<UBlackboardComponent>();
+		}
 	}
 
 	return BlackboardComp;

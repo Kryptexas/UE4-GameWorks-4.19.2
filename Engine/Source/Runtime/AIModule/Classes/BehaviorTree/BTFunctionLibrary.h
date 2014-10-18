@@ -3,13 +3,16 @@
 #pragma once
 #include "BTFunctionLibrary.generated.h"
 
-UCLASS(meta=(RestrictedToClasses="BTNode"))
-class UBTFunctionLibrary : public UBlueprintFunctionLibrary
-{
-	GENERATED_UCLASS_BODY()
+class UBlackboardComponent;
 
+UCLASS(meta=(RestrictedToClasses="BTNode"))
+class AIMODULE_API UBTFunctionLibrary : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+
+public:
 	UFUNCTION(BlueprintPure, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
-	static class UBlackboardComponent* GetBlackboard(UBTNode* NodeOwner);
+	static UBlackboardComponent* GetOwnersBlackboard(UBTNode* NodeOwner);
 
 	UFUNCTION(BlueprintPure, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
 	static UObject* GetBlackboardValueAsObject(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key);
