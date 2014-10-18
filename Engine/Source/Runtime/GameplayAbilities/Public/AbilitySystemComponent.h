@@ -47,6 +47,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Used to register callbacks to ability-key input */
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAbilityAbilityKey, /*UGameplayAbility*, Ability, */int32, InputID);
+
 	/** Used to register callbacks to confirm/cancel input */
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
@@ -427,6 +430,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputCancel();
 
+	FAbilityAbilityKey	AbilityKeyPressCallbacks;
+	FAbilityAbilityKey	AbilityKeyReleaseCallbacks;
 	FAbilityConfirmOrCancel	ConfirmCallbacks;
 	FAbilityConfirmOrCancel	CancelCallbacks;
 
@@ -576,6 +581,9 @@ public:
 	 */
 
 	UFUNCTION(Server, reliable, WithValidation)
+	void ServerSetReplicatedAbilityKeyState(int32 InputID, bool Pressed, FPredictionKey PredictionKey);
+
+	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedConfirm(bool Confirmed, FPredictionKey PredictionKey);
 
 	UFUNCTION(Server, reliable, WithValidation)
@@ -588,6 +596,7 @@ public:
 
 	void ConsumeAbilityTargetData();
 
+	//Note: Ability key state is stored on the ability spec, not here on the ASC with confirm/cancel.
 	bool ReplicatedConfirmAbility;
 	bool ReplicatedCancelAbility;
 

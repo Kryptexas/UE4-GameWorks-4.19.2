@@ -13,7 +13,6 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
-
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 /** Enable to log out all render state create, destroy and updatetransform events */
@@ -600,7 +599,6 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	}
 
 	UGameplayAbility* InstancedAbility = NULL;
-	Spec->InputPressed = true; // Pretend input was pressed. Allows UAbilityTask_WaitInputRelease to work.
 
 	// Attempt to activate the ability (server side) and tell the client if it succeeded or failed.
 	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility))
@@ -609,7 +607,6 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	}
 	else
 	{
-		Spec->InputPressed = false;
 		ClientActivateAbilityFailed(Handle, PredictionKey.Current);
 	}
 
@@ -924,6 +921,15 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 							Instance->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
 						}						
 					}
+					FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+					FScopedPredictionWindow ScopedPrediction(this, NewKey);
+					//We don't require (AbilityKeyPressCallbacks.IsBound() || AbilityKeyReleaseCallbacks.IsBound())), because we don't necessarily know now if we'll need this data later.
+					if (GetOwnerRole() != ROLE_Authority)
+					{
+						// Tell the server we pressed input.
+						ServerSetReplicatedAbilityKeyState(InputID, true, NewKey);
+					}
+					AbilityKeyPressCallbacks.Broadcast(InputID);
 				}
 				else
 				{
@@ -945,6 +951,15 @@ void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 			if (Spec.Ability)
 			{
 				AbilitySpecInputReleased(Spec);
+				FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+				FScopedPredictionWindow ScopedPrediction(this, NewKey);
+				//We don't require (AbilityKeyPressCallbacks.IsBound() || AbilityKeyReleaseCallbacks.IsBound())), because we don't necessarily know now if we'll need this data later.
+				if (GetOwnerRole() != ROLE_Authority)
+				{
+					// Tell the server we released input.
+					ServerSetReplicatedAbilityKeyState(InputID, false, NewKey);
+				}
+				AbilityKeyReleaseCallbacks.Broadcast(InputID);
 			}
 		}
 	}
@@ -1052,6 +1067,38 @@ void UAbilitySystemComponent::TargetCancel()
 	}
 
 	SpawnedTargetActors.Empty();
+}
+
+// --------------------------------------------------------------------------
+
+void UAbilitySystemComponent::ServerSetReplicatedAbilityKeyState_Implementation(int32 InputID, bool Pressed, FPredictionKey PredictionKey)
+{
+	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
+
+	for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
+	{
+		if (Spec.InputID == InputID)
+		{
+			if (Spec.Ability)
+			{
+				Spec.InputPressed = Pressed;
+			}
+		}
+	}
+
+	if (Pressed)
+	{
+		AbilityKeyPressCallbacks.Broadcast(InputID);
+	}
+	else
+	{
+		AbilityKeyReleaseCallbacks.Broadcast(InputID);
+	}
+}
+
+bool UAbilitySystemComponent::ServerSetReplicatedAbilityKeyState_Validate(int32 InputID, bool Pressed, FPredictionKey PredictionKey)
+{
+	return true;
 }
 
 // --------------------------------------------------------------------------

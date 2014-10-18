@@ -10,16 +10,28 @@ UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const FObjectInitia
 	RegisteredCallback= false;
 }
 
-void UAbilityTask_WaitInputRelease::OnReleaseCallback(UGameplayAbility* InAbility)
+void UAbilityTask_WaitInputRelease::OnReleaseCallback(int32 InputID/*UGameplayAbility* InAbility*/)
 {
 	float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
 
-	FScopedPredictionWindow	ScopedPrediction(InAbility);
+	if (!Ability.IsValid())
+	{
+		return;
+	}
+	UGameplayAbility* MyAbility = Ability.Get();
+	check(MyAbility->IsInstantiated());
+	if (MyAbility->GetCurrentAbilitySpec()->InputID != InputID)
+	{
+		//This key is for some other ability
+		return;
+	}
 
-	if (Ability->GetCurrentActivationInfo().ActivationMode != EGameplayAbilityActivationMode::Authority)
+	FScopedPredictionWindow	ScopedPrediction(MyAbility);
+
+	if (MyAbility->GetCurrentActivationInfo().ActivationMode != EGameplayAbilityActivationMode::Authority)
 	{
 		// Tell the server we released.
-		AbilitySystemComponent->ServerInputRelease(Ability->GetCurrentAbilitySpecHandle(), ScopedPrediction.ScopedPredictionKey);
+		AbilitySystemComponent->ServerInputRelease(MyAbility->GetCurrentAbilitySpecHandle(), ScopedPrediction.ScopedPredictionKey);
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages
@@ -48,7 +60,7 @@ void UAbilityTask_WaitInputRelease::Activate()
 			else
 			{
 				StartTime = GetWorld()->GetTimeSeconds();
-				Ability->OnInputRelease.AddUObject(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
+				AbilitySystemComponent->AbilityKeyReleaseCallbacks.AddDynamic(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
 				RegisteredCallback = true;
 			}
 		}
@@ -59,7 +71,7 @@ void UAbilityTask_WaitInputRelease::OnDestroy(bool AbilityEnded)
 {
 	if (RegisteredCallback && Ability.IsValid())
 	{
-		Ability->OnInputRelease.RemoveUObject(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
+		AbilitySystemComponent->AbilityKeyReleaseCallbacks.RemoveDynamic(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
 	}
 
 	Super::OnDestroy(AbilityEnded);

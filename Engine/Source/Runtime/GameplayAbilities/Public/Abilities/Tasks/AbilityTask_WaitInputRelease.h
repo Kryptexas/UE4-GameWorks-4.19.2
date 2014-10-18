@@ -20,7 +20,7 @@ class UAbilityTask_WaitInputRelease : public UAbilityTask
 	FInputReleaseDelegate	OnRelease;
 
 	UFUNCTION()
-	void OnReleaseCallback(UGameplayAbility* InAbility);
+	void OnReleaseCallback(int32 InputID);
 
 	virtual void Activate() override;
 
