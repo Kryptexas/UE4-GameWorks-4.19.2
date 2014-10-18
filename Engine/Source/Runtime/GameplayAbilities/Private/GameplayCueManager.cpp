@@ -15,7 +15,9 @@
 UGameplayCueManager::UGameplayCueManager(const class FObjectInitializer& PCIP)
 : Super(PCIP)
 {
+#if WITH_EDITOR
 	RegisteredEditorCallbacks = false;
+#endif
 }
 
 
