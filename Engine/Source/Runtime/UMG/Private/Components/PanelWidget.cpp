@@ -41,6 +41,11 @@ int32 UPanelWidget::GetChildrenCount() const
 
 UWidget* UPanelWidget::GetChildAt(int32 Index) const
 {
+	if ( Index < 0 || Index >= Slots.Num() )
+	{
+		return nullptr;
+	}
+
 	return Slots[Index]->Content;
 }
 
@@ -60,6 +65,11 @@ int32 UPanelWidget::GetChildIndex(UWidget* Content) const
 
 bool UPanelWidget::RemoveChildAt(int32 Index)
 {
+	if ( Index < 0 || Index >= Slots.Num() )
+	{
+		return false;
+	}
+
 	UPanelSlot* Slot = Slots[Index];
 	if ( Slot->Content )
 	{
@@ -105,8 +115,13 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 	return Slot;
 }
 
-void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
+bool UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 {
+	if ( Index < 0 || Index >= Slots.Num() )
+	{
+		return false;
+	}
+
 	UPanelSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
@@ -116,6 +131,8 @@ void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 	}
 
 	Slot->SynchronizeProperties();
+
+	return true;
 }
 
 void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)

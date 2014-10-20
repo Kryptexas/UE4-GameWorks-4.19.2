@@ -46,8 +46,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	UPanelSlot* AddChild(UWidget* Content);
 
-	/** Swaps the widget out of the slot at the given index, replacing it with a different widget. */
-	void ReplaceChildAt(int32 Index, UWidget* Content);
+	/**
+	 * Swaps the widget out of the slot at the given index, replacing it with a different widget.
+	 *
+	 * @param Index the index at which to replace the child content with this new Content.
+	 * @param Content The content to replace the child with.
+	 * @return true if the index existed and the child could be replaced.
+	 */
+	bool ReplaceChildAt(int32 Index, UWidget* Content);
 
 	/** Inserts a widget at a specific index */
 	void InsertChildAt(int32 Index, UWidget* Content);
