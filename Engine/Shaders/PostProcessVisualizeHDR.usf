@@ -94,6 +94,21 @@ bool InUnitBox(float2 UV)
 	return UV.x >= 0 && UV.y >= 0 && UV.y < 1 && UV.y < 1;
 }
 
+
+// @param x 0=cold..1=hot
+float3 Colorize(float x)
+{
+	x = saturate(x);
+
+	float3 Heat = float3(1.0f, 0.0f, 0.0f);
+	float3 Middle = float3(0.0f, 1.0f, 0.0f);
+	float3 Cold = float3(0.0f, 0.0f, 1.0f);
+
+	float3 ColdHeat = lerp(Cold, Heat, x);
+
+	return lerp(Middle, ColdHeat, abs(0.5f - x) * 2);
+}
+
 //
 void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
@@ -140,7 +155,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 //		float HistogramMask = HistogramY < Value;
 		float HistogramMask = saturate((Value - HistogramY) * HistogramPixelHeight);
 
-		OutColor = lerp(OutColor, 1, HistogramMask);
+		OutColor = lerp(OutColor, float4(Colorize(HistogramUV.x), 1.0f), HistogramMask);
 	}
 
 
@@ -152,7 +167,13 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	const int2 HistogramLeftTop = int2(64, ViewportRect.w - 128 - 32);
 	const int2 HistogramSize = int2(ViewportRect.z - ViewportRect.x - 64 * 2, 128);
 	const int HistogramOuterBorder = 4;
-	const float3 BorderColor = float3(0.5f, 0.5f, 0.5f);
+
+	// (0, 0) .. (1, 1)
+	float2 InsetPx = PixelPos - HistogramLeftTop;
+	float2 InsetUV = InsetPx / HistogramSize;
+	
+//	const float3 BorderColor = float3(0.5f, 0.5f, 0.5f);
+	const float3 BorderColor = Colorize(InsetUV);
 
 	float BorderDistance = ComputeDistanceToRect(PixelPos, HistogramLeftTop, HistogramSize);
 	
@@ -172,10 +193,6 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	}
 
 	// inside the histogram
-
-	// (0, 0) .. (1, 1)
-	float2 InsetPx = PixelPos - HistogramLeftTop;
-	float2 InsetUV = InsetPx / HistogramSize;
 
 	uint Bucket = (uint)(InsetUV.x * HISTOGRAM_SIZE);
 	
@@ -205,7 +222,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	if(LocalHistogramValue >= 1 - InsetUV.y)
 	{
 		// histogram bars
-		OutColor.xyz = lerp(OutColor.xyz, float3(0.5f, 0.5f, 0.5f), 0.5f);
+		OutColor.xyz = lerp(OutColor.xyz, Colorize(InsetUV), 0.5f);
 	}
 
 	{

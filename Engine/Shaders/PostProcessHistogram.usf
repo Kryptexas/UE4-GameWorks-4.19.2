@@ -16,7 +16,7 @@ RWTexture2D<float4> HistogramRWTexture;
 
 //
 uint2 ThreadGroupCount;
-
+//
 uint2 LeftTopOffset;
 
 // THREADGROUP_SIZEX*THREADGROUP_SIZEY histograms of the size HISTOGRAM_SIZE
