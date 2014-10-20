@@ -38,6 +38,32 @@ const FString FFriendStuct::GetName() const
 	return GroupName;
 }
 
+const FText FFriendStuct::GetFriendLocation() const
+{
+	if(OnlineFriend.IsValid())
+	{
+		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
+		if(OnlinePresence.bIsPlaying)
+		{
+			return FText::FromString("Is Playing");
+		}
+		else
+		{
+			return FText::FromString("Not Playing");
+		}
+	}
+	return FText::GetEmpty();
+}
+
+const bool FFriendStuct::IsOnline() const
+{
+	if(OnlineFriend.IsValid())
+	{
+		return OnlineFriend->GetPresence().bIsOnline;
+	}
+	return false;
+}
+
 const TSharedRef< FUniqueNetId > FFriendStuct::GetUniqueID() const
 {
 	return UniqueID.ToSharedRef();
@@ -59,6 +85,7 @@ void FFriendStuct::ClearUpdated()
 	bIsUpdated = false;
 	bIsPendingAccepted = false;
 	bIsPendingInvite = false;
+	bIsPendingDelete = false;
 }
 
 bool FFriendStuct::IsUpdated()
@@ -71,9 +98,24 @@ void FFriendStuct::SetPendingAccept()
 	bIsPendingAccepted = true;
 }
 
+bool FFriendStuct::IsPendingAccepted() const
+{
+	return bIsPendingAccepted;
+}
+
 void FFriendStuct::SetPendingInvite()
 {
 	bIsPendingInvite = true;
+}
+
+void FFriendStuct::SetPendingDelete()
+{
+	bIsPendingDelete = true;
+}
+
+bool FFriendStuct::IsPendingDelete() const
+{
+	return bIsPendingDelete;
 }
 
 EInviteStatus::Type FFriendStuct::GetInviteStatus()

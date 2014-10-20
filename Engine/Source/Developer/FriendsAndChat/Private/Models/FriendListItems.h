@@ -92,6 +92,18 @@ public:
 	const FString GetName() const;
 
 	/**
+	 * Get the user location.
+	 * @return The user location.
+	 */
+	const FText GetFriendLocation() const;
+
+	/**
+	 * Get if the user is online.
+	 * @return The user online state.
+	 */
+	const bool IsOnline() const;
+
+	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
@@ -128,6 +140,15 @@ public:
 
 	/** Set if pending invitation response. */
 	void SetPendingAccept();
+
+	/** Set if pending delete. */
+	void SetPendingDelete();
+
+	/** Get if pending delete. */
+	bool IsPendingDelete() const;
+
+	/** Get if pending invitation response. */
+	bool IsPendingAccepted() const;
 
 	/**
 	 * Get the invitation status.
@@ -172,4 +193,7 @@ private:
 
 	/** Holds if we are pending an invite response. */
 	bool bIsPendingInvite;
+
+	/** Holds if we are pending delete. */
+	bool bIsPendingDelete;
 };

@@ -6,9 +6,14 @@
 /* Dependencies
  *****************************************************************************/
 
+#include "FriendsFactory.h"
 #include "SlateBasics.h"
 #include "Ticker.h"
 #include "SlateStyle.h"
+#include "Analytics.h"
+#include "AnalyticsEventAttribute.h"
+#include "IAnalyticsProvider.h"
+#include "AnalyticsET.h"
 #include "FriendsAndChat.h"
 #include "Online.h"
 #include "OnlineSubsystem.h"
@@ -19,15 +24,13 @@
 #include "OnlineMessageInterface.h"
 #include "FriendListItems.h"
 
-
 /* Private UI includes
 *****************************************************************************/
 
 #include "SFriendsItem.h"
 #include "SFriendsListContextMenu.h"
-#include "SFriendsList.h"
 #include "SChatWindow.h"
-
+#include "SFriendItem.h"
 
 /* Private Class includes
 *****************************************************************************/

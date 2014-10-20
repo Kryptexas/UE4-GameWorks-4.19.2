@@ -55,6 +55,36 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle SearchButtonStyle;
 	FFriendsAndChatStyle& SetSearchButtonStyle( const FButtonStyle& InButtonStyle);
 
+	/** Friends List Open Button style */
+	UPROPERTY()
+	FButtonStyle FriendListOpenButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Friends List Action Button style */
+	UPROPERTY()
+	FButtonStyle FriendListActionButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Friends List Close button style */
+	UPROPERTY()
+	FButtonStyle FriendListCloseButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListClosedButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Title Bar brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush TitleBarBrush;
+	FFriendsAndChatStyle& SetTitleBarBrush(const FSlateBrush& BrushStyle);
+
+	/** Friend Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendImageBrush;
+	FFriendsAndChatStyle& SetFriendImageBrush(const FSlateBrush& BrushStyle);
+
+	/** Friend combo dropdown Image */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendsComboDropdownImageBrush;
+	FFriendsAndChatStyle& SetFriendsComboDropdownImageBrush(const FSlateBrush& BrushStyle);
+
 	/** Offline brush style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush OfflineBrush;
@@ -80,10 +110,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FSlateFontInfo FriendsFontStyle;
 	FFriendsAndChatStyle& SetFontStyle(const FSlateFontInfo& InFontStyle);
 
-	/** Toggle checkbox Style */
+	/** Font Style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FCheckBoxStyle CheckBoxToggleStyle;
-	FFriendsAndChatStyle& SetCheckboxToggleStyle(const FCheckBoxStyle& InCheckboxStyle);
+	FSlateFontInfo FriendsFontStyleSmall;
+	FFriendsAndChatStyle& SetFontStyleSmall(const FSlateFontInfo& InFontStyle);
 
 	/** Menu set color */
 	UPROPERTY(EditAnywhere, Category=Appearance)

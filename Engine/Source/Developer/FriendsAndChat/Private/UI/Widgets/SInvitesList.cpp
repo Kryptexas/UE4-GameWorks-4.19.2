@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
-#include "SFriendsList.h"
+#include "SInvitesList.h"
+#include "SInviteItem.h"
 #include "FriendsViewModel.h"
 #include "FriendListViewModel.h"
 
@@ -10,7 +11,7 @@
 /**
  * Declares the Friends List display widget
 */
-class SFriendsListImpl : public SFriendsList
+class SInvitesListImpl : public SInvitesList
 {
 public:
 
@@ -18,49 +19,42 @@ public:
 	{
 		FriendStyle = *InArgs._FriendStyle;
 		this->ViewModel = ViewModel;
-		ViewModel->OnFriendsListUpdated().AddSP(this, &SFriendsListImpl::RefreshFriendsList);
-		MenuMethod = InArgs._Method;
+		
+		ViewModel->OnFriendsListUpdated().AddSP(this, &SInvitesListImpl::RefreshFriendsList);
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SAssignNew(Contents, SBorder)
+			SAssignNew(Contents, SVerticalBox)
 		]);
 	}
 
 private:
 	void RefreshFriendsList()
 	{
-		Contents->ClearContent();
-
-		TSharedPtr<SVerticalBox> FriendsContents;
-		SAssignNew(FriendsContents, SVerticalBox);
+		Contents->ClearChildren();
 
 		for(const auto& OnlineFriend : ViewModel->GetFriendsList())
 		{
-			FriendsContents->AddSlot()
+			Contents->AddSlot()
 			.AutoHeight()
 			.VAlign(VAlign_Center)
 			[
-				SNew(SFriendItem, OnlineFriend.ToSharedRef())
+				SNew(SInviteItem, OnlineFriend.ToSharedRef())
 				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
 			];
 		}
-
-		Contents->SetContent(FriendsContents.ToSharedRef());
 	}
 
 private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
+	TSharedPtr<SVerticalBox> Contents;
 	TSharedPtr<FFriendListViewModel> ViewModel;
-	TSharedPtr<SBorder> Contents;
-	SMenuAnchor::EMethod MenuMethod;
 };
 
-TSharedRef<SFriendsList> SFriendsList::New()
+TSharedRef<SInvitesList> SInvitesList::New()
 {
-	return MakeShareable(new SFriendsListImpl());
+	return MakeShareable(new SInvitesListImpl());
 }
 
 #undef LOCTEXT_NAMESPACE

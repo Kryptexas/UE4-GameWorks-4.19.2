@@ -49,11 +49,6 @@ public:
 		FFriendsMessageManager::Get()->ClearGameInvites();
 	}
 
-	virtual int32 GetFriendCount() override
-	{
-		return FFriendsAndChatManager::Get()->GetFriendCount();
-	}
-
 	virtual void Logout() override
 	{
 		FFriendsAndChatManager::Get()->Logout();

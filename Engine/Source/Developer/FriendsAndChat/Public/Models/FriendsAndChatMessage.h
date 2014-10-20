@@ -55,6 +55,31 @@ namespace EFriendsDisplayLists
 		RecentPlayersDisplay,	// Recent Players display
 		FriendRequestsDisplay,	// Friend request display
 	};
+
+	inline const FText ToFText(EFriendsDisplayLists::Type EnumVal)
+	{
+		static const FText FriendsList = NSLOCTEXT("FriendsListTypes", "FriendsList", "Friends");
+		static const FText RecentPlayersList = NSLOCTEXT("FriendsListTypes", "RecentPlayersList", "Recent Players");
+		static const FText FriendRequestList = NSLOCTEXT("FriendsListTypes", "InvitesList", "Invitations");
+
+		switch (EnumVal)
+		{
+			case DefaultDisplay:
+			{
+				return FriendsList;
+			}
+			case RecentPlayersDisplay:
+			{
+				return RecentPlayersList;
+			}
+			case FriendRequestsDisplay:
+			{
+				return FriendRequestList;
+			}
+		}
+
+		return FText::GetEmpty();
+	}
 };
 
 

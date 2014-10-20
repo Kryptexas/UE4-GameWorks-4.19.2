@@ -26,6 +26,44 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetSearchButtonStyle( const FButtonS
 	return *this; 
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListOpenButtonStyle = ButtonStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListActionButtonStyle = ButtonStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListClosedButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListCloseButtonStyle = ButtonStyle;
+	return *this;
+}
+
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetTitleBarBrush(const FSlateBrush& Brush)
+{
+	TitleBarBrush = Brush;
+	return *this;
+}
+
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendImageBrush(const FSlateBrush& Brush)
+{
+	FriendImageBrush = Brush;
+	return *this;
+}
+
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsComboDropdownImageBrush(const FSlateBrush& Brush)
+{
+	FriendsComboDropdownImageBrush = Brush;
+	return *this;
+}
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetOfflineBrush(const FSlateBrush& InOffLine)
 {
@@ -61,10 +99,9 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyle(const FSlateFontInfo& I
 	return *this;
 }
 
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetCheckboxToggleStyle(const FCheckBoxStyle& InCheckboxStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleSmall(const FSlateFontInfo& FontStyle)
 {
-	CheckBoxToggleStyle = InCheckboxStyle;
+	FriendsFontStyleSmall = FontStyle;
 	return *this;
 }
 

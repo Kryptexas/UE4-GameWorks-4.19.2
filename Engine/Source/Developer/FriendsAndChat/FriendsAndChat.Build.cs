@@ -11,7 +11,7 @@ public class FriendsAndChat : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-                "InputCore",
+				"InputCore",
 				"Slate",
 				"OnlineSubsystem"
 			}
@@ -32,6 +32,8 @@ public class FriendsAndChat : ModuleRules
 				"Developer/FriendsAndChat/Private",
 				"Developer/FriendsAndChat/Private/UI/Widgets",
 				"Developer/FriendsAndChat/Private/Models",
+				"Developer/FriendsAndChat/Private/Core",
+
 			}
 		);
 
@@ -46,6 +48,8 @@ public class FriendsAndChat : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 		new string[] {
 				"HTTP",
+				"Analytics",
+				"AnalyticsET",
 				"EditorStyle",
 				"OnlineSubsystem"
 			}
@@ -54,6 +58,8 @@ public class FriendsAndChat : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"HTTP",
+				"Analytics",
+				"AnalyticsET",
 				"EditorStyle",
 			}
 		);

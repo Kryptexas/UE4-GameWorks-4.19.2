@@ -11,10 +11,8 @@ namespace EFriendsAndManagerState
 		Idle,								// Idle - can accept requests
 		RequestingFriendsList,				// Requesting a list refresh
 		RequestFriendsListRefresh,			// List request in progress
-		RequestRecentPlayersListRefresh,	// List recent player list refresh in progress
 		ProcessFriendsList,					// Process the Friends List after a list refresh
-		ProcessRecentPlayersList,			// Process the recent players list
-		RequestingFriends,					// Requesting a friend add
+		RequestingFriendName,				// Requesting a friend add
 		DeletingFriends,					// Deleting a friend
 		AcceptingFriendRequest,				// Accepting a friend request
 	};
@@ -49,7 +47,7 @@ public:
 	 *
 	 * @param Notification delegate The delegate for message notifications.
 	 */
-	void Init( FOnFriendsNotification& NotificationDelegate );
+	void Init(FOnFriendsNotification& NotificationDelegate);
 
 	/** Logout and close any Friends windows. */
 	void Logout();
@@ -129,16 +127,6 @@ public:
 	int32 GetFilteredOutgoingFriendsList( TArray< TSharedPtr< FFriendStuct > >& OutFriendsList );
 
 	/**
-	 * Gets the friends count.
-	 *
-	 * @return The amount of friends.
-	 */
-	int32 GetFriendCount();
-
-	/** Calculates the new friends count after an update. */
-	void GenerateFriendsCount();
-
-	/**
 	 * Request a friend be added.
 	 *
 	 * @param FriendName The friend name.
@@ -170,13 +158,6 @@ public:
 	EFriendsAndManagerState::Type GetManagerState();
 
 	/**
-	 * Get the manager state.
-	 *
-	 * @param bListSelectType The list select type.
-	 */
-	void SetListSelect( EFriendsDisplayLists::Type ListSelectType );
-
-	/**
 	 * Find a user ID.
 	 *
 	 * @param InUserName The user name to find.
@@ -196,10 +177,9 @@ public:
 	 * Find a user.
 	 *
 	 * @param InUserName The user name to find.
-	 * @param ListName The list name.
 	 * @return The Friend ID.
 	 */
-	TSharedPtr< FFriendStuct > FindUser( TSharedRef<FUniqueNetId> InUserID, const FString& ListName );
+	TSharedPtr< FFriendStuct > FindUser( TSharedRef<FUniqueNetId> InUserID);
 
 private:
 
@@ -211,15 +191,6 @@ private:
 
 	/** Build the friends list used in the UI. */
 	void BuildFriendsList();
-
-	/** Build the recent player list used in the UI. */
-	void BuildRecentPlayersList();
-
-	/** Build the incomming request list */
-	void BuildRequestIncomingPlayersList();
-
-	/** Build the outgoing request list */
-	void BuildRequestOutgoingPlayersList();
 
 	/**
 	 * Set the manager state.
@@ -242,18 +213,7 @@ private:
 	 * @param ListName			Name of the friends list that was operated on.
 	 * @param ErrorStr			String representing the error condition.
 	 */
-	void OnReadFriendsComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr );
-
-	/**
-	 * Delegate used when an invite accept request has completed.
-	 *
-	 * @param LocalPlayer		The controller number of the associated user that made the request
-	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error
-	 * @param FriendId			Player that invited us
-	 * @param ListName			Name of the friends list that was operated on
-	 * @param ErrorStr			String representing the error condition
-	 */
-	void OnAcceptInviteComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr );
+	void OnReadFriendsListComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr );
 
 	/**
 	 * Delegate used when an invite send request has completed.
@@ -267,14 +227,15 @@ private:
 	void OnSendInviteComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr );
 
 	/**
-	 * Delegate used when the friends list delete request has completed.
+	 * Delegate used when an invite accept request has completed.
 	 *
-	 * @param LocalPlayer		The controller number of the associated user that made the request.
-	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error.
-	 * @param ListName			Name of the friends list that was operated on.
-	 * @param ErrorStr			String representing the error condition.
-     */
-	void OnDeleteFriendsListComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr );
+	 * @param LocalPlayer		The controller number of the associated user that made the request
+	 * @param bWasSuccessful	true if the async action completed without error, false if there was an error
+	 * @param FriendId			Player that invited us
+	 * @param ListName			Name of the friends list that was operated on
+	 * @param ErrorStr			String representing the error condition
+	 */
+	void OnAcceptInviteComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr );
 
 	/**
 	 * Delegate used when the friends delete request has completed.
@@ -320,17 +281,8 @@ private:
 	 * Validate friend list after a refresh. Check if the list has changed.
 	 *
 	 * @return True if the list has changes and the UI needs refreshing.
-	 * @see UpdateRecentPlayerList
 	 */
 	bool UpdateFriendsList();
-
-	/**
-	 * Validate recent player list after a refresh. Check if the list has changed.
-	 *
-	 * @return True if the list has changes and the UI needs refreshing
-	 * @see UpdateFriendsList
-	 */
-	bool UpdateRecentPlayerList();
 
 	/**
 	 * A ticker used to perform updates on the main thread.
@@ -367,8 +319,6 @@ private:
 	TArray< TSharedRef< FUniqueNetId > > QueryUserIds;
 	// Holds the full friends list used to build the UI
 	TArray< TSharedPtr< FFriendStuct > > FriendsList;
-	// Holds the array of recent players used to build the UI
-	TArray< TSharedPtr< FFriendStuct > > RecentPlayerList;
 	// Holds the filtered friends list used in the UI
 	TArray< TSharedPtr< FFriendStuct > > FilteredFriendsList;
 	// Holds the outgoing friend request list used in the UI
@@ -384,11 +334,9 @@ private:
 	// Holds an array of outgoing invite friend requests
 	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingFriendRequests;
 	// Holds an array of outgoing delete friend requests
-	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingDeleteFriendRequests;
+	TArray< FUniqueNetIdString > PendingOutgoingDeleteFriendRequests;
 	// Holds an array of outgoing accept friend requests
-	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingAcceptFriendRequests;
-	// Holds the list of lists to query on refresh - e.g. recent friends
-	TArray< EFriendsLists::Type > ReadListRequests;
+	TArray< FUniqueNetIdString > PendingOutgoingAcceptFriendRequests;
 
 	/* Delegates
 	*****************************************************************************/
@@ -401,8 +349,6 @@ private:
 	FOnAcceptInviteCompleteDelegate OnAcceptInviteCompleteDelegate;
 	// Delegate when invites have been sent
 	FOnSendInviteCompleteDelegate OnSendInviteCompleteDelegate;
-	// Delegate to use for deleting the friends list
-	FOnDeleteFriendsListCompleteDelegate OnDeleteFriendsListCompleteDelegate;
 	// Delegate to use for deleting a friend
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
 	// Delegate for querying user id from a name string
@@ -436,7 +382,6 @@ private:
 
 	/* UI
 	*****************************************************************************/
-
 	// Holds the parent window
 	TSharedPtr< const SWidget > ParentWidget;
 	// Holds the main Friends List window
@@ -447,10 +392,6 @@ private:
 	TSharedPtr< SWindow > ChatWindow;
 	// Holds the style used to create the Friends List widget
 	FFriendsAndChatStyle Style;
-	// Hold list display choice
-	EFriendsDisplayLists::Type CurrentList;
-	// Holds the recent friends count
-	int32 ConfirmedFriendsCount;
 	// Holds if the game is in session
 	bool bIsInSession;
 	// Holds if the Friends list is inited

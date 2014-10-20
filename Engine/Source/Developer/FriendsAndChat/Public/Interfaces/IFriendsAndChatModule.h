@@ -87,13 +87,6 @@ public:
 	/** Clear game invites. */
 	virtual void ClearGameInvites() = 0;
 
-	/**
-	 * Get the friends list count.
-	 *
-	 * @return The friends list count.
-	 */
-	virtual int32 GetFriendCount() = 0;
-
 	/** Log out and kill the friends list window. */
 	virtual void Logout() = 0;
 
