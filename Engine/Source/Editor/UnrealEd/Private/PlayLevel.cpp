@@ -31,6 +31,7 @@
 #include "EngineAnalytics.h"
 #include "Engine/GameInstance.h"
 #include "EditorAnalytics.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SScissorRectBox.h"
 #include "Online.h"
@@ -2682,7 +2683,7 @@ float UEditorEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient
 {
 	FVector2D ViewportSize;
 	ViewportClient->GetViewportSize(ViewportSize);
-	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+	return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 }
 
 FViewport* UEditorEngine::GetActiveViewport()

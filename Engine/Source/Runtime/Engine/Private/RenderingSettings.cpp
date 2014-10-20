@@ -14,6 +14,24 @@ static FName ToolTipFName(TEXT("ConsoleVariable"));
 void URendererSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+	if ( IsTemplate() )
+	{
+		// If we have UI scale curve data in the renderer settings config, move it to the user interface settings.
+		if ( FRichCurve* OldCurve = UIScaleCurve_DEPRECATED.GetRichCurve() )
+		{
+			if ( OldCurve->GetNumKeys() != 0 )
+			{
+				UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+				UISettings->UIScaleRule = UIScaleRule_DEPRECATED;
+				UISettings->UIScaleCurve = UIScaleCurve_DEPRECATED;
+
+				// Remove all old keys so that we don't attempt to load from renderer settings again.
+				OldCurve->Reset();
+			}
+		}
+	}
+
 #if WITH_EDITOR
 	if (IsTemplate())
 	{
@@ -49,6 +67,7 @@ void URendererSettings::PostInitProperties()
 void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
 	if (PropertyChangedEvent.Property)
 	{
 		FString CVarName = PropertyChangedEvent.Property->GetMetaData(ConsoleVariableFName);
@@ -80,40 +99,14 @@ void URendererSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 				UE_LOG(LogInit, Warning, TEXT("CVar named '%s' marked up in URenderingSettings was not found or is set to read-only"), *CVarName);
 			}
 		}
+
+		// If the renderer settings are updated and saved, we need to update the user interface settings too, to prevent data loss
+		// from old curve data for UI settings.
+		if ( IsTemplate() )
+		{
+			UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+			UISettings->UpdateDefaultConfigFile();
+		}
 	}
 }
 #endif // #if WITH_EDITOR
-
-float URendererSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
-{
-	float Scale = 1;
-
-	//if ( UIScaleRule == EUIScalingRule::Custom )
-	//{
-
-	//}
-	//else
-	{
-		int32 EvalPoint = 0;
-		switch ( UIScaleRule )
-		{
-		case EUIScalingRule::ShortestSide:
-			EvalPoint = FMath::Min(Size.X, Size.Y);
-			break;
-		case EUIScalingRule::LongestSide:
-			EvalPoint = FMath::Max(Size.X, Size.Y);
-			break;
-		case EUIScalingRule::Horizontal:
-			EvalPoint = Size.X;
-			break;
-		case EUIScalingRule::Vertical:
-			EvalPoint = Size.Y;
-			break;
-		}
-
-		const FRichCurve* DPICurve = UIScaleCurve.GetRichCurveConst();
-		Scale = DPICurve->Eval((float)EvalPoint, 1.0f);
-	}
-
-	return FMath::Max(Scale, 0.01f);
-}

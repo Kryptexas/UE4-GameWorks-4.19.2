@@ -16,6 +16,7 @@
 #include "EngineModule.h"
 #include "Engine/GameInstance.h"
 #include "Engine/RendererSettings.h"
+#include "Engine/UserInterfaceSettings.h"
 #include "AVIWriter.h"
 
 #include "SlateBasics.h"
@@ -169,7 +170,7 @@ float UGameEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) 
 {
 	FVector2D ViewportSize;
 	ViewportClient->GetViewportSize(ViewportSize);
-	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+	return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 }
 
 void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)

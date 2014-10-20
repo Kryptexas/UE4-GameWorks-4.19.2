@@ -6052,6 +6052,8 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 	Set("UMGEditor.SelectionOutline", new BORDER_BRUSH("UMG/SelectionBorder", FMargin(.2f) ));
 
 	Set("UMGEditor.AnchorGrid", new IMAGE_BRUSH("Icons/UMG/AnchorGrid", Icon10x10, FLinearColor::White, ESlateBrushTileType::Both ));
+
+	Set("UMGEditor.DPISettings", new IMAGE_BRUSH("Icons/UMG/SettingsButton", Icon16x16));
 }
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()

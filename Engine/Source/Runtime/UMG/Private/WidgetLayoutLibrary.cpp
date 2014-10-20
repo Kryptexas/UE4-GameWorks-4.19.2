@@ -3,6 +3,7 @@
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
 #include "WidgetLayoutLibrary.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -24,7 +25,7 @@ float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
 		{
 			FVector2D ViewportSize;
 			ViewportClient->GetViewportSize(ViewportSize);
-			return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+			return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
 		}
 	}
 

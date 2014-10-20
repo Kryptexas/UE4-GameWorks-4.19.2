@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "UserInterfaceSettings.h"
+
 #include "RendererSettings.generated.h"
 
 
@@ -77,26 +79,6 @@ namespace EAntiAliasingMethodUI
 		AAM_FXAA UMETA(DisplayName = "FXAA"),
 		AAM_TemporalAA UMETA(DisplayName = "TemporalAA"),
 		AAM_MAX,
-	};
-}
-
-
-/** The Side to use when scaling the UI. */
-UENUM()
-namespace EUIScalingRule
-{
-	enum Type
-	{
-		/** Evaluates the scale curve based on the shortest side of the viewport */
-		ShortestSide,
-		/** Evaluates the scale curve based on the longest side of the viewport */
-		LongestSide,
-		/** Evaluates the scale curve based on the X axis of the viewport */
-		Horizontal,
-		/** Evaluates the scale curve based on the Y axis of the viewport */
-		Vertical,
-		/** Custom - Allows custom rule interpretation */
-		//Custom
 	};
 }
 
@@ -256,27 +238,23 @@ class ENGINE_API URendererSettings
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
 
-	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
-		DisplayName="DPI Scale Rule",
-		ToolTip="The rule used when trying to decide what scale to apply." ))
-	TEnumAsByte<EUIScalingRule::Type> UIScaleRule;
-
-	UPROPERTY(config, EditAnywhere, Category=UI, meta=(
-		DisplayName="DPI Curve",
-		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule" ))
-	FRuntimeFloatCurve UIScaleCurve;
-
 public:
 
 	// Begin UObject interface
 
 	virtual void PostInitProperties() override;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	// End UObject interface
 
-	/** Gets the current scale of the UI based on the size */
-	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
+private:
+	
+	UPROPERTY(config)
+	TEnumAsByte<EUIScalingRule::Type> UIScaleRule_DEPRECATED;
+
+	UPROPERTY(config)
+	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;
 };

@@ -29,6 +29,7 @@
 #include "SceneOutlinerTreeItems.h"
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SScissorRectBox.h"
 #include "SDPIScaler.h"
@@ -374,7 +375,7 @@ float SLevelViewport::GetGameViewportDPIScale() const
 {
 	if ( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
 	{
-		return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize( ActiveViewport->GetSize() );
+		return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(ActiveViewport->GetSize());
 	}
 
 	return 1.0f;

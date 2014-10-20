@@ -119,6 +119,7 @@ private:
 	FText GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const;
 
 	FText GetCurrentResolutionText() const;
+	FText GetCurrentDPIScaleText() const;
 	FSlateColor GetResolutionTextColorAndOpacity() const;
 
 	TOptional<int32> GetCustomResolutionWidth() const;
@@ -137,6 +138,7 @@ private:
 
 	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
 	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
+	FReply HandleDPISettingsClicked();
 
 	UUserWidget* GetDefaultWidget() const;
 

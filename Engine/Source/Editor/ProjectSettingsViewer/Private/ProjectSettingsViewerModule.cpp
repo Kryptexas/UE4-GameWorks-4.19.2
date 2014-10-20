@@ -4,6 +4,7 @@
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
 #include "CookerSettings.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 #include "SDockTab.h"
@@ -156,7 +157,14 @@ protected:
 			GetMutableDefault<URendererSettings>()
 		);
 
-		// Rendering settings
+		// UI settings
+		SettingsModule.RegisterSettings("Project", "Engine", "UI",
+			LOCTEXT("EngineUISettingsName", "User Interface"),
+			LOCTEXT("ProjectUISettingsDescription", "User Interface settings that control Slate and UMG."),
+			GetMutableDefault<UUserInterfaceSettings>()
+		);
+
+		// Cooker settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Cooker",
 			LOCTEXT("CookerSettingsName", "Cooker"),
 			LOCTEXT("CookerSettingsDescription", "Various cooker settings."),

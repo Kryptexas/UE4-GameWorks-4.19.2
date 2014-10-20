@@ -2,6 +2,8 @@
 
 #include "UMGEditorPrivatePCH.h"
 
+#include "Settings.h"
+
 #include "Designer/DesignTimeUtils.h"
 
 #include "Extensions/CanvasSlotExtension.h"
@@ -21,6 +23,7 @@
 #include "SDesignerToolBar.h"
 #include "DesignerCommands.h"
 #include "STransformHandle.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "SDPIScaler.h"
 #include "SNumericEntryBox.h"
@@ -135,11 +138,11 @@ const FString SDesignerView::DefaultAspectRatio = "16:9";
 
 void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 {
-	ScopedTransaction = NULL;
+	ScopedTransaction = nullptr;
 
-	PreviewWidget = NULL;
-	DropPreviewWidget = NULL;
-	DropPreviewParent = NULL;
+	PreviewWidget = nullptr;
+	DropPreviewWidget = nullptr;
+	DropPreviewParent = nullptr;
 	BlueprintEditor = InBlueprintEditor;
 
 	DesignerMessage = EDesignerMessage::None;
@@ -298,7 +301,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				[
 					SNew(SNumericEntryBox<int32>)
 					.AllowSpin(true)
-					.Delta(5)
+					.Delta(1)
 					.MinSliderValue(1)
 					.MinValue(1)
 					.MaxSliderValue(TOptional<int32>(1000))
@@ -320,7 +323,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				[
 					SNew(SNumericEntryBox<int32>)
 					.AllowSpin(true)
-					.Delta(5)
+					.Delta(1)
 					.MinSliderValue(1)
 					.MaxSliderValue(TOptional<int32>(1000))
 					.MinValue(1)
@@ -333,23 +336,6 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					[
 						SNumericEntryBox<int32>::BuildLabel(LOCTEXT("Height", "Height"), FLinearColor::White, SNumericEntryBox<int32>::GreenLabelBackgroundColor)
 					]
-				]
-			]
-
-			// Bottom bar to show current resolution & AR
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Bottom)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(6, 0, 0, 2)
-				[
-					SNew(STextBlock)
-					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
-					.Text(this, &SDesignerView::GetCurrentResolutionText)
-					.ColorAndOpacity(this, &SDesignerView::GetResolutionTextColorAndOpacity)
 				]
 			]
 
@@ -371,6 +357,58 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 						SNew(STextBlock)
 						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
 						.Text(this, &SDesignerView::GetInfoBarText)
+					]
+				]
+			]
+
+			// Bottom bar to show current resolution & AR
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(6, 0, 0, 2)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+					.Text(this, &SDesignerView::GetCurrentResolutionText)
+					.ColorAndOpacity(this, &SDesignerView::GetResolutionTextColorAndOpacity)
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Right)
+				.Padding(0, 0, 6, 2)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "Graph.ZoomText")
+						.Text(this, &SDesignerView::GetCurrentDPIScaleText)
+						.ColorAndOpacity(FLinearColor(1, 1, 1, 0.25f))
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(6, 0, 0, 0)
+					[
+						SNew(SButton)
+						.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+						.ContentPadding(FMargin(3, 1))
+						.OnClicked(this, &SDesignerView::HandleDPISettingsClicked)
+						.ToolTipText(LOCTEXT("DPISettingsTooltip", "Configure the UI Scale Curve to control how the UI is scaled on different resolutions."))
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("UMGEditor.DPISettings"))
+						]
 					]
 				]
 			]
@@ -518,7 +556,7 @@ float SDesignerView::GetPreviewDPIScale() const
 		}
 	}
 
-	return GetDefault<URendererSettings>(URendererSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(PreviewWidth, PreviewHeight));
+	return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(PreviewWidth, PreviewHeight));
 }
 
 FSlateRect SDesignerView::ComputeAreaBounds() const
@@ -703,7 +741,7 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 		FWidgetReference ParentRef = BlueprintEditor.Pin()->GetReferenceFromTemplate(SelectedWidget.GetTemplate()->GetParent());
 
 		UWidget* Preview = ParentRef.GetPreview();
-		TSharedPtr<SWidget> CachedPreviewSlateWidget = Preview ? Preview->GetCachedWidget() : NULL;
+		TSharedPtr<SWidget> CachedPreviewSlateWidget = Preview ? Preview->GetCachedWidget() : nullptr;
 		if ( CachedPreviewSlateWidget.IsValid() )
 		{
 			FWidgetPath WidgetPath;
@@ -777,7 +815,7 @@ UWidgetBlueprint* SDesignerView::GetBlueprint() const
 		return Cast<UWidgetBlueprint>(BP);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void SDesignerView::Register(TSharedRef<FDesignerExtension> Extension)
@@ -793,7 +831,7 @@ void SDesignerView::OnBlueprintCompiled(UBlueprint* InBlueprint)
 	// having slate widgets that still may reference data in their owner UWidget that has been garbage collected.
 	CachedWidgetGeometry.Reset();
 
-	PreviewWidget = NULL;
+	PreviewWidget = nullptr;
 	PreviewSurface->SetContent(SNullWidget::NullWidget);
 }
 
@@ -812,7 +850,7 @@ FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, c
 	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
 	if ( WidgetActor )
 	{
-		UWidget* Preview = NULL;
+		UWidget* Preview = nullptr;
 
 		for ( int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; ChildIndex-- )
 		{
@@ -822,7 +860,7 @@ FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, c
 			// Ignore the drop preview widget when doing widget picking
 			if (Preview == DropPreviewWidget)
 			{
-				Preview = NULL;
+				Preview = nullptr;
 				continue;
 			}
 			
@@ -1014,7 +1052,7 @@ FReply SDesignerView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEven
 
 void SDesignerView::ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, nullptr);
 
 	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), SelectedWidgetContextMenuLocation);
 
@@ -1266,7 +1304,7 @@ void SDesignerView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 
 		UWidgetBlueprint* BP = GetBlueprint();
 		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-		DropPreviewWidget = NULL;
+		DropPreviewWidget = nullptr;
 	}
 }
 
@@ -1282,7 +1320,7 @@ FReply SDesignerView::OnDragOver(const FGeometry& MyGeometry, const FDragDropEve
 		}
 		
 		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-		DropPreviewWidget = NULL;
+		DropPreviewWidget = nullptr;
 	}
 	
 	const bool bIsPreview = true;
@@ -1316,7 +1354,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 		}
 
 		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-		DropPreviewWidget = NULL;
+		DropPreviewWidget = nullptr;
 	}
 
 	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
@@ -1324,7 +1362,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 	FGeometry WidgetUnderCursorGeometry = ArrangedWidget.Geometry;
 
-	UWidget* Target = NULL;
+	UWidget* Target = nullptr;
 	if ( WidgetUnderCursor.IsValid() )
 	{
 		Target = bIsPreview ? WidgetUnderCursor.GetPreview() : WidgetUnderCursor.GetTemplate();
@@ -1336,7 +1374,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 		TemplateDragDropOp->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
 		// If there's no root widget go ahead and add the widget into the root slot.
-		if ( BP->WidgetTree->RootWidget == NULL )
+		if ( BP->WidgetTree->RootWidget == nullptr )
 		{
 			FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
 
@@ -1356,7 +1394,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 			SelectedWidget = BlueprintEditor.Pin()->GetReferenceFromTemplate(Widget);
 
-			DropPreviewParent = NULL;
+			DropPreviewParent = nullptr;
 
 			if ( bIsPreview )
 			{
@@ -1597,7 +1635,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 		}
 	}
 	
-	return NULL;
+	return nullptr;
 }
 
 FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
@@ -1614,7 +1652,7 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 		}
 		
 		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-		DropPreviewWidget = NULL;
+		DropPreviewWidget = nullptr;
 	}
 	
 	const bool bIsPreview = false;
@@ -1652,9 +1690,29 @@ FText SDesignerView::GetCurrentResolutionText() const
 	return GetResolutionText(PreviewWidth, PreviewHeight, PreviewAspectRatio);
 }
 
+FText SDesignerView::GetCurrentDPIScaleText() const
+{
+	FInternationalization& I18N = FInternationalization::Get();
+
+	FNumberFormattingOptions Options;
+	Options.MinimumIntegralDigits = 1;
+	Options.MaximumFractionalDigits = 2;
+	Options.MinimumFractionalDigits = 1;
+
+	FText DPIString = FText::AsNumber(GetPreviewDPIScale(), &Options, I18N.GetInvariantCulture());
+	return FText::Format(LOCTEXT("CurrentDPIScaleFormat", "DPI Scale {0}"), DPIString);
+}
+
 FSlateColor SDesignerView::GetResolutionTextColorAndOpacity() const
 {
 	return FLinearColor(1, 1, 1, 1.25f - ResolutionTextFade.GetLerp());
+}
+
+FReply SDesignerView::HandleDPISettingsClicked()
+{
+	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Project", "Engine", "UI");
+
+	return FReply::Handled();
 }
 
 void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, FString AspectRatio)
