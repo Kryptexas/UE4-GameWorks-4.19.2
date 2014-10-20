@@ -1279,7 +1279,7 @@ void ExecuteSimulationCommands(
  */
 void ClearTiles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const TArray<uint32>& Tiles)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
 
 	const int32 MaxTilesPerDrawCallUnaligned = GParticleScratchVertexBufferSize / sizeof(FVector2D);
 	const int32 MaxTilesPerDrawCall = MaxTilesPerDrawCallUnaligned & (~(TILES_PER_INSTANCE-1));
@@ -1755,7 +1755,7 @@ static void VisualizeGPUSimulation(
 	)
 {
 	check(IsInRenderingThread());
-	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimDebugDraw, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ParticleSimDebugDraw);
 
 	// Some constants for laying out the debug view.
 	const float DisplaySizeX = 256.0f;
@@ -4266,7 +4266,7 @@ void FFXSystem::SimulateGPUParticles(
 	// Simulate particles in all active tiles.
 	if ( SimulationCommands.Num() )
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation, DEC_PARTICLE);
+		SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
 
 		if (Phase == EParticleSimulatePhase::Collision && CollisionView)
 		{
@@ -4309,7 +4309,7 @@ void FFXSystem::SimulateGPUParticles(
 	// Inject any new particles that have spawned into the simulation.
 	if (NewParticles.Num())
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection, DEC_PARTICLE);
+		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[4] =
 		{

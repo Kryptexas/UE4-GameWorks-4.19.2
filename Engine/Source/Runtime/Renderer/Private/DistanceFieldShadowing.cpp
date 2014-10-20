@@ -632,7 +632,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 		&& DoesPlatformSupportDistanceFieldShadowing(View.GetShaderPlatform()))
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderRayTracedDistanceFieldShadows);
-		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, RayTracedDistanceFieldShadow);
 
 		// Update the global distance field atlas
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
@@ -674,7 +674,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, ClearTiles, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, ClearTiles);
 						TShaderMapRef<FClearTilesCS> ComputeShader(View.ShaderMap);
 
 						uint32 GroupSizeX = FMath::DivideAndRoundUp(LightTileDimensions.X, GDistanceFieldAOTileSizeX);
@@ -688,7 +688,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					}
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, CullObjects, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, CullObjects);
 
 						TShaderMapRef<FShadowObjectCullVS> VertexShader(View.ShaderMap);
 						TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
@@ -745,7 +745,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 					uint32 GroupSizeY = FMath::DivideAndRoundUp(ScissorRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, RayTraceShadows);
 						SetRenderTarget(RHICmdList, NULL, NULL);
 
 						if (bDirectionalLight && GShadowScatterTileCulling)
@@ -778,7 +778,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				{
 					GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
 
-					SCOPED_DRAW_EVENT(RHICmdList, Upsample, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, Upsample);
 
 					RHICmdList.SetViewport(ScissorRect.Min.X, ScissorRect.Min.Y, 0.0f, ScissorRect.Max.X, ScissorRect.Max.Y, 1.0f);
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

@@ -10,20 +10,6 @@
 // Each event type will be displayed using the defined color
 #pragma once
 
-
-#define DEC_LIGHT			FColor(255,0,0,255)
-#define DEC_SKEL_MESH		FColor(255,0,255,255)
-#define DEC_STATIC_MESH		FColor(0,128,255,255)
-#define DEC_CANVAS			FColor(128,255,255,255)
-#define DEC_SHADOW			FColor(128,128,128,255)
-#define DEC_BSP				FColor(255,128,0,255)
-#define DEC_PARTICLE		FColor(128,0,128,255)
-// general scene rendering events
-#define DEC_SCENE_ITEMS		FColor(128,128,128,255)
-
-/** Platform specific function for setting the value of a counter that can be viewed in PIX. */
-inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
-
 // Disable draw mesh events for final builds
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define WANTS_DRAW_MESH_EVENTS 1
@@ -61,17 +47,17 @@ inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
 		/**
 		 * Function for logging a PIX event with var args
 		 */
-		void CDECL Start(FRHICommandList& RHICmdList, const FColor& Color,const TCHAR* Fmt, ...);
+		void CDECL Start(FRHICommandList& RHICmdList, const TCHAR* Fmt, ...);
 		void Stop();
 	};
 
 	// Macros to allow for scoping of draw events
 	#define SCOPED_DRAW_TOKENPASTE_INNER(x,y) x##y
 	#define SCOPED_DRAW_TOKENPASTE(x,y) SCOPED_DRAW_TOKENPASTE_INNER(x,y)
-	#define SCOPED_DRAW_EVENT(RHICmdList, Name, Color) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, Color, TEXT(#Name));
-	#define SCOPED_DRAW_EVENTF(RHICmdList, Name, Color, Format, ...) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, Color, Format, ##__VA_ARGS__);
-	#define SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, Name, Condition, Color) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents && (Condition)) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, Color, TEXT(#Name));
-	#define SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, Name, Condition, Color, Format, ...) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents && (Condition)) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, Color, Format, ##__VA_ARGS__);
+	#define SCOPED_DRAW_EVENT(RHICmdList, Name) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, TEXT(#Name));
+	#define SCOPED_DRAW_EVENTF(RHICmdList, Name, Format, ...) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, Format, ##__VA_ARGS__);
+	#define SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, Name, Condition) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents && (Condition)) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, TEXT(#Name));
+	#define SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, Name, Condition, Format, ...) FDrawEvent SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__); if(GEmitDrawEvents && (Condition)) SCOPED_DRAW_TOKENPASTE(Event_##Name,__LINE__).Start(RHICmdList, Format, ##__VA_ARGS__);
 
 #else
 

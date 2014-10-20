@@ -963,7 +963,7 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 			uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, ComputeNormalCS, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, ComputeNormalCS);
 				TShaderMapRef<FComputeDistanceFieldNormalCS> ComputeShader(View.ShaderMap);
 
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -982,7 +982,7 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
-			SCOPED_DRAW_EVENT(RHICmdList, ComputeNormal, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, ComputeNormal);
 
 			RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -2374,7 +2374,7 @@ void UpdateHistory(
 			AllocateOrReuseAORenderTarget(NewHistory, HistoryRTName);
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, UpdateHistory, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, UpdateHistory);
 				SetRenderTarget(RHICmdList, NewHistory->GetRenderTargetItem().TargetableTexture, NULL);
 
 				RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
@@ -2440,7 +2440,7 @@ void PostProcessBentNormalAO(
 	}
 
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, AOCombine, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, AOCombine);
 
 		SetRenderTarget(RHICmdList, GAOFillGaps
 			? DistanceFieldAOBentNormal2->GetRenderTargetItem().TargetableTexture
@@ -2479,7 +2479,7 @@ void PostProcessBentNormalAO(
 
 	if (GAOFillGaps)
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, FillGaps, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, FillGaps);
 		SetRenderTarget(RHICmdList, DistanceFieldAOBentNormal->GetRenderTargetItem().TargetableTexture, NULL);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -2595,7 +2595,7 @@ void UpsampleBentNormalAO(FRHICommandList& RHICmdList, const TArray<FViewInfo>& 
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
-		SCOPED_DRAW_EVENT(RHICmdList, UpsampleAO, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, UpsampleAO);
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -2790,7 +2790,7 @@ void GenerateBestSpacedVectors()
 
 FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Scene, TArray<FViewInfo>& Views, int32 NumObjects, const FDistanceFieldAOParameters& Parameters)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, BuildTileList, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, BuildTileList);
 	SetRenderTarget(RHICmdList, NULL, NULL);
 
 	FIntPoint TileListGroupSize;
@@ -2825,7 +2825,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			}
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, BuildTileCones, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, BuildTileCones);
 				TShaderMapRef<FBuildTileConesCS> ComputeShader(View.ShaderMap);
 
 				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -2836,7 +2836,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			}
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, CullObjects, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, CullObjects);
 
 				TShaderMapRef<FObjectCullVS> VertexShader(View.ShaderMap);
 				TShaderMapRef<FObjectCullPS> PixelShader(View.ShaderMap);
@@ -2921,7 +2921,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 
 void SetupDepthStencil(FRHICommandListImmediate& RHICmdList, FViewInfo& View, FSceneRenderTargetItem& DistanceFieldNormal, int32 DepthLevel, int32 DestLevelDownsampleFactor)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, SetupDepthStencil, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, SetupDepthStencil);
 
 	{		
 		RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
@@ -3054,7 +3054,7 @@ void RenderIrradianceCacheInterpolation(
 			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
 		}
 
-		SCOPED_DRAW_EVENT(RHICmdList, IrradianceCacheSplat, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, IrradianceCacheSplat);
 
 		static int32 NumInterpolationSections = 8;
 		if (GCircleVertexBuffer.NumSections != NumInterpolationSections)
@@ -3322,7 +3322,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 		&& View.State)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderDistanceFieldAOSurfaceCache);
-		SCOPED_DRAW_EVENT(RHICmdList, DistanceFieldAO, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DistanceFieldAO);
 
 		// Update the global distance field atlas
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
@@ -3385,7 +3385,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 
 				if (GAOReuseAcrossFrames)
 				{
-					SCOPED_DRAW_EVENT(RHICmdList, TrimRecords, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, TrimRecords);
 
 					// Copy and trim last frame's surface cache samples
 					for (int32 DepthLevel = GAOMaxLevel; DepthLevel >= GAOMinLevel; DepthLevel--)
@@ -3424,7 +3424,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 				{
 					int32 DestLevelDownsampleFactor = GAODownsampleFactor * (1 << (DepthLevel * GAOPowerOfTwoBetweenLevels));
 
-					SCOPED_DRAW_EVENTF(RHICmdList, Level, DEC_SCENE_ITEMS, TEXT("Level_%d"), DepthLevel);
+					SCOPED_DRAW_EVENTF(RHICmdList, Level, TEXT("Level_%d"), DepthLevel);
 
 					TRefCountPtr<IPooledRenderTarget> DistanceFieldAOIrradianceCacheSplat;
 
@@ -3438,7 +3438,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 					RenderIrradianceCacheInterpolation(RHICmdList, Views, DistanceFieldAOIrradianceCacheSplat, DistanceFieldNormal->GetRenderTargetItem(), DepthLevel, DestLevelDownsampleFactor, Parameters, false);
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, PopulateIrradianceCache, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, PopulateIrradianceCache);
 						SetRenderTarget(RHICmdList, NULL, NULL);
 
 						// Save off the current record count before adding any more
@@ -3472,7 +3472,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 					}
 
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, ShadeIrradianceCache, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, ShadeIrradianceCache);
 
 						{	
 							TShaderMapRef<FSetupFinalGatherIndirectArgumentsCS> ComputeShader(View.ShaderMap);
@@ -3507,7 +3507,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 
 				// Splat the surface cache records onto the opaque pixels, using less strict weighting so the lighting is smoothed in world space
 				{
-					SCOPED_DRAW_EVENT(RHICmdList, FinalIrradianceCacheSplat, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, FinalIrradianceCacheSplat);
 					RenderIrradianceCacheInterpolation(RHICmdList, Views, IrradianceCacheAccumulation, DistanceFieldNormal->GetRenderTargetItem(), 0, GAODownsampleFactor, Parameters, true);
 				}
 
@@ -3692,7 +3692,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 		&& Views.Num() == 1)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderMeshDistanceFieldVis);
-		SCOPED_DRAW_EVENT(RHICmdList, VisualizeMeshDistanceFields, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, VisualizeMeshDistanceFields);
 
 		// Update the global distance field atlas
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
@@ -3727,7 +3727,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 						uint32 GroupSizeY = FMath::DivideAndRoundUp(View.ViewRect.Size().Y / GAODownsampleFactor, GDistanceFieldAOTileSizeY);
 
 						{
-							SCOPED_DRAW_EVENT(RHICmdList, VisualizeMeshDistanceFieldCS, DEC_SCENE_ITEMS);
+							SCOPED_DRAW_EVENT(RHICmdList, VisualizeMeshDistanceFieldCS);
 							TShaderMapRef<FVisualizeMeshDistanceFieldCS> ComputeShader(View.ShaderMap);
 
 							RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -3746,7 +3746,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 					{
 						const FViewInfo& View = Views[ViewIndex];
 
-						SCOPED_DRAW_EVENT(RHICmdList, UpsampleAO, DEC_SCENE_ITEMS);
+						SCOPED_DRAW_EVENT(RHICmdList, UpsampleAO);
 
 						RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 						RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -3866,7 +3866,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 		&& !IsSimpleDynamicLightingEnabled() 
 		&& !ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, SkyLightDiffuse, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, SkyLightDiffuse);
 
 		bool bApplyShadowing = false;
 

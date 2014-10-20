@@ -184,7 +184,7 @@ static int32 GenerateParticleSortKeys(
 	ERHIFeatureLevel::Type FeatureLevel
 	)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, ParticleSortKeyGen, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, ParticleSortKeyGen);
 	check(FeatureLevel == ERHIFeatureLevel::SM5);
 
 	FParticleKeyGenParameters KeyGenParameters;
@@ -315,7 +315,7 @@ int32 SortParticlesGPU(
 	ERHIFeatureLevel::Type FeatureLevel
 	)
 {
-	SCOPED_DRAW_EVENTF(RHICmdList, ParticleSort, DEC_PARTICLE, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
+	SCOPED_DRAW_EVENTF(RHICmdList, ParticleSort, TEXT("ParticleSort_%d"), SimulationsToSort.Num());
 
 	// Ensure the sorted vertex buffers are not currently bound as input streams.
 	// They should only ever be bound to streams 0 or 1, so clear them.

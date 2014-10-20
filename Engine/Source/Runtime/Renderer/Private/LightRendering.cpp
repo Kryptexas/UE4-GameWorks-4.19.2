@@ -289,7 +289,7 @@ uint32 GetShadowQuality();
 /** Renders the scene's lighting. */
 void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICmdList)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, Lights, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, Lights);
 
 	if(IsSimpleDynamicLightingEnabled())
 	{
@@ -348,7 +348,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 	SortedLights.Sort( FCompareFSortedLightSceneInfo() );
 
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, DirectLighting, DEC_SCENE_ITEMS);
+		SCOPED_DRAW_EVENT(RHICmdList, DirectLighting);
 
 		int32 AttenuationLightStart = SortedLights.Num();
 		int32 SupportedByTiledDeferredLightEnd = SortedLights.Num();
@@ -390,7 +390,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 		
 		if(ViewFamily.EngineShowFlags.DirectLighting)
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, NonShadowedLights, DEC_SCENE_ITEMS);
+			SCOPED_DRAW_EVENT(RHICmdList, NonShadowedLights);
 			INC_DWORD_STAT_BY(STAT_NumUnshadowedLights, AttenuationLightStart);
 			GSceneRenderTargets.SetLightAttenuationMode(false);
 
@@ -430,7 +430,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredLighting, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredLighting);
 
 				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
@@ -451,13 +451,13 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				if (AttenuationLightStart)
 				{
 					// Inject non-shadowed, non-light function lights in to the volume.
-					SCOPED_DRAW_EVENT(RHICmdList, InjectNonShadowedTranslucentLighting, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, InjectNonShadowedTranslucentLighting);
 					InjectTranslucentVolumeLightingArray(RHICmdList, SortedLights, AttenuationLightStart);
 				}
 				
 				if (SimpleLights.InstanceData.Num() > 0)
 				{
-					SCOPED_DRAW_EVENT(RHICmdList, InjectSimpleLightsTranslucentLighting, DEC_SCENE_ITEMS);
+					SCOPED_DRAW_EVENT(RHICmdList, InjectSimpleLightsTranslucentLighting);
 					InjectSimpleTranslucentVolumeLightingArray(RHICmdList, SimpleLights);
 				}
 			}
@@ -479,7 +479,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 
 			FString LightNameWithLevel;
 			GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
-			SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, DEC_SCENE_ITEMS, *LightNameWithLevel);
+			SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
 
 			// Do not resolve to scene color texture, this is done lazily
 			GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
@@ -536,7 +536,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			
 			if(bDirectLighting && !bInjectedTranslucentVolume)
 			{
-				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume, DEC_SCENE_ITEMS);
+				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume);
 				// Accumulate this light's unshadowed contribution to the translucency lighting volume
 				InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
 			}
@@ -757,7 +757,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT(STAT_NumLightsUsingStandardDeferred);
-	SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, StandardDeferredLighting, bIssueDrawEvent, DEC_SCENE_ITEMS);
+	SCOPED_CONDITIONAL_DRAW_EVENT(RHICmdList, StandardDeferredLighting, bIssueDrawEvent);
 
 	// Use additive blending for color
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
@@ -901,7 +901,7 @@ void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(FRHIComma
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT_BY(STAT_NumLightsUsingStandardDeferred, SimpleLights.InstanceData.Num());
-	SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredSimpleLights, DEC_SCENE_ITEMS);
+	SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredSimpleLights);
 	
 	// Use additive blending for color
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());

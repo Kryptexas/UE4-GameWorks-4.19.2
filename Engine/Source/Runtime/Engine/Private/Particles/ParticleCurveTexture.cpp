@@ -184,7 +184,7 @@ static void InjectCurves(
 
 	check( IsInRenderingThread() );
 
-	SCOPED_DRAW_EVENT(RHICmdList, InjectParticleCurves, DEC_PARTICLE);
+	SCOPED_DRAW_EVENT(RHICmdList, InjectParticleCurves);
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
