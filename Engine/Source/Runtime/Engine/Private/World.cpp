@@ -1986,17 +1986,17 @@ void UWorld::RenameToPIEWorld(int32 PIEInstanceID)
 #endif
 	const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), PIEInstanceID);
 	WorldPackage->Rename(*PIEPackageName);
+
+	StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(PIEInstanceID);
+	
+	if (WorldComposition)
+	{
+		WorldComposition->ReinitializeForPIE();
+	}
 	
 	for (ULevelStreaming* LevelStreaming : StreamingLevels)
 	{
 		LevelStreaming->RenameForPIE(PIEInstanceID);
-	}
-				
-	StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(PIEInstanceID);
-
-	if (WorldComposition)
-	{
-		WorldComposition->ReinitializeForPIE();
 	}
 }
 
