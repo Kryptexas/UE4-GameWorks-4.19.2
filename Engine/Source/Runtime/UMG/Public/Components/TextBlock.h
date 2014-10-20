@@ -1,11 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "TextBlock.generated.h"
 
 /**
- * A simple static text widget
+ * A simple static text widget.
+ *
+ * ● No Children
+ * ● Text
  */
 UCLASS(meta=(DisplayName="Text"))
 class UMG_API UTextBlock : public UWidget
@@ -106,17 +109,17 @@ public:
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 
 	/** 
-	Gets the widget text
-	@return The widget text
-	*/
-	UFUNCTION(BlueprintCallable, Category = "Widget")
+	 * Gets the widget text
+	 * @return The widget text
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
 	FText GetText() const;
 
 	/**
-	Directly sets the widget text.
-	Warning: This will wipe any binding created for the Text property!
-	@param InText The text to assign to the widget
-	*/
+	 * Directly sets the widget text.
+	 * Warning: This will wipe any binding created for the Text property!
+	 * @param InText The text to assign to the widget
+	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetText(FText InText);
 

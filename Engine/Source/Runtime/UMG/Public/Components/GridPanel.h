@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,8 @@
 
 /**
  * A panel that evenly divides up available space between all of its children.
+ * 
+ * ● Many Children
  */
 UCLASS()
 class UMG_API UGridPanel : public UPanelWidget

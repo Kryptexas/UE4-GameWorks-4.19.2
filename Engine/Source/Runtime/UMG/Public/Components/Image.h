@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,8 @@ class USlateBrushAsset;
 
 /**
  * The image widget allows you to display a Slate Brush, or texture or material in the UI.
+ *
+ * ● No Children
  */
 UCLASS()
 class UMG_API UImage : public UWidget

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,12 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, bool, bIsChecked );
 
 /**
- * Check box widget
+ * The checkbox widget allows you to display a toggled state of 'unchecked', 'checked' and 
+ * 'indeterminable.  You can use the checkbox for a classic checkbox, or as a toggle button,
+ * or as radio buttons.
+ * 
+ * ● Single Child
+ * ● Toggle
  */
 UCLASS()
 class UMG_API UCheckBox : public UContentWidget

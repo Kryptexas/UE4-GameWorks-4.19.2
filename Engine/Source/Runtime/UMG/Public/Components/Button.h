@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,12 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
 /**
- * The button is a clickable primitive widget to enable basic interaction.
+ * The button is a click-able primitive widget to enable basic interaction, you
+ * can place any other widget inside a button to make a more complex and 
+ * interesting click-able element in your UI.
+ *
+ * ● Single Child
+ * ● Clickable
  */
 UCLASS()
 class UMG_API UButton : public UContentWidget

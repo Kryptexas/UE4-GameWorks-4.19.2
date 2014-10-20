@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,8 @@
 
 /**
  * A spacer widget; it does not have a visual representation, and just provides padding between other widgets.
+ *
+ * ● No Children
  */
 UCLASS()
 class UMG_API USpacer : public UWidget

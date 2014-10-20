@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,9 @@ class USlateBrushAsset;
 
 /**
  * A border is a container widget that can contain one child widget, providing an opportunity 
- * to surround it with a border image and adjustable padding.
+ * to surround it with a background image and adjustable padding.
+ *
+ * ● Single Child
  */
 UCLASS()
 class UMG_API UBorder : public UContentWidget

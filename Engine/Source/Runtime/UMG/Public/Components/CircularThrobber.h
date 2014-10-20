@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,9 @@ class USlateBrushAsset;
 
 /**
  * A throbber widget that orients images in a spinning circle.
+ * 
+ * ● No Children
+ * ● Spinner Progress
  */
 UCLASS()
 class UMG_API UCircularThrobber : public UWidget

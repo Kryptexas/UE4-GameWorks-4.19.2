@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelWidget.h"
@@ -8,6 +8,9 @@ class UHorizontalBoxSlot;
 
 /**
  * Allows widgets to be laid out in a flow horizontally.
+ *
+ * ● Many Children
+ * ● Flow Horizontal
  */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UHorizontalBox : public UPanelWidget

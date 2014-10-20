@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,8 @@
 
 /**
  * The progress bar widget is a simple bar that fills up that can be restyled to fit any number of uses.
+ *
+ * ● No Children
  */
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UProgressBar : public UWidget
