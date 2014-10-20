@@ -73,7 +73,7 @@ public:
 		MaterialRelevance = Material->GetRelevance(FeatureLevel);
 	}
 
-	~NiagaraEffectRenderer() {}
+	virtual ~NiagaraEffectRenderer() {}
 
 protected:
 	NiagaraEffectRenderer()	
