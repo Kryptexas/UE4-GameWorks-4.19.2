@@ -510,6 +510,14 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 
 		NamedSlotBindings.Add(NewBinding);
 	}
+
+	// Dynamically insert the new widget into the hierarchy if it exists.
+	if ( WidgetTree )
+	{
+		UNamedSlot* NamedSlot = Cast<UNamedSlot>(WidgetTree->FindWidget(SlotName));
+		NamedSlot->ClearChildren();
+		NamedSlot->AddChild(Content);
+	}
 }
 
 void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
@@ -623,18 +631,6 @@ bool UUserWidget::GetIsVisible() const
 bool UUserWidget::IsInViewport() const
 {
 	return FullScreenWidget.IsValid();
-}
-
-TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity() const
-{
-	if ( FullScreenWidget.IsValid() )
-	{
-		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
-
-		return UWidget::ConvertRuntimeToSerializedVisiblity(RootWidget->GetVisibility());
-	}
-
-	return ESlateVisibility::Collapsed;
 }
 
 void UUserWidget::SetPlayerContext(FLocalPlayerContext InPlayerContext)
