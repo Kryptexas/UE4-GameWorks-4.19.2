@@ -82,6 +82,8 @@ public:
 		return true;
 	}
 
+	virtual bool ShouldInitProperty(bool FirstInit, UProperty* PropertyToInit) const { return true; }
+
 	/**
 	 *	Called just before modifying the value of an attribute. AttributeSet can make additional modifications here. Return true to continue, or false to throw out the modification.
 	 *	Note this is only called during an 'execute'. E.g., a modification to the 'base value' of an attribute. It is not called during an application of a GameplayEffect, such as a 5 ssecond +10 movement speed buff.
@@ -305,7 +307,7 @@ struct GAMEPLAYABILITIES_API FAttributeSetInitter
 {
 	void PreloadAttributeSetData(UCurveTable* CurveData);
 
-	void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const;
+	void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const;
 
 private:
 

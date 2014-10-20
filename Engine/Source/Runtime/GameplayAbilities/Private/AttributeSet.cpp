@@ -8,6 +8,7 @@
 
 #include "ComponentReregisterContext.h"	
 
+#pragma optimize( "", off )
 void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
@@ -305,7 +306,7 @@ void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
 	}
 }
 
-void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level) const
+void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitAttributeSetDefaults);
 	
@@ -340,8 +341,13 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 			{
 				check(DataPair.Property);
 
-				DataPair.Property->SetFloatingPointPropertyValue(DataPair.Property->ContainerPtrToValuePtr<void>(const_cast<UAttributeSet*>(Set)), DataPair.Value);
+				if (Set->ShouldInitProperty(bInitialInit, DataPair.Property))
+				{
+					FGameplayAttribute AttributeToModify(DataPair.Property);
+					AbilitySystemComponent->SetNumericAttribute(AttributeToModify, DataPair.Value);
+				}
 			}
 		}		
 	}
 }
+#pragma optimize( "", on ) 
