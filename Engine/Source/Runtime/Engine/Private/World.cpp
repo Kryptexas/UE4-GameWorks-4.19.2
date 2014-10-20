@@ -1977,6 +1977,29 @@ int32 FLevelStreamingGCHelper::GetNumLevelsPendingPurge()
 	return LevelsPendingUnload.Num();
 }
 
+void UWorld::RenameToPIEWorld(int32 PIEInstanceID)
+{
+	UPackage* WorldPackage = GetOutermost();
+
+#if WITH_EDITOR
+	WorldPackage->PIEInstanceID = PIEInstanceID;
+#endif
+	const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), PIEInstanceID);
+	WorldPackage->Rename(*PIEPackageName);
+	
+	for (ULevelStreaming* LevelStreaming : StreamingLevels)
+	{
+		LevelStreaming->RenameForPIE(PIEInstanceID);
+	}
+				
+	StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(PIEInstanceID);
+
+	if (WorldComposition)
+	{
+		WorldComposition->ReinitializeForPIE();
+	}
+}
+
 FString UWorld::ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID)
 {
 	const FString PackageAssetName = FPackageName::GetLongPackageAssetName(PackageName);

@@ -8819,18 +8819,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			// Otherwise we are probably loading new map while in PIE, so we need to rename world package and all streaming levels
 			else if (Pending == NULL)
 			{
-#if WITH_EDITOR
-				WorldPackage->PIEInstanceID = WorldContext.PIEInstance;
-#endif				
-				const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(WorldPackage->GetName(), WorldContext.PIEInstance);
-			
-				WorldPackage->Rename(*PIEPackageName);
-				for (int32 StreamingLevelIdx = 0; StreamingLevelIdx < NewWorld->StreamingLevels.Num(); StreamingLevelIdx++)
-				{
-					NewWorld->StreamingLevels[StreamingLevelIdx]->RenameForPIE(WorldContext.PIEInstance);
-				}
-				
-				NewWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
+				NewWorld->RenameToPIEWorld(WorldContext.PIEInstance);
 			}
 		}
 	}

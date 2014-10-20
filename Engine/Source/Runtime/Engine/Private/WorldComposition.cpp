@@ -185,16 +185,17 @@ void UWorldComposition::Rescan()
 		
 	Reset();	
 
+	UWorld* OwningWorld = GetWorld();
+	
 	FString RootPackageName = GetOutermost()->GetName();
+	RootPackageName = UWorld::StripPIEPrefixFromPackageName(RootPackageName, OwningWorld->StreamingLevelsPrefix);
 	if (!FPackageName::DoesPackageExist(RootPackageName))
 	{
 		return;	
 	}
 	
 	WorldRoot = FPaths::GetPath(RootPackageName) + TEXT("/");
-
-	UWorld* OwningWorld = GetWorld();
-		
+			
 	// Gather tiles packages from a specified folder
 	FWorldTilesGatherer Gatherer;
 	FString WorldRootFilename = FPackageName::LongPackageNameToFilename(WorldRoot);
@@ -260,6 +261,14 @@ void UWorldComposition::Rescan()
 
 	// Calculate absolute positions since they are not serialized to disk
 	CaclulateTilesAbsolutePositions();
+}
+
+void UWorldComposition::ReinitializeForPIE()
+{
+	Rescan();
+	FixupForPIE(GetOutermost()->PIEInstanceID);
+	GetWorld()->StreamingLevels.Empty();
+	GetWorld()->StreamingLevels.Append(TilesStreaming);
 }
 
 ULevelStreaming* UWorldComposition::CreateStreamingLevel(const FWorldCompositionTile& InTile) const

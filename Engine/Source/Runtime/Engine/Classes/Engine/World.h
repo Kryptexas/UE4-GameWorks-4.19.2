@@ -2450,6 +2450,7 @@ public:
 	void GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
 
 public:
+	void RenameToPIEWorld(int32 PIEInstanceID);
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
 	static FString StripPIEPrefixFromPackageName(const FString& PackageName, const FString& Prefix);
 	static FString BuildPIEPackagePrefix(int32 PIEInstanceID);
