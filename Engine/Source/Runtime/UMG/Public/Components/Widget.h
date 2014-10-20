@@ -163,6 +163,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetToolTipText(const FText& InToolTipText);
 
+	/** @return true if the widget is Visible, HitTestInvisible or SelfHitTestInvisible. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool IsVisible() const;
+
 	/** Gets the current visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	TEnumAsByte<ESlateVisibility::Type> GetVisibility();

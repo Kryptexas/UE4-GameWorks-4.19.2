@@ -93,6 +93,17 @@ void UWidget::SetIsEnabled(bool bInIsEnabled)
 	}
 }
 
+bool UWidget::IsVisible() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->GetVisibility().IsVisible();
+	}
+
+	return false;
+}
+
 TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
