@@ -1183,11 +1183,7 @@ TSharedRef<SDockTab> FTabManager::SpawnTab( const FTabId& TabId, const TSharedPt
 		NewTabWidget->SetLayoutIdentifier( TabId );
 		NewTabWidget->ProvideDefaultLabel( Spawner->GetDisplayName().IsEmpty() ? FText::FromName( Spawner->TabType ) : Spawner->GetDisplayName() );
 		NewTabWidget->ProvideDefaultIcon( Spawner->GetIcon().GetIcon() );
-
-		// If this tabs' content was not tagged for tutorials by its creator, we can provide an automated tag based  on the TabId.
-		// NOTE: relying on this is bad because it couples tutorials to the internals of tab management!
-		NewTabWidget->GetContent()->AddMetadataIfMissing<FTagMetaData>( MakeShareable(new FTagMetaData( *TabId.ToString() ) ) );
-
+	
 		// The spawner tracks that last tab it spawned
 		Spawner->SpawnedTabPtr = NewTabWidget;
 	}

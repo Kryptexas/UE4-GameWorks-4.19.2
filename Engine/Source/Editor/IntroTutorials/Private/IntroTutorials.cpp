@@ -373,6 +373,11 @@ FOnIsPicking& FIntroTutorials::OnIsPicking()
 	return OnIsPickingDelegate;
 }
 
+FOnValidatePickingCandidate& FIntroTutorials::OnValidatePickingCandidate()
+{
+	return OnValidatePickingCandidateDelegate;
+}
+
 void FIntroTutorials::SummonTutorialBrowser()
 {
 	if(TutorialRoot.IsValid())

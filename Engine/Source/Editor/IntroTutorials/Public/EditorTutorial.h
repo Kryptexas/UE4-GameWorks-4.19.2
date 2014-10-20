@@ -123,15 +123,15 @@ struct INTROTUTORIALS_API FTutorialContentAnchor
 	UPROPERTY(EditAnywhere, Category="Anchor")
 	bool bDrawHighlight;
 	
+	/* Tab on which to focus (EG 'My Blueprint' tab). */
+	UPROPERTY(EditAnywhere, Category = "Anchor")
+	FString TabToFocusOrOpen;
+
+	//FBlueprintGraphNodeMetaData specific members	
 	/* User friendly name to display in the dialog */
 	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
 	FString FriendlyName;
 
-	/* The type of tab to open for this node*/
-	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
-	FString TabTypeToOpen;
-
-	//FBlueprintGraphNodeMetaData specific members
 	/* The GUID string */
 	UPROPERTY(EditAnywhere, Category = "AnchorMeta|FBlueprintGraphNodeMetaData")
  	FString GUIDString;
