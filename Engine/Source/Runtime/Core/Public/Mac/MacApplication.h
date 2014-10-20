@@ -131,7 +131,7 @@ private:
 
 	void ResendEvent( NSEvent* Event );
 	FCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
-	TSharedPtr<FMacWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
+	TSharedPtr<FMacWindow> LocateWindowUnderCursor( const NSPoint Position );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 

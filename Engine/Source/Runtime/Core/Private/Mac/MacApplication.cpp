@@ -937,7 +937,12 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		}
 		else
 		{
-			const FVector2D CursorPos = bUsingHighPrecisionMouseInput ? HighPrecisionMousePos : ((FMacCursor*)Cursor.Get())->GetPosition();
+			NSPoint CursorPos = [Event locationInWindow];
+			if ([Event window])
+			{
+				CursorPos.x += [Event window].frame.origin.x;
+				CursorPos.y += [Event window].frame.origin.y;
+			}
 			TSharedPtr<FMacWindow> WindowUnderCursor = LocateWindowUnderCursor(CursorPos);
 			if (WindowUnderCursor.IsValid())
 			{
@@ -949,10 +954,8 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 	return EventWindow;
 }
 
-TSharedPtr<FMacWindow> FMacApplication::LocateWindowUnderCursor( const FVector2D& CursorPos )
+TSharedPtr<FMacWindow> FMacApplication::LocateWindowUnderCursor( const NSPoint Position )
 {
-	const NSPoint Position = NSMakePoint(CursorPos.X, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.Y));
-
 	NSScreen* MouseScreen = nil;
 	if ([NSScreen screensHaveSeparateSpaces])
 	{
