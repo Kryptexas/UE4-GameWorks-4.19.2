@@ -11,7 +11,7 @@ class INiagaraEffectEditor : public FAssetEditorToolkit
 {
 
 public:
-
+	virtual class UNiagaraEffect *GetEffect() const = 0;
 	// ...
 
 };

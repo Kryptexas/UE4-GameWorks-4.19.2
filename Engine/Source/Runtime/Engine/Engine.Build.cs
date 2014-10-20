@@ -52,7 +52,8 @@ public class Engine : ModuleRules
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",                
-                "AIModule", // Here until all engine's dependencies of AI code are removed
+                "AIModule",
+				"VectorVM",
 			}
 		);
 

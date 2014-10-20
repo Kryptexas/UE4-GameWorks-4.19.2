@@ -3,19 +3,17 @@
 #pragma once
 #include "NiagaraComponent.generated.h"
 
-UENUM()
-enum ERenderModuleType
-{
-	Sprites = 0,
-	Ribbon
-};
-
-
 /* Predefined particle attribute names */
 const FName ParticleAttr_Position = "Position";
 const FName ParticleAttr_Velocity = "Velocity";
 const FName ParticleAttr_Color = "Color";
 
+
+
+/**
+* Contains the simulation data for a single FNiagaraSimulation
+* all buffers for particle attributes are stored here for convenient access
+*/
 class FNiagaraEmitterParticleData
 {
 public:
@@ -82,34 +80,18 @@ private:
 
 
 
+/**
+* UNiagaraComponent is the primitive component for a Niagara effect.
+* @see ANiagaraActor
+* @see UNiagaraEffect
+*/
 UCLASS()
 class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The simulation being executed for this component. */
-	class FNiagaraSimulation* Simulation;
-
-	/** Script to run for these particles */
-	UPROPERTY(EditAnywhere, Category=NiagaraComponent)
-	class UNiagaraScript* UpdateScript;
 	UPROPERTY(EditAnywhere, Category = NiagaraComponent)
-	class UNiagaraScript* SpawnScript;
-
-	/** The method for rendering the simulated data */
-	UPROPERTY(EditAnywhere, Category=Rendering)
-	TEnumAsByte<ERenderModuleType> RenderModuleType;
-
-	/** Material with which to render particles. */
-	UPROPERTY(EditAnywhere, Category=Rendering)
-	UMaterialInterface* Material;
-
-	/** TEMP Spawn rate */
-	UPROPERTY(EditAnywhere, Category=NiagaraComponent)
-	float SpawnRate;
-
-	/** age of the emitter in seconds */
-	float EmitterAge;
+	class UNiagaraEffect *Effect;
 
 	// Begin UActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
@@ -122,8 +104,6 @@ public:
 
 	// Begin UPrimitiveComponent Interface
 	virtual int32 GetNumMaterials() const override;
-	virtual class UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
-	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent Interface
@@ -152,7 +132,9 @@ public:
 
 	/** Called on render thread to assign new dynamic data */
 	void SetDynamicData_RenderThread(struct FNiagaraDynamicDataBase* NewDynamicData);
-	class NiagaraEffectRenderer *GetEffectRenderer() { return EffectRenderer; }
+	TArray<class NiagaraEffectRenderer*> &GetEffectRenderers() { return EffectRenderers; }
+	void AddEffectRenderer(NiagaraEffectRenderer *Renderer)	{ EffectRenderers.Add(Renderer); }
+	ENGINE_API void UpdateEffectRenderers(UNiagaraEffect *InEffect);
 
 private:
 	void ReleaseRenderThreadResources();
@@ -168,6 +150,7 @@ private:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override;
+
 	/*
 	virtual bool CanBeOccluded() const override
 	{
@@ -180,5 +163,6 @@ private:
 
 
 private:
-	class NiagaraEffectRenderer *EffectRenderer;
+	//class NiagaraEffectRenderer *EffectRenderer;
+	TArray<class NiagaraEffectRenderer *>EffectRenderers;
 };

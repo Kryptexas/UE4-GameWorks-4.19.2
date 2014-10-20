@@ -10,3 +10,21 @@ UNiagaraEffect::UNiagaraEffect(const FObjectInitializer& ObjectInitializer)
 {
 
 }
+
+
+
+TSharedPtr<FNiagaraSimulation> UNiagaraEffect::AddEmitter()
+{
+	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(new FNiagaraSimulation());
+
+	Sim->SetRenderModuleType(RMT_Sprites, Component->GetWorld()->FeatureLevel);
+	Emitters.Add(Sim);
+
+	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
+	SceneProxy->UpdateEffectRenderers(this);
+
+	FNiagaraEmitterProperties Props;
+	EmitterProps.Add(Props);
+
+	return Sim;
+}

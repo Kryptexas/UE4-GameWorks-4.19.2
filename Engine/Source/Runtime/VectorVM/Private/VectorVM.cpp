@@ -370,6 +370,29 @@ struct FVectorKernelSin4 : public TUnaryVectorKernel<FVectorKernelSin4>
 	}
 };
 
+struct FVectorKernelLessThan : public TBinaryVectorKernel<FVectorKernelLessThan>
+{
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		const VectorRegister large = MakeVectorRegister(BIG_NUMBER, BIG_NUMBER, BIG_NUMBER, BIG_NUMBER);
+		const VectorRegister one = MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f);
+		const VectorRegister zero = MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f);
+
+		float const* FloatSrc0 = reinterpret_cast<float const*>(&Src0);
+		float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);
+		VectorRegister tmp = VectorSubtract(Src1, Src0);
+		tmp = VectorMultiply(tmp, large);
+		tmp = VectorMin(tmp, one);
+		*Dst = VectorMax(tmp, zero);
+		/*
+		float f1 = FloatSrc0[0] < FloatSrc1[0] ? 1.0f : 0.0f;
+		float f2 = FloatSrc0[1] < FloatSrc1[1] ? 1.0f : 0.0f;
+		float f3 = FloatSrc0[2] < FloatSrc1[2] ? 1.0f : 0.0f;
+		float f4 = FloatSrc0[3] < FloatSrc1[3] ? 1.0f : 0.0f;
+		*Dst = MakeVectorRegister(f1, f2, f3, f4);
+		*/
+	}
+};
 
 struct FVectorKernelDot : public TBinaryVectorKernel<FVectorKernelDot>
 {
@@ -467,7 +490,7 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 			float FX = FloatSrc[0] / 5 / (1<<i);
 			float FY = FloatSrc[1] / 5 / (1<<i);
 			float FZ = FloatSrc[2] / 5 / (1<<i);
-			uint32 X = FMath::Abs((int32)(FX) % 8);
+			uint32 X = FMath::Abs( (int32)(FX) % 8 );
 			uint32 Y = FMath::Abs( (int32)(FY) % 8 );
 			uint32 Z = FMath::Abs( (int32)(FZ) % 8 );
 
@@ -482,7 +505,7 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 				}
 			}
 
-			const uint32 IntCoords[3] = { static_cast<uint32>(FX), static_cast<uint32>(FY), static_cast<uint32>(FZ) };
+			const int32 IntCoords[3] = { static_cast<int32>(FX), static_cast<int32>(FY), static_cast<int32>(FZ) };
 			const float Fractionals[3] = { FX - IntCoords[0], FY - IntCoords[1], FZ - IntCoords[2] };
 			VectorRegister Alpha = MakeVectorRegister(Fractionals[0], Fractionals[0], Fractionals[0], Fractionals[0]);
 

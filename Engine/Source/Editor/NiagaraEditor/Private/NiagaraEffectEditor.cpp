@@ -10,6 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectEditor"
 
+
 const FName FNiagaraEffectEditor::UpdateTabId(TEXT("NiagaraEditor_Effect"));
 
 void FNiagaraEffectEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -68,14 +69,6 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
-
-	// @todo toolkit world centric editing
-	/*// Setup our tool's layout
-	if( IsWorldCentricAssetEditor() )
-	{
-	const FString TabInitializationPayload(TEXT(""));		// NOTE: Payload not currently used for table properties
-	SpawnToolkitTab( UpdateGraphTabId, TabInitializationPayload, EToolkitTabSpot::Details );
-	}*/
 }
 
 FName FNiagaraEffectEditor::GetToolkitFName() const
@@ -104,16 +97,11 @@ FLinearColor FNiagaraEffectEditor::GetWorldCentricTabColorScale() const
 TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(UNiagaraEffect* InEffect)
 {
 	check(InEffect != NULL);
-
+	
+	
 	if (!EditorCommands.IsValid())
 	{
 		EditorCommands = MakeShareable(new FUICommandList);
-		/*
-		// Editing commands
-		EditorCommands->MapAction(FGenericCommands::Get().Delete,
-			FExecuteAction::CreateSP(this, &FNiagaraEffectEditor::DeleteSelectedNodes),
-			FCanExecuteAction::CreateSP(this, &FNiagaraEffectEditor::CanDeleteNodes)
-			);*/
 	}
 
 	// Create the appearance info
@@ -139,12 +127,12 @@ TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(
 			]
 		];
 
-	// Make full graph editor
-	return SNew(SNiagaraEffectEditorWidget)
-		//.AdditionalCommands(EditorCommands)
-		//.Appearance(AppearanceInfo)
-		.TitleBar(TitleBarWidget)
-		.EffectObj(InEffect);
+	// make preview pane
+	
+		
+		
+	// Make the effect editor widget
+	return SNew(SNiagaraEffectEditorWidget).TitleBar(TitleBarWidget).EffectObj(InEffect);
 }
 
 
@@ -166,41 +154,41 @@ TSharedRef<SDockTab> FNiagaraEffectEditor::SpawnTab(const FSpawnTabArgs& Args)
 
 void FNiagaraEffectEditor::ExtendToolbar()
 {
-	/*
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> CompileBox)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> AddEmitterBox)
 		{
-			ToolbarBuilder.BeginSection("Compile");
+			ToolbarBuilder.BeginSection("AddEmitter");
 			{
-				ToolbarBuilder.AddWidget(CompileBox);
+				ToolbarBuilder.AddWidget(AddEmitterBox);
 			}
 			ToolbarBuilder.EndSection();
 		}
 	};
 
 	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
-	TSharedRef<SWidget> Compilebox = SNew(SHorizontalBox)
+
+	TSharedRef<SWidget> AddEmitterBox = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Padding(4)
 		[
 			SNew(SButton)
-			.OnClicked(this, &FNiagaraEditor::OnCompileClicked)
+			.OnClicked(this, &FNiagaraEffectEditor::OnAddEmitterClicked)
 			.Content()
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("LevelEditor.Recompile"))
-				]
+					.AutoHeight()
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("LevelEditor.Add"))
+					]
 				+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("NiagaraToolbar_Compile", "Compile"))
+						.Text(LOCTEXT("NiagaraToolbar_AddEmitter", "Add Emitter"))
 					]
 			]
 		];
@@ -209,13 +197,25 @@ void FNiagaraEffectEditor::ExtendToolbar()
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, Compilebox)
+		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar, AddEmitterBox)
 		);
 
 	AddToolbarExtender(ToolbarExtender);
-	*/
+
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 	AddToolbarExtender(NiagaraEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+}
+
+
+
+FReply FNiagaraEffectEditor::OnAddEmitterClicked()
+{
+	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
+
+	Effect->AddEmitter();
+	UpdateEditorPtr.Pin()->GetViewport()->SetPreviewEffect(Effect);
+	UpdateEditorPtr.Pin()->UpdateList();
+	return FReply::Handled();
 }
 
 

@@ -7,8 +7,8 @@
 
 
 
-
-/** Viewer/editor for a DataTable */
+/** Viewer/editor for a NiagaraEffect
+*/
 class FNiagaraEffectEditor : public INiagaraEffectEditor
 {
 
@@ -30,6 +30,8 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	// End IToolkit interface
 
+
+	virtual UNiagaraEffect *GetEffect() const	override { return Effect; }	
 private:
 	/** Create widget for graph editing */
 	TSharedRef<class SNiagaraEffectEditorWidget> CreateEditorWidget(UNiagaraEffect* InEffect);
@@ -39,6 +41,7 @@ private:
 
 	/** Builds the toolbar widget */
 	void ExtendToolbar();
+	FReply OnAddEmitterClicked();
 private:
 
 	/* The Effect being edited */

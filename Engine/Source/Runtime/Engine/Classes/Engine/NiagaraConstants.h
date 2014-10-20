@@ -8,7 +8,7 @@
 namespace NiagaraConstants
 {
 	enum {
-		DeltaSeconds = 0,
+		DeltaSeconds = 1,
 		EmitterPosition,
 		EmitterAge,
 		ActorXAxis,
@@ -26,5 +26,5 @@ namespace NiagaraConstants
 		"Emitter Z Axis",
 		""
 	};
-}
+};
 
