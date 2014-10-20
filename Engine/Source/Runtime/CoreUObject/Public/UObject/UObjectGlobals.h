@@ -965,7 +965,9 @@ private:
 	UObject* LastConstructedObject;
 };
 
-typedef DEPRECATED(4.6, "FPostConstructInitializeProperties was renamed to FObjectInitializer.") FObjectInitializer FPostConstructInitializeProperties;
+#define FPostConstructInitializeProperties \
+	FObjectInitializer \
+	EMIT_DEPRECATED_WARNING_MESSAGE("FPostConstructInitializeProperties is deprecated and was renamed to FObjectInitializer. Please use that type instead.")
 
 /**
 * Helper class for script integrations to access some UObject innards. Needed for script-generated UObject classes
