@@ -39,8 +39,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogNavOctree, Warning, All);
 
 DECLARE_CYCLE_STAT(TEXT("Rasterize triangles"), STAT_Navigation_RasterizeTriangles,STATGROUP_Navigation);
 DECLARE_CYCLE_STAT(TEXT("Nav Tick: area register"), STAT_Navigation_TickNavAreaRegister, STATGROUP_Navigation);
-DECLARE_CYCLE_STAT(TEXT("Nav Tick: mark dirty"), STAT_Navigation_TickMarkDirty, STATGROUP_Navigation);
-DECLARE_CYCLE_STAT(TEXT("Nav Tick: async build"), STAT_Navigation_TickAsyncBuild, STATGROUP_Navigation);
+DECLARE_CYCLE_STAT(TEXT("Nav Tick: rebuild"), STAT_Navigation_TickRebuild, STATGROUP_Navigation);
 DECLARE_CYCLE_STAT(TEXT("Nav Tick: async pathfinding"), STAT_Navigation_TickAsyncPathfinding, STATGROUP_Navigation);
 DECLARE_CYCLE_STAT(TEXT("Debug NavOctree Time"), STAT_DebugNavOctree, STATGROUP_Navigation);
 
@@ -206,11 +205,13 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 		NavDataRegistrationQueue.Reserve( REGISTRATION_QUEUE_SIZE );
 	
 		NavOctree = new FNavigationOctree(FVector(0,0,0), 64000);
-#if WITH_RECAST
+#if WITH_NAVIGATION_GENERATOR
+	#if WITH_RECAST
 		NavOctree->ComponentExportDelegate = FNavigationOctree::FNavigableGeometryComponentExportDelegate::CreateStatic(&FRecastNavMeshGenerator::ExportComponentGeometry);
-#endif // WITH_RECAST
+	#endif // WITH_RECAST
 		FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UNavigationSystem::OnLevelAddedToWorld);
 		FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UNavigationSystem::OnLevelRemovedFromWorld);
+#endif // WITH_NAVIGATION_GENERATOR	
 	}
 	else
 	{
@@ -291,13 +292,14 @@ void UNavigationSystem::PostInitProperties()
 	
 		bInitialBuildingLockActive = bInitialBuildingLocked;
 
+#if WITH_NAVIGATION_GENERATOR
 		UWorld* World = GetWorld();
 		if (World)
 		{
 			if (World->PersistentLevel)
-			{
-				OnLevelAddedToWorld(World->PersistentLevel, World);
-			}
+		{
+			OnLevelAddedToWorld(World->PersistentLevel, World);
+		}
 
 			for (int32 Idx = 0; Idx < World->StreamingLevels.Num(); Idx++)
 			{
@@ -308,6 +310,7 @@ void UNavigationSystem::PostInitProperties()
 				}
 			}
 		}
+#endif
 
 		// register for any actor move change
 #if WITH_EDITOR
@@ -317,7 +320,9 @@ void UNavigationSystem::PostInitProperties()
 		}
 #endif
 		FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
+#if WITH_NAVIGATION_GENERATOR
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
+#endif // WITH_NAVIGATION_GENERATOR
 	}
 }
 
@@ -357,7 +362,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 	else
 	{
 		PopulateNavOctree();
-		
+
 		// gather all navigation data instances and register all not-yet-registered
 		// (since it's quite possible navigation system was not ready by the time
 		// those instances were serialized-in or spawned)
@@ -382,6 +387,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 			bInitialBuildingLockActive = false;
 		}
 		
+#if WITH_NAVIGATION_GENERATOR
 		if (bAutoCreateNavigationData == true)
 		{
 			SpawnMissingNavigationData();
@@ -393,9 +399,10 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 				ANavigationData* NavData = NavDataSet[NavDataIndex];
 				if (NavData != NULL)
 				{
-					if (bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled)
+					FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::Create);
+					if (Generator != NULL)
 					{
-						NavData->RebuildAll();
+						NavData->GetGenerator(FNavigationSystem::DontCreate)->OnWorldInitDone(bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled);
 					}
 				}
 			}
@@ -415,12 +422,10 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 						if (Result == RegistrationSuccessful)
 						{
 #if WITH_RECAST
-							if (Cast<ARecastNavMesh>(NavData) != NULL)
+							if (NavData->GetGenerator(FNavigationSystem::Create) != NULL
+								&& Cast<ARecastNavMesh>(NavData) != NULL)
 							{
-								if (bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled)
-								{
-									NavData->RebuildAll();
-								}
+								NavData->GetGenerator(FNavigationSystem::DontCreate)->OnWorldInitDone(bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled);
 							}
 #endif // WITH_RECAST
 						}
@@ -434,6 +439,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 				}
 			}
 		}
+#endif
 	}
 }
 
@@ -469,14 +475,19 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		ProcessNavAreaPendingRegistration();
 	}
 
+#if WITH_NAVIGATION_GENERATOR
 	if (PendingNavVolumeUpdates.Num() > 0)
 	{
 		for (auto Volume : PendingNavVolumeUpdates)
 		{
-			PerformNavigationBoundsUpdate(Volume);
+			if (Volume != NULL && Volume->IsPendingKillPending() == false)
+			{
+				PerformNavigationBoundsUpdate(Volume);
+			}
 		}
 		PendingNavVolumeUpdates.Reset();
 	}
+#endif // WITH_NAVIGATION_GENERATOR
 
 	if (PendingOctreeUpdates.Num() > 0)
 	{
@@ -495,8 +506,9 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
 	}
 
+#if WITH_NAVIGATION_GENERATOR
 	{
-		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickMarkDirty);
+		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickRebuild);
 
 		DirtyAreasUpdateTime += DeltaSeconds;
 		const float DirtyAreasUpdateDeltaTime = 1.0f / DirtyAreasUpdateFreq;
@@ -517,19 +529,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 			DirtyAreas.Reset();
 		}
 	}
-
-	// Tick navigation mesh async builders
-	if (!bAsyncBuildPaused)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickAsyncBuild);
-		for (ANavigationData* NavData : NavDataSet)
-		{
-			if (NavData)
-			{
-				NavData->TickAsyncBuild(DeltaSeconds);
-			}
-		}
-	}
+#endif // WITH_NAVIGATION_GENERATOR
 
 	if (AsyncPathFindingQueries.Num() > 0)
 	{
@@ -572,11 +572,12 @@ void UNavigationSystem::SetNavigationAutoUpdateEnabled(bool bNewEnable,UNavigati
 	if(bNewEnable != bNavigationAutoUpdateEnabled)
 	{
 		bNavigationAutoUpdateEnabled = bNewEnable; 
-
+#if WITH_NAVIGATION_GENERATOR
 		if (InNavigationsystem)
 		{
 			InNavigationsystem->EnableAllGenerators(bNewEnable, /*bForce=*/true);
 		}
+#endif // WITH_NAVIGATION_GENERATOR
 	}
 }
 #endif // WITH_EDITOR
@@ -1150,7 +1151,8 @@ bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
 		if (NavData != NULL && NavData->GetWorldSettings() == Settings)
 		{
-			FNavDataGenerator* Generator = NavData->GetGenerator();
+#if WITH_NAVIGATION_GENERATOR
+			FNavDataGenerator* Generator = NavData->GetGenerator(FNavigationSystem::DontCreate);
 			if ((NavData->bRebuildAtRuntime == true 
 #if WITH_EDITOR
 				|| GEditor != NULL
@@ -1160,6 +1162,7 @@ bool UNavigationSystem::IsNavigationBuilt(const AWorldSettings* Settings) const
 				bIsBuilt = false;
 				break;
 			}
+#endif
 		}
 	}
 
@@ -1181,7 +1184,7 @@ bool UNavigationSystem::IsThereAnywhereToBuildNavigation() const
 	for (TActorIterator<ANavMeshBoundsVolume> It(GetWorld()); It; ++It)
 	{
 		ANavMeshBoundsVolume const* const V = (*It);
-		if (V != NULL && !V->IsPendingKill())
+		if (V != NULL)
 		{
 			bCreateNavigation = true;
 			break;
@@ -1797,6 +1800,7 @@ ANavigationData* UNavigationSystem::GetNavDataWithID(const uint16 NavDataID) con
 	return NULL;
 }
 
+#if WITH_NAVIGATION_GENERATOR
 void UNavigationSystem::AddDirtyArea(const FBox& NewArea, int32 Flags)
 {
 	if (Flags > 0)
@@ -1812,6 +1816,7 @@ void UNavigationSystem::AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags)
 		AddDirtyArea(NewAreas[NewAreaIndex], Flags);
 	}
 }
+#endif // WITH_NAVIGATION_GENERATOR
 
 int32 GetDirtyFlagHelper(int32 UpdateFlags, int32 DefaultValue)
 {
@@ -1882,7 +1887,9 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 	{
 		if (DirtyElement.bHasPrevData)
 		{
+#if WITH_NAVIGATION_GENERATOR
 			AddDirtyArea(DirtyElement.PrevBounds, DirtyElement.PrevFlags);
+#endif // WITH_NAVIGATION_GENERATOR
 		}
 		
 		return;
@@ -1929,6 +1936,7 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 		NavOctree->AddNode(ElementOwner, DirtyElement.NavInterface, ElementBounds, GeneratedData);
 	}
 
+#if WITH_NAVIGATION_GENERATOR && NAVOCTREE_CONTAINS_COLLISION_DATA
 	const FBox BBox = GeneratedData.Bounds.GetBox();
 	const bool bValidBBox = BBox.IsValid && !BBox.GetSize().IsNearlyZero();
 	if (bValidBBox && !GeneratedData.IsEmpty())
@@ -1936,6 +1944,7 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 		const int32 DirtyFlag = DirtyElement.FlagsOverride ? DirtyElement.FlagsOverride : GeneratedData.Data.GetDirtyFlag();
 		AddDirtyArea(BBox, DirtyFlag);
 	}
+#endif // WITH_NAVIGATION_GENERATOR
 }
 
 bool UNavigationSystem::GetNavOctreeElementData(UObject* NodeOwner, int32& DirtyFlags, FBox& DirtyBounds)
@@ -1945,10 +1954,13 @@ bool UNavigationSystem::GetNavOctreeElementData(UObject* NodeOwner, int32& Dirty
 	{
 		if (NavOctree->IsValidElementId(*ElementId))
 		{
+#if WITH_NAVIGATION_GENERATOR && NAVOCTREE_CONTAINS_COLLISION_DATA
 			// mark area occupied by given actor as dirty
 			FNavigationOctreeElement& ElementData = NavOctree->GetElementById(*ElementId);
 			DirtyFlags = ElementData.Data.GetDirtyFlag();
 			DirtyBounds = ElementData.Bounds.GetBox();
+#endif // WITH_NAVIGATION_GENERATOR
+
 			return true;
 		}
 	}
@@ -2009,10 +2021,12 @@ void UNavigationSystem::RemoveNavOctreeElementId(const FOctreeElementId& Element
 {
 	if (NavOctree->IsValidElementId(ElementId))
 	{
+#if WITH_NAVIGATION_GENERATOR && NAVOCTREE_CONTAINS_COLLISION_DATA
 		// mark area occupied by given actor as dirty
 		FNavigationOctreeElement& ElementData = NavOctree->GetElementById(ElementId);
 		const int32 DirtyFlag = GetDirtyFlagHelper(UpdateFlags, ElementData.Data.GetDirtyFlag());
 		AddDirtyArea(ElementData.Bounds.GetBox(), DirtyFlag);
+#endif // WITH_NAVIGATION_GENERATOR
 		NavOctree->RemoveNode(ElementId);
 	}
 }
@@ -2278,6 +2292,7 @@ void UNavigationSystem::ReleaseInitialBuildingLock()
 		bInitialBuildingLockActive = false;
 		if (bNavigationBuildingLocked == false)
 		{
+#if WITH_NAVIGATION_GENERATOR
 			// apply pending changes
 			{
 				SCOPE_CYCLE_COUNTER(STAT_Navigation_AddingActorsToNavOctree);
@@ -2301,6 +2316,7 @@ void UNavigationSystem::ReleaseInitialBuildingLock()
 			// if navigation building is not blocked for other reasons then rebuild
 			// bForce == true to skip bNavigationBuildingLocked test
 			NavigationBuildingUnlock(/*bForce = */true);
+#endif // WITH_NAVIGATION_GENERATOR
 		}
 	}
 }
@@ -2339,6 +2355,7 @@ void UNavigationSystem::OnEditorModeChanged(FEdMode* Mode, bool IsEntering)
 }
 #endif
 
+#if WITH_NAVIGATION_GENERATOR
 void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume)
 {
 	if (NavVolume == NULL)
@@ -2351,6 +2368,8 @@ void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolum
 
 void UNavigationSystem::PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavVolume)
 {
+	const bool bIsInGame = GIsEditor == false || NavVolume->GetWorld()->IsPlayInEditor();
+
 	if (bNavDataRemovedDueToMissingNavBounds)
 	{
 		PopulateNavOctree();
@@ -2368,6 +2387,15 @@ void UNavigationSystem::PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavV
 		{
 			SpawnMissingNavigationData();
 			ProcessRegistrationCandidates();
+
+			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+			{
+				ANavigationData* NavData = NavDataSet[NavDataIndex];
+				if (NavData != NULL && (NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame)))
+				{
+					NavData->GetGenerator(FNavigationSystem::Create);
+				}
+			}
 		}
 	}
 
@@ -2376,7 +2404,22 @@ void UNavigationSystem::PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavV
 	{
 		// rebuild all navmeshes
 		// NOTE: this will most probably be done in editor, if required to be performed at runtime may require some optimizations
-		RebuildAll();
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+		{
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
+			check(NavData);
+			if (NavData->GetGenerator() != NULL)
+			{
+				if ( Cast<ARecastNavMesh>(NavData) != NULL && (bIsInGame == false || ((ARecastNavMesh*)NavData)->bRebuildAtRuntime) )
+				{
+					// there are two possible cases here:
+					// 1. new volume is totally inside original generation bounds
+					// 2. it expands current bounds.
+					// @TODO currently handling every case as 1), 2) is an optimization
+					NavData->GetGenerator(FNavigationSystem::Create)->OnNavigationBoundsUpdated(NavVolume);
+				}
+			}
+		}
 	}
 #endif // WITH_RECAST
 }
@@ -2516,15 +2559,36 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(TSubclassOf<ANa
 	return Instance;
 }
 
+void UNavigationSystem::OnUpdateStreamingStarted()
+{
+	NavigationBuildingLock();
+}
+
+void UNavigationSystem::OnUpdateStreamingFinished()
+{
+	NavigationBuildingUnlock();
+
+	if (bWholeWorldNavigable == true)
+	{
+		const FBox NavBounds = NavigableWorldBounds;
+		const FBox NewNavBounds = GetWorldBounds();
+		if (FVector::DistSquared(NavBounds.GetCenter(), NewNavBounds.GetCenter()) > KINDA_SMALL_NUMBER
+			|| FVector::DistSquared(NavBounds.GetExtent(), NewNavBounds.GetExtent()) > KINDA_SMALL_NUMBER)
+		{
+			RebuildAll();
+		}
+	}
+}
+
 void UNavigationSystem::OnPIEStart()
 {
-	// Do not tick async build for editor world while PIE is active
-	bAsyncBuildPaused = true;
+	EnableAllGenerators(false);
 }
 
 void UNavigationSystem::OnPIEEnd()
 {
-	bAsyncBuildPaused = false;
+	// it's set to true, but in editor it depends on user settings
+	EnableAllGenerators(bNavigationAutoUpdateEnabled);
 }
 
 void UNavigationSystem::EnableAllGenerators(bool bEnable, bool bForce)
@@ -2549,6 +2613,16 @@ void UNavigationSystem::NavigationBuildingLock()
 	GetMainNavData(bBuildNavigationAtRuntime && IsThereAnywhereToBuildNavigation() ? FNavigationSystem::Create : FNavigationSystem::DontCreate);
 
 	bNavigationBuildingLocked = true;
+
+	// lock all generators
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+	{
+		ANavigationData* NavData = NavDataSet[NavDataIndex];
+		if (NavData != NULL && NavData->GetGenerator() != NULL)
+		{
+			NavData->GetGenerator(FNavigationSystem::DontCreate)->OnNavigationBuildingLocked();
+		}
+	}
 }
 
 void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
@@ -2557,8 +2631,16 @@ void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
 	{
 		bNavigationBuildingLocked = false;
 		bInitialBuildingLockActive = false;
-		
-		RebuildAll();
+
+		// unlock all generators
+		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+		{
+			ANavigationData* NavData = NavDataSet[NavDataIndex];
+			if (NavData != NULL && NavData->GetGenerator() != NULL)
+			{
+				NavData->GetGenerator(FNavigationSystem::DontCreate)->OnNavigationBuildingUnlocked(bForce);
+			}
+		}
 	}
 	else if (bInitialBuildingLockActive == true)
 	{
@@ -2571,15 +2653,12 @@ void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
 
 void UNavigationSystem::RebuildAll()
 {
-	const bool bIsInGame = GetWorld()->IsGameWorld();
-	
 	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
-
-		if (NavData && NavData->bRebuildAtRuntime || (GIsEditor && !bIsInGame))
+		if (NavData != NULL && NavData->GetGenerator(FNavigationSystem::Create) != NULL)
 		{
-			NavData->RebuildAll();
+			NavData->GetGenerator(FNavigationSystem::DontCreate)->RebuildAll();
 		}
 	}
 }
@@ -2608,36 +2687,6 @@ bool UNavigationSystem::IsNavigationBuildInProgress(bool bCheckDirtyToo)
 	return bRet;
 }
 
-int32 UNavigationSystem::GetNumRemainingBuildTasks() const
-{
-	int32 NumTasks = 0;
-	
-	for (ANavigationData* NavData : NavDataSet)
-	{
-		if (NavData && NavData->GetGenerator())
-		{
-			NumTasks+= NavData->GetGenerator()->GetNumRemaningBuildTasks();
-		}
-	}
-	
-	return NumTasks;
-}
-
-int32 UNavigationSystem::GetNumRunningBuildTasks() const 
-{
-	int32 NumTasks = 0;
-	
-	for (ANavigationData* NavData : NavDataSet)
-	{
-		if (NavData && NavData->GetGenerator())
-		{
-			NumTasks+= NavData->GetGenerator()->GetNumRunningBuildTasks();
-		}
-	}
-	
-	return NumTasks;
-}
-
 void UNavigationSystem::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 {
 	if (InWorld == GetWorld())
@@ -2656,7 +2705,7 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 
 void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 {
-#if WITH_RECAST
+#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	const TArray<FVector>* LevelGeom = Level ? Level->GetStaticNavigableGeometry() : NULL;
 	if (LevelGeom && NavOctree)
 	{
@@ -2670,11 +2719,12 @@ void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 			AddDirtyArea(Bounds, ENavigationDirtyFlag::All);
 		}
 	}
-#endif// WITH_RECAST
+#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 }
 
 void UNavigationSystem::RemoveLevelCollisionFromOctree(ULevel* Level)
 {
+#if NAVOCTREE_CONTAINS_COLLISION_DATA
 	const FOctreeElementId* ElementId = GetObjectsNavOctreeId(Level);
 	if (ElementId != NULL)
 	{
@@ -2688,7 +2738,10 @@ void UNavigationSystem::RemoveLevelCollisionFromOctree(ULevel* Level)
 		NavOctree->RemoveNode(*ElementId);
 		RemoveObjectsNavOctreeId(Level);
 	}
+#endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 }
+
+#endif // WITH_NAVIGATION_GENERATOR
 
 void UNavigationSystem::OnPostLoadMap()
 {
@@ -2708,16 +2761,20 @@ void UNavigationSystem::OnPostLoadMap()
 #if WITH_EDITOR
 void UNavigationSystem::OnActorMoved(AActor* Actor)
 {
+#if WITH_NAVIGATION_GENERATOR
 	if (Cast<ANavMeshBoundsVolume>(Actor) != NULL)
 	{
 		OnNavigationBoundsUpdated((ANavMeshBoundsVolume*)Actor);
 	}
+#endif // WITH_NAVIGATION_GENERATOR
 }
 #endif // WITH_EDITOR
 
 void UNavigationSystem::OnNavigationDirtied(const FBox& Bounds)
 {
+#if WITH_NAVIGATION_GENERATOR
 	AddDirtyArea(Bounds, ENavigationDirtyFlag::All);
+#endif //WITH_NAVIGATION_GENERATOR
 }
 
 void UNavigationSystem::CleanUp(ECleanupMode Mode)
@@ -2732,9 +2789,11 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 #endif // WITH_EDITOR
 
 	FCoreUObjectDelegates::PostLoadMap.RemoveAll(this);
+#if WITH_NAVIGATION_GENERATOR
 	UNavigationSystem::NavigationDirtyEvent.RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
+#endif // WITH_NAVIGATION_GENERATOR
 
 	if (NavOctree != NULL)
 	{
@@ -2847,7 +2906,11 @@ bool UNavigationSystem::IsNavigationBeingBuilt(UObject* WorldContextObject)
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject); 
 	if (World != NULL && World->GetNavigationSystem() != NULL)
 	{
+#if WITH_NAVIGATION_GENERATOR
 		return World->GetNavigationSystem()->IsNavigationBuildInProgress();
+#else
+		return false;
+#endif
 	}
 
 	return false;
@@ -2858,18 +2921,19 @@ bool UNavigationSystem::IsNavigationBeingBuilt(UObject* WorldContextObject)
 //----------------------------------------------------------------------//
 bool UNavigationSystem::ShouldGeneratorRun(const FNavDataGenerator* Generator) const
 {
+#if WITH_NAVIGATION_GENERATOR
 	if (Generator != NULL)
 	{
 		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
 			ANavigationData* NavData = NavDataSet[NavDataIndex];
-			if (NavData != NULL && NavData->GetGenerator() == Generator)
+			if (NavData != NULL && NavData->GetGenerator(FNavigationSystem::DontCreate) == Generator)
 			{
 				return true;
 			}
 		}
 	}
-
+#endif
 	return false;
 }
 

@@ -195,6 +195,61 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			}
 		}
 
+		if (NavMesh->bDrawTileBounds)
+		{
+			FBox OuterBBox;
+			int32 NumTilesX, NumTilesY;
+			NavMesh->GetDebugTileBounds(OuterBBox, NumTilesX, NumTilesY);
+
+			float DrawZ = (OuterBBox.Min.Z + OuterBBox.Max.Z) * 0.5f;		// @hack average
+			FVector LL(OuterBBox.Min.X, OuterBBox.Min.Y, DrawZ);
+			FVector UR(OuterBBox.Max.X, OuterBBox.Max.Y, DrawZ);
+			FVector UL(LL.X, UR.Y, DrawZ);
+			FVector LR(UR.X, LL.Y, DrawZ);
+			if (bUseGetMeshElements)
+			{
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LL, UL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UL, UR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UR, LR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LR, LL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+			}
+			else
+			{
+				CurrentData->BatchedElements.AddLine(LL, UL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				CurrentData->BatchedElements.AddLine(UL, UR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				CurrentData->BatchedElements.AddLine(UR, LR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				CurrentData->BatchedElements.AddLine(LR, LL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+			}
+
+			float const TileSizeX = (LL.X - LR.X) / NumTilesX;
+			float const TileSizeY = (LL.Y - UL.Y) / NumTilesY;
+
+			for (int32 Idx = 1; Idx < NumTilesX; ++Idx)
+			{
+				float const DrawX = FMath::Lerp(LL.X, LR.X, (float)Idx / (float)NumTilesX);
+				if (bUseGetMeshElements)
+				{
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(FVector(DrawX, LL.Y, DrawZ), FVector(DrawX, UL.Y, DrawZ), NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				}
+				else
+				{
+					CurrentData->BatchedElements.AddLine(FVector(DrawX, LL.Y, DrawZ), FVector(DrawX, UL.Y, DrawZ), NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				}
+			}
+			for (int32 Idx=1; Idx<NumTilesY; ++Idx)
+			{
+				float const DrawY = FMath::Lerp(LL.Y, UL.Y, (float)Idx/(float)NumTilesY);
+				if (bUseGetMeshElements)
+				{
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(FVector(LL.X, DrawY, DrawZ), FVector(LR.X, DrawY, DrawZ), NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+				}
+				else
+				{
+					CurrentData->BatchedElements.AddLine(FVector(LL.X, DrawY, DrawZ), FVector(LR.X, DrawY, DrawZ), NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
+				}
+			}
+		}
+
 		if (NavMesh->bDrawPathCollidingGeometry)
 		{
 			// draw all geometry gathered in navoctree
@@ -264,7 +319,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			}
 		}
 
-		if (NavMesh->bDrawTileLabels || NavMesh->bDrawPolygonLabels || NavMesh->bDrawDefaultPolygonCost || NavMesh->bDrawTileBounds)
+		if (NavMesh->bDrawTileLabels || NavMesh->bDrawPolygonLabels || NavMesh->bDrawDefaultPolygonCost)
 		{
 			// calculate appropriate points for displaying debug labels
 			const int32 TilesCount = NavMesh->GetNavMeshTilesCount();
@@ -272,8 +327,12 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 
 			for (int32 TileIndex = 0; TileIndex < TilesCount; ++TileIndex)
 			{
-				int32 X, Y, Layer;
-				if (NavMesh->GetNavMeshTileXY(TileIndex, X, Y, Layer))
+				int32 X = -1;
+				int32 Y = -1;
+				int32 Layer = -1;
+				NavMesh->GetNavMeshTileXY(TileIndex, X, Y, Layer);
+
+				if (X >= 0 && Y >= 0)
 				{
 					const FBox TileBoundingBox = NavMesh->GetNavMeshTileBounds(TileIndex);
 					FVector TileLabelLocation = TileBoundingBox.GetCenter();
@@ -330,31 +389,6 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 							}
 						}
 					}							
-
-					if (NavMesh->bDrawTileBounds)
-					{
-						FBox TileBox = NavMesh->GetNavMeshTileBounds(TileIndex);
-
-						float DrawZ = (TileBox.Min.Z + TileBox.Max.Z) * 0.5f;		// @hack average
-						FVector LL(TileBox.Min.X, TileBox.Min.Y, DrawZ);
-						FVector UR(TileBox.Max.X, TileBox.Max.Y, DrawZ);
-						FVector UL(LL.X, UR.Y, DrawZ);
-						FVector LR(UR.X, LL.Y, DrawZ);
-						if (bUseGetMeshElements)
-						{
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LL, UL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UL, UR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UR, LR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LR, LL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-						}
-						else
-						{
-							CurrentData->BatchedElements.AddLine(LL, UL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-							CurrentData->BatchedElements.AddLine(UL, UR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-							CurrentData->BatchedElements.AddLine(UR, LR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-							CurrentData->BatchedElements.AddLine(LR, LL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-						}
-					}
 				}
 			}
 		}

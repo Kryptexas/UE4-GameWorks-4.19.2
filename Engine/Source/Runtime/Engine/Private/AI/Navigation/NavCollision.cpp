@@ -189,8 +189,10 @@ bool UNavCollision::GatherCollision()
 	// get data from owner
 	if (StaticMeshOuter && StaticMeshOuter->BodySetup)
 	{
+#if WITH_NAVIGATION_GENERATOR
 		NavigationHelper::GatherCollision(StaticMeshOuter->BodySetup, this);
 		bCalculated = true;
+#endif // WITH_NAVIGATION_GENERATOR
 	}
 
 	return bCalculated;

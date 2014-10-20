@@ -4,39 +4,46 @@
 
 struct FNavigationDirtyArea;
 
-class ENGINE_API FNavDataGenerator
+class ENGINE_API FNavDataGenerator : public TSharedFromThis<FNavDataGenerator, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~FNavDataGenerator() {}
 
-	/** Rebuilds all known navigation data */
-	virtual bool RebuildAll() { return false; };
-
-	/** Blocks until build is complete */
-	virtual void EnsureBuildCompletion() {};
-
-	/** Cancels build, may block until current running async tasks are finished */
-	virtual void CancelBuild() {};
-
-	/**  */
-	virtual void TickAsyncBuild(float DeltaSeconds) {};
+	/** 
+	 * Needs to be called on main thread (may need to reallocate main-mem containers and iterate actor list)
+	 */
+	virtual bool Generate() PURE_VIRTUAL(FNavDataGenerator::Generate, return false;);
 
 	/** Asks generator to update navigation affected by DirtyAreas */
 	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) {}
 
+	/** Rebuilds all known navigation data */
+	virtual void RebuildAll() PURE_VIRTUAL(FNavDataGenerator::RebuildAll, Generate(););
+
+	/** 
+	 * Schedules generation call in GameThread
+	 */
+	virtual void TriggerGeneration();
+	
 	/** determines whether this generator is performing navigation building actions at the moment*/
 	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const { return false; }	
 
 	/** Called when world is loaded and all actors are initialized - to be used for post-load steps like data validating */
 	virtual void OnWorldInitDone(bool bAllowedToRebuild) {}	
 
-	/** Returns number of remaining tasks till build is complete
-	 */
-	virtual int32 GetNumRemaningBuildTasks() const { return 0; };
+	virtual void OnNavigationBuildingLocked() {}
 
-	/** Returns number of currently running tasks
+	/** Lets Generator know that building navigation is now allowed. 
+	 *	@param bForce if true means it's requested from this Generator to 
+	 *	actually rebuild relevant data*/
+	virtual void OnNavigationBuildingUnlocked(bool bForce) {}
+
+	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) {}
+
+	/** notifies navigation generator that given ANavigationData is being destroyed
+	 *	and it's possible it's its parent 
 	 */
-	virtual int32 GetNumRunningBuildTasks() const { return 0; };
+	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) {}
 
 	//----------------------------------------------------------------------//
 	// debug

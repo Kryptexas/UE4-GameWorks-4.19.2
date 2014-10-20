@@ -11,6 +11,9 @@
 #define DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL 50.f
 #define DEFAULT_NAV_QUERY_EXTENT_VERTICAL 100.f
 
+/** Whether to compile in navigation data generation - should be compiled at least when WITH_EDITOR is true */
+#define WITH_NAVIGATION_GENERATOR (WITH_RECAST || WITH_EDITOR)
+
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
 
