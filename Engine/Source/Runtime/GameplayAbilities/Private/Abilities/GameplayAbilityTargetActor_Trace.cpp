@@ -16,7 +16,7 @@ AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const FObje
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.TickGroup = TG_PrePhysics;
+	PrimaryActorTick.TickGroup = TG_PostUpdateWork;
 	StaticTargetFunction = false;
 
 	MaxRange = 999999.0f;
