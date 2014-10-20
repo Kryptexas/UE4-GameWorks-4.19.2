@@ -1323,6 +1323,12 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 	}
 #endif
 
+	// Fill in optional output param. SceneComponent doesn't sweep, so this is just an empty result.
+	if (OutHit)
+	{
+		*OutHit = FHitResult(1.f);
+	}
+
 	if (!bWorldToComponentUpdated)
 	{
 		UpdateComponentToWorld();
@@ -1347,12 +1353,6 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 	{
 		// need to update overlap detection in case PrimitiveComponents are attached.
 		UpdateOverlaps();
-	}
-
-	// fill in optional output param
-	if (OutHit)
-	{
-		*OutHit = FHitResult(1.f);
 	}
 
 	return true;
