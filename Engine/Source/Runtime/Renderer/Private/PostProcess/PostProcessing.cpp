@@ -342,19 +342,6 @@ static void AddPostProcessDepthOfFieldGaussian(FPostprocessContext& Context, FDe
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }
 
-static FRenderingCompositeOutputRef AddPostProcessHistogram(FPostprocessContext& Context, FRenderingCompositeOutputRef& HalfResScene)
-{
-	FRenderingCompositePass* NodeHistogram = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessHistogram());
-
-	NodeHistogram->SetInput(ePId_Input0, HalfResScene);
-
-	FRenderingCompositePass* NodeHistogramReduce = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessHistogramReduce());
-
-	NodeHistogramReduce->SetInput(ePId_Input0, NodeHistogram);
-
-	return FRenderingCompositeOutputRef(NodeHistogramReduce);
-}
-
 static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRenderingCompositeOutputRef PostProcessDownsample0)
 {
 	// Quality level to bloom stages table. Note: 0 is omitted, ensure element count tallys with the range documented with 'r.BloomQuality' definition.
@@ -797,6 +784,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		// not always valid
 		FRenderingCompositeOutputRef HDRColor; 
 		// not always valid
+		FRenderingCompositeOutputRef HistogramOverScreen;
+		// not always valid
 		FRenderingCompositeOutputRef Histogram;
 		// not always valid
 		FRenderingCompositeOutputRef EyeAdaptation;
@@ -988,7 +977,17 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 				if (!GIsHighResScreenshot && bHistogramNeeded && FeatureLevel >= ERHIFeatureLevel::SM5 && StereoPass != eSSP_RIGHT_EYE)
 				{
-					Histogram = AddPostProcessHistogram(Context, SceneColorHalfRes);
+					FRenderingCompositePass* NodeHistogram = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessHistogram());
+
+					NodeHistogram->SetInput(ePId_Input0, SceneColorHalfRes);
+
+					HistogramOverScreen = FRenderingCompositeOutputRef(NodeHistogram);
+
+					FRenderingCompositePass* NodeHistogramReduce = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessHistogramReduce());
+
+					NodeHistogramReduce->SetInput(ePId_Input0, NodeHistogram);
+
+					Histogram = FRenderingCompositeOutputRef(NodeHistogramReduce);
 				}
 			}
 
@@ -1235,6 +1234,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Node->SetInput(ePId_Input1, Histogram);
 			Node->SetInput(ePId_Input2, HDRColor);
+			Node->SetInput(ePId_Input3, HistogramOverScreen);
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 

@@ -12,7 +12,8 @@
 // ePId_Input0: LDR SceneColor
 // ePId_Input1: output of the Histogram pass
 // ePId_Input2: HDR SceneColor
-class FRCPassPostProcessVisualizeHDR : public TRenderingCompositePassBase<3, 1>
+// ePId_Input3: output of the Histogram pass over screen (not reduced yet)
+class FRCPassPostProcessVisualizeHDR : public TRenderingCompositePassBase<4, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------

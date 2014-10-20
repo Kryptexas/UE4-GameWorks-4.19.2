@@ -11,6 +11,9 @@
 #include "TonemapCommon.usf"
 #include "MiniFontCommon.usf"		// for PrintFloat()
 
+// .xy:GatherExtent.xy, .zw:TexelPerThreadGroupXY
+uint4 HistogramParams;
+
 // only needed for nice visualization
 float ComputeHistogramMax(Texture2D HistogramTexture)
 {
@@ -86,15 +89,61 @@ void HighlightAdvice(inout float3 OutColor, float2 UV, int2 PixelPos)
 	}
 }
 
+bool InUnitBox(float2 UV)
+{
+	return UV.x >= 0 && UV.y >= 0 && UV.y < 1 && UV.y < 1;
+}
 
 //
 void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
- 	int2 PixelPos = (int2)(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
-	
+	int2 PixelPos = (int2)(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+	float2 ViewLocalUV = float2(UVAndScreenPos.z * 0.5f + 0.5f, 0.5f - 0.5f * UVAndScreenPos.w);
+
 	// background is the scene color
 	OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+
+	float2 IDAreaLocalUV = ViewLocalUV * 2 + float2(-1, 0);
+
+	// disabled for now, useful for debgugging the histogram content
+	if(0)
+	BRANCH if(InUnitBox(IDAreaLocalUV))
+	{
+		float2 HistogramUV = frac(IDAreaLocalUV * HistogramParams.xy / HistogramParams.zw);
+
+		int2 HistogramXY = int2(IDAreaLocalUV * HistogramParams.xy / HistogramParams.zw);
+
+		bool bChecker = dot(HistogramXY, 1) % 2;
+	
+		int HistogramId = HistogramXY.x + HistogramXY.y * ceil(HistogramParams.x / (float)HistogramParams.z);
+
+		float2 UnrolledHistogramUV = float2(HistogramUV.x, (HistogramId + 0.5f) * PostprocessInput3Size.w);
+
+		float4 HistogramRGBA = Texture2DSampleLevel(PostprocessInput3, PostprocessInput3Sampler, UnrolledHistogramUV, 0);
+
+		// 16 buckets are good enough for the small space there
+		float Value = max(max(HistogramRGBA.r,HistogramRGBA.g), max(HistogramRGBA.b,HistogramRGBA.a));
+
+		// we want the histogram to be 0 at the bottom
+		float HistogramY = 1 - HistogramUV.y;
+		// /2 as we rea covering a quarter of the screen
+		float HistogramPixelHeight = ViewportSize.y / 2 / HistogramXY.y; 
+
+		// checked overlay
+		OutColor = bChecker ? float4(0.2f,0,0,0) : float4(0,0.15f,0,0);
+		
+		// SceneColor overlay
+		OutColor += 0.1f * Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, IDAreaLocalUV * View.ViewSizeAndSceneTexelSize.xy * View.ViewSizeAndSceneTexelSize.zw, 0);
+
+		// could be the same as (HistogramY < Value) but a bit more antialiased
+//		float HistogramMask = HistogramY < Value;
+		float HistogramMask = saturate((Value - HistogramY) * HistogramPixelHeight);
+
+		OutColor = lerp(OutColor, 1, HistogramMask);
+	}
+
+
 
 	// not fully functional yet
 //	HighlightAdvice(OutColor.rgb, UV, PixelPos);

@@ -36,9 +36,6 @@ float GetSubsurfaceStrength(float2 UV)
 	return Mask * ScreenSpaceData.GBuffer.Opacity;
 }
 
-//#define SSSS_STREGTH_SOURCE 1	// todo: masking fom LightingModel or SSSColor
-#define SSSS_STREGTH_SOURCE(UV) GetSubsurfaceStrength(UV)
-
 // 0:speculars leak into SSS / 1:requires alpha channel for scenecolor
 // #define SSSS_SPECULAR_CORRECTION 1
 
@@ -264,7 +261,6 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 	
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
-//	finalStep *= SSSS_STREGTH_SOURCE(UV); // Modulate it using the alpha channel.
 	finalStep *= GetProfileRadiusScale(ScreenSpaceData.GBuffer);
 
 	// in full resolution
@@ -371,7 +367,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 
 		// Calculate the final step to fetch the surrounding pixels:
 		float finalStep = scale * HorizontalScaler;
-//		finalStep *= SSSS_STREGTH_SOURCE(UV); // Modulate it using the alpha channel (0..1), might only make a difference in very few cases
+
 		finalStep *= GetProfileRadiusScale(ScreenSpaceData.GBuffer);
 
 		float PixelSizeRadius = finalStep / (PostprocessInput1Size.z * 0.5f);

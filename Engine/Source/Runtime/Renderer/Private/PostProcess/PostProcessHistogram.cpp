@@ -118,9 +118,7 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 	check(DestRenderTarget.UAV);
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), DestRenderTarget.UAV);
 
-	// we currently assume the input is half res, one full res pixel less to avoid getting bilinear filtered input
-	FIntPoint GatherExtent = (DestRect.Size() - FIntPoint(1, 1)) / 2;
-
+	FIntPoint GatherExtent = ComputeGatherExtent(View);
 	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount(GatherExtent);
 
 	ComputeShader->SetCS(Context.RHICmdList, Context, ThreadGroupCountValue, (DestRect.Min + FIntPoint(1, 1)) / 2, GatherExtent);
@@ -131,6 +129,13 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->HistogramRWTexture.GetBaseIndex(), NULL);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+}
+
+
+FIntPoint FRCPassPostProcessHistogram::ComputeGatherExtent(const FSceneView& View)
+{
+	// we currently assume the input is half res, one full res pixel less to avoid getting bilinear filtered input
+	return (View.ViewRect.Size() - FIntPoint(1, 1)) / 2;
 }
 
 FIntPoint FRCPassPostProcessHistogram::ComputeThreadGroupCount(FIntPoint PixelExtent)

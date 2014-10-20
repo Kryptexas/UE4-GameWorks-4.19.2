@@ -33,5 +33,6 @@ public:
 
 	// -------------------------------------------
 
+	static FIntPoint ComputeGatherExtent(const FSceneView& View);
 	static FIntPoint ComputeThreadGroupCount(FIntPoint PixelExtent);
 };
