@@ -110,7 +110,7 @@ namespace EditorLevelUtils
 	bool PrivateRemoveLevelFromWorld( ULevel* Level );
 
 	/** 
-	 * Completely removes the level from the world.
+	 * Completely removes the level from the world, unloads its package and forces garbage collection.
 	 *
 	 * @note: This function doesn't remove the associated streaming level.
 	 *
