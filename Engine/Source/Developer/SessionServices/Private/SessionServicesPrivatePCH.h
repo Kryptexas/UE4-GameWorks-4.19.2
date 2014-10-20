@@ -8,6 +8,7 @@
 /* Dependencies
  *****************************************************************************/
 
+#include "CoreUObject.h"
 #include "EngineServiceMessages.h"
 #include "Messaging.h"
 #include "SessionMessages.h"
