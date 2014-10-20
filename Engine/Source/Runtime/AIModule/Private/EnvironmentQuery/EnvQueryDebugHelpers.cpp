@@ -130,3 +130,19 @@ void  UEnvQueryDebugHelpers::BlobArrayToDebugData(const TArray<uint8>& BlobArray
 }
 
 #endif //ENABLE_VISUAL_LOG
+
+#if ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
+void UEnvQueryDebugHelpers::LogQueryInternal(struct FEnvQueryInstance& Query, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, float TimeSeconds, FVisualLogEntry *CurrentEntry)
+{
+	const int32 UniqueId = FVisualLogger::Get().GetUniqueId(TimeSeconds);
+	TArray<uint8> BlobArray;
+	UEnvQueryDebugHelpers::QueryToBlobArray(Query, BlobArray);
+	const FString AdditionalLogInfo = FString::Printf(TEXT("Executed EQS: \n - Name: '%s' (id=%d, option=%d),\n - All Items: %d,\n - ValidItems: %d"), *Query.QueryName, Query.QueryID, Query.OptionIndex, Query.ItemDetails.Num(), Query.NumValidItems);
+	FVisualLogEntry::FLogLine Line(Category.GetCategoryName(), Verbosity, AdditionalLogInfo, Query.QueryID);
+	Line.TagName = *EVisLogTags::TAG_EQS;
+	Line.UniqueId = UniqueId;
+
+	CurrentEntry->LogLines.Add(Line);
+	CurrentEntry->AddDataBlock(EVisLogTags::TAG_EQS, BlobArray, Category.GetCategoryName()).UniqueId = UniqueId;
+}
+#endif //ENABLE_VISUAL_LOG && USE_EQS_DEBUGGER
