@@ -187,20 +187,7 @@ void FFriendsAndChatManager::GenerateFriendsWindow( TSharedPtr< const SWidget > 
 		.bDragAnywhere( true )
 		.CreateTitleBar( false );
 
-		FriendWindow->SetContent(
-			SNew(SBorder)
-			.BorderImage( &InStyle->Background )
-			.VAlign( VAlign_Fill )
-			.HAlign( HAlign_Fill )
-			.Padding(0)
-			[
-				SNew(SFriendsContainer, FFriendsViewModelFactory::Create(SharedThis(this)))
-				.FriendStyle( &Style )
-				.OnCloseClicked( this, &FFriendsAndChatManager::OnCloseClicked )
-				.OnMinimizeClicked( this, &FFriendsAndChatManager::OnMinimizeClicked )
-				.Method(SMenuAnchor::CreateNewWindow)
-			]
-		);
+		BuildFriendsUI();
 
 		if ( ParentWidget.IsValid() )
 		{
@@ -209,9 +196,10 @@ void FFriendsAndChatManager::GenerateFriendsWindow( TSharedPtr< const SWidget > 
 			FriendWindow = FSlateApplication::Get().AddWindowAsNativeChild( FriendWindow.ToSharedRef(), WidgetPath.GetWindow() );
 		}
 	}
-	else
+	else if(!FriendWindow->IsVisible())
 	{
 		FriendWindow->Restore();
+		BuildFriendsUI();
 	}
 }
 
@@ -493,6 +481,25 @@ void FFriendsAndChatManager::BuildFriendsList()
 	}
 
 	OnFriendsListUpdatedDelegate.Broadcast();
+}
+
+void FFriendsAndChatManager::BuildFriendsUI()
+{
+	check(FriendWindow.IsValid());
+
+	FriendWindow->SetContent(
+	SNew(SBorder)
+	.BorderImage( &Style.Background )
+	.VAlign( VAlign_Fill )
+	.HAlign( HAlign_Fill )
+	.Padding(0)
+	[
+		SNew(SFriendsContainer, FFriendsViewModelFactory::Create(SharedThis(this)))
+		.FriendStyle( &Style )
+		.OnCloseClicked( this, &FFriendsAndChatManager::OnCloseClicked )
+		.OnMinimizeClicked( this, &FFriendsAndChatManager::OnMinimizeClicked )
+		.Method(SMenuAnchor::CreateNewWindow)
+	]);
 }
 
 void FFriendsAndChatManager::RequestFriend( const FText& FriendName )

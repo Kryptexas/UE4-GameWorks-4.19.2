@@ -25,6 +25,8 @@ public:
 		[
 			SAssignNew(Contents, SBorder)
 		]);
+
+		RefreshFriendsList();
 	}
 
 private:

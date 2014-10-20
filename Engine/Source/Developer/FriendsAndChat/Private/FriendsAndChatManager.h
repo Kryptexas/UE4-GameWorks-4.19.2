@@ -192,6 +192,9 @@ private:
 	/** Build the friends list used in the UI. */
 	void BuildFriendsList();
 
+	/** Build the friends UI. */
+	void BuildFriendsUI();
+
 	/**
 	 * Set the manager state.
 	 *
