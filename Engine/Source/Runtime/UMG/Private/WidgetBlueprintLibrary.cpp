@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
+#include "Slate/UMGDragDropOp.h"
 #include "WidgetBlueprintLibrary.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -234,6 +235,32 @@ FEventReply UWidgetBlueprintLibrary::EndDragDrop(UPARAM(ref) FEventReply& Reply)
 	Reply.NativeReply = Reply.NativeReply.EndDragDrop();
 
 	return Reply;
+}
+
+bool UWidgetBlueprintLibrary::IsDragDropping()
+{
+	if ( FSlateApplication::Get().IsDragDropping() )
+	{
+		TSharedPtr<FDragDropOperation> SlateDragOp = FSlateApplication::Get().GetDragDroppingContent();
+		if ( SlateDragOp.IsValid() && SlateDragOp->IsOfType<FUMGDragDropOp>() )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+UDragDropOperation* UWidgetBlueprintLibrary::GetDragDroppingContent()
+{
+	TSharedPtr<FDragDropOperation> SlateDragOp = FSlateApplication::Get().GetDragDroppingContent();
+	if ( SlateDragOp.IsValid() && SlateDragOp->IsOfType<FUMGDragDropOp>() )
+	{
+		TSharedPtr<FUMGDragDropOp> UMGDragDropOp = StaticCastSharedPtr<FUMGDragDropOp>(SlateDragOp);
+		return UMGDragDropOp->GetOperation();
+	}
+
+	return nullptr;
 }
 
 FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromAsset(USlateBrushAsset* BrushAsset)
