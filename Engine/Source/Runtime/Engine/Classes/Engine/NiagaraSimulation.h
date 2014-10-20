@@ -58,6 +58,7 @@ class FNiagaraSimulation
 {
 public:
 	explicit FNiagaraSimulation();
+	virtual ~FNiagaraSimulation();
 
 	void Tick(float DeltaSeconds);
 
