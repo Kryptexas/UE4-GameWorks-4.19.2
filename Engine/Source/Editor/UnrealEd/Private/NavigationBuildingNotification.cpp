@@ -31,7 +31,7 @@ void FNavigationBuildingNotificationImpl::BuildStarted()
 		NavigationBuiltCompleteNotification.Pin()->ExpireAndFadeout();
 	}
 
-	FNotificationInfo Info( NSLOCTEXT("NavigationBuild", "NavigationBuildingInProgress", "Building Navigation") );
+	FNotificationInfo Info( GetNotificationText() );
 	Info.bFireAndForget = false;
 	Info.FadeOutDuration = 0.0f;
 	Info.ExpireDuration = 0.0f;
@@ -102,9 +102,27 @@ void FNavigationBuildingNotificationImpl::ClearCompleteNotification()
 	}
 }
 
+FText FNavigationBuildingNotificationImpl::GetNotificationText() const
+{
+	int32 RemainingTasks = 0;
+	UEditorEngine* const EEngine = Cast<UEditorEngine>(GEngine);
+	if (EEngine)
+	{
+		FWorldContext &EditorContext = EEngine->GetEditorWorldContext();
+		if (EditorContext.World() && EditorContext.World()->GetNavigationSystem())
+		{
+			RemainingTasks = EditorContext.World()->GetNavigationSystem()->GetNumRemainingBuildTasks();
+		}
+	}
+		
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("RemainingTasks"), FText::AsNumber(RemainingTasks));
+	return FText::Format(NSLOCTEXT("NavigationBuild", "NavigationBuildingInProgress", "Building Navigation ({RemainingTasks})"), Args);
+}
+
+
 void FNavigationBuildingNotificationImpl::Tick(float DeltaTime)
 {
-#if WITH_NAVIGATION_GENERATOR
 	if (FPlayWorldCommandCallbacks::IsInPIE_AndRunning())
 	{
 		return;
@@ -140,10 +158,13 @@ void FNavigationBuildingNotificationImpl::Tick(float DeltaTime)
 		{
 			BuildFinished();
 		}
+		else if (bBuildInProgress && NavigationBuildNotificationPtr.IsValid())
+		{
+			NavigationBuildNotificationPtr.Pin()->SetText(GetNotificationText());
+		}
 
 		bPreviouslyDetectedBuild = bBuildInProgress;
 	}
-#endif
 }
 
 TStatId FNavigationBuildingNotificationImpl::GetStatId() const

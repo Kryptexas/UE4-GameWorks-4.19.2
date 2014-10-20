@@ -72,7 +72,6 @@ public:
 
 	/** Debug rendering. */
 	void GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 TileIndex = INDEX_NONE) const;
-	void GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, int32& NumTilesY) const;
 
 	/** Returns bounding box for the whole navmesh. */
 	FBox GetNavMeshBounds() const;
@@ -81,10 +80,10 @@ public:
 	FBox GetNavMeshTileBounds(int32 TileIndex) const;
 
 	/** Retrieves XY and layer coordinates of tile specified by index */
-	void GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const;
+	bool GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const;
 
 	/** Retrieves XY coordinates of tile specified by position */
-	void GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const;
+	bool GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const;
 
 	/** Retrieves all tile indices at matching XY coordinates */
 	void GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const;

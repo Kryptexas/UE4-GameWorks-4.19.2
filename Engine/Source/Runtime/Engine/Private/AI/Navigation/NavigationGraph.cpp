@@ -56,6 +56,10 @@ ANavigationGraphNode::ANavigationGraphNode(const FObjectInitializer& ObjectIniti
 ANavigationGraph::ANavigationGraph(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		NavDataGenerator.Reset(new FNavGraphGenerator(this));
+	}
 }
 
 ANavigationData* ANavigationGraph::CreateNavigationInstances(UNavigationSystem* NavSys)
@@ -84,10 +88,3 @@ ANavigationData* ANavigationGraph::CreateNavigationInstances(UNavigationSystem* 
 
 	return NULL;
 }
-
-#if WITH_NAVIGATION_GENERATOR
-FNavDataGenerator* ANavigationGraph::ConstructGenerator(const FNavAgentProperties& AgentProps)
-{
-	return new FNavGraphGenerator(this);
-}
-#endif

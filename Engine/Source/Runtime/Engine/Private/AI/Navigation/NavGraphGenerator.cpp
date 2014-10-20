@@ -19,39 +19,9 @@ FNavGraphGenerator::~FNavGraphGenerator()
 //----------------------------------------------------------------------//
 // FNavDataGenerator overrides
 //----------------------------------------------------------------------//
-bool FNavGraphGenerator::Generate() 
-{
-	return true;
-}
-
 bool FNavGraphGenerator::IsBuildInProgress(bool bCheckDirtyToo) const
 {
 	return false;
-}
-
-void FNavGraphGenerator::OnWorldInitDone(bool bAllowedToRebuild)
-{
-
-}
-
-void FNavGraphGenerator::OnNavigationBuildingLocked() 
-{
-
-}
-
-void FNavGraphGenerator::OnNavigationBuildingUnlocked(bool bForce) 
-{
-
-}
-
-void FNavGraphGenerator::OnNavigationBoundsUpdated(class AVolume* Volume) 
-{
-
-}
-
-void FNavGraphGenerator::OnNavigationDataDestroyed(class ANavigationData* NavData) 
-{
-
 }
 
 //----------------------------------------------------------------------//
@@ -60,11 +30,6 @@ void FNavGraphGenerator::OnNavigationDataDestroyed(class ANavigationData* NavDat
 void FNavGraphGenerator::Init()
 {
 
-}
-
-bool FNavGraphGenerator::IsBuildingLocked() const
-{
-	return false;
 }
 
 void FNavGraphGenerator::CleanUpIntermediateData()
@@ -77,7 +42,3 @@ void FNavGraphGenerator::UpdateBuilding()
 
 }
 
-void FNavGraphGenerator::TriggerGeneration()
-{
-
-}

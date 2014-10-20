@@ -22,7 +22,6 @@ void ANavMeshBoundsVolume::PostEditChangeProperty( struct FPropertyChangedEvent&
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-#if WITH_NAVIGATION_GENERATOR
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (GIsEditor && NavSys)
 	{
@@ -32,33 +31,28 @@ void ANavMeshBoundsVolume::PostEditChangeProperty( struct FPropertyChangedEvent&
 			NavSys->OnNavigationBoundsUpdated(this);
 		}
 	}
-#endif // WITH_NAVIGATION_GENERATOR
 }
 
 #endif // WITH_EDITOR
 
-void ANavMeshBoundsVolume::PostInitializeComponents() 
+void ANavMeshBoundsVolume::PostRegisterAllComponents() 
 {
-	Super::PostInitializeComponents();
-
-#if WITH_NAVIGATION_GENERATOR
+	Super::PostRegisterAllComponents();
+	
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys && Role == ROLE_Authority)
 	{
 		NavSys->OnNavigationBoundsUpdated(this);
 	}
-#endif
 }
 
-void ANavMeshBoundsVolume::PostLoad()
+void ANavMeshBoundsVolume::PostUnregisterAllComponents() 
 {
-	Super::PostLoad();
-
-#if WITH_NAVIGATION_GENERATOR
+	Super::PostUnregisterAllComponents();
+	
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys && Role == ROLE_Authority)
 	{
 		NavSys->OnNavigationBoundsUpdated(this);
 	}
-#endif
 }

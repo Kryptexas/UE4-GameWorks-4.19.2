@@ -56,6 +56,8 @@ ANavigationTestingActor::ANavigationTestingActor(const FObjectInitializer& Objec
 	CapsuleComponent->bCanEverAffectNavigation = false;
 
 	RootComponent = CapsuleComponent;
+
+	PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &ANavigationTestingActor::OnPathEvent);
 }
 
 ANavigationTestingActor::~ANavigationTestingActor()
@@ -212,11 +214,7 @@ void ANavigationTestingActor::PostLoad()
 void ANavigationTestingActor::TickMe()
 {
 	UNavigationSystem* NavSys = GetWorld() ? GetWorld()->GetNavigationSystem() : NULL;
-	if (NavSys
-#if WITH_NAVIGATION_GENERATOR
-		&& !NavSys->IsNavigationBuildInProgress()
-#endif
-		)
+	if (NavSys && !NavSys->IsNavigationBuildInProgress())
 	{
 #if WITH_RECAST && WITH_EDITORONLY_DATA
 		delete TickHelper;
@@ -347,6 +345,7 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 	bPathSearchOutOfNodes = bPathExist ? Result.Path->DidSearchReachedLimit() : false;
 	LastPath = Result.Path;
 	PathCost = bPathExist ? Result.Path->GetCost() : 0.0f;
+	LastPath->AddObserver(PathObserver);
 
 	if (OffsetFromCornersDistance > 0.0f)
 	{
@@ -363,6 +362,30 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 		}
 	}
 #endif
+}
+
+void ANavigationTestingActor::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event)
+{
+	if (InvalidatedPath == NULL || InvalidatedPath != LastPath.Get())
+    {
+		return;
+    }
+
+	switch (Event)
+	{
+		case ENavPathEvent::Invalidated:
+		{
+			UpdatePathfinding();
+			break;
+		}
+		case ENavPathEvent::RePathFailed:
+			break;
+		case ENavPathEvent::UpdatedDueToGoalMoved:
+		case ENavPathEvent::UpdatedDueToNavigationChanged:
+		{
+		}
+		break;
+	}
 }
 
 FPathFindingQuery ANavigationTestingActor::BuildPathFindingQuery(const ANavigationTestingActor* Goal) const

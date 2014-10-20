@@ -187,12 +187,10 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	// Lose the EditorWorld pointer (this is only maintained while PIEing)
-#if WITH_NAVIGATION_GENERATOR
 	if (EditorWorld->GetNavigationSystem())
 	{
 		EditorWorld->GetNavigationSystem()->OnPIEEnd();
 	}
-#endif // WITH_NAVIGATION_GENERATOR
 
 	EditorWorld->bAllowAudioPlayback = true;
 	EditorWorld = NULL;
@@ -1750,12 +1748,10 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	FEditorDelegates::BeginPIE.Broadcast(bInSimulateInEditor);
 
 	// let navigation know PIE starts so it can avoid any blueprint creation/deletion/instantiation affect editor map's navmesh changes
-#if WITH_NAVIGATION_GENERATOR
 	if (InWorld->GetNavigationSystem())
 	{
 		InWorld->GetNavigationSystem()->OnPIEStart();
 	}
-#endif // WITH_NAVIGATION_GENERATOR
 
 	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	check(EditorPlayInSettings);
@@ -2366,12 +2362,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	if (!bSuccess)
 	{
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
-#if WITH_NAVIGATION_GENERATOR
+
 		if (EditorWorld->GetNavigationSystem())
 		{
 			EditorWorld->GetNavigationSystem()->OnPIEEnd();
 		}
-#endif // WITH_NAVIGATION_GENERATOR
 
 		return nullptr;
 	}
