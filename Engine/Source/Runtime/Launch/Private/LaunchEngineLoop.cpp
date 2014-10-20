@@ -1823,8 +1823,6 @@ void InitializeAutoStartupModules()
 
 bool FEngineLoop::LoadStartupModules()
 {
-	InitializeAutoStartupModules();
-
 	// Load any modules that want to be loaded before default modules are loaded up.
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault))
 	{
@@ -1943,6 +1941,8 @@ int32 FEngineLoop::Init()
 		GIsRequestingExit = true;
 		return 1;
 	}
+
+	InitializeAutoStartupModules();
 
 	GetMoviePlayer()->WaitForMovieToFinish();
 
