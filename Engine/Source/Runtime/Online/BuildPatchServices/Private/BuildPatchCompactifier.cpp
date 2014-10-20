@@ -18,9 +18,10 @@ namespace BuildDataCompactifierDefs
 /* Constructors
 *****************************************************************************/
 
-FBuildDataCompactifier::FBuildDataCompactifier(const FString& CloudDir, const bool bPreview)
+FBuildDataCompactifier::FBuildDataCompactifier(const FString& CloudDir, const bool bPreview, const bool bTouchOnly)
 	: CloudDir(CloudDir)
 	, bPreview(bPreview)
+	, bTouchOnly(bTouchOnly)
 {
 
 }
@@ -28,15 +29,15 @@ FBuildDataCompactifier::FBuildDataCompactifier(const FString& CloudDir, const bo
 /* Public static methods
 *****************************************************************************/
 
-bool FBuildDataCompactifier::CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview)
+bool FBuildDataCompactifier::CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly)
 {
-	FBuildDataCompactifier Compactifier(CloudDir, bPreview);
+	FBuildDataCompactifier Compactifier(CloudDir, bPreview, bTouchOnly);
 	return Compactifier.Compactify(ManifestsToKeep, DataAgeThreshold);
 }
 
-bool FBuildDataCompactifier::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview)
+bool FBuildDataCompactifier::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly)
 {
-	return CompactifyCloudDirectory(FBuildPatchServicesModule::GetCloudDirectory(), ManifestsToKeep, DataAgeThreshold, bPreview);
+	return CompactifyCloudDirectory(FBuildPatchServicesModule::GetCloudDirectory(), ManifestsToKeep, DataAgeThreshold, bPreview, bTouchOnly);
 }
 
 /* Private methods
@@ -44,7 +45,7 @@ bool FBuildDataCompactifier::CompactifyCloudDirectory(const TArray<FString>& Man
 
 bool FBuildDataCompactifier::Compactify(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold) const
 {
-	GLog->Logf(TEXT("Running Compactify on %s%s"), *CloudDir, bPreview ? TEXT(". Preview mode. NO action will be taken.") : TEXT(""));
+	GLog->Logf(TEXT("Running Compactify on %s%s"), *CloudDir, bPreview ? TEXT(". Preview mode. NO action will be taken.") : bTouchOnly ? TEXT(". TouchOnly mode. NO patch data will be deleted.") : TEXT(""));
 	if (ManifestsToKeep.Num() > 0)
 	{
 		GLog->Logf(TEXT("Preserving manifest files: %s"), *FString::Join(ManifestsToKeep, TEXT(", ")));
@@ -223,7 +224,7 @@ bool FBuildDataCompactifier::Compactify(const TArray<FString>& ManifestsToKeep, 
 void FBuildDataCompactifier::DeleteFile(const FString& FilePath) const
 {
 	GLog->Logf(TEXT("Deleting file %s"), *FilePath);
-	if (!bPreview)
+	if (!bPreview && !bTouchOnly)
 	{
 		IFileManager::Get().Delete(*FilePath);
 	}
@@ -267,7 +268,7 @@ bool FBuildDataCompactifier::DeleteNonReferencedManifests(TArray<FString>& AllMa
 			DeletedManifests.Add(Manifest);
 			BytesDeleted += IFileManager::Get().FileSize(*ManifestPath);
 
-			if (!bPreview)
+			if (!bPreview && !bTouchOnly)
 			{
 				IFileManager::Get().Delete(*ManifestPath);
 				if (FPaths::FileExists(ManifestPath))

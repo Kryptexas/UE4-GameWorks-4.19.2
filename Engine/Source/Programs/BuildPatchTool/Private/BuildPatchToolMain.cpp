@@ -55,6 +55,7 @@
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
 	-preview			Log all the actions it will take to update internal structures, but don't actually execute them.
+	-touchonly			When specified, will only set the modified date of referenced files to the current time, but will NOT delete any patch data.
 	-ManifestsList=""			Specifies in quotes, the list of manifest filenames to keep following the operation. If omitted, all manifests are kept.
 	-ManifestsFile=""			Specifies in quotes, the name of the file (relative to CloudDir) which contains a list of manifests to keep, one manifest filename per line
 	-DataAgeThreshold=14.25		The maximum age in days of chunk files that will be retained. All older chunks will be deleted.
@@ -155,6 +156,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	bool bCompactify = false;
 	bool bPatchGeneration = true;
 	bool bPreview = false;
+	bool bTouchOnly = false;
 	bool bPatchWithReuseAgeThreshold = true;
 
 	// Collect all the info from the CommandLine
@@ -186,6 +188,9 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 		Matcher.Command = TEXT("preview");
 		bPreview = bCompactify && Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
+
+		Matcher.Command = TEXT("touchonly");
+		bTouchOnly = bCompactify && Switches.IndexOfByPredicate(Matcher) != INDEX_NONE;
 		
 		Matcher.Command = TEXT( "BuildRoot" );
 		BuildRootIdx = Switches.IndexOfByPredicate(Matcher);
@@ -378,6 +383,11 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		return 1;
 	}
 
+	if (bCompactify && bPreview && bTouchOnly)
+	{
+		GLog->Log(ELogVerbosity::Error, TEXT("Only one of -preview and -touchonly can be specified"));
+		return 5;
+	}
 
 	// Initialize the file manager
 	IFileManager::Get().ProcessCommandLineOptions();
@@ -419,8 +429,19 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			}
 		}
 
+		// Determine our mode of operation
+		ECompactifyMode::Type CompactifyMode = ECompactifyMode::Full;
+		if (bPreview)
+		{
+			CompactifyMode = ECompactifyMode::Preview;
+		}
+		else if (bTouchOnly)
+		{
+			CompactifyMode = ECompactifyMode::TouchOnly;
+		}
+
 		// Run the compactify routine
-		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(ManifestsArr, DataAgeThreshold, bPreview);
+		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(ManifestsArr, DataAgeThreshold, CompactifyMode);
 	}
 	else if (bPatchGeneration)
 	{

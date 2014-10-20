@@ -16,6 +16,16 @@ DECLARE_DELEGATE_OneParam( FBuildPatchManifestDelegate, IBuildManifestRef );
 DECLARE_DELEGATE_TwoParams( FBuildPatchBoolManifestDelegate, bool, IBuildManifestRef );
 DECLARE_DELEGATE_OneParam( FBuildPatchFloatDelegate, float );
 
+namespace ECompactifyMode
+{
+	enum Type
+	{
+		Preview,
+		TouchOnly,
+		Full
+	};
+}
+
 /**
  * Interface for the services manager.
  */
@@ -114,10 +124,10 @@ public:
 	 * NOTE: THIS function is blocking and will not return until finished. Don't run on main thread.
 	 * @param ManifestsToKeep      If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold     Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
-	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param Mode      The mode that compactify will run in. If Preview, then no work will be carried out, if TouchOnly, then no patch-data will be deleted
 	 * @return              true if no file errors occurred
 	 */
-	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview) = 0;
+	virtual bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const ECompactifyMode::Type Mode) = 0;
 #endif // WITH_BUILDPATCHGENERATION
 
 	/**

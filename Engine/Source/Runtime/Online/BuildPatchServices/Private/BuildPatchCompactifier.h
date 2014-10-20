@@ -23,9 +23,10 @@ public:
 	 * @param ManifestsToKeep   If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold  Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
 	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param bTouchOnly    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
 	 * @return              true if no file errors occurred
 	 */
-	static bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview);
+	static bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly);
 
 	/**
 	 * Processes the specified Cloud Directory to identify and delete any orphaned chunks or files.
@@ -34,20 +35,23 @@ public:
 	 * @param ManifestsToKeep   If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold  Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
 	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param bTouchOnly    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
 	 * @return              true if no file errors occurred
 	 */
-	static bool CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview);
+	static bool CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly);
 
 private:
 	const FString CloudDir;
 	const bool bPreview;
+	const bool bTouchOnly;
 
 	/**
 	 * Constructor.
 	 * @param CloudDir      The directory that this compactifier should operate on.
 	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param bTouchOnly    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
 	 */
-	FBuildDataCompactifier(const FString& CloudDir, const bool bPreview);
+	FBuildDataCompactifier(const FString& CloudDir, const bool bPreview, const bool bTouchOnly);
 
 	/**
 	 * Processes the Cloud Directory to identify and delete any orphaned chunks or files.
