@@ -665,7 +665,15 @@ private:
 
 	// ---------------------------------------------
 	
+	// Acceleration map for all gameplay tags (OwnedGameplayTags from GEs and explicit GameplayCueTags)
+	FGameplayTagCountContainer GameplayTagCountContainer;
+
+	void UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta);
 	
+	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
+
+	// Version for delegate callback.
+	FGameplayTagContainer GetOwnedGameplayTagsDel() const;
 	
 	// ---------------------------------------------
 
@@ -682,4 +690,6 @@ protected:
 
 	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayEffect;
+	friend struct FActiveGameplayCue;
+	friend struct FActiveGameplayCueContainer;
 };

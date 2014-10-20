@@ -637,8 +637,7 @@ struct FGameplayModifierData
 	FScalableFloat Magnitude;
 
 	// The tags I have
-	FGameplayTagContainer Tags;
-	
+	FGameplayTagContainer Tags;	
 	FGameplayTagContainer RequireTags;
 	FGameplayTagContainer IgnoreTags;
 
@@ -713,7 +712,7 @@ struct FAggregator : public TSharedFromThis<FAggregator>
 	FAggregator(const FAggregator &In);
 	virtual ~FAggregator();
 
-	FAggregator & MarkDirty();
+	FAggregator& MarkDirty();
 	void ClearAllDependancies();
 
 	const FGameplayModifierEvaluatedData& Evaluate() const;
@@ -1110,12 +1109,12 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	friend struct FActiveGameplayEffect;
 
-	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false), GameplayTagCountContainer(EGameplayTagMatchType::IncludeParentTags) {};
+	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false) {};
 
 	UPROPERTY()
 	TArray< FActiveGameplayEffect >	GameplayEffects;
 
-	UAbilitySystemComponent *Owner;
+	UAbilitySystemComponent* Owner;
 	
 	FActiveGameplayEffect& CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey);
 
@@ -1173,16 +1172,6 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	// ------------------------------------------------
 
-	void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const;
-
-	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
-
-	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
-
-	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
-
-	// ------------------------------------------------
-
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 	
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
@@ -1197,8 +1186,6 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void OnDurationAggregatorDirty(FAggregator* Aggregator, UAbilitySystemComponent* Owner, FActiveGameplayEffectHandle Handle);
 	
-	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);
-
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
 
 	bool HasReceivedEffectWithPredictedKey(FPredictionKey PredictionKey) const;
@@ -1217,8 +1204,6 @@ private:
 
 	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
 
-	FGameplayTagCountContainer GameplayTagCountContainer;
-
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
 
 	bool IsNetAuthority() const;
@@ -1229,9 +1214,6 @@ private:
 	/** Called both in server side creation and replication creation/deletion */
 	void InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
-
-	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
-	void UpdateTagMap(const FGameplayTag& Tag, int32 CountDelta);
 };
 
 template<>

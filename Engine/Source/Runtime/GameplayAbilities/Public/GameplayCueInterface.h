@@ -82,8 +82,6 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 	void AddCue(const FGameplayTag& Tag);
 	void RemoveCue(const FGameplayTag& Tag);
 
-	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
-
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FActiveGameplayCue>(GameplayCues, DeltaParms, *this);

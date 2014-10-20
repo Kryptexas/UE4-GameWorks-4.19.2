@@ -32,6 +32,7 @@ static FAutoConsoleVariableRef CVarDebugGameplayCues(
 
 UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, GameplayTagCountContainer(EGameplayTagMatchType::IncludeParentTags)
 {
 	bWantsInitializeComponent = true;
 
@@ -267,7 +268,7 @@ bool UAbilitySystemComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle
 
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag)
 {
-	return ActiveGameplayEffects.RegisterGameplayTagEvent(Tag);
+	return GameplayTagCountContainer.GameplayTagEventMap.FindOrAdd(Tag);
 }
 
 FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
@@ -275,26 +276,62 @@ FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEv
 	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
 }
 
+FGetGameplayTags UAbilitySystemComponent::GetGameplayTagsDelegate() const
+{	
+	return FGetGameplayTags::CreateUObject(this, &UAbilitySystemComponent::GetGameplayTags);
+}
+
+FGameplayTagContainer UAbilitySystemComponent::GetGameplayTags() const
+{
+	FGameplayTagContainer TagContainer;
+	GetOwnedGameplayTags(TagContainer);
+	return TagContainer;
+}
+
+FRegisterGameplayTagChangeDelegate UAbilitySystemComponent::GetRegisterGameplayTagChangeDelegate() const
+{
+	return FRegisterGameplayTagChangeDelegate::CreateUObject(this, &UAbilitySystemComponent::RegisterGameplayTagEvent);
+}
+
 // ------------------------------------------------------------------------
 
 void UAbilitySystemComponent::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
-	return ActiveGameplayEffects.GetOwnedGameplayTags(TagContainer);
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetOwnedTags);
+	for (auto It = GameplayTagCountContainer.GameplayTagCountMap.CreateConstIterator(); It; ++It)
+	{
+		if (It.Value() > 0)
+		{
+			TagContainer.AddTagFast(It.Key());
+		}
+	}
 }
 
 bool UAbilitySystemComponent::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
 {
-	return ActiveGameplayEffects.HasMatchingGameplayTag(TagToCheck);
+	return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck, EGameplayTagMatchType::Explicit);
 }
 
 bool UAbilitySystemComponent::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	return ActiveGameplayEffects.HasAllMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAllTags);
+	return GameplayTagCountContainer.HasAllMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
 }
 
 bool UAbilitySystemComponent::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	return ActiveGameplayEffects.HasAnyMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
+	return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
+}
+
+void UAbilitySystemComponent::UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta)
+{
+	GameplayTagCountContainer.UpdateTagMap(BaseTag, CountDelta);
+}
+
+void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
+{
+	GameplayTagCountContainer.UpdateTagMap(Container, CountDelta);
 }
 
 // ------------------------------------------------------------------------
@@ -336,6 +373,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		return FActiveGameplayEffectHandle();
 	}
+	
 
 	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
 	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && BaseQualifier.PredictionKey().IsValidKey() && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
@@ -640,7 +678,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueRemoved_Implementati
 
 bool UAbilitySystemComponent::IsGameplayCueActive(const FGameplayTag GameplayCueTag) const
 {
-	return (ActiveGameplayEffects.HasMatchingGameplayTag(GameplayCueTag) || ActiveGameplayCues.HasMatchingGameplayTag(GameplayCueTag));
+	return HasMatchingGameplayTag(GameplayCueTag);
 }
 
 // ----------------------------------------------------------------------------------------

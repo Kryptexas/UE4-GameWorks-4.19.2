@@ -264,7 +264,7 @@ int32 FGameplayEffectSpec::ApplyModifier(const FModifierSpec &InMod, const FModi
 	{
 		case EGameplayModEffect::Magnitude:
 		{
-			for (FModifierSpec &MyMod : Modifiers)
+			for (FModifierSpec& MyMod : Modifiers)
 			{
 				if (InMod.CanModifyModifier(MyMod, QualifierContext))
 				{
@@ -1691,23 +1691,16 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	return NewEffect;
 }
 
-void FActiveGameplayEffectsContainer::UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta)
-{
-	GameplayTagCountContainer.UpdateTagMap(BaseTag, CountDelta);
-}
-
-void FActiveGameplayEffectsContainer::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
-{
-	GameplayTagCountContainer.UpdateTagMap(Container, CountDelta);
-}
-
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect)
 {
 	// Update gameplaytag count and broadcast delegate if we just added this tag (count=0, prior to increment)
-	UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, 1);
+	Owner->UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, 1);
+
+	//Owner.ActiveGameplayCues.AddCue(
+
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
-		UpdateTagMap(Cue.GameplayCueTags, 1);
+		Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
 	}	
 }
 
@@ -1787,11 +1780,11 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(cons
 	{
 		// Update gameplaytag count and broadcast delegate if we are at 0
 		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-		UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, -1);
+		Owner->UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, -1);
 
 		for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 		{
-			UpdateTagMap(Cue.GameplayCueTags, -1);
+			Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
 		}
 	}
 	else
@@ -1986,35 +1979,6 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 	}
 }
 
-void FActiveGameplayEffectsContainer::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetOwnedTags);
-	for (auto It = GameplayTagCountContainer.GameplayTagCountMap.CreateConstIterator(); It; ++It)
-	{
-		if(It.Value() > 0)
-		{
-			TagContainer.AddTagFast(It.Key());
-		}
-	}
-}
-
-bool FActiveGameplayEffectsContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
-{
-	return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck, EGameplayTagMatchType::Explicit);
-}
-
-bool FActiveGameplayEffectsContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAllTags);
-	return GameplayTagCountContainer.HasAllMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
-}
-
-bool FActiveGameplayEffectsContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
-	return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, EGameplayTagMatchType::Explicit, bCountEmptyAsMatch);
-}
-
 bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
@@ -2097,11 +2061,6 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 			idx--;
 		}
 	}
-}
-
-FOnGameplayEffectTagCountChanged& FActiveGameplayEffectsContainer::RegisterGameplayTagEvent(FGameplayTag Tag)
-{
-	return GameplayTagCountContainer.GameplayTagEventMap.FindOrAdd(Tag);
 }
 
 FOnGameplayAttributeChange& FActiveGameplayEffectsContainer::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
