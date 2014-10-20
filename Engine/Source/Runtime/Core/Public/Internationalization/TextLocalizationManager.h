@@ -97,7 +97,7 @@ public:
 	int CORE_API GetHeadCultureRevision() const { return HeadCultureRevisionIndex; }
 
 	/** Broadcasts whenever the new translations are available */
-	DECLARE_EVENT(FInternationalization, FTranslationsChangedEvent)
+	DECLARE_EVENT(FTextLocalizationManager, FTranslationsChangedEvent)
 	CORE_API FTranslationsChangedEvent&  OnTranslationsChanged() { return TranslationsChangedEvent; }
 
 private:
