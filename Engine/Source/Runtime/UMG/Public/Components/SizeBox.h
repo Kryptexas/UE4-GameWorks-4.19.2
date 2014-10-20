@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,9 @@ class USlateBrushAsset;
 /**
  * A widget that allows you to specify the size it reports to have and desire.  Not all widgets report a desired size
  * that you actually desire.  Wrapping them in a SizeBox lets you have the Size Box force them to be a particular size.
+ *
+ * ● Single Child
+ * ● Fixed Size
  */
 UCLASS()
 class UMG_API USizeBox : public UContentWidget

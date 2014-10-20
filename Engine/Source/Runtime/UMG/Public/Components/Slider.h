@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFloatValueChangedEvent, float, Va
 
 /**
  * A simple widget that shows a sliding bar with a handle that allows you to control the value between 0..1.
+ *
+ * ● No Children
  */
 UCLASS()
 class UMG_API USlider : public UWidget
