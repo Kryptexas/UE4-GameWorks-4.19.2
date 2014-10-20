@@ -8,7 +8,6 @@
 
 #include "ComponentReregisterContext.h"	
 
-#pragma optimize( "", off )
 void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
@@ -350,4 +349,3 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 		}		
 	}
 }
-#pragma optimize( "", on ) 
