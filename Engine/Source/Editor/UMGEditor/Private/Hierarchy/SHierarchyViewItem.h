@@ -40,8 +40,10 @@ public:
 	virtual void GatherChildren(TArray< TSharedPtr<FHierarchyModel> >& Children);
 
 	virtual void OnSelection() = 0;
-
-	virtual bool IsModel(UObject* PossibleModel) const { return false; }
+	
+	void RefreshSelection();
+	bool ContainsSelection();
+	bool IsSelected() const;
 
 	virtual bool IsVisible() const { return true; }
 	virtual bool CanControlVisibility() const { return false; }
@@ -49,10 +51,15 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) = 0;
+	virtual void UpdateSelection() = 0;
+
+private:
+	void InitializeChildren();
 
 protected:
 
 	bool bInitialized;
+	bool bIsSelected;
 	TArray< TSharedPtr<FHierarchyModel> > Models;
 };
 
@@ -80,6 +87,7 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+	virtual void UpdateSelection();
 
 private:
 
@@ -103,13 +111,14 @@ public:
 	virtual FSlateFontInfo GetFont() const override;
 
 	virtual void OnSelection();
-
+	
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
 	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent);
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+	virtual void UpdateSelection();
 
 private:
 
@@ -147,11 +156,6 @@ public:
 
 	virtual void OnSelection();
 
-	virtual bool IsModel(UObject* PossibleModel) const override
-	{
-		return Item.GetTemplate() == PossibleModel;
-	}
-
 	virtual bool IsVisible() const override
 	{
 		return !Item.GetTemplate()->bHiddenInDesigner;
@@ -177,6 +181,7 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
+	virtual void UpdateSelection();
 
 private:
 	FWidgetReference Item;

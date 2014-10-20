@@ -145,54 +145,12 @@ void SHierarchyView::OnEditorSelectionChanged()
 {
 	WidgetTreeView->ClearSelection();
 
-	bool bFirst = true;
-
-	// Update the selection and expansion in the tree to match the new selection
-	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
-	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	if ( RootWidgets.Num() > 0 )
 	{
-		UWidget* TemplateWidget = WidgetRef.GetTemplate();
-
-		if ( TemplateWidget )
-		{
-			TArray< UWidget* > Widgets;
-			Widgets.Add(TemplateWidget);
-
-			UWidget* Parent = TemplateWidget->GetParent();
-			while ( Parent != NULL )
-			{
-				Widgets.Add(Parent);
-				Parent = Parent->GetParent();
-			}
-
-			TSharedPtr<FHierarchyModel> CurrentItem = RootWidgets[0];
-			WidgetTreeView->SetItemExpansion(CurrentItem, true);
-
-			for ( int32 WidgetIndex = Widgets.Num() - 1; WidgetIndex >= 0; WidgetIndex-- )
-			{
-				UWidget* WidgetItem = Widgets[WidgetIndex];
-
-				TArray< TSharedPtr<FHierarchyModel> > Children;
-				CurrentItem->GatherChildren(Children);
-
-				for ( auto C : Children )
-				{
-					if ( C->IsModel(WidgetItem) )
-					{
-						WidgetTreeView->SetItemExpansion(C, true);
-						CurrentItem = C;
-
-						if ( WidgetIndex == 0 )
-						{
-							WidgetTreeView->SetItemSelection(CurrentItem, true, ESelectInfo::Direct);
-						}
-					}
-				}
-			}
-
-			WidgetTreeView->RequestScrollIntoView(CurrentItem);
-		}
+		RootWidgets[0]->RefreshSelection();
 	}
+
+	RestoreSelectedItems();
 }
 
 UWidgetBlueprint* SHierarchyView::GetBlueprint() const
@@ -330,6 +288,38 @@ void SHierarchyView::RecursiveExpand(TSharedPtr<FHierarchyModel>& Model)
 		}
 	}
 }
+
+void SHierarchyView::RestoreSelectedItems()
+{
+	for ( TSharedPtr<FHierarchyModel>& Model : RootWidgets )
+	{
+		RecursiveSelection(Model);
+	}
+}
+
+void SHierarchyView::RecursiveSelection(TSharedPtr<FHierarchyModel>& Model)
+{
+	if ( Model->ContainsSelection() )
+	{
+		// Expand items that contain selection.
+		WidgetTreeView->SetItemExpansion(Model, true);
+
+		TArray< TSharedPtr<FHierarchyModel> > Children;
+		Model->GatherChildren(Children);
+
+		for ( TSharedPtr<FHierarchyModel>& ChildModel : Children )
+		{
+			RecursiveSelection(ChildModel);
+		}
+	}
+
+	if ( Model->IsSelected() )
+	{
+		WidgetTreeView->SetItemSelection(Model, true, ESelectInfo::Direct);
+		WidgetTreeView->RequestScrollIntoView(Model);
+	}
+}
+
 
 //@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?
 

@@ -94,6 +94,12 @@ private:
 	/** Recursively expands the models based on the expansion set. */
 	void RecursiveExpand(TSharedPtr<FHierarchyModel>& Model);
 
+	/**  */
+	void RestoreSelectedItems();
+
+	/**  */
+	void RecursiveSelection(TSharedPtr<FHierarchyModel>& Model);
+
 private:
 
 	/** Cached pointer to the blueprint editor that owns this tree. */

@@ -206,6 +206,7 @@ FReply ProcessHierarchyDragDrop(const FDragDropEvent& DragDropEvent, bool bIsDro
 
 FHierarchyModel::FHierarchyModel()
 	: bInitialized(false)
+	, bIsSelected(false)
 {
 
 }
@@ -250,15 +251,52 @@ void FHierarchyModel::OnNameTextCommited(const FText& InText, ETextCommit::Type 
 
 }
 
-void FHierarchyModel::GatherChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
+void FHierarchyModel::InitializeChildren()
 {
 	if ( !bInitialized )
 	{
 		bInitialized = true;
 		GetChildren(Models);
 	}
+}
+
+void FHierarchyModel::GatherChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
+{
+	InitializeChildren();
 
 	Children.Append(Models);
+}
+
+bool FHierarchyModel::ContainsSelection()
+{
+	InitializeChildren();
+
+	for ( TSharedPtr<FHierarchyModel>& Model : Models )
+	{
+		if ( Model->IsSelected() || Model->ContainsSelection() )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FHierarchyModel::RefreshSelection()
+{
+	InitializeChildren();
+
+	UpdateSelection();
+
+	for ( TSharedPtr<FHierarchyModel>& Model : Models )
+	{
+		Model->RefreshSelection();
+	}
+}
+
+bool FHierarchyModel::IsSelected() const
+{
+	return bIsSelected;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -281,7 +319,7 @@ FText FHierarchyRoot::GetText() const
 
 const FSlateBrush* FHierarchyRoot::GetImage() const
 {
-	return NULL;
+	return nullptr;
 }
 
 FSlateFontInfo FHierarchyRoot::GetFont() const
@@ -309,6 +347,20 @@ void FHierarchyRoot::OnSelection()
 		TSet<UObject*> SelectedObjects;
 		SelectedObjects.Add(Default);
 		BPEd->SelectObjects(SelectedObjects);
+	}
+}
+
+void FHierarchyRoot::UpdateSelection()
+{
+	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	if ( UWidget* Default = BPEd->GetWidgetBlueprintObj()->GeneratedClass->GetDefaultObject<UWidget>() )
+	{
+		const TSet< TWeakObjectPtr<UObject> >& SelectedObjects = BlueprintEditor.Pin()->GetSelectedObjects();
+		bIsSelected = SelectedObjects.Contains(Default);
+	}
+	else
+	{
+		bIsSelected = false;
 	}
 }
 
@@ -373,36 +425,65 @@ FSlateFontInfo FNamedSlotModel::GetFont() const
 
 void FNamedSlotModel::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children)
 {
-	//TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
-	//UWidgetBlueprint* Blueprint = BPEd->GetWidgetBlueprintObj();
-
-	//if ( Blueprint->WidgetTree->RootWidget )
-	//{
-	//	TSharedPtr<FHierarchyWidget> RootChild = MakeShareable(new FHierarchyWidget(BPEd->GetReferenceFromTemplate(Blueprint->WidgetTree->RootWidget), BPEd));
-	//	Children.Add(RootChild);
-	//}
+	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
+	{
+		TSet<FWidgetReference> SelectedWidgets;
+		if ( UWidget* TemplateSlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+		{
+			TSharedPtr<FHierarchyWidget> RootChild = MakeShareable(new FHierarchyWidget(BPEd->GetReferenceFromTemplate(TemplateSlotContent), BPEd));
+			Children.Add(RootChild);
+		}
+	}
 }
 
 void FNamedSlotModel::OnSelection()
 {
 	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
-	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetPreview()) )
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
 	{
 		TSet<FWidgetReference> SelectedWidgets;
-		if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+		if ( UWidget* TemplateSlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
 		{
-			SelectedWidgets.Add( BPEd->GetReferenceFromPreview(SlotContent) );
+			SelectedWidgets.Add(BPEd->GetReferenceFromTemplate(TemplateSlotContent));
 		}
 
 		BPEd->SelectWidgets(SelectedWidgets);
 	}
 }
 
+void FNamedSlotModel::UpdateSelection()
+{
+	//bIsSelected = false;
+
+	//const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+
+	//TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
+	//if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
+	//{
+	//	if ( UWidget* TemplateSlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+	//	{
+	//		bIsSelected = SelectedWidgets.Contains(BPEd->GetReferenceFromTemplate(TemplateSlotContent));
+	//	}
+	//}
+}
+
 FReply FNamedSlotModel::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	//UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-	//bool bIsDrop = false;
-	//return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, FWidgetReference());
+	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	if ( TemplateDragDropOp.IsValid() )
+	{
+		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
+		{
+			// Only assign content to the named slot if it is null.
+			if ( NamedSlotHost->GetContentForSlot(SlotName) != nullptr )
+			{
+				TSharedPtr<FDecoratedDragDropOp> DecoratedDragDropOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+				TemplateDragDropOp->SetCursorOverride(EMouseCursor::SlashedCircle);
+				return FReply::Handled();
+			}
+		}
+	}
 
 	return FReply::Unhandled();
 }
@@ -419,11 +500,13 @@ FReply FNamedSlotModel::HandleDrop(FDragDropEvent const& DragDropEvent)
 	{
 		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
 		{
-			UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
-
-			NamedSlotHost->SetContentForSlot(SlotName, Widget);
-
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			// Only assign content to the named slot if it is null.
+			if ( NamedSlotHost->GetContentForSlot(SlotName) == nullptr )
+			{
+				UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
+				NamedSlotHost->SetContentForSlot(SlotName, Widget);
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
 
 			return FReply::Handled();
 		}
@@ -609,6 +692,12 @@ void FHierarchyWidget::OnSelection()
 	SelectedWidgets.Add(Item);
 
 	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
+}
+
+void FHierarchyWidget::UpdateSelection()
+{
+	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	bIsSelected = SelectedWidgets.Contains(Item);
 }
 
 //////////////////////////////////////////////////////////////////////////
