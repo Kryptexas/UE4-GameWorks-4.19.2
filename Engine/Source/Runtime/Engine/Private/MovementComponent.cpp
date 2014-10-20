@@ -510,7 +510,7 @@ void UMovementComponent::TwoWallAdjust(FVector& OutDelta, const FHitResult& Hit,
 	else //adjust to new wall
 	{
 		const FVector DesiredDir = Delta;
-		Delta = (Delta - HitNormal * (Delta | HitNormal)) * (1.f - Hit.Time);
+		Delta = ComputeSlideVector(Delta, 1.f - Hit.Time, HitNormal, Hit);
 		if ((Delta | DesiredDir) <= 0.f)
 		{
 			Delta = FVector::ZeroVector;

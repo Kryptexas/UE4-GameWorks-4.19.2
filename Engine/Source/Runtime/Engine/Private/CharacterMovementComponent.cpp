@@ -3010,11 +3010,6 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 							}
 						}
 
-						if (Delta.Z > 0.f)
-						{
-							Delta = HandleSlopeBoosting(Delta, PreTwoWallDelta, 1.f - Hit.Time, Hit.Normal, Hit);
-						}
-
 						// Compute velocity after deflection (only gravity component for RootMotion)
 						if (subTimeTickRemaining > KINDA_SMALL_NUMBER && !bJustTeleported)
 						{
