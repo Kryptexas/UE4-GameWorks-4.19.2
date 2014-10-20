@@ -71,7 +71,7 @@ enum EParticleEventType
 };
 
 // Called when the particle system is done
-DECLARE_DYNAMIC_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemComponent*, PSystem );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemComponent*, PSystem );
 
 
 /** Struct used for a particular named instance parameter for this ParticleSystemComponent. */
@@ -441,7 +441,7 @@ public:
 	float EmitterDelay;
 
 	// Called when the particle system is done
-	UPROPERTY()
+	UPROPERTY(BlueprintAssignable)
 	FOnSystemFinished OnSystemFinished;
 
 	//

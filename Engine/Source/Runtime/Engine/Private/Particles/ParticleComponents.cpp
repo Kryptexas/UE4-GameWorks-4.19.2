@@ -356,7 +356,7 @@ void AEmitter::PostInitializeComponents()
 	// Set Notification Delegate
 	if (ParticleSystemComponent)
 	{
-		ParticleSystemComponent->OnSystemFinished.BindDynamic( this, &AEmitter::OnParticleSystemFinished );
+		ParticleSystemComponent->OnSystemFinished.AddDynamic( this, &AEmitter::OnParticleSystemFinished );
 		bCurrentlyActive = ParticleSystemComponent->bAutoActivate;
 	}
 
@@ -4033,7 +4033,7 @@ void UParticleSystemComponent::FinalizeTickComponent()
 			TEXT("HasCompleted()==true @ %fs %s"), World->TimeSeconds,
 			Template != NULL ? *Template->GetName() : TEXT("NULL"));
 
-		OnSystemFinished.ExecuteIfBound(this);
+		OnSystemFinished.Broadcast(this);
 
 		// When system is done - destroy all subemitters etc. We don't need them any more.
 		ResetParticles();
