@@ -235,11 +235,11 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 			bRemoved = BP->WidgetTree->RemoveWidget(WidgetTemplate);
 
-			// If we failed to remove the widget from the tree, it may be a named slot widget that
-			// we need to search for in the named slot bindings.
-			if ( !bRemoved && WidgetTemplate->GetParent() == nullptr )
+			// If the widget we're removing doesn't have a parent it may be rooted in a named slot,
+			// so check there as well.
+			if ( WidgetTemplate->GetParent() == nullptr )
 			{
-				bRemoved = FindAndRemoveNamedSlotContent(WidgetTemplate, BP->WidgetTree);
+				bRemoved |= FindAndRemoveNamedSlotContent(WidgetTemplate, BP->WidgetTree);
 			}
 
 			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
@@ -265,11 +265,15 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetTemplate, UWidgetTree* WidgetTree)
 {
-	TArray<UWidget*> AllWidgets;
-	WidgetTree->GetAllWidgets(AllWidgets);
+	bool bSuccess = false;
 
-	for ( UWidget* Widget : AllWidgets )
-	{
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+
+		if ( bSuccess )
+		{
+			return;
+		}
+
 		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
 		{
 			TArray<FName> SlotNames;
@@ -282,14 +286,14 @@ bool FWidgetBlueprintEditorUtils::FindAndRemoveNamedSlotContent(UWidget* WidgetT
 					if ( SlotContent == WidgetTemplate )
 					{
 						NamedSlotHost->SetContentForSlot(SlotName, nullptr);
-						return true;
+						bSuccess = true;
 					}
 				}
 			}
 		}
-	}
+	});
 
-	return false;
+	return bSuccess;
 }
 
 void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)

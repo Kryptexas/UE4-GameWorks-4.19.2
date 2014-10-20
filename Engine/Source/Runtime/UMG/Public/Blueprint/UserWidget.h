@@ -567,13 +567,13 @@ public:
 	TSharedRef<SWidget> MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget);
 
 	/** @returns The root UObject widget wrapper */
-	UWidget* GetRootWidgetComponent();
+	UWidget* GetRootWidget() const;
 
 	/** @returns The slate widget corresponding to a given name */
-	TSharedPtr<SWidget> GetWidgetFromName(const FName& Name) const;
+	TSharedPtr<SWidget> GetSlateWidgetFromName(const FName& Name) const;
 
 	/** @returns The uobject widget corresponding to a given name */
-	UWidget* GetHandleFromName(const FString& Name) const;
+	UWidget* GetWidgetFromName(const FName& Name) const;
 
 	/** Ticks this widget and forwards to the underlying widget to tick */
 	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime );
@@ -606,10 +606,6 @@ public:
 	/** Called when the visibility changes. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
 	bool bSupportsKeyboardFocus;
-
-	/** The components contained in this user widget. */
-	UPROPERTY(Transient)
-	TArray<UWidget*> Components;
 
 	/** The widget tree contained inside this user widget initialized by the blueprint */
 	UPROPERTY(Transient)

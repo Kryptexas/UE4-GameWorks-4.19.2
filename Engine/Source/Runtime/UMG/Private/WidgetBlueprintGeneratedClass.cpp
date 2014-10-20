@@ -62,9 +62,6 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 		UClass* WidgetBlueprintClass = UserWidget->GetClass();
 
-		TArray<UWidget*> ClonedWidgets;
-		ClonedTree->GetAllWidgets(ClonedWidgets);
-
 		for(UWidgetAnimation* Animation : Animations)
 		{
 			UWidgetAnimation* Anim = DuplicateObject<UWidgetAnimation>( Animation, UserWidget );
@@ -78,23 +75,18 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 					Prop->SetObjectPropertyValue_InContainer(UserWidget, Anim);
 				}
 			}
-
 		}
 
-		UserWidget->Components.Reset();
-
-		for ( UWidget* Widget : ClonedWidgets )
-		{
+		ClonedTree->ForEachWidget([&] (UWidget* Widget) {
 			// Not fatal if NULL, but shouldn't happen
 			if ( !ensure(Widget != NULL) )
 			{
-				continue;
+				return;
 			}
 
 			FString VariableName = Widget->GetName();
 
 			Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-			UserWidget->Components.Add(Widget); // Add to array so it gets saved
 
 			// Find property with the same name as the template and assign the new widget to it.
 			UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, *VariableName);
@@ -155,7 +147,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 	#if WITH_EDITOR
 			Widget->ConnectEditorData();
 	#endif
-		}
+		});
 
 		// Bind any delegates on widgets
 		BindDynamicDelegates(UserWidget);

@@ -65,6 +65,9 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	UPROPERTY()
 	TArray<UWidgetAnimation*> Animations;
 
+	UPROPERTY()
+	TArray< FName > NamedSlots;
+
 	/** This is transient data calculated at link time. */
 	TArray<UStructProperty*> WidgetNodeProperties;
 

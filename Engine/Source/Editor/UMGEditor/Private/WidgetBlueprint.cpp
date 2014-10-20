@@ -113,12 +113,9 @@ void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
 
-	TArray<UWidget*> Widgets;
-	WidgetTree->GetAllWidgets(Widgets);
-	for ( UWidget* Widget : Widgets )
-	{
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 		Widget->ConnectEditorData();
-	}
+	});
 
 	if( GetLinkerUE4Version() < VER_UE4_FIXUP_WIDGET_ANIMATION_CLASS )
 	{

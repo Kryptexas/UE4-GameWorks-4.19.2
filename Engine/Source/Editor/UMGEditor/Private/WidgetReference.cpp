@@ -33,7 +33,7 @@ bool FWidgetReference::IsValid() const
 {
 	if ( TemplateHandle.IsValid() )
 	{
-		return TemplateHandle->Widget.Get() != NULL && GetPreview();
+		return TemplateHandle->Widget.Get() != nullptr && GetPreview();
 	}
 
 	return false;
@@ -46,7 +46,7 @@ UWidget* FWidgetReference::GetTemplate() const
 		return TemplateHandle->Widget.Get();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 UWidget* FWidgetReference::GetPreview() const
@@ -55,14 +55,17 @@ UWidget* FWidgetReference::GetPreview() const
 	{
 		UUserWidget* PreviewRoot = WidgetEditor.Pin()->GetPreview();
 
-		if ( PreviewRoot && TemplateHandle->Widget.Get() )
+		if ( PreviewRoot )
 		{
-			UWidget* PreviewWidget = PreviewRoot->GetHandleFromName(TemplateHandle->Widget.Get()->GetName());
-			return PreviewWidget;
+			if ( UWidget* TemplateWidget = TemplateHandle->Widget.Get() )
+			{
+				UWidget* PreviewWidget = PreviewRoot->GetWidgetFromName(TemplateWidget->GetFName());
+				return PreviewWidget;
+			}
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

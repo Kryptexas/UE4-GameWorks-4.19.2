@@ -107,10 +107,7 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 		}
 	}
 
-	TArray<UWidget*> Widgets;
-	Blueprint->WidgetTree->GetAllWidgets(Widgets);
-	for ( UWidget* Widget : Widgets )
-	{
+	Blueprint->WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 		if ( ParentBPNameValidator.IsValid() && ParentBPNameValidator->IsValid(Widget->GetName()) != EValidatorResult::Ok )
 		{
 			// TODO Support renaming items, similar to timelines.
@@ -122,7 +119,7 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 			//MessageLog.Warning(*FString::Printf(*LOCTEXT("TimelineConflictWarning", "Found a timeline with a conflicting name (%s) - changed to %s.").ToString(), *TimelineTemplate->GetName(), *NewName.ToString()));
 			//FBlueprintEditorUtils::RenameTimeline(Blueprint, FName(*TimelineName), NewName);
 		}
-	}
+	});
 }
 
 template<typename TOBJ>
@@ -268,6 +265,15 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 			BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));
 		}
 	}
+
+	// Add all the names of the named slot widgets to the slot names structure.
+	BPGClass->NamedSlots.Reset();
+	BPGClass->WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+		if ( Widget && Widget->IsA<UNamedSlot>() )
+		{
+			BPGClass->NamedSlots.Add(Widget->GetFName());
+		}
+	});
 
 	Super::FinishCompilingClass(Class);
 }

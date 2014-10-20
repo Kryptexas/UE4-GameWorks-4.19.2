@@ -41,13 +41,12 @@ void UUserWidget::Initialize()
 
 		// Only do this if this widget is of a blueprint class
 		UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-		if ( BGClass != NULL )
+		if ( BGClass != nullptr )
 		{
 			BGClass->InitializeWidget(this);
 		}
 
-		for ( UWidget* Widget : Components )
-		{
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
 			{
 				for ( FNamedSlotBinding& Binding : NamedSlotBindings )
@@ -60,7 +59,7 @@ void UUserWidget::Initialize()
 					}
 				}
 			}
-		}
+		});
 	}
 }
 
@@ -78,7 +77,7 @@ void UUserWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
-	UWidget* RootWidget = GetRootWidgetComponent();
+	UWidget* RootWidget = GetRootWidget();
 	if ( RootWidget )
 	{
 		RootWidget->ReleaseSlateResources(bReleaseChildren);
@@ -125,9 +124,6 @@ void UUserWidget::SetForegroundColor(FSlateColor InForegroundColor)
 void UUserWidget::PostInitProperties()
 {
 	Super::PostInitProperties();
-
-	Components.Reset();
-	//TODO UMG For non-BP versions how do we generate the Components list?
 }
 
 UWorld* UUserWidget::GetWorld() const
@@ -157,10 +153,9 @@ void UUserWidget::SetIsDesignTime(bool bInDesignTime)
 {
 	Super::SetIsDesignTime(bInDesignTime);
 
-	for ( UWidget* Widget : Components )
-	{
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 		Widget->SetIsDesignTime(bInDesignTime);
-	}
+	});
 }
 
 void UUserWidget::Construct_Implementation()
@@ -389,28 +384,19 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 
 	TSharedPtr<SWidget> UserRootWidget;
 
-	//setup the player context on sub user widgets, if we have a valid context
+	// Setup the player context on sub user widgets, if we have a valid context
 	if (PlayerContext.IsValid())
 	{
-		for (UWidget* Widget : Components)
-		{
-			UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
-			if (UserWidget)
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+			if ( UUserWidget* UserWidget = Cast<UUserWidget>(Widget) )
 			{
 				UserWidget->SetPlayerContext(PlayerContext);
 			}
-		}
+		});
 	}
 
 	// Add the first component to the root of the widget surface.
-	if ( Components.Num() > 0 && Components[0] != NULL )
-	{
-		UserRootWidget = Components[0]->TakeWidget();
-	}
-	else
-	{
-		UserRootWidget = SNew(SSpacer);
-	}
+	UserRootWidget = WidgetTree->RootWidget ? WidgetTree->RootWidget->TakeWidget() : SNew(SSpacer);
 
 	if ( !IsDesignTime() )
 	{
@@ -421,7 +407,7 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 	return UserRootWidget.ToSharedRef();
 }
 
-TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FName& Name) const
+TSharedPtr<SWidget> UUserWidget::GetSlateWidgetFromName(const FName& Name) const
 {
 	UWidget* WidgetObject = WidgetTree->FindWidget(Name);
 	if ( WidgetObject )
@@ -432,30 +418,18 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FName& Name) const
 	return TSharedPtr<SWidget>();
 }
 
-UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
+UWidget* UUserWidget::GetWidgetFromName(const FName& Name) const
 {
-	for ( UWidget* Widget : Components )
-	{
-		if ( Widget->GetName().Equals(Name, ESearchCase::IgnoreCase) )
-		{
-			return Widget;
-		}
-	}
-
-	return nullptr;
+	return WidgetTree->FindWidget(Name);
 }
 
 void UUserWidget::GetSlotNames(TArray<FName>& SlotNames) const
 {
-	//TODO UMG This should be static data computed and stored on the class at compile time.
-
-	// Add all the names of the named slot widgets to the slot names structure.
-	for ( UWidget* Widget : Components )
+	// Only do this if this widget is of a blueprint class
+	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if ( BGClass != nullptr )
 	{
-		if ( Widget && Widget->IsA<UNamedSlot>() )
-		{
-			SlotNames.Add( Widget->GetFName() );
-		}
+		SlotNames.Append(BGClass->NamedSlots);
 	}
 
 	// Also add any existing bindings uniquely, templates don't have any components
@@ -565,11 +539,11 @@ TSharedRef<SWidget> UUserWidget::MakeViewportWidget(TSharedPtr<SWidget>& UserSla
 		];
 }
 
-UWidget* UUserWidget::GetRootWidgetComponent()
+UWidget* UUserWidget::GetRootWidget() const
 {
-	if ( Components.Num() > 0 )
+	if ( WidgetTree )
 	{
-		return Components[0];
+		return WidgetTree->RootWidget;
 	}
 
 	return nullptr;

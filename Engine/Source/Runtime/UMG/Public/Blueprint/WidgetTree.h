@@ -32,9 +32,55 @@ public:
 	/** Gathers descendant child widgets of a parent widget. */
 	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
 
+	/**  */
+	template <typename Predicate>
+	FORCEINLINE void ForEachWidget(Predicate Pred) const
+	{
+		if ( RootWidget )
+		{
+			Pred(RootWidget);
+			
+			ForWidgetAndChildren(RootWidget, Pred);
+		}
+	}
+
+	/**  */
+	template <typename Predicate>
+	FORCEINLINE void ForWidgetAndChildren(UWidget* Widget, Predicate Pred) const
+	{
+		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
+		{
+			TArray<FName> SlotNames;
+			NamedSlotHost->GetSlotNames(SlotNames);
+
+			for ( FName SlotName : SlotNames )
+			{
+				if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
+				{
+					Pred(SlotContent);
+
+					ForWidgetAndChildren(SlotContent, Pred);
+				}
+			}
+		}
+
+		if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Widget) )
+		{
+			for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
+			{
+				if ( UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex) )
+				{
+					Pred(ChildWidget);
+
+					ForWidgetAndChildren(ChildWidget, Pred);
+				}
+			}
+		}
+	}
+
 	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
-	T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
+	FORCEINLINE T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
 	{
 		if ( WidgetType->IsChildOf(UUserWidget::StaticClass()) )
 		{

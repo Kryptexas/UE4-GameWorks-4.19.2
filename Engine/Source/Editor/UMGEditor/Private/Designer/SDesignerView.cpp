@@ -52,7 +52,8 @@ public:
 
 	TMap<FName, FString> ExportedSlotProperties;
 
-	FWidgetReference Widget;
+	UWidget* Template;
+	UWidget* Preview;
 
 	bool bStayingInParent;
 	FWidgetReference ParentWidget;
@@ -69,12 +70,16 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 	}
 
 	TSharedRef<FSelectedWidgetDragDropOp> Operation = MakeShareable(new FSelectedWidgetDragDropOp());
-	Operation->Widget = InWidget;
 	Operation->bStayingInParent = bStayInParent;
 	Operation->ParentWidget = Editor->GetReferenceFromTemplate(InWidget.GetTemplate()->GetParent());
 	Operation->DefaultHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
 	Operation->CurrentHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
 	Operation->Construct();
+
+	// Cache the preview and template, it's not safe to query the preview/template while dragging the widget as it no longer
+	// exists in the tree.
+	Operation->Preview = InWidget.GetPreview();
+	Operation->Template = InWidget.GetTemplate();
 
 	FWidgetBlueprintEditorUtils::ExportPropertiesToText(InWidget.GetTemplate()->Slot, Operation->ExportedSlotProperties);
 
@@ -1228,7 +1233,7 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		if ( SelectedWidget.IsValid() )
 		{
 			// Set the selected widget so that we can draw the highlight
-			SelectedSlateWidget = PreviewWidget->GetWidgetFromName(SelectedWidget.GetTemplate()->GetFName());
+			SelectedSlateWidget = PreviewWidget->GetSlateWidgetFromName(SelectedWidget.GetTemplate()->GetFName());
 		}
 		else
 		{
@@ -1237,7 +1242,7 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 
 		if ( HoveredWidget.IsValid() )
 		{
-			HoveredSlateWidget = PreviewWidget->GetWidgetFromName(HoveredWidget.GetTemplate()->GetFName());
+			HoveredSlateWidget = PreviewWidget->GetSlateWidgetFromName(HoveredWidget.GetTemplate()->GetFName());
 		}
 		else
 		{
@@ -1341,7 +1346,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 	TSharedPtr<FSelectedWidgetDragDropOp> SelectedDragDropOp = DragDropEvent.GetOperationAs<FSelectedWidgetDragDropOp>();
 	if ( SelectedDragDropOp.IsValid() )
 	{
-		DropPreviewWidget = SelectedDragDropOp->Widget.GetPreview();
+		DropPreviewWidget = SelectedDragDropOp->Preview;
 	}
 
 	UWidgetBlueprint* BP = GetBlueprint();
@@ -1517,10 +1522,13 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 				BP->WidgetTree->Modify();
 			}
 
-			UWidget* Widget = bIsPreview ? SelectedDragDropOp->Widget.GetPreview() : SelectedDragDropOp->Widget.GetTemplate();
-			check(Widget);
+			UWidget* Widget = bIsPreview ? SelectedDragDropOp->Preview : SelectedDragDropOp->Template;
+			if ( !Widget )
+			{
+				Widget = bIsPreview ? SelectedDragDropOp->Preview : SelectedDragDropOp->Template;
+			}
 
-			if ( Widget )
+			if ( ensure(Widget) )
 			{
 				if ( Widget->GetParent() )
 				{
