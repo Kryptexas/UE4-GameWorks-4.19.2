@@ -4,13 +4,14 @@
 
 class SGraphNode;
 
+#define NAME_DefaultPinLabelStyle TEXT("Graph.Node.PinName")
+
 /**
  * Represents a pin on a node in the GraphEditor
  */
 class GRAPHEDITOR_API SGraphPin : public SBorder
 {
 public:
-	static FName NAME_DefaultPinLabelStyle;
 
 	SLATE_BEGIN_ARGS(SGraphPin)
 		: _PinLabelStyle(NAME_DefaultPinLabelStyle)

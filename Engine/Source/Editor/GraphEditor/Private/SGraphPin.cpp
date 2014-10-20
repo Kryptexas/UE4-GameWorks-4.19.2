@@ -70,7 +70,6 @@ struct FKnotNetCollector
 /////////////////////////////////////////////////////
 // SGraphPin
 
-FName SGraphPin::NAME_DefaultPinLabelStyle(TEXT("Graph.Node.PinName"));
 
 SGraphPin::SGraphPin()
 	: bShowLabel(true)
