@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWidgetBlueprint* Blueprint) const
+bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWidgetBlueprint* Blueprint, FCompilerResultsLog& MessageLog) const
 {
 	FDelegateRuntimeBinding RuntimeBinding = ToRuntimeBinding(Blueprint);
 
@@ -34,18 +34,36 @@ bool FDelegateEditorBinding::IsBindingValid(UClass* BlueprintGeneratedClass, UWi
 				// Check the signatures to ensure these functions match.
 				if ( Function->IsSignatureCompatibleWith(DelegateProperty->SignatureFunction, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
 				{
-					if ( bNeedsToBePure )
+					// Only allow binding pure functions to property bindings.
+					if ( bNeedsToBePure && !Function->HasAllFunctionFlags(FUNC_BlueprintPure) )
 					{
-						// Only allow binding pure functions to property bindings.
-						return Function->HasAllFunctionFlags(FUNC_BlueprintPure);
+						FText const ErrorFormat = LOCTEXT("BindingNotBoundToPure", "Binding: property '@@' on widget '@@' needs to be bound to a pure function, '@@' is not pure.");
+						MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
+
+						return false;
 					}
-					else
-					{
-						return true;
-					}
+
+					return true;
+				}
+				else
+				{
+					FText const ErrorFormat = LOCTEXT("BindingFunctionSigDontMatch", "Binding: property '@@' on widget '@@' bound to function '@@', but the sigatnures don't match.  The function must return the same type as the property and have no parameters.");
+					MessageLog.Error(*ErrorFormat.ToString(), DelegateProperty, TargetWidget, Function);
 				}
 			}
+			else
+			{
+				//TODO Bindable property removed.
+			}
 		}
+		else
+		{
+			// TODO Bindable Property Removed
+		}
+	}
+	else
+	{
+		//TODO Ignore missing widgets
 	}
 
 	return false;

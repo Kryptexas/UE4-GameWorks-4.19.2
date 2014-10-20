@@ -40,7 +40,7 @@ struct UMGEDITOR_API FDelegateEditorBinding
 		return ObjectName == Other.ObjectName && PropertyName == Other.PropertyName;
 	}
 
-	bool IsBindingValid(UClass* Class, class UWidgetBlueprint* Blueprint) const;
+	bool IsBindingValid(UClass* Class, class UWidgetBlueprint* Blueprint, FCompilerResultsLog& MessageLog) const;
 
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
 };

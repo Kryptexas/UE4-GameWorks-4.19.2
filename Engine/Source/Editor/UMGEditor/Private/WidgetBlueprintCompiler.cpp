@@ -47,13 +47,6 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 
 			Schema->CreateDefaultNodesForGraph(*FunctionGraph);
 
-			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
-			int32 ExtraFunctionFlags = ( FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public );
-			if ( BPTYPE_FunctionLibrary == Blueprint->BlueprintType )
-			{
-				ExtraFunctionFlags |= FUNC_Static;
-			}
-			K2Schema->AddExtraFunctionFlags(FunctionGraph, ExtraFunctionFlags);
 			K2Schema->MarkFunctionEntryAsEditable(FunctionGraph, true);
 
 			// Create a function entry node
@@ -87,6 +80,10 @@ void FWidgetBlueprintCompiler::CreateFunctionList()
 			MemberGetCreator.Finalize();
 
 			ReturnPin->MakeLinkTo(VarNode->GetValuePin());
+
+			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
+			int32 ExtraFunctionFlags = ( FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public | FUNC_BlueprintPure );
+			K2Schema->AddExtraFunctionFlags(FunctionGraph, ExtraFunctionFlags);
 
 			//Blueprint->FunctionGraphs.Add(FunctionGraph);
 
@@ -262,10 +259,11 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 
 	BPGClass->Bindings.Reset();
 
-	// @todo UMG Possibly need duplication here 
+	// Convert all editor time property bindings into a list of bindings
+	// that will be applied at runtime.  Ensure all bindings are still valid.
 	for ( const FDelegateEditorBinding& EditorBinding : Blueprint->Bindings )
 	{
-		if ( EditorBinding.IsBindingValid(Class, Blueprint) )
+		if ( EditorBinding.IsBindingValid(Class, Blueprint, MessageLog) )
 		{
 			BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));
 		}
