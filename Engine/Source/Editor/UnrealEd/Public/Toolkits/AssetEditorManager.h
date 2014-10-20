@@ -93,8 +93,8 @@ public:
 	DECLARE_EVENT_OneParam(FAssetEditorManager, FAssetEditorOpenEvent, UObject*);
 	FAssetEditorOpenEvent& OnAssetEditorOpened() { return AssetEditorOpenedEvent; }
 
-	/** Restore the assets that were previously open when the editor was last closed */
-	void RestorePreviouslyOpenAssets();
+	/** Request notification to restore the assets that were previously open when the editor was last closed */
+	void RequestRestorePreviouslyOpenAssets();
 
 private:
 
@@ -124,6 +124,9 @@ private:
 
 	/** Saves a list of open asset editors so they can be restored on editor restart */
 	void SaveOpenAssetEditors(bool bOnShutdown);
+
+	/** Restore the assets that were previously open when the editor was last closed */
+	void RestorePreviouslyOpenAssets();
 
 private:
 
@@ -174,8 +177,11 @@ private:
 	/** Flag whether we are currently shutting down */
 	bool bSavingOnShutdown;
 
+	/** Flag whether there has been a request to notify whether to restore previously open assets */
+	bool bRequestRestorePreviouslyOpenAssets;
+
 	/** A pointer to the notification used by RestorePreviouslyOpenAssets */
-	TSharedPtr<SNotificationItem> RestorePreviouslyOpenAssetsNotification;
+	TWeakPtr<SNotificationItem> RestorePreviouslyOpenAssetsNotificationPtr;
 };
 
 

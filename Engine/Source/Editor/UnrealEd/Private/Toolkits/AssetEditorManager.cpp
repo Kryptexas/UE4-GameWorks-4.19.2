@@ -32,6 +32,7 @@ FAssetEditorManager& FAssetEditorManager::Get()
 
 FAssetEditorManager::FAssetEditorManager()
 	: bSavingOnShutdown(false)
+	, bRequestRestorePreviouslyOpenAssets(false)
 {
 	// Message bus to receive requests to load assets
 	MessageEndpoint = FMessageEndpoint::Builder("FAssetEditorManager")
@@ -454,9 +455,20 @@ void FAssetEditorManager::OpenEditorForAsset(const FString& AssetPathName)
 
 bool FAssetEditorManager::HandleTicker( float DeltaTime )
 {
+	if (bRequestRestorePreviouslyOpenAssets)
+	{
+		RestorePreviouslyOpenAssets();
+		bRequestRestorePreviouslyOpenAssets = false;
+	}
 	MessageEndpoint->ProcessInbox();
 
 	return true;
+}
+
+void FAssetEditorManager::RequestRestorePreviouslyOpenAssets()
+{
+	// We defer the restore so that we guarantee that it happens once initialization is complete
+	bRequestRestorePreviouslyOpenAssets = true;
 }
 
 void FAssetEditorManager::RestorePreviouslyOpenAssets()
@@ -540,8 +552,9 @@ void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const boo
 		SNotificationItem::CS_None
 		));
 
-	// We will be keeping track of this ourselves
-	Info.bFireAndForget = false;
+	// We will let the notification expire automatically after 10 seconds
+	Info.bFireAndForget = true;
+	Info.ExpireDuration = 10.0f;
 
 	// We want the auto-save to be subtle
 	Info.bUseLargeFont = false;
@@ -557,22 +570,24 @@ void FAssetEditorManager::SpawnRestorePreviouslyOpenAssetsNotification(const boo
 	}
 
 	// Close any existing notification
+	TSharedPtr<SNotificationItem> RestorePreviouslyOpenAssetsNotification = RestorePreviouslyOpenAssetsNotificationPtr.Pin();
 	if(RestorePreviouslyOpenAssetsNotification.IsValid())
 	{
 		RestorePreviouslyOpenAssetsNotification->ExpireAndFadeout();
-		RestorePreviouslyOpenAssetsNotification.Reset();
 	}
 
-	RestorePreviouslyOpenAssetsNotification = FSlateNotificationManager::Get().AddNotification(Info);
+	RestorePreviouslyOpenAssetsNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 }
 
 void FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets(TArray<FString> AssetsToOpen)
 {
 	// Close any existing notification
-	if(RestorePreviouslyOpenAssetsNotification.IsValid())
+	TSharedPtr<SNotificationItem> RestorePreviouslyOpenAssetsNotification = RestorePreviouslyOpenAssetsNotificationPtr.Pin();
+	if (RestorePreviouslyOpenAssetsNotification.IsValid())
 	{
+		RestorePreviouslyOpenAssetsNotification->SetExpireDuration(0.0f);
+		RestorePreviouslyOpenAssetsNotification->SetFadeOutDuration(0.5f);
 		RestorePreviouslyOpenAssetsNotification->ExpireAndFadeout();
-		RestorePreviouslyOpenAssetsNotification.Reset();
 
 		// If the user suppressed the notification for future sessions, make sure this is reflected in their settings
 		// Note: We do that inside this if statement so that we only do it if we were showing a UI they could interact with
@@ -591,10 +606,12 @@ void FAssetEditorManager::OnConfirmRestorePreviouslyOpenAssets(TArray<FString> A
 void FAssetEditorManager::OnCancelRestorePreviouslyOpenAssets()
 {
 	// Close any existing notification
-	if(RestorePreviouslyOpenAssetsNotification.IsValid())
+	TSharedPtr<SNotificationItem> RestorePreviouslyOpenAssetsNotification = RestorePreviouslyOpenAssetsNotificationPtr.Pin();
+	if (RestorePreviouslyOpenAssetsNotification.IsValid())
 	{
+		RestorePreviouslyOpenAssetsNotification->SetExpireDuration(0.0f);
+		RestorePreviouslyOpenAssetsNotification->SetFadeOutDuration(0.5f);
 		RestorePreviouslyOpenAssetsNotification->ExpireAndFadeout();
-		RestorePreviouslyOpenAssetsNotification.Reset();
 	}
 }
 

@@ -205,7 +205,7 @@ public:
 			LevelEditor.FocusViewport();
 
 			// Restore any assets we had open. Note we don't do this on immersive PIE as its annoying to the user.
-			FAssetEditorManager::Get().RestorePreviouslyOpenAssets();
+			FAssetEditorManager::Get().RequestRestorePreviouslyOpenAssets();
 		}
 	}
 

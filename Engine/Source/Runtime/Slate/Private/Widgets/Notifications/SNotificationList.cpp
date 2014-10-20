@@ -510,6 +510,18 @@ public:
 		ExpireDuration = Duration;
 	}
 
+	/** Sets the FadeInDuration */
+	virtual void SetFadeInDuration(float Duration)
+	{
+		FadeInDuration = Duration;
+	}
+
+	/** Sets the FadeOutDuration */
+	virtual void SetFadeOutDuration(float Duration)
+	{
+		FadeOutDuration = Duration;
+	}
+
 protected:
 
 	/* Used to determine whether the button is visible */

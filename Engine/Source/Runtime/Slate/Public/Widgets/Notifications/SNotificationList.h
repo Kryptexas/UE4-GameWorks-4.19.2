@@ -30,6 +30,12 @@ public:
 	/** Sets the ExpireDuration */
 	virtual void SetExpireDuration(float ExpireDuration) = 0;
 
+	/** Sets the FadeInDuration */
+	virtual void SetFadeInDuration(float FadeInDuration) = 0;
+
+	/** Sets the FadeOutDuration */
+	virtual void SetFadeOutDuration(float FadeOutDuration) = 0;
+
 	/** Gets the visibility state of the throbber, success, and fail images */
 	virtual ECompletionState GetCompletionState() const = 0;
 
