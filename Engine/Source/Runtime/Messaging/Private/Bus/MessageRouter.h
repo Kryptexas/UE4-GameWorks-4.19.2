@@ -27,7 +27,7 @@ public:
 	 * @param Interceptor The interceptor to add.
 	 * @param MessageType The type of messages to intercept.
 	 */
-	FORCEINLINE void AddInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	FORCEINLINE void AddInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		EnqueueCommand(FSimpleDelegate::CreateRaw(this, &FMessageRouter::HandleAddInterceptor, Interceptor, MessageType));
 	}
@@ -69,7 +69,7 @@ public:
 	 * @param Interceptor The interceptor to remove.
 	 * @param MessageType The type of messages to stop intercepting.
 	 */
-	FORCEINLINE void RemoveInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	FORCEINLINE void RemoveInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		EnqueueCommand(FSimpleDelegate::CreateRaw(this, &FMessageRouter::HandleRemoveInterceptor, Interceptor, MessageType));
 	}
@@ -200,7 +200,7 @@ private:
 private:
 
 	/** Handles adding message interceptors. */
-	void HandleAddInterceptor( IInterceptMessagesRef Interceptor, FName MessageType );
+	void HandleAddInterceptor( IMessageInterceptorRef Interceptor, FName MessageType );
 
 	/** Handles adding message recipients. */
 	void HandleAddRecipient( FMessageAddress Address, IReceiveMessagesWeakPtr RecipientPtr );
@@ -209,7 +209,7 @@ private:
 	void HandleAddSubscriber( IMessageSubscriptionRef Subscription );
 
 	/** Handles the removal of message interceptors. */
-	void HandleRemoveInterceptor( IInterceptMessagesRef Interceptor, FName MessageType );
+	void HandleRemoveInterceptor( IMessageInterceptorRef Interceptor, FName MessageType );
 
 	/** Handles the removal of message recipients. */
 	void HandleRemoveRecipient( FMessageAddress Address );
@@ -223,7 +223,7 @@ private:
 private:
 
 	/** Maps message types to interceptors. */
-	TMap<FName, TArray<IInterceptMessagesPtr>> ActiveInterceptors;
+	TMap<FName, TArray<IMessageInterceptorPtr>> ActiveInterceptors;
 
 	/** Maps message addresses to recipients. */
 	TMap<FMessageAddress, IReceiveMessagesWeakPtr> ActiveRecipients;

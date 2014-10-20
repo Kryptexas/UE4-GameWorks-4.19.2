@@ -6,7 +6,7 @@
 /* FMessageBridge structors
  *****************************************************************************/
 
-FMessageBridge::FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport )
+FMessageBridge::FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const IMessageTransportRef& InTransport )
 	: Address(InAddress)
 	, Bus(InBus)
 	, Enabled(false)

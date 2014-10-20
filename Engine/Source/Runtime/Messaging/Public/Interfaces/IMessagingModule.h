@@ -10,7 +10,7 @@ class IAuthorizeMessageRecipients;
 class IMessageBus;
 class IMessageBridge;
 class ISerializeMessages;
-class ITransportMessages;
+class IMessageTransport;
 
 
 /**
@@ -36,7 +36,7 @@ public:
 	 * @return The new message bridge, or nullptr if the bridge couldn't be created.
 	 * @see CreateBus
 	 */
-	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge( const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const TSharedRef<ISerializeMessages, ESPMode::ThreadSafe>& Serializer, const TSharedRef<ITransportMessages, ESPMode::ThreadSafe>& Transport ) = 0;
+	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge( const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const TSharedRef<ISerializeMessages, ESPMode::ThreadSafe>& Serializer, const TSharedRef<IMessageTransport, ESPMode::ThreadSafe>& Transport ) = 0;
 
 	/**
 	 * Creates a new message bus.

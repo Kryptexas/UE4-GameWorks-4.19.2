@@ -56,7 +56,7 @@ public:
 	 * @param Interceptor The added interceptor.
 	 * @param MessageType The type of messages being intercepted.
 	 */
-	void TraceAddedInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	void TraceAddedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		FString Name = TEXT("@todo");
 		Traces.Enqueue(FSimpleDelegate::CreateRaw(this, &FMessageTracer::ProcessAddedInterceptor, Name, MessageType, FPlatformTime::Seconds()));
@@ -126,7 +126,7 @@ public:
 	 * @param Context The context of the intercepted message.
 	 * @param Interceptor The interceptor.
 	 */
-	void TraceInterceptedMessage( const IMessageContextRef& Context, const IInterceptMessagesRef& Interceptor )
+	void TraceInterceptedMessage( const IMessageContextRef& Context, const IMessageInterceptorRef& Interceptor )
 	{
 		if (Running)
 		{
@@ -140,7 +140,7 @@ public:
 	 * @param Interceptor The removed interceptor.
 	 * @param MessageType The type of messages that is no longer being intercepted.
 	 */
-	void TraceRemovedInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
+	void TraceRemovedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 	{
 		if (!Running)
 		{
@@ -374,7 +374,7 @@ protected:
 	 * @param MessageType The type of messages no longer being intercepted.
 	 * @param TimeSecond The time at which the interceptor was removed.
 	 */
-	void ProcessRemovedInterceptor( IInterceptMessagesRef Interceptor, FName MessageType, double TimeSeconds );
+	void ProcessRemovedInterceptor( IMessageInterceptorRef Interceptor, FName MessageType, double TimeSeconds );
 
 	/**
 	 * Processes traces for removed message recipients.

@@ -54,7 +54,7 @@ public:
 
 	// IMessagingModule interface
 
-	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const ITransportMessagesRef& Transport ) override
+	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const IMessageTransportRef& Transport ) override
 	{
 		return MakeShareable(new FMessageBridge(Address, Bus, Serializer, Transport));
 	}

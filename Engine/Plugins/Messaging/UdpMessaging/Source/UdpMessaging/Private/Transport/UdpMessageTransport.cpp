@@ -26,7 +26,7 @@ FUdpMessageTransport::~FUdpMessageTransport()
 }
 
 
-/* ITransportMessages interface
+/* IMessageTransport interface
  *****************************************************************************/
 
 bool FUdpMessageTransport::StartTransport()

@@ -171,7 +171,7 @@ void FMessageTracer::ProcessHandledMessage( IMessageContextRef Context, double T
 }
 
 
-void FMessageTracer::ProcessRemovedInterceptor( IInterceptMessagesRef Interceptor, FName MessageType, double TimeSeconds )
+void FMessageTracer::ProcessRemovedInterceptor( IMessageInterceptorRef Interceptor, FName MessageType, double TimeSeconds )
 {
 
 }

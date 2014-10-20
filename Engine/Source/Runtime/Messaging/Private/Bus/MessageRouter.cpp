@@ -214,7 +214,7 @@ void FMessageRouter::ProcessDelayedMessages( )
 /* FMessageRouter callbacks
  *****************************************************************************/
 
-void FMessageRouter::HandleAddInterceptor( IInterceptMessagesRef Interceptor, FName MessageType )
+void FMessageRouter::HandleAddInterceptor( IMessageInterceptorRef Interceptor, FName MessageType )
 {
 	ActiveInterceptors.FindOrAdd(MessageType).AddUnique(Interceptor);
 	Tracer->TraceAddedInterceptor(Interceptor, MessageType);
@@ -240,19 +240,19 @@ void FMessageRouter::HandleAddSubscriber( IMessageSubscriptionRef Subscription )
 }
 
 
-void FMessageRouter::HandleRemoveInterceptor( IInterceptMessagesRef Interceptor, FName MessageType )
+void FMessageRouter::HandleRemoveInterceptor( IMessageInterceptorRef Interceptor, FName MessageType )
 {
 	if (MessageType == NAME_All)
 	{
-		for (TMap<FName, TArray<IInterceptMessagesPtr> >::TIterator It(ActiveInterceptors); It; ++It)
+		for (TMap<FName, TArray<IMessageInterceptorPtr> >::TIterator It(ActiveInterceptors); It; ++It)
 		{
-			TArray<IInterceptMessagesPtr>& Interceptors = It.Value();
+			TArray<IMessageInterceptorPtr>& Interceptors = It.Value();
 			Interceptors.Remove(Interceptor);
 		}
 	}
 	else
 	{
-		TArray<IInterceptMessagesPtr>& Interceptors = ActiveInterceptors.FindOrAdd(MessageType);
+		TArray<IMessageInterceptorPtr>& Interceptors = ActiveInterceptors.FindOrAdd(MessageType);
 		Interceptors.Remove(Interceptor);
 	}
 
@@ -305,9 +305,9 @@ void FMessageRouter::HandleRemoveSubscriber( IReceiveMessagesWeakPtr SubscriberP
 void FMessageRouter::HandleRouteMessage( IMessageContextRef Context )
 {
 	// intercept routing
-	TArray<IInterceptMessagesPtr>& Interceptors = ActiveInterceptors.FindOrAdd(Context->GetMessageType());
+	TArray<IMessageInterceptorPtr>& Interceptors = ActiveInterceptors.FindOrAdd(Context->GetMessageType());
 
-	for (TArray<IInterceptMessagesPtr>::TIterator It(Interceptors); It; ++It)
+	for (TArray<IMessageInterceptorPtr>::TIterator It(Interceptors); It; ++It)
 	{
 		if ((*It)->InterceptMessage(Context))
 		{

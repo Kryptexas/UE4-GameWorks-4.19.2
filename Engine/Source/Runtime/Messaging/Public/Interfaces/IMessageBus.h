@@ -5,7 +5,7 @@
 
 enum class EMessageScope;
 struct FMessageAddress;
-class IInterceptMessages;
+class IMessageInterceptor;
 class IMessageAttachment;
 class IMessageContext;
 class IMessageSubscription;
@@ -129,7 +129,7 @@ public:
 	 * @param MessageType The type of messages to intercept.
 	 * @see Unintercept
 	 */
-	virtual void Intercept( const TSharedRef<IInterceptMessages, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
+	virtual void Intercept( const TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
 
 	/**
 	 * Sends a message to subscribed recipients.
@@ -197,7 +197,7 @@ public:
 	 * @param MessageType The type of messages to stop intercepting.
 	 * @see Intercept
 	 */
-	virtual void Unintercept( const TSharedRef<IInterceptMessages, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
+	virtual void Unintercept( const TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
 
 	/**
 	 * Unregisters a message recipient from the message bus.

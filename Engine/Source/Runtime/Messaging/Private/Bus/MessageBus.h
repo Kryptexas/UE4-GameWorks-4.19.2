@@ -36,7 +36,7 @@ public:
 		return Router->GetTracer();
 	}
 
-	virtual void Intercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) override
+	virtual void Intercept( const IMessageInterceptorRef& Interceptor, const FName& MessageType ) override
 	{
 		if (MessageType != NAME_None)
 		{
@@ -85,7 +85,7 @@ public:
 		return nullptr;
 	}
 
-	virtual void Unintercept( const IInterceptMessagesRef& Interceptor, const FName& MessageType ) override
+	virtual void Unintercept( const IMessageInterceptorRef& Interceptor, const FName& MessageType ) override
 	{
 		if (MessageType != NAME_None)
 		{

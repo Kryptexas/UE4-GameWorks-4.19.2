@@ -4,7 +4,7 @@
 
 
 struct FMessageAddress;
-class IInterceptMessages;
+class IMessageInterceptor;
 class IReceiveMessages;
 
 
@@ -22,7 +22,7 @@ public:
 	 * @param MessageType The type of messages to intercept.
 	 * @return true if the request was authorized, false otherwise.
 	 */
-	virtual bool AuthorizeInterceptor( const TSharedRef<IInterceptMessages, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
+	virtual bool AuthorizeInterceptor( const TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe>& Interceptor, const FName& MessageType ) = 0;
 
 	/**
 	 * Authorizes a request to register the specified recipient.

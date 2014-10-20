@@ -63,7 +63,7 @@ public:
 	 * @param InTransport The transport technology to use.
 	 * @return This instance (for method chaining).
 	 */
-	FMessageBridgeBuilder& UsingTransport( const ITransportMessagesRef& InTransport )
+	FMessageBridgeBuilder& UsingTransport( const IMessageTransportRef& InTransport )
 	{
 		Transport = InTransport;
 
@@ -157,5 +157,5 @@ private:
 	ISerializeMessagesPtr Serializer;
 
 	/** Holds a reference to the message transport technology. */
-	ITransportMessagesPtr Transport;
+	IMessageTransportPtr Transport;
 };

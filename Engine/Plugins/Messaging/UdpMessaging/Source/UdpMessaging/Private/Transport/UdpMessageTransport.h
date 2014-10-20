@@ -7,7 +7,7 @@
  * Implements a message transport technology using an UDP network connection.
  */
 class FUdpMessageTransport
-	: public ITransportMessages
+	: public IMessageTransport
 {
 public:
 
@@ -25,7 +25,7 @@ public:
 
 public:
 
-	// ITransportMessages interface
+	// IMessageTransport interface
 
 	virtual FName GetDebugName() const override
 	{
@@ -53,25 +53,25 @@ public:
 
 private:
 
-	// Handles received transport messages. */
+	/** Handles received transport messages. */
 	void HandleProcessorMessageReceived( FArchive& MessageData, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
 	{
 		MessageReceivedDelegate.ExecuteIfBound(MessageData, Attachment, NodeId);
 	}
 
-	// Handles discovered transport endpoints. */
+	/** Handles discovered transport endpoints. */
 	void HandleProcessorNodeDiscovered( const FGuid& DiscoveredNodeId )
 	{
 		NodeDiscoveredDelegate.ExecuteIfBound(DiscoveredNodeId);
 	}
 
-	// Handles lost transport endpoints. */
+	/** Handles lost transport endpoints. */
 	void HandleProcessorNodeLost( const FGuid& LostNodeId )
 	{
 		NodeLostDelegate.ExecuteIfBound(LostNodeId);
 	}
 
-	// Handles received socket data. */
+	/** Handles received socket data. */
 	void HandleSocketDataReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
 
 private:

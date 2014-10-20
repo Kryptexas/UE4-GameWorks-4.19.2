@@ -22,7 +22,7 @@ public:
 	 * @param InSerializer The message serializer to use.
 	 * @param InTransport The transport mechanism to use.
 	 */
-	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport );
+	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const IMessageTransportRef& InTransport );
 
 	/** Destructor. */
 	~FMessageBridge();
@@ -116,5 +116,5 @@ private:
 	ISerializeMessagesPtr Serializer;
 
 	/** Holds the message transport object. */
-	ITransportMessagesPtr Transport;
+	IMessageTransportPtr Transport;
 };

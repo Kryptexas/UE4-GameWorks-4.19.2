@@ -40,7 +40,7 @@ DECLARE_DELEGATE_OneParam(FOnMessageTransportNodeLost, const FGuid&);
  * Licensees can implement this interface to add support for custom message transport
  * technologies that are not supported out of the box, i.e. custom network protocols or APIs.
  */
-class ITransportMessages
+class IMessageTransport
 {
 public:
 
@@ -102,12 +102,12 @@ public:
 protected:
 
 	/** Virtual constructor. */
-	~ITransportMessages() { }
+	~IMessageTransport() { }
 };
 
 
 /** Type definition for shared pointers to instances of ITransportMessages. */
-typedef TSharedPtr<ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesPtr;
+typedef TSharedPtr<IMessageTransport, ESPMode::ThreadSafe> IMessageTransportPtr;
 
 /** Type definition for shared references to instances of ITransportMessages. */
-typedef TSharedRef<ITransportMessages, ESPMode::ThreadSafe> ITransportMessagesRef;
+typedef TSharedRef<IMessageTransport, ESPMode::ThreadSafe> IMessageTransportRef;

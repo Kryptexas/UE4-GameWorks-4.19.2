@@ -17,7 +17,7 @@
 #include "IMessageAttachment.h"
 #include "IMessageData.h"
 #include "IMessageContext.h"
-#include "IInterceptMessages.h"
+#include "IMessageInterceptor.h"
 #include "IMessageHandler.h"
 #include "IReceiveMessages.h"
 #include "ISendMessages.h"
@@ -28,7 +28,7 @@
 #include "IMessageBus.h"
 #include "IMutableMessageContext.h"
 #include "ISerializeMessages.h"
-#include "ITransportMessages.h"
+#include "IMessageTransport.h"
 #include "IMessageBridge.h"
 #include "IMessagingModule.h"
 

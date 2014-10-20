@@ -9,7 +9,7 @@ class IMessageContext;
 /**
  * Interface for message interceptors.
  */
-class IInterceptMessages
+class IMessageInterceptor
 {
 public:
 
@@ -24,12 +24,12 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IInterceptMessages() { }
+	virtual ~IMessageInterceptor() { }
 };
 
 
 /** Type definition for shared pointers to instances of IInterceptMessages. */
-typedef TSharedPtr<IInterceptMessages, ESPMode::ThreadSafe> IInterceptMessagesPtr;
+typedef TSharedPtr<IMessageInterceptor, ESPMode::ThreadSafe> IMessageInterceptorPtr;
 
 /** Type definition for shared references to instances of IInterceptMessages. */
-typedef TSharedRef<IInterceptMessages, ESPMode::ThreadSafe> IInterceptMessagesRef;
+typedef TSharedRef<IMessageInterceptor, ESPMode::ThreadSafe> IMessageInterceptorRef;
