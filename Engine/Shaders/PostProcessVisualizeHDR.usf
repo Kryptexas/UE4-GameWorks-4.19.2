@@ -117,7 +117,13 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	float2 ViewLocalUV = float2(UVAndScreenPos.z * 0.5f + 0.5f, 0.5f - 0.5f * UVAndScreenPos.w);
 
 	// background is the scene color
-	OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+	float4 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+
+//	OutColor = SceneColor;
+	float LuminanceVal = max(SceneColor.r, max(SceneColor.g, SceneColor.b));
+	OutColor = float4(Colorize(ComputeHistogramPositionFromLuminance(LuminanceVal)), 1.0f);
+
+
 
 	float2 IDAreaLocalUV = ViewLocalUV * 2 + float2(-1, 0);
 
