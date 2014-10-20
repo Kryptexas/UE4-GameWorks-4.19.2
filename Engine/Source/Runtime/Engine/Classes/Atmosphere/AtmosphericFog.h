@@ -30,7 +30,6 @@ public:
 	virtual void PostActorCreated() override;
 #endif
 
-public:
 	/** Returns AtmosphericFogComponent subobject **/
 	FORCEINLINE class UAtmosphericFogComponent* GetAtmosphericFogComponent() { return AtmosphericFogComponent; }
 #if WITH_EDITORONLY_DATA

@@ -29,9 +29,6 @@ public:
 	/** Overridable function called whenever this actor is being removed from a level */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
-protected:
-
-public:
 	/** Returns CollisionComponent subobject **/
 	FORCEINLINE class UCapsuleComponent* GetCollisionComponent() { return CollisionComponent; }
 };

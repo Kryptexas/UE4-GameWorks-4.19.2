@@ -94,12 +94,11 @@ private:
 	/** Component used for pathfinding and querying environment's navigation. */
 	UPROPERTY()
 	UNavigationComponent* NavComponent;
-public:
 
-private:
 	/** Component used for moving along a path. */
 	UPROPERTY()
 	UPathFollowingComponent* PathFollowingComponent;
+
 public:
 
 	/** Component responsible for behaviors. */
@@ -108,14 +107,12 @@ public:
 
 	UPROPERTY()
 	UAIPerceptionComponent* PerceptionComponent;
-	
-public:
 
 private:
 	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
 	UPawnActionsComponent* ActionsComp;
-public:
 
+public:
 	/** Event called when PossessedPawn is possesed by this controller. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
 	void OnPossess(APawn* PossessedPawn);

@@ -28,7 +28,6 @@ public:
 	virtual void PostInitializeComponents() override;
 	//End AActor Interface
 
-public:
 	/** Returns Component subobject **/
 	FORCEINLINE class UExponentialHeightFogComponent* GetComponent() const { return Component; }
 };

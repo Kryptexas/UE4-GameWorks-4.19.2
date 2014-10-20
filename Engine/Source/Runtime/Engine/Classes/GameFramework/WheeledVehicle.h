@@ -37,7 +37,6 @@ public:
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	// End Actor interface
 
-public:
 	/** Returns Mesh subobject **/
 	FORCEINLINE class USkeletalMeshComponent* GetMesh() const { return Mesh; }
 	/** Returns VehicleMovement subobject **/

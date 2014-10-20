@@ -35,7 +35,6 @@ public:
 	// End AActor Interface
 #endif
 
-public:
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
 	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }

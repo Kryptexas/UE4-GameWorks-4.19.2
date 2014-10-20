@@ -12,15 +12,11 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 private:
 	UPROPERTY()
 	class UCapsuleComponent* CapsuleComponent;
-public:
 
-private:
 	/** Normal editor sprite. */
 	UPROPERTY()
 	class UBillboardComponent* GoodSprite;
-public:
 
-private:
 	/** Used to draw bad collision intersection in editor. */
 	UPROPERTY()
 	class UBillboardComponent* BadSprite;

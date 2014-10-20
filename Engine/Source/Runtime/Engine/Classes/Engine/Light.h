@@ -73,7 +73,6 @@ public:
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
 	// End AActor interface.
 
-public:
 	/** Returns LightComponent subobject **/
 	FORCEINLINE class ULightComponent* GetLightComponent() const { return LightComponent; }
 };

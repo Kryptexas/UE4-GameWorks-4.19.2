@@ -32,7 +32,6 @@ public:
 #endif // WITH_EDITOR
 	// End UObject Interface
 
-public:
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
 	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }

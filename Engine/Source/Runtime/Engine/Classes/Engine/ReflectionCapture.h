@@ -26,8 +26,6 @@ public:
 	virtual void PostEditMove(bool bFinished) override;
 #endif // WITH_EDITOR
 
-
-public:
 	/** Returns CaptureComponent subobject **/
 	FORCEINLINE class UReflectionCaptureComponent* GetCaptureComponent() const { return CaptureComponent; }
 #if WITH_EDITORONLY_DATA

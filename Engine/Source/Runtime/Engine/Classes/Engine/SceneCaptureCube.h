@@ -37,7 +37,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void OnInterpToggle(bool bEnable);
 
-public:
 	/** Returns CaptureComponentCube subobject **/
 	FORCEINLINE class USceneCaptureComponentCube* GetCaptureComponentCube() const { return CaptureComponentCube; }
 	/** Returns DrawFrustum subobject **/

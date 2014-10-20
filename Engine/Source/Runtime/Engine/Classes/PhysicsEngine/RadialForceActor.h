@@ -17,8 +17,8 @@ private:
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
-public:
 #endif
+public:
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Physics", meta=(DeprecatedFunction))

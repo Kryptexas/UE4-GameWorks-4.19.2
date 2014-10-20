@@ -29,7 +29,6 @@ public:
 
 	static FName AbilitySystemComponentName;
 
-public:
 	/** Returns AbilitySystemComponent subobject **/
 	FORCEINLINE class UAbilitySystemComponent* GetAbilitySystemComponent() { return AbilitySystemComponent; }
 };

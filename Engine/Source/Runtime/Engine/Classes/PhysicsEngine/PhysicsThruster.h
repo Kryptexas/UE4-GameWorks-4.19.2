@@ -26,9 +26,7 @@ private:
 
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
-public:
 #endif
-
 
 public:
 	/** Returns ThrusterComponent subobject **/

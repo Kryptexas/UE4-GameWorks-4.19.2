@@ -16,12 +16,10 @@ class ENGINE_API UCameraAnimInst : public UObject
 	UPROPERTY()
 	class UCameraAnim* CamAnim;
 
-protected:
 private:
 	/** the UInterpGroupInst used to do the interpolation */
 	UPROPERTY(instanced)
 	class UInterpGroupInst* InterpGroupInst;
-protected:
 
 public:
 	/** Current time for the animation */
