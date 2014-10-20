@@ -33,6 +33,8 @@ public:
 	static jmethodID AndroidThunkJava_Minimize;
 	static jmethodID AndroidThunkJava_ForceQuit;
 
+	static jmethodID AndroidThunkJava_InitHMDs;
+
 	static jmethodID AndroidThunkJava_GetFontDirectory;
 
 	static jmethodID AndroidThunkJava_IsMusicActive;

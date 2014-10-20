@@ -120,6 +120,7 @@ jmethodID JDef_GameActivity::AndroidThunkJava_Minimize;
 jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetFontDirectory;
 jmethodID JDef_GameActivity::AndroidThunkJava_IsMusicActive;
+jmethodID JDef_GameActivity::AndroidThunkJava_InitHMDs;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -160,6 +161,15 @@ void AndroidThunkCpp_Vibrate(int64_t Duration)
 	{
 		// call the java side
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_Vibrate, Duration);
+	}
+}
+
+// Call the Java side code for initializing VR HMD modules
+void AndroidThunkCpp_InitHMDs()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_InitHMDs);
 	}
 }
 
@@ -389,6 +399,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	
 	JDef_GameActivity::AndroidThunkJava_IsMusicActive = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IsMusicActive", "()Z");
 	CHECK_JNI_RESULT( JDef_GameActivity::AndroidThunkJava_IsMusicActive );	
+
+	JDef_GameActivity::AndroidThunkJava_InitHMDs = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_InitHMDs", "()V");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_InitHMDs);
 
 	// hook signals
 #if UE_BUILD_DEBUG

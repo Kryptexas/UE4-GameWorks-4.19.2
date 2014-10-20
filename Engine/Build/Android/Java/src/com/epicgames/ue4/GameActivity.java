@@ -735,6 +735,19 @@ public class GameActivity extends NativeActivity
 		// finish();
 	}
 
+	// call back into native code from the Java UI thread, initializing any available VR HMD modules
+	public void AndroidThunkJava_InitHMDs()
+	{
+		_activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				nativeInitHMDs();
+			}
+		});
+	}
+
 	public static String AndroidThunkJava_GetFontDirectory()
 	{
 		// Parse and find the first known fonts directory on the device
@@ -773,6 +786,8 @@ public class GameActivity extends NativeActivity
 	public native void nativeVirtualKeyboardResult(boolean update, String contents);
 	
 	public native boolean nativeIsGooglePlayEnabled();
+
+	public native void nativeInitHMDs();
 
 	public native void nativeResumeMainInit();
 	

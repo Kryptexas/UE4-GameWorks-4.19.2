@@ -90,6 +90,7 @@ extern "C"
 	void *__dso_handle;
 }
 
+extern void AndroidThunkCpp_InitHMDs();
 extern void AndroidThunkCpp_ShowConsoleWindow();
 
 // Base path for file accesses
@@ -139,6 +140,27 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv*
 
 	// now wait for event handler to be set up before returning
 	while (!GEventHandlerInitialized)
+	{
+		FPlatformProcess::Sleep(0.01f);
+		FPlatformMisc::MemoryBarrier();
+	}
+}
+
+static volatile bool GHMDsInitialized = false;
+static TArray<IHeadMountedDisplayModule*> GHMDImplementations;
+void InitHMDs()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("nohmd")) || FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
+	{
+		return;
+	}
+
+	// Get a list of plugins that implement this feature
+	GHMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>(IHeadMountedDisplayModule::GetModularFeatureName());
+
+	AndroidThunkCpp_InitHMDs();
+
+	while (!GHMDsInitialized)
 	{
 		FPlatformProcess::Sleep(0.01f);
 		FPlatformMisc::MemoryBarrier();
@@ -314,6 +336,9 @@ int32 AndroidMain(struct android_app* state)
 
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());
+
+	// initialize HMDs
+	InitHMDs();
 
 	UE_LOG(LogAndroid, Display, TEXT("Passed PreInit()"));
 
@@ -951,6 +976,16 @@ extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnable
 	return bEnabled;
 }
 
+// This is called from the Java UI thread for initializing VR HMDs
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeInitHMDs(JNIEnv* jenv, jobject thiz)
+{
+	for (auto HMDModuleIt = GHMDImplementations.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
+	{
+		(*HMDModuleIt)->PreInit();
+	}
+
+	GHMDsInitialized = true;
+}
 
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInformation(JNIEnv* jenv, jobject thiz, jstring androidVersion, jstring phoneMake, jstring phoneModel, jstring osLanguage )
 {
