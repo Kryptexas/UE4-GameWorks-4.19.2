@@ -148,20 +148,26 @@ private:
 	/** show advanced? */
 	bool bDisplayAdvanced;
 
+	/** rig combo button */
+	TSharedPtr< class SComboButton > AssetComboButton;
+
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();
 
 	/**
 	 * Callback for asset picker
 	 */
-	/* Set new reference for skeletal mesh */
+	/* Set rig set combo box*/
 	void OnAssetSelected(UObject* Object);
+	FString GetAssetName() const;
+	void CloseComboButton();
+	TSharedRef<SWidget> SRigWindow::MakeRigPickerWithMenu();
 
 	/** Returns true if the asset shouldn't show  */
-	bool ShouldFilterAssetBased(const class FAssetData& AssetData);
+	bool ShouldFilterAsset(const class FAssetData& AssetData);
 
 	UObject* GetRigObject() const;
-
+	
 	void OnBoneMappingChanged( FName NodeName, FName BoneName );
 	FName GetBoneMapping( FName NodeName );
 
