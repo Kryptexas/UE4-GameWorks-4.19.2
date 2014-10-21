@@ -4,7 +4,7 @@
 
 
 class SWindow;
-
+struct FPointerEvent;
 
 /** Matches widgets against InWidget */
 struct FWidgetMatcher
@@ -249,7 +249,7 @@ public:
 	 *
 	 * @param InterruptedPathHandling  Should interrupted paths result in a truncated path or an invalid path
 	 */
-	FWidgetPath ToWidgetPath( EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate ) const;
+	FWidgetPath ToWidgetPath( EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr ) const;
 
 	struct EPathResolutionResult
 	{
@@ -266,7 +266,7 @@ public:
 	 * @param InterruptedPathHandling	Should interrupted paths result in a truncated path or an invalid path.
 	 * @return Whether the path is truncated or live - a live path refers to a widget that is currently active and visible, a widget with a truncated path is not.
 	 */
-	EPathResolutionResult::Result ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate ) const;
+	EPathResolutionResult::Result ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling = EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr ) const;
 
 	bool ContainsWidget( const TSharedRef< const SWidget >& SomeWidget ) const;
 

@@ -81,6 +81,14 @@ private:
 	EKeyboardFocusCause::Type Cause;
 };
 
+/**
+ * Represents the current and last cursor position in a "virtual window" for events that are routed to widgets transformed in a 3D scene.
+ */
+struct FVirtualCursorPosition
+{
+	FVector2D CurrentCursorPosition;
+	FVector2D LastCursorPosition;
+};
 
 /**
  * Base class for all mouse and keyboard events.
@@ -618,6 +626,16 @@ public:
 	}
 
 	SLATECORE_API virtual FText ToText() const override;
+
+	template<typename PointerEventType>
+	static PointerEventType MakeTranslatedEvent( const PointerEventType& InPointerEvent, const FVirtualCursorPosition& VirtualPosition )
+	{
+		PointerEventType NewEvent = InPointerEvent;
+		NewEvent.ScreenSpacePosition = VirtualPosition.CurrentCursorPosition;
+		NewEvent.LastScreenSpacePosition = VirtualPosition.LastCursorPosition;
+		//NewEvent.CursorDelta = VirtualPosition.GetDelta();
+		return NewEvent;
+	}
 
 private:
 

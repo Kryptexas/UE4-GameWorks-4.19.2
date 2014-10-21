@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
+#include "Slate3DRenderer.h"
 
 class FSlateRHIFontAtlasFactory : public ISlateFontAtlasFactory
 {
@@ -46,6 +47,12 @@ public:
 		return MakeShareable( new FSlateRHIRenderer( ResourceManager, FontCache, FontMeasure ) );
 	}
 
+	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer() override
+	{
+		ConditionalCreateResources();
+
+		return MakeShareable( new FSlate3DRenderer( ResourceManager, FontCache ) );
+	}
 
 	virtual void StartupModule( ) override { }
 	virtual void ShutdownModule( ) override { }

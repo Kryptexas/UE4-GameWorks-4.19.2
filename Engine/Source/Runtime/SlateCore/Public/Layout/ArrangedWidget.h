@@ -4,6 +4,8 @@
 
 #include "Geometry.h"
 
+struct FVirtualCursorPosition;
+
 /**
  * A pair: Widget and its Geometry. Widgets populate an list of WidgetGeometries
  * when they arrange their children. See SWidget::ArrangeChildren.
@@ -46,4 +48,7 @@ public:
 
 	/** The widget that is being arranged. */
 	TSharedRef<SWidget> Widget;
+
+	/** Virtual cursor position if this widget is transformed in a 3D scene */
+	TSharedPtr<FVirtualCursorPosition> VirtualCursorPosition;
 };

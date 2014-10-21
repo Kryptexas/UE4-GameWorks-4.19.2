@@ -111,14 +111,14 @@ FWeakWidgetPath::FWeakWidgetPath( const FWidgetPath& InWidgetPath )
 }
 
 /** Make a non-weak WidgetPath out of this WeakWidgetPath. Do this by computing all the relevant geometries and converting the weak pointers to TSharedPtr. */	
-FWidgetPath FWeakWidgetPath::ToWidgetPath(EInterruptedPathHandling::Type InterruptedPathHandling) const
+FWidgetPath FWeakWidgetPath::ToWidgetPath(EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent ) const
 {
 	FWidgetPath WidgetPath;
-	ToWidgetPath( WidgetPath, InterruptedPathHandling );
+	ToWidgetPath( WidgetPath, InterruptedPathHandling, PointerEvent );
 	return WidgetPath;
 }
 
-FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling ) const
+FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FWidgetPath& WidgetPath, EInterruptedPathHandling::Type InterruptedPathHandling, const FPointerEvent* PointerEvent ) const
 {
 	FArrangedChildren PathWithGeometries(EVisibility::Visible);
 	TArray< TSharedPtr<SWidget> > WidgetPtrs;
@@ -141,8 +141,9 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 		FGeometry ParentGeometry = TopLevelWindowPtr->GetWindowGeometryInScreen();
 		PathWithGeometries.AddWidget( FArrangedWidget( TopLevelWindowPtr.ToSharedRef(), ParentGeometry ) );
 		
-		FArrangedChildren ArrangedChildren(EVisibility::Visible);
+		FArrangedChildren ArrangedChildren(EVisibility::Visible, true);
 		
+		TSharedPtr<FVirtualCursorPosition> VirtualCursorPos;
 		// For every widget in the vertical slice...
 		for( int32 WidgetIndex = 0; bPathUninterrupted && WidgetIndex < WidgetPtrs.Num()-1; ++WidgetIndex )
 		{
@@ -157,9 +158,18 @@ FWeakWidgetPath::EPathResolutionResult::Result FWeakWidgetPath::ToWidgetPath( FW
 				
 				// Find the next widget in the path among the arranged children.
 				for( int32 SearchIndex = 0; !bFoundChild && SearchIndex < ArrangedChildren.Num(); ++SearchIndex )
-				{						
-					if ( ArrangedChildren[SearchIndex].Widget == WidgetPtrs[WidgetIndex+1] )
+				{					
+					FArrangedWidget& ArrangedWidget = ArrangedChildren[SearchIndex];
+
+					if ( ArrangedWidget.Widget == WidgetPtrs[WidgetIndex+1] )
 					{
+						if( PointerEvent && !VirtualCursorPos.IsValid() )
+						{
+							VirtualCursorPos = CurWidget->TranslateMouseCoordinateFor3DChild( ArrangedWidget.Widget, ParentGeometry, PointerEvent->GetScreenSpacePosition(), PointerEvent->GetLastScreenSpacePosition() );
+						}
+
+						ArrangedWidget.VirtualCursorPosition = VirtualCursorPos;
+
 						bFoundChild = true;
 						// Remember the widget and the associated geometry.
 						PathWithGeometries.AddWidget( ArrangedChildren[SearchIndex] );

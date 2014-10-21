@@ -35,3 +35,9 @@ FPaintArgs FPaintArgs::RecordHittestGeometry(const SWidget* Widget, const FGeome
 	UpdatedArgs.LastRecordedVisibility = RecordedVisibility;
 	return UpdatedArgs;
 }
+
+FPaintArgs FPaintArgs::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 LastHittestIndex ) const
+{
+	const_cast<FHittestGrid&>(Grid).InsertCustomHitTestPath( CustomHitTestPath, LastHittestIndex );
+	return *this;
+}

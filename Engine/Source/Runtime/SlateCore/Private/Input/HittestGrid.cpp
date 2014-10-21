@@ -24,6 +24,8 @@ struct FHittestGrid::FCachedWidget
 	}
 
 	TWeakPtr<SWidget> WidgetPtr;
+	/** Allow widgets that implement this interface to insert widgets into the bubble path */
+	TWeakPtr<ICustomHitTestPath> CustomPath;
 	FGeometry CachedGeometry;
 	// @todo umg : ideally this clipping rect is optional and we only have them on a small number of widgets.
 	FSlateRect ClippingRect;
@@ -79,10 +81,24 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 				HitWidgetIndex = IndexesInCell[i];
 			}
 		}
+		
+		TArray<FArrangedWidget> BubblePath =[&]()
+		{
+			if( HitWidgetIndex != INDEX_NONE )
+			{
+				const FCachedWidget& PhysicallyHitWidget = (*WidgetsCachedThisFrame)[HitWidgetIndex];
+				if(PhysicallyHitWidget.CustomPath.IsValid())
+				{
+					return PhysicallyHitWidget.CustomPath.Pin()->GetBubblePath(PhysicallyHitWidget.CachedGeometry, DesktopSpaceCoordinate, bIgnoreEnabledStatus);
+				}
+			}
+
+			return TArray<FArrangedWidget>();
+
+		}();
 
 		if (HitWidgetIndex != INDEX_NONE)
 		{
-			TArray<FArrangedWidget> BubblePath;
 			int32 CurWidgetIndex=HitWidgetIndex;
 			bool bPathUninterrupted = false;
 			do
@@ -90,7 +106,8 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 				check( CurWidgetIndex < WidgetsCachedThisFrame->Num() );
 				const FCachedWidget& CurCachedWidget = (*WidgetsCachedThisFrame)[CurWidgetIndex];
 				const TSharedPtr<SWidget> CachedWidgetPtr = CurCachedWidget.WidgetPtr.Pin();
-				
+
+		
 				bPathUninterrupted = CachedWidgetPtr.IsValid();
 				if (bPathUninterrupted)
 				{
@@ -198,6 +215,14 @@ int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibil
 	
 	return WidgetIndex;
 
+}
+
+void FHittestGrid::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex )
+{
+	if( WidgetsCachedThisFrame->IsValidIndex( WidgetIndex ) )
+	{
+		(*WidgetsCachedThisFrame)[WidgetIndex].CustomPath = CustomHitTestPath;
+	}
 }
 
 FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y )

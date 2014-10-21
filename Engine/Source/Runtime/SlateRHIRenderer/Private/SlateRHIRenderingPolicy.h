@@ -175,7 +175,7 @@ class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 public:
 	FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateRHIResourceManager> InResourceManager );
 	~FSlateRHIRenderingPolicy();
-	
+
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
 	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches);
 
@@ -187,6 +187,8 @@ public:
 
 	void BeginDrawingWindows();
 	void EndDrawingWindows();
+
+	void SetUseGammaCorrection( bool bInUseGammaCorrection ) { bGammaCorrect = bInUseGammaCorrection; }
 private:
 	/**
 	 * Returns the pixel shader that should be used for the specified ShaderType and DrawEffects
@@ -212,6 +214,8 @@ private:
 	
 	/** If we should shrink resources that are no longer used (do not set this from the game thread)*/
 	bool bShouldShrinkResources;
+
+	bool bGammaCorrect;
 };
 
 

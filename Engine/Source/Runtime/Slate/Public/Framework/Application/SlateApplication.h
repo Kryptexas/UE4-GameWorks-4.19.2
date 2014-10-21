@@ -1182,6 +1182,8 @@ private:
 		 */
 		FWidgetPath ToWidgetPath(uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
 
+		FWidgetPath ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr );
+
 		/**
 		 * Retrieves an array of the resolved widget paths for any active captures.
 		 */
@@ -1189,6 +1191,7 @@ private:
 
 		/** Retrieves the weak path for a current mouse captor with a specific pointer index */
 		FWeakWidgetPath ToWeakPath(uint32 PointerIndex) const;
+		
 
 		/* Walks the weak path and retrieves the widget that is set as the current mouse captor with a specific pointer index */
 		TSharedPtr< SWidget > ToSharedWidget(uint32 PointerIndex) const;

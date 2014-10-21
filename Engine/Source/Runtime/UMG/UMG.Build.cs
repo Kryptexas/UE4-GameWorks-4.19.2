@@ -20,7 +20,10 @@ public class UMG : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
+				"RenderCore",
 				"MovieSceneCore",
+				"RHI",
+				"SlateRHIRenderer",
 			}
 		);
 	}

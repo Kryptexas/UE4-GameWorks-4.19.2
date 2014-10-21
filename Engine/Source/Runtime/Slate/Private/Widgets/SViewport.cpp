@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "HittestGrid.h"
 
 DECLARE_CYCLE_STAT( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STATGROUP_Slate );
 
@@ -42,6 +43,9 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	bool bShowDisabledEffect = ShowDisabledEffect.Get();
 	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
+	int32 LastHitTestIndex = Args.GetLastHitTestIndex();
+
+
 	// Viewport texture alpha channels are often in an indeterminate state, even after the resolve,
 	// so we'll tell the shader to not use the alpha channel when blending
 	if( bIgnoreTextureAlpha )
@@ -56,6 +60,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	{
 		ViewportInterfacePin->OnDrawViewport( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 	}
+
 
 	// Only draw a quad if not rendering directly to the backbuffer
 	if( !ShouldRenderDirectly() )
@@ -104,6 +109,13 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 			MyClippingRect
 		);
 	}
+
+
+	if(CustomHitTestPath.IsValid())
+	{
+		Args.InsertCustomHitTestPath(CustomHitTestPath.ToSharedRef(), LastHitTestIndex);
+	}
+
 
 	return Layer;
 }
@@ -216,6 +228,23 @@ void SViewport::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusE
 	}
 }
 
+void SViewport::SetContent( TSharedPtr<SWidget> InContent )
+{
+	ChildSlot
+	[
+		InContent.IsValid() ? InContent.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
+	];
+}
+
+void SViewport::SetCustomHitTestPath( TSharedPtr<ICustomHitTestPath> InCustomHitTestPath )
+{
+	CustomHitTestPath = InCustomHitTestPath;
+}
+
+TSharedPtr<ICustomHitTestPath> SViewport::GetCustomHitTestPath()
+{
+	return CustomHitTestPath;
+}
 
 void SViewport::OnWindowClosed( const TSharedRef<SWindow>& WindowBeingClosed )
 {
@@ -280,4 +309,23 @@ void SViewport::OnFinishedPointerInput()
 	{
 		PinnedInterface->OnFinishedPointerInput();
 	}
+}
+
+void SViewport::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+{
+	SCompoundWidget::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+	if( ArrangedChildren.Allows3DWidgets() && CustomHitTestPath.IsValid() )
+	{
+		CustomHitTestPath->ArrangeChildren( ArrangedChildren );
+	}
+}
+
+TSharedPtr<FVirtualCursorPosition> SViewport::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
+{
+	if( CustomHitTestPath.IsValid() )
+	{
+		return CustomHitTestPath->TranslateMouseCoordinateFor3DChild( ChildWidget, MyGeometry, ScreenSpaceMouseCoordinate, LastScreenSpaceMouseCoordinate );
+	}
+
+	return nullptr;
 }

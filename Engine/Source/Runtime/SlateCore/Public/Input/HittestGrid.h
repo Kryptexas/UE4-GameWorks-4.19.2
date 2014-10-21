@@ -4,6 +4,17 @@
 
 class FArrangedWidget;
 
+class ICustomHitTestPath
+{
+public:
+	virtual ~ICustomHitTestPath(){}
+
+	virtual TArray<FArrangedWidget> GetBubblePath( const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus ) const = 0;
+
+	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const = 0;
+
+	virtual TSharedPtr<struct FVirtualCursorPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const = 0;
+};
 
 class SLATECORE_API FHittestGrid
 {
@@ -29,6 +40,7 @@ public:
 	/** Add Widget into the hittest data structure so that we can later make queries about it. */
 	int32 InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect );
 
+	void InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex );
 private:
 
 	/**

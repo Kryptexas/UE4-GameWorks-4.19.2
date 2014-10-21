@@ -5,6 +5,7 @@
 #include "ModuleInterface.h"
 #include "SlateCore.h"
 
+class ISlate3DRenderer;
 
 /**
  * Interface for the Slate RHI Renderer module.
@@ -20,4 +21,6 @@ public:
 	 * @return A new renderer.
 	 */
 	virtual TSharedRef<FSlateRenderer> CreateSlateRHIRenderer( ) = 0;
+
+	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer() = 0;
 };

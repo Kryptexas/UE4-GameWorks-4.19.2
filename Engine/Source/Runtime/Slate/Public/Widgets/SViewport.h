@@ -90,13 +90,11 @@ public:
 	 *
 	 * @param InContent	The new content (can be null)
 	 */
-	void SetContent( TSharedPtr<SWidget> InContent )
-	{
-		ChildSlot
-		[
-			InContent.IsValid() ? InContent.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
-		];
-	}
+	void SetContent( TSharedPtr<SWidget> InContent );
+
+	void SetCustomHitTestPath( TSharedPtr<ICustomHitTestPath> CustomHitTestPath );
+
+	TSharedPtr<ICustomHitTestPath> GetCustomHitTestPath();
 
 	const TSharedPtr<SWidget> GetContent() const { return ChildSlot.GetWidget(); }
 
@@ -156,6 +154,8 @@ public:
 	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent ) override;
 	virtual void OnFinishedPointerInput() override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual TSharedPtr<struct FVirtualCursorPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
 
 private:
 
@@ -177,6 +177,14 @@ private:
 	/** Size of the viewport. */
 	TAttribute<FVector2D> ViewportSize;
 
+	/** 
+	 * Widget to transfer keyboard focus to when this window becomes active, if any.
+	 * This is used to restore focus to a widget after a popup has been dismissed.
+	 */
+	TWeakPtr< SWidget > WidgetToFocusOnActivate;
+
+	TSharedPtr<ICustomHitTestPath> CustomHitTestPath;
+
 	/** Whether or not this viewport renders directly to the window back-buffer. */
 	bool bRenderDirectlyToWindow;
 
@@ -188,10 +196,4 @@ private:
 
 	/** Whether or not to allow texture alpha to be used in blending calculations. */
 	bool bIgnoreTextureAlpha;
-
-	/**
-	 * Widget to transfer keyboard focus to when this window becomes active, if any.
-	 * This is used to restore focus to a widget after a pop-up has been dismissed.
-	 */
-	TWeakPtr<SWidget> WidgetToFocusOnActivate;
 };

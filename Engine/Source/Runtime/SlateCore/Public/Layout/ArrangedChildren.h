@@ -23,8 +23,9 @@ class SLATECORE_API FArrangedChildren
 	 *  FArrangedChildren ArrangedChildren( EVisibility::Visible ); // Only visible children will be included
 	 *  FArrangedChildren ArrangedChildren( EVisibility::Collapsed | EVisibility::Hidden ); // Only hidden and collapsed children will be included.
 	 */
-	FArrangedChildren( EVisibility InVisibilityFilter )
+	FArrangedChildren( EVisibility InVisibilityFilter, bool bInAllow3DWidgets = false )
 	: VisibilityFilter( InVisibilityFilter )
+	, bAllow3DWidgets( bInAllow3DWidgets )
 	{
 	}
 
@@ -71,16 +72,19 @@ class SLATECORE_API FArrangedChildren
 		return 0 != (InVisibility.Value & VisibilityFilter.Value);
 	}
 
+	bool Allows3DWidgets() const { return bAllow3DWidgets; }
+
 	// We duplicate parts of TArray's interface here!
 	// Inheriting from "public TArray<FArrangedWidget>"
 	// saves us this boilerplate, but causes instantiation of
 	// many template combinations that we do not want.
 
-	private:
+private:
 	/** Internal representation of the array widgets */
 	TArray<FArrangedWidget> Array;
 
-	public:
+	bool bAllow3DWidgets;
+public:
 
 	TArray<FArrangedWidget>& GetInternalArray()
 	{
