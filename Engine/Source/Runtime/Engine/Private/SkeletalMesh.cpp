@@ -1186,7 +1186,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		if( Ar.IsLoading() )
 		{
 			// set cpu skinning flag on the vertex buffer so that the resource arrays know if they need to be CPU accessible
-			VertexBufferGPUSkin.SetNeedsCPUAccess(bKeepBuffersInCPUMemory || SkelMeshOwner->GetImportedResource()->RequiresCPUSkinning(GRHIFeatureLevel_DEPRECATED));
+			VertexBufferGPUSkin.SetNeedsCPUAccess(bKeepBuffersInCPUMemory || SkelMeshOwner->GetImportedResource()->RequiresCPUSkinning(GMaxRHIFeatureLevel));
 		}
 		Ar << NumTexCoords;
 		Ar << VertexBufferGPUSkin;
@@ -4351,7 +4351,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			BatchElement.NumPrimitives = Section.NumTriangles;
 			if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 			{
-				if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel_DEPRECATED)->GetBlendMode() == BLEND_Translucent)
+				if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode() == BLEND_Translucent)
 				{
 					BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
 					if( BatchElement.NumPrimitives == 0 )

@@ -245,7 +245,6 @@ extern RHI_API EShaderPlatform GMaxRHIShaderPlatform;
 // should be used for all rendering, rather a specific set for each view. The deprecated names are being kept around temporarily 
 // while the last instances are removed.
 #define GRHIShaderPlatform_DEPRECATED GMaxRHIShaderPlatform
-#define GRHIFeatureLevel_DEPRECATED GMaxRHIFeatureLevel
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];

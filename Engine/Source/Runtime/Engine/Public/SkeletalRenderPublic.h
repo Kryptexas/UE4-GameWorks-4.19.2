@@ -203,6 +203,12 @@ public:
 	int32				SectionIndexPreview;
 #endif
 
+	/** returns the feature level this FSkeletalMeshObject was created with */
+	ERHIFeatureLevel::Type GetFeatureLevel() const
+	{
+		return FeatureLevel;
+	}
+
 protected:
 	/** The skeletal mesh resource with which to render. */
 	FSkeletalMeshResource* SkeletalMeshResource;
