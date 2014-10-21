@@ -16,6 +16,9 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 	AbilitySystemGlobalsClassName = FStringClassReference(TEXT("/Script/GameplayAbilities.AbilitySystemGlobals"));
 	GlobalGameplayCueManagerName = FStringClassReference(TEXT("/Script/GameplayAbilities.GameplayCueManager"));
 
+	// Temp: once system for loading only necessary GameplaycueNotifies, this can go away.
+	GameplayCueNotifyFullyLoad = true;
+
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
@@ -199,7 +202,7 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 		GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(NULL, *GlobalGameplayCueManagerName.ToString(), NULL, LOAD_None, NULL);
 		if (GameplayCueNotifyPaths.Num() > 0)
 		{
-			GlobalGameplayCueManager->LoadObjectLibraryFromPaths( GameplayCueNotifyPaths, false );
+			GlobalGameplayCueManager->LoadObjectLibraryFromPaths( GameplayCueNotifyPaths, GameplayCueNotifyFullyLoad );
 		}
 	}
 

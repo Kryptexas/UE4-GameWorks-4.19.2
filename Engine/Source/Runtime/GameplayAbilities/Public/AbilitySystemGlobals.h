@@ -43,6 +43,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	UPROPERTY(config)
 	TArray<FString>	GameplayCueNotifyPaths;
 
+	/** Fully load all gameplay cues from the object library */
+	UPROPERTY(config)
+	bool	GameplayCueNotifyFullyLoad;
+
 	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
 	UPROPERTY(config)
 	FStringClassReference AbilitySystemGlobalsClassName;

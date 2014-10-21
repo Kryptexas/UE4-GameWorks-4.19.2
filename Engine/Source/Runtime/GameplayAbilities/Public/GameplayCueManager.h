@@ -13,6 +13,9 @@
  *	
  *	-Remove LoadObjectLibraryFromPaths from base implementation. Just have project pass in ObjectLibrary, let it figure out how to make it.
  *		-On Bob's recommendation: in hopes of removing object libraries coupling with directory structure.
+ *		-This becomes trickier with smaller projects/licensees. It would be nice to offer a path of least resistence for using gameplaycues (without having to implement a load object library function).
+ *		-This gets even trickier though when dealing with having to reload that objecet library when assets are added/deleted/renamed. Ideally the GameplaycueManager handles all of this, but if we are getting
+ *		an objectlibrary passed in, we don't know how to recreate it. Could add a delegate to invoke when we need the object library reloaded, but then ownership of that library feels pretty weird.
  *	
  *	-Async loading of all required GameplayCueNotifies
  *		-Currently async loaded on demand (first GameplayCueNotify is dropped)
@@ -58,6 +61,8 @@ struct FGameplayCueNotifyData
 
 	UPROPERTY(transient)
 	UGameplayCueNotify*		LoadedGameplayCueNotify;
+
+	FGameplayTag			GameplayCueTag;
 
 	int32 ParentDataIdx;
 };
@@ -134,4 +139,14 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 private:
 
 	virtual void HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
+	void LoadObjectLibrary_Internal();
+
+	void AddGameplayCueData_Internal(FGameplayTag  GameplayCueTag, FStringAssetReference StringRef);
+
+	void BuildAccelerationMap_Internal();
+
+	TArray<FString>	LoadedPaths;
+
+	bool bFullyLoad;
 };
