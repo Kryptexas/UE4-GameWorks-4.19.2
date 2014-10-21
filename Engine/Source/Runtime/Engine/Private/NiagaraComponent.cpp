@@ -3,7 +3,6 @@
 #include "EnginePrivate.h"
 #include "Components/NiagaraComponent.h"
 #include "Engine/NiagaraScript.h"
-#include "Engine/NiagaraConstants.h"
 #include "VectorVM.h"
 #include "ParticleHelper.h"
 #include "Particles/ParticleResources.h"
