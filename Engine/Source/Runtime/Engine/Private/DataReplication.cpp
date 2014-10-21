@@ -977,6 +977,17 @@ void FObjectReplicator::ForceRefreshUnreliableProperties()
 	bOpenAckCalled = true;
 }
 
+void FObjectReplicator::AddReferencedObjects( UObject* InThis, FReferenceCollector& Collector )
+{
+	if ( GetObject() == NULL )
+	{
+		UE_LOG( LogNet, Verbose, TEXT( "AddReferencedObjects: Object == NULL" ) );
+		return;
+	}
+
+	RepLayout->AddReferencedObjects( RepState, InThis, Collector );
+}
+
 void FObjectReplicator::PostSendBunch( FPacketIdRange & PacketRange, uint8 bReliable )
 {
 	if ( GetObject() == NULL )

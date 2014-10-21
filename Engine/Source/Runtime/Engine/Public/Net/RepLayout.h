@@ -357,6 +357,8 @@ public:
 	void SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void* Data, bool & bHasUnmapped ) const;	
 	void InitFromStruct( UStruct * InStruct );
 
+	void AddReferencedObjects( FRepState * RepState, UObject* ReferencingObject, FReferenceCollector& Collector ) const;
+
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
 

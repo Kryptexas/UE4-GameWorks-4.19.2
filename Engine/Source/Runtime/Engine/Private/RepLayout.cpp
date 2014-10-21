@@ -24,6 +24,8 @@ FAutoConsoleVariable CVarDoReplicationContextString( TEXT( "net.ContextDebug" ),
 
 //#define ENABLE_SUPER_CHECKSUMS
 
+//#pragma optimize("", off)
+
 #ifdef USE_CUSTOM_COMPARE
 static FORCEINLINE bool CompareBool( const FRepLayoutCmd& Cmd, const void* A, const void* B )
 {
@@ -194,6 +196,65 @@ static void SerializeReadWritePropertyChecksum( const FRepLayoutCmd& Cmd, const 
 		UE_LOG( LogNet, Warning, TEXT( "Property checksum failed! [%s]" ), *Cmd.Property->GetFullName() );
 	}
 }
+
+class FMyCmdIteratorBaseStackState
+{
+public:
+	FMyCmdIteratorBaseStackState( FScriptArray* InArray ) : Array( InArray ), ArrayNum( InArray->Num() ) {}
+
+	FScriptArray*	Array;
+	const uint16	ArrayNum;
+};
+
+template< typename TImpl, typename TStackState >
+class FRepLayoutCmdIterator
+{
+public:
+	FRepLayoutCmdIterator( TImpl& InImpl, const TArray< FRepLayoutCmd > & InCmds ) : Impl( InImpl ), Cmds( InCmds ) {}
+
+	void IterateCmdArray_r( const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT ShadowData )
+	{
+		TStackState StackState( (FScriptArray *)ShadowData );
+
+		uint8* LocalData = (uint8*)StackState.Array->GetData();
+
+		Impl.PreArray( StackState );
+
+		for ( int32 i = 0; i < StackState.ArrayNum; i++ )
+		{
+			ProcessCmd_r( CmdIndex + 1, Cmd.EndCmd - 1, LocalData + i * Cmd.ElementSize );
+		}
+
+		Impl.PostArray( StackState );
+	}
+
+	void ProcessCmd_r( const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT ShadowData )
+	{
+		for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
+		{
+			const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
+
+			check( Cmd.Type != REPCMD_Return );
+
+			if ( Cmd.Type == REPCMD_DynamicArray )
+			{
+				IterateCmdArray_r( Cmd, CmdIndex, ShadowData + Cmd.Offset );
+				CmdIndex = Cmd.EndCmd - 1;	// Jump past children of this array (-1 for ++ in for loop)
+				continue;
+			}
+
+			Impl.ProcessCmd( Cmd, ShadowData + Cmd.Offset );
+		}
+	}
+
+	void Start( FRepState * RepState )
+	{
+		ProcessCmd_r( 0, Cmds.Num() - 1, (uint8*)RepState->StaticBuffer.GetData() );
+	}
+
+	TImpl&							Impl;
+	const TArray< FRepLayoutCmd > & Cmds;
+};
 
 uint16 FRepLayout::CompareProperties_r(
 	const int32				CmdStart,
@@ -2454,6 +2515,42 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	}
 
 	RepState->RepFlags = RepFlags;
+}
+
+class FAddReferencedObjectsImpl
+{
+public:
+	FAddReferencedObjectsImpl( UObject* InReferencingObject, FReferenceCollector& InCollector ) : ReferencingObject( InReferencingObject ), Collector( InCollector ) {}
+
+	void PreArray( FMyCmdIteratorBaseStackState & StackState ) { }
+	void PostArray( FMyCmdIteratorBaseStackState & StackState ) { }
+
+	void ProcessCmd( const FRepLayoutCmd& Cmd, const uint8* RESTRICT ShadowData )
+	{
+		if ( Cmd.Type == REPCMD_PropertyObject )
+		{
+			UObjectPropertyBase * ObjProperty = CastChecked< UObjectPropertyBase>( Cmd.Property );
+
+			UObject* ReferencedObject = ObjProperty->GetObjectPropertyValue( ShadowData );
+
+			if ( ReferencedObject != NULL )
+			{
+				Collector.AddReferencedObject( ReferencedObject, ReferencingObject );
+			}
+		}
+	}
+
+	UObject*				ReferencingObject;
+	FReferenceCollector&	Collector;
+};
+
+void FRepLayout::AddReferencedObjects( FRepState * RepState, UObject* ReferencingObject, FReferenceCollector& Collector ) const
+{
+	FAddReferencedObjectsImpl AddReferencedObjectsImpl( ReferencingObject, Collector );
+
+	FRepLayoutCmdIterator< FAddReferencedObjectsImpl, FMyCmdIteratorBaseStackState > Iterator( AddReferencedObjectsImpl, Cmds );
+
+	Iterator.Start( RepState );
 }
 
 void FRepLayout::InitChangedTracker( FRepChangedPropertyTracker * ChangedTracker ) const

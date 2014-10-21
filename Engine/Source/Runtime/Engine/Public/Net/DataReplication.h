@@ -114,7 +114,10 @@ public:
 	bool	ReceivedBunch( FInBunch & Bunch, const FReplicationFlags& RepFlags, bool & bOutHasUnmapped );
 	void	PostReceivedBunch();
 
-	void ForceRefreshUnreliableProperties();
+	void	ForceRefreshUnreliableProperties();
+
+	void	AddReferencedObjects( UObject* InThis, FReferenceCollector& Collector );
+
 
 	bool bHasReplicatedProperties;
 
