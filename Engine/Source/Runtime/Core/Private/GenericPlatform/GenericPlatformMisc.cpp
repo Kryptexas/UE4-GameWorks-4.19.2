@@ -381,11 +381,15 @@ void FGenericPlatformMisc:: ClipboardPaste(class FString& Dest)
 
 void FGenericPlatformMisc::CreateGuid(FGuid& Guid)
 {
-	int32 Year=0, Month=0, DayOfWeek=0, Day=0, Hour=0, Min=0, Sec=0, MSec=0;
+	static uint16 IncrementCounter = 0; 
+
+	int32 Year = 0, Month = 0, DayOfWeek = 0, Day = 0, Hour = 0, Min = 0, Sec = 0, MSec = 0; // Use real time for baseline uniqueness
+	uint32 SequentialBits = static_cast<uint32>(IncrementCounter++); // Add sequential bits to ensure sequentially generated guids are unique even if Cycles is wrong
+	uint32 RandBits = FMath::Rand() & 0xFFFF; // Add randomness to improve uniqueness across machines
 
 	FPlatformTime::SystemTime(Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec);
 
-	Guid = FGuid(Day | (Hour << 16), Month | (Sec << 16), MSec | (Min << 16), Year ^ FPlatformTime::Cycles());
+	Guid = FGuid(RandBits | (SequentialBits << 16), Day | (Hour << 8) | (Month << 16) | (Sec << 24), MSec | (Min << 16), Year ^ FPlatformTime::Cycles());
 }
 
 EAppReturnType::Type FGenericPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
