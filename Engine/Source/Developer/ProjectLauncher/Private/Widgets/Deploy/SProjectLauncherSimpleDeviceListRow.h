@@ -359,7 +359,7 @@ private:
 			NewGroup->AddDevice(DeviceProxy->GetTargetDeviceId(Variant));
 			LaunchProfile->SetDeployedDeviceGroup(NewGroup);
 
-			LaunchProfile->ClearCookedCultures();
+			LaunchProfile->ClearCookedPlatforms();
 			LaunchProfile->AddCookedPlatform(DeviceProxy->GetTargetPlatformName(Variant));
 
 			bool Advanced = IsAdvanced.IsBound() && IsAdvanced.Get();
