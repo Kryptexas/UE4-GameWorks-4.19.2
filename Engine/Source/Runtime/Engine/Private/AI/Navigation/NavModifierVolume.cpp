@@ -28,6 +28,13 @@ FBox ANavModifierVolume::GetNavigationBounds() const
 
 #if WITH_EDITOR
 
+void ANavModifierVolume::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	UNavigationSystem::UpdateNavOctree(this);
+}
+
 void ANavModifierVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
