@@ -1433,6 +1433,7 @@ struct ENGINE_API FHitResult
 	FHitResult()
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
+		Time = 1.f;
 	}
 	
 	explicit FHitResult(float InTime)
@@ -1444,6 +1445,7 @@ struct ENGINE_API FHitResult
 	explicit FHitResult(EForceInit Init)
 	{
 		FMemory::Memzero(this, sizeof(FHitResult));
+		Time = 1.f;
 	}
 
 	/** Ctor for easily creating "fake" hits from limited data. */
