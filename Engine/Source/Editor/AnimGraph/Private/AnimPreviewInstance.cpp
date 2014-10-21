@@ -161,6 +161,12 @@ void UAnimPreviewInstance::RestartMontage(UAnimMontage* Montage, FName FromSecti
 	}
 }
 
+void UAnimPreviewInstance::SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping, float InPlayRate)
+{
+	Super::SetAnimationAsset(NewAsset, bIsLooping, InPlayRate);
+	RootMotionMode = Cast<UAnimMontage>(CurrentAsset) != NULL ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::RootMotionFromEverything;
+}
+
 void UAnimPreviewInstance::MontagePreview_SetLooping(bool bIsLooping)
 {
 	bLooping = bIsLooping;
