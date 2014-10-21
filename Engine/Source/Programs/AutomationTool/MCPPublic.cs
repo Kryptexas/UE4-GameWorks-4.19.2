@@ -274,9 +274,7 @@ namespace EpicGames.MCP.Automation
 
             public PatchGenerationOptions()
             {
-				// @todo Richard.Fawcett temporary work-around for build system issues.
-				// Hack to add 10,000 days should not remain beyond 2014-09-30!
-				DataAgeThreshold = DEFAULT_DATA_AGE_THRESHOLD + 10000;
+                DataAgeThreshold = DEFAULT_DATA_AGE_THRESHOLD;
             }
 
             /// <summary>
