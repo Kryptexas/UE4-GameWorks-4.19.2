@@ -492,6 +492,19 @@ void UGameplayAbility::K2_EndAbility()
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
+void UGameplayAbility::K2_EndAbilityFromServer()
+{
+	check(CurrentActorInfo);
+	check(CurrentActorInfo->AvatarActor.IsValid());
+	ENetRole NetMode = CurrentActorInfo->AvatarActor->Role;
+
+	if (NetMode == ROLE_Authority)		//Do we care about ability execution policy?
+	{
+		CurrentActorInfo->AbilitySystemComponent->ClientEndAbility(CurrentSpecHandle);		//Does this need a prediction key?
+		K2_EndAbility();
+	}
+}
+
 // --------------------------------------------------------------------
 
 void UGameplayAbility::MontageJumpToSection(FName SectionName)

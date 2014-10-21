@@ -472,7 +472,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 
 	UGameplayAbility* InstancedAbility = Ability;
 
-	// If we are the server or this is a client authorative 
+	// If we are the server or this is a client authoritative 
 	if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::Client || (NetMode == ROLE_Authority))
 	{
 		// Create instance of this ability if necessary
@@ -619,7 +619,24 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	}
 }
 
-bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey)
+bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd)
+{
+	FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(AbilityToEnd);
+	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive())
+	{
+		for (auto Instance : AbilitySpec->NonReplicatedInstances)
+		{
+			Instance->K2_EndAbility();
+		}
+	}
+}
+
+bool UAbilitySystemComponent::ClientEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToActivate)
 {
 	return true;
 }
