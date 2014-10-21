@@ -2023,16 +2023,15 @@ void FEngineLoop::Exit()
 		GEngine->ShutdownAudioDevice();
 	}
 
-	// close all windows
-	FSlateApplication::Shutdown();
-
-
 	if ( GEngine != NULL )
 	{
 		GEngine->PreExit();
 	}
 
 	AppPreExit();
+
+	// close all windows
+	FSlateApplication::Shutdown();
 
 	// Shutdown and unregister all online subsystems
 	Online::ShutdownOnlineSubsystem();
