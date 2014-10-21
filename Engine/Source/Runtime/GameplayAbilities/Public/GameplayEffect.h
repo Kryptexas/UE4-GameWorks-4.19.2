@@ -110,7 +110,7 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 	}
 
 	/** The Attribute we modify or the GE we modify modifies. */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier, meta=(FilterMetaTag="HideFromModifiers"))
 	FGameplayAttribute Attribute;
 
 	/** What this modifies - Attribute, OutgoingGEs, IncomingGEs, ACtiveGEs. */

@@ -93,6 +93,12 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 			UClass *Class = *ClassIt;
 			if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 			{
+				// Allow entire classes to be filtered globalyl
+				if (Class->HasMetaData(TEXT("HideInDetailsView")))
+				{
+					continue;
+				}
+
 				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 				{
 					UProperty *Property = *PropertyIt;
