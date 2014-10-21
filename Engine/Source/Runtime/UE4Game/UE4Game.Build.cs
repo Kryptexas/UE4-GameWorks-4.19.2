@@ -7,7 +7,6 @@ public class UE4Game : ModuleRules
 	public UE4Game(TargetInfo Target)
 	{
 		PrivateDependencyModuleNames.Add("Core");
-		PrivateDependencyModuleNames.Add("Landscape");
 	
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{

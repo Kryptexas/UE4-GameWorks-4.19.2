@@ -65,10 +65,12 @@ public class Engine : ModuleRules
 				"SlateCore",
 				"SlateReflector",
 				"VectorVM",
+				"Landscape"
 			}
         );
 
         CircularlyReferencedDependentModules.Add("AIModule");
+		CircularlyReferencedDependentModules.Add("Landscape");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
