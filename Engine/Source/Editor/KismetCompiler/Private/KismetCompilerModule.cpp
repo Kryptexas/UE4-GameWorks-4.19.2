@@ -150,6 +150,8 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			// There were errors.  Compile the generated class to have function stubs
 			Blueprint->Status = BS_Error;
 
+			static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
+
 			// Reinstance objects here, so we can preserve their memory layouts to reinstance them again
 			if( ParentReinstancer != NULL )
 			{
@@ -157,7 +159,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 				if(!Blueprint->bIsRegeneratingOnLoad)
 				{
-					ParentReinstancer->ReinstanceObjects();
+					ParentReinstancer->ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 				}
 			}
 
@@ -174,7 +176,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			StubReinstancer.UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )
 			{
-				StubReinstancer.ReinstanceObjects();
+				StubReinstancer.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 			}
 		}
 	}

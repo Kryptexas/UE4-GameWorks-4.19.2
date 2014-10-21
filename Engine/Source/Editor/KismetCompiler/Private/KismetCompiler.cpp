@@ -47,6 +47,7 @@ DEFINE_STAT(EKismetCompilerStats_ChooseTerminalScope);
 DEFINE_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
 DEFINE_STAT(EKismetCompilerStats_CreateClassVariables);
 DEFINE_STAT(EKismetCompilerStats_BindAndLinkClass);
+DEFINE_STAT(EKismetCompilerStats_ChecksumCDO);
 		
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
@@ -3589,6 +3590,14 @@ void FKismetCompilerContext::Compile()
 	{
 		bool Result = ValidateGeneratedClass(NewClass);
 		// TODO What do we do if validation fails?
+	}
+
+	if (bIsFullCompile)
+	{
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChecksumCDO);
+		UObject* NewCDO = NewClass->GetDefaultObject(false);
+		FArchiveObjectCrc32 CrcArchive;
+		Blueprint->CrcPreviousCompiledCDO = NewCDO ? CrcArchive.Crc32(NewCDO) : 0;
 	}
 }
 

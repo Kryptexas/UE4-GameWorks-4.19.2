@@ -15,6 +15,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Find Referencers"), EKismetReinstancerStats_Find
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Replace References"), EKismetReinstancerStats_ReplaceReferences, STATGROUP_KismetReinstancer, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Bytecode References"), EKismetReinstancerStats_UpdateBytecodeReferences, STATGROUP_KismetReinstancer, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Recompile Child Classes"), EKismetReinstancerStats_RecompileChildClasses, STATGROUP_KismetReinstancer, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Replace Classes Without Reinstancing"), EKismetReinstancerStats_ReplaceClassNoReinsancing, STATGROUP_KismetReinstancer, );
 
 class UNREALED_API FBlueprintCompileReinstancer
 {
@@ -45,6 +46,8 @@ protected:
 	/** Don't call GC */
 	bool bSkipGarbageCollection;
 
+	uint32 ClassToReinstanceDefaultValuesCRC;
+
 public:
 	virtual ~FBlueprintCompileReinstancer();
 
@@ -58,7 +61,7 @@ public:
 	void GenerateFieldMappings(TMap<UObject*, UObject*>& FieldMapping);
 
 	/** Reinstances all objects in the ObjectReinstancingMap */
-	void ReinstanceObjects();
+	void ReinstanceObjects(bool bAlwaysReinstance = true);
 
 	/** Updates references to properties and functions of the class that has in the bytecode of dependent blueprints */
 	void UpdateBytecodeReferences();

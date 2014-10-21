@@ -7,12 +7,14 @@
 #include "BlueprintEditorUtils.h"
 #include "Layers/ILayers.h"
 #include "ComponentInstanceDataCache.h"
+#include "Engine/DynamicBlueprintBinding.h"
 
 DEFINE_STAT(EKismetReinstancerStats_ReplaceInstancesOfClass);
 DEFINE_STAT(EKismetReinstancerStats_FindReferencers);
 DEFINE_STAT(EKismetReinstancerStats_ReplaceReferences);
 DEFINE_STAT(EKismetReinstancerStats_UpdateBytecodeReferences);
 DEFINE_STAT(EKismetReinstancerStats_RecompileChildClasses);
+DEFINE_STAT(EKismetReinstancerStats_ReplaceClassNoReinsancing);
 
 /////////////////////////////////////////////////////////////////////////////////
 // FBlueprintCompileReinstancer
@@ -23,6 +25,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 	, OriginalCDO(NULL)
 	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)
+	, ClassToReinstanceDefaultValuesCRC(0)
 {
 	if( InClassToReinstance != NULL )
 	{
@@ -106,6 +109,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		check(GeneratingBP || GIsAutomationTesting);
 		if(GeneratingBP)
 		{
+			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcPreviousCompiledCDO;
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 		}
 	}
@@ -156,7 +160,7 @@ FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
 	}
 }
 
-void FBlueprintCompileReinstancer::ReinstanceObjects()
+void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 {
 	BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Reinstance Objects"));
 
@@ -167,11 +171,51 @@ void FBlueprintCompileReinstancer::ReinstanceObjects()
 	}
 	bHasReinstanced = true;
 
-	if( ClassToReinstance && DuplicatedClass )
+	if (ClassToReinstance && DuplicatedClass)
 	{
-		ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO);
+		bool bShouldReinstance = true;
+		if (!bAlwaysReinstance)
+		{
+			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_ReplaceClassNoReinsancing);
+
+			auto BPClassA = Cast<const UBlueprintGeneratedClass>(DuplicatedClass);
+			auto BPClassB = Cast<const UBlueprintGeneratedClass>(ClassToReinstance);
+			auto BP = Cast<const UBlueprint>(ClassToReinstance->ClassGeneratedBy);
+			const bool bTheSameDefaultValues = BP && ClassToReinstanceDefaultValuesCRC && (BP->CrcPreviousCompiledCDO == ClassToReinstanceDefaultValuesCRC);
+			const bool bTheSame = bTheSameDefaultValues && BPClassA && BPClassB && FStructUtils::TheSameLayout(BPClassA, BPClassB, true);
+			if (bTheSame)
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("BlueprintCompileReinstancer: class '%s' is replaced without reinstancing (the optimized way)."), *GetPathNameSafe(ClassToReinstance));
+
+				TArray<UObject*> ObjectsToReplace;
+				GetObjectsOfClass(DuplicatedClass, ObjectsToReplace, false);
+
+				const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
+				for (auto Obj : ObjectsToReplace)
+				{
+					if (!Obj->IsTemplate() && !Obj->IsPendingKill())
+					{
+						Obj->SetClass(ClassToReinstance);
+						if (bIsActor)
+						{
+							auto Actor = CastChecked<AActor>(Obj);
+							Actor->ReregisterAllComponents();
+							Actor->RerunConstructionScripts();
+						}
+					}
+				}
+
+				bShouldReinstance = false;
+			}
+		}
+
+		if (bShouldReinstance)
+		{
+			ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO);
+		}
 	
-		{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_RecompileChildClasses);
+		{ 
+			BP_SCOPED_COMPILER_EVENT_STAT(EKismetReinstancerStats_RecompileChildClasses);
 
 			// Reparent all dependent blueprints, and recompile to ensure that they get reinstanced with the new memory layout
 			for( auto ChildBP = Children.CreateIterator(); ChildBP; ++ChildBP)

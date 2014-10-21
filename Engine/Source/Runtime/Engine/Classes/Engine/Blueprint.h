@@ -392,6 +392,7 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 #endif // WITH_EDITORONLY_DATA
 
 public:
+
 	/** Broadcasts a notification whenever the blueprint has changed. */
 	DECLARE_EVENT_OneParam( UBlueprint, FChangedEvent, class UBlueprint* );
 	FChangedEvent& OnChanged() { return ChangedEvent; }
@@ -414,9 +415,11 @@ public:
 	/** The blueprint is currently compiled */
 	UPROPERTY(transient)
 	uint32 bBeingCompiled:1;
-#endif // WITH_EDITORONLY_DATA
 
-#if WITH_EDITORONLY_DATA
+	/** CRC for CDO calculated right after the latest compilation */
+	UPROPERTY(transient, duplicatetransient)
+	uint32 CrcPreviousCompiledCDO;
+
 	bool bCachedDependenciesUpToDate;
 	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
 

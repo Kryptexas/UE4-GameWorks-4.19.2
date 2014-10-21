@@ -347,10 +347,10 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
 #if WITH_EDITOR
 	// Do not want to run this code without the editor present nor when running commandlets.
-	if(GEditor && GIsEditor && !IsRunningCommandlet())
+	if (GEditor && GIsEditor && !IsRunningCommandlet())
 	{
 		// We do not want to regenerate a search Guid during loads, nothing has changed in the Blueprint and it is cached elsewhere
-		if(!bIsRegeneratingOnLoad)
+		if (!bIsRegeneratingOnLoad)
 		{
 			BlueprintObj->SearchGuid = FGuid::NewGuid();
 			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(BlueprintObj);
@@ -409,7 +409,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		}
 
 		// Replace instances of this class
-		ReinstanceHelper.ReinstanceObjects();
+		static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
+		ReinstanceHelper.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 
 		if (!bSkipGarbageCollection)
 		{
@@ -423,7 +424,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		// ReinstanceHelper.VerifyReplacement();
 	}
 
-	{ BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Notify Blueprint Changed"));
+	{ 
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Notify Blueprint Changed"));
 
 		// Blueprint has changed, broadcast notify
 		BlueprintObj->BroadcastChanged();
@@ -440,7 +442,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	{ BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Refresh Dependent Blueprints"));
+	{ 
+		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Refresh Dependent Blueprints"));
 
 		TArray<UBlueprint*> DependentBPs;
 		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);

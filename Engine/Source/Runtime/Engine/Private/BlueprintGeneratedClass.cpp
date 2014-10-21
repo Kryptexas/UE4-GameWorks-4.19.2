@@ -77,7 +77,7 @@ UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
 	return (GeneratingBP->GeneratedClass != NULL) ? GeneratingBP->GeneratedClass : this;
 }
 
-bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B)
+bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B, bool bCheckPropertiesNames)
 {
 	if (A == B)
 	{
@@ -85,6 +85,11 @@ bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B)
 	}
 
 	if (!A != !B) //one of properties is null
+	{
+		return false;
+	}
+
+	if (bCheckPropertiesNames && (A->GetFName() != B->GetFName()))
 	{
 		return false;
 	}
@@ -107,7 +112,7 @@ bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B)
 	return true;
 }
 
-bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB)
+bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames)
 {
 	bool bResult = false;
 	if (StructA && StructB)
@@ -116,15 +121,11 @@ bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB)
 		const UProperty* PropertyB = StructB->PropertyLink;
 
 		bResult = true;
-		while (bResult)
+		while (bResult && (PropertyA != PropertyB))
 		{
-			bResult = ArePropertiesTheSame(PropertyA, PropertyB);
+			bResult = ArePropertiesTheSame(PropertyA, PropertyB, bCheckPropertiesNames);
 			PropertyA = PropertyA ? PropertyA->PropertyLinkNext : NULL;
 			PropertyB = PropertyB ? PropertyB->PropertyLinkNext : NULL;
-			if (PropertyA == PropertyB)
-			{
-				break;
-			}
 		}
 	}
 	return bResult;

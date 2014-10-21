@@ -161,11 +161,11 @@ private:
 struct FStructUtils
 {
 private:
-	static bool ArePropertiesTheSame(const UProperty* A, const UProperty* B);
+	static bool ArePropertiesTheSame(const UProperty* A, const UProperty* B, bool bCheckPropertiesNames);
 
 public:
 	// does structures have exactly the same memory layout
-	ENGINE_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB);
+	ENGINE_API static bool TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames = false);
 };
 
 USTRUCT()
