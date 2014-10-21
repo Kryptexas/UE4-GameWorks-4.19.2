@@ -13,11 +13,12 @@ void FAttenuationSettingsCustomization::CustomizeHeader( TSharedRef<class IPrope
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
 	const FString DisplayNameOverride = TEXT("");
+	const FString DisplayToolTipOverride = TEXT("");
 
 	HeaderRow
 		.NameContent()
 		[
-			StructPropertyHandle->CreatePropertyNameWidget( DisplayNameOverride, bDisplayResetToDefault )
+			StructPropertyHandle->CreatePropertyNameWidget( DisplayNameOverride, DisplayToolTipOverride, bDisplayResetToDefault )
 		];
 }
 

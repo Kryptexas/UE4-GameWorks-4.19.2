@@ -227,7 +227,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.HAlign(HAlign_Left)
 				.AutoWidth()
 				[
-					RMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					RMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -240,7 +240,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
 				.AutoWidth()
 				[
-					GMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					GMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -253,7 +253,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
 				.AutoWidth()
 				[
-					BMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					BMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
@@ -266,7 +266,7 @@ void FMaterialInstanceParameterDetails::CreateMaskParameterValueWidget(UDEditorP
 				.Padding( FMargin( 10.0f, 0.0f, 0.0f, 0.0f ) )
 				.AutoWidth()
 				[
-					AMaskProperty->CreatePropertyNameWidget( TEXT(""), false )
+					AMaskProperty->CreatePropertyNameWidget( TEXT(""), TEXT( "" ), false )
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)

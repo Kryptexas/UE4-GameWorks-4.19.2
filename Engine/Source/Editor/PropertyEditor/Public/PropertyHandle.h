@@ -335,13 +335,14 @@ public:
 
 	/**
 	 * Creates a name widget for this property
-	 * @param NameOverride			The name override to use instead of the property name
+	 * @param NameOverride				The name override to use instead of the property name
+	 * @param ToolTipOverride			The tooltip override to use instead of the property name
 	 * @param bDisplayResetToDefault	Whether or not to display the reset to default button
 	 * @param bDisplayText				Whether or not to display the text name of the property
 	 * @param bDisplayThumbnail			Whether or not to display the thumbnail for the property (if any)
 	 * @return the name widget for this property
 	 */
-	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FString& NameOverride = TEXT(""), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const = 0;
+	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FString& NameOverride = TEXT(""), const FString& ToolTipOverride = TEXT(""), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const = 0;
 
 	/**
 	 * Creates a value widget for this property

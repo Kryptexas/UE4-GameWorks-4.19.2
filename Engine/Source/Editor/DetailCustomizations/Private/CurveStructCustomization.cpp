@@ -52,7 +52,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
 			]
 			.ValueContent()
 			.HAlign(HAlign_Fill)
@@ -87,7 +87,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
 			]
 			.ValueContent()
 			[
