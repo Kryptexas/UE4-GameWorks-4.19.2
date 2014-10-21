@@ -1565,7 +1565,7 @@ void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocatio
 {
 	// you can enable/disable the instanced weights by calling
 	int32 ConstraintIndex = FindConstraintIndex(InBoneName);
-	if( ConstraintIndex == INDEX_NONE )
+	if( ConstraintIndex == INDEX_NONE || ConstraintIndex >= Constraints.Num() )
 	{
 		return;
 	}
