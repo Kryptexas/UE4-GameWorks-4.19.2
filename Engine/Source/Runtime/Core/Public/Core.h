@@ -22,6 +22,7 @@
 #include "UnrealMathUtility.h"					// FMath
 #include "UnrealTypeTraits.h"					// Type Traits
 #include "UnrealTemplate.h"						// Common template definitions.
+#include "Function.h"							// TFunction
 #include "MemoryOps.h"							// Functions for efficient handling of object arrays.
 
 #include "Misc/CoreDefines.h"

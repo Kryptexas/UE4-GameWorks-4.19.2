@@ -465,6 +465,37 @@ template <typename T>           struct TIsCPPArray       { enum { Value = false 
 template <typename T, uint32 N> struct TIsCPPArray<T[N]> { enum { Value = true  }; };
 
 /**
+ * Removes one dimension of extents from an array type.
+ */
+template <typename T>           struct TRemoveExtent       { typedef T Type; };
+template <typename T>           struct TRemoveExtent<T[]>  { typedef T Type; };
+template <typename T, uint32 N> struct TRemoveExtent<T[N]> { typedef T Type; };
+
+/**
+ * Returns the decayed type of T, meaning it removes all references, qualifiers and
+ * applies array-to-pointer and function-to-pointer conversions.
+ *
+ * http://en.cppreference.com/w/cpp/types/decay
+ */
+template <typename T>
+struct TDecay
+{
+private:
+	typedef typename TRemoveReference<T>::Type NoRefs;
+
+public:
+	typedef typename TChooseClass<
+		TIsCPPArray<NoRefs>::Value,
+		typename TRemoveExtent<NoRefs>::Type*,
+		typename TChooseClass<
+			TIsFunction<NoRefs>::Value,
+			NoRefs*,
+			typename TRemoveCV<NoRefs>::Type
+		>::Result
+	>::Result Type;
+};
+
+/**
  * Reverses the order of the bits of a value.
  * This is an TEnableIf'd template to ensure that no undesirable conversions occur.  Overloads for other types can be added in the same way.
  *

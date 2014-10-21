@@ -1517,9 +1517,9 @@ static TAutoConsoleVariable<int32> CVarRHICmdShadowDeferredContexts(
 class FShadowParallelCommandListSet : public FParallelCommandListSet
 {
 	FProjectedShadowInfo& ProjectedShadowInfo;
-	IFunction<void, FRHICommandList&>& SetShadowRenderTargets;
+	TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets;
 public:
-	FShadowParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, FProjectedShadowInfo& InProjectedShadowInfo, IFunction<void, FRHICommandList&>& InSetShadowRenderTargets)
+	FShadowParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, FProjectedShadowInfo& InProjectedShadowInfo, TFunctionRef<void (FRHICommandList& RHICmdList)> InSetShadowRenderTargets)
 		: FParallelCommandListSet(InView, InParentCmdList, InOutDirty, bInParallelExecute)
 		, ProjectedShadowInfo(InProjectedShadowInfo)
 		, SetShadowRenderTargets(InSetShadowRenderTargets)
@@ -1533,7 +1533,7 @@ public:
 	}
 };
 
-void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, IFunction<void, FRHICommandList&>& SetShadowRenderTargets)
+void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets)
 {
 	FShadowDepthDrawingPolicyContext PolicyContext(this);
 
@@ -1621,7 +1621,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 	}
 }
 
-void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, IFunction<void, FRHICommandList&>& SetShadowRenderTargets)
+void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets)
 {
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;
@@ -2617,10 +2617,10 @@ bool FDeferredShadingSceneRenderer::RenderOnePassPointLightShadows(FRHICommandLi
 			if (!ProjectedShadowInfo->bRayTracedDistanceFieldShadow)
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque);
-				auto SetShadowRenderTargets = MakeFunction<void, FRHICommandList&>([ProjectedShadowInfo](FRHICommandList& RHICmdList)
+				auto SetShadowRenderTargets = [ProjectedShadowInfo](FRHICommandList& RHICmdList)
 				{
 					GSceneRenderTargets.BeginRenderingCubeShadowDepth(RHICmdList, ProjectedShadowInfo->ResolutionX);
-				});
+				};
 
 				SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
 				ProjectedShadowInfo->bAllocated = true;
@@ -3027,10 +3027,10 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
 
 				check(LightPropagationVolume);
-				auto SetShadowRenderTargets = MakeFunction<void, FRHICommandList&>([LightPropagationVolume](FRHICommandList& RHICmdList)
+				auto SetShadowRenderTargets = [LightPropagationVolume](FRHICommandList& RHICmdList)
 				{
 					GSceneRenderTargets.BeginRenderingReflectiveShadowMap(RHICmdList, LightPropagationVolume);
-				});
+				};
 
 				SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
 
@@ -3205,10 +3205,10 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows(FRHICommandListImmedi
 			SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque);
 
 			bool bFirst = true;
-			auto SetShadowRenderTargets = MakeFunction<void, FRHICommandList&>([&bFirst](FRHICommandList& RHICmdList)
+			auto SetShadowRenderTargets = [&bFirst](FRHICommandList& RHICmdList)
 			{
 				GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList, bFirst);
-			});
+			};
 
 			SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
 			bFirst = false;
@@ -3342,10 +3342,10 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 		{
 			SCOPED_DRAW_EVENTF(RHICmdList, EventShadowDepths, TEXT("Preshadow Cache Depths"));
 
-			auto SetShadowRenderTargets = MakeFunction<void, FRHICommandList&>([](FRHICommandList& RHICmdList)
+			auto SetShadowRenderTargets = [](FRHICommandList& RHICmdList)
 			{
 				SetRenderTarget(RHICmdList, FTextureRHIRef(), GSceneRenderTargets.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture);
-			});
+			};
 
 			SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
 
@@ -3466,10 +3466,10 @@ bool FForwardShadingSceneRenderer::RenderShadowDepthMap(FRHICommandListImmediate
 		SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaque);
 
 		bool bFirst = true;
-		auto SetShadowRenderTargets = MakeFunction<void, FRHICommandList&>([&bFirst](FRHICommandList& RHICmdList)
+		auto SetShadowRenderTargets = [&bFirst](FRHICommandList& RHICmdList)
 		{
 			GSceneRenderTargets.BeginRenderingShadowDepth(RHICmdList, bFirst);
-		});
+		};
 
 		SetShadowRenderTargets(RHICmdList);  // run it now, maybe run it later for parallel command lists
 		bFirst = false;

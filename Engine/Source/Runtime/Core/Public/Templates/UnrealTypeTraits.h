@@ -211,6 +211,39 @@ struct TIsFundamentalType
 };
 
 /**
+ * TIsFunction
+ *
+ * Tests is a type is a function.
+ */
+template <typename T>
+struct TIsFunction
+{
+	enum { Value = false };
+};
+
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+
+	template <typename RetType, typename... Params>
+	struct TIsFunction<RetType(Params...)>
+	{
+		enum { Value = true };
+	};
+
+#else
+
+	template <typename RetType                                                                                                        > struct TIsFunction<RetType(                              )> { enum { Value = true }; };
+	template <typename RetType, typename P0                                                                                           > struct TIsFunction<RetType(P0                            )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1                                                                              > struct TIsFunction<RetType(P0, P1                        )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2                                                                 > struct TIsFunction<RetType(P0, P1, P2                    )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3                                                    > struct TIsFunction<RetType(P0, P1, P2, P3                )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4                                       > struct TIsFunction<RetType(P0, P1, P2, P3, P4            )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4, typename P5                          > struct TIsFunction<RetType(P0, P1, P2, P3, P4, P5        )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6             > struct TIsFunction<RetType(P0, P1, P2, P3, P4, P5, P6    )> { enum { Value = true }; };
+	template <typename RetType, typename P0, typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7> struct TIsFunction<RetType(P0, P1, P2, P3, P4, P5, P6, P7)> { enum { Value = true }; };
+
+#endif
+
+/**
  * TIsZeroConstructType
  */
 template<typename T> 
@@ -236,6 +269,7 @@ struct TIsWeakPointerType
 { 
 	enum { Value = false };
 };
+
 
 /**
  * TNameOf
