@@ -4076,6 +4076,12 @@ bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 		}
 	}
 
+	// Shift navigation meshes
+	if (NavigationSystem)
+	{
+		NavigationSystem->ApplyWorldOffset(Offset, true);
+	}
+
 	// Apply offset to components with no actor (like UGameplayStatics::SpawnEmitterAtLocation) 
 	{
 		TArray <UObject*> WorldChildren; 
@@ -4091,10 +4097,19 @@ bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 		}
 	}
 			
-	// Shift navigation meshes
-	if (NavigationSystem)
+	if (LineBatcher)
 	{
-		NavigationSystem->ApplyWorldOffset(Offset, true);
+		LineBatcher->ApplyWorldOffset(Offset, true);
+	}
+	
+	if (PersistentLineBatcher)
+	{
+		PersistentLineBatcher->ApplyWorldOffset(Offset, true);
+	}
+	
+	if (ForegroundLineBatcher)
+	{
+		ForegroundLineBatcher->ApplyWorldOffset(Offset, true);
 	}
 
 	FIntVector PreviosWorldOriginLocation = OriginLocation;

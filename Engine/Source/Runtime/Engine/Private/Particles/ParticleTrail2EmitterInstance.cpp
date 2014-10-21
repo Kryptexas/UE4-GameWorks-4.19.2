@@ -1711,7 +1711,7 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 					{
 						// Calculate the new tangent from the previous and next position...
 						// LastSourcePosition will be that position of the first particle that will be spawned this frame
-						FVector PositionDelta = (CurrentSourcePosition[TrailIdx] - NextNextSpawnedParticle->Location);
+						FVector PositionDelta = (CurrentSourcePosition[TrailIdx] - PositionOffsetThisTick - NextNextSpawnedParticle->Location);
 						float TimeDelta = ElapsedTime - NextNextSpawnedTrailData->SpawnTime;
 						NewTangent = PositionDelta / TimeDelta;
 						// Calculate new tangents for all the interpolated particles between NextNext and Next
@@ -2810,6 +2810,21 @@ bool FParticleRibbonEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBas
 	NewReplayData->TrailDataOffset = TypeDataOffset;
 
 	return true;
+}
+
+void FParticleRibbonEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShift)
+{
+	FParticleTrailsEmitterInstance_Base::ApplyWorldOffset(InOffset, bWorldShift);
+
+	for (FVector& Position : CurrentSourcePosition)
+	{
+		Position += InOffset;
+	}
+	
+	for (FVector& Position : LastSourcePosition)
+	{
+		Position += InOffset;
+	}
 }
 
 //

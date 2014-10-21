@@ -1367,6 +1367,9 @@ struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Ba
 			SourceEmitter = NULL;
 		}
 	}
+	
+	/** Called on world origin changes */
+	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift) override;
 
 protected:
 

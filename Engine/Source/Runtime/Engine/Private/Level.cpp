@@ -2311,6 +2311,39 @@ void ULineBatchComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 	}
 }
 
+void ULineBatchComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
+{
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
+
+	bool bDirty = false;
+	for (FBatchedLine& Line : BatchedLines)
+	{
+		Line.Start += InOffset;
+		Line.End += InOffset;
+		bDirty = true;
+	}
+
+	for (FBatchedPoint& Point : BatchedPoints)
+	{
+		Point.Position += InOffset;
+		bDirty = true;
+	}
+
+	for (FBatchedMesh& Mesh : BatchedMeshes)
+	{
+		for (FVector& Vert : Mesh.MeshVerts)
+		{
+			Vert += InOffset;
+			bDirty = true;
+		}
+	}
+
+	if (bDirty)
+	{
+		MarkRenderStateDirty();
+	}
+}
+
 /**
 * Creates a new scene proxy for the line batcher component.
 * @return	Pointer to the FLineBatcherSceneProxy
