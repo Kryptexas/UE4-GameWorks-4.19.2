@@ -23,7 +23,7 @@ class UPanelSlot;
 /**
  * This is the base class for all wrapped Slate controls that are exposed to UMG.
  */
-UCLASS(Abstract)
+UCLASS(Abstract, BlueprintType)
 class UMG_API UWidget : public UVisual
 {
 	GENERATED_UCLASS_BODY()
