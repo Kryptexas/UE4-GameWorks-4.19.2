@@ -170,6 +170,12 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bAllowRemotelyCompiledPCHs;
 
+        /// <summary>
+        /// Whether SN-DBS may be used.
+        /// </summary>
+        [XmlConfig]
+        public static bool bAllowSNDBS;
+
 		/// <summary>
 		/// Whether or not to delete outdated produced items.
 		/// </summary>
@@ -404,6 +410,7 @@ namespace UnrealBuildTool
 			bAllowLTCG = false;
 			bAllowRemotelyCompiledPCHs = false;
 			bAllowXGE = true;
+            bAllowSNDBS = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.
 			bCheckExternalHeadersForModification = false;
@@ -594,6 +601,11 @@ namespace UnrealBuildTool
 			if (!BuildPlatform.CanUseDistcc()) 
 			{
 				bAllowDistcc = false;
+			}
+			
+			if (!BuildPlatform.CanUseSNDBS()) 
+			{
+				bAllowSNDBS = false;
 			}
 		}
 	}

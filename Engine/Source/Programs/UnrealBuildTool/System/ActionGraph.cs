@@ -339,6 +339,18 @@ namespace UnrealBuildTool
 					bUsedXGE = true;
 				}
 
+                if (!bUsedXGE && BuildConfiguration.bAllowSNDBS)
+                {
+                    SNDBS.ExecutionResult SNDBSResult = SNDBS.ExecuteActions(ActionsToExecute);
+                    if( SNDBSResult != SNDBS.ExecutionResult.Unavailable )
+                    {
+                        ExecutorName = "SNDBS";
+                        Result = (SNDBSResult == SNDBS.ExecutionResult.TasksSucceeded);
+                        // don't do local compilation
+                        bUsedXGE = true;
+                     }
+                }
+
 				// If XGE is disallowed or unavailable, execute the commands locally.
 				if (!bUsedXGE)
 				{

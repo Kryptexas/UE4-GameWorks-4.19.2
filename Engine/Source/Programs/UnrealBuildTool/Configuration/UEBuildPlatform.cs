@@ -31,6 +31,11 @@ namespace UnrealBuildTool
 		 */
 		bool CanUseDistcc();
 
+        /**
+         * If this platform can be compiled with SN-DBS
+         */
+        bool CanUseSNDBS();
+
 		/**
 		 * Register the platform with the UEBuildPlatform class
 		 */
@@ -441,6 +446,14 @@ namespace UnrealBuildTool
 		{
 			return false;
 		}
+
+        /**
+         *	If this platform can be compiled with SN-DBS
+         */
+        public virtual bool CanUseSNDBS()
+        {
+            return false;
+        }
 
 		/**
 		 *	Register the platform with the UEBuildPlatform class
