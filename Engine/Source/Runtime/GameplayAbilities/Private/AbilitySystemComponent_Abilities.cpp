@@ -1136,6 +1136,16 @@ void UAbilitySystemComponent::ServerSetReplicatedAbilityKeyState_Implementation(
 			if (Spec.Ability)
 			{
 				Spec.InputPressed = Pressed;
+
+				// Call InputPressed() / InputReleased() on the affected abilities
+				if (Pressed)
+				{
+					AbilitySpecInputPressed(Spec);
+				}
+				else
+				{
+					AbilitySpecInputReleased(Spec);
+				}
 			}
 		}
 	}
