@@ -12,6 +12,7 @@
 
 // Forward declarations
 struct FQuantizedLightmapData;
+class UInstancedStaticMeshComponent;
 
 /** Whether to use bilinear filtering on lightmaps */
 extern ENGINE_API bool GUseBilinearLightmaps;

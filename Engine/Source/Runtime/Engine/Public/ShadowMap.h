@@ -2,6 +2,10 @@
 
 #pragma once
 
+// Forward declarations
+class ULightComponent;
+class UInstancedStaticMeshComponent;
+
 struct FSignedDistanceFieldShadowSample
 {
 	/** Normalized and encoded distance to the nearest shadow transition, in the range [0, 1], where .5 is at the transition. */
