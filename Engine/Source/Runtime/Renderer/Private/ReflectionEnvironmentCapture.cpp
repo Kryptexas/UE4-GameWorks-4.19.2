@@ -689,16 +689,16 @@ void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRe
 
 		// Render the scene normally for one face of the cubemap
 		SceneRenderer->Render(RHICmdList);
-
-#if PLATFORM_PS4 // @todo ps4 - this should be done a different way
-		// PS4 needs some code here to process the scene
-		extern void TEMP_PostReflectionCaptureRender();
 		check(&RHICmdList == &FRHICommandListExecutor::GetImmediateCommandList());
 		check(IsInRenderingThread());
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_CaptureSceneToScratchCubemap_Flush);
 			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 		}
+
+#if PLATFORM_PS4 // @todo ps4 - this should be done a different way
+		// PS4 needs some code here to process the scene
+		extern void TEMP_PostReflectionCaptureRender();
 		TEMP_PostReflectionCaptureRender();
 #endif
 

@@ -1504,14 +1504,14 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
 
 static TAutoConsoleVariable<int32> CVarParallelShadows(
 	TEXT("r.ParallelShadows"),
-	1,
+	0,
 	TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect.\n"),
 	ECVF_RenderThreadSafe
 	);
 
 static TAutoConsoleVariable<int32> CVarRHICmdShadowDeferredContexts(
 	TEXT("r.RHICmdShadowDeferredContexts"),
-	1,
+	0,
 	TEXT("True to use deferred contexts to parallelize shadow command list execution.\n"));
 
 class FShadowParallelCommandListSet : public FParallelCommandListSet

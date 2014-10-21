@@ -48,7 +48,7 @@ TAutoConsoleVariable<int32> CVarRHICmdWidth(
 #if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
 	TEXT("r.RHICmdUseDeferredContexts"),
-	0,
+	1,
 	TEXT("True to use deferred contexts to parallelize command list execution.\n"));
 static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
 	TEXT("r.RHIDeferredContextWidth"),
@@ -86,6 +86,8 @@ void FRHICommandListImmediate::SetCurrentStat(TStatId Stat)
 	new (AllocCommand<FRHICommandStat>()) FRHICommandStat(Stat);
 }
 
+FRHICommandBase* GCurrentCommand = nullptr;
+
 void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdList)
 {
 	CmdList.bExecuting = true;
@@ -111,6 +113,7 @@ void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdLis
 		while (Iter.HasCommandsLeft())
 		{
 			FRHICommandBase* Cmd = Iter.NextCommand();
+			GCurrentCommand = Cmd;
 			//FPlatformMisc::Prefetch(Cmd->Next);
 			Cmd->CallExecuteAndDestruct(CmdList);
 		}
@@ -654,7 +657,7 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we should start on the stuff before this async list
 	}
 #if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-	if (Num)
+	if (Num && GRHIThread)
 	{
 		IRHICommandContextContainer* ContextContainer = nullptr;
 		if (CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() >= 1)
