@@ -54,7 +54,10 @@ void FShadowMap::FinishCleanup()
 struct FShadowMapAllocation
 {
 	FShadowMap2D*				ShadowMap;
-	UObject*					TextureOuter;
+
+	UObject*					Primitive;
+	int32						InstanceIndex;
+
 	/** Upper-left X-coordinate in the texture atlas. */
 	int32						OffsetX;
 	/** Upper-left Y-coordinate in the texture atlas. */
@@ -69,11 +72,6 @@ struct FShadowMapAllocation
 
 	TMap<ULightComponent*, TArray<FQuantizedSignedDistanceFieldShadowSample> > ShadowMapData;
 
-	/** Bounds of the primitive that the mapping is applied to. */
-	FBoxSphereBounds	Bounds;
-	/** Bit-field with shadowmap flags. */
-	EShadowMapFlags		ShadowmapFlags;
-
 	FShadowMapAllocation()
 	{
 		PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
@@ -81,7 +79,78 @@ struct FShadowMapAllocation
 		MappedRect.Min.Y = 0;
 		MappedRect.Max.X = 0;
 		MappedRect.Max.Y = 0;
+		Primitive = nullptr;
+		InstanceIndex = INDEX_NONE;
 	}
+
+	// Called after the shadowmap is encoded
+	void PostEncode()
+	{
+		if (InstanceIndex >= 0)
+		{
+			UInstancedStaticMeshComponent* Component = dynamic_cast<UInstancedStaticMeshComponent*>(Primitive);
+			check(Component);
+
+			// TODO: We currently only support one LOD of static lighting in foliage
+			// Need to create per-LOD instance data to fix that
+			Component->PerInstanceSMData[InstanceIndex].ShadowmapUVBias = ShadowMap->GetCoordinateBias();
+		}
+	}
+};
+
+struct FShadowMapAllocationGroup
+{
+	FShadowMapAllocationGroup()
+		: TextureOuter(nullptr)
+		, Bounds(ForceInit)
+		, ShadowmapFlags(SMF_None)
+		, TotalTexels(0)
+	{
+	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FShadowMapAllocationGroup(FShadowMapAllocationGroup&&) = default;
+	FShadowMapAllocationGroup& operator=(FShadowMapAllocationGroup&&) = default;
+
+	FShadowMapAllocationGroup(const FShadowMapAllocationGroup&) = delete; // non-copy-able
+	FShadowMapAllocationGroup& operator=(const FShadowMapAllocationGroup&) = delete;
+#else
+	FShadowMapAllocationGroup(FShadowMapAllocationGroup&& other)
+		: Allocations(MoveTemp(other.Allocations))
+		, TextureOuter(other.TextureOuter)
+		, Bounds(other.Bounds)
+		, ShadowmapFlags(other.ShadowmapFlags)
+		, TotalTexels(other.TotalTexels)
+	{
+	}
+
+	FShadowMapAllocationGroup& operator=(FShadowMapAllocationGroup&& other)
+	{
+		Allocations = MoveTemp(other.Allocations);
+		TextureOuter = other.TextureOuter;
+		Bounds = other.Bounds;
+		ShadowmapFlags = other.ShadowmapFlags;
+		TotalTexels = other.TotalTexels;
+
+		return *this;
+	}
+
+private:
+	FShadowMapAllocationGroup(const FShadowMapAllocationGroup&); // non-copy-able
+	FShadowMapAllocationGroup& operator=(const FShadowMapAllocationGroup&);
+public:
+#endif
+
+	TArray<TUniquePtr<FShadowMapAllocation>, TInlineAllocator<1>> Allocations;
+
+	UObject*			TextureOuter;
+
+	/** Bounds of the primitive that the mapping is applied to. */
+	FBoxSphereBounds	Bounds;
+	/** Bit-field with shadowmap flags. */
+	EShadowMapFlags		ShadowmapFlags;
+
+	int32				TotalTexels;
 };
 
 /** Largest boundingsphere radius to use when packing shadowmaps into a texture atlas. */
@@ -101,14 +170,22 @@ struct FShadowMapPendingTexture : FTextureLayout
 	/** Bit-field with shadowmap flags that are shared among all shadowmaps in this texture. */
 	EShadowMapFlags		ShadowmapFlags;
 
+	// Optimization to quickly test if a new allocation won't fit
+	// Primarily of benefit to instanced mesh shadowmaps
+	int32				UnallocatedTexels;
+
 	/**
 	 * Minimal initialization constructor.
 	 */
-	FShadowMapPendingTexture(uint32 InSizeX,uint32 InSizeY):
-		FTextureLayout(1,1,InSizeX,InSizeY,true)
-	{}
+	FShadowMapPendingTexture(uint32 InSizeX,uint32 InSizeY)
+		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
+		, Bounds(FBox(0))
+		, ShadowmapFlags(SMF_None)
+		, UnallocatedTexels(InSizeX * InSizeY)
+	{
+	}
 
-	bool AddElement(FShadowMapAllocation& Allocation, const bool bForceIntoThisTexture = false);
+	bool AddElement(FShadowMapAllocationGroup& AllocationGroup, const bool bForceIntoThisTexture = false);
 
 	/**
 	 * Begin encoding the textures
@@ -118,57 +195,87 @@ struct FShadowMapPendingTexture : FTextureLayout
 	void StartEncoding(UWorld* InWorld);
 };
 
-bool FShadowMapPendingTexture::AddElement(FShadowMapAllocation& Allocation, const bool bForceIntoThisTexture)
+bool FShadowMapPendingTexture::AddElement(FShadowMapAllocationGroup& AllocationGroup, const bool bForceIntoThisTexture)
 {
-	if( !bForceIntoThisTexture )
+	if (!bForceIntoThisTexture)
 	{
-		// Must be in the same package
-		if ( Outer != Allocation.TextureOuter )
+		// Don't pack shadowmaps from different packages into the same texture.
+		if (Outer != AllocationGroup.TextureOuter)
 		{
 			return false;
 		}
 	}
 
-	const FBoxSphereBounds NewBounds = Bounds + Allocation.Bounds;
-	const bool bEmptyTexture = Allocations.Num() == 0;
-	if ( !bEmptyTexture && !bForceIntoThisTexture )
+	// This is a rough test, passing it doesn't guarantee it'll fit
+	// But failing it does guarantee that it _won't_ fit
+	if (UnallocatedTexels < AllocationGroup.TotalTexels)
 	{
-		// Don't mix streaming lightmaps with non-streaming lightmaps.
-		if ( (ShadowmapFlags & SMF_Streamed) != (Allocation.ShadowmapFlags & SMF_Streamed) )
+		return false;
+	}
+
+	const bool bEmptyTexture = Allocations.Num() == 0;
+	const FBoxSphereBounds NewBounds = bEmptyTexture ? AllocationGroup.Bounds : Bounds + AllocationGroup.Bounds;
+
+	if (!bEmptyTexture && !bForceIntoThisTexture)
+	{
+		// Don't mix streaming shadowmaps with non-streaming shadowmaps.
+		if ((ShadowmapFlags & LMF_Streamed) != (AllocationGroup.ShadowmapFlags & LMF_Streamed))
 		{
 			return false;
 		}
 
-		// If this is a streaming shadowmap?
-		if ( ShadowmapFlags & SMF_Streamed )
+		// Is this a streaming shadowmap?
+		if (ShadowmapFlags & LMF_Streamed)
 		{
 			bool bPerformDistanceCheck = true;
 
-			// Don't pack together shadowmaps that are too far apart.
-			if ( bPerformDistanceCheck && NewBounds.SphereRadius > GMaxShadowmapRadius && NewBounds.SphereRadius > (Bounds.SphereRadius + SMALL_NUMBER) )
+			// Don't pack together shadowmaps that are too far apart
+			if (bPerformDistanceCheck && NewBounds.SphereRadius > GMaxShadowmapRadius && NewBounds.SphereRadius > (Bounds.SphereRadius + SMALL_NUMBER))
 			{
 				return false;
 			}
 		}
 	}
 
-	// 4-byte alignment, no more padding
-	uint32 PaddingBaseX = 0;
-	uint32 PaddingBaseY = 0;
+	int32 NewUnallocatedTexels = UnallocatedTexels;
 
-	// See if the new one will fit in the existing texture
-	if ( !FTextureLayout::AddElement(PaddingBaseX,PaddingBaseY,Allocation.MappedRect.Width(),Allocation.MappedRect.Height()) )
+	int32 iAllocation = 0;
+	for (; iAllocation < AllocationGroup.Allocations.Num(); ++iAllocation)
 	{
+		auto& Allocation = AllocationGroup.Allocations[iAllocation];
+		uint32 BaseX, BaseY;
+		const uint32 SizeX = Allocation->MappedRect.Width();
+		const uint32 SizeY = Allocation->MappedRect.Height();
+		if (FTextureLayout::AddElement(BaseX, BaseY, SizeX, SizeY))
+		{
+			Allocation->OffsetX = BaseX;
+			Allocation->OffsetY = BaseY;
+
+			// Assumes bAlignByFour
+			NewUnallocatedTexels -= ((SizeX + 3) & ~3) * ((SizeY + 3) & ~3);
+		}
+		else
+		{
+			// failed to add all elements to the texture
+			break;
+		}
+	}
+	if (iAllocation < AllocationGroup.Allocations.Num())
+	{
+		// failed to add all elements to the texture
+		// remove the ones added so far to restore our original state
+		for (--iAllocation; iAllocation >= 0; --iAllocation)
+		{
+			auto& Allocation = AllocationGroup.Allocations[iAllocation];
+			const uint32 SizeX = Allocation->MappedRect.Width();
+			const uint32 SizeY = Allocation->MappedRect.Height();
+			verify(FTextureLayout::RemoveElement(Allocation->OffsetX, Allocation->OffsetY, SizeX, SizeY));
+		}
 		return false;
 	}
 
-	// Position the shadow-maps in the middle of their padded space.
-	Allocation.OffsetX = PaddingBaseX;
-	Allocation.OffsetY = PaddingBaseY;
-	Bounds = bEmptyTexture ? Allocation.Bounds : NewBounds;
-
-	// Add the shadow-map to the list of shadow-maps allocated space in this texture.
-	Allocations.Add(&Allocation);
+	Bounds = NewBounds;
+	UnallocatedTexels = NewUnallocatedTexels;
 
 	return true;
 }
@@ -239,7 +346,7 @@ void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 	Texture->UpdateResource();
 }
 
-static TIndirectArray<FShadowMapAllocation> PendingShadowMaps;
+static TArray<FShadowMapAllocationGroup> PendingShadowMaps;
 static uint32 PendingShadowMapSize;
 /** If true, update the status when encoding light maps */
 bool FShadowMap2D::bUpdateStatus = true;
@@ -254,53 +361,53 @@ FShadowMap2D* FShadowMap2D::AllocateShadowMap(
 	EShadowMapFlags InShadowmapFlags)
 {
 #if WITH_EDITOR
-
 	check(ShadowMapData.Num() > 0);
+
+	FShadowMapAllocationGroup AllocationGroup;
+	AllocationGroup.TextureOuter = Outer->GetOutermost();
+	AllocationGroup.ShadowmapFlags = InShadowmapFlags;
+	AllocationGroup.Bounds = Bounds;
+	if (!GAllowStreamingLightmaps)
+	{
+		AllocationGroup.ShadowmapFlags = EShadowMapFlags(AllocationGroup.ShadowmapFlags & ~SMF_Streamed);
+	}
 
 	// Create a new shadow-map.
 	FShadowMap2D* ShadowMap = new FShadowMap2D(ShadowMapData);
 
+	// Calculate Shadowmap size
 	int32 SizeX = -1;
 	int32 SizeY = -1;
 	int32 LightIndex = 0;
-
-	for (TMap<ULightComponent*, FShadowMapData2D*>::TConstIterator It(ShadowMapData); It; ++It)
+	for (const auto& ShadowDataPair : ShadowMapData)
 	{
 		if (LightIndex == 0)
 		{
-			SizeX = It.Value()->GetSizeX();
-			SizeY = It.Value()->GetSizeY();
+			SizeX = ShadowDataPair.Value->GetSizeX();
+			SizeY = ShadowDataPair.Value->GetSizeY();
 		}
 		else
 		{
-			check(SizeX == It.Value()->GetSizeX() && SizeY == It.Value()->GetSizeY());
+			check(SizeX == ShadowDataPair.Value->GetSizeX() && SizeY == ShadowDataPair.Value->GetSizeY());
 		}
 
 		LightIndex++;
 	}
-
 	check(SizeX != -1 && SizeY != -1);
 
 	// Add a pending allocation for this shadow-map.
-	FShadowMapAllocation* Allocation = new(PendingShadowMaps) FShadowMapAllocation;
-	Allocation->ShadowMap		= ShadowMap;
-	Allocation->TextureOuter	= Outer->GetOutermost();
-	Allocation->TotalSizeX		= SizeX;
-	Allocation->TotalSizeY		= SizeY;
-	Allocation->MappedRect		= FIntRect( 0, 0, SizeX, SizeY );
-	Allocation->PaddingType		= InPaddingType;
-	Allocation->Bounds			= Bounds;
-	Allocation->ShadowmapFlags	= InShadowmapFlags;
+	TUniquePtr<FShadowMapAllocation> Allocation = MakeUnique<FShadowMapAllocation>();
+	Allocation->PaddingType = InPaddingType;
+	Allocation->ShadowMap = ShadowMap;
+	Allocation->TotalSizeX = SizeX;
+	Allocation->TotalSizeY = SizeY;
+	Allocation->MappedRect = FIntRect(0, 0, SizeX, SizeY);
+	Allocation->PaddingType = InPaddingType;
 
-	if ( !GAllowStreamingLightmaps )
+	for (const auto& ShadowDataPair : ShadowMapData)
 	{
-		Allocation->ShadowmapFlags = EShadowMapFlags( Allocation->ShadowmapFlags & ~SMF_Streamed );
-	}
-
-	for (TMap<ULightComponent*, FShadowMapData2D*>::TConstIterator It(ShadowMapData); It; ++It)
-	{
-		const FShadowMapData2D* RawData = It.Value();
-		TArray<FQuantizedSignedDistanceFieldShadowSample>& DistanceFieldShadowData = Allocation->ShadowMapData.Add(It.Key(), TArray<FQuantizedSignedDistanceFieldShadowSample>());
+		const FShadowMapData2D* RawData = ShadowDataPair.Value;
+		TArray<FQuantizedSignedDistanceFieldShadowSample>& DistanceFieldShadowData = Allocation->ShadowMapData.Add(ShadowDataPair.Key, TArray<FQuantizedSignedDistanceFieldShadowSample>());
 
 		switch (RawData->GetType())
 		{
@@ -317,12 +424,18 @@ FShadowMap2D* FShadowMap2D::AllocateShadowMap(
 
 		// Track the size of pending light-maps.
 		PendingShadowMapSize += Allocation->TotalSizeX * Allocation->TotalSizeY;
+		// Assumes bAlignByFour
+		AllocationGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
 	}
+
+	AllocationGroup.Allocations.Add(MoveTemp(Allocation));
+
+	PendingShadowMaps.Add(MoveTemp(AllocationGroup));
 
 	return ShadowMap;
 #else
-	return NULL;
-#endif 
+	return nullptr;
+#endif
 }
 
 FShadowMap2D::FShadowMap2D() :
@@ -349,6 +462,18 @@ FShadowMap2D::FShadowMap2D(const TMap<ULightComponent*,FShadowMapData2D*>& Shado
 	for (TMap<ULightComponent*, FShadowMapData2D*>::TConstIterator It(ShadowMapData); It; ++It)
 	{
 		LightGuids.Add(It.Key()->LightGuid);
+	}
+}
+
+FShadowMap2D::FShadowMap2D(TArray<FGuid> LightGuids)
+	: FShadowMap(MoveTemp(LightGuids))
+	, Texture(nullptr)
+	, CoordinateScale(FVector2D(0, 0))
+	, CoordinateBias(FVector2D(0, 0))
+{
+	for (int Channel = 0; Channel < ARRAY_COUNT(bChannelValid); Channel++)
+	{
+		bChannelValid[Channel] = false;
 	}
 }
 
@@ -389,22 +514,141 @@ FShadowMapInteraction FShadowMap2D::GetInteraction() const
 }
 
 
+FShadowMap2D* FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshComponent* Component, TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>> InstancedShadowMapData,
+	const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, EShadowMapFlags InShadowmapFlags)
+{
+#if WITH_EDITOR
+	check(InstancedShadowMapData.Num() > 0);
+
+	// Verify all instance shadowmaps are the same size, and build complete list of shadow lights
+	int32 SizeX = -1;
+	int32 SizeY = -1;
+	TSet<ULightComponent*> AllLights;
+	for (auto& ShadowMapData : InstancedShadowMapData)
+	{
+		for (const auto& ShadowDataPair : ShadowMapData)
+		{
+			if (SizeX == -1)
+			{
+				SizeX = ShadowDataPair.Value->GetSizeX();
+				SizeY = ShadowDataPair.Value->GetSizeY();
+			}
+			else
+			{
+				check(ShadowDataPair.Value->GetSizeX() == SizeX);
+				check(ShadowDataPair.Value->GetSizeY() == SizeY);
+			}
+			AllLights.Add(ShadowDataPair.Key);
+		}
+	}
+
+	check(SizeX != -1 && SizeY != -1); // No valid shadowmaps
+
+	TArray<FGuid> LightGuids;
+	LightGuids.Reserve(AllLights.Num());
+	for (ULightComponent* Light : AllLights)
+	{
+		LightGuids.Add(Light->LightGuid);
+	}
+
+	// Unify all the shadow map data to contain the same lights in the same order
+	for (auto& ShadowMapData : InstancedShadowMapData)
+	{
+		for (ULightComponent* Light : AllLights)
+		{
+			if (!ShadowMapData.Contains(Light))
+			{
+				ShadowMapData.Add(Light, MakeUnique<FQuantizedShadowSignedDistanceFieldData2D>(SizeX, SizeY));
+			}
+		}
+	}
+
+	FShadowMapAllocationGroup AllocationGroup;
+	AllocationGroup.TextureOuter = Component->GetOutermost();
+	AllocationGroup.ShadowmapFlags = InShadowmapFlags;
+	AllocationGroup.Bounds = Bounds;
+	if (!GAllowStreamingLightmaps)
+	{
+		AllocationGroup.ShadowmapFlags = EShadowMapFlags(AllocationGroup.ShadowmapFlags & ~SMF_Streamed);
+	}
+
+	FShadowMap2D* BaseShadowmap = nullptr;
+
+	for (int32 InstanceIndex = 0; InstanceIndex < InstancedShadowMapData.Num(); ++InstanceIndex)
+	{
+		auto& ShadowMapData = InstancedShadowMapData[InstanceIndex];
+		check(ShadowMapData.Num() > 0);
+
+		// Create a new shadow-map.
+		FShadowMap2D* ShadowMap = new FShadowMap2D(LightGuids);
+
+		if (InstanceIndex == 0)
+		{
+			BaseShadowmap = ShadowMap;
+		}
+
+		// Add a pending allocation for this shadow-map.
+		TUniquePtr<FShadowMapAllocation> Allocation = MakeUnique<FShadowMapAllocation>();
+		Allocation->PaddingType = InPaddingType;
+		Allocation->ShadowMap = ShadowMap;
+		Allocation->TotalSizeX = SizeX;
+		Allocation->TotalSizeY = SizeY;
+		Allocation->MappedRect = FIntRect(0, 0, SizeX, SizeY);
+		Allocation->Primitive = Component;
+		Allocation->InstanceIndex = InstanceIndex;
+
+		for (auto& ShadowDataPair : ShadowMapData)
+		{
+			auto& RawData = ShadowDataPair.Value;
+			auto& DistanceFieldShadowData = Allocation->ShadowMapData.Add(ShadowDataPair.Key, TArray<FQuantizedSignedDistanceFieldShadowSample>());
+
+			switch (RawData->GetType())
+			{
+			case FShadowMapData2D::SHADOW_SIGNED_DISTANCE_FIELD_DATA:
+			case FShadowMapData2D::SHADOW_SIGNED_DISTANCE_FIELD_DATA_QUANTIZED:
+				// If the data is already quantized, this will just copy the data
+				RawData->Quantize(DistanceFieldShadowData);
+				break;
+			default:
+				check(0);
+			}
+
+			RawData.Reset();
+
+			// Track the size of pending light-maps.
+			PendingShadowMapSize += Allocation->TotalSizeX * Allocation->TotalSizeY;
+			// Assumes bAlignByFour
+			AllocationGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
+		}
+
+		AllocationGroup.Allocations.Add(MoveTemp(Allocation));
+	}
+
+	PendingShadowMaps.Add(MoveTemp(AllocationGroup));
+
+	return BaseShadowmap;
+#else
+	return nullptr;
+#endif
+}
+
+
 #if WITH_EDITOR
 
 struct FCompareShadowMaps
 {
-	FORCEINLINE bool operator()( const FShadowMapAllocation& A, const FShadowMapAllocation& B ) const
+	FORCEINLINE bool operator()(const FShadowMapAllocationGroup& A, const FShadowMapAllocationGroup& B) const
 	{
-		return FMath::Max(B.TotalSizeX, B.TotalSizeY) < FMath::Max(A.TotalSizeX, A.TotalSizeY);
+		return A.TotalTexels > B.TotalTexels;
 	}
 };
 
 /**
  * Executes all pending shadow-map encoding requests.
  * @param	InWorld				World in which the textures exist
- * @param	bLightingSuccessful	Whether the lighting build was successful or not.	 
+ * @param	bLightingSuccessful	Whether the lighting build was successful or not.
  */
-void FShadowMap2D::EncodeTextures(UWorld* InWorld , bool bLightingSuccessful )
+void FShadowMap2D::EncodeTextures(UWorld* InWorld , bool bLightingSuccessful)
 {
 	if ( bLightingSuccessful )
 	{
@@ -416,49 +660,73 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld , bool bLightingSuccessful )
 
 		Sort(PendingShadowMaps.GetData(), PendingShadowMaps.Num(), FCompareShadowMaps());
 
-		// Allocate texture space for each light-map.
+		// Allocate texture space for each shadow-map.
 		TIndirectArray<FShadowMapPendingTexture> PendingTextures;
 
-		for(int32 ShadowMapIndex = 0;ShadowMapIndex < PendingShadowMaps.Num();ShadowMapIndex++)
+		for (FShadowMapAllocationGroup& PendingGroup : PendingShadowMaps)
 		{
-			FShadowMapAllocation& Allocation = PendingShadowMaps[ShadowMapIndex];
-
-			// Find an existing texture which the light-map can be stored in.
-			FShadowMapPendingTexture* Texture = NULL;
-			for(int32 TextureIndex = 0;TextureIndex < PendingTextures.Num();TextureIndex++)
+			if (!ensure(PendingGroup.Allocations.Num() >= 1))
 			{
-				FShadowMapPendingTexture& ExistingTexture = PendingTextures[TextureIndex];
+				continue;
+			}
 
-				// See if the new one will fit in the existing texture
-				if ( ExistingTexture.AddElement( Allocation ) )
+			int32 MaxWidth = 0;
+			int32 MaxHeight = 0;
+			for (auto& Allocation : PendingGroup.Allocations)
+			{
+				MaxWidth = FMath::Max(MaxWidth, Allocation->MappedRect.Width());
+				MaxHeight = FMath::Max(MaxHeight, Allocation->MappedRect.Height());
+			}
+
+			FShadowMapPendingTexture* Texture = nullptr;
+
+			// Find an existing texture which the shadow-map can be stored in.
+			// Shadowmaps will always be 4-pixel aligned...
+			for (FShadowMapPendingTexture& ExistingTexture : PendingTextures)
+			{
+				if (ExistingTexture.AddElement(PendingGroup))
 				{
 					Texture = &ExistingTexture;
 					break;
 				}
 			}
 
-			// If there is no appropriate texture, create a new one.
-			if(!Texture)
+			if (!Texture)
 			{
 				int32 NewTextureSizeX = PackedLightAndShadowMapTextureSize;
 				int32 NewTextureSizeY = PackedLightAndShadowMapTextureSize;
 
-				if(Allocation.MappedRect.Width() > NewTextureSizeX || Allocation.MappedRect.Height() > NewTextureSizeY)
+				// Assumes identically-sized allocations, fit into the smallest square
+				const int32 AllocationCountX = FMath::CeilToInt(FMath::Sqrt(FMath::DivideAndRoundUp(PendingGroup.Allocations.Num() * MaxHeight, MaxWidth)));
+				const int32 AllocationCountY = FMath::DivideAndRoundUp(PendingGroup.Allocations.Num(), AllocationCountX);
+				const int32 AllocationSizeX = AllocationCountX * MaxWidth;
+				const int32 AllocationSizeY = AllocationCountY * MaxHeight;
+
+				if (AllocationSizeX > NewTextureSizeX || AllocationSizeY > NewTextureSizeY)
 				{
-					NewTextureSizeX = FMath::RoundUpToPowerOfTwo(Allocation.MappedRect.Width());
-					NewTextureSizeY = FMath::RoundUpToPowerOfTwo(Allocation.MappedRect.Height());
+					NewTextureSizeX = FMath::RoundUpToPowerOfTwo(AllocationSizeX);
+					NewTextureSizeY = FMath::RoundUpToPowerOfTwo(AllocationSizeY);
 				}
 
 				// If there is no existing appropriate texture, create a new one.
-				Texture				= ::new(PendingTextures) FShadowMapPendingTexture(NewTextureSizeX,NewTextureSizeY);
-				Texture->Outer		= Allocation.TextureOuter;
-				Texture->Bounds		= Allocation.Bounds;
-				Texture->ShadowmapFlags = Allocation.ShadowmapFlags;
-				verify( Texture->AddElement( Allocation, true ) );
+				Texture = new FShadowMapPendingTexture(NewTextureSizeX, NewTextureSizeY);
+				PendingTextures.Add(Texture);
+				Texture->Outer = PendingGroup.TextureOuter;
+				Texture->Bounds = PendingGroup.Bounds;
+				Texture->ShadowmapFlags = PendingGroup.ShadowmapFlags;
+				verify(Texture->AddElement(PendingGroup));
+			}
+
+			// Give the texture ownership of the allocations
+			for (auto& Allocation : PendingGroup.Allocations)
+			{
+				Texture->Allocations.Add(Allocation.Release());
 			}
 		}
-		
-		for(int32 TextureIndex = 0;TextureIndex < PendingTextures.Num();TextureIndex++)
+		PendingShadowMaps.Empty();
+
+		// Encode all the pending textures.
+		for (int32 TextureIndex = 0; TextureIndex < PendingTextures.Num(); TextureIndex++)
 		{
 			if (bUpdateStatus && (TextureIndex % 20) == 0)
 			{
@@ -468,9 +736,7 @@ void FShadowMap2D::EncodeTextures(UWorld* InWorld , bool bLightingSuccessful )
 			FShadowMapPendingTexture& PendingTexture = PendingTextures[TextureIndex];
 			PendingTexture.StartEncoding(InWorld);
 		}
-
 		PendingTextures.Empty();
-		PendingShadowMaps.Empty();
 
 		GWarn->EndSlowTask();
 	}
@@ -495,12 +761,12 @@ void FShadowMap2D::EncodeSingleTexture(FShadowMapPendingTexture& PendingTexture,
 
 		for (int32 ChannelIndex = 0; ChannelIndex < 4; ChannelIndex++)
 		{
-			for (TMap<ULightComponent*, TArray<FQuantizedSignedDistanceFieldShadowSample>>::TIterator It(Allocation.ShadowMapData); It; ++It)
+			for (const auto& ShadowMapPair : Allocation.ShadowMapData)
 			{
-				if (It.Key()->ShadowMapChannel == ChannelIndex)
+				if (ShadowMapPair.Key->ShadowMapChannel == ChannelIndex)
 				{
 					bChannelUsed[ChannelIndex] = true;
-					const TArray<FQuantizedSignedDistanceFieldShadowSample>& SourceSamples = It.Value();
+					const TArray<FQuantizedSignedDistanceFieldShadowSample>& SourceSamples = ShadowMapPair.Value;
 
 					// Copy the raw data for this light-map into the raw texture data array.
 					for (int32 Y = Allocation.MappedRect.Min.Y; Y < Allocation.MappedRect.Max.Y; ++Y)
@@ -537,9 +803,9 @@ void FShadowMap2D::EncodeSingleTexture(FShadowMapPendingTexture& PendingTexture,
 		Allocation.ShadowMap->Texture = Texture;
 
 		// Free the shadow-map's raw data.
-		for (TMap<ULightComponent*, TArray<FQuantizedSignedDistanceFieldShadowSample> >::TIterator It(Allocation.ShadowMapData); It; ++It)
+		for (auto& ShadowMapPair : Allocation.ShadowMapData)
 		{
-			It.Value().Empty();
+			ShadowMapPair.Value.Empty();
 		}
 		
 		int32 PaddedSizeX = Allocation.TotalSizeX;
@@ -743,6 +1009,11 @@ void FShadowMap2D::EncodeSingleTexture(FShadowMapPendingTexture& PendingTexture,
 				}
 			}
 		}
+	}
+
+	for (FShadowMapAllocation* Allocation : PendingTexture.Allocations)
+	{
+		Allocation->PostEncode();
 	}
 }
 

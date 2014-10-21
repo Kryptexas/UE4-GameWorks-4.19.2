@@ -6,6 +6,10 @@
 
 #include "InstancedStaticMeshComponent.generated.h"
 
+class FStaticLightingTextureMapping_InstancedStaticMesh;
+class FInstancedLightMap2D;
+class FInstancedShadowMap2D;
+
 USTRUCT()
 struct FInstancedStaticMeshInstanceData
 {
@@ -29,13 +33,13 @@ struct FInstancedStaticMeshInstanceData
 	}
 
 
-		friend FArchive& operator<<(FArchive& Ar, FInstancedStaticMeshInstanceData& InstanceData)
-		{
-			// @warning BulkSerialize: FInstancedStaticMeshInstanceData is serialized as memory dump
-			// See TArray::BulkSerialize for detailed description of implied limitations.
-			Ar << InstanceData.Transform << InstanceData.LightmapUVBias << InstanceData.ShadowmapUVBias;
-			return Ar;
-		}
+	friend FArchive& operator<<(FArchive& Ar, FInstancedStaticMeshInstanceData& InstanceData)
+	{
+		// @warning BulkSerialize: FInstancedStaticMeshInstanceData is serialized as memory dump
+		// See TArray::BulkSerialize for detailed description of implied limitations.
+		Ar << InstanceData.Transform << InstanceData.LightmapUVBias << InstanceData.ShadowmapUVBias;
+		return Ar;
+	}
 	
 };
 
@@ -44,19 +48,12 @@ struct FInstancedStaticMeshMappingInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	class UTexture2D* LightmapTexture;
-
+	FStaticLightingTextureMapping_InstancedStaticMesh* Mapping;
 
 	FInstancedStaticMeshMappingInfo()
-		: LightmapTexture(NULL)
+		: Mapping(nullptr)
 	{
 	}
-
-
-	class FInstancedStaticMeshStaticLightingTextureMapping*		Mapping;
-
-	class FInstancedLightMap2D*									Lightmap;
 };
 
 /** A component that efficiently renders multiple instances of the same StaticMesh. */
@@ -67,7 +64,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	/** Array of instances, bulk serialized */
 	UPROPERTY(EditAnywhere, Transient, DuplicateTransient, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
-	TArray<struct FInstancedStaticMeshInstanceData> PerInstanceSMData;
+	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
 	/** Value used to seed the random number stream that generates random numbers for each of this mesh's instances.
 		The random number is stored in a buffer accessible to materials through the PerInstanceRandom expression.  If
@@ -144,6 +141,7 @@ public:
 	virtual bool CanEditSimulatePhysics() override;
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;
+	virtual bool SupportsStaticLighting() const override { return true; }
 #if WITH_EDITOR
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
 #endif
@@ -181,12 +179,18 @@ private:
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);
 
 protected:
+	/** Number of pending lightmaps still to be calculated (Apply()'d) */
+	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)
+	int32 NumPendingLightmaps;
 
-	/** Whether the component type supports static lighting. */
-	virtual bool SupportsStaticLighting() const override
-	{
-		//@todo - support for instanced meshes
-		return false;
-	}
+	/** The mappings for all the instances of this component */
+	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)
+	TArray<FInstancedStaticMeshMappingInfo> CachedMappings;
+
+	void ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping);
+
+	friend FStaticLightingTextureMapping_InstancedStaticMesh;
+	friend FInstancedLightMap2D;
+	friend FInstancedShadowMap2D;
 };
 

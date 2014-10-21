@@ -127,9 +127,11 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	bCastDynamicShadow = true;
 	bCastStaticShadow = true;
 	bAffectDynamicIndirectLighting = false;
-	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
 	bReceivesDecals = false;
+
+	bOverrideLightMapRes = false;
+	OverriddenLightMapRes = 32;
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 }
@@ -139,6 +141,16 @@ UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObject
 {
 	Mesh = nullptr;
 }
+
+#if WITH_EDITOR
+void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// Ensure that OverriddenLightMapRes is a factor of 4
+	OverriddenLightMapRes = FMath::Max(OverriddenLightMapRes + 3 & ~3, 4);
+}
+#endif
 
 //
 // FFoliageMeshInfo
@@ -277,23 +289,23 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 			InSettings->GetStaticMesh()->GetBounds().TransformBy(InstanceToWorld)
 			);
 
-		// Make the instanced static mesh component movable so it doesn't get statically lit; see the comment below about CastShadow for more details
-		BestCluster->ClusterComponent->Mobility = EComponentMobility::Movable;
+		BestCluster->ClusterComponent->Mobility = EComponentMobility::Static;
 
 		BestCluster->ClusterComponent->StaticMesh = InSettings->GetStaticMesh();
 		BestCluster->ClusterComponent->bSelectable = true;
 		BestCluster->ClusterComponent->bHasPerInstanceHitProxies = true;
 		BestCluster->ClusterComponent->InstancingRandomSeed = FMath::Rand();
 		BestCluster->ClusterComponent->InstanceStartCullDistance = InSettings->StartCullDistance;
-		BestCluster->ClusterComponent->InstanceEndCullDistance = InSettings->EndCullDistance;
+		BestCluster->ClusterComponent->InstanceEndCullDistance   = InSettings->EndCullDistance;
 
-		BestCluster->ClusterComponent->CastShadow = InSettings->CastShadow;
-		BestCluster->ClusterComponent->bCastDynamicShadow = InSettings->bCastDynamicShadow;
-		BestCluster->ClusterComponent->bCastStaticShadow = InSettings->bCastStaticShadow;
+		BestCluster->ClusterComponent->CastShadow                     = InSettings->CastShadow;
+		BestCluster->ClusterComponent->bCastDynamicShadow             = InSettings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastStaticShadow              = InSettings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = InSettings->bAffectDynamicIndirectLighting;
-		BestCluster->ClusterComponent->bCastHiddenShadow = InSettings->bCastHiddenShadow;
-		BestCluster->ClusterComponent->bCastShadowAsTwoSided = InSettings->bCastShadowAsTwoSided;
-		BestCluster->ClusterComponent->bReceivesDecals = InSettings->bReceivesDecals;
+		BestCluster->ClusterComponent->bCastShadowAsTwoSided          = InSettings->bCastShadowAsTwoSided;
+		BestCluster->ClusterComponent->bReceivesDecals                = InSettings->bReceivesDecals;
+		BestCluster->ClusterComponent->bOverrideLightMapRes           = InSettings->bOverrideLightMapRes;
+		BestCluster->ClusterComponent->OverriddenLightMapRes          = InSettings->OverriddenLightMapRes;
 
 		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
 
@@ -1470,16 +1482,20 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 		Ar << FoliageMeshes;
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
+	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT)
 	{
 		for (auto& MeshInfo : FoliageMeshes)
 		{
 			for (const FFoliageInstanceCluster& Cluster : MeshInfo.Value->InstanceClusters)
 			{
-				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
-					Cluster.ClusterComponent->SetMobility(EComponentMobility::Movable);
+				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT)
+				{
+					Cluster.ClusterComponent->SetMobility(EComponentMobility::Static);
+				}
 				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
+				{
 					Cluster.ClusterComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				}
 			}
 		}
 	}

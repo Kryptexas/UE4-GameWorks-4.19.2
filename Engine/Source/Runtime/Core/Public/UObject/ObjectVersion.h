@@ -510,7 +510,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SOFT_CONSTRAINTS_USE_MASS,
 	// Reflection capture data saved in packages
 	VER_UE4_REFLECTION_DATA_IN_PACKAGES,
-	// Fix up old foliage components to have movable mobility
+	// Fix up old foliage components to have movable mobility (superseded by VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT)
 	VER_UE4_FOLIAGE_MOVABLE_MOBILITY,
 	// Undo BreakMaterialAttributes changes as it broke old content
 	VER_UE4_UNDO_BREAK_MATERIALATTRIBUTES_CHANGE,
@@ -626,6 +626,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_CHARACTER_MOVEMENT_UPPER_IMPACT_BEHAVIOR,
 	// Changed Blueprint math equality functions for vectors and rotators to operate as a "nearly" equals rather than "exact"
 	VER_UE4_BP_MATH_VECTOR_EQUALITY_USES_EPSILON,
+	// Static lighting support was re-added to foliage, and mobility was returned to static
+	VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

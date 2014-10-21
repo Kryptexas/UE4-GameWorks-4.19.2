@@ -216,36 +216,50 @@ struct FLightMapAllocation
 		MappedRect.Min.Y = 0;
 		MappedRect.Max.X = 0;
 		MappedRect.Max.Y = 0;
-		Primitive = NULL;
-		LightmapFlags = LMF_None;
+		Primitive = nullptr;
+		InstanceIndex = INDEX_NONE;
 		bSkipEncoding = false;
 	}
 
 	/**
 	 * Copy construct from FQuantizedLightmapData
 	 */
-	FLightMapAllocation(const FQuantizedLightmapData* QuantizedData)
-		: TotalSizeX(QuantizedData->SizeX)
-		, TotalSizeY(QuantizedData->SizeY)
-		, bHasSkyShadowing(QuantizedData->bHasSkyShadowing)
-		, RawData(QuantizedData->Data)
+	FLightMapAllocation(FQuantizedLightmapData&& QuantizedData)
+		: TotalSizeX(QuantizedData.SizeX)
+		, TotalSizeY(QuantizedData.SizeY)
+		, bHasSkyShadowing(QuantizedData.bHasSkyShadowing)
+		, RawData(MoveTemp(QuantizedData.Data))
 	{
-		FMemory::Memcpy(Scale, QuantizedData->Scale, sizeof(Scale));
-		FMemory::Memcpy(Add, QuantizedData->Add, sizeof(Add));
+		FMemory::Memcpy(Scale, QuantizedData.Scale, sizeof(Scale));
+		FMemory::Memcpy(Add, QuantizedData.Add, sizeof(Add));
 		PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
 		MappedRect.Min.X = 0;
 		MappedRect.Min.Y = 0;
 		MappedRect.Max.X = TotalSizeX;
 		MappedRect.Max.Y = TotalSizeY;
-		Primitive = NULL;
-		LightmapFlags = LMF_None;
+		Primitive = nullptr;
+		InstanceIndex = INDEX_NONE;
 		bSkipEncoding = false;
 	}
 
+	// Called after the lightmap is encoded
+	void PostEncode()
+	{
+		if (InstanceIndex >= 0)
+		{
+			UInstancedStaticMeshComponent* Component = dynamic_cast<UInstancedStaticMeshComponent*>(Primitive);
+			check(Component);
+
+			// TODO: We currently only support one LOD of static lighting in foliage
+			// Need to create per-LOD instance data to fix that
+			Component->PerInstanceSMData[InstanceIndex].LightmapUVBias = LightMap->GetCoordinateBias();
+		}
+	}
+
 	FLightMap2D*	LightMap;
-	UObject*		Outer;
 
 	UObject*		Primitive;
+	int32			InstanceIndex;
 
 	/** Upper-left X-coordinate in the texture atlas. */
 	int32				OffsetX;
@@ -260,15 +274,67 @@ struct FLightMapAllocation
 	bool			bDebug;
 	bool			bHasSkyShadowing;
 	ELightMapPaddingType			PaddingType;
-	ELightMapFlags					LightmapFlags;
 	TArray<FLightMapCoefficients>	RawData;
 	float							Scale[NUM_STORED_LIGHTMAP_COEF][4];
 	float							Add[NUM_STORED_LIGHTMAP_COEF][4];
-	/** Bounds of the primitive that the mapping is applied to. */
-	FBoxSphereBounds				Bounds;
 	/** True if we can skip encoding this allocation because it's similar enough to an existing
 	    allocation at the same offset */
 	bool bSkipEncoding;
+};
+
+struct FLightMapAllocationGroup
+{
+	FLightMapAllocationGroup()
+		: Outer(nullptr)
+		, LightmapFlags(LMF_None)
+		, Bounds(ForceInit)
+		, TotalTexels(0)
+	{
+	}
+
+#if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
+	FLightMapAllocationGroup(FLightMapAllocationGroup&&) = default;
+	FLightMapAllocationGroup& operator=(FLightMapAllocationGroup&&) = default;
+
+	FLightMapAllocationGroup(const FLightMapAllocationGroup&) = delete; // non-copy-able
+	FLightMapAllocationGroup& operator=(const FLightMapAllocationGroup&) = delete;
+#else
+	FLightMapAllocationGroup(FLightMapAllocationGroup&& other)
+		: Allocations(MoveTemp(other.Allocations))
+		, Outer(other.Outer)
+		, LightmapFlags(other.LightmapFlags)
+		, Bounds(other.Bounds)
+		, TotalTexels(other.TotalTexels)
+	{
+	}
+
+	FLightMapAllocationGroup& operator=(FLightMapAllocationGroup&& other)
+	{
+		Allocations = MoveTemp(other.Allocations);
+		Outer = other.Outer;
+		LightmapFlags = other.LightmapFlags;
+		Bounds = other.Bounds;
+		TotalTexels = other.TotalTexels;
+
+		return *this;
+	}
+
+private:
+	FLightMapAllocationGroup(const FLightMapAllocationGroup&); // non-copy-able
+	FLightMapAllocationGroup& operator=(const FLightMapAllocationGroup&);
+public:
+#endif
+
+	TArray<TUniquePtr<FLightMapAllocation>, TInlineAllocator<1>> Allocations;
+
+	UObject*		Outer;
+	ELightMapFlags	LightmapFlags;
+
+	// Bounds of the primitive that the mapping is applied to
+	// Used to group nearby allocations into the same lightmap texture
+	FBoxSphereBounds Bounds;
+
+	int32			TotalTexels;
 };
 
 enum ELightmapTextureType
@@ -325,15 +391,20 @@ struct FLightMapPendingTexture : public FTextureLayout
 	/** Lightmap streaming flags that must match in order to be stored in this texture.	*/
 	ELightMapFlags					LightmapFlags;
 
+	// Optimization to quickly test if a new allocation won't fit
+	// Primarily of benefit to instanced mesh lightmaps
+	int32							UnallocatedTexels;
+
 	int32							NumOutstandingAsyncTasks;
 
 	FLightMapPendingTexture(UWorld* InWorld, uint32 InSizeX,uint32 InSizeY)
-		:	FTextureLayout(4,4,InSizeX,InSizeY,true) // Min size is 4x4 in case of block compression.
-		,	SkyOcclusionTexture(NULL)
-		,	OwningWorld(InWorld)
-		,	Bounds(FBox(0))
-		,	LightmapFlags( LMF_None )
-		,	NumOutstandingAsyncTasks(0)
+		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
+		, SkyOcclusionTexture(nullptr)
+		, OwningWorld(InWorld)
+		, Bounds(FBox(0))
+		, LightmapFlags(LMF_None)
+		, UnallocatedTexels(InSizeX * InSizeY)
+		, NumOutstandingAsyncTasks(0)
 	{}
 
 	~FLightMapPendingTexture()
@@ -367,7 +438,7 @@ struct FLightMapPendingTexture : public FTextureLayout
 	 *
 	 * @return	True if succeeded, false otherwise.
 	 */
-	bool AddElement(FLightMapAllocation& Allocation, const bool bForceIntoThisTexture = false );
+	bool AddElement(FLightMapAllocationGroup& AllocationGroup, const bool bForceIntoThisTexture = false);
 
 private:
 	FName GetLightmapName(int32 TextureIndex, int32 CoefficientIndex);
@@ -455,9 +526,6 @@ void FLightMapPendingTexture::FinishEncoding( ELightmapTextureType TextureType )
 	}
 }
 
-/** Whether to try to pack lightmaps/shadowmaps into the same texture. */
-bool GGroupComponentLightmaps = true;
-
 /**
  * Finds a free area in the texture large enough to contain a surface with the given size.
  * If a large enough area is found, it is marked as in use, the output parameters OutBaseX and OutBaseY are
@@ -467,59 +535,92 @@ bool GGroupComponentLightmaps = true;
  * If the allocation succeeded, Allocation.OffsetX and Allocation.OffsetY will be set to the upper-left corner
  * of the allocated area.
  *
- * @param Allocation	Lightmap allocation to try to fit
+ * @param Allocation	Lightmap allocation group to try to fit
  * @param bForceIntoThisTexture	True if we should ignore distance and other factors when considering whether the mapping should be packed into this texture
  *
  * @return	True if succeeded, false otherwise.
  */
-bool FLightMapPendingTexture::AddElement(FLightMapAllocation& Allocation, bool bForceIntoThisTexture )
+bool FLightMapPendingTexture::AddElement(FLightMapAllocationGroup& AllocationGroup, bool bForceIntoThisTexture)
 {
-	if( !bForceIntoThisTexture )
+	if (!bForceIntoThisTexture)
 	{
 		// Don't pack lightmaps from different packages into the same texture.
-		if ( Outer != Allocation.Outer )
+		if (Outer != AllocationGroup.Outer)
 		{
 			return false;
 		}
 	}
 
-	const FBoxSphereBounds NewBounds = Bounds + Allocation.Bounds;
-	const bool bEmptyTexture = Allocations.Num() == 0;
+	// This is a rough test, passing it doesn't guarantee it'll fit
+	// But failing it does guarantee that it _won't_ fit
+	if (UnallocatedTexels < AllocationGroup.TotalTexels)
+	{
+		return false;
+	}
 
-	if ( !bEmptyTexture && !bForceIntoThisTexture )
+	const bool bEmptyTexture = Allocations.Num() == 0;
+	const FBoxSphereBounds NewBounds = bEmptyTexture ? AllocationGroup.Bounds : Bounds + AllocationGroup.Bounds;
+
+	if (!bEmptyTexture && !bForceIntoThisTexture)
 	{
 		// Don't mix streaming lightmaps with non-streaming lightmaps.
-		if ( (LightmapFlags & LMF_Streamed) != (Allocation.LightmapFlags & LMF_Streamed) )
+		if ((LightmapFlags & LMF_Streamed) != (AllocationGroup.LightmapFlags & LMF_Streamed))
 		{
 			return false;
 		}
 
 		// Is this a streaming lightmap?
-		if ( LightmapFlags & LMF_Streamed )
+		if (LightmapFlags & LMF_Streamed)
 		{
 			bool bPerformDistanceCheck = true;
 
 			// Don't pack together lightmaps that are too far apart
-			if ( bPerformDistanceCheck && NewBounds.SphereRadius > GMaxLightmapRadius && NewBounds.SphereRadius > (Bounds.SphereRadius + SMALL_NUMBER) )
+			if (bPerformDistanceCheck && NewBounds.SphereRadius > GMaxLightmapRadius && NewBounds.SphereRadius > (Bounds.SphereRadius + SMALL_NUMBER))
 			{
 				return false;
 			}
 		}
 	}
 
-	uint32 BaseX = 0;
-	uint32 BaseY = 0;
-	if( !FTextureLayout::AddElement( BaseX, BaseY, Allocation.MappedRect.Width(), Allocation.MappedRect.Height() ) )
+	int32 NewUnallocatedTexels = UnallocatedTexels;
+
+	int32 iAllocation = 0;
+	for (; iAllocation < AllocationGroup.Allocations.Num(); ++iAllocation)
 	{
+		auto& Allocation = AllocationGroup.Allocations[iAllocation];
+		uint32 BaseX, BaseY;
+		const uint32 SizeX = Allocation->MappedRect.Width();
+		const uint32 SizeY = Allocation->MappedRect.Height();
+		if (FTextureLayout::AddElement(BaseX, BaseY, SizeX, SizeY))
+		{
+			Allocation->OffsetX = BaseX;
+			Allocation->OffsetY = BaseY;
+
+			// Assumes bAlignByFour
+			NewUnallocatedTexels -= ((SizeX + 3) & ~3) * ((SizeY + 3) & ~3);
+		}
+		else
+		{
+			// failed to add all elements to the texture
+			break;
+		}
+	}
+	if (iAllocation < AllocationGroup.Allocations.Num())
+	{
+		// failed to add all elements to the texture
+		// remove the ones added so far to restore our original state
+		for (--iAllocation; iAllocation >= 0; --iAllocation)
+		{
+			auto& Allocation = AllocationGroup.Allocations[iAllocation];
+			const uint32 SizeX = Allocation->MappedRect.Width();
+			const uint32 SizeY = Allocation->MappedRect.Height();
+			verify(FTextureLayout::RemoveElement(Allocation->OffsetX, Allocation->OffsetY, SizeX, SizeY));
+		}
 		return false;
 	}
 
-	// UE_LOG(LogLightMap, Warning, TEXT( "LightMapPacking: New Allocation (%i texels)" ), Allocation.MappedRect.Area() );
-
-	// Save the position the light-maps (the Allocation.MappedRect portion) in the texture atlas.
-	Allocation.OffsetX = BaseX;
-	Allocation.OffsetY = BaseY;
-	Bounds = bEmptyTexture ? Allocation.Bounds : NewBounds;
+	Bounds = NewBounds;
+	UnallocatedTexels = NewUnallocatedTexels;
 
 	return true;
 }
@@ -999,9 +1100,11 @@ void FLightMapPendingTexture::StartEncoding()
 		FVector2D Scale((float)PaddedSizeX / (float)GetSizeX(), (float)PaddedSizeY / (float)GetSizeY());
 		FVector2D Bias((float)BaseX / (float)GetSizeX(), (float)BaseY / (float)GetSizeY());
 
-		// let the lightmap finish up after being encoded, setting the scale/bias, and returning if it can be deleted
+		// Set the scale/bias of the lightmap
 		check( Allocation->LightMap );
-		Allocation->LightMap->FinalizeEncoding(Scale, Bias, Textures[0]);
+		Allocation->LightMap->CoordinateScale = Scale;
+		Allocation->LightMap->CoordinateBias = Bias;
+		Allocation->PostEncode();
 
 		// Free the light-map's raw data.
 		Allocation->RawData.Empty();
@@ -1050,7 +1153,7 @@ FName FLightMapPendingTexture::GetSkyOcclusionTextureName(int32 TextureIndex)
 }
 
 /** The light-maps which have not yet been encoded into textures. */
-static TIndirectArray<FLightMapAllocation> PendingLightMaps;
+static TArray<FLightMapAllocationGroup> PendingLightMaps;
 static uint32 PendingLightMapSize = 0;
 
 #endif // WITH_EDITOR
@@ -1058,55 +1161,59 @@ static uint32 PendingLightMapSize = 0;
 /** If true, update the status when encoding light maps */
 bool FLightMap2D::bUpdateStatus = true;
 
-FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLightmapData*& SourceQuantizedData, const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags )
+FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLightmapData*& SourceQuantizedData, const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags)
 {
 	// If the light-map has no lights in it, return NULL.
-	if(!SourceQuantizedData)
+	if (!SourceQuantizedData)
 	{
 		return NULL;
 	}
 
 #if WITH_EDITOR
-
-	FLightMapAllocation* Allocation = new(PendingLightMaps) FLightMapAllocation(SourceQuantizedData);
-
-	Allocation->Outer		= LightMapOuter->GetOutermost();
-	Allocation->PaddingType	= InPaddingType;
-	Allocation->LightmapFlags = InLightmapFlags;
-	Allocation->Bounds		= Bounds;
-	Allocation->Primitive	= LightMapOuter;
-	if ( !GAllowStreamingLightmaps )
+	FLightMapAllocationGroup AllocationGroup;
+	AllocationGroup.Outer = LightMapOuter->GetOutermost();
+	AllocationGroup.LightmapFlags = InLightmapFlags;
+	AllocationGroup.Bounds = Bounds;
+	if (!GAllowStreamingLightmaps)
 	{
-		Allocation->LightmapFlags = ELightMapFlags( Allocation->LightmapFlags & ~LMF_Streamed );
+		AllocationGroup.LightmapFlags = ELightMapFlags(AllocationGroup.LightmapFlags & ~LMF_Streamed);
 	}
 
 	// Create a new light-map.
 	FLightMap2D* LightMap = new FLightMap2D(SourceQuantizedData->LightGuids);
-	Allocation->LightMap = LightMap;
+
+	// Create allocation and add it to the group
+	{
+		TUniquePtr<FLightMapAllocation> Allocation = MakeUnique<FLightMapAllocation>(MoveTemp(*SourceQuantizedData));
+		Allocation->PaddingType = InPaddingType;
+		Allocation->LightMap = LightMap;
+		Allocation->Primitive = LightMapOuter;
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING && WITH_EDITOR
-	// Detect if this allocation belongs to the texture mapping that was being debugged
-	//@todo - this only works for mappings that can be uniquely identified by a single component, BSP for example does not work.
-	if (GCurrentSelectedLightmapSample.Component && GCurrentSelectedLightmapSample.Component == LightMapOuter)
-	{
-		GCurrentSelectedLightmapSample.Lightmap = LightMap;
-		Allocation->bDebug = true;
-	}
-	else
-	{
-		Allocation->bDebug = false;
+		// Detect if this allocation belongs to the texture mapping that was being debugged
+		//@todo - this only works for mappings that can be uniquely identified by a single component, BSP for example does not work.
+		if (GCurrentSelectedLightmapSample.Component && GCurrentSelectedLightmapSample.Component == LightMapOuter)
+		{
+			GCurrentSelectedLightmapSample.Lightmap = LightMap;
+			Allocation->bDebug = true;
+		}
+		else
+		{
+			Allocation->bDebug = false;
 	}
 #endif
 
-	// Quantized data is no longer needed now that FLightMapAllocation has made a copy of it
-	if (SourceQuantizedData != NULL)
-	{
+		// SourceQuantizedData is no longer needed now that FLightMapAllocation has what it needs
 		delete SourceQuantizedData;
 		SourceQuantizedData = NULL;
+
+		// Track the size of pending light-maps.
+		PendingLightMapSize += ((Allocation->TotalSizeX + 3) & ~3) * ((Allocation->TotalSizeY + 3) & ~3);
+
+		AllocationGroup.Allocations.Add(MoveTemp(Allocation));
 	}
 
-	// Track the size of pending light-maps.
-	PendingLightMapSize += ((Allocation->TotalSizeX + 3) & ~3) * ((Allocation->TotalSizeY + 3) & ~3);
+	PendingLightMaps.Add(MoveTemp(AllocationGroup));
 
 	return LightMap;
 #else
@@ -1114,13 +1221,189 @@ FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLig
 #endif // WITH_EDITOR
 }
 
+FLightMap2D* FLightMap2D::AllocateInstancedLightMap(UInstancedStaticMeshComponent* Component, TArray<TUniquePtr<FQuantizedLightmapData>> InstancedSourceQuantizedData,
+	const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags)
+{
+#if WITH_EDITOR
+	check(InstancedSourceQuantizedData.Num() > 0);
+
+	// Verify all instance lightmaps are the same size
+	for (int32 InstanceIndex = 1; InstanceIndex < InstancedSourceQuantizedData.Num(); ++InstanceIndex)
+	{
+		auto& SourceQuantizedData = InstancedSourceQuantizedData[InstanceIndex];
+		check(SourceQuantizedData->SizeX == InstancedSourceQuantizedData[0]->SizeX);
+		check(SourceQuantizedData->SizeY == InstancedSourceQuantizedData[0]->SizeY);
+	}
+
+	// Requantize source data to the same quantization
+	// Most of the following code is cloned from UModel::ApplyStaticLighting(), possibly it can be shared in future?
+	// or removed, if instanced mesh components can be given per-instance lightmap unpack coefficients
+	float MinCoefficient[NUM_STORED_LIGHTMAP_COEF][4];
+	float MaxCoefficient[NUM_STORED_LIGHTMAP_COEF][4];
+	for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex += 2)
+	{
+		for (int32 ColorIndex = 0; ColorIndex < 4; ColorIndex++)
+		{
+			// Color
+			MinCoefficient[CoefficientIndex][ColorIndex] = FLT_MAX;
+			MaxCoefficient[CoefficientIndex][ColorIndex] = 0.0f;
+
+			// Direction
+			MinCoefficient[CoefficientIndex + 1][ColorIndex] = FLT_MAX;
+			MaxCoefficient[CoefficientIndex + 1][ColorIndex] = -FLT_MAX;
+		}
+	}
+
+	// first, we need to find the max scale for all mappings, and that will be the scale across all instances of this component
+	for (auto& SourceQuantizedData : InstancedSourceQuantizedData)
+	{
+		for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex++)
+		{
+			for (int32 ColorIndex = 0; ColorIndex < 4; ColorIndex++)
+			{
+				// The lightmap data for directional coefficients was packed in lightmass with
+				// Pack: y = (x - Min) / (Max - Min)
+				// We need to solve for Max and Min in order to combine BSP mappings into a lighting group.
+				// QuantizedData->Scale and QuantizedData->Add were calculated in lightmass in order to unpack the lightmap data like so
+				// Unpack: x = y * UnpackScale + UnpackAdd
+				// Which means
+				// Scale = Max - Min
+				// Add = Min
+				// Therefore we can solve for min and max using substitution
+
+				float Scale = SourceQuantizedData->Scale[CoefficientIndex][ColorIndex];
+				float Add = SourceQuantizedData->Add[CoefficientIndex][ColorIndex];
+				float Min = Add;
+				float Max = Scale + Add;
+
+				MinCoefficient[CoefficientIndex][ColorIndex] = FMath::Min(MinCoefficient[CoefficientIndex][ColorIndex], Min);
+				MaxCoefficient[CoefficientIndex][ColorIndex] = FMath::Max(MaxCoefficient[CoefficientIndex][ColorIndex], Max);
+			}
+		}
+	}
+
+	// Now calculate the new unpack scale and add based on the composite min and max
+	float Scale[NUM_STORED_LIGHTMAP_COEF][4];
+	float Add[NUM_STORED_LIGHTMAP_COEF][4];
+	for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex++)
+	{
+		for (int32 ColorIndex = 0; ColorIndex < 4; ColorIndex++)
+		{
+			Scale[CoefficientIndex][ColorIndex] = FMath::Max(MaxCoefficient[CoefficientIndex][ColorIndex] - MinCoefficient[CoefficientIndex][ColorIndex], DELTA);
+			Add[CoefficientIndex][ColorIndex] = MinCoefficient[CoefficientIndex][ColorIndex];
+		}
+	}
+
+	// perform requantization
+	for (auto& SourceQuantizedData : InstancedSourceQuantizedData)
+	{
+		for (uint32 Y = 0; Y < SourceQuantizedData->SizeY; Y++)
+		{
+			for (uint32 X = 0; X < SourceQuantizedData->SizeX; X++)
+			{
+				// get source from input, dest from the rectangular offset in the group
+				FLightMapCoefficients& LightmapSample = SourceQuantizedData->Data[Y * SourceQuantizedData->SizeX + X];
+
+				// Treat alpha special because of residual
+				{
+					// Decode LogL
+					float LogL = (float)LightmapSample.Coefficients[0][3] / 255.0f;
+					float Residual = (float)LightmapSample.Coefficients[1][3] / 255.0f;
+					LogL += (Residual - 0.5f) / 255.0f;
+					LogL = LogL * SourceQuantizedData->Scale[0][3] + SourceQuantizedData->Add[0][3];
+
+					// Encode LogL
+					LogL = (LogL - Add[0][3]) / Scale[0][3];
+					Residual = LogL * 255.0f - FMath::RoundToFloat(LogL * 255.0f) + 0.5f;
+
+					LightmapSample.Coefficients[0][3] = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(LogL * 255.0f), 0, 255);
+					LightmapSample.Coefficients[1][3] = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(Residual * 255.0f), 0, 255);
+				}
+
+				// go over each color coefficient and dequantize and requantize with new Scale/Add
+				for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_STORED_LIGHTMAP_COEF; CoefficientIndex++)
+				{
+					// Don't touch alpha here
+					for (int32 ColorIndex = 0; ColorIndex < 3; ColorIndex++)
+					{
+						// dequantize it
+						float Dequantized = (float)LightmapSample.Coefficients[CoefficientIndex][ColorIndex] / 255.0f;
+						const float Exponent = CoefficientIndex == 0 ? 2.0f : 1.0f;
+						Dequantized = FMath::Pow(Dequantized, Exponent);
+
+						const float Unpacked = Dequantized * SourceQuantizedData->Scale[CoefficientIndex][ColorIndex] + SourceQuantizedData->Add[CoefficientIndex][ColorIndex];
+						const float Repacked = (Unpacked - Add[CoefficientIndex][ColorIndex]) / Scale[CoefficientIndex][ColorIndex];
+
+						// requantize it
+						LightmapSample.Coefficients[CoefficientIndex][ColorIndex] = (uint8)FMath::Clamp<int32>(FMath::RoundToInt(FMath::Pow(Repacked, 1.0f / Exponent) * 255.0f), 0, 255);
+					}
+				}
+			}
+		}
+	}
+
+	FLightMapAllocationGroup AllocationGroup = FLightMapAllocationGroup();
+	AllocationGroup.Outer = Component->GetOutermost();
+	AllocationGroup.LightmapFlags = InLightmapFlags;
+	AllocationGroup.Bounds = Bounds;
+	if (!GAllowStreamingLightmaps)
+	{
+		AllocationGroup.LightmapFlags = ELightMapFlags(AllocationGroup.LightmapFlags & ~LMF_Streamed);
+	}
+
+	FLightMap2D* BaseLightmap = nullptr;
+
+	for (int32 InstanceIndex = 0; InstanceIndex < InstancedSourceQuantizedData.Num(); ++InstanceIndex)
+	{
+		auto& SourceQuantizedData = InstancedSourceQuantizedData[InstanceIndex];
+
+		// Create a new light-map.
+		FLightMap2D* LightMap = new FLightMap2D(SourceQuantizedData->LightGuids);
+
+		if (InstanceIndex == 0)
+		{
+			BaseLightmap = LightMap;
+		}
+		else
+		{
+			// we need the base lightmap to contain all of the lights used by all lightmaps in the group
+			for (auto& LightGuid : SourceQuantizedData->LightGuids)
+			{
+				BaseLightmap->LightGuids.AddUnique(LightGuid);
+			}
+		}
+
+		TUniquePtr<FLightMapAllocation> Allocation = MakeUnique<FLightMapAllocation>(MoveTemp(*SourceQuantizedData));
+		Allocation->PaddingType = InPaddingType;
+		Allocation->LightMap = LightMap;
+		Allocation->Primitive = Component;
+		Allocation->InstanceIndex = InstanceIndex;
+
+		// SourceQuantizedData is no longer needed now that FLightMapAllocation has what it needs
+		SourceQuantizedData.Reset();
+
+		// Track the size of pending light-maps.
+		PendingLightMapSize += ((Allocation->TotalSizeX + 3) & ~3) * ((Allocation->TotalSizeY + 3) & ~3);
+
+		AllocationGroup.Allocations.Add(MoveTemp(Allocation));
+	}
+
+	PendingLightMaps.Add(MoveTemp(AllocationGroup));
+
+	return BaseLightmap;
+#else
+	return nullptr;
+#endif //WITH_EDITOR
+}
+
 #if WITH_EDITOR
 
 struct FCompareLightmaps
 {
-	FORCEINLINE bool operator()( const FLightMapAllocation& A, const FLightMapAllocation& B ) const
+	FORCEINLINE bool operator()(const FLightMapAllocationGroup& A, const FLightMapAllocationGroup& B) const
 	{
-		return FMath::Max(B.TotalSizeX,B.TotalSizeY) < FMath::Max(A.TotalSizeX,A.TotalSizeY);
+		// Order descending by total size of allocation
+		return A.TotalTexels > B.TotalTexels;
 	}
 };
 
@@ -1133,7 +1416,7 @@ struct FCompareLightmaps
 void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, bool bForceCompletion )
 {
 #if WITH_EDITOR
-	if ( bLightingSuccessful )
+	if (bLightingSuccessful)
 	{
 		GWarn->BeginSlowTask( NSLOCTEXT("LightMap2D", "BeginEncodingLightMapsTask", "Encoding light-maps"), false );
 		int32 PackedLightAndShadowMapTextureSize = InWorld->GetWorldSettings()->PackedLightAndShadowMapTextureSize;
@@ -1141,66 +1424,112 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 		// Reset the pending light-map size.
 		PendingLightMapSize = 0;
 
+		// Crop lightmaps if allowed
+		if (GAllowLightmapCropping)
+		{
+			for (FLightMapAllocationGroup& PendingGroup : PendingLightMaps)
+			{
+				if (!ensure(PendingGroup.Allocations.Num() >= 1))
+				{
+					continue;
+				}
+
+				// TODO: Crop all allocations in a group to the same size for instanced meshes
+				if (PendingGroup.Allocations.Num() == 1)
+				{
+					for (auto& Allocation : PendingGroup.Allocations)
+					{
+						CropUnmappedTexels(Allocation->RawData, Allocation->TotalSizeX, Allocation->TotalSizeY, Allocation->MappedRect);
+					}
+				}
+			}
+		}
+
+		// Calculate size of pending allocations for sorting
+		for (FLightMapAllocationGroup& PendingGroup : PendingLightMaps)
+		{
+			PendingGroup.TotalTexels = 0;
+			for (auto& Allocation : PendingGroup.Allocations)
+			{
+				// Assumes bAlignByFour
+				PendingGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
+			}
+		}
+
 		// Sort the light-maps in descending order by size.
 		Sort(PendingLightMaps.GetData(), PendingLightMaps.Num(), FCompareLightmaps());
 
 		// Allocate texture space for each light-map.
 		TArray<FLightMapPendingTexture*> PendingTextures;
 
-		for(int32 LightMapIndex = 0;LightMapIndex < PendingLightMaps.Num();LightMapIndex++)
+		for (FLightMapAllocationGroup& PendingGroup : PendingLightMaps)
 		{
-			FLightMapAllocation& Allocation = PendingLightMaps[LightMapIndex];
-			FLightMapPendingTexture* Texture = NULL;
-
-			if ( GAllowLightmapCropping )
+			if (!ensure(PendingGroup.Allocations.Num() >= 1))
 			{
-				CropUnmappedTexels( Allocation.RawData, Allocation.TotalSizeX, Allocation.TotalSizeY, Allocation.MappedRect );
+				continue;
 			}
 
-			// Find an existing texture which the light-map can be stored in.
-			int32 FoundIndex = -1;
-			for(int32 TextureIndex = 0;TextureIndex < PendingTextures.Num();TextureIndex++)
+			int32 MaxWidth = 0;
+			int32 MaxHeight = 0;
+			for (auto& Allocation : PendingGroup.Allocations)
 			{
-				FLightMapPendingTexture* ExistingTexture = PendingTextures[TextureIndex];
+				MaxWidth = FMath::Max(MaxWidth, Allocation->MappedRect.Width());
+				MaxHeight = FMath::Max(MaxHeight, Allocation->MappedRect.Height());
+			}
 
-				// Lightmaps will always be 4-pixel aligned...
-				if ( ExistingTexture->AddElement( Allocation ) )
+			FLightMapPendingTexture* Texture = nullptr;
+
+			// Find an existing texture which the light-map can be stored in.
+			// Lightmaps will always be 4-pixel aligned...
+			for (FLightMapPendingTexture* ExistingTexture : PendingTextures)
+			{
+				if (ExistingTexture->AddElement(PendingGroup))
 				{
 					Texture = ExistingTexture;
-					FoundIndex = TextureIndex;
 					break;
 				}
 			}
 
-			if(!Texture)
+			if (!Texture)
 			{
 				int32 NewTextureSizeX = PackedLightAndShadowMapTextureSize;
 				int32 NewTextureSizeY = PackedLightAndShadowMapTextureSize / 2;
-				if(Allocation.MappedRect.Width() > NewTextureSizeX || Allocation.MappedRect.Height() > NewTextureSizeY)
+
+				// Assumes identically-sized allocations, fit into the smallest 2x1 rectangle
+				const int32 AllocationCountX = FMath::CeilToInt(FMath::Sqrt(FMath::DivideAndRoundUp(PendingGroup.Allocations.Num() * 2 * MaxHeight, MaxWidth)));
+				const int32 AllocationCountY = FMath::DivideAndRoundUp(PendingGroup.Allocations.Num(), AllocationCountX);
+				const int32 AllocationSizeX = AllocationCountX * MaxWidth;
+				const int32 AllocationSizeY = AllocationCountY * MaxHeight;
+
+				if (AllocationSizeX > NewTextureSizeX || AllocationSizeY > NewTextureSizeY)
 				{
-					NewTextureSizeX = FMath::RoundUpToPowerOfTwo(Allocation.MappedRect.Width());
-					NewTextureSizeY = FMath::RoundUpToPowerOfTwo(Allocation.MappedRect.Height());
+					NewTextureSizeX = FMath::RoundUpToPowerOfTwo(AllocationSizeX);
+					NewTextureSizeY = FMath::RoundUpToPowerOfTwo(AllocationSizeY);
 
 					// Force 2:1 aspect
-					NewTextureSizeX = FMath::Max( NewTextureSizeX, NewTextureSizeY * 2 );
-					NewTextureSizeY = FMath::Max( NewTextureSizeY, NewTextureSizeX / 2 );
+					NewTextureSizeX = FMath::Max(NewTextureSizeX, NewTextureSizeY * 2);
+					NewTextureSizeY = FMath::Max(NewTextureSizeY, NewTextureSizeX / 2);
 				}
 
 				// If there is no existing appropriate texture, create a new one.
-				Texture = new FLightMapPendingTexture( InWorld, NewTextureSizeX, NewTextureSizeY );
-				PendingTextures.Add( Texture );
-				Texture->Outer = Allocation.Outer;
-				Texture->Bounds = Allocation.Bounds;
-				Texture->LightmapFlags = Allocation.LightmapFlags;
-				verify( Texture->AddElement( Allocation ) );
-				FoundIndex = PendingTextures.Num() - 1;
+				Texture = new FLightMapPendingTexture(InWorld, NewTextureSizeX, NewTextureSizeY);
+				PendingTextures.Add(Texture);
+				Texture->Outer = PendingGroup.Outer;
+				Texture->Bounds = PendingGroup.Bounds;
+				Texture->LightmapFlags = PendingGroup.LightmapFlags;
+				verify(Texture->AddElement(PendingGroup));
 			}
 
-			Texture->Allocations.Add(&Allocation);
+			// Give the texture ownership of the allocations
+			for (auto& Allocation : PendingGroup.Allocations)
+			{
+				Texture->Allocations.Add(Allocation.Release());
+			}
 		}
+		PendingLightMaps.Empty();
 
 		// Encode all the pending textures.
-		for(int32 TextureIndex = 0; TextureIndex < PendingTextures.Num(); TextureIndex++)
+		for (int32 TextureIndex = 0; TextureIndex < PendingTextures.Num(); TextureIndex++)
 		{
 			if (bUpdateStatus && (TextureIndex % 20) == 0)
 			{
@@ -1209,17 +1538,14 @@ void FLightMap2D::EncodeTextures( UWorld* InWorld, bool bLightingSuccessful, boo
 			FLightMapPendingTexture* PendingTexture = PendingTextures[TextureIndex];
 			PendingTexture->StartEncoding();
 		}
-
 		PendingTextures.Empty();
-		PendingLightMaps.Empty();
 
-		if ( bForceCompletion )
+		if (bForceCompletion)
 		{
 			// Block until there are 0 unfinished tasks, making sure all compression has completed.
-			FLightMapPendingTexture::FinishCompletedTasks( 0 );
+			FLightMapPendingTexture::FinishCompletedTasks(0);
 		}
-	
-		
+
 		// End the encoding lighmaps slow task
 		GWarn->EndSlowTask();
 		
@@ -1279,22 +1605,6 @@ struct FLegacyLightMapTextureInfo
 		return Ar << I.Texture << I.Scale << I.Bias;
 	}
 };
-
-/**
- * Finalizes the lightmap after encodeing, including setting the UV scale/bias for this lightmap 
- * inside the larger UTexture2D that this lightmap is in
- * 
- * @param Scale UV scale (size)
- * @param Bias UV Bias (offset)
- * @param ALightmapTexture One of the lightmap textures that this lightmap was put into
- *
- * @return true if the lightmap should be deleted after this call
- */
-void FLightMap2D::FinalizeEncoding(const FVector2D& Scale, const FVector2D& Bias, UTexture2D* ALightmapTexture)
-{
-	CoordinateScale = Scale;
-	CoordinateBias = Bias;
-}
 
 void FLightMap2D::AddReferencedObjects( FReferenceCollector& Collector )
 {

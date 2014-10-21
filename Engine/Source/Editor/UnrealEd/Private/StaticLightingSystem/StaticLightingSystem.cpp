@@ -940,7 +940,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 					if (!Options.bOnlyBuildVisibility)
 					{
 						for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-							{
+						{
 							Components[ComponentIndex]->bStaticLightingBuildEnqueued = true;
 						}
 					}

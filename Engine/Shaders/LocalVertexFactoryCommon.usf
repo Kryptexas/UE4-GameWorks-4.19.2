@@ -81,9 +81,9 @@ float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 	return Interpolants.LightMapCoordinate.zw;
 }
 
-void SetLightMapCoordinate(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InLightMapCoordinate, float2 InShadowMapCoordinate)
+void SetLightMapCoordinate(inout FVertexFactoryInterpolantsVSToPS Interpolants, float2 InLightMapCoordinate, float2 InShadowMapCoordinate)
 {
-	Interpolants.LightMapCoordinate.xy = InLightMapCoordinate.xy;
+	Interpolants.LightMapCoordinate.xy = InLightMapCoordinate;
 	Interpolants.LightMapCoordinate.zw = InShadowMapCoordinate;
 }
 #endif
@@ -201,11 +201,11 @@ float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 	#endif
 }
 
-void SetLightMapCoordinate(inout FVertexFactoryInterpolantsVSToPS Interpolants, float4 InLightMapCoordinate, float2 InShadowMapCoordinate)
+void SetLightMapCoordinate(inout FVertexFactoryInterpolantsVSToPS Interpolants, float2 InLightMapCoordinate, float2 InShadowMapCoordinate)
 {
 	#if USE_INTERPOLATOR_345
-		Interpolants.PackedInterpolator3.xy = InLightMapCoordinate.xy;
-		Interpolants.PackedInterpolator4.xy = InLightMapCoordinate.zw;
+		Interpolants.PackedInterpolator3.xy = InLightMapCoordinate * float2(1, 0.5);
+		Interpolants.PackedInterpolator4.xy = Interpolants.PackedInterpolator3.xy + float2(0, 0.5);
 		Interpolants.PackedInterpolator5.xy = InShadowMapCoordinate;
 	#endif
 }

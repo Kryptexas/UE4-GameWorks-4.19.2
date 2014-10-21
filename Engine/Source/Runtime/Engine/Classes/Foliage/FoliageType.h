@@ -206,14 +206,6 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
 	uint32 bCastStaticShadow:1;
 
-	/** 
-	 *	If true, the foliage will cast shadows even if bHidden is true.
-	 *	Controls whether the primitive should cast shadows when hidden.
-	 *	This flag is only used if CastShadow is true.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
-	uint32 bCastHiddenShadow:1;
-
 	/** Whether this foliage should cast dynamic shadows as if it were a two sided material. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	uint32 bCastShadowAsTwoSided:1;
@@ -221,6 +213,14 @@ class UFoliageType : public UObject
 	/** Whether the foliage receives decals. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
 	uint32 bReceivesDecals : 1;
+	
+	/** Whether to override the lightmap resolution defined in the static mesh. */
+	UPROPERTY(BlueprintReadOnly, Category=Lighting)
+	uint32 bOverrideLightMapRes:1;
+
+	/** Overrides the lightmap resolution defined in the static mesh. A value of 0 disables static lighting/shadowing */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(DisplayName="Light Map Resolution", EditCondition="bOverrideLightMapRes"))
+	int32 OverriddenLightMapRes;
 
 	/** Custom collision for foliage */
 	UPROPERTY(EditAnywhere, Category=Collision, meta=(HideObjectType=true))
@@ -228,6 +228,10 @@ class UFoliageType : public UObject
 
 	/* Gets the mesh associated with this FoliageType */
 	virtual UStaticMesh* GetStaticMesh() PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };
 
 
