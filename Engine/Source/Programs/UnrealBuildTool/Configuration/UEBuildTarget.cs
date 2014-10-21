@@ -1508,7 +1508,10 @@ namespace UnrealBuildTool
 				CreateLinkerFixupsCPPFile();
 			}
 
-			CreateAutoStartupModuleListGetter();
+			if (!bEditorRecompile)
+			{
+				CreateAutoStartupModuleListGetter();
+			}
 
 			// Build the target's binaries.
 			foreach (var Binary in AppBinaries)
