@@ -1,5 +1,10 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+
 #include "EnginePrivate.h"
 #include "Engine/NiagaraEffectRenderer.h"
+#include "Particles/ParticleResources.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("PreRenderView"), STAT_NiagaraPreRenderView, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Total"), STAT_NiagaraRender, STATGROUP_Niagara);

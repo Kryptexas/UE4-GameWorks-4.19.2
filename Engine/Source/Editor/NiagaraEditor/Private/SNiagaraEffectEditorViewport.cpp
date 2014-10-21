@@ -8,6 +8,9 @@
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "NiagaraEditor.h"
 #include "ComponentReregisterContext.h"
+#include "Components/NiagaraComponent.h"
+#include "Engine/NiagaraEffect.h"
+#include "SDockTab.h"
 
 /** Viewport Client for the preview viewport */
 class FNiagaraEffectEditorViewportClient : public FEditorViewportClient

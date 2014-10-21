@@ -9,6 +9,7 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 
+#include "Misc/UObjectToken.h"
 #include "Components/InteractiveFoliageComponent.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/ModelComponent.h"

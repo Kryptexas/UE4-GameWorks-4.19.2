@@ -9,6 +9,7 @@ NiagaraEffectRenderer.h: Base class for Niagara render modules
 #include "ParticleHelper.h"
 #include "ParticleVertexFactory.h"
 #include "ParticleBeamTrailVertexFactory.h"
+#include "Components/NiagaraComponent.h"
 
 DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);

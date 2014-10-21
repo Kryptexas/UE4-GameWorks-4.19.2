@@ -1,6 +1,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/NiagaraSimulation.h"
+#include "Engine/NiagaraEffectRenderer.h"
 #include "VectorVM.h"
 
 
