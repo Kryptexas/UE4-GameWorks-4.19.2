@@ -1402,7 +1402,6 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 			FCompilerResultsLog Results;
 			FKismetCompilerOptions CompileOptions;
-			CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 			CompileOptions.bIsDuplicationInstigated = true;
 
 			//SCS can change structure of the class
@@ -1417,6 +1416,9 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 				Blueprint->GeneratedClass = NewClass;
 				NewClass->ClassGeneratedBy = Blueprint;
 				NewClass->SetSuperStruct(Blueprint->ParentClass);
+
+				// Since we just duplicated the generated class above, we don't need to do a full compile below
+				CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 			}
 			else
 			{
