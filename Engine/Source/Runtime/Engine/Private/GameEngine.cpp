@@ -196,7 +196,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	{
 		// consume available desktop area
 		FDisplayMetrics DisplayMetrics;
-		FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
+		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
 		
 		ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
 		ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
@@ -234,7 +234,7 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	{
 		// Always use the device's actual resolution that has been setup earlier
 		FDisplayMetrics DisplayMetrics;
-		FSlateApplication::Get().GetDisplayMetrics( DisplayMetrics );
+		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
 
 		// We need to pass the resolution back out to GameUserSettings, or it will just override it again
 		ResolutionX = DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
