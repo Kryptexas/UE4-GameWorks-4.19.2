@@ -328,12 +328,16 @@ public:
 
 		while (AStart < BStart && BStart < Num)
 		{
+			int32 NewAOffset = BinarySearchLast(First + AStart, BStart - AStart, First[BStart], Predicate) + 1;
+			AStart += NewAOffset;
+
+			if (AStart >= BStart) // done
+				break;
+
 			int32 NewBOffset = BinarySearchFirst(First + BStart, Num - BStart, First[AStart], Predicate);
-
 			TRotationPolicy::Rotate(First, AStart, BStart + NewBOffset, NewBOffset);
-
 			BStart += NewBOffset;
-			AStart += BinarySearchLast(First + AStart, BStart - AStart, First[AStart + NewBOffset], Predicate) + 1;
+			AStart += NewBOffset + 1;
 		}
 	}
 

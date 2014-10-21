@@ -4769,8 +4769,6 @@ struct FMobileLayerAllocation
 
 	friend bool operator<(const FMobileLayerAllocation& lhs, const FMobileLayerAllocation& rhs)
 	{
-		if (&lhs == &rhs) return false; // I don't know why StableSort is comparing elements against themself
-
 		if (!lhs.Allocation.LayerInfo && !rhs.Allocation.LayerInfo) return false; // equally broken :P
 		if (!lhs.Allocation.LayerInfo && rhs.Allocation.LayerInfo) return false; // broken layers sort to the end
 		if (!rhs.Allocation.LayerInfo && lhs.Allocation.LayerInfo) return true;
