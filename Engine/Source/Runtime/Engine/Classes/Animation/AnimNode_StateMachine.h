@@ -148,12 +148,17 @@ protected:
 	
 	// Used during transitions to make sure we don't double tick a state if it appears multiple times
 	TArray<int32> StatesUpdated;
-	
+
+private:
+	// true if it is the first update.
+	bool bFirstUpdate;
+
 public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
 		, PRIVATE_MachineDescription(NULL)
 		, CurrentState(INDEX_NONE)
+		, bFirstUpdate(true)
 	{
 	}
 
