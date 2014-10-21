@@ -562,6 +562,9 @@ public:
 	/** */
 	virtual void OnWorldInitDone(FNavigationSystem::EMode Mode);
 
+	/** adds BSP collisions of currently streamed in levels to octree */
+	void InitializeLevelCollisions();
+
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
 	static void SetNavigationAutoUpdateEnabled(bool bNewEnable, UNavigationSystem* InNavigationsystem);
@@ -659,6 +662,7 @@ protected:
 	uint32 bNavigationBuildingLocked:1;
 	uint32 bInitialBuildingLockActive:1;
 	uint32 bInitialSetupHasBeenPerformed:1;
+	uint32 bInitialLevelsAdded:1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
