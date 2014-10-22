@@ -18,11 +18,16 @@ namespace VisualLogger
 	};
 }
 
-struct FVisualLogEventBase
+struct ENGINE_API FVisualLogEventBase
 {
-	virtual FString GetName() const { return FString(); }
-	virtual FString GetUserFriendlyDesc() const { return FString(); }
-	virtual ELogVerbosity::Type GetVerbosity() const { return ELogVerbosity::All; }
+	const FString Name;
+	const FString FriendlyDesc;
+	const ELogVerbosity::Type Verbosity;
+
+	FVisualLogEventBase(const FString& InName, const FString& InFriendlyDesc, ELogVerbosity::Type InVerbosity)
+		: Name(InName), FriendlyDesc(InFriendlyDesc), Verbosity(InVerbosity)
+	{
+	}
 };
 
 struct ENGINE_API FVisualLogEntry
@@ -40,16 +45,16 @@ struct ENGINE_API FVisualLogEntry
 		FLogEvent() : Counter(1) {}
 		FLogEvent(const FVisualLogEventBase& Event) : Counter(1)
 		{
-			Name = Event.GetName();
-			UserFriendlyDesc = Event.GetUserFriendlyDesc();
-			Verbosity = Event.GetVerbosity();
+			Name = Event.Name;
+			UserFriendlyDesc = Event.FriendlyDesc;
+			Verbosity = Event.Verbosity;
 		}
 
 		FLogEvent& operator = (const FVisualLogEventBase& Event)
 		{
-			Name = Event.GetName();
-			UserFriendlyDesc = Event.GetUserFriendlyDesc();
-			Verbosity = Event.GetVerbosity();
+			Name = Event.Name;
+			UserFriendlyDesc = Event.FriendlyDesc;
+			Verbosity = Event.Verbosity;
 			return *this;
 		}
 	};
@@ -61,6 +66,8 @@ struct ENGINE_API FVisualLogEntry
 		int32 UniqueId;
 		int64 UserData;
 		FName TagName;
+
+		FLogLine() {}
 
 		FLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine)
 			: Line(InLine), Category(InCategory), Verbosity(InVerbosity), UserData(0)
@@ -246,24 +253,134 @@ struct ENGINE_API FVisualLogEntry
 		// find index of status category
 
 #endif // ENABLE_VISUAL_LOG
-	};
+};
 
 #if  ENABLE_VISUAL_LOG
-	FORCEINLINE int32 FVisualLogEntry::FindStatusIndex(const FString& CategoryName)
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry::FDataBlock& Data)
+{
+	Ar << Data.TagName;
+	Ar << Data.Category;
+	Ar << Data.Verbosity;
+	Ar << Data.Data;
+	Ar << Data.UniqueId;
+
+	return Ar;
+}
+
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry::FHistogramSample& Sample)
+{
+	Ar << Sample.Category;
+	Ar << Sample.Verbosity;
+	Ar << Sample.GraphName;
+	Ar << Sample.DataName;
+	Ar << Sample.SampleValue;
+	Ar << Sample.UniqueId;
+
+	return Ar;
+}
+
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry::FElementToDraw& Element)
+{
+	Ar << Element.Description;
+	Ar << Element.Category;
+	Ar << Element.Verbosity;
+	Ar << Element.Points;
+	Ar << Element.UniqueId;
+	Ar << Element.Type;
+	Ar << Element.Color;
+	Ar << Element.Thicknes;
+
+	return Ar;
+}
+
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry::FLogEvent& Event)
+{
+	Ar << Event.Name;
+	Ar << Event.UserFriendlyDesc;
+	Ar << Event.Verbosity;
+	Ar << Event.EventTags;
+	Ar << Event.Counter;
+	Ar << Event.UserData;
+	Ar << Event.TagName;
+
+	return Ar;
+}
+
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry::FLogLine& LogLine)
+{
+	Ar << LogLine.Category;
+	Ar << LogLine.Verbosity;
+	Ar << LogLine.TagName;
+	Ar << LogLine.UniqueId;
+	Ar << LogLine.UserData;
+	Ar << LogLine.Line;
+	return Ar;
+}
+
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry::FStatusCategory& Status)
+{
+	Ar << Status.Category;
+	Ar << Status.Data;
+
+	return Ar;
+}
+
+FORCEINLINE
+FArchive& operator<<(FArchive& Ar, FVisualLogEntry& LogEntry)
+{
+	Ar << LogEntry.TimeStamp;
+	Ar << LogEntry.Location;
+	Ar << LogEntry.LogLines;
+	Ar << LogEntry.Status;
+	Ar << LogEntry.Events;
+	Ar << LogEntry.ElementsToDraw;
+
+	return Ar;
+}
+
+FORCEINLINE int32 FVisualLogEntry::FindStatusIndex(const FString& CategoryName)
+{
+	for (int32 TestCategoryIndex = 0; TestCategoryIndex < Status.Num(); TestCategoryIndex++)
 	{
-		for (int32 TestCategoryIndex = 0; TestCategoryIndex < Status.Num(); TestCategoryIndex++)
+		if (Status[TestCategoryIndex].Category == CategoryName)
 		{
-			if (Status[TestCategoryIndex].Category == CategoryName)
-			{
-				return TestCategoryIndex;
-			}
+			return TestCategoryIndex;
 		}
-
-		return INDEX_NONE;
 	}
 
-	FORCEINLINE bool operator==(const FVisualLogEntry::FLogEvent& Left, const FVisualLogEntry::FLogEvent& Right)
-	{
-		return Left.Name == Right.Name;
-	}
+	return INDEX_NONE;
+}
+
+FORCEINLINE bool operator==(const FVisualLogEntry::FLogEvent& Left, const FVisualLogEntry::FLogEvent& Right)
+{
+	return Left.Name == Right.Name;
+}
+
+struct FVisualLoggerHelpers
+{
+	static FString GenerateTemporaryFilename(const FString& FileExt);
+	static FString GenerateFilename(const FString& TempFileName, const FString& Prefix, float StartRecordingTime, float EndTimeStamp);
+};
+
+FORCEINLINE 
+FString FVisualLoggerHelpers::GenerateTemporaryFilename(const FString& FileExt)
+{ 
+	return FString::Printf(TEXT("VTEMP_%s.%s"), *FDateTime::Now().ToString(), *FileExt);
+}
+
+FORCEINLINE
+FString FVisualLoggerHelpers::GenerateFilename(const FString& TempFileName, const FString& Prefix, float StartRecordingTime, float EndTimeStamp)
+{
+	const FString TempFullFilename = FString::Printf(TEXT("%slogs/%s"), *FPaths::GameSavedDir(), *TempFileName);
+	const FString FullFilename = FString::Printf(TEXT("%slogs/%s_%s"), *FPaths::GameSavedDir(), *Prefix, *TempFileName);
+	const FString TimeFrameString = FString::Printf(TEXT("%d-%d_"), FMath::TruncToInt(StartRecordingTime), FMath::TruncToInt(EndTimeStamp));
+	return FullFilename.Replace(TEXT("VTEMP_"), *TimeFrameString, ESearchCase::CaseSensitive);
+}
+
 #endif // ENABLE_VISUAL_LOG

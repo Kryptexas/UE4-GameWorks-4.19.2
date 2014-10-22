@@ -5,6 +5,7 @@
 #include "VisualLog.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerAutomationTests.h"
+#include "VisualLogger/VisualLoggerBinaryFileDevice.h"
 
 UVisualLoggerAutomationTests::UVisualLoggerAutomationTests(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -73,6 +74,7 @@ if ((__Test__)) \
 	return false; \
 }
 
+template<typename TYPE = FVisualLoggerTestDevice>
 struct FTestDeviceContext
 {
 	FTestDeviceContext() 
@@ -91,7 +93,7 @@ struct FTestDeviceContext
 		Device.Cleanup();
 	}
 
-	FVisualLoggerTestDevice Device;
+	TYPE Device;
 };
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogTest, "Engine.VisualLogger.Logging simple text", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
@@ -104,7 +106,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogTest, "Engine.VisualLogger.Logging si
 
 bool FVisualLogTest::RunTest(const FString& Parameters)
 {
-	FTestDeviceContext Context;
+	FTestDeviceContext<FVisualLoggerTestDevice> Context;
 
 	FVisualLogger::Get().SetIsRecording(false);
 	CHECK_FAIL(FVisualLogger::Get().IsRecording());
@@ -146,7 +148,7 @@ bool FVisualLogTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogSegmentsTest, "Engine.VisualLogger.Logging segment shape", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
 bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 {
-	FTestDeviceContext Context;
+	FTestDeviceContext<FVisualLoggerTestDevice> Context;
 
 	FVisualLogger::Get().SetIsRecording(false);
 	CHECK_FAIL(FVisualLogger::Get().IsRecording());
@@ -183,30 +185,26 @@ bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+DEFINE_VLOG_EVENT(EventTest, All, "Simple event for tests")
+
+DEFINE_VLOG_EVENT(EventTest2, All, "Second simple event for tests")
+
+DEFINE_VLOG_EVENT(EventTest3, All, "Third simple event for tests")
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogEventsTest, "Engine.VisualLogger.Logging events", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
-
-DECLARE_VLOG_EVENT(EventTest, All, "Simple event for tests")
-DEFINE_VLOG_EVENT(EventTest)
-
-DECLARE_VLOG_EVENT(EventTest2, All, "Second simple event for tests")
-DEFINE_VLOG_EVENT(EventTest2)
-
-DECLARE_VLOG_EVENT(EventTest3, All, "Third simple event for tests")
-DEFINE_VLOG_EVENT(EventTest3)
-
 bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 {
-	FTestDeviceContext Context;
+	FTestDeviceContext<FVisualLoggerTestDevice> Context;
 	FVisualLogger::Get().SetIsRecording(true);
 
-	CHECK_SUCCESS(EventTest.GetName() == TEXT("EventTest"));
-	CHECK_SUCCESS(EventTest.GetUserFriendlyDesc() == TEXT("Simple event for tests"));
+	CHECK_SUCCESS(EventTest.Name == TEXT("EventTest"));
+	CHECK_SUCCESS(EventTest.FriendlyDesc == TEXT("Simple event for tests"));
 
-	CHECK_SUCCESS(EventTest2.GetName() == TEXT("EventTest2"));
-	CHECK_SUCCESS(EventTest2.GetUserFriendlyDesc() == TEXT("Second simple event for tests"));
+	CHECK_SUCCESS(EventTest2.Name == TEXT("EventTest2"));
+	CHECK_SUCCESS(EventTest2.FriendlyDesc == TEXT("Second simple event for tests"));
 
-	CHECK_SUCCESS(EventTest3.GetName() == TEXT("EventTest3"));
-	CHECK_SUCCESS(EventTest3.GetUserFriendlyDesc() == TEXT("Third simple event for tests"));
+	CHECK_SUCCESS(EventTest3.Name == TEXT("EventTest3"));
+	CHECK_SUCCESS(EventTest3.FriendlyDesc == TEXT("Third simple event for tests"));
 
 	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
 	float CurrentTimestamp = GWorld->TimeSeconds;

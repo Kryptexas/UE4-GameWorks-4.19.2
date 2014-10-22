@@ -461,7 +461,7 @@ void FVisualLog::StopRecordingToFile(float TImeStamp)
 
 void FVisualLog::SetFileName(const FString& InFileName)
 {
-	BaseFileName = InFileName;
+	FileName = InFileName;
 }
 
 void FVisualLog::Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
@@ -478,11 +478,13 @@ void FVisualLog::Serialize(const class UObject* LogOwner, FName OwnerName, const
 	{
 		OnNewLogCreated.ExecuteIfBound(LogOwner, Log);
 	}
+
+	LastLogTimeStamp = LogEntry.TimeStamp;
 }
 
 FString FVisualLog::GetLogFileFullName() const
 {
-	FString FileName = FString::Printf(TEXT("%s_%.0f-%.0f_%s.vlog"), *BaseFileName, StartRecordingTime, GWorld ? GWorld->TimeSeconds : 0, *FDateTime::Now().ToString());
+	FString FileName = FString::Printf(TEXT("%s_%.0f-%.0f_%s.vlog"), *FileName, StartRecordingTime, GWorld ? GWorld->TimeSeconds : 0, *FDateTime::Now().ToString());
 
 	const FString FullFilename = FString::Printf(TEXT("%slogs/%s"), *FPaths::GameSavedDir(), *FileName);
 
@@ -546,9 +548,25 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 			const FString HeadetStr = TEXT("]}");
 			auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);
 			FileAr->Serialize((UCS2CHAR*)AnsiAdditionalData.Get(), HeadetStr.Len() * sizeof(UCS2CHAR));
+
+			const int64 TotalSize = FileAr->TotalSize();
 			FileAr->Close();
 			delete FileAr;
 			FileAr = NULL;
+
+			const FString TempFullFilename = FString::Printf(TEXT("%slogs/%s"), *FPaths::GameSavedDir(), *TempFileName);
+			const FString NewFileName = FVisualLoggerHelpers::GenerateFilename(TempFileName, FileName, StartRecordingTime, LastLogTimeStamp);
+
+			if (TotalSize > 0)
+			{
+				// rename file when we serialized some data
+				IFileManager::Get().Move(*NewFileName, *TempFullFilename, true);
+			}
+			else
+			{
+				// or remove file if nothing serialized
+				IFileManager::Get().Delete(*TempFullFilename, false, true, true);
+			}
 		}
 
 		Cleanup(true);
@@ -559,10 +577,13 @@ void FVisualLog::SetIsRecording(bool NewRecording, bool bRecordToFile)
 	{
 		bIsRecordingToFile = bRecordToFile;
 		StartRecordingTime = GWorld ? GWorld->TimeSeconds : 0.0f;
+		LastLogTimeStamp = StartRecordingTime;
 
 		if (!FileAr)
 		{
-			FileAr = IFileManager::Get().CreateFileWriter(*GetLogFileFullName());
+			TempFileName = FVisualLoggerHelpers::GenerateTemporaryFilename(TEXT("vlog"));
+			const FString FullFilename = FString::Printf(TEXT("%slogs/%s"), *FPaths::GameSavedDir(), *TempFileName);
+			FileAr = IFileManager::Get().CreateFileWriter(*FullFilename);
 
 			const FString HeadetStr = TEXT("{\"Logs\":[{}");
 			auto AnsiAdditionalData = StringCast<UCS2CHAR>(*HeadetStr);

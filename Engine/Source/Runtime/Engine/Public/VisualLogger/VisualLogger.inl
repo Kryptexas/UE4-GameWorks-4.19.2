@@ -279,7 +279,7 @@ void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1,
 {
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
-	const FLogCategory<ELogVerbosity::Log, ELogVerbosity::Log> Category(*Event.GetName());
+	const FLogCategory<ELogVerbosity::Log, ELogVerbosity::Log> Category(*Event.Name);
 	if (CheckVisualLogInputInternal(Object, Category, ELogVerbosity::Log, &World, &CurrentEntry) == false)
 	{
 		return;

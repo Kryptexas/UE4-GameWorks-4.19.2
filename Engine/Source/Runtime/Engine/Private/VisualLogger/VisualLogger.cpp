@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "VisualLog.h"
 #include "VisualLogger/VisualLogger.h"
+#include "VisualLogger/VisualLoggerBinaryFileDevice.h"
 
 #if ENABLE_VISUAL_LOG 
 
@@ -12,8 +13,18 @@ TMap<class UObject*, TArray<TWeakObjectPtr<const class UObject> > > FVisualLogge
 
 FVisualLogger::FVisualLogger()
 {
+	bool UseBinaryFileDevice = false;
+	GConfig->GetBool(TEXT("VisualLogger"), TEXT("UseBinaryFileDevice"), UseBinaryFileDevice, GEngineIni);
+
 	BlockAllCategories(false);
-	AddDevice(&FVisualLog::GetStatic());
+	if (UseBinaryFileDevice)
+	{
+		AddDevice(&FVisualLoggerBinaryFileDevice::Get());
+	}
+	else
+	{
+		AddDevice(&FVisualLog::GetStatic());
+	}
 	SetIsRecording(GEngine ? !!GEngine->bEnableVisualLogRecordingOnStart : false);
 	SetIsRecordingOnServer(false);
 
@@ -26,6 +37,16 @@ FVisualLogger::FVisualLogger()
 
 FVisualLogger::~FVisualLogger()
 {
+	bool UseBinaryFileDevice = false;
+	GConfig->GetBool(TEXT("VisualLogger"), TEXT("UseBinaryFileDevice"), UseBinaryFileDevice, GEngineIni);
+	if (UseBinaryFileDevice)
+	{
+		RemoveDevice(&FVisualLoggerBinaryFileDevice::Get());
+	}
+	else
+	{
+		RemoveDevice(&FVisualLoggerBinaryFileDevice::Get());
+	}
 	RemoveDevice(&FVisualLog::GetStatic());
 }
 
@@ -117,24 +138,10 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 		SetIsRecording(true);
 	}
 
-	FString BaseFileName = TEXT("VisualLog");
-	FString UserDefinedName;
-	FString MapName = GWorld.GetReference() ? GWorld->GetMapName() : TEXT("");
-	if (LogFileNameGetter.IsBound())
-	{
-		UserDefinedName = LogFileNameGetter.Execute();
-	}
-	if (UserDefinedName.Len() > 0)
-	{
-		if (MapName.Len() > 0)
-		{
-			BaseFileName = FString::Printf(TEXT("%s_%s"), *UserDefinedName, *MapName);
-		}
-		else
-		{
-			BaseFileName = UserDefinedName;
-		}
-	}
+	const FString BaseFileName = LogFileNameGetter.IsBound() ? LogFileNameGetter.Execute() : TEXT("VisualLog");
+	const FString MapName = GWorld.GetReference() ? GWorld->GetMapName() : TEXT("");
+
+	FString OutputFileName = FString::Printf(TEXT("%s_%s"), *BaseFileName, *MapName);
 
 	if (bIsRecordingToFile && !InIsRecording)
 	{
@@ -142,6 +149,7 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 		{
 			if (Device->HasFlags(VisualLogger::CanSaveToFile))
 			{
+				Device->SetFileName(OutputFileName);
 				Device->StopRecordingToFile(GWorld.GetReference() ? GWorld->TimeSeconds : StartRecordingToFileTime);
 			}
 		}
@@ -153,7 +161,6 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 		{
 			if (Device->HasFlags(VisualLogger::CanSaveToFile))
 			{
-				Device->SetFileName(BaseFileName);
 				Device->StartRecordingToFile(StartRecordingToFileTime);
 			}
 		}

@@ -166,8 +166,9 @@ private:
 	FOnNewLogCreatedDelegate OnNewLogCreated;
 
 	float StartRecordingTime;
-
-	FString BaseFileName;
+	float LastLogTimeStamp;
+	FString TempFileName;
+	FString FileName;
 
 	int32 bIsRecordingOnServer : 1;
 	int32 bIsRecordingToFile : 1;
