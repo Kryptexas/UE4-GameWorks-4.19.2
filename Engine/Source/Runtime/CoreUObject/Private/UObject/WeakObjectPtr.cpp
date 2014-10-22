@@ -55,7 +55,7 @@ public:
 		}
 		GSerialNumberBlocksForDebugVisualizersRoot = (int32**)&Blocks;
 
-		FCoreDelegates::GetSerialNumberBlocksDebugVisualizers.BindStatic(&GetSerialNumberBlocksForDebugVisualizersPtr);
+		FCoreDelegates::GetSerialNumberBlocksForDebugVisualizersDelegate().BindStatic(&GetSerialNumberBlocksForDebugVisualizersPtr);
 	}
 	/** Destructor, does nothing, leaks the memory **/
 	~FSerialNumberManager()

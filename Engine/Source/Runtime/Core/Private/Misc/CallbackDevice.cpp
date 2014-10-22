@@ -20,6 +20,18 @@ FCoreDelegates::FHotFixDelegate& FCoreDelegates::GetHotfixDelegate(EHotfixDelega
 	return HotFixDelegates[HotFix];
 }
 
+FCoreDelegates::FObjectArrayForDebugVisualizersDelegate& FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate()
+{
+	static FObjectArrayForDebugVisualizersDelegate StaticDelegate;
+	return StaticDelegate;
+}
+
+FCoreDelegates::FGetSerialNumberBlocksForDebugVisualizersDelegate& FCoreDelegates::GetSerialNumberBlocksForDebugVisualizersDelegate()
+{
+	static FGetSerialNumberBlocksForDebugVisualizersDelegate StaticDelegate;
+	return StaticDelegate;
+}
+
 FCoreDelegates::FOnMountPak FCoreDelegates::OnMountPak;
 FCoreDelegates::FOnUserLoginChangedEvent FCoreDelegates::OnUserLoginChangedEvent; 
 FCoreDelegates::FOnUserControllerConnectionChange FCoreDelegates::OnControllerConnectionChange;
@@ -36,8 +48,6 @@ FSimpleMulticastDelegate FCoreDelegates::OnShutdownAfterError;
 FSimpleMulticastDelegate FCoreDelegates::OnInit;
 FSimpleMulticastDelegate FCoreDelegates::OnExit;
 FSimpleMulticastDelegate FCoreDelegates::OnPreExit;
-FCoreDelegates::FGetSerialNumberBlocksForDebugVisualizersDelegate FCoreDelegates::GetSerialNumberBlocksDebugVisualizers;
-FCoreDelegates::FObjectArrayForDebugVisualizersDelegate FCoreDelegates::ObjectArrayForDebugVisualizers;
 FSimpleMulticastDelegate FCoreDelegates::ColorPickerChanged;
 FCoreDelegates::FOnModalMessageBox FCoreDelegates::ModalErrorMessage;
 FCoreDelegates::FOnInviteAccepted FCoreDelegates::OnInviteAccepted;

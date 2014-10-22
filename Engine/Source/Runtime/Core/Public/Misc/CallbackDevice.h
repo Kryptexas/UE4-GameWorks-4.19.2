@@ -61,7 +61,7 @@ public:
 	DECLARE_DELEGATE_RetVal(TArray<class UObjectBase*>*, FObjectArrayForDebugVisualizersDelegate);
 
 	// Called in PER_MODULE_BOILERPLATE macro.
-	static FObjectArrayForDebugVisualizersDelegate ObjectArrayForDebugVisualizers;
+	static FObjectArrayForDebugVisualizersDelegate& GetObjectArrayForDebugVisualizersDelegate();
 
 	// Callback for handling an ensure
 	DECLARE_MULTICAST_DELEGATE(FOnHandleSystemEnsure);
@@ -127,7 +127,7 @@ public:
 	static FSimpleMulticastDelegate OnPreExit;
 
 	// Called in PER_MODULE_BOILERPLATE macro.
-	static FGetSerialNumberBlocksForDebugVisualizersDelegate GetSerialNumberBlocksDebugVisualizers;
+	static FGetSerialNumberBlocksForDebugVisualizersDelegate& GetSerialNumberBlocksForDebugVisualizersDelegate();
 
 	/** Color picker color has changed, please refresh as needed*/
 	static FSimpleMulticastDelegate ColorPickerChanged;

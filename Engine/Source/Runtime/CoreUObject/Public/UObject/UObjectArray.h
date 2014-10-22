@@ -67,7 +67,7 @@ public:
 		ObjLastNonGCIndex(INDEX_NONE),
 		OpenForDisregardForGC(true)
 	{
-		FCoreDelegates::ObjectArrayForDebugVisualizers.BindStatic(GetObjectArrayForDebugVisualizers);
+		FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate().BindStatic(GetObjectArrayForDebugVisualizers);
 	}
 
 	/**
