@@ -37,6 +37,8 @@ struct FBTBuilder
 		KeyData.KeyType = NewObject<UBlackboardKeyType_Bool>();
 		BB->Keys.Add(KeyData);
 
+		BB->UpdateParentKeys();
+
 		UBehaviorTree* TreeOb = NewObject<UBehaviorTree>();
 		TreeOb->BlackboardAsset = BB;
 
