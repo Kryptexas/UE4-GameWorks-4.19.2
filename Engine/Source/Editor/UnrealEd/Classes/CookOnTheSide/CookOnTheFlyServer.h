@@ -21,11 +21,20 @@ enum class ECookInitializationFlags
 	Unversioned = 0x8,				// save the cooked packages without a version number
 	AutoTick = 0x10,				// enable ticking (only works in the editor)
 	AsyncSave = 0x20,				// save packages async
-	LeakTest = 0x40,				// test for uobject leaks after each level load
 	IncludeServerMaps = 0x80,		// should we include the server maps when cooking
 	GenerateStreamingInstallManifest = 0x100,  // should we generate streaming install manifest
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
+
+enum class ECookByTheBookOptions
+{
+	None = 0x0,					// no flags
+	CookAll = 0x1,				// cook all maps and content in the content directory
+	MapsOnly = 0x2,				// cook only maps
+	NoDevContent = 0x4,			// don't include dev content
+	LeakTest = 0x8,				// test for uobject leaks after each level load
+};
+ENUM_CLASS_FLAGS(ECookByTheBookOptions);
 
 UENUM()
 namespace ECookMode
@@ -572,6 +581,8 @@ private:
 			CookStartTime( 0.0 )
 		{ }
 
+		/** Should we test for UObject leaks */
+		bool bLeakTest;
 		/** Should we generate streaming install manifests (only valid option in cook by the book) */
 		bool bGenerateStreamingInstallManifests;
 		/** Is cook by the book currently running */
@@ -660,7 +671,10 @@ public:
 	 * Start a cook by the book session
 	 * Cook on the fly can't run at the same time as cook by the book
 	 */
-	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections );
+	void StartCookByTheBook(const TArray<ITargetPlatform*>& TargetPlatforms, 
+		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, 
+		const TArray<FString>& CookCultures, const TArray<FString>& IniMapSections, 
+		ECookByTheBookOptions CookOptions = ECookByTheBookOptions::None );
 
 	/**
 	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
@@ -741,6 +755,12 @@ private:
 	void CollectFilesToCook(TArray<FString>& FilesInPath, 
 		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, 
 		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev);
+
+	/**
+	 * AddFileToCook add file to cook list 
+	 */
+	void AddFileToCook( TArray<FString>& InOutFilesToCook, const FString &InFilename ) const;
+
 	/**
 	 * Call back from the TickCookOnTheSide when a cook by the book finishes (when started form StartCookByTheBook)
 	 */
@@ -756,20 +776,6 @@ private:
 		return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookByTheBook; 
 	}
 
-	/**
-	 * GetDependencies
-	 * 
-	 * @param Packages List of packages to use as the root set for dependency checking
-	 * @param Found return value, all objects which package is dependent on
-	 */
-	void GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found);
-	/**
-	 * GenerateManifestInfo
-	 * generate the manifest information for a given package
-	 *
-	 * @param Package package to generate manifest information for
-	 */
-	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
 
 	//////////////////////////////////////////////////////////////////////////
 	// cook on the fly specific functions
@@ -803,7 +809,59 @@ private:
 	 */
 	bool ShouldCook(const FString& InFileName, const FName& InPlatformName);
 
+	/**
+	 * GetDependencies
+	 * 
+	 * @param Packages List of packages to use as the root set for dependency checking
+	 * @param Found return value, all objects which package is dependent on
+	 */
+	void GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found);
+	/**
+	 * GenerateManifestInfo
+	 * generate the manifest information for a given package
+	 *
+	 * @param Package package to generate manifest information for
+	 */
+	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
 
+	/**
+	 * GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook
+	 * 
+	 * @param IniVersionStrings return list of the important current ini version strings
+	 * @return false if function fails (should assume all platforms are out of date)
+	 */
+	bool GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString> &IniVersionStrings ) const;
+
+	/**
+	 * GetCookedIniVersionStrings gets the ini version strings used in previous cook for specified target platform
+	 * 
+	 * @param IniVersionStrings return list of the previous cooks ini version strings
+	 * @return false if function fails to find the ini version strings
+	 */
+	bool GetCookedIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings ) const;
+
+	/**
+	 * Checks if important ini settings have changed since last cook for each target platform 
+	 * 
+	 * @param TargetPlatforms to check if out of date
+	 * @param OutOfDateTargetPlatforms return list of out of date target platforms which should be cleaned
+	 */
+	bool IniSettingsOutOfDate( const TArray<ITargetPlatform*>& TargetPlatforms, TArray<ITargetPlatform*>& OutOfDateTargetPlatforms ) const;
+
+	/**
+	 * SaveIniVersionStrings save out the ini version strings for all platforms so next cook can use them
+	 * -iterate uses this to figure out if content needs to be recooked
+	 * 
+	 * @param TargetPlatforms the target platforms to generate ini version info for
+	 */
+	void SaveIniVersionStrings( const TArray<ITargetPlatform*>& TargetPlatforms ) const;
+
+	/**
+	 * IsCookFlagSet
+	 * 
+	 * @param InCookFlag used to check against the current cook flags
+	 * @return true if the cook flag is set false otherwise
+	 */
 	bool IsCookFlagSet( const ECookInitializationFlags& InCookFlags ) const 
 	{
 		return (CookFlags & InCookFlags) != ECookInitializationFlags::None;

@@ -84,6 +84,15 @@ struct FTextureLODSettings
 	ENGINE_API ESamplerFilter GetSamplerFilter( const UTexture* Texture ) const;
 
 	/**
+	 * Returns the LODGroup mip gen settings
+	 *
+	 * @param	InLODGroup		The LOD Group ID 
+	 * @return	TextureMipGenSettings for lod group
+	 */
+	ENGINE_API const TextureMipGenSettings& GetTextureMipGenSettings( int32 InLODGroup ) const; 
+
+
+	/**
 	 * Returns the texture group names, sorted like enum.
 	 *
 	 * @return array of texture group names

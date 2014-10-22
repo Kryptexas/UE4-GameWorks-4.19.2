@@ -281,6 +281,19 @@ int32 FTextureLODSettings::GetNumStreamedMips( int32 InLODGroup ) const
 }
 
 /**
+ * Returns the LODGroup mip gen settings
+ *
+ * @param	InLODGroup		The LOD Group ID 
+ * @return	TextureMipGenSettings for lod group
+ */
+ const TextureMipGenSettings& FTextureLODSettings::GetTextureMipGenSettings( int32 InLODGroup ) const
+{
+	return TextureLODGroups[InLODGroup].MipGenSettings; 
+}
+
+
+
+/**
  * Returns the filter state that should be used for the passed in texture, taking
  * into account other system settings.
  *

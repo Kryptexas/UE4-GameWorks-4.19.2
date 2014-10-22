@@ -1894,7 +1894,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 	UE_LOG(LogShaders, Log, TEXT("FinishAllCompilation %.3fs"), (float)(EndTime - StartTime));
 }
 
-void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion, bool bProcessShaderMapNotForRendering)
+void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool bBlockOnGlobalShaderCompletion)
 {
 	if (bAllowAsynchronousShaderCompiling)
 	{
@@ -1929,9 +1929,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				{
 					const FShaderMapCompileResults& Results = It.Value();
 
-					if (Results.FinishedJobs.Num() == Results.NumJobsQueued 
-						// Shader maps that don't want to be applied can only be processed by a call to FinishCompilation
-						&& (Results.bApplyCompletedShaderMapForRendering || bProcessShaderMapNotForRendering) )
+					if (Results.FinishedJobs.Num() == Results.NumJobsQueued)
 					{
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
