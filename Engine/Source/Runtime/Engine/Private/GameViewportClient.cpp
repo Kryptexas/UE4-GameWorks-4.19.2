@@ -95,7 +95,6 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	TitleSafeZone.RecommendedPercentY = 0.8f;
 
 	bIsPlayInEditorViewport = false;
-	ProgressFadeTime = 1.0f;
 	ViewModeIndex = VMI_Lit;
 
 	SplitscreenInfo.Init(FSplitscreenData(), ESplitScreenType::SplitTypeCount);
