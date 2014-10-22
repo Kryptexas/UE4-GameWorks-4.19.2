@@ -699,7 +699,10 @@ FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InV
 		FString PreviousValue;
 		GetValueAsString( PreviousValue );
 
-		if (ParentNode && (ParentNode->GetInstancesNum() == 1 || (Value.Len() && FCString::Strcmp(*PreviousValue, *Value) != 0)))
+		const bool bDidValueChange = Value.Len() && (FCString::Strcmp(*PreviousValue, *Value) != 0);
+		const bool bComingOutOfInteractiveChange = bInteractiveChangeInProgress && ( ( Flags & EPropertyValueSetFlags::InteractiveChange ) != EPropertyValueSetFlags::InteractiveChange );
+
+		if ( ParentNode && ( ParentNode->GetInstancesNum() == 1 || bComingOutOfInteractiveChange || bDidValueChange ) )
 		{
 			ImportText( Value, PropertyNodePin.Get(), Flags );
 		}
