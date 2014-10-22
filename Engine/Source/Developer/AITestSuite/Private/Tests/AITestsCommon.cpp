@@ -150,7 +150,6 @@ bool FAITest_SimpleBT::Update()
 void FAITest_SimpleBT::VerifyResults()
 {
 	const bool bMatch = (ExpectedResult == UMockAI_BT::ExecutionLog);
-	ensure(bMatch && "VerifyResults failed!");
 	if (!bMatch)
 	{
 		FString DescriptionResult;
