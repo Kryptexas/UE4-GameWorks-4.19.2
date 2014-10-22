@@ -3,6 +3,7 @@
 #include "PersonaPrivatePCH.h"
 #include "SRigPicker.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Animation/Rig.h"
 
 #define LOCTEXT_NAMESPACE "RigPicker"
 
