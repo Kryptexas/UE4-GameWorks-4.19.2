@@ -426,9 +426,9 @@ private:
 	virtual void ToggleStatCommand(FString CommandName) override;
 
 	/**
-	 * Called when show flags for this viewport should be reset to default
+	 * Called when show flags for this viewport should be reset to default, or the saved settings
 	 */
-	void OnUseDefaultShowFlags();
+	void OnUseDefaultShowFlags(bool bUseSavedDefaults = false);
 
 	/**
 	 * Changes the buffer visualization mode for this viewport
@@ -745,6 +745,9 @@ private:
 
 	/** The current device profile string */
 	FString DeviceProfile;
+
+	/** The current viewport config key */
+	FString ConfigKey;
 
 	/**
 	 * Contains information about an actor being previewed within this viewport
