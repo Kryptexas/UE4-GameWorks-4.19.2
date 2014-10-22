@@ -964,6 +964,14 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 			}
 		}
 	}
+	else
+	{
+		// Missing chunk list, version before we saved them compressed.. Assume chunk size
+		for (FChunkInfoData& ChunkInfo : Data->ChunkList)
+		{
+			ChunkInfo.FileSize = FBuildPatchData::ChunkDataSize;
+		}
+	}
 
 	// Get the bIsFileData value. The variable will exist in versions of StoresIfChunkOrFileData or later, otherwise the previous method is to check
 	// if ChunkHashList is empty.
