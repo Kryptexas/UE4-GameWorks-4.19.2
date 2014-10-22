@@ -536,6 +536,10 @@ FName UBlueprintGeneratedClass::GetUberGraphFrameName()
 
 bool UBlueprintGeneratedClass::UsePersistentUberGraphFrame()
 {
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
 	static const FBoolConfigValueHelper PersistentUberGraphFrame(TEXT("Kismet"), TEXT("bPersistentUberGraphFrame"), GEngineIni);
 	return PersistentUberGraphFrame;
+#else
+	return false;
+#endif
 }

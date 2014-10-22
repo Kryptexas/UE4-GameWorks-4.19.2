@@ -257,9 +257,13 @@ void UObjectBase::SetClass(UClass* NewClass)
 	STAT(StatID = TStatId();) // reset the stat id since this thing now has a different name
 
 	UnhashObject(this);
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
 	Class->DestroyPersistentUberGraphFrame((UObject*)this);
+#endif
 	Class = NewClass;
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
 	Class->CreatePersistentUberGraphFrame((UObject*)this);
+#endif
 	HashObject(this);
 }
 

@@ -1813,7 +1813,9 @@ void UObject::PostInitProperties()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PostInitPropertiesCheck.Push(this);
 #endif
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
 	GetClass()->CreatePersistentUberGraphFrame(this);
+#endif
 }
 
 UObject::UObject(const FObjectInitializer& ObjectInitializer)

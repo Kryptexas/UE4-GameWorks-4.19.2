@@ -237,3 +237,6 @@
 
 /** Enable the use of the network profiler as long as we are a build that includes stats */
 #define USE_NETWORK_PROFILER         STATS
+
+/** Enable UberGraphPersistentFrame feature. It can speed up BP compilation (re-instancing) in editor, but introduce an unnecessary overhead in runtime. */
+#define USE_UBER_GRAPH_PERSISTENT_FRAME 1

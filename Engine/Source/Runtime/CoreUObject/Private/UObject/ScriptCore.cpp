@@ -402,7 +402,10 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 	}
 	else
 	{
-		uint8* Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+		uint8* Frame = NULL;
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+		Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+#endif
 		const bool bUsePersistentFrame = (NULL != Frame);
 		if (!bUsePersistentFrame)
 		{
@@ -839,7 +842,10 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 
 	// Scope required for scoped script stats.
 	{
-		uint8* Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+		uint8* Frame = NULL;
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
+		Frame = GetClass()->GetPersistentUberGraphFrame(this, Function);
+#endif
 		const bool bUsePersistentFrame = (NULL != Frame);
 		if (!bUsePersistentFrame)
 		{
@@ -1214,6 +1220,7 @@ IMPLEMENT_VM_FUNCTION( EX_PopExecutionFlowIfNot, execPopExecutionFlowIfNot );
 
 void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 {
+#if USE_UBER_GRAPH_PERSISTENT_FRAME
 	Stack.MostRecentProperty = NULL;
 	Stack.MostRecentPropertyAddress = NULL;
 
@@ -1225,6 +1232,9 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 	auto DestAddress = DestProperty->ContainerPtrToValuePtr<uint8>(FrameBase);
 
 	Stack.Step(Stack.Object, DestAddress);
+#else
+	checkf(false, TEXT("execLetValueOnPersistentFrame: UberGraphPersistentFrame is not supported by current build!")
+#endif
 }
 IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
