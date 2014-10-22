@@ -13,7 +13,7 @@ TMap<class UObject*, TArray<TWeakObjectPtr<const class UObject> > > FVisualLogge
 
 FVisualLogger::FVisualLogger()
 {
-	bool UseBinaryFileDevice = false;
+	UseBinaryFileDevice = false;
 	GConfig->GetBool(TEXT("VisualLogger"), TEXT("UseBinaryFileDevice"), UseBinaryFileDevice, GEngineIni);
 
 	BlockAllCategories(false);
@@ -37,17 +37,14 @@ FVisualLogger::FVisualLogger()
 
 FVisualLogger::~FVisualLogger()
 {
-	bool UseBinaryFileDevice = false;
-	GConfig->GetBool(TEXT("VisualLogger"), TEXT("UseBinaryFileDevice"), UseBinaryFileDevice, GEngineIni);
 	if (UseBinaryFileDevice)
 	{
 		RemoveDevice(&FVisualLoggerBinaryFileDevice::Get());
 	}
 	else
 	{
-		RemoveDevice(&FVisualLoggerBinaryFileDevice::Get());
+		RemoveDevice(&FVisualLog::GetStatic());
 	}
-	RemoveDevice(&FVisualLog::GetStatic());
 }
 
 void FVisualLogger::Shutdown()

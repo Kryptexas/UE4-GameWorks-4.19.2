@@ -237,6 +237,8 @@ protected:
 	float StartRecordingToFileTime;
 	/** Delegate to set project specific file name for vlogs */
 	FVisualLogFilenameGetterDelegate LogFileNameGetter;
+	/** Specifies if the Binary Device is being used */
+	bool UseBinaryFileDevice;
 };
 
 /**
