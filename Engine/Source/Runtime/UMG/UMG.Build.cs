@@ -23,8 +23,16 @@ public class UMG : ModuleRules
 				"RenderCore",
 				"MovieSceneCore",
 				"RHI",
-				"SlateRHIRenderer",
 			}
 		);
+
+		if (Target.Type != TargetRules.TargetType.Server)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"SlateRHIRenderer",
+				}
+			);
+		};
 	}
 }
