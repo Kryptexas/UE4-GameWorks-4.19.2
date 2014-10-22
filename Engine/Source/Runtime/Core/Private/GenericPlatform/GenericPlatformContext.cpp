@@ -2,6 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "GenericPlatform/GenericPlatformContext.h"
+#include "Misc/App.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";

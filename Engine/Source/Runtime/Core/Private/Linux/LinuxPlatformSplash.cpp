@@ -6,6 +6,7 @@
 
 
 #include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 

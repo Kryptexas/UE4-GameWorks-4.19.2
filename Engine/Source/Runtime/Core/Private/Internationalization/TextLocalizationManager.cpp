@@ -1,6 +1,7 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "InternationalizationManifest.h"
 #include "TextLocalizationResourceGenerator.h"
 

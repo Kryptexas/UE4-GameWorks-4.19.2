@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "VarargsHelper.h"

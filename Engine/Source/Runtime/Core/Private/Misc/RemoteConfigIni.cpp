@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
-#include "RemoteConfigIni.h"
+#include "Misc/App.h"
+#include "Misc/RemoteConfigIni.h"
 
 // Globals
 FRemoteConfig GRemoteConfig;

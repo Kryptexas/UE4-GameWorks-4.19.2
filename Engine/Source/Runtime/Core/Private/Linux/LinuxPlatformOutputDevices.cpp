@@ -11,6 +11,7 @@
 #include "LinuxApplication.h"
 #include "LinuxPlatformOutputDevicesPrivate.h"
 #include "LinuxPlatformFeedbackContextPrivate.h"
+#include "Misc/App.h"
 
 #define CONSOLE_RED		"\x1b[31m"
 #define CONSOLE_GREEN	"\x1b[32m"

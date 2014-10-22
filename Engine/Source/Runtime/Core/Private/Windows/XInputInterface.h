@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 
 /** Max number of controllers. */
 #define MAX_NUM_XINPUT_CONTROLLERS 4

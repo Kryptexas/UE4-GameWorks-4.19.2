@@ -2,6 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Misc/App.h"
 
 
 /* FApp static initialization

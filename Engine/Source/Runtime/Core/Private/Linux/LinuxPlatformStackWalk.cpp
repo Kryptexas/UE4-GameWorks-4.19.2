@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <cxxabi.h>

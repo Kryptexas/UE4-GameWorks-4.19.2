@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
+#include "Misc/App.h"
 #include "../../Launch/Resources/Version.h"
 #include "MacApplication.h"
 #include <mach-o/dyld.h>

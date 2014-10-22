@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
 #include "XInputInterface.h"
-#include "GenericApplication.h"
+#include "GenericPlatform/GenericApplication.h"
 
 #pragma pack (push,8)
 #include "AllowWindowsPlatformTypes.h"

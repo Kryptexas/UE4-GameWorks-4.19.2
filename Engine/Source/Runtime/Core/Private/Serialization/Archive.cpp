@@ -4,7 +4,8 @@
 	UnArchive.cpp: Core archive classes.
 =============================================================================*/
 #include "CorePrivatePCH.h"
-#include "Archive.h"
+#include "Serialization/Archive.h"
+#include "Serialization/CustomVersion.h"
 
 /*-----------------------------------------------------------------------------
 	FArchiveProxy implementation.

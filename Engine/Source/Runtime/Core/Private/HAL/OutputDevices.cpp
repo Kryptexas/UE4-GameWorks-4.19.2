@@ -5,9 +5,9 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
-
-#include <stdio.h>
+#include "Misc/App.h"
 #include "Templates/UniquePtr.h"
+#include <stdio.h>
 
 // #if _MSC_VER
 // #pragma warning (push)

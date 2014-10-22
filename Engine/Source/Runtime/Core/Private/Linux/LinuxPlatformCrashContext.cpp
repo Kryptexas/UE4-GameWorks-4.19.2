@@ -2,6 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "Linux/LinuxPlatformCrashContext.h"
+#include "Misc/App.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 #include <sys/utsname.h>	// for uname()

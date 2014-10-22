@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Misc/App.h"
+#include "Misc/FeedbackContext.h"
 
 /*-----------------------------------------------------------------------------
 	FFeedbackContextAnsi.

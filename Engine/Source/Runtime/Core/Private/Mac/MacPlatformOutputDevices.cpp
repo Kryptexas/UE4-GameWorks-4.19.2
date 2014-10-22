@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
+#include "Misc/App.h"
 
 #include "FeedbackContextAnsi.h"
 #include "MacApplication.h"

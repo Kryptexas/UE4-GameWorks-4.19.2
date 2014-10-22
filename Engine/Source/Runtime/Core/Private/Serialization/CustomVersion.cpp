@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
+#include "Serialization/CustomVersion.h"
 
 namespace
 {

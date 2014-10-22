@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
-
+#include "Misc/App.h"
 #include <dirent.h>
 #include <jni.h>
 #include <Android/asset_manager.h>

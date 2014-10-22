@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Misc/OutputDeviceConsole.h"
 
 /**
  * Feedback context implementation for windows.

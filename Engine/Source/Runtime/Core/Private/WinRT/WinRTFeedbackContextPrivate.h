@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Misc/App.h"
 
 /**
  * Feedback context implementation for WinRT.
