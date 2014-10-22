@@ -29,6 +29,12 @@ namespace EButtonClickMethod
 		 * even if the button wasn't pressed down over it.
 		 */
 		MouseUp,
+
+		/**
+		 * Inside a list, buttons can only be clicked with precise tap.
+		 * Moving the pointer will scroll the list, also allows drag-droppable buttons.
+		 */
+		 PreciseClick
 	};
 }
 

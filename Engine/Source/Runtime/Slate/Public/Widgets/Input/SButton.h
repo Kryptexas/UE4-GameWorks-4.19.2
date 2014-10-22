@@ -172,6 +172,9 @@ protected:
 	/** Can this button be focused? */
 	bool bIsFocusable;
 
+	/** Utility function to determine if the incoming mouse event is for a precise tap or click */
+	bool IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const;
+
 	/** Play the pressed sound */
 	void PlayPressedSound() const;
 
