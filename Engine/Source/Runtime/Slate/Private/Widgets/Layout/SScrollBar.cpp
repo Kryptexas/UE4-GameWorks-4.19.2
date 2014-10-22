@@ -277,7 +277,9 @@ void SScrollBar::Construct(const FArguments& InArgs)
 		.ColorAndOpacity( this, &SScrollBar::GetThumbOpacity )
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot() .FillHeight( 1 )
+
+			+ SVerticalBox::Slot()
+			.FillHeight( 1 )
 			[
 				SAssignNew(Track, SScrollBarTrack)
 				.Orientation(InArgs._Orientation)
@@ -293,12 +295,12 @@ void SScrollBar::Construct(const FArguments& InArgs)
 				]
 				.ThumbSlot()
 				[
-					SAssignNew(DragThumb , SBorder)
+					SAssignNew(DragThumb, SBorder)
 					.BorderImage( this, &SScrollBar::GetDragThumbImage )
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
 					[
-						SNew(SSpacer)
+						SAssignNew(ThicknessSpacer, SSpacer)
 						.Size(InArgs._Thickness)
 					]
 				]
@@ -317,10 +319,7 @@ void SScrollBar::Construct(const FArguments& InArgs)
 	);
 
 	this->EnabledState = TAttribute<bool>( Track.ToSharedRef(), &SScrollBarTrack::IsNeeded );
-	if ( ! InArgs._AlwaysShowScrollbar )
-	{
-		this->Visibility = TAttribute<EVisibility>( SharedThis(this), &SScrollBar::ShouldBeVisible );
-	}
+	SetScrollBarAlwaysVisible(InArgs._AlwaysShowScrollbar);
 }
 
 void SScrollBar::SetOnUserScrolled( const FOnUserScrolled& InHandler )
@@ -524,4 +523,21 @@ EVisibility SScrollBar::ShouldBeVisible() const
 bool SScrollBar::IsScrolling() const
 {
 	return bDraggingThumb;
+}
+
+void SScrollBar::SetThickness(TAttribute<FVector2D> InThickness)
+{
+	ThicknessSpacer->SetSize(InThickness);
+}
+
+void SScrollBar::SetScrollBarAlwaysVisible(bool InAlwaysVisible)
+{
+	if ( InAlwaysVisible )
+	{
+		Visibility = EVisibility::Visible;
+	}
+	else
+	{
+		Visibility = TAttribute<EVisibility>(SharedThis(this), &SScrollBar::ShouldBeVisible);
+	}
 }

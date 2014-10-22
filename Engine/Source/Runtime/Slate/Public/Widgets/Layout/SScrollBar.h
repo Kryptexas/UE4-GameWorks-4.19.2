@@ -16,7 +16,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SScrollBar )
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("Scrollbar") )
-        , _OnUserScrolled()
+		, _OnUserScrolled()
 		, _AlwaysShowScrollbar(false)
 		, _Orientation( Orient_Vertical )
 		, _Thickness( FVector2D(12.0f, 12.0f) )
@@ -100,7 +100,14 @@ public:
 	/** @return True if the user is scrolling by dragging the scroll bar thumb. */
 	bool IsScrolling() const;
 
+	/** See UserVisibility attribute */
 	void SetUserVisibility(TAttribute<EVisibility> InUserVisibility) { UserVisibility = InUserVisibility; }
+
+	/** See Thickness attribute */
+	void SetThickness(TAttribute<FVector2D> InThickness);
+
+	/** See ScrollBarAlwaysVisible attribute */
+	void SetScrollBarAlwaysVisible(bool InAlwaysVisible);
 
 	SScrollBar();
 
@@ -122,6 +129,7 @@ protected:
 	TAttribute<EVisibility> UserVisibility;
 
 	TSharedPtr<SBorder> DragThumb;
+	TSharedPtr<SSpacer> ThicknessSpacer;
 	bool bDraggingThumb;
 	TSharedPtr<SScrollBarTrack> Track;
 	FOnUserScrolled OnUserScrolled;

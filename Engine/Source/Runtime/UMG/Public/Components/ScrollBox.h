@@ -29,10 +29,25 @@ public:
 	USlateWidgetStyleAsset* BarStyle_DEPRECATED;
 
 	/** The orientation of the scrolling and stacking in the box. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Behavior" )
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
 	TEnumAsByte<EOrientation> Orientation;
 
+	/** Visibility */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
+	TEnumAsByte<ESlateVisibility::Type> ScrollBarVisibility;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
+	FVector2D ScrollbarThickness;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
+	bool AlwaysShowScrollbar;
+	
 	//TODO UMG Add SetOrientation
+	//TODO UMG Add SetScrollBarVisibility
+	//TODO UMG Add SetScrollbarThickness
+	//TODO UMG Add SetAlwaysShowScrollbar
 
 public:
 
