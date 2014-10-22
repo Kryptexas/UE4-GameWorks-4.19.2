@@ -91,6 +91,9 @@ public:
 	 */
 	void CORE_API FindKeyNamespaceFromDisplayString(TSharedRef<FString, ESPMode::ThreadSafe> InDisplayString, TSharedPtr<FString, ESPMode::ThreadSafe>& OutNamespace, TSharedPtr<FString, ESPMode::ThreadSafe>& OutKey);
 
+	/** Get table name for given Namespace/key */
+	TSharedPtr<FString, ESPMode::ThreadSafe> CORE_API GetTableName(const FString& Namespace, const FString& Key);
+
 	void CORE_API RegenerateResources( const FString& ConfigFilePath, IInternationalizationArchiveSerializer& ArchiveSerializer, IInternationalizationManifestSerializer& ManifestSerializer );
 
 	/** Returns the current culture revision index */

@@ -500,6 +500,25 @@ TSharedPtr<FString, ESPMode::ThreadSafe> FTextLocalizationManager::FindString( c
 	return NULL;
 }
 
+TSharedPtr<FString, ESPMode::ThreadSafe> FTextLocalizationManager::GetTableName(const FString& Namespace, const FString& Key)
+{
+	FScopeLock ScopeLock(&SynchronizationObject);
+
+	// Find namespace's key table.
+	const FTextLookupTable::FKeyTable* LiveKeyTable = LiveTable.NamespaceTable.Find(Namespace);
+
+	// Find key table's entry.
+	const FStringEntry* LiveEntry = LiveKeyTable ? LiveKeyTable->Find(Key) : NULL;
+
+	if (LiveEntry != nullptr)
+	{
+		return MakeShareable(new FString((LiveEntry->TableName)));
+	}
+
+	return NULL;
+}
+
+
 TSharedRef<FString, ESPMode::ThreadSafe> FTextLocalizationManager::GetString(const FString& Namespace, const FString& Key, const FString* const SourceString)
 {
 	FScopeLock ScopeLock( &SynchronizationObject );

@@ -32,6 +32,7 @@ public class TranslationEditor : ModuleRules
                 "GraphEditor",
 				"SourceControl",
                 "MessageLog",
+                "Documentation",
 			}
 		);
 

@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "IDocumentationPage.h"
 
 class SDocumentationToolTip : public SCompoundWidget
 {
@@ -43,6 +44,11 @@ public:
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
 
 	bool IsInteractive() const;
+
+	virtual const FText& GetTextTooltip() const
+	{
+		return TextContent.Get();
+	}
 
 private:
 
