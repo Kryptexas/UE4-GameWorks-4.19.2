@@ -144,8 +144,6 @@ public:
 
 protected:
 
-	FString GetLogFileFullName() const;
-
 	void LogElementImpl(FVisLogSelfDrawingElement* Element);
 
 	FORCEINLINE TSharedPtr<FActorsVisLog> GetLog(const class UObject* Object)
