@@ -69,6 +69,7 @@ UWorldProxy GWorld;
 
 TMap<FName, EWorldType::Type> UWorld::WorldTypePreLoadMap;
 
+FWorldDelegates::FWorldEvent FWorldDelegates::OnPostWorldCreation;
 FWorldDelegates::FWorldInitializationEvent FWorldDelegates::OnPreWorldInitialization;
 FWorldDelegates::FWorldInitializationEvent FWorldDelegates::OnPostWorldInitialization;
 FWorldDelegates::FWorldPostDuplicateEvent FWorldDelegates::OnPostDuplicate;
@@ -89,6 +90,8 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 #if WITH_EDITOR
 	bBroadcastSelectionChange = true; //Ed Only
 #endif // WITH_EDITOR
+
+	FWorldDelegates::OnPostWorldCreation.Broadcast(this);
 }
 
 
@@ -106,6 +109,8 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 #if WITH_EDITOR
 	bBroadcastSelectionChange = true;
 #endif // WITH_EDITOR
+
+	FWorldDelegates::OnPostWorldCreation.Broadcast(this);
 }
 
 

@@ -2475,6 +2475,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/);
 	// Delegate type for level change events
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLevelChanged, ULevel*, UWorld*);
+
+	// Callback for world creation
+	static FWorldEvent OnPostWorldCreation;
 	
 	// Callback for world initialization (pre)
 	static FWorldInitializationEvent OnPreWorldInitialization;

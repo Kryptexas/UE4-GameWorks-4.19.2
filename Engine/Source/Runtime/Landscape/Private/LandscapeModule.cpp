@@ -41,19 +41,18 @@ void LandscapeMaterialsParameterValuesGetter(FStaticParameterSet &OutStaticParam
 bool LandscapeMaterialsParameterSetUpdater(FStaticParameterSet &OutStaticParameterSet, UMaterial* Material);
 
 /**
- * Function that will fire everytime a world is created.
+ * Function that will fire every time a world is created.
  *
  * @param World A world that was created.
  * @param IVS Initialization values.
  */
-void WorldInitializationEventFunction(UWorld* World, const UWorld::InitializationValues IVS)
+void WorldCreationEventFunction(UWorld* World)
 {
 	AddPerWorldLandscapeData(World);
 }
 
-
 /**
- * Function that will fire everytime a world is destroyed.
+ * Function that will fire every time a world is destroyed.
  *
  * @param World A world that's being destroyed.
  */
@@ -95,8 +94,8 @@ void FLandscapeModule::StartupModule()
 	);
 
 #if WITH_EDITORONLY_DATA
-	FWorldDelegates::OnPostWorldInitialization.AddStatic(
-		&WorldInitializationEventFunction
+	FWorldDelegates::OnPostWorldCreation.AddStatic(
+		&WorldCreationEventFunction
 	);
 	FWorldDelegates::OnPreWorldFinishDestroy.AddStatic(
 		&WorldDestroyEventFunction

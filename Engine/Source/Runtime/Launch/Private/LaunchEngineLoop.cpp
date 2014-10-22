@@ -652,6 +652,40 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 }
 #endif
 
+/**
+ * Loads array of module names that needs to be auto-loaded.
+ *
+ * @param OutModules Output array to fill with module names.
+ */
+void GetAutoStartupModuleList(TArray<FString>& OutModules)
+{
+	// UBT generated function for listing all auto-startup module
+	// this binary is loading. If the list is finished then this function
+	// returns nullptr.
+	extern const ANSICHAR* EnumAutoStartupModuleName(int Index);
+
+	const ANSICHAR* NamePtr = nullptr;
+	int32 Index = 0;
+	while ((NamePtr = EnumAutoStartupModuleName(Index++)) != nullptr)
+	{
+		OutModules.Add(FString(NamePtr));
+	}
+}
+
+/**
+ * Calls for each auto-startup module its StartupModule function.
+ */
+void InitializeAutoStartupModules()
+{
+	TArray<FString> Modules;
+	GetAutoStartupModuleList(Modules);
+
+	for (auto ModuleName : Modules)
+	{
+		FModuleManager::LoadModuleChecked<IModuleInterface>(*ModuleName);
+	}
+}
+
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Engine Pre-Initialized"), STAT_PreInit, STATGROUP_LoadTime);
@@ -1485,6 +1519,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Execute the commandlet.
 			double CommandletExecutionStartTime = FPlatformTime::Seconds();
 
+			InitializeAutoStartupModules();
+
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
 			Commandlet->ParseParms( CommandletCommandLine );
@@ -1785,40 +1821,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 	return bSuccess;
-}
-
-/**
- * Loads array of module names that needs to be auto-loaded.
- *
- * @param OutModules Output array to fill with module names.
- */
-void GetAutoStartupModuleList(TArray<FString>& OutModules)
-{
-	// UBT generated function for listing all auto-startup module
-	// this binary is loading. If the list is finished then this function
-	// returns nullptr.
-	extern const ANSICHAR* EnumAutoStartupModuleName(int Index);
-
-	const ANSICHAR* NamePtr = nullptr;
-	int32 Index = 0;
-	while ((NamePtr = EnumAutoStartupModuleName(Index++)) != nullptr)
-	{
-		OutModules.Add(FString(NamePtr));
-	}
-}
-
-/**
- * Calls for each auto-startup module its StartupModule function.
- */
-void InitializeAutoStartupModules()
-{
-	TArray<FString> Modules;
-	GetAutoStartupModuleList(Modules);
-
-	for (auto ModuleName : Modules)
-	{
-		FModuleManager::LoadModuleChecked<IModuleInterface>(*ModuleName);
-	}
 }
 
 bool FEngineLoop::LoadStartupModules()
