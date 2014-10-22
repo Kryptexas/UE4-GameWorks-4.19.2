@@ -17,7 +17,7 @@ namespace ESlateBrushDrawType
 	enum Type
 	{
 		/** Don't do anything */
-		NoDrawType UMETA(Hidden),
+		NoDrawType UMETA(DisplayName="None"), // UMETA(Hidden),
 
 		/** Draw a 3x3 box, where the sides and the middle stretch based on the Margin */
 		Box,
