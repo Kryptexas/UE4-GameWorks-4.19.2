@@ -23,6 +23,8 @@ struct FBlackboardEntry
 	/** key type and additional properties */
 	UPROPERTY(EditAnywhere, Instanced, Category=Blackboard)
 	UBlackboardKeyType* KeyType;
+
+	bool operator==(const FBlackboardEntry& Other) const;
 };
 
 UCLASS(AutoExpandCategories=(Blackboard))
@@ -104,6 +106,9 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 	 *  meant for adding game specific persistent keys */
 	static FKeyUpdate OnUpdateKeys;
 
+	/** updates parent key cache for editor */
+	void UpdateParentKeys();
+
 protected:
 
 	enum EKeyLookupMode
@@ -117,9 +122,6 @@ protected:
 
 	/** @return key ID from name */
 	FBlackboard::FKey InternalGetKeyID(const FName& KeyName, EKeyLookupMode LookupMode) const;
-
-	/** updates parent key cache for editor */
-	void UpdateParentKeys();
 
 	/** check if parent chain contains given blackboard data */
 	bool HasParent(const UBlackboardData* TestParent) const;

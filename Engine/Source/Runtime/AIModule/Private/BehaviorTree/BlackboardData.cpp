@@ -15,6 +15,12 @@ static void UpdatePersistentKeys(class UBlackboardData* Asset)
 	}
 }
 
+bool FBlackboardEntry::operator==(const FBlackboardEntry& Other) const
+{
+	return (EntryName == Other.EntryName) &&
+		((KeyType && Other.KeyType && KeyType->GetClass() == Other.KeyType->GetClass()) || (KeyType == NULL && Other.KeyType == NULL));
+}
+
 UBlackboardData::UBlackboardData(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject))

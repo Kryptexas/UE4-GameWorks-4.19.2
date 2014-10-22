@@ -202,6 +202,11 @@ bool UBlackboardComponent::IsCompatibleWith(class UBlackboardData* TestAsset) co
 		{
 			return true;
 		}
+
+		if (It->Keys == TestAsset->Keys)
+		{
+			return true;
+		}
 	}
 
 	return false;
