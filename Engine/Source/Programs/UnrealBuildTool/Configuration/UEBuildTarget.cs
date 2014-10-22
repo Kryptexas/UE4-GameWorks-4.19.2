@@ -1508,7 +1508,7 @@ namespace UnrealBuildTool
 				CreateLinkerFixupsCPPFile();
 			}
 
-			if (!bEditorRecompile)
+			if (!bEditorRecompile && !UEBuildConfiguration.bHotReloadFromIDE)
 			{
 				CreateAutoStartupModuleListGetter();
 			}
