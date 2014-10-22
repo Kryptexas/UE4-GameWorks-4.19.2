@@ -1666,7 +1666,8 @@ bool FBlueprintEditorUtils::ShouldRegenerateBlueprint(UBlueprint* Blueprint)
 // Helper function to get the blueprint that ultimately owns a node.
 UBlueprint* FBlueprintEditorUtils::FindBlueprintForNode(const UEdGraphNode* Node)
 {
-	return FindBlueprintForGraph(Node->GetGraph());
+	auto Graph = Node ? Cast<UEdGraph>(Node->GetOuter()) : NULL;
+	return FindBlueprintForGraph(Graph);
 }
 
 // Helper function to get the blueprint that ultimately owns a node.  Cannot fail.

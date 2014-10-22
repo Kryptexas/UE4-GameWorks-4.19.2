@@ -318,22 +318,29 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 void FBlueprintComponentsApplicationMode::PostActivateMode()
 {
 	TSharedPtr<FBlueprintEditor> BP = MyBlueprintEditor.Pin();
-	BP->GetSCSEditor()->UpdateTree();
-	BP->EnableSCSPreview(true);
-	BP->UpdateSCSPreview();
-	BP->GetInspector()->EnableComponentDetailsCustomization(true);
-
-	// Reselect the cached components
-	TArray<TSharedPtr<FSCSEditorTreeNode>> Selection;
-	for( auto& Component : CachedComponentSelection )
+	if (BP.IsValid())
 	{
-		BP->GetSCSEditor()->SCSTreeWidget->SetItemSelection(BP->GetSCSEditor()->GetNodeFromActorComponent(Component), true);
-	}
+		auto SCSEditor = BP->GetSCSEditor();
+		SCSEditor->UpdateTree();
+		BP->EnableSCSPreview(true);
+		BP->UpdateSCSPreview();
+		BP->GetInspector()->EnableComponentDetailsCustomization(true);
 
-	if (BP->GetSCSViewport()->GetIsSimulateEnabled())
-	{
-		BP->GetSCSEditor()->SetEnabled(false);
-		BP->GetInspector()->SetEnabled(false);
+		// Reselect the cached components
+		TArray<TSharedPtr<FSCSEditorTreeNode>> Selection;
+		for (auto Component : CachedComponentSelection)
+		{
+			if (Component.IsValid())
+			{
+				SCSEditor->SCSTreeWidget->SetItemSelection(SCSEditor->GetNodeFromActorComponent(Component.Get()), true);
+			}
+		}
+
+		if (BP->GetSCSViewport()->GetIsSimulateEnabled())
+		{
+			SCSEditor->SetEnabled(false);
+			BP->GetInspector()->SetEnabled(false);
+		}
 	}
 
 	FApplicationMode::PostActivateMode();
