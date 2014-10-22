@@ -959,6 +959,8 @@ namespace UnrealBuildTool
 						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath) + "/Source/" + GameName + "/Resources/Mac";
 					}
 
+					CustomResourcesPath = ConvertPath(CustomResourcesPath);
+
 					// Copy resources
 					string CustomIcon = CustomResourcesPath + "/" + GameName + ".icns";
 					if (!File.Exists(CustomIcon))
