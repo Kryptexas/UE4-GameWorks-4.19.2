@@ -63,15 +63,16 @@ public:
 					+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						SAssignNew( ExpanderButton, SButton )
-						.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+						SAssignNew(ExpanderButton, SButton)
+						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 						.HAlign(HAlign_Center)
 						.ContentPadding(2)
-						.OnClicked( InArgs._OnClicked )
-						.IsEnabled( InArgs._IsButtonEnabled )
+						.OnClicked(InArgs._OnClicked)
+						.IsEnabled(InArgs._IsButtonEnabled)
+						.ToolTipText(this, &SAdvancedDropdownRow::GetAdvancedPulldownToolTipText )
 						[
-							SNew( SImage )
-							.Image( this, &SAdvancedDropdownRow::GetAdvancedPulldownImage )
+							SNew(SImage)
+							.Image(this, &SAdvancedDropdownRow::GetAdvancedPulldownImage)
 						]
 					]
 				];
@@ -153,6 +154,11 @@ private:
 	EVisibility OnGetHelpTextVisibility() const
 	{
 		return bDisplayShowAdvancedMessage && !IsExpanded.Get() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	FText GetAdvancedPulldownToolTipText() const
+	{
+		return IsExpanded.Get() ? NSLOCTEXT("DetailsView", "HideAdvanced", "Hide Advanced") : NSLOCTEXT("DetailsView", "ShowAdvanced", "Show Advanced");
 	}
 
 	const FSlateBrush* GetAdvancedPulldownImage() const
