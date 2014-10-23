@@ -22,7 +22,7 @@ REGION_SOURCE = en.txt en_150.txt en_AG.txt\
  en_SG.txt en_SH.txt en_SL.txt en_SS.txt en_SX.txt\
  en_SZ.txt en_TC.txt en_TK.txt en_TO.txt en_TT.txt\
  en_TV.txt en_TZ.txt en_UG.txt en_VC.txt en_VG.txt\
- en_VU.txt en_WS.txt en_ZA.txt en_ZM.txt en_ZW.txt\ 
+ en_VU.txt en_WS.txt en_ZA.txt en_ZM.txt en_ZW.txt\
  fr.txt fr_CA.txt\
  it.txt\
  de.txt de_CH.txt\
@@ -32,7 +32,7 @@ REGION_SOURCE = en.txt en_150.txt en_AG.txt\
  es_PE.txt es_PR.txt es_PY.txt es_SV.txt es_US.txt\
  es_UY.txt es_VE.txt\
  zh.txt zh_Hans.txt zh_Hans_HK.txt\
- zh_Hans_MO.txt zh_Hans_SG.txt zh_Hant.txt zh_Hant_HK.txt zh_Hant_MO.txt\ 
+ zh_Hans_MO.txt zh_Hans_SG.txt zh_Hant.txt zh_Hant_HK.txt zh_Hant_MO.txt\
  ja.txt\
  ko.txt\
  leet.txt

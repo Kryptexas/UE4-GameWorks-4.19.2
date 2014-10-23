@@ -26,7 +26,7 @@ ZONE_SOURCE = en.txt en_001.txt en_150.txt en_AG.txt\
  en_WS.txt en_ZA.txt en_ZM.txt en_ZW.txt\
  fr.txt fr_CA.txt\
  it.txt\
- de.txt\ 
+ de.txt\
  es.txt es_419.txt es_AR.txt es_BO.txt es_CL.txt\
  es_CO.txt es_CR.txt es_CU.txt es_DO.txt es_EC.txt\
  es_GT.txt es_HN.txt es_MX.txt es_NI.txt es_PA.txt\
@@ -34,7 +34,7 @@ ZONE_SOURCE = en.txt en_001.txt en_150.txt en_AG.txt\
  es_UY.txt es_VE.txt\
  zh.txt\
  zh_Hans.txt zh_Hans_HK.txt zh_Hans_MO.txt zh_Hans_SG.txt zh_Hant.txt\
- zh_Hant_HK.txt zh_Hant_MO.txt\ 
+ zh_Hant_HK.txt zh_Hant_MO.txt\
  ja.txt\
  ko.txt ko_KP.txt\
  leet.txt

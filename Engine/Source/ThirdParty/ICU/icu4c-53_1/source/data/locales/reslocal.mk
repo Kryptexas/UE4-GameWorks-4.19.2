@@ -46,7 +46,7 @@ GENRB_SOURCE = en.txt en_001.txt en_150.txt en_AG.txt\
  es_US.txt es_UY.txt es_VE.txt\
  zh.txt\
  zh_Hans.txt zh_Hans_CN.txt zh_Hans_HK.txt zh_Hans_MO.txt zh_Hans_SG.txt\
- zh_Hant.txt zh_Hant_HK.txt zh_Hant_MO.txt zh_Hant_TW.txt\ 
+ zh_Hant.txt zh_Hant_HK.txt zh_Hant_MO.txt zh_Hant_TW.txt\
  ja.txt ja_JP.txt\
  ko.txt ko_KP.txt\
  ko_KR.txt\
