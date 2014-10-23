@@ -23,8 +23,8 @@ class UAchievementWriteCallbackProxy : public UOnlineBlueprintCallProxyBase
 	//   AchievementName is the ID of the achievement to update progress on
 	//   Progress is the reported progress toward accomplishing the achievement
 	//   UserTag is not used internally, but it is returned on success or failure
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"), Category="Online|Achievements")
-	static UAchievementWriteCallbackProxy* WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress = 100.0f, int32 UserTag = 0);
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", WorldContext="WorldContextObject"), Category="Online|Achievements")
+	static UAchievementWriteCallbackProxy* WriteAchievementProgress(UObject* WorldContextObject, APlayerController* PlayerController, FName AchievementName, float Progress = 100.0f, int32 UserTag = 0);
 
 	// UOnlineBlueprintCallProxyBase interface
 	virtual void Activate() override;
@@ -53,4 +53,8 @@ private:
 
 	/** The specified user tag */
 	int32 UserTag;
+
+	/** The world context object in which this call is taking place */
+	UObject* WorldContextObject;
+
 };

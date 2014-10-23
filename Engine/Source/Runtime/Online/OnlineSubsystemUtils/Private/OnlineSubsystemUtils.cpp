@@ -327,8 +327,8 @@ FStaticSelfRegisteringExec OnlineExecRegistration(OnlineExec);
 //////////////////////////////////////////////////////////////////////////
 // FOnlineSubsystemBPCallHelper
 
-FOnlineSubsystemBPCallHelper::FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, FName SystemName)
-	: OnlineSub(IOnlineSubsystem::Get(SystemName))
+FOnlineSubsystemBPCallHelper::FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, UWorld* World, FName SystemName)
+	: OnlineSub(Online::GetSubsystem(World, SystemName))
 	, FunctionContext(CallFunctionContext)
 {
 	if (OnlineSub == nullptr)

@@ -9,12 +9,12 @@ UAchievementBlueprintLibrary::UAchievementBlueprintLibrary(const FObjectInitiali
 {
 }
 
-void UAchievementBlueprintLibrary::GetCachedAchievementProgress(APlayerController* PlayerController, FName AchievementID, /*out*/ bool& bFoundID, /*out*/ float& Progress)
+void UAchievementBlueprintLibrary::GetCachedAchievementProgress(UObject* WorldContextObject, APlayerController* PlayerController, FName AchievementID, /*out*/ bool& bFoundID, /*out*/ float& Progress)
 {
 	bFoundID = false;
 	Progress = 0.0f;
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementProgress"));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementProgress"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())
@@ -36,7 +36,7 @@ void UAchievementBlueprintLibrary::GetCachedAchievementProgress(APlayerControlle
 	}
 }
 
-void UAchievementBlueprintLibrary::GetCachedAchievementDescription(APlayerController* PlayerController, FName AchievementID, /*out*/ bool& bFoundID, /*out*/ FText& Title, /*out*/ FText& LockedDescription, /*out*/ FText& UnlockedDescription, /*out*/ bool& bHidden)
+void UAchievementBlueprintLibrary::GetCachedAchievementDescription(UObject* WorldContextObject, APlayerController* PlayerController, FName AchievementID, /*out*/ bool& bFoundID, /*out*/ FText& Title, /*out*/ FText& LockedDescription, /*out*/ FText& UnlockedDescription, /*out*/ bool& bHidden)
 {
 	bFoundID = false;
 	Title = FText::GetEmpty();
@@ -44,7 +44,7 @@ void UAchievementBlueprintLibrary::GetCachedAchievementDescription(APlayerContro
 	UnlockedDescription = FText::GetEmpty();
 	bHidden = false;
 
-	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementDescription"));
+	FOnlineSubsystemBPCallHelper Helper(TEXT("GetCachedAchievementDescription"), GEngine->GetWorldFromContextObject(WorldContextObject));
 	Helper.QueryIDFromPlayerController(PlayerController);
 
 	if (Helper.IsValid())
