@@ -408,7 +408,7 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime)
 		FString FolderName;
 		PackageName.Split(TEXT("/"), &FolderName, &MapName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
-		FString CaptureName = FString::Printf(TEXT("%s/%s_%4.2f"), *MapName, *GetName(), EventTime);
+		FString CaptureName = FString::Printf(TEXT("PerformanceCapture/%s/%s_%4.2f"), *MapName, *GetName(), EventTime);
 		GEngine->PerformanceCapture(CaptureName);
 	}
 }
