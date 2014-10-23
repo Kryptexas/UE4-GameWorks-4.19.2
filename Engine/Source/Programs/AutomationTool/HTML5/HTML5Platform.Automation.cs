@@ -252,7 +252,7 @@ public class HTML5Platform : Platform
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
         // stage required ICU files.
-        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
+        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Internationalization/icudt53l"), "*", true, null, null, false, !Params.Pak);
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)

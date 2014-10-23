@@ -770,7 +770,7 @@ public class AndroidPlatform : Platform
 
 		if (!Params.CookOnTheFly && !Params.SkipCookOnTheFly) // only stage the UFS files if we are not using cook on the fly
 		{
-			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
+            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Internationalization/icudt53l"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 		}
 	}
 
