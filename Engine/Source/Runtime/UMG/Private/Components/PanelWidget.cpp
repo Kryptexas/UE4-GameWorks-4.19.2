@@ -135,25 +135,23 @@ bool UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 	return true;
 }
 
-void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
+#if WITH_EDITOR
+
+UPanelSlot* UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 {
-	UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	if ( Content )
-	{
-		Content->Slot = Slot;
-	}
-
-	// Only allow inserting within the valid range of slots (and one more than the size).
-	Index = FMath::Clamp(Index, 0, FMath::Max(Slots.Num(), 1));
-
-	Slots.Insert(Slot, Index);
-
-	OnSlotAdded(Slot);
+	UPanelSlot* NewSlot = AddChild(Content);
+	ShiftChild(Index, Content);
+	return NewSlot;
 }
+
+void UPanelWidget::ShiftChild(int32 Index, UWidget* Child)
+{
+	int32 CurrentIndex = GetChildIndex(Child);
+	Slots.RemoveAt(CurrentIndex);
+	Slots.Insert(Child->Slot, FMath::Clamp(Index, 0, Slots.Num()));
+}
+
+#endif
 
 bool UPanelWidget::RemoveChild(UWidget* Content)
 {
@@ -208,6 +206,11 @@ void UPanelWidget::PostLoad()
 			SlotIndex--;
 		}
 	}
+}
+
+const TArray<UPanelSlot*>& UPanelWidget::GetSlots() const
+{
+	return Slots;
 }
 
 /////////////////////////////////////////////////////

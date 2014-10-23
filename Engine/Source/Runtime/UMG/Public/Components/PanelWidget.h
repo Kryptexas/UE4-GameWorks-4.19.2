@@ -11,9 +11,9 @@ class UMG_API UPanelWidget : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
-public:
+protected:
 
-	/** The items placed in the panel */
+	/** The slots in the widget holding the child widgets of this panel. */
 	UPROPERTY()
 	TArray<UPanelSlot*> Slots;
 
@@ -55,8 +55,20 @@ public:
 	 */
 	bool ReplaceChildAt(int32 Index, UWidget* Content);
 
-	/** Inserts a widget at a specific index */
-	void InsertChildAt(int32 Index, UWidget* Content);
+#if WITH_EDITOR
+
+	/**
+	 * Inserts a widget at a specific index.  This does not update the live slate version, it requires
+	 * a rebuild of the whole UI to see a change.
+	 */
+	UPanelSlot* InsertChildAt(int32 Index, UWidget* Content);
+
+	/**
+	 * Moves the child widget from its current index to the new index provided.
+	 */
+	void ShiftChild(int32 Index, UWidget* Child);
+
+#endif
 
 	/**
 	 * Removes a specific widget from the container.
@@ -72,6 +84,9 @@ public:
 	/** Remove all child widgets from the panel widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget|Panel")
 	void ClearChildren();
+
+	/** The slots in the widget holding the child widgets of this panel. */
+	const TArray<UPanelSlot*>& GetSlots() const;
 
 	/** @returns true if the panel supports more than one child. */
 	bool CanHaveMultipleChildren() const

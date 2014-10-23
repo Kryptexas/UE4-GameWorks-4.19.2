@@ -76,12 +76,10 @@ FReply FHorizontalSlotExtension::HandleShift(int32 ShiftAmount)
 
 void FHorizontalSlotExtension::ShiftHorizontal(UWidget* Widget, int32 ShiftAmount)
 {
-	UHorizontalBoxSlot* Slot = CastChecked<UHorizontalBoxSlot>(Widget->Slot);
-	UHorizontalBox* Parent = CastChecked<UHorizontalBox>(Slot->Parent);
+	UHorizontalBox* Parent = CastChecked<UHorizontalBox>(Widget->GetParent());
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
-	Parent->Slots.RemoveAt(CurrentIndex);
-	Parent->Slots.Insert(Slot, FMath::Clamp(CurrentIndex + ShiftAmount, 0, Parent->GetChildrenCount()));
+	Parent->ShiftChild(CurrentIndex + ShiftAmount, Widget);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -76,12 +76,10 @@ FReply FVerticalSlotExtension::HandleShiftVertical(int32 ShiftAmount)
 
 void FVerticalSlotExtension::ShiftVertical(UWidget* Widget, int32 ShiftAmount)
 {
-	UVerticalBoxSlot* Slot = CastChecked<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBox* Parent = CastChecked<UVerticalBox>(Slot->Parent);
+	UVerticalBox* Parent = CastChecked<UVerticalBox>(Widget->GetParent());
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
-	Parent->Slots.RemoveAt(CurrentIndex);
-	Parent->Slots.Insert(Slot, FMath::Clamp(CurrentIndex + ShiftAmount, 0, Parent->GetChildrenCount()));
+	Parent->ShiftChild(CurrentIndex + ShiftAmount, Widget);
 }
 
 #undef LOCTEXT_NAMESPACE
