@@ -624,6 +624,23 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 			InitializeComponent();
 		}
 	}
+
+	// If this is a blueprint created component and it has component children they can miss getting registered in some scenarios
+	if (bCreatedByConstructionScript)
+	{
+		TArray<UObject*> Children;
+		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
+
+		for (UObject* Child : Children)
+		{
+			UActorComponent* ChildComponent = Cast<UActorComponent>(Child);
+			if (ChildComponent && !ChildComponent->IsRegistered())
+			{
+				ChildComponent->RegisterComponentWithWorld(InWorld);
+			}
+		}
+
+	}
 }
 
 void UActorComponent::RegisterComponent()
