@@ -26,14 +26,31 @@ public:
 // ePId_Input0: SceneColor
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 // uses some GBuffer attributes
-// alpha is unused
-class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 1>
+class FRCPassPostProcessSubsurfaceExtractSpecular : public TRenderingCompositePassBase<1, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context);
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 	virtual void Release() override { delete this; }
+};
+
+// ePId_Input0: SceneColor
+// derives from TRenderingCompositePassBase<InputCount, OutputCount> 
+// uses some GBuffer attributes
+// alpha is unused
+class FRCPassPostProcessSubsurfaceSetup : public TRenderingCompositePassBase<1, 1>
+{
+public:
+	// constructor
+	FRCPassPostProcessSubsurfaceSetup(FViewInfo& View);
+
+	// interface FRenderingCompositePass ---------
+	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+	virtual void Release() override { delete this; }
+
+	FIntRect ViewRect;
 };
 
 

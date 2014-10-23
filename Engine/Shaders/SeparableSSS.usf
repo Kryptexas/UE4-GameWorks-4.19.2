@@ -186,10 +186,10 @@ float3 SSSSTransmittance(float translucency, float sssWidth, float3 worldPositio
 // @param texcoord The usual quad texture coordinates.
 // @param dir Direction of the blur: First pass:   float2(1.0, 0.0), Second pass:  float2(0.0, 1.0)
 // @param initStencil indicates whether the stencil buffer should be initialized. Should be set to 'true' for the first pass if not previously initialized, to enable optimization of the second pass.
-float4 SSSSBlurPS(float2 texcoord, float2 dir, bool initStencil)
+float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initStencil)
 {
     // Fetch color of current pixel:
-    float4 colorM = SSSSSampleSceneColorPoint(texcoord);
+    float4 colorM = SSSSSampleSceneColorPoint(ViewportUV);
 
 	// we store the depth in alpha
 	float depthM = colorM.a;
@@ -204,7 +204,7 @@ float4 SSSSBlurPS(float2 texcoord, float2 dir, bool initStencil)
 		return 0.0f;
 	}
 
-	float SSSStrength = GetSubsurfaceStrength(texcoord);
+	float SSSStrength = GetSubsurfaceStrength(GBufferUV);
 
 	// Initialize the stencil buffer in case it was not already available:
     if (initStencil) // (Checked in compile time, it's optimized away)
@@ -220,7 +220,7 @@ float4 SSSSBlurPS(float2 texcoord, float2 dir, bool initStencil)
 	// ideally this comes from a half res buffer as well - there are some minor artifacts
 	finalStep *= SSSStrength; // Modulate it using the opacity (0..1 range)
     
-	FGBufferData GBufferData = GetGBufferData(texcoord);
+	FGBufferData GBufferData = GetGBufferData(GBufferUV);
 
 	// 0..255, which SubSurface profile to pick
 	// ideally this comes from a half res buffer as well - there are some minor artifacts
@@ -233,7 +233,7 @@ float4 SSSSBlurPS(float2 texcoord, float2 dir, bool initStencil)
 	colorBlurred.a = colorM.a;
 
 //#if SSS_DIRECTION == 0
-	colorBlurred.rgb = colorM * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
+	colorBlurred.rgb = colorM.rgb * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
 //#endif
 
 	// Accumulate the other samples:
@@ -253,7 +253,7 @@ float4 SSSSBlurPS(float2 texcoord, float2 dir, bool initStencil)
 		for (int Side = -1; Side <= 1; Side += 2)
 		{
 			// Fetch color and depth for current sample:
-			float4 color = SSSSSampleSceneColor(texcoord + UVOffset * Side);
+			float4 color = SSSSSampleSceneColor(ViewportUV + UVOffset * Side);
 
 			float LocalDepth = color.a;
 			

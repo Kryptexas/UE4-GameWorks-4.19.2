@@ -359,7 +359,11 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 				//@todo-rco: Remove this when we fix the cross-compiler
 				!IsOpenGLPlatform(View.GetShaderPlatform()))
 			{
-				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup());
+				// can be optimized out if we don't do split screen/stereo rendering (should be done after we some post process refactoring)
+				FRenderingCompositePass* PassExtractSpecular = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceExtractSpecular());
+				PassExtractSpecular->SetInput(ePId_Input0, Context.FinalOutput);
+
+				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View));
 				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
 				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0));
@@ -371,8 +375,8 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 				// full res composite pass, no blurring (Radius=0)
 				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine());
 				RecombinePass->SetInput(ePId_Input0, Pass1);
-				RecombinePass->SetInput(ePId_Input1, Context.FinalOutput);					
-				Context.FinalOutput = FRenderingCompositeOutputRef(RecombinePass);
+				RecombinePass->SetInput(ePId_Input1, PassExtractSpecular);
+				CompositeContext.Root->AddDependency(RecombinePass);
 			}
 		}
 

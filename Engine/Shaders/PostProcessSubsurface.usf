@@ -39,7 +39,7 @@ float GetSubsurfaceStrength(float2 UV)
 // 0:speculars leak into SSS / 1:requires alpha channel for scenecolor
 // #define SSSS_SPECULAR_CORRECTION 1
 
-// set by C++ for SubsurfaceRecombinePS
+// set by C++ for SubsurfaceRecombinePS and ExtractSpecularPS
 // #define SSS_RECOMBINE_METHOD 0:without reconstruct specular/1:with reconstruct specular
 
 // set by C++ for SubsurfacePS
@@ -291,7 +291,7 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 // input0 is created by the SetupPS shader
 void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
-	float2 UV = UVAndScreenPos.xy;
+	float2 ViewportUV = UVAndScreenPos.xy;
 
 	// call into "SeparableSSS.usf"
 
@@ -306,7 +306,10 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	float2 Direction = float2(0, 1) * View.ViewSizeAndSceneTexelSize.w * View.ViewSizeAndSceneTexelSize.x * 1024.0f;
 #endif
 
-	OutColor = SSSSBlurPS(UV, Direction, false);
+	// can be optimized
+	float2 GBufferUV = (ViewportUV * PostprocessInput0Size.xy * 2 + View.ViewRectMin.xy) * View.ViewSizeAndSceneTexelSize.zw;
+
+	OutColor = SSSSBlurPS(GBufferUV, ViewportUV, Direction, false);
 
 #if SSS_DIRECTION == 1
 	// second pass prepares the setup fro the recombine pass which doesn't need depth but wants to reconstruct the color
@@ -321,7 +324,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 // with the SceneColor.
 void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
-	float2 UV = UVAndScreenPos.xy;
+	float2 ViewportUV = UVAndScreenPos.xy;
 
 	// recombine with the scene color
 
@@ -336,7 +339,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	// bilinear filtering
 	float3 SSSColor;
 	{
-		float4 SSSColorWithAlpha = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		float4 SSSColorWithAlpha = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, ViewportUV);
 
 		// renormalize to dilate RGB to fix haf res upsampling artifacts
 		SSSColor = SSSColorWithAlpha.rgb / max(SSSColorWithAlpha.a, 0.00001f);
@@ -348,8 +351,6 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 //		SSSColor += SceneColor4.rgb * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
 	}
 
-
-
 	// 0: dont' fade in subsurface half res,  1:fully fade in half res
 	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
 
@@ -359,7 +360,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	{
 		float SSSScaleX = SSSParams.x;
 
-		float scale = SSSScaleX / CalcSceneDepth(UV);
+		float scale = SSSScaleX / CalcSceneDepth(UVSceneColor);
 
 		// the viewport is only a fraction of the buffersize, here we compensate for that
 		// *1024 as we store the sample distances / 1000 to allows for scaling
@@ -379,13 +380,29 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	}
 #endif
 
+	// add back in non subsurface pixels and specular
+	OutColor = float4(SSSColor * BlendFactor + SceneColor4.rgb, 0);
+}
 
+
+void ExtractSpecularPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 GBufferUV = UVAndScreenPos.xy;
+
+	float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, GBufferUV);
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(GBufferUV);
+
+	// 0: dont' fade in subsurface half res,  1:fully fade in half res
+	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
+
+	float3 ExtractedSpecular = 0;
+	 
 #if SSS_RECOMBINE_METHOD
 	// we took the specular highlights out, now we add them back in
-//	SSSColor += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
-	SSSColor += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
+	ExtractedSpecular += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
 #endif
 
 	// alpha channel can be anything - we consumed the value and likely output to a format that doesn't need the value
-	OutColor = float4(lerp(SceneColor4.rgb, SSSColor, BlendFactor), 0);
+	OutColor = float4(lerp(SceneColor4.rgb, ExtractedSpecular, BlendFactor), 0);
 }
