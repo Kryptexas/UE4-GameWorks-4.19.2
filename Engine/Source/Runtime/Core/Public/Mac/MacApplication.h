@@ -91,7 +91,7 @@ public:
 
 public:
 
-	void OnDragEnter( FCocoaWindow* Window, void *InPasteboard );
+	void OnDragEnter(FCocoaWindow* Window, NSPasteboard* InPasteboard);
 	void OnDragOver( FCocoaWindow* Window );
 	void OnDragOut( FCocoaWindow* Window );
 	void OnDragDrop( FCocoaWindow* Window );

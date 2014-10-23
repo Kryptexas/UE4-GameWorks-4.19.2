@@ -7,7 +7,7 @@
 /**
  * Custom window class used for input handling
  */
-@interface FCocoaWindow : NSWindow <NSWindowDelegate>
+@interface FCocoaWindow : NSWindow <NSWindowDelegate, NSDraggingDestination>
 {
 	EWindowMode::Type WindowMode;
 	CGFloat DeferOpacity;

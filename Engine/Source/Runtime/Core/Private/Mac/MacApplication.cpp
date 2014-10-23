@@ -1121,20 +1121,17 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
 }
 
-void FMacApplication::OnDragEnter( FCocoaWindow* Window, void *InPasteboard )
+void FMacApplication::OnDragEnter(FCocoaWindow* Window, NSPasteboard* Pasteboard)
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if( !EventWindow.IsValid() )
+	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
+	if (!EventWindow.IsValid())
 	{
 		return;
 	}
 
 	// Decipher the pasteboard data
-
-	NSPasteboard *Pasteboard = (NSPasteboard*)InPasteboard;
-
 	const bool bHaveText = [[Pasteboard types] containsObject:NSPasteboardTypeString];
 	const bool bHaveFiles = [[Pasteboard types] containsObject:NSFilenamesPboardType];
 
@@ -1150,17 +1147,12 @@ void FMacApplication::OnDragEnter( FCocoaWindow* Window, void *InPasteboard )
 			FileList.Add(ListElement);
 		}
 
-		MessageHandler->OnDragEnterFiles( EventWindow.ToSharedRef(), FileList );
+		MessageHandler->OnDragEnterFiles(EventWindow.ToSharedRef(), FileList);
 	}
 	else if (bHaveText)
 	{
-		NSString *Text = [Pasteboard propertyListForType:NSPasteboardTypeString];
-		TCHAR* TextData = (TCHAR*)FMemory::Malloc(([Text length] + 1) * sizeof(TCHAR));
-		FPlatformString::CFStringToTCHAR((CFStringRef)Text, TextData);
-
-		MessageHandler->OnDragEnterText( EventWindow.ToSharedRef(), FString(TextData) );
-
-		FMemory::Free(TextData);
+		NSString* Text = [Pasteboard stringForType:NSPasteboardTypeString];
+		MessageHandler->OnDragEnterText(EventWindow.ToSharedRef(), FString(Text));
 	}
 }
 
