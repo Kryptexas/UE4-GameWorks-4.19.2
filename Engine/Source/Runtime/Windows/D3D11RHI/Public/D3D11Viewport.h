@@ -100,6 +100,7 @@ private:
 	int32 SyncCounter;
 	bool bSyncedLastFrame;
 	HWND WindowHandle;
+	uint32 MaximumFrameLatency;
 	uint32 SizeX;
 	uint32 SizeY;
 	bool bIsFullscreen;

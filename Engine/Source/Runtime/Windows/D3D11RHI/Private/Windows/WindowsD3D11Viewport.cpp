@@ -25,6 +25,7 @@ FD3D11Viewport::FD3D11Viewport(FD3D11DynamicRHI* InD3DRHI,HWND InWindowHandle,ui
 	SyncCounter(0),
 	bSyncedLastFrame(false),
 	WindowHandle(InWindowHandle),
+	MaximumFrameLatency(3),
 	SizeX(InSizeX),
 	SizeY(InSizeY),
 	bIsFullscreen(bInIsFullscreen),

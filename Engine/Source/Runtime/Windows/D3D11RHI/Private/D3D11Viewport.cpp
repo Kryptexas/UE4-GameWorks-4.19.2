@@ -80,6 +80,15 @@ namespace RHIConsoleVariables
 		TEXT("Number of consecutive 'fast' frames before vsync is enabled."),
 		ECVF_RenderThreadSafe
 		);
+
+	int32 MaximumFrameLatency = 3;
+	static FAutoConsoleVariableRef CVarMaximumFrameLatency(
+		TEXT("RHI.MaximumFrameLatency"),
+		MaximumFrameLatency,
+		TEXT("Number of frames that can be queued for render."),
+		ECVF_RenderThreadSafe
+		);
+
 };
 
 extern void D3D11TextureAllocated2D( FD3D11Texture2D& Texture );
@@ -418,6 +427,13 @@ bool FD3D11Viewport::Present(bool bLockToVsync)
 		}
 	}
 
+	if (MaximumFrameLatency != RHIConsoleVariables::MaximumFrameLatency)
+	{
+		MaximumFrameLatency = RHIConsoleVariables::MaximumFrameLatency;	
+		TRefCountPtr<IDXGIDevice1> DXGIDevice;
+		VERIFYD3D11RESULT(D3DRHI->GetDevice()->QueryInterface(IID_IDXGIDevice, (void**)DXGIDevice.GetInitReference()));
+		DXGIDevice->SetMaximumFrameLatency(MaximumFrameLatency);
+	}
 
 	// When desktop composition is enabled, locking to vsync via the Present
 	// call is unreliable. Instead, communicate with the desktop window manager
