@@ -481,10 +481,18 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 		if (Settings->bSaveOnCompile && (BlueprintObj->Status == BS_UpToDate))
 		{
-			TArray<UPackage*> PackagesToSave;
-			PackagesToSave.Add(BlueprintPackage);
+			bool const bIsLevelPackage = (UWorld::FindWorldInPackage(BlueprintPackage) != nullptr);
+			// we don't want to save the entire level (especially is this 
+			// compile was already kicked off as a result of a level save, as it
+			// could cause a recursive save)... let the "bSaveOnCompile" setting 
+			// only save blueprint assets
+			if (!bIsLevelPackage)
+			{
+				TArray<UPackage*> PackagesToSave;
+				PackagesToSave.Add(BlueprintPackage);
 
-			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+				FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty =*/true, /*bPromptToSave =*/false);
+			}			
 		}
 	}	
 }

@@ -1792,7 +1792,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 	ToolkitCommands->MapAction(
 		FFullBlueprintEditorCommands::Get().SaveOnCompile,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::OnSaveOnCompileToggled),
-		FCanExecuteAction(),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileEnabled),
 		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileChecked)
 	);
 	
@@ -2466,7 +2466,7 @@ void FBlueprintEditor::Compile()
 bool FBlueprintEditor::IsSaveOnCompileChecked() const
 {
 	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
-	return Settings->bSaveOnCompile;
+	return Settings->bSaveOnCompile && IsSaveOnCompileEnabled();
 }
 
 void FBlueprintEditor::OnSaveOnCompileToggled() const
@@ -2474,6 +2474,14 @@ void FBlueprintEditor::OnSaveOnCompileToggled() const
 	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 	Settings->bSaveOnCompile = !Settings->bSaveOnCompile;
 	Settings->SaveConfig();
+}
+
+bool FBlueprintEditor::IsSaveOnCompileEnabled() const
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	bool const bIsLevelScript = (Cast<ULevelScriptBlueprint>(Blueprint) != nullptr);
+
+	return !bIsLevelScript;
 }
 
 FReply FBlueprintEditor::Compile_OnClickWithReply()
