@@ -1866,7 +1866,8 @@ namespace UnrealBuildTool
 			SourceLines.Add("}");
 			SourceLines.Add("");
 
-			if (!File.Exists(SourceFilename) || File.ReadAllText(SourceFilename).Trim() != string.Join("\r\n", SourceLines).Trim())
+			string LineEnd = Environment.OSVersion.Platform == PlatformID.Unix ? "\n" : "\r\n";
+			if (!File.Exists(SourceFilename) || File.ReadAllText(SourceFilename).Trim() != string.Join(LineEnd, SourceLines).Trim())
 			{
 				File.WriteAllLines(SourceFilename, SourceLines);
 			}
