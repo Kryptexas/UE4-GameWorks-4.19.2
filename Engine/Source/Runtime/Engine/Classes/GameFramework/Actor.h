@@ -587,13 +587,14 @@ public:
 	FVector K2_GetActorLocation() const;
 
 	/** 
-	 *	Move the Actor instantly to the specified location. 
-	 *	@param NewLocation	The new location to teleport the Actor to.
-	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
+	 *	Move the Actor to the specified location.
+	 *	@param NewLocation	The new location to move the Actor to.
+	 *	@param bSweep		Should we sweep to the destination location, stopping short of the target if blocked by something.
+	 *  @param SweepHitResult	The hit result from the move if swept.
 	 *	@return	Whether the location was successfully set (if not swept), or whether movement occurred at all (if swept).
 	 */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetActorLocation", Keywords="position"), Category="Utilities|Transformation")
-	bool K2_SetActorLocation(FVector NewLocation, bool bSweep=false);
+	bool K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult);
 
 	/** Returns rotation of the RootComponent of this Actor. */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorRotation"), Category="Utilities|Transformation")
@@ -612,8 +613,8 @@ public:
 	FVector GetActorRightVector() const;
 
 	/**
-	 *	Returns the bounding box of all components that make up this Actor.
-	 *	@param	bOnlyCollidingComponents	If true, will only return the bounding box for components with collision enabled.
+	 * Returns the bounding box of all components that make up this Actor.
+	 * @param	bOnlyCollidingComponents	If true, will only return the bounding box for components with collision enabled.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(FriendlyName = "GetActorBounds"))
 	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const;
@@ -627,30 +628,46 @@ public:
 	virtual FVector GetVelocity() const;
 
 	/** 
-	 *	Move the Actor instantly to the specified location. 
-	 *	@param NewLocation	The new location to teleport the Actor to.
-	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
-	 *	@return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
+	 * Move the actor instantly to the specified location. 
+	 * 
+	 * @param NewLocation		The new location to teleport the Actor to.
+	 * @param bSweep			Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param OutSweepHitResult The hit result from the move if swept.
+	 * @return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
 	 */
-	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false);
+	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** 
-	 *	Set the Actor's rotation instantly to the specified rotation.
-	 *	@param	NewRotation	The new rotation for the Actor.
-	 *	@return	Whether the rotation was successfully set.
+	 * Set the Actor's rotation instantly to the specified rotation.
+	 * 
+	 * @param	NewRotation	The new rotation for the Actor.
+	 * @return	Whether the rotation was successfully set.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorRotation(FRotator NewRotation);
 
 	/** 
-	 *	Set the Actor's location and rotation instantly to the specified location and rotation.
-	 *	@param NewLocation	The new location to teleport the Actor to.
-	 *	@param NewRotation	The new rotation for the Actor.
-	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
-	 *	@return	Whether the rotation was successfully set.
+	 * Move the actor instantly to the specified location and rotation.
+	 * 
+	 * @param NewLocation			The new location to teleport the Actor to.
+	 * @param NewRotation			The new rotation for the Actor.
+	 * @param bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param SweepHitResult		The hit result from the move if swept.
+	 * @return	Whether the rotation was successfully set.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetActorLocationAndRotation"))
+	bool K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
+	
+	/** 
+	 * Move the actor instantly to the specified location and rotation.
+	 * 
+	 * @param NewLocation			The new location to teleport the Actor to.
+	 * @param NewRotation			The new rotation for the Actor.
+	 * @param bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param OutSweepHitResult	The hit result from the move if swept.
+	 * @return	Whether the rotation was successfully set.
+	 */
+	bool SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Set the Actor's world-space scale. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
@@ -680,60 +697,98 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetHorizontalDotProductTo(AActor* OtherActor);
 
-	/** Adds a delta to the location of this actor in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="location position"))
-	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false);
 
-	/** Adds a delta to the rotation of this actor in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddActorWorldRotation(FRotator DeltaRotation, bool bSweep=false);
+	/**
+	 * Adds a delta to the location of this actor in world space.
+	 * 
+	 * @param  DeltaLocation		The change in location.
+	 * @param  bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param  SweepHitResult		The hit result from the move if swept.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddActorWorldOffset", Keywords="location position"))
+	void K2_AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
+
+	/**
+	 * Adds a delta to the location of this actor in world space.
+	 * 
+	 * @param  DeltaLocation		The change in location.
+	 * @param  bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param  SweepHitResult		The hit result from the move if swept.
+	 */
+	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
+
+	/**
+	 * Adds a delta to the rotation of this actor in world space.
+	 * 
+	 * @param  DeltaRotation		The change in rotation.
+	 * @param  bSweep				Whether to sweep to the target rotation (not currently supported).
+	 * @param  SweepHitResult		The hit result from the move if swept.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddActorWorldRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
+	void AddActorWorldRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the transform of this actor in world space. Scale is unchanged. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddActorWorldTransform"))
+	void K2_AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult);
+	void AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** 
-	 *	Set the Actors transform to the specified one.
-	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
+	 * Set the Actors transform to the specified one.
+	 * @param bSweep		Whether to sweep to the destination location, stopping short of the target if blocked by something.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetActorTransform"))
+	bool K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult);
+	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the location of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="location position"))
-	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddActorLocalOffset", Keywords="location position"))
+	void K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
+	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddActorLocalRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
+	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/** Adds a delta to the transform of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="AddActorLocalTransform"))
+	void K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult);
+	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+
 
 	/**
 	 * Set the actor's RootComponent to the specified relative location
 	 * @param NewRelativeLocation	New relative location to set the actor's RootComponent to
 	 * @param bSweep				Should we sweep to the destination location. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetActorRelativeLocation"))
+	void K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult);
+	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative rotation
 	 * @param NewRelativeRotation		New relative rotation to set the actor's RootComponent to
 	 * @param bSweep					Should we sweep to the destination rotation. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetActorRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult"))
+	void K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult);
+	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative transform
 	 * @param NewRelativeTransform		New relative transform to set the actor's RootComponent to
 	 * @param bSweep					Should we sweep to the destination transform. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(FriendlyName="SetActorRelativeTransform"))
+	void K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult);
+	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative scale 3d
@@ -2228,9 +2283,9 @@ FORCEINLINE FVector AActor::GetSimpleCollisionCylinderExtent() const
 	FRotator GetActorRotation() const { return Super::GetActorRotation(); } \
 	FQuat GetActorQuat() const { return Super::GetActorQuat(); } \
 	FVector GetActorScale() const { return Super::GetActorScale(); } \
-	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false) { return Super::SetActorLocation(NewLocation, bSweep); } \
+	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr) { return Super::SetActorLocation(NewLocation, bSweep, OutSweepHitResult); } \
 	bool SetActorRotation(FRotator NewRotation) { return Super::SetActorRotation(NewRotation); } \
-	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep); } \
+	bool SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep, OutSweepHitResult); } \
 	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) override { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
 	virtual FVector GetVelocity() const override { return Super::GetVelocity(); } \
 	float GetDistanceTo(AActor* OtherActor) { return Super::GetDistanceTo(OtherActor); }

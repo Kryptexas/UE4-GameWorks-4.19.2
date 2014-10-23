@@ -1256,6 +1256,10 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	if ( IsPendingKill() )
 	{
 		//UE_LOG(LogPrimitiveComponent, Log, TEXT("%s deleted move physics %d"),*Actor->GetName(),Actor->Physics);
+		if (OutHit)
+		{
+			*OutHit = FHitResult();
+		}
 		return false;
 	}
 
@@ -1266,6 +1270,10 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	{
 		// TODO: Static components without an owner can move, should they be able to?
 		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after initialization"), *GetFullName());
+		if (OutHit)
+		{
+			*OutHit = FHitResult();
+		}
 		return false;
 	}
 
@@ -1297,7 +1305,6 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			{
 				*OutHit = BlockingHit;
 			}
-
 			return true;
 		}
 		DeltaSizeSq = 0.f;

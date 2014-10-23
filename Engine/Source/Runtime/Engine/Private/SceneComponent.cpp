@@ -302,17 +302,17 @@ void USceneComponent::UpdateBounds()
 #endif
 }
 
-void USceneComponent::SetRelativeLocation(FVector NewLocation, bool bSweep)
+void USceneComponent::SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(NewLocation, RelativeRotation, bSweep);
+	SetRelativeLocationAndRotation(NewLocation, RelativeRotation, bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep)
+void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(RelativeLocation, NewRotation, bSweep);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRotation, bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep)
+void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if(!NewLocation.Equals(RelativeLocation) || !NewRotation.Equals(RelativeRotation))
 	{
@@ -325,32 +325,40 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotat
 		const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
 		const FVector DesiredDelta = DesiredWorldTransform.GetTranslation() - ComponentToWorld.GetTranslation();
 		
-		MoveComponent(DesiredDelta, DesiredWorldTransform.Rotator(), bSweep);
+		MoveComponent(DesiredDelta, DesiredWorldTransform.Rotator(), bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void USceneComponent::AddRelativeLocation(FVector DeltaLocation, bool bSweep)
+void USceneComponent::AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(RelativeLocation + DeltaLocation, RelativeRotation, bSweep);
+	SetRelativeLocationAndRotation(RelativeLocation + DeltaLocation, RelativeRotation, bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::AddRelativeRotation(FRotator DeltaRotation, bool bSweep)
+void USceneComponent::AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(RelativeLocation, RelativeRotation + DeltaRotation, bSweep);
+	SetRelativeLocationAndRotation(RelativeLocation, RelativeRotation + DeltaRotation, bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep)
+void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (!DeltaLocation.IsNearlyZero())
 	{
 		const FQuat RelativeRotQuat = RelativeRotation.Quaternion();
 		const FVector LocalOffset = RelativeRotQuat.RotateVector(DeltaLocation);
 
-		SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, RelativeRotation, bSweep);
+		SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, RelativeRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep)
+void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (!DeltaRotation.IsZero())
 	{
@@ -358,37 +366,49 @@ void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep)
 		const FQuat DeltaRotQuat = DeltaRotation.Quaternion();
 		const FQuat NewRelRotQuat = RelativeRotQuat * DeltaRotQuat;
 
-		SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat.Rotator(), bSweep);
+		SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat.Rotator(), bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep)
+void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	const FTransform RelativeTransform( RelativeRotation, RelativeLocation, FVector(1,1,1) ); // don't use scaling, so it matches how AddLocalRotation/Offset work
 	const FTransform NewRelTransform = DeltaTransform * RelativeTransform;
 
-	SetRelativeTransform(NewRelTransform, bSweep);
+	SetRelativeTransform(NewRelTransform, bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep)
+void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (!DeltaLocation.IsZero())
 	{
 		const FVector NewWorldLocation = DeltaLocation + ComponentToWorld.GetTranslation();
-		SetWorldLocation(NewWorldLocation, bSweep);
+		SetWorldLocation(NewWorldLocation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep)
+void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (!DeltaRotation.IsZero())
 	{
 		const FQuat NewWorldRotation = DeltaRotation.Quaternion() * ComponentToWorld.GetRotation();
-		SetWorldRotation(NewWorldRotation.Rotator(), bSweep);
+		SetWorldRotation(NewWorldRotation.Rotator(), bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
 	}
 }
 
-void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep)
+void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
 	const FVector NewWorldLocation = DeltaTransform.GetTranslation() + ComponentToWorld.GetTranslation();
@@ -421,9 +441,9 @@ void USceneComponent::ResetRelativeTransform()
 	SetRelativeScale3D(FVector(1.f));
 }
 
-void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool bSweep)
+void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(NewTransform.GetTranslation(), NewTransform.Rotator(), bSweep);
+	SetRelativeLocationAndRotation(NewTransform.GetTranslation(), NewTransform.Rotator(), bSweep, OutSweepHitResult);
 	SetRelativeScale3D(NewTransform.GetScale3D());
 }
 
@@ -433,7 +453,7 @@ FTransform USceneComponent::GetRelativeTransform()
 	return RelativeTransform;
 }
 
-void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep)
+void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	FVector NewRelLocation = NewLocation;
 
@@ -444,10 +464,10 @@ void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep)
 		NewRelLocation = ParentToWorld.InverseTransformPosition(NewLocation);
 	}
 
-	SetRelativeLocation(NewRelLocation, bSweep);
+	SetRelativeLocation(NewRelLocation, bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::SetWorldRotation(FRotator NewRotation, bool bSweep)
+void USceneComponent::SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	FRotator NewRelRotation = NewRotation;
 
@@ -460,7 +480,7 @@ void USceneComponent::SetWorldRotation(FRotator NewRotation, bool bSweep)
 		NewRelRotation = NewRelQuat.Rotator();
 	}
 
-	SetRelativeRotation(NewRelRotation, bSweep);
+	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult);
 }
 
 void USceneComponent::SetWorldScale3D(FVector NewScale)
@@ -477,7 +497,7 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 	SetRelativeScale3D(NewRelScale);
 }
 
-void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep)
+void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	// If attached to something, transform into local space
 	FQuat NewRotation = NewTransform.GetRotation();
@@ -505,15 +525,15 @@ void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSw
 		}
 	}
 
-	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep);
+	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep)
+void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetWorldLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep);
+	SetWorldLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult);
 }
 
-void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep)
+void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	// If attached to something, transform into local space
 	FQuat NewFinalRotation = NewRotation;
@@ -534,7 +554,7 @@ void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQu
 		}
 	}
 
-	SetRelativeLocationAndRotation(NewLocation, NewFinalRotation.Rotator(), bSweep);
+	SetRelativeLocationAndRotation(NewLocation, NewFinalRotation.Rotator(), bSweep, OutSweepHitResult);
 }
 
 void USceneComponent::SetWorldLocationAndRotationNoPhysics(const FVector& NewLocation, const FRotator& NewRotation)
@@ -1793,6 +1813,91 @@ void USceneComponent::UpdateNavigationData()
 	{
 		UNavigationSystem::UpdateNavOctree(this);
 	}
+}
+
+
+// K2 versions of various transform changing operations.
+// Note: we pass null for the hit result if not sweeping, for better perf.
+// This assumes this K2 function is only used by blueprints, which initializes the param for each function call.
+
+void USceneComponent::K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetRelativeLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetWorldLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetRelativeLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetRelativeRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetRelativeTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddRelativeLocation(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddRelativeRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddLocalTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetWorldLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetWorldRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	SetWorldTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+}
+
+void USceneComponent::K2_AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+{
+	AddWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
 }
 
 #undef LOCTEXT_NAMESPACE
