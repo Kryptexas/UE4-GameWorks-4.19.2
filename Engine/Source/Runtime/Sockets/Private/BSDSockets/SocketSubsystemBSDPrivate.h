@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SocketTypes.h"
+
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_WINSOCKETS
 	#include "AllowWindowsPlatformTypes.h"
 
@@ -39,5 +41,24 @@
 	}
 
 #endif
+
+// Since the flag constants may have different values per-platform, translate into corresponding system constants.
+// For example, MSG_WAITALL is 0x8 on Windows, but 0x100 on other platforms.
+inline int TranslateFlags(ESocketReceiveFlags::Type Flags)
+{
+	int TranslatedFlags = 0;
+
+	if (Flags & ESocketReceiveFlags::Peek)
+	{
+		TranslatedFlags |= MSG_PEEK;
+	}
+
+	if (Flags & ESocketReceiveFlags::WaitAll)
+	{
+		TranslatedFlags |= MSG_WAITALL;
+	}
+
+	return TranslatedFlags;
+}
 
 #include <errno.h>

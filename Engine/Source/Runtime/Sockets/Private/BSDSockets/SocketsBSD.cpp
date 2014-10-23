@@ -12,28 +12,6 @@
 typedef unsigned long   u_long;
 #endif 
 
-namespace
-{
-	// Since the flag constants may have different values per-platform, translate into corresponding system constants.
-	// For example, MSG_WAITALL is 0x8 on Windows, but 0x100 on other platforms.
-	int TranslateFlags(ESocketReceiveFlags::Type Flags)
-	{
-		int TranslatedFlags = 0;
-
-		if (Flags & ESocketReceiveFlags::Peek)
-		{
-			TranslatedFlags |= MSG_PEEK;
-		}
-
-		if (Flags & ESocketReceiveFlags::WaitAll)
-		{
-			TranslatedFlags |= MSG_WAITALL;
-		}
-
-		return TranslatedFlags;
-	}
-}
-
 /* FSocket interface
  *****************************************************************************/
 
