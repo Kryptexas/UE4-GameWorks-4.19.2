@@ -12,6 +12,28 @@
 typedef unsigned long   u_long;
 #endif 
 
+namespace
+{
+	// Since the flag constants may have different values per-platform, translate into corresponding system constants.
+	// For example, MSG_WAITALL is 0x8 on Windows, but 0x100 on other platforms.
+	int TranslateFlags(ESocketReceiveFlags::Type Flags)
+	{
+		int TranslatedFlags = 0;
+
+		if (Flags & ESocketReceiveFlags::Peek)
+		{
+			TranslatedFlags |= MSG_PEEK;
+		}
+
+		if (Flags & ESocketReceiveFlags::WaitAll)
+		{
+			TranslatedFlags |= MSG_WAITALL;
+		}
+
+		return TranslatedFlags;
+	}
+}
+
 /* FSocket interface
  *****************************************************************************/
 
@@ -198,8 +220,10 @@ bool FSocketBSD::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInte
 	SOCKLEN Size = sizeof(sockaddr_in);
 	sockaddr& Addr = *(FInternetAddrBSD&)Source;
 
+	const int TranslatedFlags = TranslateFlags(Flags);
+
 	// Read into the buffer and set the source address
-	BytesRead = recvfrom(Socket, (char*)Data, BufferSize, Flags, &Addr, &Size);
+	BytesRead = recvfrom(Socket, (char*)Data, BufferSize, TranslatedFlags, &Addr, &Size);
 //	NETWORK_PROFILER(FSocket::RecvFrom(Data,BufferSize,BytesRead,Source));
 
 	bool Result = BytesRead >= 0;
@@ -214,7 +238,8 @@ bool FSocketBSD::RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInte
 
 bool FSocketBSD::Recv(uint8* Data, int32 BufferSize, int32& BytesRead, ESocketReceiveFlags::Type Flags)
 {
-	BytesRead = recv(Socket, (char*)Data, BufferSize, Flags);
+	const int TranslatedFlags = TranslateFlags(Flags);
+	BytesRead = recv(Socket, (char*)Data, BufferSize, TranslatedFlags);
 
 //	NETWORK_PROFILER(FSocket::Recv(Data,BufferSize,BytesRead));
 
