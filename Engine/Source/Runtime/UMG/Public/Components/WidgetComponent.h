@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "UMGComponent.generated.h"
+#include "WidgetComponent.generated.h"
 
 /**
-* UMG Component is a primitive component used to render User Widgets in the game world.
-* Functionally, it maps the user widget content to an SWindow that is in turn mapped to a quad (FKBoxElem) in the world via render target.
+* Beware! This feature is experimental and may be substantially changed or removed in future releases.
+* A 3D instance of a Widget Blueprint that can be interacted with in the world.
 */
-UCLASS(hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Rendering,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent),MinimalAPI)
-class UUMGComponent : public UPrimitiveComponent
+UCLASS(ClassGroup=Experimental, hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent,  DevelopmentStatus=Experimental),MinimalAPI)
+class UWidgetComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -48,7 +48,7 @@ public:
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
 	/** @return The user widget object displayed by this component */
-	UUserWidget* GetUMGWidgetObject() const { return Widget; }
+	UUserWidget* GetUserWidgetObject() const { return Widget; }
 
 	/** @return  */
 	TArray<FArrangedWidget> GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus );
@@ -65,6 +65,9 @@ public:
 	/** @return The draw size of the quad in the world */
 	const FIntPoint& GetDrawSize() const { return DrawSize; }
 
+	/** @return True if the component is opaque */
+	bool IsOpaque() const { return bIsOpaque; }
+	
 private:
 	/** The size of the displayed quad */
 	UPROPERTY(EditAnywhere, Category=UI)
@@ -74,6 +77,21 @@ private:
 	UPROPERTY(EditAnywhere, Category=UI)
 	TSubclassOf<UUserWidget> WidgetClass;
 
+	/** The background color of the component */
+	UPROPERTY( EditAnywhere, Category = UI )
+	FLinearColor BackgroundColor;
+
+	/** 
+	 * Should the component be rendered opaque? 
+	 * This improves aliasing of the UI in the world.
+	 */
+	UPROPERTY(EditAnywhere, Category=UI)
+	bool bIsOpaque;
+
+	/** Is the component visible from behind? */
+	UPROPERTY( EditAnywhere, Category = UI )
+	bool bIsTwoSided;
+
 	/** The User Widget object displayed and managed by this component */
 	UPROPERTY(transient, duplicatetransient)
 	UUserWidget* Widget;
@@ -82,9 +100,21 @@ private:
 	UPROPERTY(transient, duplicatetransient)
 	class UBodySetup* BodySetup;
 
-	/**  */
+	/** The material instance for translucent widget components */
 	UPROPERTY()
-	UMaterial* BaseMaterial;
+	UMaterialInterface* TranslucentMaterial;
+
+	/** The material instance for translucent, one-sided widget components */
+	UPROPERTY()
+	UMaterialInterface* TranslucentMaterial_OneSided;
+
+	/** The material instance for opaque widget components */
+	UPROPERTY()
+	UMaterialInterface* OpaqueMaterial;
+
+	/** The material instance for opaque, one-sided widget components */
+	UPROPERTY()
+	UMaterialInterface* OpaqueMaterial_OneSided;
 
 	/** The target to which the user widget is rendered */
 	UPROPERTY(transient, duplicatetransient)
@@ -107,7 +137,7 @@ private:
 	FVector2D LastLocalHitLocation;
 
 	/** The hit tester to use for this component */
-	static TSharedPtr<class FUMG3DHitTester> UMGHitTester;
+	static TSharedPtr<class FWidget3DHitTester> WidgetHitTester;
 };
 
  

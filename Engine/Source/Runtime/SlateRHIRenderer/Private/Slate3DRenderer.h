@@ -4,7 +4,6 @@
 
 #include "ISlate3DRenderer.h"
 
-
 class FSlate3DRenderer : public ISlate3DRenderer
 {
 public:
@@ -22,14 +21,16 @@ private:
 	/** Texture manager for accessing textures on the game thread */
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 
+	/** The font cache for rendering text */
 	TSharedRef<FSlateFontCache> FontCache;
 
+	/** The rendering policy to use for drawing to the render target */
 	TSharedPtr<class FSlateRHIRenderingPolicy> RenderTargetPolicy;
 
-	/** Element batcher which renders draw elements */
+	/** Element batcher that renders draw elements */
 	TSharedPtr<FSlateElementBatcher> ElementBatcher;
 
-	/** The draw buffer which is currently free for use by the game thread */
+	/** The draw buffer that is currently free for use by the game thread */
 	uint8 FreeBufferIndex;
 
 };

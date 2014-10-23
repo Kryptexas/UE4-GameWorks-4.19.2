@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
-#include "UMGComponent.h"
+#include "WidgetComponent.h"
 #include "HittestGrid.h"
 #if !UE_SERVER
 	#include "ISlateRHIRendererModule.h"
@@ -31,21 +31,22 @@ public:
 
 
 /** Represents a billboard sprite to the scene manager. */
-class FUMG3DSceneProxy : public FPrimitiveSceneProxy
+class FWidget3DSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 	/** Initialization constructor. */
-	FUMG3DSceneProxy(const UUMGComponent* InComponent, ISlate3DRenderer& InRenderer )
-		: FPrimitiveSceneProxy(InComponent)
+	FWidget3DSceneProxy( UWidgetComponent* InComponent, ISlate3DRenderer& InRenderer )
+		: FPrimitiveSceneProxy( InComponent )
 		, Renderer( InRenderer )
 		, RenderTarget( InComponent->GetRenderTarget() )
 		, MaterialInstance( InComponent->GetMaterialInstance() )
-		, BodySetup( const_cast<UUMGComponent*>( InComponent )->GetBodySetup() )
+		, BodySetup( InComponent->GetBodySetup() )
+		, bIsOpaque( InComponent->IsOpaque() )
 	{
 		bWillEverBeLit = false;
 	}
 
-	~FUMG3DSceneProxy()
+	~FWidget3DSceneProxy()
 	{
 	}
 
@@ -140,8 +141,9 @@ public:
 
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View) && bVisible;
-		Result.bOpaqueRelevance = false;
-		Result.bNormalTranslucencyRelevance = true;
+		Result.bOpaqueRelevance = bIsOpaque;
+		Result.bNormalTranslucencyRelevance = !bIsOpaque;
+		Result.bSeparateTranslucencyRelevance = !bIsOpaque;
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = IsShadowCast(View);;
 		Result.bEditorPrimitiveRelevance = false;
@@ -171,15 +173,16 @@ private:
 	UTextureRenderTarget2D* RenderTarget;
 	UMaterialInstanceDynamic* MaterialInstance;
 	UBodySetup* BodySetup;
+	bool bIsOpaque;
 };
 
 /**
-* The hit tester used by all UMG Component objects.
+* The hit tester used by all Widget Component objects.
 */
-class FUMG3DHitTester : public ICustomHitTestPath
+class FWidget3DHitTester : public ICustomHitTestPath
 {
 public:
-	FUMG3DHitTester( UWorld* InWorld )
+	FWidget3DHitTester( UWorld* InWorld )
 		: World( InWorld )
 	{}
 
@@ -189,15 +192,17 @@ public:
 		if( World.IsValid() && ensure( World->IsGameWorld() ) )
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
-			if (TargetPlayer && TargetPlayer->PlayerController)
+			auto* PlayerController = TargetPlayer->PlayerController;
+
+			if (TargetPlayer && PlayerController)
 			{
 				FHitResult HitResult;
-				if (TargetPlayer->PlayerController->GetHitResultAtScreenPosition(InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate), ECC_Visibility, true, HitResult))
+				if (PlayerController->GetHitResultAtScreenPosition(InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate), ECC_Visibility, true, HitResult))
 				{
-					UUMGComponent* UMGComponent = Cast<UUMGComponent>(HitResult.Component.Get());
-					if (UMGComponent)
+					UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitResult.Component.Get());
+					if ( WidgetComponent )
 					{
-						return UMGComponent->GetHitWidgetPath(HitResult, bIgnoreEnabledStatus);
+						return WidgetComponent->GetHitWidgetPath( HitResult, bIgnoreEnabledStatus );
 					}
 				}
 			}
@@ -207,15 +212,15 @@ public:
 
 	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const override
 	{
-		for( TWeakObjectPtr<UUMGComponent> Component : RegisteredComponents )
+		for( TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents )
 		{
-			UUMGComponent* UMGComponent = Component.Get();
+			UWidgetComponent* WidgetComponent = Component.Get();
 			// Check if visible;
-			if( UMGComponent && UMGComponent->GetSlateWidget().IsValid() )
+			if ( WidgetComponent && WidgetComponent->GetSlateWidget().IsValid() )
 			{
 				FGeometry WidgetGeom;
 
-				ArrangedChildren.AddWidget( FArrangedWidget( UMGComponent->GetSlateWidget().ToSharedRef(), WidgetGeom.MakeChild( UMGComponent->GetDrawSize(), FSlateLayoutTransform() ) ) );
+				ArrangedChildren.AddWidget( FArrangedWidget( WidgetComponent->GetSlateWidget().ToSharedRef(), WidgetGeom.MakeChild( WidgetComponent->GetDrawSize(), FSlateLayoutTransform() ) ) );
 			}
 		}
 	}
@@ -227,12 +232,12 @@ public:
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
 			if(TargetPlayer && TargetPlayer->PlayerController)
 			{
-				// Check for a hit against any umg components in the world
-				for(TWeakObjectPtr<UUMGComponent> Component : RegisteredComponents)
+				// Check for a hit against any widget components in the world
+				for(TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents)
 				{
-					UUMGComponent* UMGComponent = Component.Get();
+					UWidgetComponent* WidgetComponent = Component.Get();
 					// Check if visible;
-					if(UMGComponent && UMGComponent->GetSlateWidget() == ChildWidget)
+					if ( WidgetComponent && WidgetComponent->GetSlateWidget() == ChildWidget )
 					{
 						FVector2D LocalMouseCoordinate = ViewportGeometry.AbsoluteToLocal(ScreenSpaceMouseCoordinate);
 						FVector2D LocalLastMouseCoordinate = ViewportGeometry.AbsoluteToLocal( LastScreenSpaceMouseCoordinate );
@@ -241,11 +246,11 @@ public:
 						FHitResult HitResult;
 						if(TargetPlayer->PlayerController->GetHitResultAtScreenPosition(LocalMouseCoordinate, ECC_Visibility, true, HitResult))
 						{
-							if(UMGComponent == HitResult.Component.Get())
+							if ( WidgetComponent == HitResult.Component.Get() )
 							{
 								TSharedPtr<FVirtualCursorPosition> VirtualCursorPos = MakeShareable(new FVirtualCursorPosition);
 
-								FVector2D LocalHitLocation = FVector2D(UMGComponent->ComponentToWorld.InverseTransformPosition(HitResult.Location));
+								FVector2D LocalHitLocation = FVector2D( WidgetComponent->ComponentToWorld.InverseTransformPosition( HitResult.Location ) );
 
 								VirtualCursorPos->CurrentCursorPosition = LocalHitLocation;
 								VirtualCursorPos->LastCursorPosition = LocalHitLocation;
@@ -262,12 +267,12 @@ public:
 	}
 	// End ICustomHitTestPath
 
-	void RegisterUMGComponent( UUMGComponent* InComponent )
+	void RegisterWidgetComponent( UWidgetComponent* InComponent )
 	{
 		RegisteredComponents.AddUnique( InComponent );
 	}
 
-	void UnregisterUMGComponent( UUMGComponent* InComponent )
+	void UnregisterWidgetComponent( UWidgetComponent* InComponent )
 	{
 		RegisteredComponents.RemoveSingleSwap( InComponent );
 	}
@@ -276,45 +281,60 @@ public:
 	
 	UWorld* GetWorld() const { return World.Get(); }
 private:
-	TArray< TWeakObjectPtr<UUMGComponent> > RegisteredComponents;
+	TArray< TWeakObjectPtr<UWidgetComponent> > RegisteredComponents;
 	TWeakObjectPtr<UWorld> World;
 };
 
-UUMGComponent::UUMGComponent(const class FObjectInitializer& PCIP)
-	: Super(PCIP)
+UWidgetComponent::UWidgetComponent( const class FObjectInitializer& PCIP )
+	: Super( PCIP )
+	, DrawSize( FIntPoint( 500, 500 ) )
+	, BackgroundColor( FLinearColor::Transparent )
+	, bIsOpaque( false )
+	, bIsTwoSided( true )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
-	DrawSize = FIntPoint(500,500);
-
+	
+	SetRelativeRotation( FRotator( 0.f, 0.f, 90.f ) );
+	
 	BodyInstance.SetCollisionProfileName(FName(TEXT("UI")));
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> Material( TEXT("/Engine/EngineMaterials/UMG3DPassThrough") );
+	// Translucent material instances
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> TranslucentMaterial_Finder( TEXT("/Engine/EngineMaterials/Widget3DPassThrough_Translucent") );
+	TranslucentMaterial = TranslucentMaterial_Finder.Object;
 
-	BaseMaterial = Material.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> TranslucentMaterial_OneSided_Finder( TEXT( "/Engine/EngineMaterials/Widget3DPassThrough_Translucent_OneSided" ) );
+	TranslucentMaterial_OneSided = TranslucentMaterial_OneSided_Finder.Object;
+
+	// Opaque material instances
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterial_Finder( TEXT( "/Engine/EngineMaterials/Widget3DPassThrough_Opaque" ) );
+	OpaqueMaterial = OpaqueMaterial_Finder.Object;
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterial_OneSided_Finder( TEXT( "/Engine/EngineMaterials/Widget3DPassThrough_Opaque_OneSided" ) );
+	OpaqueMaterial_OneSided = OpaqueMaterial_OneSided_Finder.Object;
 
 	LastLocalHitLocation = FVector2D::ZeroVector;
 	//bGenerateOverlapEvents = false;
 	bUseEditorCompositing = false;
 }
 
-FPrimitiveSceneProxy* UUMGComponent::CreateSceneProxy()
+FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 {
-	return new FUMG3DSceneProxy(this,*Renderer);
+	return new FWidget3DSceneProxy(this,*Renderer);
 }
 
-FBoxSphereBounds UUMGComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
 	return FBoxSphereBounds( FVector( DrawSize.X/2.0f, DrawSize.Y/2.0f, .5f), FVector(DrawSize.X/2,DrawSize.Y/2,1.0f), DrawSize.Size()/2 ).TransformBy( LocalToWorld );
 }
 
-UBodySetup* UUMGComponent::GetBodySetup() 
+UBodySetup* UWidgetComponent::GetBodySetup() 
 {
 	UpdateBodySetup();
 	return BodySetup;
 }
 
-FCollisionShape UUMGComponent::GetCollisionShape(float Inflation) const
+FCollisionShape UWidgetComponent::GetCollisionShape(float Inflation) const
 {
 	FVector	Extent = ( FVector( DrawSize.Y, DrawSize.Y, 1.0f ) * ComponentToWorld.GetScale3D() ) + Inflation;
 	if( Inflation < 0.0f )
@@ -326,7 +346,7 @@ FCollisionShape UUMGComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Extent);
 }
 
-void UUMGComponent::OnRegister()
+void UWidgetComponent::OnRegister()
 {
 	Super::OnRegister();
 
@@ -339,23 +359,31 @@ void UUMGComponent::OnRegister()
 			TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
 			if( !CustomHitTestPath.IsValid() )
 			{
-				CustomHitTestPath = MakeShareable(new FUMG3DHitTester(GetWorld()));
+				CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
 				GameViewportWidget->SetCustomHitTestPath( CustomHitTestPath );
 			}
 
-			TSharedPtr<FUMG3DHitTester> UMGHitTester = StaticCastSharedPtr<FUMG3DHitTester>(CustomHitTestPath);
-			if( UMGHitTester->GetWorld() == GetWorld() )
+			TSharedPtr<FWidget3DHitTester> WidgetHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+			if( WidgetHitTester->GetWorld() == GetWorld() )
 			{
-				UMGHitTester->RegisterUMGComponent( this );
+				WidgetHitTester->RegisterWidgetComponent( this );
 			}
-
 		}
-
 	}
 
 	if( !MaterialInstance )
 	{
-		MaterialInstance = UMaterialInstanceDynamic::Create(BaseMaterial, this);
+		UMaterialInterface* Parent = nullptr;
+		if (bIsOpaque)
+		{
+			Parent = bIsTwoSided ? OpaqueMaterial : OpaqueMaterial_OneSided;
+		}
+		else
+		{
+			Parent = bIsTwoSided ? TranslucentMaterial : TranslucentMaterial_OneSided;
+		}
+
+		MaterialInstance = UMaterialInstanceDynamic::Create(Parent, this);
 	}
 
 	UpdateWidget();
@@ -368,7 +396,7 @@ void UUMGComponent::OnRegister()
 #endif // !UE_SERVER
 }
 
-void UUMGComponent::OnUnregister()
+void UWidgetComponent::OnUnregister()
 {
 	if( GetWorld()->IsGameWorld() )
 	{
@@ -378,11 +406,11 @@ void UUMGComponent::OnUnregister()
 			TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
 			if( CustomHitTestPath.IsValid() )
 			{
-				TSharedPtr<FUMG3DHitTester> UMGHitTestPath = StaticCastSharedPtr<FUMG3DHitTester>(CustomHitTestPath);
+				TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
 
-				UMGHitTestPath->UnregisterUMGComponent( this );
+				WidgetHitTestPath->UnregisterWidgetComponent( this );
 
-				if( UMGHitTestPath->GetNumRegisteredComponents() == 0 )
+				if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
 				{
 					GameViewportWidget->SetCustomHitTestPath( nullptr );
 				}
@@ -400,13 +428,13 @@ void UUMGComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UUMGComponent::DestroyComponent()
+void UWidgetComponent::DestroyComponent()
 {
 	Super::DestroyComponent();
 	Renderer.Reset();
 }
 
-void UUMGComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 #if !UE_SERVER
 	const float RenderTimeThreshold = .5f;
@@ -445,7 +473,7 @@ void UUMGComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FAc
 		UpdateRenderTarget();
 
 		// Enqueue a command to unlock the draw buffer after all windows have been drawn
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(UUMG3DComponentRenderToTexture,
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(UWidgetComponentRenderToTexture,
 			FSlateDrawBuffer&, InDrawBuffer, DrawBuffer,
 			UTextureRenderTarget2D*, InRenderTarget, RenderTarget,
 			ISlate3DRenderer*, InRenderer, Renderer.Get(),
@@ -457,10 +485,10 @@ void UUMGComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FAc
 #endif // !UE_SERVER
 }
 
-class FUMGComponentInstanceData : public FComponentInstanceDataBase
+class FWidgetComponentInstanceData : public FComponentInstanceDataBase
 {
 public:
-	FUMGComponentInstanceData( const UUMGComponent* SourceComponent )
+	FWidgetComponentInstanceData( const UWidgetComponent* SourceComponent )
 		: FComponentInstanceDataBase(SourceComponent)
 		, WidgetClass ( SourceComponent->GetWidgetClass() )
 		, RenderTarget( SourceComponent->GetRenderTarget() )
@@ -468,7 +496,7 @@ public:
 
 	virtual bool MatchesComponent( const UActorComponent* Component ) const override
 	{
-		return (CastChecked<UUMGComponent>(Component)->GetWidgetClass() == WidgetClass && FComponentInstanceDataBase::MatchesComponent(Component));
+		return (CastChecked<UWidgetComponent>(Component)->GetWidgetClass() == WidgetClass && FComponentInstanceDataBase::MatchesComponent(Component));
 	}
 
 public:
@@ -476,51 +504,59 @@ public:
 	UTextureRenderTarget2D* RenderTarget;
 };
 
-FName UUMGComponent::GetComponentInstanceDataType() const
+FName UWidgetComponent::GetComponentInstanceDataType() const
 {
-	static const FName InstanceDataName(TEXT("UMGInstanceData"));
+	static const FName InstanceDataName(TEXT("WidgetInstanceData"));
 	return InstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UUMGComponent::GetComponentInstanceData() const
+TSharedPtr<FComponentInstanceDataBase> UWidgetComponent::GetComponentInstanceData() const
 {
-	return MakeShareable( new FUMGComponentInstanceData( this ) );
+	return MakeShareable( new FWidgetComponentInstanceData( this ) );
 }
 
-void UUMGComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UWidgetComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
 {
 	check(ComponentInstanceData.IsValid());
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
-	TSharedPtr<FUMGComponentInstanceData> UMGInstanceData = StaticCastSharedPtr<FUMGComponentInstanceData>(ComponentInstanceData);
+	TSharedPtr<FWidgetComponentInstanceData> WidgetInstanceData = StaticCastSharedPtr<FWidgetComponentInstanceData>(ComponentInstanceData);
 
-	RenderTarget = UMGInstanceData->RenderTarget;
+	RenderTarget = WidgetInstanceData->RenderTarget;
 	MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
 
 	MarkRenderStateDirty();
 }
 
 #if WITH_EDITORONLY_DATA
-void UUMGComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* Property = PropertyChangedEvent.MemberProperty;
 
 	if( Property && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
 		static FName DrawSizeName("DrawSize");
+		static FName WidgetClassName("WidgetClass");
+		static FName IsOpaqueName("bIsOpaque");
+		static FName IsTwoSidedName("bIsTwoSided");
+		static FName BackgroundColorName("BackgroundColor");
 
-		static FName WidgetClass("WidgetClass");
+		auto PropertyName = Property->GetFName();
 
-		if( Property->GetFName() == DrawSizeName || Property->GetFName() == WidgetClass )
+		if( PropertyName == DrawSizeName || PropertyName == WidgetClassName )
 		{
 			UpdateWidget();
 
-			if( Property->GetFName() == DrawSizeName )
+			if( PropertyName == DrawSizeName )
 			{
 				UpdateBodySetup(true);
 			}
 
+			MarkRenderStateDirty();
+		}
+		else if ( PropertyName == IsOpaqueName  || PropertyName == BackgroundColorName || PropertyName == IsTwoSidedName)
+		{
 			MarkRenderStateDirty();
 		}
 	}
@@ -529,7 +565,7 @@ void UUMGComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif
 
-void UUMGComponent::UpdateWidget()
+void UWidgetComponent::UpdateWidget()
 {
 	if(WidgetClass && !Widget && GetWorld() )
 	{
@@ -572,28 +608,66 @@ void UUMGComponent::UpdateWidget()
 	}
 }
 
-void UUMGComponent::UpdateRenderTarget()
+void UWidgetComponent::UpdateRenderTarget()
 {
+	bool bClearColorChanged = false;
+
 	if(!RenderTarget && DrawSize != FIntPoint::ZeroValue)
 	{
 		RenderTarget = ConstructObject<UTextureRenderTarget2D>(UTextureRenderTarget2D::StaticClass(), this);
 		RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
-		MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
+		RenderTarget->ClearColor = BackgroundColor;
+		if (bIsOpaque)
+		{
+			RenderTarget->ClearColor.A = 1.0f;
+		}
+		bClearColorChanged = true;
+		
+		MaterialInstance->SetTextureParameterValue( "SlateUI", RenderTarget );
 		MarkRenderStateDirty();
 	}
-	else if(DrawSize != FIntPoint::ZeroValue && (RenderTarget->SizeX != DrawSize.X || RenderTarget->SizeY != DrawSize.Y))
+	else if ( DrawSize != FIntPoint::ZeroValue )
 	{
-		RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
+		// Update the format
+		if ( RenderTarget->SizeX != DrawSize.X || RenderTarget->SizeY != DrawSize.Y )
+		{
+			RenderTarget->InitCustomFormat( DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false );
+		}
+
+		// Update the clear color
+		if (!bIsOpaque && RenderTarget->ClearColor != BackgroundColor)
+		{
+			RenderTarget->ClearColor = BackgroundColor;
+			bClearColorChanged = true;
+		}
+		else if ( bIsOpaque )
+		{
+			// If opaque, make sure the alpha channel is set to 1.0
+			FLinearColor ClearColor( BackgroundColor.R, BackgroundColor.G, BackgroundColor.B, 1.0f );
+			if ( RenderTarget->ClearColor != ClearColor )
+			{
+				RenderTarget->ClearColor = ClearColor;
+				bClearColorChanged = true;
+			}
+		}
+		
 		MarkRenderStateDirty();
+	}
+
+	// If the clear color of the render target changed, update the BackColor of the material to match
+	if ( bClearColorChanged )
+	{
+		MaterialInstance->SetVectorParameterValue( "BackColor", RenderTarget->ClearColor );
 	}
 }
 
-void UUMGComponent::UpdateBodySetup( bool bDrawSizeChanged )
+void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 {
 	if( !BodySetup || bDrawSizeChanged )
 	{
 		BodySetup = ConstructObject<UBodySetup>( UBodySetup::StaticClass(), this );
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
+		BodySetup->bDoubleSidedGeometry = false;
 		BodySetup->AggGeom.BoxElems.Add(FKBoxElem());
 
 		FKBoxElem* BoxElem = BodySetup->AggGeom.BoxElems.GetData();
@@ -606,7 +680,7 @@ void UUMGComponent::UpdateBodySetup( bool bDrawSizeChanged )
 	}	
 }
 
-TArray<FArrangedWidget> UUMGComponent::GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus  )
+TArray<FArrangedWidget> UWidgetComponent::GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus  )
 {
 	FVector2D LocalHitLocation = FVector2D( ComponentToWorld.InverseTransformPosition( HitResult.Location ) );
 
@@ -628,7 +702,7 @@ TArray<FArrangedWidget> UUMGComponent::GetHitWidgetPath( const FHitResult& HitRe
 	return ArrangedWidgets;
 }
 
-TSharedPtr<SWidget> UUMGComponent::GetSlateWidget() const
+TSharedPtr<SWidget> UWidgetComponent::GetSlateWidget() const
 {
 	return SlateWidget;
 }

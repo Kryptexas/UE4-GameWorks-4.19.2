@@ -15,7 +15,7 @@
 #include "Animation/Sequencer2DTransformTrackEditor.h"
 #include "IUMGModule.h"
 #include "ComponentReregisterContext.h"
-#include "UMGComponent.h"
+#include "WidgetComponent.h"
 #include "DesignerCommands.h"
 #include "WidgetBlueprint.h"
 
@@ -77,7 +77,7 @@ public:
 	{
 		if ( UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint) )
 		{
-			TComponentReregisterContext<UUMGComponent> ComponentReregisterContext;
+			TComponentReregisterContext<UWidgetComponent> ComponentReregisterContext;
 
 			FWidgetBlueprintCompiler Compiler(WidgetBlueprint, Results, CompileOptions, ObjLoaded);
 			Compiler.Compile();
