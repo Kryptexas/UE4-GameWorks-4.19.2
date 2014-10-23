@@ -13,6 +13,8 @@
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
 #include "ControlPointMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "EngineGlobals.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshSocket.h"
 
