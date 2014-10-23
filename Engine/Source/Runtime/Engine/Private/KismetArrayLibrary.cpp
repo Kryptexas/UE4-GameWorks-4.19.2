@@ -28,7 +28,7 @@ void UKismetArrayLibrary::FilterArray(const TArray<AActor*>& TargetArray, TSubcl
 
 int32 UKismetArrayLibrary::GenericArray_Add(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem)
 {
-	int32 NewIndex = 0;
+	int32 NewIndex = INDEX_NONE;
 	if( TargetArray )
 	{
 		FScriptArrayHelper ArrayHelper(ArrayProp, TargetArray);
@@ -36,6 +36,23 @@ int32 UKismetArrayLibrary::GenericArray_Add(void* TargetArray, const UArrayPrope
 
 		NewIndex = ArrayHelper.AddValue();
 		InnerProp->CopySingleValueToScriptVM(ArrayHelper.GetRawPtr(NewIndex), NewItem);
+	}
+	return NewIndex;
+}
+
+int32 UKismetArrayLibrary::GenericArray_AddUnique(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem)
+{
+	int32 NewIndex = INDEX_NONE;
+	if (TargetArray)
+	{
+		FScriptArrayHelper ArrayHelper(ArrayProp, TargetArray);
+		UProperty* InnerProp = ArrayProp->Inner;
+
+		if (GenericArray_Find(TargetArray, ArrayProp, NewItem) == INDEX_NONE)
+		{
+			NewIndex = ArrayHelper.AddValue();
+			InnerProp->CopySingleValueToScriptVM(ArrayHelper.GetRawPtr(NewIndex), NewItem);
+		}
 	}
 	return NewIndex;
 }

@@ -15,7 +15,16 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, CustomThunk, meta=(FriendlyName = "Add", CompactNodeTitle = "ADD", ArrayParm = "TargetArray|ArrayProperty", ArrayTypeDependentParams = "NewItem", AutoCreateRefTerm = "NewItem"), Category="Utilities|Array")
 	static int32 Array_Add(const TArray<int32>& TargetArray, const UArrayProperty* ArrayProperty, const int32& NewItem);
-	
+
+	/**
+	*Add item to array (unique)
+	*
+	*@param	TargetArray		The array to add item to
+	*@param	NewItem			The item to add to the array
+	*/
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (FriendlyName = "Add Unique", CompactNodeTitle = "ADDUNIQUE", ArrayParm = "TargetArray|ArrayProperty", ArrayTypeDependentParams = "NewItem", AutoCreateRefTerm = "NewItem"), Category = "Utilities|Array")
+	static int32 Array_AddUnique(const TArray<int32>& TargetArray, const UArrayProperty* ArrayProperty, const int32& NewItem);
+
 	/** 
 	 * Shuffle (randomize) the elements of an array
 	 *
@@ -158,6 +167,7 @@ class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 
 	// Native functions that will be called by the below custom thunk layers, which read off the property address, and call the appropriate native handler
 	ENGINE_API static int32 GenericArray_Add(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem);
+	ENGINE_API static int32 GenericArray_AddUnique(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem);
 	ENGINE_API static void GenericArray_Shuffle(void* TargetArray, const UArrayProperty* ArrayProp);
 	ENGINE_API static void GenericArray_Append(void* TargetArray, const UArrayProperty* TargetArrayProp, void* SourceArray, const UArrayProperty* SourceArrayProperty);
 	ENGINE_API static void GenericArray_Insert(void* TargetArray, const UArrayProperty* ArrayProp, const void* NewItem, int32 Index);
@@ -204,6 +214,30 @@ public:
  
 		*(int32*)Result = GenericArray_Add(ArrayAddr, ArrayProperty, NewItemPtr);
  
+		InnerProp->DestroyValue(StorageSpace);
+	}
+
+	DECLARE_FUNCTION(execArray_AddUnique)
+	{
+		Stack.StepCompiledIn<UArrayProperty>(NULL);
+		void* ArrayAddr = Stack.MostRecentPropertyAddress;
+
+		P_GET_OBJECT(UArrayProperty, ArrayProperty);
+
+		// Since NewItem isn't really an int, step the stack manually
+		const UProperty* InnerProp = ArrayProperty->Inner;
+		const int32 PropertySize = InnerProp->ElementSize * InnerProp->ArrayDim;
+		void* StorageSpace = FMemory_Alloca(PropertySize);
+		InnerProp->InitializeValue(StorageSpace);
+
+		Stack.MostRecentPropertyAddress = NULL;
+		Stack.StepCompiledIn<UProperty>(StorageSpace);
+		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
+
+		P_FINISH;
+
+		*(int32*)Result = GenericArray_AddUnique(ArrayAddr, ArrayProperty, NewItemPtr);
+
 		InnerProp->DestroyValue(StorageSpace);
 	}
 

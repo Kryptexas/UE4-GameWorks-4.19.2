@@ -22,6 +22,12 @@ struct FCustomThunkTemplates
 	}
 
 	template<typename T>
+	static int32 Array_AddUnique(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty, const T& NewItem)
+	{
+		return UKismetArrayLibrary::GenericArray_AddUnique(&TargetArray, ArrayProperty, &NewItem);
+	}
+
+	template<typename T>
 	static void Array_Shuffle(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty)
 	{
 		UKismetArrayLibrary::GenericArray_Shuffle(&TargetArray, ArrayProperty);
