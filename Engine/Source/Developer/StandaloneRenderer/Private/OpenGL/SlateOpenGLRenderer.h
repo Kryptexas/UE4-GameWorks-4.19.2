@@ -45,6 +45,7 @@ struct FSlateOpenGLContext
 	SDL_Window* WindowHandle;
 	SDL_GLContext Context;
 	bool bReleaseWindowOnDestroy;
+	GLuint VertexArrayObject; 
 #else
 #error "Unknown platform"
 #endif

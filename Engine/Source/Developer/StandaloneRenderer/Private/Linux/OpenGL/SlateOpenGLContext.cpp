@@ -24,6 +24,7 @@ FSlateOpenGLContext::FSlateOpenGLContext()
 	: WindowHandle(NULL)
 	, Context(NULL)
 	, bReleaseWindowOnDestroy(false)
+	, VertexArrayObject(0)
 {
 }
 
@@ -42,10 +43,16 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 		bReleaseWindowOnDestroy = true;
 	}
 
+	if (SDL_GL_LoadLibrary(nullptr))
+	{
+		FString SdlError(ANSI_TO_TCHAR(SDL_GetError()));
+		UE_LOG(LogInit, Fatal, TEXT("FSlateOpenGLContext::Initialize - Unable to dynamically load libGL: %s\n."), *SdlError);
+	}
+
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
 
 	if( SharedContext )
 	{
@@ -67,7 +74,7 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 		int OpenGLMinorVersion = -1;
 		SDL_GL_GetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, &OpenGLMajorVersion );
 		SDL_GL_GetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, &OpenGLMinorVersion );
-		
+
 		UE_LOG(LogInit, Fatal, TEXT("FSlateOpenGLContext::Initialize - Could not create OpenGL %d.%d context, SDL error: '%s'"), 
 				OpenGLMajorVersion, OpenGLMinorVersion,
 				*SdlError
@@ -76,6 +83,12 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 		return;
 	}
 	SDL_GL_MakeCurrent( WindowHandle, Context );
+
+	LoadOpenGLExtensions();
+
+	// one Vertex Array Object is reportedly needed for OpenGL 3.2+ core profiles
+	glGenVertexArrays(1, &VertexArrayObject);
+	glBindVertexArray(VertexArrayObject);
 }
 
 void FSlateOpenGLContext::Destroy()
@@ -83,6 +96,7 @@ void FSlateOpenGLContext::Destroy()
 	if	( WindowHandle != NULL )
 	{
 		SDL_GL_MakeCurrent( NULL, NULL );
+		glDeleteVertexArrays(1, &VertexArrayObject);
 		SDL_GL_DeleteContext( Context );
 
 		if	( bReleaseWindowOnDestroy )
@@ -99,9 +113,9 @@ void FSlateOpenGLContext::MakeCurrent()
 {
 	if	( WindowHandle )
 	{
-		CHECK_GL_ERRORS;
 		if(SDL_GL_MakeCurrent( WindowHandle, Context ) == 0)
 		{
+			glBindVertexArray(VertexArrayObject);
 			glGetError(); // SDL leaves glGetError in a dirty state even when successful?
 		}
 	}
