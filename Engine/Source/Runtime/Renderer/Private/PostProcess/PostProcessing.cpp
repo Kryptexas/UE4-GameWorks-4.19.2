@@ -694,7 +694,7 @@ static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRende
 
 					if (BaseFilename.Len())
 					{
-						FString MaterialFilename = BaseFilename + TEXT("_") + (*It)->GetName();
+						FString MaterialFilename = BaseFilename + TEXT("_") + (*It)->GetName() + TEXT(".png");
 						MaterialPass->SetOutputDumpFilename(ePId_Output0, *MaterialFilename);
 					}
 

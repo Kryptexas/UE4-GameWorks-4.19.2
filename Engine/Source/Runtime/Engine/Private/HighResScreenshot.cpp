@@ -134,8 +134,10 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 	const size_t BitsPerPixel = (sizeof(TPixelType) / 4) * 8;
 
 	TSharedPtr<class IImageWrapper> ImageCompressor = bIsWritingHDRImage ? ImageCompressorHDR : ImageCompressorLDR;
-	FString Extension = bIsWritingHDRImage ? TEXT(".exr") : TEXT(".png");
-	FString Filename = (FPaths::GetExtension(File, true) == Extension) ? File : FPaths::GetBaseFilename(File, false) + Extension;
+
+	// here we require the input file name to have an extension
+	FString NewExtension = bIsWritingHDRImage ? TEXT(".exr") : TEXT(".png");
+	FString Filename = FPaths::GetBaseFilename(File, false) + NewExtension;
 
 	if (OutFilename != nullptr)
 	{

@@ -198,14 +198,14 @@ struct FRenderingCompositePass
 
 	/**
 	 * Allows access to dump filename for a given output
-	 * @return Filename for output dump
+	 * @return Filename for output dump with extension
 	 */
 	virtual const FString& GetOutputDumpFilename(EPassOutputId OutputId) = 0;
 
 	/**
 	 * Allows setting of a dump filename for a given output
 	 * @param Index - Output index
-	 * @param Filename - Output dump filename
+	 * @param Filename - Output dump filename, needs to have extension, gets modified if we have an HDR image e.g. ".png"
 	 */
 	virtual void SetOutputDumpFilename(EPassOutputId OutputId, const TCHAR* Filename) = 0;
 
