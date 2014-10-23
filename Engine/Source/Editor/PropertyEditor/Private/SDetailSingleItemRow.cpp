@@ -342,7 +342,7 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 {
 	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
 
-	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler = DetailsView.GetKeyframeHandler();
+	KeyframeHandler = DetailsView.GetKeyframeHandler();
 
 	EVisibility SetKeyVisibility = EVisibility::Collapsed;
 
@@ -351,7 +351,8 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
 		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
-		SetKeyVisibility = KeyframeHandler->IsPropertyKeyable(*ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Hidden;
+		SetKeyVisibility = KeyframeHandler.Pin()->IsPropertyKeyable(*ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Hidden;
+		
 	}
 
 	return 
@@ -361,21 +362,24 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 		.ContentPadding(0.0f)
 		.ButtonStyle(FEditorStyle::Get(), "Sequencer.AddKey.Details")
 		.Visibility(SetKeyVisibility)
+		.IsEnabled( this, &SDetailSingleItemRow::IsKeyframeButtonEnabled )
 		.ToolTipText( NSLOCTEXT("PropertyView", "AddKeyframeButton_ToolTip", "Adds a keyframe for this property to the current animation") )
 		.OnClicked( this, &SDetailSingleItemRow::OnAddKeyframeClicked );
 }
 
-FReply SDetailSingleItemRow::OnAddKeyframeClicked()
+bool SDetailSingleItemRow::IsKeyframeButtonEnabled() const
 {
-	IDetailsViewPrivate& DetailsView = OwnerTreeNode.Pin()->GetDetailsView();
+	return KeyframeHandler.IsValid() ? KeyframeHandler.Pin()->IsPropertyKeyingEnabled() : false;
+}
 
-	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler = DetailsView.GetKeyframeHandler();
+FReply SDetailSingleItemRow::OnAddKeyframeClicked()
+{	
+	if( KeyframeHandler.IsValid() )
+	{
+		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(Customization->GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
-	check(KeyframeHandler.IsValid());
-
-	TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(Customization->GetPropertyNode().ToSharedRef(), nullptr, nullptr);
-
-	KeyframeHandler->OnKeyPropertyClicked(*Handle);
+		KeyframeHandler.Pin()->OnKeyPropertyClicked(*Handle);
+	}
 
 	return FReply::Handled();
 }
