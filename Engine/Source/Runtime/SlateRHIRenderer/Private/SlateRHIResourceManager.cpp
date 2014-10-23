@@ -68,10 +68,26 @@ void FDynamicResourceMap::RemoveMaterialResource( UMaterialInterface* Material )
 
 void FDynamicResourceMap::Empty()
 {
+	EmptyUTextureResources();
+	EmptyMaterialResources();
+	EmptyDynamicTextureResources();
+}
+
+void FDynamicResourceMap::EmptyDynamicTextureResources()
+{
 	NativeTextureMap.Empty();
+}
+
+void FDynamicResourceMap::EmptyUTextureResources()
+{
 	UTextureResourceMap.Empty();
+}
+
+void FDynamicResourceMap::EmptyMaterialResources()
+{
 	MaterialResourceMap.Empty();
 }
+
 
 void FDynamicResourceMap::ReleaseResources()
 {
@@ -102,6 +118,8 @@ void FDynamicResourceMap::AddReferencedObjects(FReferenceCollector& Collector)
 
 FSlateRHIResourceManager::FSlateRHIResourceManager()
 {
+	FCoreDelegates::OnPreExit.AddRaw( this, &FSlateRHIResourceManager::OnAppExit );
+
 	MaxAltasedTextureSize = FIntPoint(256,256);
 	if( GIsEditor )
 	{
@@ -130,6 +148,8 @@ FSlateRHIResourceManager::FSlateRHIResourceManager()
 
 FSlateRHIResourceManager::~FSlateRHIResourceManager()
 {
+	FCoreDelegates::OnPreExit.RemoveAll( this );
+
 	if ( GIsRHIInitialized )
 	{
 		DeleteResources();
@@ -583,6 +603,15 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const F
 	return MaterialResource->SlateProxy;
 }
 
+void FSlateRHIResourceManager::OnAppExit()
+{
+	ReleaseResources();
+
+	FlushRenderingCommands();
+
+	DeleteResources();
+}
+
 bool FSlateRHIResourceManager::ContainsTexture( const FName& ResourceName ) const
 {
 	return ResourceMap.Contains( ResourceName );
@@ -599,7 +628,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 
 		UObject* ResourceObject = InBrush.GetResourceObject();
 
-		if( ResourceObject )
+		if( ResourceObject && DynamicResourceMap.GetNumObjectResources() > 0 )
 		{
 			TSharedPtr<FSlateUTextureResource> TextureResource = DynamicResourceMap.GetUTextureResource(Cast<UTexture2D>(ResourceObject));
 
@@ -628,7 +657,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 			}
 		
 		}
-		else
+		else if( !ResourceObject )
 		{
 			TSharedPtr<FSlateDynamicTextureResource> TextureResource = DynamicResourceMap.GetDynamicTextureResource(ResourceName);
 

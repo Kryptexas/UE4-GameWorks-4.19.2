@@ -26,7 +26,13 @@ public:
 
 	void Empty();
 
+	void EmptyUTextureResources();
+	void EmptyMaterialResources();
+	void EmptyDynamicTextureResources();
+
 	void ReleaseResources();
+
+	uint32 GetNumObjectResources() const { return UTextureResourceMap.Num() + MaterialResourceMap.Num(); }
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -170,6 +176,11 @@ private:
 	 * @param InBrush	Slate brush for the material
 	 */
 	FSlateShaderResourceProxy* GetMaterialResource( const FSlateBrush& InBrush );
+
+	/**
+	 * Called when the application exists before the UObject system shuts down so we can free object resources
+	 */
+	void OnAppExit();
 
 private:
 	/** Map of all active dynamic resources being used by brushes */
