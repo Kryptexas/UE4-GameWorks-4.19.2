@@ -110,6 +110,7 @@
 		}
 		case EX_ObjToInterfaceCast:
 		case EX_CrossInterfaceCast:
+		case EX_InterfaceToObjCast:
 		{
 			// A conversion from an object or interface variable to a native interface variable.  
 			// We use a different bytecode to avoid the branching each time we process a cast token.

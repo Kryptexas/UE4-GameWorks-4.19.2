@@ -879,6 +879,18 @@ void FKismetCppBackend::EmitCastBetweenInterfacesStatement(FKismetFunctionContex
 	Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
 }
 
+void FKismetCppBackend::EmitCastInterfaceToObjStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FString ClassToCastTo = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
+	FString InputInterface = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UInterfaceProperty>()));
+	FString ResultObject = TermToText(Statement.LHS, (UProperty*)(GetDefault<UInterfaceProperty>()));
+
+	FString InputObject = FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface);
+	
+	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = Cast<%s>(%s);\n"),
+		*ResultObject, *ClassToCastTo, *InputObject));
+}
+
 void FKismetCppBackend::EmitDynamicCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString TargetClass = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
@@ -1251,6 +1263,9 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 						break;
 					case KCST_CrossInterfaceCast:
 						EmitCastBetweenInterfacesStatement(FunctionContext, Statement);
+						break;
+					case KCST_CastInterfaceToObj:
+						EmitCastInterfaceToObjStatement(FunctionContext, Statement);
 						break;
 					case KCST_DynamicCast:
 						EmitDynamicCastStatement(FunctionContext, Statement);

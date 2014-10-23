@@ -96,13 +96,19 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	UClass const* const OutputObjClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
 
 	const bool bIsOutputInterface = ((OutputObjClass != NULL) && OutputObjClass->HasAnyClassFlags(CLASS_Interface));
-	const bool bIsInputInterface = ((InputObjClass != NULL) && InputObjClass->HasAnyClassFlags(CLASS_Interface));
+	const bool bIsInputInterface  = ((InputObjClass != NULL) && InputObjClass->HasAnyClassFlags(CLASS_Interface));
 
 	EKismetCompiledStatementType CastOpType = KCST_DynamicCast;
 	if (bIsInputInterface)
 	{
-		check(bIsOutputInterface);
-		CastOpType = KCST_CrossInterfaceCast;
+		if (bIsOutputInterface)
+		{
+			CastOpType = KCST_CrossInterfaceCast;
+		}
+		else
+		{
+			CastOpType = KCST_CastInterfaceToObj;
+		}
 	}
 	else if (bIsOutputInterface)
 	{

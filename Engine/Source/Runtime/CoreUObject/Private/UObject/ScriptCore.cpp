@@ -2008,3 +2008,25 @@ void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_CrossInterfaceCast, execInterfaceToInterface );
 
+void UObject::execInterfaceToObject(FFrame& Stack, RESULT_DECL)
+{
+	// read the interface class off the stack
+	UClass* ObjClassToCastTo = dynamic_cast<UClass*>(Stack.ReadObject());
+	checkSlow(ObjClassToCastTo != nullptr);
+
+	// read the input interface-object off the stack
+	FScriptInterface InterfaceInput;
+	Stack.Step(Stack.Object, &InterfaceInput);
+
+	UObject* InputObjWithInterface = InterfaceInput.GetObjectRef();
+	if (InputObjWithInterface->IsA(ObjClassToCastTo))
+	{
+		*(UObject**)Result = InputObjWithInterface;
+	}
+	else
+	{
+		*(UObject**)Result = nullptr;
+	}
+}
+IMPLEMENT_VM_FUNCTION( EX_InterfaceToObjCast, execInterfaceToObject );
+

@@ -221,6 +221,18 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			SerializeExpr( ScriptIndex );
 			break;
 		}
+	case EX_InterfaceToObjCast:
+		{
+			// A conversion from an interface variable to a object variable.
+			// We use a different bytecode to avoid the branching each time we process a cast token
+
+			// the interface class to convert to
+			UClass* ObjectClass = ReadPointer<UClass>(ScriptIndex);
+			Ar.Logf(TEXT("%s $%X: InterfaceToObjCast to %s"), *Indents, (int32)Opcode, *ObjectClass->GetName());
+
+			SerializeExpr( ScriptIndex );
+			break;
+		}
 	case EX_Let:
 		{
 			Ar.Logf(TEXT("%s $%X: Let (Variable = Expression)"), *Indents, (int32)Opcode);

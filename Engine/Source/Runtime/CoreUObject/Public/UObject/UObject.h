@@ -951,6 +951,7 @@ public:
 	DECLARE_FUNCTION(execInterfaceToBool);
 	DECLARE_FUNCTION(execObjectToInterface);
 	DECLARE_FUNCTION(execInterfaceToInterface);
+	DECLARE_FUNCTION(execInterfaceToObject);
 
 	// Dynamic array functions
 	// Array support

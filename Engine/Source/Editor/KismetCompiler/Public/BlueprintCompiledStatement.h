@@ -33,6 +33,7 @@ enum EKismetCompiledStatementType
 	KCST_CrossInterfaceCast = 23,	// TargetInterface(Interface)
 	KCST_MetaCast = 24,	    // Cast<TargetClass>(TargetObject)
 	KCST_AssignmentOnPersistentFrame = 25, //
+	KCST_CastInterfaceToObj = 26, // Cast<TargetClass>(TargetInterface)
 };
 
 //@TODO: Too rigid / icky design

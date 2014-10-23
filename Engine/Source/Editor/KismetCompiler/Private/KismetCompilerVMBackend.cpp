@@ -893,17 +893,33 @@ public:
 		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UInterfaceProperty>()));
 	}
 
+	void EmitCastInterfaceToObjStatement(FBlueprintCompiledStatement& Statement)
+	{
+		FBPTerminal* DestinationExpression     = Statement.LHS;
+		FBPTerminal* ResultObjClassExpression  = Statement.RHS[0];
+		FBPTerminal* TargetInterfaceExpression = Statement.RHS[1];
+
+		Writer << EX_Let;
+		EmitTerm(DestinationExpression);
+
+		Writer << EX_InterfaceToObjCast;
+		UClass* ClassPtr = CastChecked<UClass>(ResultObjClassExpression->ObjectLiteral);
+		check(ClassPtr != nullptr);
+		Writer << ClassPtr;
+		EmitTerm(TargetInterfaceExpression, (UProperty*)(GetDefault<UObjectProperty>()));
+	}
+
 	void EmitDynamicCastStatement(FBlueprintCompiledStatement& Statement)
 	{
 		FBPTerminal* DestinationExpression = Statement.LHS;
-		FBPTerminal* InterfaceExpression = Statement.RHS[0];
+		FBPTerminal* ResultClassExpression = Statement.RHS[0];
 		FBPTerminal* TargetExpression = Statement.RHS[1];
 
 		Writer << EX_Let;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_DynamicCast;
-		UClass* ClassPtr = CastChecked<UClass>(InterfaceExpression->ObjectLiteral);
+		UClass* ClassPtr = CastChecked<UClass>(ResultClassExpression->ObjectLiteral);
 		Writer << ClassPtr;
 		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UObjectProperty>()));
 	}
@@ -1181,6 +1197,9 @@ public:
 			break;
 		case KCST_CrossInterfaceCast:
 			EmitCastBetweenInterfacesStatement(Statement);
+			break;
+		case KCST_CastInterfaceToObj:
+			EmitCastInterfaceToObjStatement(Statement);
 			break;
 		case KCST_DynamicCast:
 			EmitDynamicCastStatement(Statement);
