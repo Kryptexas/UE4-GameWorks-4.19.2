@@ -459,7 +459,7 @@ void FCanvasSlotExtension::PaintCollisionLines(const TSet< FWidgetReference >& S
 							for ( int32 SlotIndex = 0; SlotIndex < Canvas->GetChildrenCount(); SlotIndex++ )
 							{
 								// Ignore the slot being dragged.
-								if ( Canvas->Slots[SlotIndex] == CanvasSlot )
+								if ( Canvas->GetSlots()[SlotIndex] == CanvasSlot )
 								{
 									continue;
 								}
