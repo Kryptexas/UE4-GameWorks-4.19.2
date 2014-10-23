@@ -102,6 +102,8 @@ void FGameplayAbilityActivationInfo::GenerateNewPredictionKey() const
 void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 {
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
+	//Remote (server) commands to end the ability that come in after this point are considered for this instance
+	bCanBeEndedByOtherInstance = true;
 }
 
 void FGameplayAbilityActivationInfo::SetPredictionStale()

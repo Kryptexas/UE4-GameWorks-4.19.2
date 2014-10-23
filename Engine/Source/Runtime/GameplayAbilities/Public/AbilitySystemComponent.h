@@ -384,7 +384,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
 
-	UFUNCTION(Client, reliable, WithValidation)
+	/** Called by ServerEndAbility and ClientEndAbility; avoids code duplication. */
+	void EndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
+
+	UFUNCTION(Client, reliable)
 	void	ClientEndAbility(FGameplayAbilitySpecHandle AbilityToEnd);
 
 	UFUNCTION(Client, Reliable)

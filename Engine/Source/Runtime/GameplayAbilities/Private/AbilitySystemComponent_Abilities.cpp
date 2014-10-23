@@ -278,7 +278,7 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 	check(AbilityInstance);
 
 	// Add it to one of our instance lists so that it doesn't GC.
-	if (AbilityInstance->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
+	if (AbilityInstance->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNo)
 	{
 		Spec.ReplicatedInstances.Add(AbilityInstance);
 		AllReplicatedInstancedAbilities.Add(AbilityInstance);
@@ -310,7 +310,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 	{
 		check(Ability->HasAnyFlags(RF_ClassDefaultObject) == false);	// Should never be calling this on a CDO for an instanced ability!
 
-		if (Ability->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
+		if (Ability->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNo)
 		{
 			if (GetOwnerRole() == ROLE_Authority)
 			{
@@ -453,7 +453,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	}
 
 	// Always do a non instanced CanActivate check
-	if (!Ability->CanActivateAbility(Handle, ActorInfo))
+ 	if (!Ability->CanActivateAbility(Handle, ActorInfo))
 	{
 		return false;
 	}
@@ -513,7 +513,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			// We lack the code to predict spawning an instance of the execution and then merge/combine
 			// with the server spawned version when it arrives.
 
-			if (Ability->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
+			if (Ability->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNo)
 			{
 				InstancedAbility = CreateNewInstanceOfAbility(*Spec, Ability);
 				InstancedAbility->CallActivateAbility(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate);
@@ -574,15 +574,21 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 			FExecutingAbilityInfo& ExecutingAbilityInfo = ExecutingServerAbilities[ExecutedIdx];
 			if (ExecutingAbilityInfo.PredictionKey.Current == PredictionKey.Base && ExecutingAbilityInfo.Handle == Handle)
 			{
-				switch(ExecutingAbilityInfo.State)
+				switch (ExecutingAbilityInfo.State)
 				{
-					case EAbilityExecutionState::Failed:
-						ClientActivateAbilityFailed(Handle, PredictionKey.Current);
-						break;
-					case EAbilityExecutionState::Executing:
-					case EAbilityExecutionState::Succeeded:
-						ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
-						break;
+				case EAbilityExecutionState::Failed:
+					ClientActivateAbilityFailed(Handle, PredictionKey.Current);
+					break;
+				case EAbilityExecutionState::Executing:
+				case EAbilityExecutionState::Succeeded:
+					ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
+					//Client commands to end the ability that come in after this point are considered for this instance
+					if (AbilityToActivate->HasAnyFlags(RF_ClassDefaultObject) == false)
+					{
+						//Only applies to instanced abilities
+						AbilityToActivate->CurrentActivationInfo.bCanBeEndedByOtherInstance = true;
+					}
+					break;
 				}
 
 				ExecutingServerAbilities.RemoveAtSwap(ExecutedIdx);
@@ -604,6 +610,12 @@ void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayA
 	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility))
 	{
 		ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
+		//Client commands to end the ability that come in after this point are considered for this instance
+		if (InstancedAbility)
+		{
+			//Only applies to instanced abilities
+			InstancedAbility->CurrentActivationInfo.bCanBeEndedByOtherInstance = true;
+		}
 	}
 	else
 	{
@@ -624,21 +636,32 @@ bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbility
 	return true;
 }
 
-void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd)
+//This is only called when ending an ability in response to a remote instruction.
+void UAbilitySystemComponent::EndAbility(FGameplayAbilitySpecHandle AbilityToEnd)
 {
 	FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(AbilityToEnd);
-	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive())
+	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive() && AbilitySpec->ActivationInfo.bCanBeEndedByOtherInstance)
 	{
 		for (auto Instance : AbilitySpec->NonReplicatedInstances)
 		{
-			Instance->K2_EndAbility();
+			Instance->EndAbility();
 		}
 	}
 }
 
-bool UAbilitySystemComponent::ClientEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToActivate)
+void UAbilitySystemComponent::ServerEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd)
+{
+	EndAbility(AbilityToEnd);
+}
+
+bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToActivate)
 {
 	return true;
+}
+
+void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd)
+{
+	EndAbility(AbilityToEnd);
 }
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");

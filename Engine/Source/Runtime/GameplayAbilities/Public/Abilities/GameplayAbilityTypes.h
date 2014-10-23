@@ -26,9 +26,14 @@ namespace EGameplayAbilityInstancingPolicy
 
 	enum Type
 	{
-		NonInstanced,			// This ability is never instanced. Anything that executes the ability is operating on the CDO.
-		InstancedPerActor,		// Each actor gets their own instance of this ability. State can be saved, replication is possible.
-		InstancedPerExecution,	// We instance this ability each time it is executed. Replication possible but not recommended.
+		// This ability is never instanced. Anything that executes the ability is operating on the CDO.
+		NonInstanced,
+
+		// Each actor gets their own instance of this ability. State can be saved, replication is possible.
+		InstancedPerActor,
+
+		// We instance this ability each time it is executed. Replication possible but not recommended.
+		InstancedPerExecution,
 	};
 }
 
@@ -41,9 +46,14 @@ namespace EGameplayAbilityNetExecutionPolicy
 
 	enum Type
 	{
-		Predictive		UMETA(DisplayName = "Predictive"),	// Part of this ability runs predictively on the client.
-		Server			UMETA(DisplayName = "Server"),		// This ability must be OK'd by the server before doing anything on a client.
-		Client			UMETA(DisplayName = "Client"),		// This ability runs as long the client says it does.
+		// Part of this ability runs predictively on the client.
+		Predictive		UMETA(DisplayName = "Predictive"),
+
+		// This ability must be OK'd by the server before doing anything on a client.
+		Server			UMETA(DisplayName = "Server"),
+
+		// This ability runs as long the client says it does.
+		Client			UMETA(DisplayName = "Client"),
 	};
 }
 
@@ -56,9 +66,11 @@ namespace EGameplayAbilityReplicationPolicy
 
 	enum Type
 	{
-		ReplicateNone		UMETA(DisplayName = "Replicate None"),	// We don't replicate the instance of the ability to anyone.
-		ReplicateAll		UMETA(DisplayName = "Replicate All"),	// We replicate the instance of the ability to everyone (even simulating clients).
-		ReplicateOwner		UMETA(DisplayName = "Replicate Owner"),	// Only replicate the instance of the ability to the owner.
+		// We don't replicate the instance of the ability to anyone.
+		ReplicateNo			UMETA(DisplayName = "Do Not Replicate"),
+
+		// We replicate the instance of the ability to the owner.
+		ReplicateYes		UMETA(DisplayName = "Replicate"),
 	};
 }
 
@@ -68,11 +80,17 @@ namespace EGameplayAbilityActivationMode
 {
 	enum Type
 	{
-		Authority,			// We are the authority activating this ability
-		NonAuthority,		// We are not the authority but aren't predicting yet. This is a mostly invalid state to be in.
+		// We are the authority activating this ability
+		Authority,
 
-		Predicting,			// We are predicting the activation of this ability
-		Confirmed,			// We are not the authority, but the authority has confirmed this activation
+		// We are not the authority but aren't predicting yet. This is a mostly invalid state to be in.
+		NonAuthority,
+
+		// We are predicting the activation of this ability
+		Predicting,
+
+		// We are not the authority, but the authority has confirmed this activation
+		Confirmed,
 	};
 }
 
@@ -194,12 +212,14 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	FGameplayAbilityActivationInfo()
 		: ActivationMode(EGameplayAbilityActivationMode::Authority)
+		, bCanBeEndedByOtherInstance(false)
 	{
 
 	}
 
 	FGameplayAbilityActivationInfo(AActor* InActor, FPredictionKey InPredictionKey)
 		: PredictionKey(InPredictionKey)
+		, bCanBeEndedByOtherInstance(false)
 	{
 		// On Init, we are either Authority or NonAuthority. We haven't been given a PredictionKey and we haven't been confirmed.
 		// NonAuthority essentially means 'I'm not sure what how I'm going to do this yet'.
@@ -209,6 +229,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	FGameplayAbilityActivationInfo(EGameplayAbilityActivationMode::Type InType, FPredictionKey InPredictionKey = FPredictionKey())
 		: ActivationMode(InType)
 		, PredictionKey(InPredictionKey)
+		, bCanBeEndedByOtherInstance(false)
 	{
 	}
 
@@ -235,6 +256,10 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 
 	UPROPERTY(BlueprintReadOnly, Category = "ActorInfo")
 	mutable TEnumAsByte<EGameplayAbilityActivationMode::Type>	ActivationMode;
+
+	/** An ability that runs on multiple game instances can be canceled by a remote instance, but only if that remote instance has already confirmed starting it. */
+	UPROPERTY()
+	bool bCanBeEndedByOtherInstance;
 
 private:
 

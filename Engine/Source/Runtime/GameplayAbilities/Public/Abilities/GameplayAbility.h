@@ -323,10 +323,8 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="EndAbility")
 	virtual void K2_EndAbility();
 
-	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "EndAbilityFromServer")
-	virtual void K2_EndAbilityFromServer();
-
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+	virtual void EndAbility();		//Convenience function for calling with default parameters
 
 	// -------------------------------------
 	//	GameplayEffects

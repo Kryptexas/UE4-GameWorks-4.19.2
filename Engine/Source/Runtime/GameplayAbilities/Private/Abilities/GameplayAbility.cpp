@@ -138,7 +138,7 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 	 *	an ability that is not described above.
 	 */
 
-	bool Supported = GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone || GetOuter()->IsA(UPackage::StaticClass());
+	bool Supported = GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNo || GetOuter()->IsA(UPackage::StaticClass());
 	ensureMsgf(Supported, TEXT("Ability %s failed replication, if it is instanced it should have replication enabled"), *GetName());
 
 	return Supported;
@@ -290,6 +290,11 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		// Tell owning AbilitySystemComponent that we ended so it can do stuff (including MarkPendingKill us)
 		ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this);
 	}
+}
+
+void UGameplayAbility::EndAbility()
+{
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 }
 
 void UGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -488,21 +493,23 @@ bool UGameplayAbility::K2_CommitAbility()
 void UGameplayAbility::K2_EndAbility()
 {
 	check(CurrentActorInfo);
-	
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
-}
 
-void UGameplayAbility::K2_EndAbilityFromServer()
-{
-	check(CurrentActorInfo);
-	check(CurrentActorInfo->AvatarActor.IsValid());
-	ENetRole NetMode = CurrentActorInfo->AvatarActor->Role;
-
-	if (NetMode == ROLE_Authority)		//Do we care about ability execution policy?
+	if (CurrentActorInfo->AvatarActor.IsValid())
 	{
-		CurrentActorInfo->AbilitySystemComponent->ClientEndAbility(CurrentSpecHandle);		//Does this need a prediction key?
-		K2_EndAbility();
+		check(CurrentActorInfo->AbilitySystemComponent.IsValid());
+		ENetRole NetMode = CurrentActorInfo->AvatarActor->Role;
+		UAbilitySystemComponent* MyASC = CurrentActorInfo->AbilitySystemComponent.Get();
+		//Do we care about ability execution policy? Do we need a prediction key?
+		if (NetMode == ROLE_Authority)
+		{
+			CurrentActorInfo->AbilitySystemComponent->ClientEndAbility(CurrentSpecHandle);
+		}
+		else
+		{
+			CurrentActorInfo->AbilitySystemComponent->ServerEndAbility(CurrentSpecHandle);
+		}
 	}
+	EndAbility();
 }
 
 // --------------------------------------------------------------------
