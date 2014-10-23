@@ -58,7 +58,7 @@ FSkeletalMeshMerge::FSkeletalMeshMerge(USkeletalMesh* InMergeMesh,
 * The MergeMesh is reinitialized 
 * @return true if succeeded
 */
-bool FSkeletalMeshMerge::DoMerge()
+bool FSkeletalMeshMerge::DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides /* = nullptr */)
 {
 	bool Result=true;
 	FSkeletalMeshResource* SkelMeshResource = MergeMesh->GetImportedResource();
@@ -122,15 +122,28 @@ bool FSkeletalMeshMerge::DoMerge()
 						FName ParentBoneName = SrcMesh->RefSkeleton.GetBoneName(ParentBoneIndex);
 						int32 DestParentIndex = NewRefSkeleton.FindBoneIndex(ParentBoneName);
 						check(DestParentIndex != INDEX_NONE); // Shouldn't be any way we are missing the parent - parents are always before children				
-						int32 NewBoneIndex = DestParentIndex+1;
 
 						FMeshBoneInfo NewMeshBoneInfo = SrcMesh->RefSkeleton.GetRefBoneInfo()[i];
 						NewMeshBoneInfo.ParentIndex = DestParentIndex;
+
+						/*
+						// Bone insertion -should- work, but there appears to be a bug with re-mapping the bones.
+						// For now, append new bones to the end until it's fixed so the meshes don't completely break.
+						int32 NewBoneIndex = DestParentIndex+1;
 						NewRefSkeleton.Insert(NewBoneIndex, NewMeshBoneInfo, SrcMesh->RefSkeleton.GetRefBonePose()[i]);
+						*/
+						
+						NewRefSkeleton.Add(NewMeshBoneInfo, SrcMesh->RefSkeleton.GetRefBonePose()[i]);
 					}
 				}
 			}
 		}
+	}
+
+	// Override the reference bone poses with those from a specific USkeletalMesh.
+	if (RefPoseOverrides)
+	{
+		OverrideReferenceSkeletonPose(*RefPoseOverrides, NewRefSkeleton);
 	}
 
 	// Now decrease the number of LODs we are going to make based on StripTopLODs - but make sure there is at least one
@@ -690,7 +703,50 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 	return Result;
 }
 
+void FSkeletalMeshMerge::OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton)
+{
+	for (int32 i = 0, PoseMax = PoseOverrides.Num(); i < PoseMax; ++i)
+	{
+		const FRefPoseOverride& PoseOverride = PoseOverrides[i];
+		const FReferenceSkeleton& SourceSkeleton = PoseOverride.SkeletalMesh->RefSkeleton;
 
+		for (int32 j = 0, BoneMax = PoseOverride.BoneNames.Num(); j < BoneMax; ++j)
+		{
+			const FName& BoneName = PoseOverride.BoneNames[j];
+			int32 SourceBoneIndex = SourceSkeleton.FindBoneIndex(BoneName);
 
+			if (SourceBoneIndex != INDEX_NONE)
+			{
+				OverrideReferenceBonePose(SourceBoneIndex, SourceSkeleton, TargetSkeleton);
 
+				bool bOverrideChildren = PoseOverride.OverrideChildren[j];
 
+				if (bOverrideChildren)
+				{
+					for (int32 ChildBoneIndex = SourceBoneIndex + 1; ChildBoneIndex < SourceSkeleton.GetNum(); ++ChildBoneIndex)
+					{
+						if (SourceSkeleton.BoneIsChildOf(ChildBoneIndex, SourceBoneIndex))
+						{
+							OverrideReferenceBonePose(ChildBoneIndex, SourceSkeleton, TargetSkeleton);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+bool FSkeletalMeshMerge::OverrideReferenceBonePose(int32 SourceBoneIndex, const FReferenceSkeleton& SourceSkeleton, FReferenceSkeleton& TargetSkeleton)
+{
+	FName BoneName = SourceSkeleton.GetBoneName(SourceBoneIndex);
+	int32 TargetBoneIndex = TargetSkeleton.FindBoneIndex(BoneName);
+
+	if (TargetBoneIndex != INDEX_NONE)
+	{
+		const FTransform& SourceBoneTransform = SourceSkeleton.GetRefBonePose()[SourceBoneIndex];
+		TargetSkeleton.UpdateRefPoseTransform(TargetBoneIndex, SourceBoneTransform);
+		return true;
+	}
+
+	return false;
+}
