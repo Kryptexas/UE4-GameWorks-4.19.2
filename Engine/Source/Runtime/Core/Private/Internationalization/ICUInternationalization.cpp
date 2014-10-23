@@ -82,7 +82,7 @@ bool FICUInternationalization::Initialize()
 
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
 
-	const FString DataDirectoryRelativeToContent = FString(TEXT("Localization")) / FString(TEXT("ICU"));
+	const FString DataDirectoryRelativeToContent = FString(TEXT("Internationalization"));
 	IFileManager& FileManager = IFileManager::Get();
 
 	const FString PotentialDataDirectories[] = 
