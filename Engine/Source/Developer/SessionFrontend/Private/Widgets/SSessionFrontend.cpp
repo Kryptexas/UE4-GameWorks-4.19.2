@@ -2,6 +2,7 @@
 
 #include "SessionFrontendPrivatePCH.h"
 #include "SDockTab.h"
+#include "WorkspaceMenuStructureModule.h"
 
 
 #define LOCTEXT_NAMESPACE "SSessionFrontend"
