@@ -412,6 +412,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		}
 		break;
 	case ELauncherProfileCookModes::ByTheBookInEditor:
+		UATCommand += MapList;
 	case ELauncherProfileCookModes::DoNotCook:
 		UATCommand += TEXT(" -skipcook");
 		break;
