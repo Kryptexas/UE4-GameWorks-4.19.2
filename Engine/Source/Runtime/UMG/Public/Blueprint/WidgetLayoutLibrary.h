@@ -32,9 +32,30 @@ class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 	static UGridSlot* SlotAsGridSlot(UWidget* Widget);
 
 	/**
+	 * Gets the slot object on the child widget as a Horizontal Box Slot, allowing you to manipulate its information.
+	 * @param Widget The child widget of a Horizontal Box.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Slot")
+	static UHorizontalBoxSlot* SlotAsHorizontalBoxSlot(UWidget* Widget);
+
+	/**
+	 * Gets the slot object on the child widget as a Overlay Slot, allowing you to manipulate layout information.
+	 * @param Widget The child widget of a overlay panel.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Slot")
+	static UOverlaySlot* SlotAsOverlaySlot(UWidget* Widget);
+
+	/**
 	 * Gets the slot object on the child widget as a Uniform Grid Slot, allowing you to manipulate layout information.
 	 * @param Widget The child widget of a uniform grid panel.
 	 */
 	UFUNCTION(BlueprintPure, Category="Slot")
 	static UUniformGridSlot* SlotAsUniformGridSlot(UWidget* Widget);
+
+	/**
+	 * Gets the slot object on the child widget as a Vertical Box Slot, allowing you to manipulate its information.
+	 * @param Widget The child widget of a Vertical Box.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Slot")
+	static UVerticalBoxSlot* SlotAsVerticalBoxSlot(UWidget* Widget);
 };

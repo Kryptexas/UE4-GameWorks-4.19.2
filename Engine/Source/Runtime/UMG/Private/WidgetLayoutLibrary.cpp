@@ -58,9 +58,24 @@ UGridSlot* UWidgetLayoutLibrary::SlotAsGridSlot(UWidget* ChildWidget)
 	return Cast<UGridSlot>(ChildWidget->Slot);
 }
 
+UHorizontalBoxSlot* UWidgetLayoutLibrary::SlotAsHorizontalBoxSlot(UWidget* ChildWidget)
+{
+	return Cast<UHorizontalBoxSlot>(ChildWidget->Slot);
+}
+
+UOverlaySlot* UWidgetLayoutLibrary::SlotAsOverlaySlot(UWidget* ChildWidget)
+{
+	return Cast<UOverlaySlot>(ChildWidget->Slot);
+}
+
 UUniformGridSlot* UWidgetLayoutLibrary::SlotAsUniformGridSlot(UWidget* ChildWidget)
 {
 	return Cast<UUniformGridSlot>(ChildWidget->Slot);
+}
+
+UVerticalBoxSlot* UWidgetLayoutLibrary::SlotAsVerticalBoxSlot(UWidget* ChildWidget)
+{
+	return Cast<UVerticalBoxSlot>(ChildWidget->Slot);
 }
 
 #undef LOCTEXT_NAMESPACE
