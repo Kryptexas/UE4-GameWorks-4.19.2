@@ -656,6 +656,13 @@ public:
 	virtual bool CanEditSimulatePhysics();
 
 	/**
+	 * Sets the specified axis as locked, preventing movement along that axis.
+	 * @param LockedAxis	The axis to lock.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (FriendlyName = "Set Locked Axis", Keywords = "set locked axis constraint physics"), Category = Physics)
+	virtual void SetLockedAxis(ELockedAxis::Type LockedAxis);
+
+	/**
 	 *	Add an impulse to a single rigid body. Good for one time instant burst.
 	 *
 	 *	@param	Impulse		Magnitude and direction of impulse to apply.

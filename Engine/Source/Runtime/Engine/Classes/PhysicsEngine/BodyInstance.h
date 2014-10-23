@@ -27,7 +27,7 @@ namespace physx
 }
 #endif // WITH_PHYSX
 
-UENUM()
+UENUM(BlueprintType)
 namespace ELockedAxis
 {
 	enum Type
@@ -215,6 +215,9 @@ public:
 	/** Locks physical movement along custom axis. (0,0,0) indicates no lock*/
 	UPROPERTY(EditAnywhere, Category = Physics)
 	FVector CustomLockedAxis;
+
+	/** Locks physical movement along axis. */
+	void SetDOFLock(ELockedAxis::Type NewAxisMode);
 
 	FVector GetLockedAxis() const;
 	void CreateDOFLock();

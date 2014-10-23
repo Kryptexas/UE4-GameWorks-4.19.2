@@ -547,6 +547,13 @@ FVector FBodyInstance::GetLockedAxis() const
 	return FVector::ZeroVector;
 }
 
+void FBodyInstance::SetDOFLock(ELockedAxis::Type NewAxisMode)
+{
+	LockedAxisMode = NewAxisMode;
+
+	CreateDOFLock();
+}
+
 void FBodyInstance::CreateDOFLock()
 {
 	if (DOFConstraint)

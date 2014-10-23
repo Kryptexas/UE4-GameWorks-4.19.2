@@ -148,6 +148,18 @@ void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
 	BodyInstance.SetInstanceSimulatePhysics(bSimulate);
 }
 
+void UPrimitiveComponent::SetLockedAxis(ELockedAxis::Type LockedAxis)
+{
+	FBodyInstance * RootBI = GetBodyInstance(NAME_None, false);
+
+	if (RootBI == NULL || IsPendingKill())
+	{
+		return;
+	}
+
+	RootBI->SetDOFLock(LockedAxis);
+}
+
 void UPrimitiveComponent::AddImpulse(FVector Impulse, FName BoneName, bool bVelChange)
 {
 	FBodyInstance* BI = GetBodyInstance(BoneName);
