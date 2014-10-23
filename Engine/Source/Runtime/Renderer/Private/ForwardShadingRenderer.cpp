@@ -113,7 +113,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	else
 	{
 		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 	}
 
 	// Clear color and depth buffer

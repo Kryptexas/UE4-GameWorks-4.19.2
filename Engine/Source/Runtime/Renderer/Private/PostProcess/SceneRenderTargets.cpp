@@ -257,69 +257,64 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 	AllocateRenderTargets();
 }
 
-/** Clears the GBuffer render targets to default values. */
-void FSceneRenderTargets::ClearGBufferTargets(FRHICommandListImmediate& RHICmdList, const FLinearColor& ClearColor)
-{
-	SCOPED_DRAW_EVENT(RHICmdList, ClearGBufferTargets);
-
-	// Clear GBufferA, GBufferB, GBufferC, GBufferD, GBufferE
-	{
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, true);
-
-		int32 NumToClear = GSceneRenderTargets.GetNumGBufferTargets();
-		if (NumToClear > 1)
-		{
-			// Using 0 and 1 ensures we go through the fast path on Intel integrated GPUs.
-			// Normal could be 0.5,0.5,0.5 but then it would not use the fast path.
-			FLinearColor ClearColors[6] = {ClearColor, FLinearColor(0, 0, 0, 0), FLinearColor(0,0,0,0), FLinearColor(0,0,0,0), FLinearColor(0,1,1,1), FLinearColor(1,1,1,1)};
-			RHICmdList.ClearMRT(true, NumToClear, ClearColors, false, 0, false, 0, FIntRect());
-		}
-		else
-		{
-			RHICmdList.Clear(true, ClearColor, false, 0, false, 0, FIntRect());
-		}
-	}
-}
-
-void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, bool bGBufferPass)
+void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode/*=EUninitializedColorExistingDepth*/)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor);
 
-	if(IsSimpleDynamicLightingEnabled())
-	{
-		bGBufferPass = false;
-	}
-	
 	AllocSceneColor();
 	
-	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
-	if (bGBufferPass && CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
+	SetRenderTarget(RHICmdList, GetSceneColorSurface(), GetSceneDepthSurface(), RenderTargetMode);
+} 
+
+void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, const FLinearColor& ClearColor/*=(0,0,0,1)*/)
+{
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneColor);
+
+	if (IsSimpleDynamicLightingEnabled())
 	{
-		FTextureRHIParamRef RenderTargets[6] = {0};
-		RenderTargets[0] = GetSceneColorSurface();
-		RenderTargets[1] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
-		RenderTargets[2] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
-		RenderTargets[3] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
-		RenderTargets[4] = GSceneRenderTargets.GBufferD->GetRenderTargetItem().TargetableTexture;
+		// in this non-standard case, just render to scene color with default mode
+		BeginRenderingSceneColor(RHICmdList);
+		return;
+	}
+
+	AllocSceneColor();
+
+	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		FRHIRenderTargetView RenderTargets[6];
+		RenderTargets[0] = FRHIRenderTargetView(GetSceneColorSurface(), 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+		RenderTargets[1] = FRHIRenderTargetView(GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+		RenderTargets[2] = FRHIRenderTargetView(GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+		RenderTargets[3] = FRHIRenderTargetView(GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
+		RenderTargets[4] = FRHIRenderTargetView(GSceneRenderTargets.GBufferD->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 
 		uint32 MRTCount = ARRAY_COUNT(RenderTargets);
 
 		if (bAllowStaticLighting)
 		{
-			RenderTargets[5] = GSceneRenderTargets.GBufferE->GetRenderTargetItem().TargetableTexture;
+			RenderTargets[5] = FRHIRenderTargetView(GSceneRenderTargets.GBufferE->GetRenderTargetItem().TargetableTexture, 0, -1, ColorLoadAction, ERenderTargetStoreAction::EStore);
 		}
 		else
 		{
 			MRTCount--;
 		}
-		
-		SetRenderTargets(RHICmdList, MRTCount, RenderTargets, GetSceneDepthSurface(), 0, NULL);
+
+		FRHIDepthRenderTargetView DepthView(GetSceneDepthSurface(), DepthLoadAction, ERenderTargetStoreAction::EStore);
+		FRHISetRenderTargetsInfo Info(MRTCount, RenderTargets, DepthView);
+		if (ColorLoadAction == ERenderTargetLoadAction::EClear)
+		{
+			Info.ClearColors[0] = ClearColor;
+			Info.ClearColors[1] = Info.ClearColors[2] = Info.ClearColors[3] = FLinearColor::Transparent;
+			Info.ClearColors[4] = FLinearColor(0, 1, 1, 1);
+			Info.ClearColors[5] = FLinearColor(1, 1, 1, 1);
+		}
+		Info.DepthClearValue = 0.0f;
+
+		// set the render target
+		RHICmdList.SetRenderTargetsAndClear(Info);
 	}
-	else
-	{
-		SetRenderTarget(RHICmdList, GetSceneColorSurface(), GetSceneDepthSurface());
-	}
-} 
+}
 
 int32 FSceneRenderTargets::GetNumGBufferTargets() const
 {
@@ -783,16 +778,8 @@ void FSceneRenderTargets::FinishRenderingPrePass(FRHICommandListImmediate& RHICm
 void FSceneRenderTargets::BeginRenderingShadowDepth(FRHICommandList& RHICmdList, bool bClear)
 {
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ShadowDepthZ);
-	FRHISetRenderTargetsInfo Info(0, nullptr, 
-		FRHIDepthRenderTargetView(GetShadowDepthZSurface(), 
-			bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, 
-			ERenderTargetStoreAction::EStore, 
-			bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad,
-			ERenderTargetStoreAction::EStore));
-	if (bClear)
-	{
-		Info.SetClearDepthStencil(true, 1.0f);
-	}
+	FRHISetRenderTargetsInfo Info(0, nullptr, FRHIDepthRenderTargetView(GetShadowDepthZSurface(), bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore));
+	Info.DepthClearValue = 1.0f;
 	Info.ColorRenderTarget[0].StoreAction = ERenderTargetStoreAction::ENoAction;
 
 	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
@@ -866,7 +853,7 @@ void FSceneRenderTargets::FinishRenderingSceneAlphaCopy(FRHICommandListImmediate
 }
 
 
-void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingLightAttenuation);
 
@@ -875,7 +862,7 @@ void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmd
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GetLightAttenuation());
 
 	// Set the light attenuation surface as the render target, and the scene depth buffer as the depth-stencil surface.
-	SetRenderTarget(RHICmdList, GetLightAttenuationSurface(),GetSceneDepthSurface());
+	SetRenderTarget(RHICmdList, GetLightAttenuationSurface(), GetSceneDepthSurface(), bClearToWhite ? ESimpleRenderTargetMode::EClearColorToWhite : ESimpleRenderTargetMode::EExistingColorAndDepth);
 }
 
 void FSceneRenderTargets::FinishRenderingLightAttenuation(FRHICommandList& RHICmdList)
@@ -891,7 +878,7 @@ void FSceneRenderTargets::FinishRenderingLightAttenuation(FRHICommandList& RHICm
 void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
 	// Use the scene color buffer.
-	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth);
 	
 	// viewport to match view size
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
@@ -914,13 +901,9 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 
 		TRefCountPtr<IPooledRenderTarget>& SeparateTranslucency = ViewState->GetSeparateTranslucency(View);
 
-		// Use a separate render target for translucency
-		SetRenderTarget(RHICmdList, SeparateTranslucency->GetRenderTargetItem().TargetableTexture, GetSceneDepthSurface());
-		
-		if(bFirstTimeThisFrame)
-		{
-			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
-		}
+		// clear the render target the first time, re-use afterwards
+		SetRenderTarget(RHICmdList, SeparateTranslucency->GetRenderTargetItem().TargetableTexture, GetSceneDepthSurface(), 
+			bFirstTimeThisFrame ? ESimpleRenderTargetMode::EClearColorToBlackWithFullAlpha : ESimpleRenderTargetMode::EExistingColorAndDepth);
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 

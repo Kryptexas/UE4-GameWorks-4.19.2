@@ -101,16 +101,6 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	}
 }
 
-/** 
-* Clears a view. 
-*/
-void FDeferredShadingSceneRenderer::ClearView(FRHICommandListImmediate& RHICmdList)
-{
-	// Clear the G Buffer render targets
-	const bool bClearBlack = Views[0].Family->EngineShowFlags.ShaderComplexity || Views[0].Family->EngineShowFlags.StationaryLightOverlap;
-	GSceneRenderTargets.ClearGBufferTargets(RHICmdList, bClearBlack ? FLinearColor(0, 0, 0, 0) : Views[0].BackgroundColor);
-}
-
 namespace
 {
 	FVector4 ClearQuadVertices[4] = 
@@ -534,7 +524,7 @@ public:
 	}
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
-		GSceneRenderTargets.BeginRenderingSceneColor(CmdList, true);
+		GSceneRenderTargets.BeginRenderingGBuffer(CmdList, ERenderTargetLoadAction::ELoad, ERenderTargetLoadAction::ELoad);
 		SetupBasePassView(CmdList, View.ViewRect, !!ViewFamily.EngineShowFlags.ShaderComplexity);
 	}
 };
@@ -646,6 +636,14 @@ DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLM_Velocity, STATGROUP_CommandListMar
 DECLARE_CYCLE_STAT(TEXT("AfterVelocity"), STAT_CLM_AfterVelocity, STATGROUP_CommandListMarkers);
 DECLARE_CYCLE_STAT(TEXT("AfterFrame"), STAT_CLM_AfterFrame, STATGROUP_CommandListMarkers);
 
+/**
+ * Returns true if the depth Prepass needs to run
+ */
+static FORCEINLINE bool NeedsPrePass(const FDeferredShadingSceneRenderer* Renderer)
+{
+	return (RHIHasTiledGPU(Renderer->ViewFamily.GetShaderPlatform()) == false) && 
+		(Renderer->EarlyZPassMode != DDM_None || GEarlyZPassMovable != 0);
+}
 
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
@@ -751,21 +749,18 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
-	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
-	RenderPrePass(RHICmdList);
+	bool bDepthWasCleared = false;
+	if (NeedsPrePass(this))
+	{
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
+		RenderPrePass(RHICmdList);
+		// at this point, the depth was cleared
+		bDepthWasCleared = true;
+	}
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
 	
 	GSceneRenderTargets.AllocGBufferTargets();
 	
-	// Clear scene color buffer if necessary.
-	if ( bRequiresRHIClear )
-	{
-		ClearView(RHICmdList);
-
-		// Only clear once.
-		bRequiresRHIClear = false;
-	}
-
 	// Clear LPVs for all views
 	if ( FeatureLevel >= ERHIFeatureLevel::SM5 )
 	{
@@ -798,8 +793,22 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	else
 	{
-		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, true);
+		// if we didn't to the prepass above, then we will need to clear now, otherwise, it's already been cleared and rendered to
+		ERenderTargetLoadAction DepthLoadAction = bDepthWasCleared ? ERenderTargetLoadAction::ELoad : ERenderTargetLoadAction::EClear;
+
+		if (bRequiresRHIClear)
+		{
+			// Clear the G Buffer render targets
+			const bool bClearBlack = Views[0].Family->EngineShowFlags.ShaderComplexity || Views[0].Family->EngineShowFlags.StationaryLightOverlap;
+			const FLinearColor ClearColor = (bClearBlack ? FLinearColor(0, 0, 0, 0) : Views[0].BackgroundColor);
+
+			// render to the GBuffer, clearing it
+			GSceneRenderTargets.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, ClearColor);
+		}
+		else
+		{
+			GSceneRenderTargets.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::ENoAction, DepthLoadAction);
+		}
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));
@@ -811,7 +820,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if(ViewFamily.EngineShowFlags.VisualizeLightCulling)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
 	}
 

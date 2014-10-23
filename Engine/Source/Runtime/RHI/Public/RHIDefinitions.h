@@ -539,6 +539,26 @@ enum class ERenderTargetStoreAction
 	EMultisampleResolve,
 };
 
+/**
+ * Common render target use cases
+ */
+enum class ESimpleRenderTargetMode
+{
+	// These will all store out color and depth
+	EExistingColorAndDepth,			// Color = Existing, Depth = Existing
+	EUninitializedColorAndDepth,	// Color = ????, Depth = ????
+	EUninitializedColorExistingDepth,// Color = ????, Depth = Existing
+	EUninitializedColorClearDepth,	// Color = ????, Depth = Default
+	EClearToDefault,				// Default Color = (0,0,0,0), Default Depth = 0.0f
+	EClearColorToBlack,				// Color = (0,0,0,0), Depth = Existing
+	EClearColorToBlackWithFullAlpha,// Color = (0,0,0,1), Depth = Existing
+	EClearColorToWhite,				// Color = (1,1,1,1), Depth = Existing
+	EClearDepthToOne,				// Color = Existing, Depth = 1.0
+	EExistingContents_NoDepthStore,	// Load existing contents, but don't store depth out
+
+	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
+};
+
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2;

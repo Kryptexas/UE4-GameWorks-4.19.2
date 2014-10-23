@@ -3521,7 +3521,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 
 				if (bApplyToSceneColor)
 				{
-					GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
+					GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 				}
 				else
 				{
@@ -3740,7 +3740,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 				}
 
 				{
-					GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
+					GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 					{

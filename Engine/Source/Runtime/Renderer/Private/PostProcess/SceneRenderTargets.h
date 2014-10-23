@@ -156,14 +156,10 @@ public:
 	 */
 	void SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY);
 	/**
-	 * Clears the GBuffer render targets to default values.
-	 */
-	void ClearGBufferTargets(FRHICommandListImmediate& RHICmdList, const FLinearColor& ClearColor);
-	/**
 	 * Sets the scene color target and restores its contents if necessary
-	 * @param bGBufferPass - Whether the pass about to be rendered is the GBuffer population pass
 	 */
-	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, bool bGBufferPass = false);
+	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode=ESimpleRenderTargetMode::EUninitializedColorExistingDepth);
+	void BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, const FLinearColor& ClearColor=FLinearColor(0,0,0,1));
 	/**
 	 * Called when finished rendering to the scene color surface
 	 * @param bKeepChanges - if true then the SceneColorSurface is resolved to the SceneColorTexture
@@ -215,7 +211,7 @@ public:
 	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 	void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList);
+	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite=false);
 	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
 
 	/**
