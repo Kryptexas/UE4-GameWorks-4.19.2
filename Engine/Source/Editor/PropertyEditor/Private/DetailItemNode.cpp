@@ -22,6 +22,7 @@ FDetailItemNode::FDetailItemNode(const FDetailLayoutCustomization& InCustomizati
 	, bShouldBeVisibleDueToChildFiltering( false )
 	, bTickable( false )
 	, bIsExpanded( InCustomization.HasCustomBuilder() ? !InCustomization.CustomBuilderRow->IsInitiallyCollapsed() : false )
+	, bIsHighlighted( false )
 {
 	
 }
@@ -79,8 +80,6 @@ FDetailItemNode::~FDetailItemNode()
 
 void FDetailItemNode::InitPropertyEditor()
 {
-	Customization.GetPropertyNode()->SetTreeNode( this->AsShared() );
-
 	if( Customization.GetPropertyNode()->GetProperty() && Customization.GetPropertyNode()->GetProperty()->IsA<UArrayProperty>() )
 	{
 		const bool bUpdateFilteredNodes = false;
@@ -296,7 +295,11 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 
 			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
-			const bool bPassesDifferingFilter = InFilter.bShowOnlyDiffering == false || InFilter.DifferingProperties.Find(PropertyNodePin->GetProperty()->GetFName()) != NULL;
+			bool bPassesDifferingFilter = true;
+			if( InFilter.bShowOnlyDiffering )
+			{
+				 bPassesDifferingFilter = InFilter.WhitelistedProperties.Find(*FPropertyNode::CreatePropertyPath(PropertyNodePin.ToSharedRef())) != NULL;
+			}
 
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
 			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter;
@@ -381,6 +384,17 @@ FName FDetailItemNode::GetNodeName() const
 	}
 
 	return NAME_None;
+}
+
+FPropertyPath FDetailItemNode::GetPropertyPath() const
+{
+	FPropertyPath Ret;
+	auto PropertyNode = Customization.GetPropertyNode();
+	if( PropertyNode.IsValid() )
+	{
+		Ret = *FPropertyNode::CreatePropertyPath( PropertyNode.ToSharedRef() );
+	}
+	return Ret;
 }
 
 void FDetailItemNode::FilterNode( const FDetailFilter& InFilter )

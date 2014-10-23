@@ -192,12 +192,14 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 
 		if (RemoteBlueprint && BaseBlueprint)
 		{
+			Object.bDuplicatingReadOnly = true;
 			FBlueprintMergeData Data(Editor 
 									, static_cast<const UBlueprint*>(StaticDuplicateObject(&Object, GetTransientPackage(), TEXT("None")))
 									, BaseBlueprint
 									, CurrentRevInfo
 									, RemoteBlueprint
-									, BaseRevInfo );
+									, BaseRevInfo);
+			Object.bDuplicatingReadOnly = false;
 
 			Contents = SNew(SBlueprintMerge, Data);
 		}

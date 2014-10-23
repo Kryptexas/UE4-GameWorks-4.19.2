@@ -273,6 +273,7 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 	, bGenerateConstClass(false)
 #endif
 #if WITH_EDITORONLY_DATA
+	, bDuplicatingReadOnly(false)
 	, bCachedDependenciesUpToDate(false)
 #endif
 {
@@ -413,7 +414,10 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 void UBlueprint::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
-	FBlueprintEditorUtils::PostDuplicateBlueprint(this);
+	if( !bDuplicatingReadOnly )
+	{
+		FBlueprintEditorUtils::PostDuplicateBlueprint(this);
+	}
 }
 
 UClass* UBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)

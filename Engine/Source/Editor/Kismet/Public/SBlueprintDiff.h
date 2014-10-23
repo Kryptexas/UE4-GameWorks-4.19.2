@@ -30,25 +30,6 @@ struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
 	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
 };
 
-struct FSCSDiffEntry
-{
-	FName TreeNodeName;
-	FName PropertyName;
-};
-
-inline bool operator ==(const FSCSDiffEntry A, const FSCSDiffEntry B)
-{
-	return A.TreeNodeName == B.TreeNodeName && A.PropertyName == B.PropertyName;
-}
-
-namespace DiffUtils
-{
-	KISMET_API TMap< FName, const UProperty* > GetProperties( const UObject* ForObj );
-	KISMET_API const UObject* GetCDO( const UBlueprint* ForBlueprint );
-	KISMET_API void CompareUnrelatedObjects( const UObject* A, const TMap< FName, const UProperty* >& PropertyMapA, const UObject* B, const TMap< FName, const UProperty* >& PropertyMapB, TArray<FName> &OutIdenticalProperties, TArray<FName> &OutDifferingProperties );
-	KISMET_API void CompareUnrelatedSCS(const UBlueprint* Old, const UBlueprint* New, TArray< struct FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys = nullptr );
-}
-
 namespace DiffWidgetUtils
 {
 	KISMET_API void SelectNextRow(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource );

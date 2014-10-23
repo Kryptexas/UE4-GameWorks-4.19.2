@@ -3,28 +3,26 @@
 #include "MergePrivatePCH.h"
 
 #include "DetailsDiff.h"
+#include "ObjectEditorUtils.h"
 #include "SBlueprintDiff.h"
 #include "SMergeDetailsView.h"
 
-void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
+void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData )
 {
 	Data = InData;
 
 	const UObject* RemoteCDO = DiffUtils::GetCDO(InData.BlueprintRemote);
-	TMap< FName, const UProperty* > RemotePropertyMap = DiffUtils::GetProperties(RemoteCDO);
 	const UObject* BaseCDO = DiffUtils::GetCDO(InData.BlueprintBase);
-	TMap< FName, const UProperty* > BasePropertyMap = DiffUtils::GetProperties(BaseCDO);
 	const UObject* LocalCDO = DiffUtils::GetCDO(InData.BlueprintLocal);
-	TMap< FName, const UProperty* > LocalPropertyMap = DiffUtils::GetProperties(LocalCDO);
 
-	TArray<FName> RemoteIdenticalProperties, RemoteDifferingProperties;
-	DiffUtils::CompareUnrelatedObjects(BaseCDO, BasePropertyMap, RemoteCDO, RemotePropertyMap, RemoteIdenticalProperties, RemoteDifferingProperties);
-	TArray<FName> LocalIdenticalProperties, LocalDifferingProperties;
-	DiffUtils::CompareUnrelatedObjects(BaseCDO, BasePropertyMap, LocalCDO, LocalPropertyMap, LocalIdenticalProperties, LocalDifferingProperties);
+	TArray<FPropertySoftPath> RemoteDifferingProperties;
+	DiffUtils::CompareUnrelatedObjects(BaseCDO, RemoteCDO, RemoteDifferingProperties);
+	TArray<FPropertySoftPath> LocalDifferingProperties;
+	DiffUtils::CompareUnrelatedObjects(BaseCDO, LocalCDO, LocalDifferingProperties);
 
-	TSet<FName> RemoteDifferingPropertiesSet(RemoteDifferingProperties);
-	TSet<FName> LocalDifferingPropertiesSet(LocalDifferingProperties);
-	TSet<FName> BaseDifferingPropertiesSet(RemoteDifferingPropertiesSet.Union(LocalDifferingPropertiesSet));
+	FPropertySoftPathSet RemoteDifferingPropertiesSet(RemoteDifferingProperties);
+	FPropertySoftPathSet LocalDifferingPropertiesSet(LocalDifferingProperties);
+	FPropertySoftPathSet BaseDifferingPropertiesSet(RemoteDifferingPropertiesSet.Union(LocalDifferingPropertiesSet));
 	
 	/*	
 		DifferingProperties is an ordered list of all differing properties (properties added, removed or changed) in remote or local.
@@ -35,65 +33,62 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 			2. Iterate properties in remote, add any new properties to DifferingProperties
 			3. Iterate properties in local, add any new properties to DifferingProperties, if they have not already been added
 	*/
-	const auto AddPropertiesOrdered = [](UProperty const* Property, const TSet<FName>& DifferingProperties, TArray<FName>& ResultingProperties)
+	const auto AddPropertiesOrdered = [](FPropertySoftPath const& Property, const FPropertySoftPathSet& DifferingProperties, TArray<FPropertySoftPath>& ResultingProperties)
 	{
-		if ((!Property->HasAnyPropertyFlags(CPF_Parm) && Property->HasAnyPropertyFlags(CPF_Edit)))
+		// contains check here is O(n), so we're needlessly n^2:
+		if (!ResultingProperties.Contains(Property))
 		{
-			// contains check here is O(n), so we're needlessly n^2:
-			if (!ResultingProperties.Contains(Property->GetFName()))
+			if (DifferingProperties.Contains(Property))
 			{
-				if (DifferingProperties.Contains(Property->GetFName()))
-				{
-					ResultingProperties.Add(Property->GetFName());
-				}
+				ResultingProperties.Add(Property);
 			}
 		}
 	};
 
-	if( BaseCDO )
-	{
-		const UClass* Class = BaseCDO->GetClass();
-		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			AddPropertiesOrdered(*PropertyIt, BaseDifferingPropertiesSet, DifferingProperties);
-		}
-	}
-	if( RemoteCDO )
-	{
-		const UClass* Class = RemoteCDO->GetClass();
-		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			AddPropertiesOrdered(*PropertyIt, RemoteDifferingPropertiesSet, DifferingProperties);
-		}
-	}
-	if (LocalCDO)
-	{
-		const UClass* Class = LocalCDO->GetClass();
-		for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
-		{
-			AddPropertiesOrdered(*PropertyIt, LocalDifferingPropertiesSet, DifferingProperties);
-		}
-	}
-	CurrentDifference = -1;
-
 	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
 	{
 		DetailsViews.Add(
-			FDetailsDiff(RemoteCDO, RemotePropertyMap, RemoteDifferingPropertiesSet)
+			FDetailsDiff(RemoteCDO, DiffUtils::ResolveAll( RemoteCDO, RemoteDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged() )
 		);
 	}
 	// EMergeParticipant::MERGE_PARTICIPANT_BASE
 	{
 		DetailsViews.Add(
-			FDetailsDiff(BaseCDO, BasePropertyMap, BaseDifferingPropertiesSet)
+			FDetailsDiff(BaseCDO, DiffUtils::ResolveAll( BaseCDO, BaseDifferingPropertiesSet.Array()), FDetailsDiff::FOnDisplayedPropertiesChanged())
 		);
 	}
 	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
 	{
 		DetailsViews.Add(
-			FDetailsDiff(LocalCDO, LocalPropertyMap, LocalDifferingPropertiesSet)
+			FDetailsDiff(LocalCDO, DiffUtils::ResolveAll( LocalCDO, LocalDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged())
 		);
 	}
+
+	TArray<FPropertySoftPath> RemoteVisibleProperties = GetRemoteDetails().GetDisplayedProperties();
+	TArray<FPropertySoftPath> BaseVisibleProperties = GetBaseDetails().GetDisplayedProperties();
+	TArray<FPropertySoftPath> LocalVisibleProperties = GetLocalDetails().GetDisplayedProperties();
+	if (BaseCDO)
+	{
+		for (const auto& Property : BaseVisibleProperties)
+		{
+			AddPropertiesOrdered(Property, BaseDifferingPropertiesSet, DifferingProperties);
+		}
+	}
+	if (RemoteCDO)
+	{
+		for (const auto& Property : RemoteVisibleProperties)
+		{
+			AddPropertiesOrdered(Property, RemoteDifferingPropertiesSet, DifferingProperties);
+		}
+	}
+	if (LocalCDO)
+	{
+		for (const auto& Property : LocalVisibleProperties)
+		{
+			AddPropertiesOrdered(Property, LocalDifferingPropertiesSet, DifferingProperties);
+		}
+	}
+	CurrentDifference = -1;
 
 	ChildSlot[
 		SNew(SSplitter)
@@ -142,11 +137,9 @@ void SMergeDetailsView::PrevDiff()
 
 void SMergeDetailsView::HighlightCurrentDifference()
 {
-	const FName PropertyName = DifferingProperties[CurrentDifference];
-
 	for( auto& DetailDiff : DetailsViews )
 	{
-		DetailDiff.HighlightProperty(PropertyName);
+		DetailDiff.HighlightProperty(DifferingProperties[CurrentDifference]);
 	}
 }
 

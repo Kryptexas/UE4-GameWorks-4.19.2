@@ -15,7 +15,7 @@ public:
 	{}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
+	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData );
 private:
 	/** Implementation of IDiffControl: */
 	void NextDiff() override;
@@ -32,6 +32,6 @@ private:
 	TArray< FDetailsDiff > DetailsViews;
 
 	/** These have been duplicated from FCDODiffControl, opportunity to refactor exists: */
-	TArray< FName > DifferingProperties;
+	TArray< FPropertySoftPath > DifferingProperties;
 	int CurrentDifference;
 };

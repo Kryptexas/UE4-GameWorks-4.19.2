@@ -386,5 +386,5 @@ FReply SDetailSingleItemRow::OnAddKeyframeClicked()
 
 bool SDetailSingleItemRow::IsHighlighted() const
 {
-	return Customization->IsValidCustomization() && Customization->HasPropertyNode() && Customization->GetPropertyNode()->IsHighlighted();
+	return OwnerTreeNode.Pin()->IsHighlighted();
 }

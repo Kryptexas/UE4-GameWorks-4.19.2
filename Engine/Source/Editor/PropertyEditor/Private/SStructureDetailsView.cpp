@@ -31,10 +31,7 @@ UScriptStruct* SStructureDetailsView::GetBaseScriptStruct() const
 void SStructureDetailsView::Construct(const FArguments& InArgs)
 {
 	DetailsViewArgs = InArgs._DetailsViewArgs;
-	bHasActiveFilter = false;
-	bIsLocked = false;
-	bHasOpenColorPicker = false;
-
+	
 	CustomName = InArgs._CustomName;
 
 	// Create the root property now
@@ -42,7 +39,6 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 		
 	PropertyUtilities = MakeShareable( new FPropertyDetailsUtilities( *this ) );
 	
-	ColumnWidth = 0.65f;
 	ColumnSizeData.LeftColumnWidth = TAttribute<float>(this, &SStructureDetailsView::OnGetLeftColumnWidth);
 	ColumnSizeData.RightColumnWidth = TAttribute<float>(this, &SStructureDetailsView::OnGetRightColumnWidth);
 	ColumnSizeData.OnWidthChanged = SSplitter::FOnSlotResized::CreateSP(this, &SStructureDetailsView::OnSetColumnWidth);

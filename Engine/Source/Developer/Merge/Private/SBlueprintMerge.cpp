@@ -48,7 +48,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	WriteBackup(*Data.BlueprintBase->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension());
 	WriteBackup(*Data.BlueprintLocal->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
 
-	auto GraphView = SNew( SMergeGraphView, InData );
+	auto GraphView = SNew(SMergeGraphView, InData);
 	GraphControl.Widget = GraphView;
 	GraphControl.DiffControl = &GraphView.Get();
 
@@ -56,7 +56,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	TreeControl.Widget = TreeView;
 	TreeControl.DiffControl = &TreeView.Get();
 
-	auto DetailsView = SNew( SMergeDetailsView, InData );
+	auto DetailsView = SNew(SMergeDetailsView, InData);
 	DetailsControl.Widget = DetailsView;
 	DetailsControl.DiffControl = &DetailsView.Get();
 
@@ -77,7 +77,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	);
 	ToolbarBuilder.AddSeparator();
 	ToolbarBuilder.AddToolBarButton(
-		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnAcceptResultClicked) )
+		FUIAction(FExecuteAction::CreateSP(this, &SBlueprintMerge::OnFinishMerge))
 		, NAME_None
 		, LOCTEXT("FinishMergeLabel", "Finish Merge")
 		, LOCTEXT("FinishMergeTooltip", "Complete the merge operation - saves the blueprint and resolves the conflict with the SCC provider")
@@ -139,7 +139,7 @@ bool SBlueprintMerge::HasPrevDiff() const
 	return CurrentDiffControl && CurrentDiffControl->HasPrevDifference();
 }
 
-void SBlueprintMerge::OnAcceptResultClicked()
+void SBlueprintMerge::OnFinishMerge()
 {
 	UPackage* Package = GetTargetBlueprint()->GetOutermost();
 	TArray<UPackage*> PackagesToSave;

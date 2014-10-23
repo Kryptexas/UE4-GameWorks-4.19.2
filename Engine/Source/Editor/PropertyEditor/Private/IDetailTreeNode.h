@@ -76,5 +76,30 @@ public:
 	 * The identifier name of the node                                                              
 	 */
 	virtual FName GetNodeName() const = 0;
+
+	/**
+	 * @return The category node that this node is nested in, if any:
+	 */
+	virtual TSharedPtr<FDetailCategoryImpl> GetParentCategory() { return TSharedPtr<FDetailCategoryImpl>(); }
+	
+	/**
+	 * @return The property path that this node is associate with, if any:
+	 */
+	virtual FPropertyPath GetPropertyPath() const { return FPropertyPath(); }
+	
+	/**
+	 * Called when the node should appear 'highlighted' to draw the users attention to it
+	 */
+	virtual void SetIsHighlighted(bool bInIsHighlighted) {}
+	
+	/**
+	 * @return true if the node has been highlighted
+	 */
+	virtual bool IsHighlighted() const { return false; }
+
+	/**
+	 * @return true if this is a leaf node:
+	 */
+	virtual bool IsLeaf() { return false; }
 };
 

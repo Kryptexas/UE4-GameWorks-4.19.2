@@ -341,6 +341,15 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Set of functions actually compiled for this class */
 	UPROPERTY(transient, duplicatetransient)
 	TArray<class UEdGraph*> EventGraphs;
+
+	/** 
+	 * Flag indicating that a read only duplicate of this blueprint is being created, used to disable logic in ::PostDuplicate,
+	 *
+	 * This flag needs to be copied on duplication (because it's the duplicated object that we're disabling on PostDuplicate),
+	 * but we don't *need* to serialize it for permanent objects.
+	 */
+	UPROPERTY()
+	mutable bool bDuplicatingReadOnly;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Array of component template objects, used by AddComponent function */

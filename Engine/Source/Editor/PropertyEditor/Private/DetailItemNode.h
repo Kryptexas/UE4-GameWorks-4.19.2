@@ -41,6 +41,11 @@ public:
 	virtual void Tick( float DeltaTime ) override;
 	virtual bool ShouldShowOnlyChildren() const override;
 	virtual FName GetNodeName() const override;
+	virtual TSharedPtr<FDetailCategoryImpl> GetParentCategory() override { return ParentCategory.Pin(); }
+	virtual FPropertyPath GetPropertyPath() const override;
+	virtual void SetIsHighlighted(bool bInIsHighlighted) { bIsHighlighted = bInIsHighlighted; }
+	virtual bool IsHighlighted() const { return bIsHighlighted; }
+	virtual bool IsLeaf() { return true; }
 
 private:
 
@@ -78,4 +83,6 @@ private:
 	bool bTickable;
 	/** True if this node is expanded */
 	bool bIsExpanded;
+	/** True if this node is highlighted */
+	bool bIsHighlighted;
 };

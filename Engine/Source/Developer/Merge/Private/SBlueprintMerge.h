@@ -25,7 +25,7 @@ private:
 	void PrevDiff();
 	bool HasNextDiff() const;
 	bool HasPrevDiff() const;
-	void OnAcceptResultClicked();
+	void OnFinishMerge();
 	void OnCancelClicked();
 	void OnModeChanged(FName NewMode);
 

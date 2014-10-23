@@ -39,12 +39,13 @@ struct FMergeGraphRowEntry
 
 	// These lists contain shared ptrs because they are displayed by a
 	// SListView, and it currently does not support lists of values.
-	TArray< TSharedPtr<FDiffSingleResult> > RemoteDifferences;
-	TArray< TSharedPtr<FDiffSingleResult> > LocalDifferences;
+	TArray< TSharedPtr<FDiffSingleResult> > Differences;
 
 	bool bExistsInRemote;
 	bool bExistsInBase;
 	bool bExistsInLocal;
+	bool bDiffersInRemote;
+	bool bDiffersInLocal;
 };
 
 static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString& GraphName)
@@ -58,6 +59,15 @@ static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString&
 		Ret = *Result;
 	}
 	return Ret;
+}
+
+static const UEdGraphNode* FindNodeInUnrelatedGraph(UEdGraph* Graph, UEdGraphNode* TargetNode)
+{
+	check(TargetNode->GetGraph() != Graph); // purpose of this function is to find a node in a different version of its parent graph
+
+	TArray< FGraphDiffControl::FNodeMatch > PriorMatches;
+	FGraphDiffControl::FNodeMatch NodeMatch = FGraphDiffControl::FindNodeMatch(Graph, TargetNode, PriorMatches);
+	return NodeMatch.NewNode;
 }
 
 static FDiffPanel InitializePanel(const FBlueprintRevPair& BlueprintRevPair)
@@ -74,7 +84,6 @@ static FDiffPanel InitializePanel(const FBlueprintRevPair& BlueprintRevPair)
 	return Ret;
 }
 
-// @todo doc: can i avoid shared ptrs for individual entries?
 static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBlueprintRevPair& RemoteBlueprint, const FBlueprintRevPair& BaseBlueprint, const FBlueprintRevPair& LocalBlueprint)
 {
 	// Index all the graphs by name, we use the name of the graph as the 
@@ -132,18 +141,109 @@ static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBl
 					LocalDifferences = GenerateDifferences(*LocalGraph, BaseGraph);
 				}
 
+				// 'join' the local differences and remote differences by noting changes
+				// that affected the same common base:
+				{
+					for (const auto& RemoteDifference : RemoteDifferences)
+					{
+						bool bConflicted = false;
+						if (RemoteDifference.Diff)
+						for (const auto& LocalDifference : LocalDifferences)
+						{
+							if (RemoteDifference.Node1 == LocalDifference.Node1 )
+							{
+								bConflicted |=	RemoteDifference.Diff == EDiffType::NODE_REMOVED 
+												|| LocalDifference.Diff == EDiffType::NODE_REMOVED;
+								bConflicted |= RemoteDifference.Pin1 == LocalDifference.Pin1;
+							}
+						}
+
+						if (bConflicted)
+						{
+							// For now, we don't want to create a hard conflict for changes that don't effect runtime behavior:
+							if (RemoteDifference.Diff == EDiffType::NODE_MOVED ||
+								RemoteDifference.Diff == EDiffType::NODE_COMMENT)
+							{
+								continue;
+							}
+							// @todo doc: flag the conflict somehow...
+						}
+						else
+						{
+							// no conflict, we want to be able to automatically apply this remote change
+							// to the local revision:
+							switch (RemoteDifference.Diff)
+							{
+							case EDiffType::NODE_REMOVED:
+								{
+									// Find the corresponding object in the local graph:
+							
+									const UEdGraphNode* TargetNode = FindNodeInUnrelatedGraph(*LocalGraph, RemoteDifference.Node1);
+									check(TargetNode); // should have been a conflict!
+								}
+								break;
+							case EDiffType::NODE_ADDED:
+
+
+								break;
+							case EDiffType::PIN_LINKEDTO_NUM_DEC:
+								
+								break;
+							case EDiffType::PIN_LINKEDTO_NUM_INC:
+								break;
+							case EDiffType::PIN_DEFAULT_VALUE:
+								break;
+							case EDiffType::PIN_TYPE_CATEGORY:
+								break;
+							case EDiffType::PIN_TYPE_SUBCATEGORY:
+								break;
+							case EDiffType::PIN_TYPE_SUBCATEGORY_OBJECT:
+								break;
+							case EDiffType::PIN_TYPE_IS_ARRAY:
+								break;
+							case EDiffType::PIN_TYPE_IS_REF:
+								break;
+							case EDiffType::PIN_LINKEDTO_NODE:
+								break;
+							case EDiffType::NODE_MOVED:
+
+								break;
+							case EDiffType::TIMELINE_LENGTH:
+							case EDiffType::TIMELINE_AUTOPLAY:
+							case EDiffType::TIMELINE_LOOP:
+							case EDiffType::TIMELINE_NUM_TRACKS:
+							case EDiffType::TIMELINE_TRACK_MODIFIED:
+								check(false); // doesn't apply to blueprint
+								break;
+							case EDiffType::NODE_PIN_COUNT:
+								break;
+							case EDiffType::NODE_COMMENT:
+								break;
+							case EDiffType::NODE_PROPERTY:
+								break;
+							case EDiffType::NO_DIFFERENCE:
+								check(false);
+							}
+						}
+					}
+				}
+
 				bExistsInRemote = RemoteGraph != NULL;
 				bExistsInBase = BaseGraph != NULL;
 				bExistsInLocal = LocalGraph != NULL;
 			}
 
+			TArray<FDiffSingleResult> AllDifferences(RemoteDifferences);
+			AllDifferences.Append(LocalDifferences);
+
 			FMergeGraphRowEntry NewEntry = {
 				GraphName,
-				HackToShared(RemoteDifferences),
-				HackToShared(LocalDifferences),
+				HackToShared(AllDifferences),
 				bExistsInRemote,
 				bExistsInBase,
-				bExistsInLocal
+				bExistsInLocal,
+				RemoteDifferences.Num() != 0,
+				LocalDifferences.Num() != 0
 			};
 			Ret.Add(TSharedPtr<FMergeGraphRowEntry>(new FMergeGraphRowEntry(NewEntry)));
 		}
@@ -230,8 +330,8 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	}
 
 	DifferencesFromBase = GenerateDiffListItems(BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_REMOTE]
-		, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_BASE]
-		, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]);
+												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_BASE]
+												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]);
 
 	// This is the function we'll use to generate a row in the control that lists all the available graphs:
 	const auto RowGenerator = [](TSharedPtr<FMergeGraphRowEntry> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
@@ -261,9 +361,9 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 			return MergeWhite;
 		};
 
-		FLinearColor RemoteColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInRemote, ParamItem->RemoteDifferences.Num() != 0);
+		FLinearColor RemoteColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInRemote, ParamItem->bDiffersInRemote);
 		FLinearColor BaseColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInBase, false);
-		FLinearColor LocalColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInLocal, ParamItem->LocalDifferences.Num() != 0);
+		FLinearColor LocalColor = ComputeColorForRevision(ParamItem->bExistsInBase, ParamItem->bExistsInLocal, ParamItem->bDiffersInLocal);
 
 		const auto Box = [](bool bIsPresent, FLinearColor Color) -> SHorizontalBox::FSlot&
 		{
@@ -291,8 +391,8 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 					.Text(ParamItem->GraphName)
 				]
 				+ Box(ParamItem->bExistsInRemote, RemoteColor)
-					+ Box(ParamItem->bExistsInBase, BaseColor)
-					+ Box(ParamItem->bExistsInLocal, LocalColor)
+				+ Box(ParamItem->bExistsInBase, BaseColor)
+				+ Box(ParamItem->bExistsInLocal, LocalColor)
 			];
 	};
 
@@ -416,11 +516,11 @@ void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry
 
 	LockViews(DiffPanels, bViewsAreLocked);
 
-	DiffResultsListData = &(Item->LocalDifferences);
+	DiffResultsListData = &(Item->Differences);
 	DiffResultsWidget->SetContent(
 		SAssignNew(DiffResultList, SListView< TSharedPtr<FDiffSingleResult> >)
 		.ItemHeight(24)
-		.ListItemsSource(&Item->LocalDifferences)
+		.ListItemsSource(&Item->Differences)
 		.OnGenerateRow(SListView< TSharedPtr<FDiffSingleResult> >::FOnGenerateRow::CreateStatic(
 			[](TSharedPtr<FDiffSingleResult> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
 			{

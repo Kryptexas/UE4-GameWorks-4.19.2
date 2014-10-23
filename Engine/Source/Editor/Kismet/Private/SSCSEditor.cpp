@@ -11,6 +11,7 @@
 #include "SKismetInspector.h"
 #include "SSCSEditorViewport.h"
 #include "SComponentClassCombo.h"
+#include "PropertyPath.h"
 
 #include "AssetSelection.h"
 #include "Editor/SceneOutliner/Private/SSocketChooser.h"
@@ -2492,8 +2493,13 @@ void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 		check( KismetInspectorSPtr.IsValid() );
 		UActorComponent* Component = TreeNode->GetComponentTemplate();
 		UProperty* CurrentProp = FindField<UProperty>(Component->GetClass(), Property);
-		check( CurrentProp );
-		KismetInspectorSPtr->GetPropertyView()->HighlightProperty( CurrentProp );
+		FPropertyPath Path;
+		if( CurrentProp )
+		{
+			FPropertyInfo NewInfo = { CurrentProp, -1 };
+			Path.ExtendPath(NewInfo);
+		}
+		KismetInspectorSPtr->GetPropertyView()->HighlightProperty( Path );
 	}
 }
 
