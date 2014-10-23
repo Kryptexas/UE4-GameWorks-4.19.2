@@ -5,18 +5,19 @@
 #include "EdGraph/EdGraphPin.h" // for EBlueprintPinStyleType
 #include "BlueprintEditorSettings.generated.h"
 
-
+UENUM()
+enum ESaveOnCompile
+{
+	SoC_Never UMETA(DisplayName="Never"),
+	SoC_SuccessOnly UMETA(DisplayName="On Success Only"),
+	SoC_Always UMETA(DisplayName = "Always"),
+};
+ 
 UCLASS(config=EditorUserSettings)
 class BLUEPRINTGRAPH_API UBlueprintEditorSettings
 	:	public UObject
 {
 	GENERATED_UCLASS_BODY()
-
-// General Settings
-public:
-	/** Determines if Blueprints are saved whenever you (successfully) compile them */
-	UPROPERTY(EditAnywhere, config, Category=General)
-	bool bSaveOnCompile;
 
 // Style Settings
 public:
@@ -31,7 +32,7 @@ public:
 	bool bShowGraphInstructionText;
 
 	/** If enabled, will use the blueprint's (or output pin's) class to narrow down context menu results. */
-	UPROPERTY(EditAnywhere, config, Category=UserExperience)
+	UPROPERTY(EditAnywhere, config, Category=UserExperience, meta=(DisplayName="Context Menu: Use Target Context"))
 	bool bUseTargetContextForNodeMenu;
 
 	/** If enabled, then ALL component functions are exposed to the context menu (when the contextual target is a component owner). Ignores "ExposeFunctionCategories" metadata for components. */
@@ -49,6 +50,12 @@ public:
 	/** If set, then the new refactored menu system will be replaced with the old (legacy) system (as a fallback, in case the new system has unforeseen problems)*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=UserExperience)
 	bool bUseLegacyMenuingSystem;
+
+// Compiler Settings
+public:
+	/** Determines when to save Blueprints post-compile */
+	UPROPERTY(EditAnywhere, config, Category=Compiler)
+	TEnumAsByte<ESaveOnCompile> SaveOnCompile;
 
 // Developer Settings
 public:

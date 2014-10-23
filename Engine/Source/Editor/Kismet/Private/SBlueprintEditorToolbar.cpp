@@ -544,7 +544,11 @@ TSharedRef<SWidget> FKismet2Menu::MakeDiffMenu(FBlueprintEditor& Kismet)
 void FFullBlueprintEditorCommands::RegisterCommands() 
 {
 	UI_COMMAND(Compile, "Compile", "Compile the blueprint", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(SaveOnCompile, "Save on Compile", "Determines if the Blueprint is saved every time you (successfully) compile it", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	
+	UI_COMMAND(SaveOnCompile_Never, "Never", "Sets the save-on-compile option to 'Never', meaning that your Blueprints will not be saved when they are compiled", EUserInterfaceActionType::RadioButton, FInputGesture());
+	UI_COMMAND(SaveOnCompile_SuccessOnly, "On Success Only", "Sets the save-on-compile option to 'Success Only', meaning that your Blueprints will be saved whenever they are successfully compiled", EUserInterfaceActionType::RadioButton, FInputGesture());
+	UI_COMMAND(SaveOnCompile_Always, "Always", "Sets the save-on-compile option to 'Always', meaning that your Blueprints will be saved whenever they ar compiled (even if there were errors)", EUserInterfaceActionType::RadioButton, FInputGesture());
+
 	UI_COMMAND(SwitchToScriptingMode, "Graph", "Switches to Graph Editing Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToBlueprintDefaultsMode, "Defaults", "Switches to Blueprint Defaults Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToComponentsMode, "Components", "Switches to Components Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
@@ -557,19 +561,31 @@ void FFullBlueprintEditorCommands::RegisterCommands()
 namespace BlueprintEditorToolbarImpl
 {
 	static TSharedRef<SWidget> GenerateCompileOptionsWidget(TSharedRef<FUICommandList> CommandList);
+	static void MakeSaveOnCompileSubMenu(FMenuBuilder& InMenuBuilder);
 };
-
 
 static TSharedRef<SWidget> BlueprintEditorToolbarImpl::GenerateCompileOptionsWidget(TSharedRef<FUICommandList> CommandList)
 {
 	FMenuBuilder MenuBuilder(/*bShouldCloseWindowAfterMenuSelection =*/true, CommandList);
 
 	const FFullBlueprintEditorCommands& Commands = FFullBlueprintEditorCommands::Get();
-	MenuBuilder.AddMenuEntry(Commands.SaveOnCompile);
+
+	// @TODO: disable the menu and change up the tooltip when all sub items are disabled
+	MenuBuilder.AddSubMenu(
+		LOCTEXT("SaveOnCompileSubMenu", "Save on Compile"),
+		LOCTEXT("SaveOnCompileSubMenu_ToolTip", "Determines how the Blueprint is saved whenever you compile it"),
+		FNewMenuDelegate::CreateStatic(&BlueprintEditorToolbarImpl::MakeSaveOnCompileSubMenu));
 
 	return MenuBuilder.MakeWidget();
 }
 
+static void BlueprintEditorToolbarImpl::MakeSaveOnCompileSubMenu(FMenuBuilder& InMenuBuilder)
+{
+	const FFullBlueprintEditorCommands& Commands = FFullBlueprintEditorCommands::Get();
+	InMenuBuilder.AddMenuEntry(Commands.SaveOnCompile_Never);
+	InMenuBuilder.AddMenuEntry(Commands.SaveOnCompile_SuccessOnly);
+	InMenuBuilder.AddMenuEntry(Commands.SaveOnCompile_Always);
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintEditorToolbar

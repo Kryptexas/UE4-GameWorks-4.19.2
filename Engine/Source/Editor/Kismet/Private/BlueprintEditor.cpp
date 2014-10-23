@@ -179,20 +179,40 @@ namespace BlueprintEditorImpl
 	static const float InstructionFadeDuration = 0.5f;
 
 	/**
-	*
-	*
-	* @param  InGraph
-	* @return
-	*/
+	 * Utility function that will check to see if the specified graph has any 
+	 * nodes other than those that come default, pre-placed, in the graph.
+	 *
+	 * @param  InGraph  The graph to check.
+	 * @return True if the graph has any nodes added by the user, otherwise false.
+	 */
 	static bool GraphHasUserPlacedNodes(UEdGraph const* InGraph);
 
 	/**
-	*
-	*
-	* @param  InGraph
-	* @return
-	*/
+	 * Utility function that will check to see if the specified graph has any
+	 * nodes that were default, pre-placed, in the graph.
+	 *
+	 * @param  InGraph  The graph to check.
+	 * @return True if the graph has any pre-placed nodes, otherwise false.
+	 */
 	static bool GraphHasDefaultNode(UEdGraph const* InGraph);
+
+	/**
+	 * Utility function that will set the global save-on-compile setting to the
+	 * specified value.
+	 * 
+	 * @param  NewSetting	The new save-on-compile setting that you want applied.
+	 */
+	static void SetSaveOnCompileSetting(ESaveOnCompile NewSetting);
+
+	/**
+	 * Utility function used to determine what save-on-compile setting should be 
+	 * presented to the user.
+	 * 
+	 * @param  Editor	The editor currently querying for the setting value.
+	 * @param  Option	The setting to check for.
+	 * @return False if the option isn't set, or if the save-on-compile is disabled for the blueprint being edited (otherwise true). 
+	 */
+	static bool IsSaveOnCompileOptionSet(TWeakPtr<FBlueprintEditor> Editor, ESaveOnCompile Option);
 }
 
 static bool BlueprintEditorImpl::GraphHasUserPlacedNodes(UEdGraph const* InGraph)
@@ -235,6 +255,30 @@ static bool BlueprintEditorImpl::GraphHasDefaultNode(UEdGraph const* InGraph)
 	}
 
 	return bHasDefaultNodes;
+}
+
+static void BlueprintEditorImpl::SetSaveOnCompileSetting(ESaveOnCompile NewSetting)
+{
+	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+	Settings->SaveOnCompile = NewSetting;
+	Settings->SaveConfig();
+}
+
+static bool BlueprintEditorImpl::IsSaveOnCompileOptionSet(TWeakPtr<FBlueprintEditor> Editor, ESaveOnCompile Option)
+{
+	const UBlueprintEditorSettings* Settings = GetDefault<UBlueprintEditorSettings>();
+
+	ESaveOnCompile CurrentSetting = Settings->SaveOnCompile;
+	if (!Editor.IsValid() || !Editor.Pin()->IsSaveOnCompileEnabled())
+	{
+		// if save-on-compile is disabled for the blueprint, then we want to 
+		// show "Never" as being selected
+		// 
+		// @TODO: a tooltip explaining why would be nice too
+		CurrentSetting = SoC_Never;
+	}
+
+	return (CurrentSetting == Option);
 }
 
 bool FBlueprintEditor::IsASubGraph( const UEdGraph* GraphPtr )
@@ -1789,11 +1833,24 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::Compile),
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsCompilingEnabled));
 
+	TWeakPtr<FBlueprintEditor> WeakThisPtr = SharedThis(this);
 	ToolkitCommands->MapAction(
-		FFullBlueprintEditorCommands::Get().SaveOnCompile,
-		FExecuteAction::CreateSP(this, &FBlueprintEditor::OnSaveOnCompileToggled),
+		FFullBlueprintEditorCommands::Get().SaveOnCompile_Never,
+		FExecuteAction::CreateStatic(&BlueprintEditorImpl::SetSaveOnCompileSetting, (ESaveOnCompile)SoC_Never),
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileEnabled),
-		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileChecked)
+		FIsActionChecked::CreateStatic(&BlueprintEditorImpl::IsSaveOnCompileOptionSet, WeakThisPtr, (ESaveOnCompile)SoC_Never)
+	);
+	ToolkitCommands->MapAction(
+		FFullBlueprintEditorCommands::Get().SaveOnCompile_SuccessOnly,
+		FExecuteAction::CreateStatic(&BlueprintEditorImpl::SetSaveOnCompileSetting, (ESaveOnCompile)SoC_SuccessOnly),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileEnabled),
+		FIsActionChecked::CreateStatic(&BlueprintEditorImpl::IsSaveOnCompileOptionSet, WeakThisPtr, (ESaveOnCompile)SoC_SuccessOnly)
+	);
+	ToolkitCommands->MapAction(
+		FFullBlueprintEditorCommands::Get().SaveOnCompile_Always,
+		FExecuteAction::CreateStatic(&BlueprintEditorImpl::SetSaveOnCompileSetting, (ESaveOnCompile)SoC_Always),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileEnabled),
+		FIsActionChecked::CreateStatic(&BlueprintEditorImpl::IsSaveOnCompileOptionSet, WeakThisPtr, (ESaveOnCompile)SoC_Always)
 	);
 	
 	ToolkitCommands->MapAction(
@@ -2461,19 +2518,6 @@ void FBlueprintEditor::Compile()
 		// this will make sure how the users activity is
 		AnalyticsTrackCompileEvent(BlueprintObj, LogResults.NumErrors, LogResults.NumWarnings);
 	}
-}
-
-bool FBlueprintEditor::IsSaveOnCompileChecked() const
-{
-	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
-	return Settings->bSaveOnCompile && IsSaveOnCompileEnabled();
-}
-
-void FBlueprintEditor::OnSaveOnCompileToggled() const
-{
-	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-	Settings->bSaveOnCompile = !Settings->bSaveOnCompile;
-	Settings->SaveConfig();
 }
 
 bool FBlueprintEditor::IsSaveOnCompileEnabled() const

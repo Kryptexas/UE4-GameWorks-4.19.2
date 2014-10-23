@@ -316,8 +316,6 @@ public:
 	virtual void Compile();
 
 	/** Helper functions used to construct/operate-on the "Save on Compile" command */
-	bool IsSaveOnCompileChecked() const;
-	void OnSaveOnCompileToggled() const;
 	bool IsSaveOnCompileEnabled() const;
 
 	/** Calls the above function, but returns an FReply::Handled(). Used in SButtons */
