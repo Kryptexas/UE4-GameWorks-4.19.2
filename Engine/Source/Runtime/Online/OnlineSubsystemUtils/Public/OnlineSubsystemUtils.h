@@ -32,8 +32,7 @@ namespace Online
 	{
 #if UE_EDITOR // at present, multiple worlds are only possible in the editor
 		FName Identifier = SubsystemName; 
-		if (GIsPlayInEditorWorld &&
-			World != NULL)
+		if (World != NULL)
 		{
 			FWorldContext& CurrentContext = GEngine->GetWorldContextFromWorldChecked(World);
 			if (CurrentContext.WorldType == EWorldType::PIE)
