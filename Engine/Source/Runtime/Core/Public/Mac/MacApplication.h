@@ -62,8 +62,6 @@ public:
 
 	void ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindow > CurrentEventWindow, FVector2D const MousePosition);
 
-	void ProcessEvent(NSEvent* Event);
-
 	void OnWindowDraggingFinished();
 
 	bool IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground);
@@ -161,7 +159,6 @@ private:
 	TSharedRef< class HIDInputInterface > HIDInput;
 
 	FCocoaWindow* DraggedWindow;
-	FVector2D WindowDragCursorPos;
 
 	FMouseCaptureWindow* MouseCaptureWindow;
 	bool bIsMouseCaptureEnabled;
