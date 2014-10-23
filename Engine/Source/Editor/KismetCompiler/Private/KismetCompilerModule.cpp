@@ -108,6 +108,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
 
+	if( CompileOptions.CompileType != EKismetCompileType::BytecodeOnly )
 	{
 		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Skeleton Class"));
 

@@ -302,8 +302,8 @@ void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 		Schema->ReconstructNode(*CurrentNode, true);
 	}
 
-	// If all nodes change structure, catch that case and recompile now
-	if( bLastChangesStructure )
+	// If all nodes change structure, catch that case and recompile now (unless we're already compiling on load)
+	if( bLastChangesStructure && !Blueprint->bIsRegeneratingOnLoad )
 	{
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 	}
@@ -1106,8 +1106,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		// Make sure all used external classes/functions/structures/macros/etc are loaded and linked
 		FRegenerationHelper::LinkExternalDependencies(Blueprint, ObjLoaded);
 
-		FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
-
 		static FBoolConfigValueHelper ReplaceBlueprintWithClass(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"));
 		if (ReplaceBlueprintWithClass)
 		{
@@ -1128,16 +1126,22 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			// Refresh all nodes to make sure function signatures are up to date, etc.
 			FBlueprintEditorUtils::RefreshAllNodes(Blueprint);
 
-			// Compile the actual blueprint
+			// Compile the actual blueprint (skeleton class + generated class)
 			FKismetEditorUtilities::CompileBlueprint(Blueprint, true);
 		}
 		else if( bIsMacro )
 		{
-			// Just refresh all nodes in macro blueprints, but don't recompil
+			// Refresh all nodes to make sure function signatures are up to date, etc.
 			FBlueprintEditorUtils::RefreshAllNodes(Blueprint);
+
+			// Generate the skeleton class
+			FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
 		}
 		else
 		{
+			// Generate the skeleton class
+			FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
+
 			if (Blueprint->IsGeneratedClassAuthoritative() && (Blueprint->GeneratedClass != NULL))
 			{
 				check(PreviousCDO != NULL);
