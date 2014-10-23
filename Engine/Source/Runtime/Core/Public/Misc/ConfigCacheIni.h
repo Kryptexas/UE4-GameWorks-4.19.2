@@ -99,7 +99,7 @@ public:
 
 
 	/** Adds any properties that exist in InSourceFile that this config file is missing */
-	void AddMissingProperties( const FConfigFile& InSourceFile );
+	CORE_API void AddMissingProperties(const FConfigFile& InSourceFile);
 
 	/**
 	 * Saves only the sections in this FConfigFile its source files. All other sections in the file are left alone. The sections in this
