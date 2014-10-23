@@ -16,7 +16,7 @@ const FName FSimpleAssetEditor::PropertiesTabId( TEXT( "GenericEditor_Properties
 
 void FSimpleAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_GenericAssetEditor", "Asset Editor"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_GenericAssetEditor", "Asset Editor"));
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 

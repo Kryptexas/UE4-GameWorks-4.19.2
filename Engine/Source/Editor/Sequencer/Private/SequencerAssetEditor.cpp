@@ -26,7 +26,7 @@ void FSequencerAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManag
 {
 	if( FSequencer::IsSequencerEnabled() && !IsWorldCentricAssetEditor() )
 	{
-		WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
+		WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SequencerAssetEditor", "Sequencer"));
 
 		TabManager->RegisterTabSpawner( SequencerMainTabId, FOnSpawnTab::CreateSP(this, &FSequencerAssetEditor::SpawnTab_SequencerMain) )
 			.SetDisplayName( LOCTEXT("SequencerMainTab", "Sequencer") )

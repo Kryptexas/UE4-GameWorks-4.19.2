@@ -329,7 +329,7 @@ TSharedRef<SDockTab> FSpriteEditor::SpawnTab_SpriteList(const FSpawnTabArgs& Arg
 
 void FSpriteEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_SpriteEditor", "Sprite Editor"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_SpriteEditor", "Sprite Editor"));
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);

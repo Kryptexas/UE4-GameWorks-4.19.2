@@ -47,7 +47,7 @@ void FTranslationEditor::Initialize()
 
 void FTranslationEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_TranslationEditor", "Translation Editor"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_TranslationEditor", "Translation Editor"));
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);

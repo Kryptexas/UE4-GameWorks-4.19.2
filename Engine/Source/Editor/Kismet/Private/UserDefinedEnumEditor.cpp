@@ -14,7 +14,7 @@ const FName FUserDefinedEnumEditor::UserDefinedEnumEditorAppIdentifier( TEXT( "U
 
 void FUserDefinedEnumEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_UserDefinedEnumEditor", "User-Defined Enum Editor"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_UserDefinedEnumEditor", "User-Defined Enum Editor"));
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 

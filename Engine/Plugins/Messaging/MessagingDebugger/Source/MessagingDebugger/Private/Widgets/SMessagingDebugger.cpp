@@ -54,7 +54,7 @@ void SMessagingDebugger::Construct( const FArguments& InArgs, const TSharedRef<S
 
 	// create & initialize tab manager
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
-	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("MessagingDebuggerGroupName", "Messaging Debugger"));
+	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("MessagingDebuggerGroupName", "Messaging Debugger"));
 
 	TabManager->RegisterTabSpawner(BreakpointsTabId, FOnSpawnTab::CreateRaw(this, &SMessagingDebugger::HandleTabManagerSpawnTab, BreakpointsTabId))
 		.SetDisplayName(LOCTEXT("BreakpointsTabTitle", "Breakpoints"))

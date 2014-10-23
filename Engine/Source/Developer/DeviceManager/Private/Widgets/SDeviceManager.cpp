@@ -39,7 +39,7 @@ void SDeviceManager::Construct( const FArguments& InArgs, const ITargetDeviceSer
 
 	// create & initialize tab manager
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(ConstructUnderMajorTab);
-	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("DeviceManagerMenuGroupName", "Device Manager"));
+	TSharedRef<FWorkspaceItem> AppMenuGroup = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("DeviceManagerMenuGroupName", "Device Manager"));
 
 	TabManager->RegisterTabSpawner(DeviceBrowserTabId, FOnSpawnTab::CreateRaw(this, &SDeviceManager::HandleTabManagerSpawnTab, DeviceBrowserTabId))
 		.SetDisplayName(LOCTEXT("DeviceBrowserTabTitle", "Device Browser"))

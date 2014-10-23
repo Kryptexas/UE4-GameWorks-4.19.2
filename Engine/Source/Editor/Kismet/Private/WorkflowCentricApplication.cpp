@@ -58,10 +58,9 @@ void FWorkflowCentricApplication::SetCurrentMode(FName NewMode)
 			//@TODO: Should do some validation here
 			CurrentAppModePtr = NewModePtr;
 
-			// Establish the workspace menu category
-			auto LocalWorkspaceRoot = TabManager->GetLocalWorkspaceMenuRoot();
-			LocalWorkspaceRoot->ClearItems();
-			LocalWorkspaceRoot->AddItem(CurrentAppModePtr->GetWorkspaceMenuCategory());
+			// Establish the workspace menu category for the new mode
+			TabManager->ClearLocalWorkspaceMenuCategories();
+			TabManager->AddLocalWorkspaceMenuItem( CurrentAppModePtr->GetWorkspaceMenuCategory() );
 
 			// Activate the new layout
 			const TSharedRef<FTabManager::FLayout> NewLayout = CurrentAppModePtr->ActivateMode(TabManager);

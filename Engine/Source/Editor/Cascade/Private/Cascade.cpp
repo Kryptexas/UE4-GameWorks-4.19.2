@@ -50,7 +50,7 @@ DEFINE_LOG_CATEGORY(LogCascade);
 
 void FCascade::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(NSLOCTEXT("Cascade", "WorkspaceMenu_Cascade", "Cascade"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(NSLOCTEXT("Cascade", "WorkspaceMenu_Cascade", "Cascade"));
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);

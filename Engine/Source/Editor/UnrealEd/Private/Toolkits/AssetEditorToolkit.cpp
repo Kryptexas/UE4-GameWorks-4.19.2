@@ -238,7 +238,7 @@ FAssetEditorToolkit::~FAssetEditorToolkit()
 
 void FAssetEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
-	// Use the first child of the local workspace root if there is one, otherwise use the root itself
+	// Use the first child category of the local workspace root if there is one, otherwise use the root itself
 	const auto& LocalCategories = InTabManager->GetLocalWorkspaceMenuRoot()->GetChildItems();
 	TSharedRef<FWorkspaceItem> ToolbarSpawnerCategory = LocalCategories.Num() > 0 ? LocalCategories[0] : InTabManager->GetLocalWorkspaceMenuRoot();
 
@@ -251,6 +251,7 @@ void FAssetEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager
 void FAssetEditorToolkit::UnregisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
 	InTabManager->UnregisterTabSpawner( ToolbarTabId );
+	InTabManager->ClearLocalWorkspaceMenuCategories();
 }
 
 bool FAssetEditorToolkit::IsAssetEditor() const

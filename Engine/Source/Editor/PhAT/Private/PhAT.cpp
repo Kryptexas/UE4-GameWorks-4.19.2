@@ -75,7 +75,7 @@ static const FName PhATHierarchyName("PhAT_Hierarchy");
 
 void FPhAT::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup( LOCTEXT( "WorkspaceMenu_MaterialEditor", "Material Editor" ) );
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory( LOCTEXT( "WorkspaceMenu_PhAT", "Physics Asset Editor" ) );
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners( TabManager );

@@ -15,7 +15,7 @@ const FName FNiagaraEffectEditor::UpdateTabId(TEXT("NiagaraEditor_Effect"));
 
 void FNiagaraEffectEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_NiagaraEffectEditor", "Niagara Effect"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_NiagaraEffectEditor", "Niagara Effect"));
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 

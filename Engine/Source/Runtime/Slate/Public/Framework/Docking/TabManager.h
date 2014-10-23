@@ -616,7 +616,16 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		bool IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const;
 
 		/** @return The local workspace menu root */
-		TSharedRef<FWorkspaceItem> GetLocalWorkspaceMenuRoot();
+		const TSharedRef<FWorkspaceItem> GetLocalWorkspaceMenuRoot() const;
+
+		/** Adds a category to the local workspace menu by name */
+		TSharedRef<FWorkspaceItem> AddLocalWorkspaceMenuCategory( const FText& CategoryTitle );
+
+		/** Adds an existing workspace item to the local workspace menu */
+		void AddLocalWorkspaceMenuItem( const TSharedRef<FWorkspaceItem>& CategoryItem );
+
+		/** Clears all categories in the local workspace menu */
+		void ClearLocalWorkspaceMenuCategories();
 
 	protected:
 		void InvokeTabForMenu( FName TabId );

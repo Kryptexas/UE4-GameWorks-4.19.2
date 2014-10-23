@@ -22,7 +22,7 @@ const FName FPropertyEditorToolkit::TreePinAsColumnHeaderId( TEXT( "PropertyEdit
 
 void FPropertyEditorToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_PropertyEditorToolkit", "Property Editor"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_PropertyEditorToolkit", "Property Editor"));
 
 	TabManager->RegisterTabSpawner( GridTabId, FOnSpawnTab::CreateSP(this, &FPropertyEditorToolkit::SpawnTab_PropertyTable) )
 		.SetDisplayName( LOCTEXT("PropertyTableTab", "Grid") )

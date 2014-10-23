@@ -507,9 +507,24 @@ bool FTabManager::IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const
 	return !(MainNonCloseableTab.Pin() == InTab);
 }
 
-TSharedRef<FWorkspaceItem> FTabManager::GetLocalWorkspaceMenuRoot()
+const TSharedRef<FWorkspaceItem> FTabManager::GetLocalWorkspaceMenuRoot() const
 {
 	return LocalWorkspaceMenuRoot.ToSharedRef();
+}
+
+TSharedRef<FWorkspaceItem> FTabManager::AddLocalWorkspaceMenuCategory( const FText& CategoryTitle )
+{
+	return LocalWorkspaceMenuRoot->AddGroup( CategoryTitle );
+}
+
+void FTabManager::AddLocalWorkspaceMenuItem( const TSharedRef<FWorkspaceItem>& CategoryItem )
+{
+	LocalWorkspaceMenuRoot->AddItem( CategoryItem );
+}
+
+void FTabManager::ClearLocalWorkspaceMenuCategories()
+{
+	LocalWorkspaceMenuRoot->ClearItems();
 }
 
 TSharedPtr<FTabManager::FStack> FTabManager::FLayoutNode::AsStack()

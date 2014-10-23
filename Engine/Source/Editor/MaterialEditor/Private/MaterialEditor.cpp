@@ -171,7 +171,7 @@ void FMatExpressionPreview::NotifyCompilationFinished()
 
 void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	WorkspaceMenuCategory = TabManager->GetLocalWorkspaceMenuRoot()->AddGroup(LOCTEXT("WorkspaceMenu_MaterialEditor", "Material Editor"));
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_MaterialEditor", "Material Editor"));
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
@@ -223,8 +223,6 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	TabManager->UnregisterTabSpawner( StatsTabId );
 	TabManager->UnregisterTabSpawner( FindTabId );
 	TabManager->UnregisterTabSpawner( HLSLCodeTabId );
-
-	TabManager->GetLocalWorkspaceMenuRoot()->ClearItems();
 }
 
 void FMaterialEditor::InitEditorForMaterial(UMaterial* InMaterial)
