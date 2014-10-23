@@ -143,8 +143,9 @@ public:
 	}
 
 	const FLightSceneInfo* GetSimpleDirectionalLight() const 
-	{ 
-		return ((FScene*)View.Family->Scene)->SimpleDirectionalLight;
+	{
+		auto* Scene = (FScene*)View.Family->Scene;
+		return Scene ? Scene->SimpleDirectionalLight : nullptr;
 	}
 
 	/** Initialization constructor. */
