@@ -28,6 +28,9 @@ public:
 	/** @return the effective preview scale after both the DPI and Zoom scale has been applied. */
 	virtual float GetPreviewScale() const = 0;
 
+	/** @return The currently selected widgets */
+	virtual const TSet<FWidgetReference>& GetSelectedWidgets() const = 0;
+
 	/** @return The currently selected widget. */
 	virtual FWidgetReference GetSelectedWidget() const = 0;
 

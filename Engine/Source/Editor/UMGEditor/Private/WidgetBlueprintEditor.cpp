@@ -27,8 +27,8 @@
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(nullptr)
+	, HoverTime(0)
 {
-	
 }
 
 FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
@@ -123,7 +123,7 @@ void FWidgetBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>&
 	}
 }
 
-void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
+void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets, bool bAppendOrToggle)
 {
 	TSet<FWidgetReference> TempSelection;
 	for ( const FWidgetReference& Widget : Widgets )
@@ -139,10 +139,23 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 	// Finally change the selected widgets after we've updated the details panel 
 	// to ensure values that are pending are committed on focus loss, and migrated properly
 	// to the old selected widgets.
-	SelectedWidgets.Empty();
+	if ( !bAppendOrToggle )
+	{
+		SelectedWidgets.Empty();
+	}
 	SelectedObjects.Empty();
 
-	SelectedWidgets.Append(TempSelection);
+	for ( const FWidgetReference& Widget : TempSelection )
+	{
+		if ( bAppendOrToggle && SelectedWidgets.Contains(Widget) )
+		{
+			SelectedWidgets.Remove(Widget);
+		}
+		else
+		{
+			SelectedWidgets.Add(Widget);
+		}
+	}
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -183,7 +196,7 @@ void FWidgetBlueprintEditor::CleanSelection()
 
 	if ( TempSelection.Num() != SelectedWidgets.Num() )
 	{
-		SelectWidgets(TempSelection);
+		SelectWidgets(TempSelection, false);
 	}
 }
 
@@ -247,7 +260,7 @@ void FWidgetBlueprintEditor::DeleteSelectedWidgets()
 
 	// Clear the selection now that the widget has been deleted.
 	TSet<FWidgetReference> Empty;
-	SelectWidgets(Empty);
+	SelectWidgets(Empty, false);
 }
 
 bool FWidgetBlueprintEditor::CanCopySelectedWidgets()
@@ -328,6 +341,8 @@ void FWidgetBlueprintEditor::PasteWidgets()
 void FWidgetBlueprintEditor::Tick(float DeltaTime)
 {
 	FBlueprintEditor::Tick(DeltaTime);
+
+	HoverTime += DeltaTime;
 
 	// Tick the preview scene world.
 	if ( !GIntraFrameDebuggingGameThread )
@@ -648,6 +663,31 @@ FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 	}
 
 	return AppearanceInfo;
+}
+
+void FWidgetBlueprintEditor::ClearHoveredWidget()
+{
+	HoveredWidget = FWidgetReference();
+	HoverTime = 0;
+}
+
+void FWidgetBlueprintEditor::SetHoveredWidget(FWidgetReference& InHoveredWidget)
+{
+	if ( !( InHoveredWidget == HoveredWidget ) )
+	{
+		HoveredWidget = InHoveredWidget;
+		HoverTime = 0;
+	}
+}
+
+FWidgetReference FWidgetBlueprintEditor::GetHoveredWidget() const
+{
+	return HoveredWidget;
+}
+
+float FWidgetBlueprintEditor::GetHoveredWidgetTime() const
+{
+	return HoverTime;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -33,8 +33,9 @@ public:
 	virtual ~SHierarchyView();
 
 	// Begin SWidget
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
-
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
 	// End SWidget
 
@@ -123,12 +124,15 @@ private:
 	/** The filter used by the search box */
 	TSharedPtr<WidgetTextFilter> SearchBoxWidgetFilter;
 
+	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
+	TArray<FName> ExpandedItems;
+
 	/** Has a full refresh of the tree been requested?  This happens when the user is filtering the tree */
 	bool bRefreshRequested;
 
 	/** Is the tree in such a changed state that the whole widget needs rebuilding? */
 	bool bRebuildTreeRequested;
 
-	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
-	TArray<FName> ExpandedItems;
+	/** Flag to ignore selections while the hierarchy view is updating the selection. */
+	bool bIsUpdatingSelection;
 };

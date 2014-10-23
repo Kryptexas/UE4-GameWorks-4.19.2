@@ -212,7 +212,7 @@ FReply SObjectWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, cons
 
 FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& PointerEvent)
 {
-	UDragDropOperation* Operation = NULL;
+	UDragDropOperation* Operation = nullptr;
 	WidgetObject->OnDragDetected(MyGeometry, PointerEvent, Operation);
 
 	if ( Operation )

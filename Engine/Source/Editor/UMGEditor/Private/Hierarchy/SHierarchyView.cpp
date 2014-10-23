@@ -26,6 +26,7 @@ void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 {
 	BlueprintEditor = InBlueprintEditor;
 	bRebuildTreeRequested = false;
+	bIsUpdatingSelection = false;
 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddRaw(this, &SHierarchyView::OnObjectsReplaced);
@@ -92,6 +93,8 @@ SHierarchyView::~SHierarchyView()
 
 void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
 	if ( bRebuildTreeRequested || bRefreshRequested )
 	{
 		if ( bRebuildTreeRequested )
@@ -110,6 +113,20 @@ void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		bRefreshRequested = false;
 		bRebuildTreeRequested = false;
 	}
+}
+
+void SHierarchyView::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
+}
+
+void SHierarchyView::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
 FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
@@ -143,14 +160,17 @@ FText SHierarchyView::GetSearchText() const
 
 void SHierarchyView::OnEditorSelectionChanged()
 {
-	WidgetTreeView->ClearSelection();
-
-	if ( RootWidgets.Num() > 0 )
+	if ( !bIsUpdatingSelection )
 	{
-		RootWidgets[0]->RefreshSelection();
-	}
+		WidgetTreeView->ClearSelection();
 
-	RestoreSelectedItems();
+		if ( RootWidgets.Num() > 0 )
+		{
+			RootWidgets[0]->RefreshSelection();
+		}
+
+		RestoreSelectedItems();
+	}
 }
 
 UWidgetBlueprint* SHierarchyView::GetBlueprint() const
@@ -161,7 +181,7 @@ UWidgetBlueprint* SHierarchyView::GetBlueprint() const
 		return CastChecked<UWidgetBlueprint>(BP);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
@@ -174,7 +194,7 @@ void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
 
 TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 {
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, nullptr);
 
 	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), FVector2D(0, 0));
 
@@ -194,9 +214,26 @@ TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(TSharedPtr
 
 void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyModel> SelectedItem, ESelectInfo::Type SelectInfo)
 {
-	if ( SelectedItem.IsValid() && SelectInfo != ESelectInfo::Direct )
+	if ( SelectInfo != ESelectInfo::Direct )
 	{
-		SelectedItem->OnSelection();
+		bIsUpdatingSelection = true;
+
+		TArray< TSharedPtr<FHierarchyModel> > SelectedItems = WidgetTreeView->GetSelectedItems();
+
+		TSet<FWidgetReference> Clear;
+		BlueprintEditor.Pin()->SelectWidgets(Clear, false);
+
+		for ( TSharedPtr<FHierarchyModel>& Item : SelectedItems )
+		{
+			Item->OnSelection();
+		}
+
+		if ( RootWidgets.Num() > 0 )
+		{
+			RootWidgets[0]->RefreshSelection();
+		}
+
+		bIsUpdatingSelection = false;
 	}
 }
 
@@ -221,7 +258,7 @@ void SHierarchyView::RebuildTreeView()
 {
 	SAssignNew(WidgetTreeView, STreeView< TSharedPtr<FHierarchyModel> >)
 		.ItemHeight(20.0f)
-		.SelectionMode(ESelectionMode::Single)
+		.SelectionMode(ESelectionMode::Multi)
 		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler< TSharedPtr<FHierarchyModel> >::OnGetFilteredChildren)
 		.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
 		.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)

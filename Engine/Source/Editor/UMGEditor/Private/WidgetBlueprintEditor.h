@@ -65,7 +65,7 @@ public:
 	const UWidgetAnimation* RefreshCurrentAnimation();
 
 	/** Sets the currently selected set of widgets */
-	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
+	void SelectWidgets(const TSet<FWidgetReference>& Widgets, bool bAppendOrToggle);
 
 	/** Sets the currently selected set of objects */
 	void SelectObjects(const TSet<UObject*>& Objects);
@@ -93,6 +93,18 @@ public:
 
 	/** Creates a sequencer widget */
 	TSharedRef<SWidget> CreateSequencerWidget();
+
+	/**
+	 * The widget we're now hovering over in any particular context, allows multiple views to 
+	 * synchronize feedback on where that widget is in their representation.
+	 */
+	void SetHoveredWidget(FWidgetReference& InHoveredWidget);
+
+	void ClearHoveredWidget();
+
+	FWidgetReference GetHoveredWidget() const;
+
+	float GetHoveredWidgetTime() const;
 
 public:
 	/** Fires whenever the selected set of widgets changing */
@@ -156,7 +168,7 @@ private:
 	UWidgetBlueprint* PreviewBlueprint;
 
 	/** The currently selected preview widgets in the preview GUI */
-	TSet<FWidgetReference> SelectedWidgets;
+	TSet< FWidgetReference > SelectedWidgets;
 
 	/** The currently selected objects in the designer */
 	TSet< TWeakObjectPtr<UObject> > SelectedObjects;
@@ -175,6 +187,12 @@ private:
 
 	/** The widget references out in the ether that may need to be updated after being issued. */
 	TArray< TWeakPtr<FWidgetHandle> > WidgetHandlePool;
+
+	/** The wall clock time the user has been hovering over a single widget */
+	float HoverTime;
+
+	/** The current widget being hovered */
+	FWidgetReference HoveredWidget;
 
 	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
 	bool bPreviewInvalidated;

@@ -40,6 +40,9 @@ public:
 	virtual void GatherChildren(TArray< TSharedPtr<FHierarchyModel> >& Children);
 
 	virtual void OnSelection() = 0;
+
+	virtual void OnMouseEnter() {}
+	virtual void OnMouseLeave() {}
 	
 	void RefreshSelection();
 	bool ContainsSelection();
@@ -156,6 +159,9 @@ public:
 
 	virtual void OnSelection();
 
+	virtual void OnMouseEnter() override;
+	virtual void OnMouseLeave() override;
+
 	virtual bool IsVisible() const override
 	{
 		return !Item.GetTemplate()->bHiddenInDesigner;
@@ -205,6 +211,8 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel);
 
 	// Begin SWidget
+	void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	void OnMouseLeave(const FPointerEvent& MouseEvent);
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	// End SWidget
 

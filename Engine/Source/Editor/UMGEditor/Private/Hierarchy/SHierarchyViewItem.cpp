@@ -448,7 +448,7 @@ void FNamedSlotModel::OnSelection()
 			SelectedWidgets.Add(BPEd->GetReferenceFromTemplate(TemplateSlotContent));
 		}
 
-		BPEd->SelectWidgets(SelectedWidgets);
+		BPEd->SelectWidgets(SelectedWidgets, true);
 	}
 }
 
@@ -691,7 +691,17 @@ void FHierarchyWidget::OnSelection()
 	TSet<FWidgetReference> SelectedWidgets;
 	SelectedWidgets.Add(Item);
 
-	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
+	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets, true);
+}
+
+void FHierarchyWidget::OnMouseEnter()
+{
+	BlueprintEditor.Pin()->SetHoveredWidget(Item);
+}
+
+void FHierarchyWidget::OnMouseLeave()
+{
+	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
 void FHierarchyWidget::UpdateSelection()
@@ -762,6 +772,20 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 			]
 		],
 		InOwnerTableView);
+}
+
+void SHierarchyViewItem::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	STableRow< TSharedPtr<FHierarchyModel> >::OnMouseEnter(MyGeometry, MouseEvent);
+
+	Model->OnMouseEnter();
+}
+
+void SHierarchyViewItem::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	STableRow< TSharedPtr<FHierarchyModel> >::OnMouseLeave(MouseEvent);
+
+	Model->OnMouseLeave();
 }
 
 bool SHierarchyViewItem::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)

@@ -58,6 +58,7 @@ public:
 
 	// IUMGDesigner interface
 	virtual float GetPreviewScale() const override;
+	virtual const TSet<FWidgetReference>& GetSelectedWidgets() const override;
 	virtual FWidgetReference GetSelectedWidget() const override;
 	virtual ETransformMode::Type GetTransformMode() const override;
 	virtual FGeometry GetDesignerGeometry() const override;
@@ -112,8 +113,6 @@ private:
 	void OnBlueprintCompiled(UBlueprint* InBlueprint);
 
 	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
-
-	void CacheSelectedWidgetGeometry();
 
 	/** @return Formatted text for the given resolution params */
 	FText GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const;
@@ -195,21 +194,11 @@ private:
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 	TSharedPtr<SPaintSurface> EffectsLayer;
 
-	FVector2D CachedDesignerWidgetLocation;
-	FVector2D CachedDesignerWidgetSize;
-
-	/** The currently selected set of widgets */
-	TSet< FWidgetReference > SelectedWidgets;
-
-	/** TODO UMG Remove, after getting multiselection working. */
-	FWidgetReference SelectedWidget;
+	/** The currently selected preview widgets in the preview GUI, just a cache used to determine changes between selection changes. */
+	TSet< FWidgetReference > SelectedWidgetsCache;
 
 	/** The location in selected widget local space where the context menu was summoned. */
 	FVector2D SelectedWidgetContextMenuLocation;
-
-	/** The currently selected slate widget, this is refreshed every frame in case it changes */
-	TArray< TWeakPtr<SWidget> > SelectedSlateWidgets;
-	TWeakPtr<SWidget> SelectedSlateWidget;
 
 	/**
 	 * Holds onto a temporary widget that the user may be getting ready to select, or may just 
@@ -222,15 +211,6 @@ private:
 
 	/** An existing widget is being moved in its current container, or in to a new container. */
 	bool bMovingExistingWidget;
-
-	/** The wall clock time the user has been hovering over a single widget */
-	float HoverTime;
-
-	/** The current widget being hovered */
-	FWidgetReference HoveredWidget;
-
-	/** The current slate widget being hovered, this is refreshed every frame in case it changes */
-	TWeakPtr<SWidget> HoveredSlateWidget;
 
 	/** The configured Width of the preview area, simulates screen size. */
 	int32 PreviewWidth;

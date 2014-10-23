@@ -158,8 +158,6 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	ResolutionTextFade = FCurveSequence(0.0f, 1.0f);
 	ResolutionTextFade.Play();
 
-	HoverTime = 0;
-
 	bMovingExistingWidget = false;
 
 	// TODO UMG - Register these with the module through some public interface to allow for new extensions to be registered.
@@ -514,9 +512,25 @@ float SDesignerView::GetPreviewScale() const
 	return GetZoomAmount() * GetPreviewDPIScale();
 }
 
+const TSet<FWidgetReference>& SDesignerView::GetSelectedWidgets() const
+{
+	return BlueprintEditor.Pin()->GetSelectedWidgets();
+}
+
 FWidgetReference SDesignerView::GetSelectedWidget() const
 {
-	return SelectedWidget;
+	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+
+	// Only return a selected widget when we have only a single item selected.
+	if ( SelectedWidgets.Num() == 1 )
+	{
+		for ( TSet<FWidgetReference>::TConstIterator SetIt(SelectedWidgets); SetIt; ++SetIt )
+		{
+			return *SetIt;
+		}
+	}
+
+	return FWidgetReference();
 }
 
 ETransformMode::Type SDesignerView::GetTransformMode() const
@@ -595,7 +609,7 @@ void SDesignerView::OnEditorSelectionChanged()
 	TSet<FWidgetReference> PendingSelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
 
 	// Notify all widgets that are no longer selected.
-	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	for ( FWidgetReference& WidgetRef : SelectedWidgetsCache )
 	{
 		if ( WidgetRef.IsValid() && !PendingSelectedWidgets.Contains(WidgetRef) )
 		{
@@ -606,26 +620,13 @@ void SDesignerView::OnEditorSelectionChanged()
 	// Notify all widgets that are now selected.
 	for ( FWidgetReference& WidgetRef : PendingSelectedWidgets )
 	{
-		if ( WidgetRef.IsValid() && !SelectedWidgets.Contains(WidgetRef) )
+		if ( WidgetRef.IsValid() && !SelectedWidgetsCache.Contains(WidgetRef) )
 		{
 			WidgetRef.GetPreview()->Select();
 		}
 	}
 
-	SelectedWidgets = PendingSelectedWidgets;
-
-	if ( SelectedWidgets.Num() > 0 )
-	{
-		for ( FWidgetReference& Widget : SelectedWidgets )
-		{
-			SelectedWidget = Widget;
-			break;
-		}
-	}
-	else
-	{
-		SelectedWidget = FWidgetReference();
-	}
+	SelectedWidgetsCache = PendingSelectedWidgets;
 
 	CreateExtensionWidgetsForSelection();
 }
@@ -691,12 +692,9 @@ void SDesignerView::CreateExtensionWidgetsForSelection()
 	// Remove all the current extension widgets
 	ClearExtensionWidgets();
 
-	TArray<FWidgetReference> Selected;
-	if ( SelectedWidget.IsValid() )
-	{
-		Selected.Add(SelectedWidget);
-	}
-
+	// Get the selected widgets as an array
+	TArray<FWidgetReference> Selected = GetSelectedWidgets().Array();
+	
 	TArray< TSharedRef<FDesignerSurfaceElement> > ExtensionElements;
 
 	if ( Selected.Num() > 0 )
@@ -737,74 +735,73 @@ void SDesignerView::CreateExtensionWidgetsForSelection()
 
 FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const
 {
-	const FVector2D TopLeft = CachedDesignerWidgetLocation;
-	const FVector2D Size = CachedDesignerWidgetSize * GetPreviewScale();
+	FWidgetReference SelectedWidget = GetSelectedWidget();
 
-	// Calculate the parent position and size.  We use this information for calculating offsets.
-	FVector2D ParentPosition, ParentSize;
+	if ( SelectedWidget.IsValid() )
 	{
-		FWidgetReference ParentRef = BlueprintEditor.Pin()->GetReferenceFromTemplate(SelectedWidget.GetTemplate()->GetParent());
+		FGeometry SelectedWidgetGeometry_RelativeToDesigner;
+		FGeometry SelectedWidgetParentGeometry_RelativeToDesigner;
 
-		UWidget* Preview = ParentRef.GetPreview();
-		TSharedPtr<SWidget> CachedPreviewSlateWidget = Preview ? Preview->GetCachedWidget() : nullptr;
-		if ( CachedPreviewSlateWidget.IsValid() )
+		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry_RelativeToDesigner) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry_RelativeToDesigner) )
 		{
-			FWidgetPath WidgetPath;
-			SelectedWidgetPath.ToWidgetPath(WidgetPath);
-		
-			FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-			FDesignTimeUtils::GetArrangedWidgetRelativeToParent(WidgetPath, CachedPreviewSlateWidget.ToSharedRef(), AsShared(), ArrangedWidget);
+			SelectedWidgetGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedDesignerGeometry.AbsolutePosition)));
+			SelectedWidgetParentGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedDesignerGeometry.AbsolutePosition)));
 
-			ParentPosition = ArrangedWidget.Geometry.AbsolutePosition;
-			ParentSize = ArrangedWidget.Geometry.Size * GetPreviewScale();
+			const FVector2D WidgetPostion_DesignerSpace = SelectedWidgetGeometry_RelativeToDesigner.AbsolutePosition;
+			const FVector2D WidgetSize = SelectedWidgetGeometry_RelativeToDesigner.Size * GetPreviewScale();
+
+			const FVector2D ParentPostion_DesignerSpace = SelectedWidgetParentGeometry_RelativeToDesigner.AbsolutePosition;
+			const FVector2D ParentSize = SelectedWidgetParentGeometry_RelativeToDesigner.Size * GetPreviewScale();
+
+			FVector2D FinalPosition(0, 0);
+
+			// Get the initial offset based on the location around the selected object.
+			switch ( ExtensionElement->GetLocation() )
+			{
+			case EExtensionLayoutLocation::Absolute:
+			{
+				FinalPosition = ParentPostion_DesignerSpace;
+				break;
+			}
+			case EExtensionLayoutLocation::TopLeft:
+				FinalPosition = WidgetPostion_DesignerSpace;
+				break;
+			case EExtensionLayoutLocation::TopCenter:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X * 0.5f, 0);
+				break;
+			case EExtensionLayoutLocation::TopRight:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X, 0);
+				break;
+
+			case EExtensionLayoutLocation::CenterLeft:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(0, WidgetSize.Y * 0.5f);
+				break;
+			case EExtensionLayoutLocation::CenterCenter:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X * 0.5f, WidgetSize.Y * 0.5f);
+				break;
+			case EExtensionLayoutLocation::CenterRight:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X, WidgetSize.Y * 0.5f);
+				break;
+
+			case EExtensionLayoutLocation::BottomLeft:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(0, WidgetSize.Y);
+				break;
+			case EExtensionLayoutLocation::BottomCenter:
+				FinalPosition = WidgetPostion_DesignerSpace + FVector2D(WidgetSize.X * 0.5f, WidgetSize.Y);
+				break;
+			case EExtensionLayoutLocation::BottomRight:
+				FinalPosition = WidgetPostion_DesignerSpace + WidgetSize;
+				break;
+			}
+
+			// Add the alignment offset
+			FinalPosition += ParentSize * ExtensionElement->GetAlignment();
+
+			return FinalPosition + ExtensionElement->GetOffset();
 		}
 	}
 
-	FVector2D FinalPosition(0, 0);
-
-	// Get the intial offset based on the location around the selected object.
-	switch ( ExtensionElement->GetLocation() )
-	{
-	case EExtensionLayoutLocation::Absolute:
-	{
-		FinalPosition = ParentPosition;
-		break;
-	}
-	case EExtensionLayoutLocation::TopLeft:
-		FinalPosition = TopLeft;
-		break;
-	case EExtensionLayoutLocation::TopCenter:
-		FinalPosition = TopLeft + FVector2D(Size.X * 0.5f, 0);
-		break;
-	case EExtensionLayoutLocation::TopRight:
-		FinalPosition = TopLeft + FVector2D(Size.X, 0);
-		break;
-
-	case EExtensionLayoutLocation::CenterLeft:
-		FinalPosition = TopLeft + FVector2D(0, Size.Y * 0.5f);
-		break;
-	case EExtensionLayoutLocation::CenterCenter:
-		FinalPosition = TopLeft + FVector2D(Size.X * 0.5f, Size.Y * 0.5f);
-		break;
-	case EExtensionLayoutLocation::CenterRight:
-		FinalPosition = TopLeft + FVector2D(Size.X, Size.Y * 0.5f);
-		break;
-
-	case EExtensionLayoutLocation::BottomLeft:
-		FinalPosition = TopLeft + FVector2D(0, Size.Y);
-		break;
-	case EExtensionLayoutLocation::BottomCenter:
-		FinalPosition = TopLeft + FVector2D(Size.X * 0.5f, Size.Y);
-		break;
-	case EExtensionLayoutLocation::BottomRight:
-		FinalPosition = TopLeft + Size;
-		break;
-	}
-
-	// Add the alignment offset
-	FinalPosition += ParentSize * ExtensionElement->GetAlignment();
-
-	return FinalPosition + ExtensionElement->GetOffset();
+	return FVector2D(0, 0);
 }
 
 FVector2D SDesignerView::GetExtensionSize(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const
@@ -891,7 +888,7 @@ void SDesignerView::ResolvePendingSelectedWidgets()
 	{
 		TSet<FWidgetReference> SelectedTemplates;
 		SelectedTemplates.Add(PendingSelectedWidget);
-		BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates);
+		BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates, FSlateApplication::Get().GetModifierKeys().IsControlDown());
 
 		PendingSelectedWidget = FWidgetReference();
 	}
@@ -913,9 +910,9 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
 			const bool bResolvePendingSelectionImmediately =
-				!SelectedWidget.IsValid() ||
-				!NewSelectedWidget.GetTemplate()->IsChildOf(SelectedWidget.GetTemplate()) ||
-				SelectedWidget.GetTemplate()->GetParent() == nullptr;
+				!GetSelectedWidget().IsValid() ||
+				!NewSelectedWidget.GetTemplate()->IsChildOf(GetSelectedWidget().GetTemplate()) ||
+				GetSelectedWidget().GetTemplate()->GetParent() == nullptr;
 
 			// If the newly clicked item is a child of the active selection, add it to the pending set of selected 
 			// widgets, if they begin dragging we can just move the parent, but if it's not part of the parent set, 
@@ -975,6 +972,8 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 
 	if ( MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) )
 	{
+		FWidgetReference SelectedWidget = GetSelectedWidget();
+
 		if ( SelectedWidget.IsValid() && !bMovingExistingWidget )
 		{
 			if ( TransformMode == ETransformMode::Layout )
@@ -1017,25 +1016,23 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 	// Update the hovered widget under the mouse
 	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 	FWidgetReference NewHoveredWidget = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
-	if ( !( NewHoveredWidget == HoveredWidget ) )
-	{
-		HoveredWidget = NewHoveredWidget;
-		HoverTime = 0;
-	}
+	BlueprintEditor.Pin()->SetHoveredWidget(NewHoveredWidget);
 
 	return FReply::Unhandled();
 }
 
 void SDesignerView::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	HoveredWidget = FWidgetReference();
-	HoverTime = 0;
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
 void SDesignerView::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
-	HoveredWidget = FWidgetReference();
-	HoverTime = 0;
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
 FReply SDesignerView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
@@ -1085,92 +1082,71 @@ void SDesignerView::PopulateWidgetGeometryCache(FArrangedWidget& Root)
 	}
 }
 
-void SDesignerView::CacheSelectedWidgetGeometry()
-{
-	if ( SelectedSlateWidget.IsValid() )
-	{
-		TSharedRef<SWidget> Widget = SelectedSlateWidget.Pin().ToSharedRef();
-
-		FWidgetPath WidgetPath;
-		if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
-		{
-			SelectedWidgetPath = FWeakWidgetPath(WidgetPath);
-		}
-		else
-		{
-			SelectedWidgetPath = FWeakWidgetPath();
-		}
-
-		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FDesignTimeUtils::GetArrangedWidgetRelativeToParent(WidgetPath, Widget, AsShared(), ArrangedWidget);
-
-		CachedDesignerWidgetLocation = ArrangedWidget.Geometry.AbsolutePosition;
-		CachedDesignerWidgetSize = ArrangedWidget.Geometry.Size;
-	}
-}
-
 int32 SDesignerView::HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs)
 {
-	TSet<FWidgetReference> Selected;
-	Selected.Add(SelectedWidget);
+	const TSet<FWidgetReference>& SelectedWidgets = GetSelectedWidgets();
 
 	// Allow the extensions to paint anything they want.
 	for ( const TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
 	{
-		Ext->Paint(Selected, PaintArgs.Geometry, PaintArgs.ClippingRect, PaintArgs.OutDrawElements, PaintArgs.Layer);
+		Ext->Paint(SelectedWidgets, PaintArgs.Geometry, PaintArgs.ClippingRect, PaintArgs.OutDrawElements, PaintArgs.Layer);
 	}
 
 	static const FName SelectionOutlineName("UMGEditor.SelectionOutline");
-	const FSlateBrush* SelectionOutlineBrush = FEditorStyle::Get().GetBrush(SelectionOutlineName);
-	FVector2D SelectionBrushInflationAmount = FVector2D(16, 16) * FVector2D(SelectionOutlineBrush->Margin.Left, SelectionOutlineBrush->Margin.Top) * ( 1.0f / GetPreviewScale() );
 
-	// Don't draw the hovered effect if it's also the selected widget
-	if ( HoveredSlateWidget.IsValid() && HoveredSlateWidget != SelectedSlateWidget )
+	static const FLinearColor SelectedTint(0, 1, 0);
+	const FLinearColor HoveredTint(0, 0.5, 1, FMath::Clamp(BlueprintEditor.Pin()->GetHoveredWidgetTime() / HoveredAnimationTime, 0.0f, 1.0f)); // Azure = 0x007FFF
+
+	for ( const FWidgetReference& SelectedWidget : SelectedWidgets )
 	{
-		TSharedRef<SWidget> Widget = HoveredSlateWidget.Pin().ToSharedRef();
+		const FSlateBrush* SelectionOutlineBrush = FEditorStyle::Get().GetBrush(SelectionOutlineName);
+		FVector2D SelectionBrushInflationAmount = FVector2D(16, 16) * FVector2D(SelectionOutlineBrush->Margin.Left, SelectionOutlineBrush->Margin.Top) * ( 1.0f / GetPreviewScale() );
 
-		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
+		TSharedPtr<SWidget> SelectedSlateWidget = SelectedWidget.GetPreviewSlate();
+		TSharedPtr<SWidget> HoveredSlateWidget = BlueprintEditor.Pin()->GetHoveredWidget().GetPreviewSlate();
 
-		// Draw hovered effect
-		// Azure = 0x007FFF
-		const FLinearColor HoveredTint(0, 0.5, 1, FMath::Clamp(HoverTime / HoveredAnimationTime, 0.0f, 1.0f));
+		// Don't draw the hovered effect if it's also the selected widget
+		if ( HoveredSlateWidget.IsValid() && HoveredSlateWidget != SelectedSlateWidget )
+		{
+			TSharedRef<SWidget> Widget = HoveredSlateWidget.ToSharedRef();
 
-		FPaintGeometry HoveredGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(SelectionBrushInflationAmount);
+			FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+			FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
 
-		FSlateDrawElement::MakeBox(
-			PaintArgs.OutDrawElements,
-			PaintArgs.Layer,
-			HoveredGeometry,
-			SelectionOutlineBrush,
-			PaintArgs.ClippingRect,
-			ESlateDrawEffect::None,
-			HoveredTint
-			);
-	}
+			// Draw hovered effect
+			FPaintGeometry HoveredGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(SelectionBrushInflationAmount);
 
-	if ( SelectedSlateWidget.IsValid() )
-	{
-		TSharedRef<SWidget> Widget = SelectedSlateWidget.Pin().ToSharedRef();
+			FSlateDrawElement::MakeBox(
+				PaintArgs.OutDrawElements,
+				PaintArgs.Layer,
+				HoveredGeometry,
+				SelectionOutlineBrush,
+				PaintArgs.ClippingRect,
+				ESlateDrawEffect::None,
+				HoveredTint
+				);
+		}
 
-		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
+		if ( SelectedSlateWidget.IsValid() )
+		{
+			TSharedRef<SWidget> Widget = SelectedSlateWidget.ToSharedRef();
 
-		const FLinearColor Tint(0, 1, 0);
+			FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+			FDesignTimeUtils::GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
 
-		// Draw selection effect
+			// Draw selection effect
+			FPaintGeometry SelectionGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(SelectionBrushInflationAmount);
 
-		FPaintGeometry SelectionGeometry = ArrangedWidget.Geometry.ToInflatedPaintGeometry(SelectionBrushInflationAmount);
-
-		FSlateDrawElement::MakeBox(
-			PaintArgs.OutDrawElements,
-			PaintArgs.Layer,
-			SelectionGeometry,
-			SelectionOutlineBrush,
-			PaintArgs.ClippingRect,
-			ESlateDrawEffect::None,
-			Tint
-			);
+			FSlateDrawElement::MakeBox(
+				PaintArgs.OutDrawElements,
+				PaintArgs.Layer,
+				SelectionGeometry,
+				SelectionOutlineBrush,
+				PaintArgs.ClippingRect,
+				ESlateDrawEffect::None,
+				SelectedTint
+				);
+		}
 	}
 
 	return PaintArgs.Layer + 1;
@@ -1194,7 +1170,7 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 			// Notify all selected widgets that they are selected, because there are new preview objects
 			// state may have been lost so this will recreate it if the widget does something special when
 			// selected.
-			for ( FWidgetReference& WidgetRef : SelectedWidgets )
+			for ( const FWidgetReference& WidgetRef : GetSelectedWidgets() )
 			{
 				if ( WidgetRef.IsValid() )
 				{
@@ -1222,40 +1198,14 @@ void SDesignerView::UpdatePreviewWidget(bool bForceUpdate)
 void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	CachedDesignerGeometry = AllottedGeometry;
-	HoverTime += InDeltaTime;
 
 	const bool bForceUpdate = false;
 	UpdatePreviewWidget(bForceUpdate);
-
-	// Update the selected widget to match the selected template.
-	if ( PreviewWidget )
-	{
-		if ( SelectedWidget.IsValid() )
-		{
-			// Set the selected widget so that we can draw the highlight
-			SelectedSlateWidget = PreviewWidget->GetSlateWidgetFromName(SelectedWidget.GetTemplate()->GetFName());
-		}
-		else
-		{
-			SelectedSlateWidget.Reset();
-		}
-
-		if ( HoveredWidget.IsValid() )
-		{
-			HoveredSlateWidget = PreviewWidget->GetSlateWidgetFromName(HoveredWidget.GetTemplate()->GetFName());
-		}
-		else
-		{
-			HoveredSlateWidget.Reset();
-		}
-	}
 
 	// Perform an arrange children pass to cache the geometry of all widgets so that we can query it later.
 	CachedWidgetGeometry.Reset();
 	FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
 	PopulateWidgetGeometryCache(WindowWidgetGeometry);
-
-	CacheSelectedWidgetGeometry();
 
 	// Tick all designer extensions in case they need to update widgets
 	for ( const TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
@@ -1268,6 +1218,8 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 
 FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	FWidgetReference SelectedWidget = GetSelectedWidget();
+
 	if ( SelectedWidget.IsValid() )
 	{
 		// Clear any pending selected widgets, the user has already decided what widget they want.
@@ -1288,11 +1240,19 @@ FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 
 void SDesignerView::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
+	SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
+
 	//@TODO UMG Drop Feedback
 }
 
 void SDesignerView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
+	SCompoundWidget::OnDragLeave(DragDropEvent);
+
+	BlueprintEditor.Pin()->ClearHoveredWidget();
+
 	TSharedPtr<FDecoratedDragDropOp> DecoratedDragDropOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
 	if ( DecoratedDragDropOp.IsValid() )
 	{
@@ -1376,6 +1336,8 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( TemplateDragDropOp.IsValid() )
 	{
+		BlueprintEditor.Pin()->SetHoveredWidget(WidgetUnderCursor);
+
 		TemplateDragDropOp->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
 		// If there's no root widget go ahead and add the widget into the root slot.
@@ -1396,8 +1358,6 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 			Widget->SetIsDesignTime(true);
 
 			BP->WidgetTree->RootWidget = Widget;
-
-			SelectedWidget = BlueprintEditor.Pin()->GetReferenceFromTemplate(Widget);
 
 			DropPreviewParent = nullptr;
 
@@ -1504,6 +1464,9 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 				Target = bIsPreview ? SelectedDragDropOp->ParentWidget.GetPreview() : SelectedDragDropOp->ParentWidget.GetTemplate();
 			}
 		}
+
+		FWidgetReference TargetReference = bIsPreview ? BlueprintEditor.Pin()->GetReferenceFromPreview(Target) : BlueprintEditor.Pin()->GetReferenceFromTemplate(Target);
+		BlueprintEditor.Pin()->SetHoveredWidget(TargetReference);
 
 		// If the widget being hovered over is a panel, attempt to place it into that panel.
 		if ( Target && Target->IsA(UPanelWidget::StaticClass()) )
@@ -1880,10 +1843,13 @@ void SDesignerView::BeginTransaction(const FText& SessionName)
 	{
 		ScopedTransaction = new FScopedTransaction(SessionName);
 
-		if ( SelectedWidget.IsValid() )
+		for ( const FWidgetReference& SelectedWidget : GetSelectedWidgets() )
 		{
-			SelectedWidget.GetPreview()->Modify();
-			SelectedWidget.GetTemplate()->Modify();
+			if ( SelectedWidget.IsValid() )
+			{
+				SelectedWidget.GetPreview()->Modify();
+				SelectedWidget.GetTemplate()->Modify();
+			}
 		}
 	}
 }
