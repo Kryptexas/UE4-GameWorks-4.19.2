@@ -60,7 +60,7 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
-	void ProcessNSEvent(NSEvent* const Event, TSharedPtr< FMacWindow > CurrentEventWindow, FVector2D const MousePosition);
+	void ProcessNSEvent(NSEvent* const Event, FVector2D const MousePosition);
 
 	void OnWindowDraggingFinished();
 
@@ -135,7 +135,7 @@ private:
 
 	void UpdateMouseCaptureWindow( FCocoaWindow* TargetWindow );
 
-	void HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
+	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 #if WITH_EDITOR
 	void RecordUsage(EGestureEvent::Type Gesture);
@@ -166,8 +166,6 @@ private:
 
 	bool bSystemModalMode;
 	bool bIsProcessingNSEvent;
-
-	TSharedPtr< FMacWindow > LastEventWindow;
 
 	/** The current set of modifier keys that are pressed. This is used to detect differences between left and right modifier keys on key up events*/
 	uint32 ModifierKeysFlags;
@@ -201,7 +199,7 @@ private:
 	int32 GestureUsage[EGestureEvent::Count];
 #endif
 
-	void* EventMonitor;
+	id EventMonitor;
 
 	friend class FMacWindow;
 	friend class FMacEvent;
