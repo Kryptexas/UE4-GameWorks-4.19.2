@@ -1425,59 +1425,55 @@ FRecastTileGenerator::FRecastTileGenerator(
 	rcVcopy(TileConfig.bmax, &RCBox.Max.X);
 			
 	// from passed in boxes pick the ones overlapping with tile bounds
-	InclusionBounds.Reset();
-	bOutsideOfInclusionBounds = false;
+	bFullyEncapsulatedByInclusionBounds = true;
 	const auto& ParentBounds = ParentGenerator->GetInclusionBounds();
 	if (ParentBounds.Num() > 0)
 	{
 		bFullyEncapsulatedByInclusionBounds = false;
-
 		InclusionBounds.Reserve(ParentBounds.Num());
-		const FBox* Bounds = ParentBounds.GetData();	
-		for (int32 i = 0; i < ParentBounds.Num() && bFullyEncapsulatedByInclusionBounds == false; ++i, ++Bounds)
-		{	
-			if (Bounds->Intersect(TileBB))
+		for (const FBox& Bounds : ParentBounds)
+		{
+			if (Bounds.Intersect(TileBB))
 			{
-				InclusionBounds.Add(*Bounds);
-				bFullyEncapsulatedByInclusionBounds = DoesBoxContainBox(*Bounds, TileBB);
+				InclusionBounds.Add(Bounds);
+				bFullyEncapsulatedByInclusionBounds = DoesBoxContainBox(Bounds, TileBB);
 			}
 		}
-
-		bOutsideOfInclusionBounds = (InclusionBounds.Num() == 0);
-	}
-	else
-	{
-		bFullyEncapsulatedByInclusionBounds = true;
 	}
 	
-	// In case we don't need to regenerate tile from scratch
-	// get compressed layers data from cache
-	if (DirtyAreas.Num() > 0)
+	// Gather geometry for tile if it inside navigable bounds
+	bRegenerateCompressedLayers = true;
+	if (InclusionBounds.Num())
 	{
-		CompressedLayers = ParentGenerator->GetCachedLayersData(FIntPoint(TileX, TileY));
-	}
-	
-	// We have to regenerate layers data in case it's missing
-	bRegenerateCompressedLayers = (CompressedLayers.Num() == 0);
-
-	if (!bRegenerateCompressedLayers)
-	{
-		// Mark layers that needs to be updated
-		DirtyLayers.Init(false, CompressedLayers.Num());
-		for (const FNavMeshTileData& LayerData : CompressedLayers)
+		// In case we don't need to regenerate tile from scratch
+		// get compressed layers data from cache
+		if (DirtyAreas.Num() > 0)
 		{
-			for (FBox DirtyBox : DirtyAreas)
+			CompressedLayers = ParentGenerator->GetCachedLayersData(FIntPoint(TileX, TileY));
+		}
+	
+		// We have to regenerate layers data in case it's missing
+		bRegenerateCompressedLayers = (CompressedLayers.Num() == 0);
+
+		if (!bRegenerateCompressedLayers)
+		{
+			// Mark layers that needs to be updated
+			DirtyLayers.Init(false, CompressedLayers.Num());
+			for (const FNavMeshTileData& LayerData : CompressedLayers)
 			{
-				if (DirtyBox.Intersect(LayerData.LayerBBox))
+				for (FBox DirtyBox : DirtyAreas)
 				{
-					DirtyLayers[LayerData.LayerIndex] = true;
+					if (DirtyBox.Intersect(LayerData.LayerBBox))
+					{
+						DirtyLayers[LayerData.LayerIndex] = true;
+					}
 				}
 			}
 		}
+
+		GatherGeometry(ParentGenerator, bRegenerateCompressedLayers);
 	}
-
-	GatherGeometry(ParentGenerator, bRegenerateCompressedLayers);
-
+	
 	//
 	UsedMemoryOnStartup = GetUsedMemCount() + sizeof(FRecastTileGenerator);
 }
@@ -2684,19 +2680,19 @@ uint32 FRecastTileGenerator::GetUsedMemCount() const
 	return TotalMemory;
 }
 
-static int32 CaclulateGridCellsCount(const TNavStatArray<FBox>& NavigableAreas, float TileSizeinWorldUnits)
+static int32 CaclulateMaxTilesCount(const TNavStatArray<FBox>& NavigableAreas, float TileSizeinWorldUnits, float AvgLayersPerGridCell)
 {
-	int32 CellsCount = 0;
+	int32 GridCellsCount = 0;
 	for (FBox AreaBounds : NavigableAreas)
 	{
 		// TODO: need more precise calculation, currently we don't take into account that volumes can be overlapped
 		FBox RCBox = Unreal2RecastBox(AreaBounds);
 		int32 XSize = FMath::CeilToInt(RCBox.GetSize().X/TileSizeinWorldUnits) + 1;
 		int32 YSize = FMath::CeilToInt(RCBox.GetSize().Z/TileSizeinWorldUnits) + 1;
-		CellsCount+= (XSize*YSize);
+		GridCellsCount+= (XSize*YSize);
 	}
 	
-	return CellsCount;
+	return FMath::CeilToInt(GridCellsCount * AvgLayersPerGridCell);
 }
 
 //----------------------------------------------------------------------//
@@ -2704,9 +2700,9 @@ static int32 CaclulateGridCellsCount(const TNavStatArray<FBox>& NavigableAreas, 
 //----------------------------------------------------------------------//
 
 FRecastNavMeshGenerator::FRecastNavMeshGenerator(class ARecastNavMesh* InDestNavMesh)
-	: MaxActiveTiles(-1)
-	, NumActiveTiles(0)
+	: NumActiveTiles(0)
 	, MaxTileGeneratorTasks(1)
+	, AvgLayersPerTile(8.0f)
 	, DestNavMesh(InDestNavMesh)
 	, bInitialized(false)
 	, Version(0)
@@ -2787,52 +2783,7 @@ void FRecastNavMeshGenerator::Init()
 	Config.regionPartitioning = DestNavMesh->LayerPartitioning;
 	Config.TileCachePartitionType = DestNavMesh->RegionPartitioning;
 
-	TotalNavBounds = FBox(0);
-	// Collect bounding geometry
-	if (NavSys->ShouldGenerateNavigationEverywhere() == false)
-	{
-		InclusionBounds.Empty();
-
-		for (TActorIterator<ANavMeshBoundsVolume> It(NavSys->GetWorld()); It; ++It)
-		{
-			ANavMeshBoundsVolume const* const V = (*It);
-			if (V != NULL)
-			{
-				FBox Bounds = GrowBoundingBox(V->GetComponentsBoundingBox(true), true);
-				TotalNavBounds += Bounds;
-				InclusionBounds.Add(Bounds);
-			}
-		}
-	}
-
-	if (!TotalNavBounds.IsValid)
-	{
-		// if no bounds give Navigation System a chance to specify bounds
-		// will also happen if NavSystem->ShouldGenerateNavigationEverywhere() == true
-		TotalNavBounds = NavSys->GetWorldBounds();
-		InclusionBounds.Add(TotalNavBounds);
-	}
-
-	// limit max amount of tiles: 64 bit poly 
-	const int32 MaxTileBits = 30;
-	const int32 MaxTiles = (1 << 30);
-	const float AvgLayersPerGridCell = 8.0f; // TODO: should be tweakable per navmesh
-	MaxActiveTiles = FMath::CeilToInt(CaclulateGridCellsCount(InclusionBounds, Config.tileSize * Config.cs) * AvgLayersPerGridCell);
-	if (MaxActiveTiles < 0 || MaxActiveTiles > MaxTiles)
-	{
-		UE_LOG(LogNavigation, Error, TEXT("Navmesh bounds are too large! Limiting requested tiles count (%d) to: (%d)"), MaxActiveTiles, MaxTiles);
-		MaxActiveTiles = MaxTiles;
-	}
-
-	// do this once
-	++Version;
-
-	// Max tiles and max polys affect how the tile IDs are calculated.
-	// There are (sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) bits available for 
-	// identifying a tile and a polygon.
-	int32 TileBits = FMath::CeilLogTwo(MaxActiveTiles);
-	const int32 PolyBits = FMath::Min(30, (int)(sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) - TileBits);
-	Config.MaxPolysPerTile = 1 << PolyBits;
+	UpdateNavigationBounds();
 
 	/** setup maximum number of active tile generator*/
 	const int32 NumberOfWorkerThreads = FTaskGraphInterface::Get().GetNumWorkerThreads();
@@ -2848,6 +2799,33 @@ void FRecastNavMeshGenerator::Init()
 	bInitialized = true;
 }
 
+void FRecastNavMeshGenerator::UpdateNavigationBounds()
+{
+	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	const TSet<FNavigationBounds>& NavigationBoundsSet = NavSys->GetNavigationBounds();
+
+	TotalNavBounds = FBox(0);
+	InclusionBounds.Empty(NavigationBoundsSet.Num());
+
+	// Collect bounding geometry
+	if (NavSys->ShouldGenerateNavigationEverywhere() == false)
+	{
+		for (const auto& NavigationBounds : NavigationBoundsSet)
+		{
+			InclusionBounds.Add(NavigationBounds.AreaBox);
+			TotalNavBounds+= NavigationBounds.AreaBox;
+		}
+	}
+	else
+	{
+		TotalNavBounds = NavSys->GetWorldBounds();
+		if (!TotalNavBounds.IsValid)
+		{
+			InclusionBounds.Add(TotalNavBounds);
+		}
+	}
+}
+
 bool FRecastNavMeshGenerator::ConstructTiledNavMesh() 
 {
 	bool bSuccess = false;
@@ -2856,19 +2834,49 @@ bool FRecastNavMeshGenerator::ConstructTiledNavMesh()
 	dtNavMesh* DetourMesh = dtAllocNavMesh();	
 	if (DetourMesh)
 	{
-		float Origin[3] = {0,0,0};
+		++Version;
 		
 		dtNavMeshParams TiledMeshParameters;
 		FMemory::MemZero(TiledMeshParameters);	
-		rcVcopy(TiledMeshParameters.orig, Origin);
+		rcVcopy(TiledMeshParameters.orig, &FVector::ZeroVector.X);
 		TiledMeshParameters.tileWidth = Config.tileSize * Config.cs;
 		TiledMeshParameters.tileHeight = Config.tileSize * Config.cs;
-		TiledMeshParameters.maxTiles = MaxActiveTiles;
-		TiledMeshParameters.maxPolys = Config.MaxPolysPerTile;
 
+		// limit max amount of tiles
+#if USE_64BIT_ADDRESS
+		const int32 MaxTileBits = 30;
+#else
+		const int32 MaxTileBits = 14;
+#endif//USE_64BIT_ADDRESS
+
+		const int32 MaxTiles = (1 << MaxTileBits);
+		int32 MaxRequestedTiles = 0;
+		if (DestNavMesh->IsResizable())
+		{
+			MaxRequestedTiles = CaclulateMaxTilesCount(InclusionBounds, Config.tileSize * Config.cs, AvgLayersPerTile);
+		}
+		else
+		{
+			MaxRequestedTiles = DestNavMesh->TilePoolSize;
+		}
+		
+		if (MaxRequestedTiles < 0 || MaxRequestedTiles > MaxTiles)
+		{
+			UE_LOG(LogNavigation, Error, TEXT("Navmesh bounds are too large! Limiting requested tiles count (%d) to: (%d)"), MaxRequestedTiles, MaxTiles);
+			MaxRequestedTiles = MaxTiles;
+		}
+
+		// Max tiles and max polys affect how the tile IDs are calculated.
+		// There are (sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) bits available for 
+		// identifying a tile and a polygon.
+		Config.MaxPolysPerTile = 1 << ((sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) - MaxTileBits);
+
+		TiledMeshParameters.maxTiles = MaxRequestedTiles;
+		TiledMeshParameters.maxPolys = Config.MaxPolysPerTile;
+	
 		const dtStatus status = DetourMesh->init(&TiledMeshParameters);
 
-		if ( dtStatusFailed(status) )
+		if (dtStatusFailed(status))
 		{
 			UE_LOG(LogNavigation, Warning, TEXT("ConstructTiledNavMesh: Could not init navmesh.") );
 			bSuccess = false;
@@ -2877,7 +2885,6 @@ bool FRecastNavMeshGenerator::ConstructTiledNavMesh()
 		{
 			bSuccess = true;
 			NumActiveTiles = GetTilesCountHelper(DetourMesh);
-
 			DestNavMesh->GetRecastNavMeshImpl()->SetRecastMesh(DetourMesh);
 		}
 	}
@@ -2898,7 +2905,7 @@ bool FRecastNavMeshGenerator::RebuildAll()
 	TArray<FNavigationDirtyArea> DirtyAreas;
 	for (FBox AreaBounds : InclusionBounds)
 	{
-		FNavigationDirtyArea DirtyArea(AreaBounds, ENavigationDirtyFlag::All);
+		FNavigationDirtyArea DirtyArea(AreaBounds, ENavigationDirtyFlag::All | ENavigationDirtyFlag::NavigationBounds);
 		DirtyAreas.Add(DirtyArea);
 	}
 	
@@ -2983,9 +2990,35 @@ void FRecastNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 	}
 }
 
+void FRecastNavMeshGenerator::OnNavigationBoundsChanged()
+{
+	UpdateNavigationBounds();
+	
+	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
+	if (DestNavMesh->IsResizable() && DetourMesh)
+	{
+		// Check whether Navmesh size needs to be changed
+		int32 MaxRequestedTiles = CaclulateMaxTilesCount(InclusionBounds, Config.tileSize * Config.cs, AvgLayersPerTile);
+		if (DetourMesh->getMaxTiles() != MaxRequestedTiles)
+		{
+			// Destroy current NavMesh, it will be allocated with a new size on next build request
+			DestNavMesh->GetRecastNavMeshImpl()->SetRecastMesh(nullptr);
+		}
+	}
+}
+
 void FRecastNavMeshGenerator::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& InDirtyAreas)
 {
-	MarkDirtyTiles(InDirtyAreas);
+	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
+	if (DetourMesh == nullptr)
+	{
+		ConstructTiledNavMesh();
+		RebuildAll();
+	}
+	else
+	{
+		MarkDirtyTiles(InDirtyAreas);
+	}
 }
 
 void FRecastNavMeshGenerator::OnAreaAdded(const UClass* AreaClass, int32 AreaID)
@@ -3047,73 +3080,76 @@ TArray<uint32> FRecastNavMeshGenerator::AddTile(const FRecastTileGenerator& Tile
 	const int32 TileY = TileGenerator.GetTileY();
 	
 	// 
-	TArray<FNavMeshTileData> TileLayers = TileGenerator.GetNavigationData();
 	if (TileGenerator.IsFullyRegenerated())
 	{
 		// remove all layers
 		ResultTileIndices = RemoveTileLayers(TileX, TileY);
 	}
-	ResultTileIndices.Reserve(TileLayers.Num());
-
+	
 	dtNavMesh* DetourMesh = DestNavMesh->GetRecastNavMeshImpl()->GetRecastMesh();
-		
-	bool bHasNavmesh = true;
-	for (int32 i = 0; i < TileLayers.Num(); i++)
+	if (DetourMesh != nullptr)
 	{
-		const int32 LayerIndex = TileLayers[i].LayerIndex;
-		if (!TileGenerator.IsLayerChanged(TileLayers[i].LayerIndex))
+		TArray<FNavMeshTileData> TileLayers = TileGenerator.GetNavigationData();
+		ResultTileIndices.Reserve(TileLayers.Num());
+		
+		bool bHasNavmesh = true;
+		for (int32 i = 0; i < TileLayers.Num(); i++)
 		{
-			continue;
-		}
-				
-		const dtTileRef OldTileRef = DetourMesh->getTileRefAt(TileX, TileY, LayerIndex);
-
-		if (OldTileRef)
-		{
-			NumActiveTiles--;
-			UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
-				*DestNavMesh->GetName(), TileX, TileY, LayerIndex, OldTileRef, NumActiveTiles);
-
-			// this call will fill OldRawNavData with address of previously added data
-			// if OldRawNavData is NULL it means either this tile was empty, or the memory
-			// allocated has been owned by navmesh itself (i.e. has been serialized-in along
-			// with the level)
-			uint8* OldRawNavData = nullptr;
-			DetourMesh->removeTile(OldTileRef, &OldRawNavData, nullptr);
-			// data should always be owned by navmesh itself
-			check(OldRawNavData == nullptr);
-			
-			ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(OldTileRef));
-		}
-
-		if (TileLayers[i].IsValid()) 
-		{
-			bool bRejectNavmesh = false;
-			dtTileRef ResultTileRef = 0;
-
-			// let navmesh know it's tile generator who owns the data
-			dtStatus status = DetourMesh->addTile(TileLayers[i].GetData(), TileLayers[i].DataSize, DT_TILE_FREE_DATA, 0, &ResultTileRef);
-
-			if (dtStatusFailed(status))
+			const int32 LayerIndex = TileLayers[i].LayerIndex;
+			if (!TileGenerator.IsLayerChanged(TileLayers[i].LayerIndex))
 			{
-				if (dtStatusDetail(status, DT_OUT_OF_MEMORY))
-				{
-					UE_LOG(LogNavigation, Error, TEXT("%s> Tile (%d,%d:%d), tile limit reached!! (%d)"),
-						*DestNavMesh->GetName(), TileX, TileY, LayerIndex, DetourMesh->getMaxTiles());
-				}
-
-				bHasNavmesh = false;
+				continue;
 			}
-			else
-			{
-				ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(ResultTileRef));
-				NumActiveTiles++;
-
-				UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), added TileRef: 0x%X (active:%d)"),
-					*DestNavMesh->GetName(), TileX, TileY, LayerIndex, ResultTileRef, NumActiveTiles);
 				
-				// NavMesh took the ownership of generated data, so we don't need to deallocate it
-				TileLayers[i].Release();
+			const dtTileRef OldTileRef = DetourMesh->getTileRefAt(TileX, TileY, LayerIndex);
+
+			if (OldTileRef)
+			{
+				NumActiveTiles--;
+				UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
+					*DestNavMesh->GetName(), TileX, TileY, LayerIndex, OldTileRef, NumActiveTiles);
+
+				// this call will fill OldRawNavData with address of previously added data
+				// if OldRawNavData is NULL it means either this tile was empty, or the memory
+				// allocated has been owned by navmesh itself (i.e. has been serialized-in along
+				// with the level)
+				uint8* OldRawNavData = nullptr;
+				DetourMesh->removeTile(OldTileRef, &OldRawNavData, nullptr);
+				// data should always be owned by navmesh itself
+				check(OldRawNavData == nullptr);
+			
+				ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(OldTileRef));
+			}
+
+			if (TileLayers[i].IsValid()) 
+			{
+				bool bRejectNavmesh = false;
+				dtTileRef ResultTileRef = 0;
+
+				// let navmesh know it's tile generator who owns the data
+				dtStatus status = DetourMesh->addTile(TileLayers[i].GetData(), TileLayers[i].DataSize, DT_TILE_FREE_DATA, 0, &ResultTileRef);
+
+				if (dtStatusFailed(status))
+				{
+					if (dtStatusDetail(status, DT_OUT_OF_MEMORY))
+					{
+						UE_LOG(LogNavigation, Error, TEXT("%s> Tile (%d,%d:%d), tile limit reached!! (%d)"),
+							*DestNavMesh->GetName(), TileX, TileY, LayerIndex, DetourMesh->getMaxTiles());
+					}
+
+					bHasNavmesh = false;
+				}
+				else
+				{
+					ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(ResultTileRef));
+					NumActiveTiles++;
+
+					UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), added TileRef: 0x%X (active:%d)"),
+						*DestNavMesh->GetName(), TileX, TileY, LayerIndex, ResultTileRef, NumActiveTiles);
+				
+					// NavMesh took the ownership of generated data, so we don't need to deallocate it
+					TileLayers[i].Release();
+				}
 			}
 		}
 	}
@@ -3173,12 +3209,13 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 	const FVector NavMeshOrigin = FVector::ZeroVector;
 	int32 NumTilesMarked = 0;
 
-	// find all tiles that need regeneration:
+	// find all tiles that need regeneration
 	TSet<FTileElement> DirtyTiles;
 	for (const FNavigationDirtyArea& DirtyArea : DirtyAreas)
 	{
 		const FBox AdjustedAreaBounds = GrowBoundingBox(DirtyArea.Bounds, DirtyArea.HasFlag(ENavigationDirtyFlag::UseAgentHeight));
-		if (!IntercestsInclusionBounds(AdjustedAreaBounds))
+		if (!DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds) && 
+			!IntercestsInclusionBounds(AdjustedAreaBounds))
 		{
 			// Skip whole area
 			continue;
@@ -3195,7 +3232,8 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 			for (int32 x = XMin; x <= XMax; ++x)
 			{
 				const FBox TileBox = CalculateTileBounds(x, y, NavMeshOrigin, TotalNavBounds, TileSizeInWorldUnits);
-				if (!IntercestsInclusionBounds(TileBox))
+				if (!DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds) && 
+					!IntercestsInclusionBounds(TileBox))
 				{
 					// Skip this tile
 					continue;
@@ -3203,7 +3241,7 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 								
 				FTileElement Element;
 				Element.Coord = FIntPoint(x, y);
-				Element.bRebuildGeometry = (DirtyArea.Flags & ENavigationDirtyFlag::Geometry);
+				Element.bRebuildGeometry = DirtyArea.HasFlag(ENavigationDirtyFlag::Geometry) || DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds);
 				if (Element.bRebuildGeometry == false)
 				{
 					Element.DirtyAreas.Add(AdjustedAreaBounds);

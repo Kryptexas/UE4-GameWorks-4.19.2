@@ -164,6 +164,7 @@ ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	, bDrawNavLinks(true)
 	, bDistinctlyDrawTilesBeingBuilt(true)
 	, DrawOffset(10.f)
+	, TilePoolSize(1024)
 	, MaxSimplificationError(1.3f)	// from RecastDemo
 	, DefaultMaxSearchNodes(RECAST_MAX_SEARCH_NODES)
 	, DefaultMaxHierarchicalSearchNodes(RECAST_MAX_SEARCH_NODES)
@@ -785,6 +786,11 @@ int32 ARecastNavMesh::GetNavMeshTilesCount() const
 	}
 
 	return NumTiles;
+}
+
+bool ARecastNavMesh::IsResizable() const
+{
+	return !bFixedTilePoolSize;
 }
 
 void ARecastNavMesh::GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
@@ -1576,16 +1582,18 @@ bool ARecastNavMesh::NeedsRebuild() const
 	return bLooksLikeNeeded;
 }
 
-void ARecastNavMesh::RebuildAll()
+bool ARecastNavMesh::SupportsRuntimeGeneration() const
 {
-	Super::RebuildAll();
-
-	NavDataGenerator.Reset();
 	// Generator should be enabled in the editor and if navmesh supports runtime generation
-	if (bRebuildAtRuntime || (GetWorld() && !GetWorld()->IsGameWorld()))
+	return (bRebuildAtRuntime || (GetWorld() && !GetWorld()->IsGameWorld()));
+}
+
+void ARecastNavMesh::ConstructGenerator()
+{
+	NavDataGenerator.Reset();
+	if (SupportsRuntimeGeneration())
 	{
 		NavDataGenerator.Reset(new FRecastNavMeshGenerator(this));
-		NavDataGenerator->RebuildAll();
 	}
 }
 

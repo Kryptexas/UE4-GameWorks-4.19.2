@@ -253,7 +253,8 @@ void ANavigationData::OnRegistered()
 { 
 	InstantiateAndRegisterRenderingComponent();
 
-	bRegistered = true; 
+	bRegistered = true;
+	ConstructGenerator();
 }
 
 void ANavigationData::OnUnregistered()
@@ -346,14 +347,37 @@ void ANavigationData::CleanUpAndMarkPendingKill()
 	MarkComponentsAsPendingKill();
 }
 
-bool ANavigationData::CanRebuild() const
+bool ANavigationData::SupportsRuntimeGeneration() const
 {
-	return NavDataGenerator.Get() != nullptr;
+	return false;
+}
+
+void ANavigationData::ConstructGenerator()
+{
 }
 
 void ANavigationData::RebuildAll()
 {
+	ConstructGenerator(); //recreate generator
+	
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->RebuildAll();
+	}
+}
 
+void ANavigationData::OnNavigationBoundsChanged()
+{
+	// Create generator if it wasn't yet
+	if (SupportsRuntimeGeneration() && NavDataGenerator.Get() == nullptr)
+	{
+		ConstructGenerator();
+	}
+	
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->OnNavigationBoundsChanged();
+	}
 }
 
 void ANavigationData::TickAsyncBuild(float DeltaSeconds)

@@ -448,6 +448,14 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	// NavMesh generation parameters
 	//----------------------------------------------------------------------//
 
+	/** if true, the NavMesh will allocate fixed size pool for tiles, should be enabled to support streaming */
+	UPROPERTY(EditAnywhere, Category=Generation, config)
+	uint32 bFixedTilePoolSize:1;
+
+	/** maximum number of tiles NavMesh can hold */
+	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(editcondition = "bFixedTilePoolSize"))
+	int32 TilePoolSize;
+
 	/** size of single tile, expressed in uu */
 	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "300.0"))
 	float TileSizeUU;
@@ -656,6 +664,9 @@ protected:
 	void SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& NavMesh);
 
 public:
+	/** Whether NavMesh should adjust his tile pool size when NavBounds are changed */
+	bool IsResizable() const;
+
 	/** Returns bounding box for the whole navmesh. */
 	FBox GetNavMeshBounds() const;
 
@@ -837,7 +848,8 @@ public:
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
 	
 	virtual bool NeedsRebuild() const override;
-	virtual void RebuildAll() override;
+	virtual bool SupportsRuntimeGeneration() const override;
+	virtual void ConstructGenerator() override;
 
 protected:
 	// @todo docuement

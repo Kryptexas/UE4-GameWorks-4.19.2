@@ -42,7 +42,7 @@ void ANavMeshBoundsVolume::PostRegisterAllComponents()
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys && Role == ROLE_Authority)
 	{
-		NavSys->OnNavigationBoundsUpdated(this);
+		NavSys->OnNavigationBoundsAdded(this);
 	}
 }
 
@@ -53,6 +53,6 @@ void ANavMeshBoundsVolume::PostUnregisterAllComponents()
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys && Role == ROLE_Authority)
 	{
-		NavSys->OnNavigationBoundsUpdated(this);
+		NavSys->OnNavigationBoundsRemoved(this);
 	}
 }

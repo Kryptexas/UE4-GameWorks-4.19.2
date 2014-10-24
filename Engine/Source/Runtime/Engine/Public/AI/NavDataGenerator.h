@@ -20,6 +20,9 @@ public:
 
 	/**  */
 	virtual void TickAsyncBuild(float DeltaSeconds) {};
+	
+	/**  */
+	virtual void OnNavigationBoundsChanged() {};
 
 	/** Asks generator to update navigation affected by DirtyAreas */
 	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) {}

@@ -174,8 +174,8 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 
 	TSet<FNavigationDirtyElement> PendingOctreeUpdates;
 
-	UPROPERTY(transient)
-	TArray<ANavMeshBoundsVolume*> PendingNavVolumeUpdates;
+	// List of pending navigation bounds update requests (add, remove, update size)
+	TArray<FNavigationBoundsUpdateRequest> PendingNavBoundsUpdates;
 
  	UPROPERTY(/*BlueprintAssignable, */Transient)
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
@@ -189,6 +189,9 @@ private:
 
 	/** set to true when navigation processing was blocked due to missing nav bounds */
 	uint32 bNavDataRemovedDueToMissingNavBounds:1;
+
+	/** All areas where we build/have navigation */
+	TSet<FNavigationBounds> RegisteredNavBounds;
 
 public:
 	//----------------------------------------------------------------------//
@@ -391,6 +394,8 @@ public:
 
 	bool IsNavigationRelevant(const AActor* TestActor) const;
 
+	const TSet<FNavigationBounds>& GetNavigationBounds() const;
+
 	/** @return default walkable area class */
 	FORCEINLINE static TSubclassOf<UNavArea> GetDefaultWalkableArea() { return DefaultWalkableArea; }
 
@@ -428,7 +433,10 @@ protected:
 	void ProcessNavAreaPendingRegistration();
 
 	/** used to apply updates of nav volumes in navigation system's tick */
-	void PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavVolume);
+	void PerformNavigationBoundsUpdate(const TArray<FNavigationBoundsUpdateRequest>& UpdateRequests);
+	
+	/** Searches for all valid navigation bounds in the world and stores them */
+	void GatherNavigationBounds();
 
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
 	ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
@@ -530,6 +538,8 @@ public:
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = Navigation)
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
+	void OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume);
+	void OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume);
 
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
@@ -729,6 +739,8 @@ private:
 	void NavigationBuildingLock();
 	// @todo document
 	void NavigationBuildingUnlock(bool bForce = false);
+	// adds navigation bounds update request to a pending list
+	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
 
 	void SpawnMissingNavigationData();
 

@@ -410,7 +410,8 @@ class ENGINE_API ANavigationData : public AActor
 	virtual void RerunConstructionScripts() override;
 
 	virtual bool NeedsRebuild() const { return false; }
-	virtual bool CanRebuild() const;
+	virtual bool SupportsRuntimeGeneration() const;
+	virtual void OnNavigationBoundsChanged();
 	
 	//----------------------------------------------------------------------//
 	// Generation & data access                                                      
@@ -428,9 +429,9 @@ protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
 
 public:
+	virtual void ConstructGenerator();
 	virtual void RebuildAll();
 	virtual void TickAsyncBuild(float DeltaSeconds);
-
 	/** Retrieves navmesh's generator */
 	FNavDataGenerator* GetGenerator() { return NavDataGenerator.Get(); }
 	const FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }

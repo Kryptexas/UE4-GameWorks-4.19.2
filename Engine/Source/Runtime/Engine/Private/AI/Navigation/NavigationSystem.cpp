@@ -343,6 +343,9 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 		InitializeLevelCollisions();
 		PopulateNavOctree();
 		
+		// gather navigable bounds
+		GatherNavigationBounds();
+		
 		// gather all navigation data instances and register all not-yet-registered
 		// (since it's quite possible navigation system was not ready by the time
 		// those instances were serialized-in or spawned)
@@ -372,18 +375,6 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 			SpawnMissingNavigationData();
 			// in case anything spawned has registered
 			ProcessRegistrationCandidates();
-
-			for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
-			{
-				ANavigationData* NavData = NavDataSet[NavDataIndex];
-				if (NavData != NULL)
-				{
-					if (bInitialBuildingLockActive == false && bNavigationAutoUpdateEnabled)
-					{
-						NavData->RebuildAll();
-					}
-				}
-			}
 		}
 		else
 		{
@@ -454,13 +445,10 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		ProcessNavAreaPendingRegistration();
 	}
 
-	if (PendingNavVolumeUpdates.Num() > 0)
+	if (PendingNavBoundsUpdates.Num() > 0)
 	{
-		for (auto Volume : PendingNavVolumeUpdates)
-		{
-			PerformNavigationBoundsUpdate(Volume);
-		}
-		PendingNavVolumeUpdates.Reset();
+		PerformNavigationBoundsUpdate(PendingNavBoundsUpdates);
+		PendingNavBoundsUpdates.Reset();
 	}
 
 	if (PendingOctreeUpdates.Num() > 0)
@@ -1241,6 +1229,11 @@ FBox UNavigationSystem::GetLevelBounds(ULevel* InLevel) const
 	}
 
 	return NavigableLevelBounds;
+}
+
+const TSet<FNavigationBounds>& UNavigationSystem::GetNavigationBounds() const
+{
+	return RegisteredNavBounds;
 }
 
 void UNavigationSystem::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
@@ -2354,10 +2347,59 @@ void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolum
 		return;
 	}
 
-	PendingNavVolumeUpdates.AddUnique(NavVolume);
+	FNavigationBoundsUpdateRequest UpdateRequest;
+	UpdateRequest.NavBounds.UniqueID	= NavVolume->GetUniqueID();
+	UpdateRequest.NavBounds.AreaBox		= NavVolume->GetComponentsBoundingBox(true);
+	UpdateRequest.UpdateRequest			= FNavigationBoundsUpdateRequest::Updated;
+	AddNavigationBoundsUpdateRequest(UpdateRequest);
 }
 
-void UNavigationSystem::PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavVolume)
+void UNavigationSystem::OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume)
+{
+	if (NavVolume == NULL)
+	{
+		return;
+	}
+
+	FNavigationBoundsUpdateRequest UpdateRequest;
+	UpdateRequest.NavBounds.UniqueID	= NavVolume->GetUniqueID();
+	UpdateRequest.NavBounds.AreaBox		= NavVolume->GetComponentsBoundingBox(true);
+	UpdateRequest.UpdateRequest	= FNavigationBoundsUpdateRequest::Added;
+	AddNavigationBoundsUpdateRequest(UpdateRequest);
+}
+
+void UNavigationSystem::OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume)
+{
+	if (NavVolume == NULL)
+	{
+		return;
+	}
+	
+	FNavigationBoundsUpdateRequest UpdateRequest;
+	UpdateRequest.NavBounds.UniqueID	= NavVolume->GetUniqueID();
+	UpdateRequest.NavBounds.AreaBox		= NavVolume->GetComponentsBoundingBox(true);
+	UpdateRequest.UpdateRequest	= FNavigationBoundsUpdateRequest::Removed;
+	AddNavigationBoundsUpdateRequest(UpdateRequest);
+}
+
+void UNavigationSystem::AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest)
+{
+	int32 ExistingIdx = PendingNavBoundsUpdates.IndexOfByPredicate([&](const FNavigationBoundsUpdateRequest& Element) {
+		return UpdateRequest.NavBounds.UniqueID == Element.NavBounds.UniqueID;
+	});
+
+	if (ExistingIdx != INDEX_NONE)
+	{
+		// Overwrite any previous updates
+		PendingNavBoundsUpdates[ExistingIdx] = UpdateRequest;
+	}
+	else
+	{
+		PendingNavBoundsUpdates.Add(UpdateRequest);
+	}
+}
+
+void UNavigationSystem::PerformNavigationBoundsUpdate(const TArray<FNavigationBoundsUpdateRequest>& UpdateRequests)
 {
 	if (bNavDataRemovedDueToMissingNavBounds)
 	{
@@ -2378,15 +2420,85 @@ void UNavigationSystem::PerformNavigationBoundsUpdate(ANavMeshBoundsVolume* NavV
 			ProcessRegistrationCandidates();
 		}
 	}
+	
+	// Create list of areas that needs to be updated
+	TArray<FBox> UpdatedAreas;
+	for (const FNavigationBoundsUpdateRequest& Request : UpdateRequests)
+	{
+		FSetElementId ExistingElementId = RegisteredNavBounds.FindId(Request.NavBounds);
+
+		switch (Request.UpdateRequest)
+		{
+		case FNavigationBoundsUpdateRequest::Removed:
+			{
+				if (ExistingElementId.IsValidId())
+				{
+					UpdatedAreas.Add(RegisteredNavBounds[ExistingElementId].AreaBox);
+					RegisteredNavBounds.Remove(ExistingElementId);
+				}
+			}
+			break;
+
+		case FNavigationBoundsUpdateRequest::Added:
+		case FNavigationBoundsUpdateRequest::Updated:
+			{
+				if (ExistingElementId.IsValidId())
+				{
+					FBox ExistingBox = RegisteredNavBounds[ExistingElementId].AreaBox;
+
+					if (!(ExistingBox == Request.NavBounds.AreaBox))
+					{
+						UpdatedAreas.Add(ExistingBox);
+						RegisteredNavBounds[ExistingElementId] = Request.NavBounds;
+					}
+				}
+				else
+				{
+					ExistingElementId = RegisteredNavBounds.Add(Request.NavBounds);
+				}
+				
+				UpdatedAreas.Add(Request.NavBounds.AreaBox);
+			}
+
+			break;
+		}
+	}
 
 #if WITH_RECAST
 	if (IsNavigationBuildingLocked() == false)
 	{
-		// rebuild all navmeshes
-		// NOTE: this will most probably be done in editor, if required to be performed at runtime may require some optimizations
-		RebuildAll();
+		if (UpdatedAreas.Num())
+		{
+			for (ANavigationData* NavData : NavDataSet)
+			{
+				if (NavData)
+				{
+					NavData->OnNavigationBoundsChanged();	
+				}
+			}
+		}
+				
+		// Propagate to generators areas that needs to be updated
+		AddDirtyAreas(UpdatedAreas, ENavigationDirtyFlag::All | ENavigationDirtyFlag::NavigationBounds);
 	}
 #endif // WITH_RECAST
+}
+
+void UNavigationSystem::GatherNavigationBounds()
+{
+	// Gather all available navigation bounds
+	RegisteredNavBounds.Empty();
+	for (TActorIterator<ANavMeshBoundsVolume> It(GetWorld()); It; ++It)
+	{
+		ANavMeshBoundsVolume* V = (*It);
+		if (V != nullptr && !V->IsPendingKill())
+		{
+			FNavigationBounds NavBounds;
+			NavBounds.UniqueID	= V->GetUniqueID();
+			NavBounds.AreaBox	= V->GetComponentsBoundingBox(true);
+			RegisteredNavBounds.Add(NavBounds);
+		}
+	}
 }
 
 void UNavigationSystem::Build()
@@ -2581,6 +2693,8 @@ void UNavigationSystem::RebuildAll()
 {
 	const bool bIsInGame = GetWorld()->IsGameWorld();
 	
+	GatherNavigationBounds();
+
 	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
@@ -2976,7 +3090,7 @@ bool UNavigationSystem::CanRebuildDirtyNavigation() const
 	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
 		const bool bIsDirty = NavDataSet[NavDataIndex]->NeedsRebuild();
-		const bool bCanRebuild = NavDataSet[NavDataIndex]->CanRebuild();
+		const bool bCanRebuild = NavDataSet[NavDataIndex]->SupportsRuntimeGeneration();
 
 		if (bIsDirty && !bCanRebuild)
 		{

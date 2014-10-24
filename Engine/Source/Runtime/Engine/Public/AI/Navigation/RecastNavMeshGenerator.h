@@ -174,7 +174,6 @@ private:
 protected:
 	uint32 bSucceeded : 1;
 	uint32 bRegenerateCompressedLayers : 1;
-	uint32 bOutsideOfInclusionBounds : 1;
 	uint32 bFullyEncapsulatedByInclusionBounds : 1;
 	
 	int32 TileX;
@@ -281,6 +280,7 @@ public:
 	virtual void EnsureBuildCompletion() override;
 	virtual void CancelBuild() override;
 	virtual void TickAsyncBuild(float DeltaSeconds) override;
+	virtual void OnNavigationBoundsChanged() override;
 
 	/** Asks generator to update navigation affected by DirtyAreas */
 	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) override;
@@ -338,6 +338,9 @@ public:
 private:
 	// Performs initial setup of member variables so that generator is ready to do its thing from this point on
 	void Init();
+
+	// Updates cached list of navigation bounds
+	void UpdateNavigationBounds();
 		
 	// Sorts pending build tiles by proximity to player, so tiles closer to player will get generated first
 	void SortPendingBuildTiles();
@@ -370,10 +373,9 @@ private:
 	struct dtNavMeshParams TiledMeshParams;
 	struct FRecastBuildConfig Config;
 	
-	int32 MaxActiveTiles;
 	int32 NumActiveTiles;
 	int32 MaxTileGeneratorTasks;
-	static int32 ActiveTileGeneratorTasks;
+	float AvgLayersPerTile;
 
 	/** Total bounding box that includes all volumes, in unreal units. */
 	FBox TotalNavBounds;

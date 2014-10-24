@@ -65,9 +65,10 @@ namespace ENavigationDirtyFlag
 {
 	enum Type
 	{
-		Geometry		= (1 << 0),
-		DynamicModifier	= (1 << 1),
-		UseAgentHeight  = (1 << 2),
+		Geometry			= (1 << 0),
+		DynamicModifier		= (1 << 1),
+		UseAgentHeight		= (1 << 2),
+		NavigationBounds	= (1 << 3),
 
 		All				= Geometry | DynamicModifier,		// all rebuild steps here without additional flags
 	};
@@ -81,6 +82,36 @@ struct FNavigationDirtyArea
 	FNavigationDirtyArea() : Flags(0) {}
 	FNavigationDirtyArea(const FBox& InBounds, int32 InFlags) : Bounds(InBounds), Flags(InFlags) {}
 	FORCEINLINE bool HasFlag(ENavigationDirtyFlag::Type Flag) const { return (Flags & Flag) != 0; }
+};
+
+struct FNavigationBounds
+{
+	uint32	UniqueID;
+	FBox	AreaBox;	
+
+	bool operator==(const FNavigationBounds& Other) const 
+	{ 
+		return UniqueID == Other.UniqueID; 
+	}
+
+	friend uint32 GetTypeHash(const FNavigationBounds& NavBounds)
+	{
+		return GetTypeHash(NavBounds.UniqueID);
+	}
+};
+
+struct FNavigationBoundsUpdateRequest 
+{
+	FNavigationBounds NavBounds;
+	
+	enum Type
+	{
+		Added,
+		Removed,
+		Updated,
+	};
+
+	Type UpdateRequest;
 };
 
 struct FNavigationDirtyElement
