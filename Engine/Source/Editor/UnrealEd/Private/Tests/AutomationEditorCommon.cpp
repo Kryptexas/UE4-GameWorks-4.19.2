@@ -290,10 +290,10 @@ namespace AutomationEditorCommonUtils
 	* @param InNumberToBeWritten is the float number that is expected to be written to the file.
 	* @param Delimiter is the delimiter to be used. TEXT(",")
 	*/
-	void WriteToTextFile(const FString& InTestName, const FString& InItemBeingTested, const FString& InFileName, const float& InNumberToBeWritten, const FString& Delimiter)
+	void WriteToTextFile(const FString& InTestName, const FString& InTestItem, const FString& InFileName, const float& InEntry, const FString& Delimiter)
 	{
 		//Performance file locations and setups.
-		FString FileSaveLocation = FPaths::Combine(*FPaths::AutomationLogDir(), *InTestName, *InItemBeingTested, *InFileName);
+		FString FileSaveLocation = FPaths::Combine(*FPaths::AutomationLogDir(), *InTestName, *InTestItem, *InFileName);
 
 		if (FPaths::FileExists(FileSaveLocation))
 		{
@@ -302,12 +302,12 @@ namespace AutomationEditorCommonUtils
 
 			//Write to the text file the combined contents from the text file with the number to write.
 			FFileHelper::LoadFileToString(TextFileContents, *FileSaveLocation);
-			FString FileSetup = TextFileContents + Delimiter + FString::SanitizeFloat(InNumberToBeWritten);
+			FString FileSetup = TextFileContents + Delimiter + FString::SanitizeFloat(InEntry);
 			FFileHelper::SaveStringToFile(FileSetup, *FileSaveLocation);
 			return;
 		}
 
-		FFileHelper::SaveStringToFile(FString::SanitizeFloat(InNumberToBeWritten), *FileSaveLocation);
+		FFileHelper::SaveStringToFile(FString::SanitizeFloat(InEntry), *FileSaveLocation);
 	}
 
 	/**
@@ -315,7 +315,7 @@ namespace AutomationEditorCommonUtils
 	* @param InFloatArray is the name of the array intended to be used.
 	* @param bisAveragedInstead will return the average of the available numbers instead of the sum.
 	*/
-	float TotalFromFloatArray(const TArray<float>& InFloatArray, bool bisAveragedInstead)
+	float TotalFromFloatArray(const TArray<float>& InFloatArray, bool bIsAveragedInstead)
 	{
 		//Total Value holds the sum of all the numbers available in the array.
 		float TotalValue = 0;
@@ -327,7 +327,7 @@ namespace AutomationEditorCommonUtils
 		}
 
 		//If bAverageInstead equals true then only the average is returned.
-		if (bisAveragedInstead)
+		if (bIsAveragedInstead)
 		{
 			UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Average value of the Array is %f"), (TotalValue / InFloatArray.Num()));
 			return (TotalValue / InFloatArray.Num());
@@ -341,7 +341,7 @@ namespace AutomationEditorCommonUtils
 	* Returns the largest value from an array of float numbers.
 	* @param InFloatArray is the name of the array intended to be used.
 	*/
-	float LargetValueInFloatArray(const TArray<float>& InFloatArray)
+	float LargestValueInFloatArray(const TArray<float>& InFloatArray)
 	{
 		//Total Value holds the sum of all the numbers available in the array.
 		float LargestValue = 0;
@@ -360,35 +360,31 @@ namespace AutomationEditorCommonUtils
 
 	/**
 	* Returns the contents of a text file as an array of FString.
-	* @param InFileLocation is the location of the file.
+	* @param InFileLocation -  is the location of the file.
+	* @param OutArray - The name of the array where the 
 	*/
-	TArray<FString> CreateArrayFromFile(const FString& InFileLocation)
+	void CreateArrayFromFile(const FString& InFileLocation, TArray<FString>& OutArray)
 	{
 		FString RawData;
-		TArray<FString> DataArray;
 
 		if (FPaths::FileExists(*InFileLocation))
 		{
 			UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Loading and parsing the data from '%s' into an array."), *InFileLocation);
 			FFileHelper::LoadFileToString(RawData, *InFileLocation);
-			RawData.ParseIntoArray(&DataArray, TEXT(","), false);
-
-			return DataArray;
+			RawData.ParseIntoArray(&OutArray, TEXT(","), false);
 		}
 
 		UE_LOG(LogEditorAutomationTests, Warning, TEXT("Unable to create an array.  '%s' does not exist."), *InFileLocation);
 		RawData = TEXT("0");
-		DataArray.Add(RawData);
-
-		return DataArray;
+		OutArray.Add(RawData);
 	}
 
 	/**
 	* Returns true if the archive/file can be written to otherwise false..
 	* @param InFilePath - is the location of the file.
-	* @param InArchiveName - is the name of the arhcive to be used.
+	* @param InArchiveName - is the name of the archive to be used.
 	*/
-	bool IsArchiveWriteable(const FString InFilePath, const FArchive* InArchiveName)
+	bool IsArchiveWriteable(const FString& InFilePath, const FArchive* InArchiveName)
 	{
 		if (!InArchiveName)
 		{

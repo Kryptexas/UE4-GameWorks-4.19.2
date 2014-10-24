@@ -57,7 +57,8 @@ void EditorPerfDump(EditorPerfCaptureParameters& EditorPerfStats)
 	FString MapLoadTimeFileLocation = FPaths::Combine(*DataFileLocation, TEXT("RAWMapLoadTime.txt"));
 	if (FPaths::FileExists(*MapLoadTimeFileLocation))
 	{
-		TArray<FString> SavedMapLoadTimes = AutomationEditorCommonUtils::CreateArrayFromFile(MapLoadTimeFileLocation);
+		TArray<FString> SavedMapLoadTimes;
+		AutomationEditorCommonUtils::CreateArrayFromFile(MapLoadTimeFileLocation, SavedMapLoadTimes);
 		EditorPerfStats.MapLoadTime = FCString::Atof(*SavedMapLoadTimes.Last());
 	}
 	
@@ -73,12 +74,12 @@ void EditorPerfDump(EditorPerfCaptureParameters& EditorPerfStats)
 	RAWCSVArchive->Serialize(TCHAR_TO_ANSI(*RAWCSVLine), RAWCSVLine.Len());
 
 	//Dump the stats from each run to the raw csv file and then close it.
-	for (int32 I = 0; I < EditorPerfStats.TimeStamp.Num(); I++)
+	for (int32 i = 0; i < EditorPerfStats.TimeStamp.Num(); i++)
 	{
 		//If the raw file isn't available to write to then we'll fail back this test.
 		if (AutomationEditorCommonUtils::IsArchiveWriteable(RAWCSVFilePath, RAWCSVArchive))
 		{
-			RAWCSVLine = FString::Printf(TEXT("%s,%s,%s,%.3f,%.1f,%.1f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f%s"), *EditorPerfStats.MapName, *GEngineVersion.ToString(EVersionComponent::Changelist), *EditorPerfStats.TimeStamp[I].ToString(), EditorPerfStats.MapLoadTime, EditorPerfStats.AverageFPS[I], EditorPerfStats.AverageFrameTime[I], EditorPerfStats.UsedPhysical[I], EditorPerfStats.UsedVirtual[I], EditorPerfStats.PeakUsedPhysical[I], EditorPerfStats.PeakUsedVirtual[I], EditorPerfStats.AvailablePhysical[I], EditorPerfStats.AvailableVirtual[I], LINE_TERMINATOR);
+			RAWCSVLine = FString::Printf(TEXT("%s,%s,%s,%.3f,%.1f,%.1f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f%s"), *EditorPerfStats.MapName, *GEngineVersion.ToString(EVersionComponent::Changelist), *EditorPerfStats.TimeStamp[i].ToString(), EditorPerfStats.MapLoadTime, EditorPerfStats.AverageFPS[i], EditorPerfStats.AverageFrameTime[i], EditorPerfStats.UsedPhysical[i], EditorPerfStats.UsedVirtual[i], EditorPerfStats.PeakUsedPhysical[i], EditorPerfStats.PeakUsedVirtual[i], EditorPerfStats.AvailablePhysical[i], EditorPerfStats.AvailableVirtual[i], LINE_TERMINATOR);
 			RAWCSVArchive->Serialize(TCHAR_TO_ANSI(*RAWCSVLine), RAWCSVLine.Len());
 		}
 	}
@@ -91,8 +92,8 @@ void EditorPerfDump(EditorPerfCaptureParameters& EditorPerfStats)
 	float MemoryAvailPhysAvg = AutomationEditorCommonUtils::TotalFromFloatArray(EditorPerfStats.AvailablePhysical, true);
 	float MemoryAvailVirtualAvg = AutomationEditorCommonUtils::TotalFromFloatArray(EditorPerfStats.AvailableVirtual, true);
 	float MemoryUsedVirtualAvg = AutomationEditorCommonUtils::TotalFromFloatArray(EditorPerfStats.UsedVirtual, true);
-	float MemoryUsedPeak = AutomationEditorCommonUtils::LargetValueInFloatArray(EditorPerfStats.PeakUsedPhysical);
-	float MemoryUsedPeakVirtual = AutomationEditorCommonUtils::LargetValueInFloatArray(EditorPerfStats.PeakUsedVirtual);
+	float MemoryUsedPeak = AutomationEditorCommonUtils::LargestValueInFloatArray(EditorPerfStats.PeakUsedPhysical);
+	float MemoryUsedPeakVirtual = AutomationEditorCommonUtils::LargestValueInFloatArray(EditorPerfStats.PeakUsedVirtual);
 
 	//TestRunDuration is the length of time the test lasted in ticks.
 	FTimespan TestRunDuration = (EditorPerfStats.TimeStamp.Last().GetTicks() - EditorPerfStats.TimeStamp[0].GetTicks()) + ETimespan::TicksPerSecond;

@@ -103,7 +103,7 @@ namespace AutomationEditorCommonUtils
 	* @param InNumberToBeWritten - is the float number that is expected to be written to the file.
 	* @param Delimiter - is the delimiter to be used. TEXT(",")
 	*/
-	void WriteToTextFile(const FString& InTestName, const FString& InItemBeingTested, const FString& InFileName, const float& InNumberToBeWritten, const FString& Delimiter);
+	void WriteToTextFile(const FString& InTestName, const FString& InTestItem, const FString& InFileName, const float& InEntry, const FString& Delimiter);
 
 	/**
 	* Returns the sum of the numbers available in an array of float.
@@ -118,14 +118,15 @@ namespace AutomationEditorCommonUtils
 
 	* @param InFloatArray - is the name of the array intended to be used.
 	*/
-	float LargetValueInFloatArray(const TArray<float>& InFloatArray);
+	float LargestValueInFloatArray(const TArray<float>& InFloatArray);
 
 	/**
 	* Returns the contents of a text file as an array of FString.
 
 	* @param InFileLocation - is the location of the file.
+	* @param OutArray - The name of the array that will store the data.
 	*/
-	TArray<FString> CreateArrayFromFile(const FString& InFileLocation);
+	void CreateArrayFromFile(const FString& InFileLocation, TArray<FString>& OutArray);
 
 	/**
 	* Returns true if the archive/file can be written to otherwise false.
@@ -133,7 +134,7 @@ namespace AutomationEditorCommonUtils
 	* @param InFilePath - is the location of the file.
 	* @param InArchiveName - is the name of the archive to be used.
 	*/
-	bool IsArchiveWriteable(const FString InFilePath, const FArchive* InArchiveName);
+	bool IsArchiveWriteable(const FString& InFilePath, const FArchive* InArchiveName);
 }
 
 
