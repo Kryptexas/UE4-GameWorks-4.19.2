@@ -4,7 +4,6 @@
 
 
 // forward declarations
-enum ENamedThreads::Type;
 class IMessageContext;
 
 
