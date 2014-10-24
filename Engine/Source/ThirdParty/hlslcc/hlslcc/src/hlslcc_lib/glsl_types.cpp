@@ -605,7 +605,7 @@ const glsl_type * glsl_type::get_templated_instance(const glsl_type *base, const
 			hash_table_string_compare);
 
 		// Base sampler types.
-		hash_table_insert(sampler_types, new glsl_type(GLSL_SAMPLER_DIM_1D,   /*shadow=*/ false, /*array=*/ false, /*multisample=*/ false, /*samples=*/ 0, /*sampler_buffer=*/ true,  /*type=*/ NULL, "samplerBuffer", nullptr), "Buffer");
+		hash_table_insert(sampler_types, new glsl_type(GLSL_SAMPLER_DIM_1D,   /*shadow=*/ false, /*array=*/ false, /*multisample=*/ false, /*samples=*/ 0, /*sampler_buffer=*/ true,  /*type=*/ NULL, "samplerBuffer", "sampler"), "Buffer");
 		hash_table_insert(sampler_types, new glsl_type(GLSL_SAMPLER_DIM_1D,   /*shadow=*/ false, /*array=*/ false, /*multisample=*/ false, /*samples=*/ 0, /*sampler_buffer=*/ false, /*type=*/ NULL, "sampler1D", "texture1d"), "Texture1D");
 		hash_table_insert(sampler_types, new glsl_type(GLSL_SAMPLER_DIM_1D,   /*shadow=*/ false, /*array=*/ true,  /*multisample=*/ false, /*samples=*/ 0, /*sampler_buffer=*/ false, /*type=*/ NULL, "sampler1DArray", nullptr), "Texture1DArray");
 		hash_table_insert(sampler_types, new glsl_type(GLSL_SAMPLER_DIM_2D,   /*shadow=*/ false, /*array=*/ false, /*multisample=*/ false, /*samples=*/ 0, /*sampler_buffer=*/ false, /*type=*/ NULL, "sampler2D", "texture2d"), "Texture2D");
