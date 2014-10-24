@@ -2314,7 +2314,7 @@ void SCurveEditor::PostUndo(bool bSuccess)
 
 bool SCurveEditor::IsLinearColorCurve() const 
 {
-	return CurveOwner && CurveOwner->GetOwner() && CurveOwner->GetOwner()->IsA<UCurveLinearColor>();
+	return CurveOwner && CurveOwner->IsLinearColorCurve();
 }
 
 FVector2D SCurveEditor::SnapLocation(FVector2D InLocation)

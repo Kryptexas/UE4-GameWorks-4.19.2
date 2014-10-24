@@ -1,28 +1,28 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
-#include "CurveStructCustomization.h"
+#include "CurveColorCustomization.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "PackageTools.h"
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
 #include "SCurveEditor.h"
 
-#define LOCTEXT_NAMESPACE "CurveStructCustomization"
+#define LOCTEXT_NAMESPACE "CurveColorCustomization"
 
-const FVector2D FCurveStructCustomization::DEFAULT_WINDOW_SIZE = FVector2D(800, 500);
+const FVector2D FCurveColorCustomization::DEFAULT_WINDOW_SIZE = FVector2D(800, 500);
 
-TSharedRef<IPropertyTypeCustomization> FCurveStructCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FCurveColorCustomization::MakeInstance()
 {
-	return MakeShareable( new FCurveStructCustomization );
+	return MakeShareable( new FCurveColorCustomization );
 }
 
-FCurveStructCustomization::~FCurveStructCustomization()
+FCurveColorCustomization::~FCurveColorCustomization()
 {
 	DestroyPopOutWindow();
 }
 
-FCurveStructCustomization::FCurveStructCustomization()
+FCurveColorCustomization::FCurveColorCustomization()
 	: RuntimeCurve(NULL)
 	, Owner(NULL)
 	, ViewMinInput(0.0f)
@@ -30,7 +30,7 @@ FCurveStructCustomization::FCurveStructCustomization()
 {
 }
 
-void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FCurveColorCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	this->StructPropertyHandle = InStructPropertyHandle;
 
@@ -43,7 +43,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 
 	if (StructPtrs.Num() == 1)
 	{
-		RuntimeCurve = reinterpret_cast<FRuntimeFloatCurve*>(StructPtrs[0]);
+		RuntimeCurve = reinterpret_cast<FRuntimeCurveLinearColor*>(StructPtrs[0]);
 
 		if (OuterObjects.Num() == 1)
 		{
@@ -61,13 +61,13 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 			[
 				SNew(SBorder)
 				.VAlign(VAlign_Fill)
-				.OnMouseDoubleClick(this, &FCurveStructCustomization::OnCurvePreviewDoubleClick)
+				.OnMouseDoubleClick(this, &FCurveColorCustomization::OnCurvePreviewDoubleClick)
 				[
 					SAssignNew(CurveWidget, SCurveEditor)
-					.ViewMinInput(this, &FCurveStructCustomization::GetViewMinInput)
-					.ViewMaxInput(this, &FCurveStructCustomization::GetViewMaxInput)
-					.TimelineLength(this, &FCurveStructCustomization::GetTimelineLength)
-					.OnSetInputViewRange(this, &FCurveStructCustomization::SetInputViewRange)
+					.ViewMinInput(this, &FCurveColorCustomization::GetViewMinInput)
+					.ViewMaxInput(this, &FCurveColorCustomization::GetViewMaxInput)
+					.TimelineLength(this, &FCurveColorCustomization::GetTimelineLength)
+					.OnSetInputViewRange(this, &FCurveColorCustomization::SetInputViewRange)
 					.HideUI(false)
 					.DesiredSize(FVector2D(300, 150))
 				]
@@ -102,7 +102,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 	}
 }
 
-void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FCurveColorCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
@@ -115,7 +115,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 		{
 			ExternalCurveHandle = Child;
 
-			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveStructCustomization::OnExternalCurveChanged, InStructPropertyHandle );
+			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveColorCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
 			StructBuilder.AddChildContent(TEXT("ExternalCurve"))
@@ -142,9 +142,9 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 							SNew(SButton)
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.ContentPadding(1.f)
-							.ToolTipText(LOCTEXT("ConvertInternalCurveTooltip", "Convert to Internal Curve"))
-							.OnClicked(this, &FCurveStructCustomization::OnConvertButtonClicked)
-							.IsEnabled(this, &FCurveStructCustomization::IsConvertButtonEnabled)
+							.ToolTipText(LOCTEXT("ConvertInternalCurveTooltip", "Convert to Internal Color Curve"))
+							.OnClicked(this, &FCurveColorCustomization::OnConvertButtonClicked)
+							.IsEnabled(this, &FCurveColorCustomization::IsConvertButtonEnabled)
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Clear")) )
@@ -157,9 +157,9 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 						SNew(SButton)
 						.HAlign(HAlign_Center)
 						.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ) )
-						.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new CurveFloat asset from this curve") )
-						.OnClicked(this, &FCurveStructCustomization::OnCreateButtonClicked)
-						.IsEnabled(this, &FCurveStructCustomization::IsCreateButtonEnabled)
+						.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new Color Curve asset from this curve") )
+						.OnClicked(this, &FCurveColorCustomization::OnCreateButtonClicked)
+						.IsEnabled(this, &FCurveColorCustomization::IsCreateButtonEnabled)
 					]
 				];
 		}
@@ -170,26 +170,32 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 	}
 }
 
-TArray<FRichCurveEditInfoConst> FCurveStructCustomization::GetCurves() const
+TArray<FRichCurveEditInfoConst> FCurveColorCustomization::GetCurves() const
 {
 	TArray<FRichCurveEditInfoConst> Curves;
-	Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->EditorCurveData));
+	for (int Index = 0; Index < 4; Index++)
+	{
+		Curves.Add(FRichCurveEditInfoConst(&RuntimeCurve->ColorCurves[Index]));
+	}
 	return Curves;
 }
 
-TArray<FRichCurveEditInfo> FCurveStructCustomization::GetCurves()
+TArray<FRichCurveEditInfo> FCurveColorCustomization::GetCurves()
 {
 	TArray<FRichCurveEditInfo> Curves;
-	Curves.Add(FRichCurveEditInfo(&RuntimeCurve->EditorCurveData));
+	for (int Index = 0; Index < 4; Index++)
+	{
+		Curves.Add(FRichCurveEditInfo(&RuntimeCurve->ColorCurves[Index]));
+	}
 	return Curves;
 }
 
-UObject* FCurveStructCustomization::GetOwner()
+UObject* FCurveColorCustomization::GetOwner()
 {
 	return Owner;
 }
 
-void FCurveStructCustomization::ModifyOwner()
+void FCurveColorCustomization::ModifyOwner()
 {
 	if (Owner)
 	{
@@ -197,7 +203,7 @@ void FCurveStructCustomization::ModifyOwner()
 	}
 }
 
-void FCurveStructCustomization::MakeTransactional()
+void FCurveColorCustomization::MakeTransactional()
 {
 	if (Owner)
 	{
@@ -205,23 +211,41 @@ void FCurveStructCustomization::MakeTransactional()
 	}
 }
 
-void FCurveStructCustomization::OnCurveChanged()
+void FCurveColorCustomization::OnCurveChanged()
 {
 	StructPropertyHandle->NotifyPostChange();
 }
 
-float FCurveStructCustomization::GetTimelineLength() const
+FLinearColor FCurveColorCustomization::GetLinearColorValue(float InTime) const
+{
+	if (RuntimeCurve)
+	{
+		return RuntimeCurve->GetLinearColorValue(InTime);
+	}
+	return FLinearColor::Black; 
+}
+
+bool FCurveColorCustomization::HasAnyAlphaKeys() const
+{
+	if (RuntimeCurve)
+	{
+		return RuntimeCurve->ColorCurves[3].GetNumKeys() > 0;
+	}
+	return false;
+}
+
+float FCurveColorCustomization::GetTimelineLength() const
 {
 	return 0.f;
 }
 
-void FCurveStructCustomization::SetInputViewRange(float InViewMinInput, float InViewMaxInput)
+void FCurveColorCustomization::SetInputViewRange(float InViewMinInput, float InViewMaxInput)
 {
 	ViewMaxInput = InViewMaxInput;
 	ViewMinInput = InViewMinInput;
 }
 
-void FCurveStructCustomization::OnExternalCurveChanged(TSharedRef<IPropertyHandle> CurvePropertyHandle)
+void FCurveColorCustomization::OnExternalCurveChanged(TSharedRef<IPropertyHandle> CurvePropertyHandle)
 {
 	if (RuntimeCurve)
 	{
@@ -238,7 +262,7 @@ void FCurveStructCustomization::OnExternalCurveChanged(TSharedRef<IPropertyHandl
 	}
 }
 
-FReply FCurveStructCustomization::OnCreateButtonClicked()
+FReply FCurveColorCustomization::OnCreateButtonClicked()
 {
 	if (CurveWidget.IsValid())
 	{
@@ -277,11 +301,14 @@ FReply FCurveStructCustomization::OnCreateButtonClicked()
 
 			// Create a new asset and set it as the external curve
 			FName AssetName = *Name;
-			UCurveFloat* NewCurve = Cast<UCurveFloat>(CurveWidget->CreateCurveObject(UCurveFloat::StaticClass(), Pkg, AssetName));
+			UCurveLinearColor* NewCurve = Cast<UCurveLinearColor>(CurveWidget->CreateCurveObject(UCurveLinearColor::StaticClass(), Pkg, AssetName));
 			if( NewCurve )
 			{
 				// run through points of editor data and add to external curve
-				CopyCurveData(&RuntimeCurve->EditorCurveData, &NewCurve->FloatCurve);
+				for (int32 Index = 0; Index < 4; Index++)
+				{
+					CopyCurveData(&RuntimeCurve->ColorCurves[Index], &NewCurve->FloatCurves[Index]);
+				}
 
 				// Set the new object as the sole selection.
 				USelection* SelectionSet = GEditor->GetSelectedObjects();
@@ -303,20 +330,26 @@ FReply FCurveStructCustomization::OnCreateButtonClicked()
 	return FReply::Handled();
 }
 
-bool FCurveStructCustomization::IsCreateButtonEnabled() const
+bool FCurveColorCustomization::IsCreateButtonEnabled() const
 {
 	return CurveWidget.IsValid() && RuntimeCurve != NULL && RuntimeCurve->ExternalCurve == NULL;
 }
 
-FReply FCurveStructCustomization::OnConvertButtonClicked()
+FReply FCurveColorCustomization::OnConvertButtonClicked()
 {
 	if (RuntimeCurve && RuntimeCurve->ExternalCurve)
 	{
 		// clear points of editor data
-		RuntimeCurve->EditorCurveData.Reset();
+		for (int32 Index = 0; Index < 4; Index++)
+		{
+			RuntimeCurve->ColorCurves[Index].Reset();
+		}
 
 		// run through points of external curve and add to editor data
-		CopyCurveData(&RuntimeCurve->ExternalCurve->FloatCurve, &RuntimeCurve->EditorCurveData);
+		for (int32 Index = 0; Index < 4; Index++)
+		{
+			CopyCurveData(&RuntimeCurve->ExternalCurve->FloatCurves[Index], &RuntimeCurve->ColorCurves[Index]);
+		}
 
 		// null out external curve
 		const UObject* NullObject = NULL;
@@ -325,12 +358,12 @@ FReply FCurveStructCustomization::OnConvertButtonClicked()
 	return FReply::Handled();
 }
 
-bool FCurveStructCustomization::IsConvertButtonEnabled() const
+bool FCurveColorCustomization::IsConvertButtonEnabled() const
 {
 	return RuntimeCurve != NULL && RuntimeCurve->ExternalCurve != NULL;
 }
 
-FReply FCurveStructCustomization::OnCurvePreviewDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+FReply FCurveColorCustomization::OnCurvePreviewDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
@@ -346,11 +379,11 @@ FReply FCurveStructCustomization::OnCurvePreviewDoubleClick( const FGeometry& In
 			const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
 			FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
 
-			FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, FCurveStructCustomization::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
+			FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, FCurveColorCustomization::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
 
 			TSharedPtr<SWindow> Window = SNew(SWindow)
-				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Curve Editor"), FText::FromString(StructPropertyHandle->GetPropertyDisplayName())) )
-				.ClientSize( FCurveStructCustomization::DEFAULT_WINDOW_SIZE )
+				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Color Curve Editor"), FText::FromString(StructPropertyHandle->GetPropertyDisplayName())) )
+				.ClientSize( FCurveColorCustomization::DEFAULT_WINDOW_SIZE )
 				.ScreenPosition(AdjustedSummonLocation)
 				.AutoCenter(EAutoCenter::None)
 				.SupportsMaximize(false)
@@ -377,7 +410,7 @@ FReply FCurveStructCustomization::OnCurvePreviewDoubleClick( const FGeometry& In
 	return FReply::Handled();
 }
 
-void FCurveStructCustomization::CopyCurveData( const FRichCurve* SrcCurve, FRichCurve* DestCurve )
+void FCurveColorCustomization::CopyCurveData( const FRichCurve* SrcCurve, FRichCurve* DestCurve )
 {
 	if( SrcCurve && DestCurve )
 	{
@@ -390,7 +423,7 @@ void FCurveStructCustomization::CopyCurveData( const FRichCurve* SrcCurve, FRich
 	}
 }
 
-void FCurveStructCustomization::DestroyPopOutWindow()
+void FCurveColorCustomization::DestroyPopOutWindow()
 {
 	if (CurveEditorWindow.IsValid())
 	{

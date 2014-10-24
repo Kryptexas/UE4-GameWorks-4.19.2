@@ -430,6 +430,15 @@ public:
 
 	/** Called when the curve has been changed */
 	virtual void OnCurveChanged() = 0;
+
+	/** Whether the curve represents a linear color */
+	virtual bool IsLinearColorCurve() const { return false; }
+
+	/** Evaluate this color curve at the specified time */
+	virtual FLinearColor GetLinearColorValue(float InTime) const { return FLinearColor::Black; }
+
+	/** @return True if the curve has any alpha keys */
+	virtual bool HasAnyAlphaKeys() const { return false; }
 };
 
 

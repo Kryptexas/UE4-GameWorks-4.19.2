@@ -8,12 +8,12 @@ class IPropertyHandle;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 
-struct FRuntimeFloatCurve;
+struct FRuntimeCurveLinearColor;
 
 /**
- * Customizes a RuntimeFloatCurve struct to display a Curve Editor
+ * Customizes a RuntimeCurveLinearColor struct to display a Curve Editor
  */
-class FCurveStructCustomization : public IPropertyTypeCustomization, public FCurveOwnerInterface
+class FCurveColorCustomization : public IPropertyTypeCustomization, public FCurveOwnerInterface
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
@@ -21,7 +21,7 @@ public:
 	/**
 	 * Destructor
 	 */
-	virtual ~FCurveStructCustomization();
+	virtual ~FCurveColorCustomization();
 
 	/** IPropertyTypeCustomization interface */
 	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
@@ -34,12 +34,15 @@ public:
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged() override;
+	virtual bool IsLinearColorCurve() const override { return true; }
+	virtual FLinearColor GetLinearColorValue(float InTime) const override;
+	virtual bool HasAnyAlphaKeys() const override;
 
 private:
 	/**
 	 * Constructor
 	 */
-	FCurveStructCustomization();
+	FCurveColorCustomization();
 
 	/**
 	 * Get View Min Input for the Curve Editor
@@ -62,12 +65,12 @@ private:
 	void SetInputViewRange(float InViewMinInput, float InViewMaxInput);
 
 	/**
-	 * Called when RuntimeFloatCurve's External Curve is changed
+	 * Called when RuntimeCurveLinearColor's External Curve is changed
 	 */
 	void OnExternalCurveChanged(TSharedRef<IPropertyHandle> CurvePropertyHandle);
 
 	/**
-	 * Called when button clicked to create an External Curve
+	 * Called when button clicked to create an External Colour Curve
 	 */
 	FReply OnCreateButtonClicked();
 
@@ -102,7 +105,7 @@ private:
 	void DestroyPopOutWindow();
 
 private:
-	/** Cached RuntimeFloatCurve struct handle */
+	/** Cached RuntimeCurveLinearColor struct handle */
 	TSharedPtr<IPropertyHandle> StructPropertyHandle;
 
 	/** Cached External Curve handle */
@@ -114,8 +117,8 @@ private:
 	/** Window for pop out Curve Editor */
 	TWeakPtr<SWindow> CurveEditorWindow;
 
-	/** Cached pointer to the actual RuntimeFloatCurve struct */
-	FRuntimeFloatCurve* RuntimeCurve;
+	/** Cached pointer to the actual RuntimeCurveLinearColor struct */
+	FRuntimeCurveLinearColor* RuntimeCurve;
 
 	/** Object that owns the RuntimeFloatCurve */
 	UObject* Owner;
