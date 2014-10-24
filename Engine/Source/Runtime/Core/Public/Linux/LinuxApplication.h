@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -125,6 +125,13 @@ private:
 #if STEAM_CONTROLLER_SUPPORT
 	TSharedPtr< class SteamControllerInterface > SteamInput;
 #endif // STEAM_CONTROLLER_SUPPORT
+
+	/** List of input devices implemented in external modules. */
+	TArray< TSharedPtr<class IInputDevice> > ExternalInputDevices;
+
+	/** Whether input plugins have been loaded */
+	bool bHasLoadedInputPlugins;
+
 };
 
 
