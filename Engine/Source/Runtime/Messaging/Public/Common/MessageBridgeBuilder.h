@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "IMessageBridge.h"
+#include "IMessageBus.h"
+#include "IMessageContext.h"
+#include "IMessageTransport.h"
+#include "IMessagingModule.h"
+
 
 /**
  * Implements a message bridge builder.
@@ -45,19 +51,6 @@ public:
 	}
 
 	/**
-	 * Configures the bridge to use a custom message serializer.\
-	 *
-	 * @param CustomSerializer The custom serializer.
-	 * @return This instance (for method chaining).
-	 */
-	FMessageBridgeBuilder& UsingCustomSerializer( const ISerializeMessagesRef& CustomSerializer )
-	{
-		Serializer = CustomSerializer;
-
-		return *this;
-	}
-
-	/**
 	 * Configures the bridge to use a specific message transport technology.
 	 *
 	 * @param InTransport The transport technology to use.
@@ -66,18 +59,6 @@ public:
 	FMessageBridgeBuilder& UsingTransport( const IMessageTransportRef& InTransport )
 	{
 		Transport = InTransport;
-
-		return *this;
-	}
-
-	/**
-	 * Configures the bridge to use a binary message serializer.
-	 *
-	 * @return This instance (for method chaining).
-	 */
-	FMessageBridgeBuilder& UsingJsonSerializer()
-	{
-		Serializer = IMessagingModule::Get().CreateJsonMessageSerializer();
 
 		return *this;
 	}
@@ -114,7 +95,7 @@ public:
 
 		if (Bus.IsValid())
 		{
-			Bridge = IMessagingModule::Get().CreateBridge(Address, Bus.ToSharedRef(), Serializer.ToSharedRef(), Transport.ToSharedRef());
+			Bridge = IMessagingModule::Get().CreateBridge(Address, Bus.ToSharedRef(), Transport.ToSharedRef());
 
 			if (Bridge.IsValid())
 			{
@@ -152,9 +133,6 @@ private:
 
 	/** Holds a flag indicating whether the bridge should be disabled. */
 	bool Disabled;
-
-	/** Holds a reference to the message serializer. */
-	ISerializeMessagesPtr Serializer;
 
 	/** Holds a reference to the message transport technology. */
 	IMessageTransportPtr Transport;

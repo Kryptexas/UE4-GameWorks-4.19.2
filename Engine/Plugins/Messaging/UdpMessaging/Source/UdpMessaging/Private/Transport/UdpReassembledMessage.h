@@ -4,10 +4,10 @@
 
 
 /** Type definition for shared pointers to instances of FUdpMessage. */
-typedef TSharedPtr<class FReassembledUdpMessage, ESPMode::ThreadSafe> FReassembledUdpMessagePtr;
+typedef TSharedPtr<class FReassembledUdpMessage, ESPMode::ThreadSafe> FUdpReassembledMessagePtr;
 
 /** Type definition for shared references to instances of FUdpMessage. */
-typedef TSharedRef<class FReassembledUdpMessage, ESPMode::ThreadSafe> FReassembledUdpMessageRef;
+typedef TSharedRef<class FReassembledUdpMessage, ESPMode::ThreadSafe> FUdpReassembledMessageRef;
 
 
 /**
@@ -42,6 +42,16 @@ public:
 	virtual ~FReassembledUdpMessage() { }
 
 public:
+
+	/**
+	 * Gets the message data.
+	 *
+	 * @return Message data.
+	 */
+	virtual const TArray<uint8>& GetData() const
+	{
+		return Data;
+	}
 
 	/**
 	 * Gets the time at which the last segment was received.
@@ -94,6 +104,16 @@ public:
 	}
 
 	/**
+	 * Gets the message's sequence number.
+	 *
+	 * @return Sequence number.
+	 */
+	uint64 GetSequence() const
+	{
+		return Sequence;
+	}
+
+	/**
 	 * Checks whether this message is complete.
 	 *
 	 * @return true if the message is complete, false otherwise.
@@ -143,28 +163,6 @@ public:
 				ReceivedBytes += SegmentData.Num();
 			}
 		}
-	}
-
-public:
-
-	/**
-	 * Gets the message data.
-	 *
-	 * @return Message data.
-	 */
-	virtual const TArray<uint8>& GetData() const
-	{
-		return Data;
-	}
-
-	/**
-	 * Gets the message's sequence number.
-	 *
-	 * @return Sequence number.
-	 */
-	uint64 GetSequence() const
-	{
-		return Sequence;
 	}
 
 private:

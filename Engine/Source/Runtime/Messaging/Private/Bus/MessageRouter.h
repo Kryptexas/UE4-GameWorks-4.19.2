@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "IMessageContext.h"
+#include "IMessageInterceptor.h"
+#include "IMessageSubscription.h"
+#include "IMessageTracer.h"
+#include "IReceiveMessages.h"
+#include "ISendMessages.h"
+
 
 /**
  * Implements a topic-based message router.

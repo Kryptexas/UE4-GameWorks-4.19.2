@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreUObject.h"
 
+
+// forward declarations
 class IMessageContext;
 
 

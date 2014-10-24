@@ -3,6 +3,7 @@
 #pragma once
 
 
+// forward declarations
 class IMessageContext;
 
 
@@ -25,7 +26,7 @@ public:
 	/**
 	 * Checks whether the tracer should break on the given message.
 	 *
-	 * @param Context The message to break on.
+	 * @param Context The context of the message to break on.
 	 * @return true if the tracer should break, false otherwise.
 	 */
 	virtual bool ShouldBreak( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) const = 0;

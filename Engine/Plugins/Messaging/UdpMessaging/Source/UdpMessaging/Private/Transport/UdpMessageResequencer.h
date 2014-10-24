@@ -38,7 +38,7 @@ public:
 	 *
 	 * @return true if a message was returned, false otherwise.
 	 */
-	bool Pop(FReassembledUdpMessagePtr& OutMessage)
+	bool Pop(FUdpReassembledMessagePtr& OutMessage)
 	{
 		if (MessageHeap.HeapTop()->GetSequence() == NextSequence)
 		{
@@ -58,7 +58,7 @@ public:
 	 * @param Message The message to resequence.
 	 * @return true if the message is in sequence, false otherwise.
 	 */
-	bool Resequence(const FReassembledUdpMessagePtr& Message)
+	bool Resequence(const FUdpReassembledMessagePtr& Message)
 	{
 		MessageHeap.HeapPush(Message, FSequenceComparer());
 
@@ -78,7 +78,7 @@ private:
 	/** Helper for ordering messages by their sequence numbers. */
 	struct FSequenceComparer
 	{
-		bool operator () (const FReassembledUdpMessagePtr& A, const FReassembledUdpMessagePtr& B) const
+		bool operator()(const FUdpReassembledMessagePtr& A, const FUdpReassembledMessagePtr& B) const
 		{
 			return A->GetSequence() < B->GetSequence();
 		}
@@ -93,7 +93,7 @@ private:
 	uint64 HighestReceivedSequence;
 
 	/** Holds the messages that need to be resequenced. */
-	TArray<FReassembledUdpMessagePtr> MessageHeap;
+	TArray<FUdpReassembledMessagePtr> MessageHeap;
 
 	/** Holds the maximum resequence window size. */
 	uint16 WindowSize;

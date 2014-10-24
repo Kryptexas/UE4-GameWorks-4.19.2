@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "IMessageContext.h"
+
+// forward declarations
+class IMessageContext;
 
 
 /** Type definition for shared pointers to instances of FMessageTracerAddressInfo. */

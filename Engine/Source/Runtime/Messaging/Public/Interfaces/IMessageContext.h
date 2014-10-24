@@ -2,12 +2,16 @@
 
 #pragma once
 
+#include "TaskGraphInterfaces.h"
 
+
+// forward declarations
 class IMessageAttachment;
+class UScriptStruct;
 
 
 /**
- * Implements a message endpoint address.
+ * Structure for message endpoint addresses.
  */
 struct FMessageAddress
 {
@@ -166,11 +170,12 @@ typedef TRangeBound<EMessageScope> FMessageScopeRangeBound;
 /**
  * Interface for message contexts.
  *
- * A message context is created internally by the message bus to store additional information about a
- * message needed to describe and correctly route the message to recipients. The two most common aspects
- * of message contexts used by recipients are the sender address and message attachments.
+ * Messages are delivered inside message contexts, which store the message itself plus additional data
+ * associated with the message. Recipients of a message are usually interested in data that describes the
+ * message, such as its origin or when it expires. They may also be interested in optional out-of-band
+ * binary data that is attached to the message.
  *
- * The sender address (@see GetSender) is often needed to send a reply message to a message sender, i.e.
+ * The sender's address (@see GetSender) is often needed to send a reply message to a message sender, i.e.
  * in response to a published message. The message attachment (@see GetAttchment) is an optional bundle
  * of binary bulk data that is transferred independently from the message itself and allows for transferring
  * larger amounts of data that would otherwise clog up the messaging system.
@@ -183,6 +188,13 @@ typedef TRangeBound<EMessageScope> FMessageScopeRangeBound;
 class IMessageContext
 {
 public:
+
+	/**
+	 * Gets the optional message annotations.
+	 *
+	 * @return Message header collection.
+	 */
+	virtual const TMap<FName, FString>& GetAnnotations() const = 0;
 
 	/**
 	 * Gets the message attachment, if present.
@@ -199,59 +211,39 @@ public:
 	virtual const FDateTime& GetExpiration() const = 0;
 
 	/**
-	 * Gets the message address of the endpoint that forwarded this message.
+	 * Gets the message data.
 	 *
-	 * @return The forwarder's address.
-	 * @see IsForwarded
-	 */
-	virtual const FMessageAddress& GetForwarder() const = 0;
-
-	/**
-	 * Gets the optional message headers.
-	 *
-	 * @return Message header collection.
-	 */
-	virtual const TMap<FName, FString>& GetHeaders() const = 0;
-
-	/**
-	 * Gets the message object.
-	 *
-	 * @return The message.
+	 * @return A pointer to the message data.
+	 * @see GetMessageType, GetMessageTypeInfo
 	 */
 	virtual const void* GetMessage() const = 0;
-
-	/**
-	 * Gets the name of the message type.
-	 *
-	 * @return Message type name.
-	 */
-	virtual FName GetMessageType() const = 0;
 
 	/**
 	 * Gets the message's type information.
 	 *
 	 * @return Message type information.
+	 * @see GetMessage, GetMessageType
 	 */
 	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo() const = 0;
 
 	/**
 	 * Returns the original message context in case the message was forwarded.
 	 *
-	 * @return The original message.
+	 * @return The original message context, or nullptr if the message wasn't forwarded.
 	 */
 	virtual TSharedPtr<IMessageContext, ESPMode::ThreadSafe> GetOriginalContext() const = 0;
 
 	/**
-	* Gets the list of message recipients.
-	*
-	* @return Message recipients.
+	 * Gets the list of message recipients.
+	 *
+	 * @return Message recipients.
 	 */
 	virtual const TArray<FMessageAddress>& GetRecipients() const = 0;
 
 	/**
-	 * Gets the message's scope.
+	 * Gets the scope to which the message was sent.
 	 *
-	 * @return Scope.
+	 * @return The message scope.
 	 */
 	virtual EMessageScope GetScope() const = 0;
 
@@ -283,20 +275,44 @@ public:
 	 */
 	virtual const FDateTime& GetTimeSent() const = 0;
 
+public:
+
+	/**
+	 * Gets the name of the message type.
+	 *
+	 * @return Message type name.
+	 */
+	FName GetMessageType() const
+	{
+		if (IsValid())
+		{
+			return GetMessageTypeInfo()->GetFName();
+		}
+		
+		return NAME_None;
+	}
+
 	/**
 	 * Checks whether this is a forwarded message.
 	 *
 	 * @return true if the message was forwarded, false otherwise.
-	 * @see GetForwarder
+	 * @see GetOriginalContext, IsValid
 	 */
-	virtual bool IsForwarded() const = 0;
+	bool IsForwarded() const
+	{
+		return GetOriginalContext().IsValid();
+	}
 
 	/**
 	 * Checks whether this context is valid.
 	 *
 	 * @return true if the context is valid, false otherwise.
+	 * @see IsForwarded
 	 */
-	virtual bool IsValid() const = 0;
+	bool IsValid() const
+	{
+		return ((GetMessage() != nullptr) && GetMessageTypeInfo().IsValid(false, true));
+	}
 
 public:
 

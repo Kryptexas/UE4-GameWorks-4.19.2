@@ -7,15 +7,12 @@
  *****************************************************************************/
 
 #include "CoreUObject.h"
-#include "ModuleManager.h"
-#include "TaskGraphInterfaces.h"
 
 
 /* Public Includes
  *****************************************************************************/
 
 #include "IMessageAttachment.h"
-#include "IMessageData.h"
 #include "IMessageContext.h"
 #include "IMessageInterceptor.h"
 #include "IMessageHandler.h"
@@ -27,7 +24,6 @@
 #include "IMessageTracer.h"
 #include "IMessageBus.h"
 #include "IMutableMessageContext.h"
-#include "ISerializeMessages.h"
 #include "IMessageTransport.h"
 #include "IMessageBridge.h"
 #include "IMessagingModule.h"

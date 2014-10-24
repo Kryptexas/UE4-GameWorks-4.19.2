@@ -3,6 +3,7 @@
 #pragma once
 
 
+// forward declarations
 class IMessageAttachment;
 class IMessageData;
 
@@ -10,11 +11,10 @@ class IMessageData;
 /**
  * Delegate type for receiving transport messages.
  *
- * The first parameter is the serialized message content.
- * The second parameter is the message attachment, if any.
- * The third parameter is the identifier of the transport node that sent the message.
+ * The first parameter is the context of the received message.
+ * The second parameter is the identifier of the transport node that sent the message.
  */
-DECLARE_DELEGATE_ThreeParams(FOnMessageTransportMessageReceived, FArchive&, const IMessageAttachmentPtr&, const FGuid&);
+DECLARE_DELEGATE_TwoParams(FOnMessageTransportMessageReceived, const IMessageContextRef&, const FGuid&);
 
 /**
  * Delegate type for handling the discovery of transport nodes.
@@ -69,12 +69,11 @@ public:
 	/**
 	 * Transports the given message data to the specified network nodes.
 	 *
-	 * @param Data The serialized message data to transport.
-	 * @param Attachment An optional message attachment (i.e. file or memory buffer).
+	 * @param Context The context of the message to transport.
 	 * @param Recipients The transport nodes to send the message to.
 	 * @return true if the message is being transported, false otherwise.
 	 */
-	virtual bool TransportMessage( const TSharedRef<IMessageData, ESPMode::ThreadSafe>& Data, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const TArray<FGuid>& Recipients ) = 0;
+	virtual bool TransportMessage( const IMessageContextRef& Context, const TArray<FGuid>& Recipients ) = 0;
 
 public:
 

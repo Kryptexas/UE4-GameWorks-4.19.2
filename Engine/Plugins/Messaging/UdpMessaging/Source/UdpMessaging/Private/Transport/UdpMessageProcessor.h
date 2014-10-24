@@ -4,6 +4,16 @@
 
 
 /**
+ * Delegate type for handling the message reassembly completion.
+ *
+ * The first parameter is the reassembled message data.
+ * The second parameter contains the optional message attachment.
+ * The third parameter is the identifier of the node that sent the message.
+ */
+DECLARE_DELEGATE_ThreeParams(FOnMessageProcessorMessageReassembled, const FUdpReassembledMessageRef& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/);
+
+
+/**
  * Implements a message processor for UDP messages.
  */
 class FUdpMessageProcessor
@@ -22,7 +32,7 @@ class FUdpMessageProcessor
 		FGuid NodeId;
 
 		// Holds the collection of reassembled messages.
-		TMap<int32, FReassembledUdpMessagePtr> ReassembledMessages;
+		TMap<int32, FUdpReassembledMessagePtr> ReassembledMessages;
 
 		// Holds the message resequencer.
 		FUdpMessageResequencer Resequencer;
@@ -74,8 +84,8 @@ class FUdpMessageProcessor
 	// Structure for outbound messages.
 	struct FOutboundMessage
 	{
-		// Holds the message.
-		IMessageDataPtr MessageData;
+		// Holds the serialized message.
+		FUdpSerializedMessagePtr SerializedMessage;
 
 		// Holds the recipient.
 		FGuid RecipientId;
@@ -85,8 +95,8 @@ class FUdpMessageProcessor
 		FOutboundMessage() { }
 
 		// Creates and initializes a new instance.
-		FOutboundMessage( const IMessageDataRef& InMessageData, const FGuid& InRecipientId )
-			: MessageData(InMessageData)
+		FOutboundMessage( const FUdpSerializedMessageRef& InSerializedMessage, const FGuid& InRecipientId )
+			: SerializedMessage(InSerializedMessage)
 			, RecipientId(InRecipientId)
 		{ }
 	};
@@ -119,13 +129,23 @@ public:
 	/**
 	 * Queues up an outbound message.
 	 *
-	 * @param Data The message data to send.
+	 * @param SerializedMessage The serialized message to send.
 	 * @param Recipient The recipient's IPv4 endpoint.
 	 * @return true if the message was queued up, false otherwise.
 	 */
-	bool EnqueueOutboundMessage( const IMessageDataRef& Data, const FGuid& Recipient );
+	bool EnqueueOutboundMessage( const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient );
 
 public:
+
+	/**
+	 * Returns a delegate that is executed when message data has been received.
+	 *
+	 * @param Delegate The delegate to set.
+	 */
+	FOnMessageProcessorMessageReassembled& OnMessageReassembled()
+	{
+		return MessageReassembledDelegate;
+	}
 
 	FOnMessageTransportNodeDiscovered& OnNodeDiscovered()
 	{
@@ -140,16 +160,6 @@ public:
 	FOnMessageTransportNodeLost& OnNodeLost()
 	{
 		return NodeLostDelegate;
-	}
-
-	/**
-	 * Returns a delegate that is executed when message data has been received.
-	 *
-	 * @param Delegate The delegate to set.
-	 */
-	FOnMessageTransportMessageReceived& OnMessageReceived()
-	{
-		return MessageReceivedDelegate;
 	}
 	
 public:
@@ -283,7 +293,7 @@ protected:
 private:
 
 	/** Handles message data state changes. */
-	void HandleMessageDataStateChanged();
+	void HandleSerializedMessageStateChanged();
 
 private:
 
@@ -334,7 +344,7 @@ private:
 private:
 
 	/** Holds a delegate to be invoked when a message was received on the transport channel. */
-	FOnMessageTransportMessageReceived MessageReceivedDelegate;
+	FOnMessageProcessorMessageReassembled MessageReassembledDelegate;
 
 	/** Holds a delegate to be invoked when a network node was discovered. */
 	FOnMessageTransportNodeDiscovered NodeDiscoveredDelegate;

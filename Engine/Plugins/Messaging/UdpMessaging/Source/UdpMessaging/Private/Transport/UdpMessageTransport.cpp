@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
+#include "UdpSerializeMessageTask.h"
 
 
 /* FUdpMessageTransport structors
@@ -72,7 +73,7 @@ bool FUdpMessageTransport::StartTransport()
 
 	// initialize threads
 	MessageProcessor = new FUdpMessageProcessor(UnicastSocket, FGuid::NewGuid(), MulticastEndpoint);
-	MessageProcessor->OnMessageReceived().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReceived);
+	MessageProcessor->OnMessageReassembled().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReassembled);
 	MessageProcessor->OnNodeDiscovered().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeDiscovered);
 	MessageProcessor->OnNodeLost().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeLost);
 
@@ -113,23 +114,31 @@ void FUdpMessageTransport::StopTransport()
 }
 
 
-bool FUdpMessageTransport::TransportMessage( const IMessageDataRef& Data, const IMessageAttachmentPtr& Attachment, const TArray<FGuid>& Recipients )
+bool FUdpMessageTransport::TransportMessage( const IMessageContextRef& Context, const TArray<FGuid>& Recipients )
 {
 	if (MessageProcessor == nullptr)
 	{
 		return false;
 	}
 
-	// published message
-	if (Recipients.Num() == 0)
+	if (Context->GetRecipients().Num() > UDP_MESSAGING_MAX_RECIPIENTS)
 	{
-		return MessageProcessor->EnqueueOutboundMessage(Data, FGuid());
+		return false;
 	}
 
-	// sent message
+	FUdpSerializedMessageRef SerializedMessage = MakeShareable(new FUdpSerializedMessage());
+	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
+
+	// publish the message
+	if (Recipients.Num() == 0)
+	{
+		return MessageProcessor->EnqueueOutboundMessage(SerializedMessage, FGuid());
+	}
+
+	// send the message
 	for (int32 Index = 0; Index < Recipients.Num(); ++Index)
 	{
-		if (!MessageProcessor->EnqueueOutboundMessage(Data, Recipients[Index]))
+		if (!MessageProcessor->EnqueueOutboundMessage(SerializedMessage, Recipients[Index]))
 		{
 			return false;
 		}
@@ -141,6 +150,18 @@ bool FUdpMessageTransport::TransportMessage( const IMessageDataRef& Data, const 
 
 /* FUdpMessageTransport event handlers
  *****************************************************************************/
+
+void FUdpMessageTransport::HandleProcessorMessageReassembled( const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
+{
+	// @todo gmp: move message deserialization into an async task
+	FUdpDeserializedMessageRef DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
+
+	if (DeserializedMessage->Deserialize(ReassembledMessage))
+	{
+		MessageReceivedDelegate.ExecuteIfBound(DeserializedMessage, NodeId);
+	}
+}
+
 
 void FUdpMessageTransport::HandleSocketDataReceived( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender )
 {

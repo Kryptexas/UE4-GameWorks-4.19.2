@@ -2,15 +2,12 @@
 
 #pragma once
 
-
-/** Type definition for weak pointers to instances of FMessageTracer. */
-typedef TWeakPtr<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerWeakPtr;
-
-/** Type definition for shared pointers to instances of FMessageTracer. */
-typedef TSharedPtr<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerPtr;
-
-/** Type definition for shared references to instances of FMessageTracer. */
-typedef TSharedRef<class FMessageTracer, ESPMode::ThreadSafe> FMessageTracerRef;
+#include "IMessageContext.h"
+#include "IMessageInterceptor.h"
+#include "IMessageSubscription.h"
+#include "IMessageTracer.h"
+#include "IMessageTracerBreakpoint.h"
+#include "IReceiveMessages.h"
 
 
 /**
@@ -40,6 +37,7 @@ class FMessageTracer
 	};
 
 public:
+
 	DECLARE_DELEGATE(TraceDelegate)
 
 	/** Default constructor. */
@@ -85,6 +83,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace added subscriptions
 	}
 
 	/**
@@ -132,6 +131,7 @@ public:
 		{
 		}
 
+		// @todo gmp: trace intercepted messages
 	}
 
 	/**
@@ -147,6 +147,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace removed interceptors
 	}
 
 	/**
@@ -161,6 +162,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace removed recipients
 	}
 
 	/**
@@ -176,6 +178,7 @@ public:
 			return;
 		}
 
+		// @todo gmp: trace removed subscriptions
 	}
 
 	/**
@@ -404,6 +407,7 @@ protected:
 	 * Processes traces for sent messages.
 	 *
 	 * @param Context The context of the sent message.
+	 * @param SenderThread The name of the thread from which the message was sent.
 	 * @param TimeSecond The time at which the message was sent.
 	 */
 	void ProcessSentMessage( IMessageContextRef Context, double TimeSeconds );
@@ -466,3 +470,13 @@ private:
 	/** Holds a delegate that is executed when a new type has been added to the collection of known message types. */
 	FMessageTracerTypeAdded TypeAddedDelegate;
 };
+
+
+/** Type definition for weak pointers to instances of FMessageTracer. */
+typedef TWeakPtr<FMessageTracer, ESPMode::ThreadSafe> FMessageTracerWeakPtr;
+
+/** Type definition for shared pointers to instances of FMessageTracer. */
+typedef TSharedPtr<FMessageTracer, ESPMode::ThreadSafe> FMessageTracerPtr;
+
+/** Type definition for shared references to instances of FMessageTracer. */
+typedef TSharedRef<FMessageTracer, ESPMode::ThreadSafe> FMessageTracerRef;

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingPrivatePCH.h"
+#include "IMessagingModule.h"
 #include "ModuleManager.h"
 
 
@@ -54,9 +55,9 @@ public:
 
 	// IMessagingModule interface
 
-	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const IMessageTransportRef& Transport ) override
+	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const IMessageTransportRef& Transport ) override
 	{
-		return MakeShareable(new FMessageBridge(Address, Bus, Serializer, Transport));
+		return MakeShareable(new FMessageBridge(Address, Bus, Transport));
 	}
 
 	virtual IMessageBusPtr CreateBus( const IAuthorizeMessageRecipientsPtr& RecipientAuthorizer ) override
@@ -64,12 +65,7 @@ public:
 		return MakeShareable(new FMessageBus(RecipientAuthorizer));
 	}
 
-	virtual ISerializeMessagesPtr CreateJsonMessageSerializer( ) override
-	{
-		return MakeShareable(new FJsonMessageSerializer());
-	}
-
-	virtual IMessageBusPtr GetDefaultBus( ) const override
+	virtual IMessageBusPtr GetDefaultBus() const override
 	{
 		return DefaultBus;
 	}
@@ -78,7 +74,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 #if PLATFORM_SUPPORTS_MESSAGEBUS
 		FCoreDelegates::OnPreExit.AddRaw(this, &FMessagingModule::HandleCorePreExit);
@@ -86,19 +82,19 @@ public:
 #endif	//PLATFORM_SUPPORTS_MESSAGEBUS
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		ShutdownDefaultBus();
 	}
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return false;
 	}
 
 protected:
 
-	void ShutdownDefaultBus( )
+	void ShutdownDefaultBus()
 	{
 		if (!DefaultBus.IsValid())
 		{
@@ -125,7 +121,7 @@ protected:
 private:
 
 	// Callback for Core shutdown.
-	void HandleCorePreExit( )
+	void HandleCorePreExit()
 	{
 		ShutdownDefaultBus();
 	}
@@ -140,27 +136,9 @@ private:
 /* Misc static functions
  *****************************************************************************/
 
-TStatId FMessageForwardTask::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageForwardTask, STATGROUP_TaskGraphTasks);
-}
-
-
 TStatId FMessageDispatchTask::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageDispatchTask, STATGROUP_TaskGraphTasks);
-}
-
-
-TStatId FMessageSerializeTask::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageSerializeTask, STATGROUP_TaskGraphTasks);
-}
-
-
-TStatId FMessageDeserializeTask::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageDeserializeTask, STATGROUP_TaskGraphTasks);
 }
 
 

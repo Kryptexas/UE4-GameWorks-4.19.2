@@ -2,8 +2,11 @@
 
 #pragma once
 
+#include "IMessageBus.h"
+#include "IMessageHandler.h"
 #include "IMessagingModule.h"
 #include "MessageEndpoint.h"
+#include "TaskGraphInterfaces.h"
 
 
 /**

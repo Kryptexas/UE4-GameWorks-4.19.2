@@ -3,11 +3,9 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IUdpMessageTunnel. */
-typedef TSharedPtr<class IUdpMessageTunnel> IUdpMessageTunnelPtr;
-
-/** Type definition for shared references to instances of IUdpMessageTunnel. */
-typedef TSharedRef<class IUdpMessageTunnel> IUdpMessageTunnelRef;
+// forward declarations
+class FIPv4Endpoint;
+class IUdpMessageTunnelConnection;
 
 
 /**
@@ -39,7 +37,7 @@ public:
 	 *
 	 * @see IsServerRunning, StartServer
 	 */
-	virtual void StopServer( ) = 0;
+	virtual void StopServer() = 0;
 
 public:
 
@@ -50,21 +48,21 @@ public:
 	 * @return The number of connections returned.
 	 * @see Connect
 	 */
-	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) = 0;
+	virtual int32 GetConnections( TArray<TSharedPtr<IUdpMessageTunnelConnection>>& OutConnections ) = 0;
 
 	/**
 	 * Gets the total number of bytes that were received from tunnels.
 	 *
 	 * @return Number of bytes.
 	 */
-	virtual uint64 GetTotalInboundBytes( ) const = 0;
+	virtual uint64 GetTotalInboundBytes() const = 0;
 
 	/**
 	 * Gets the total number of bytes that were sent out through tunnels.
 	 *
 	 * @return Number of bytes.
 	 */
-	virtual uint64 GetTotalOutboundBytes( ) const = 0;
+	virtual uint64 GetTotalOutboundBytes() const = 0;
 
 	/**
 	 * Checks whether the tunnel server is running.
@@ -72,7 +70,7 @@ public:
 	 * @return true if the tunnel server is running, false otherwise.
 	 * @see StartServer, StopServer
 	 */
-	virtual bool IsServerRunning( ) const = 0;
+	virtual bool IsServerRunning() const = 0;
 
 public:
 
@@ -81,10 +79,17 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleDelegate& OnConnectionsChanged( ) = 0;
+	virtual FSimpleDelegate& OnConnectionsChanged() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~IUdpMessageTunnel( ) { }
+	virtual ~IUdpMessageTunnel() { }
 };
+
+
+/** Type definition for shared pointers to instances of IUdpMessageTunnel. */
+typedef TSharedPtr<IUdpMessageTunnel> IUdpMessageTunnelPtr;
+
+/** Type definition for shared references to instances of IUdpMessageTunnel. */
+typedef TSharedRef<IUdpMessageTunnel> IUdpMessageTunnelRef;

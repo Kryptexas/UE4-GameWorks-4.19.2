@@ -3,15 +3,17 @@
 #pragma once
 
 
+// forward declarations
 enum class EMessageScope;
 struct FMessageAddress;
-class IMessageInterceptor;
 class IMessageAttachment;
 class IMessageContext;
+class IMessageInterceptor;
 class IMessageSubscription;
 class IMessageTracer;
 class IReceiveMessages;
 class ISendMessages;
+class UScriptStruct;
 
 
 /** Delegate type for message bus shutdowns. */
@@ -108,12 +110,11 @@ public:
 	 *
 	 * @param Context The context of the message to forward.
 	 * @param Recipients The list of message recipients to forward the message to.
-	 * @param NewScope The forwarding scope.
 	 * @param Delay The deferral time.
 	 * @param Forwarder The sender that forwards the message.
 	 * @see Publish, Send
 	 */
-	virtual void Forward( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FMessageAddress>& Recipients, EMessageScope NewScope, const FTimespan& Delay, const TSharedRef<ISendMessages, ESPMode::ThreadSafe>& Forwarder ) = 0;
+	virtual void Forward( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const TSharedRef<ISendMessages, ESPMode::ThreadSafe>& Forwarder ) = 0;
 
 	/**
 	 * Gets the message bus tracer.

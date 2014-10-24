@@ -5,11 +5,11 @@
 #include "ModuleInterface.h"
 
 
+// forward declarations
 struct FMessageAddress;
 class IAuthorizeMessageRecipients;
 class IMessageBus;
 class IMessageBridge;
-class ISerializeMessages;
 class IMessageTransport;
 
 
@@ -31,12 +31,11 @@ public:
 	 *
 	 * @param Address The bridge's address on the message bus.
 	 * @param Bus The message bus to attach the bridge to.
-	 * @param Serializer The message serializer to use.
 	 * @param Transport The message transport technology to use.
 	 * @return The new message bridge, or nullptr if the bridge couldn't be created.
 	 * @see CreateBus
 	 */
-	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge( const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const TSharedRef<ISerializeMessages, ESPMode::ThreadSafe>& Serializer, const TSharedRef<IMessageTransport, ESPMode::ThreadSafe>& Transport ) = 0;
+	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge( const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const TSharedRef<IMessageTransport, ESPMode::ThreadSafe>& Transport ) = 0;
 
 	/**
 	 * Creates a new message bus.
@@ -46,13 +45,6 @@ public:
 	 * @see CreateBridge
 	 */
 	virtual TSharedPtr<IMessageBus, ESPMode::ThreadSafe> CreateBus( const TSharedPtr<IAuthorizeMessageRecipients>& RecipientAuthorizer ) = 0;
-
-	/**
-	 * Creates a Json message serializer (deprecated).
-	 *
-	 * @return A new serializer.
-	 */
-	virtual TSharedPtr<ISerializeMessages, ESPMode::ThreadSafe> CreateJsonMessageSerializer() = 0;
 
 	/**
 	 * Gets the default message bus if it has been initialized.

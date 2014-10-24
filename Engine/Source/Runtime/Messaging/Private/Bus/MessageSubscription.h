@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "IMessageContext.h"
+#include "IMessageSubscription.h"
+#include "IReceiveMessages.h"
+
 
 /**
  * Implements a message subscription.

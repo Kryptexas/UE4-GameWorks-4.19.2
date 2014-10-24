@@ -161,7 +161,7 @@ public:
 	 *
 	 * @param NamedThread The name of the thread to receive messages on.
 	 */
-	void SetRecipientThread( ENamedThreads::Type NamedThread )
+	void SetRecipientThread( const ENamedThreads::Type& NamedThread )
 	{
 		RecipientThread = NamedThread;
 	}
@@ -174,7 +174,7 @@ public:
 	 * The message is effectively delivered again to this endpoint after the
 	 * original sent time plus the time delay have elapsed.
 	 *
-	 * @param Message The context of the message to defer.
+	 * @param Context The context of the message to defer.
 	 * @param Delay The time delay.
 	 */
 	void Defer( const IMessageContextRef& Context, const FTimespan& Delay )
@@ -183,7 +183,7 @@ public:
 
 		if (Bus.IsValid())
 		{
-			Bus->Forward(Context, TArrayBuilder<FMessageAddress>().Add(Address), Context->GetScope(), Delay, AsShared());
+			Bus->Forward(Context, TArrayBuilder<FMessageAddress>().Add(Address), Delay, AsShared());
 		}
 	}
 
@@ -194,16 +194,15 @@ public:
 	 *
 	 * @param Context The context of the message to forward.
 	 * @param Recipients The list of message recipients to forward the message to.
-	 * @param ForwardingScope The scope of the forwarded message.
 	 * @param Delay The time delay.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope ForwardingScope, const FTimespan& Delay )
+	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
 	{
 		IMessageBusPtr Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
-			Bus->Forward(Context, Recipients, ForwardingScope, Delay, AsShared());
+			Bus->Forward(Context, Recipients, Delay, AsShared());
 		}
 	}
 
@@ -447,11 +446,10 @@ public:
 	 *
 	 * @param Context The context of the message to forward.
 	 * @param Recipient The address of the recipient to forward the message to.
-	 * @param ForwardingScope The scope of the forwarded message.
 	 */
-	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope ForwardingScope )
+	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient )
 	{
-		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), ForwardingScope, FTimespan::Zero());
+		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero());
 	}
 
 	/**
@@ -464,9 +462,9 @@ public:
 	 * @param ForwardingScope The scope of the forwarded message.
 	 * @param Delay The delay after which to publish the message.
 	 */
-	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope ForwardingScope, const FTimespan& Delay )
+	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, const FTimespan& Delay )
 	{
-		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), ForwardingScope, Delay);
+		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay);
 	}
 
 	/**
@@ -478,9 +476,9 @@ public:
 	 * @param Recipients The list of message recipients to forward the message to.
 	 * @param ForwardingScope The scope of the forwarded message.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope ForwardingScope )
+	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients )
 	{
-		Forward(Context, Recipients, ForwardingScope, FTimespan::Zero());
+		Forward(Context, Recipients, FTimespan::Zero());
 	}
 
 	/**

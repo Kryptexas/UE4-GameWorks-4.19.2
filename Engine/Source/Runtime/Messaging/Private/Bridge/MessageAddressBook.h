@@ -4,7 +4,7 @@
 
 
 /**
- * Implements an address book that maps message addresses to transport nodes.
+ * Implements an address book that maps message addresses to remote nodes.
  */
 class FMessageAddressBook
 {
@@ -28,7 +28,7 @@ public:
 	 * Adds an address to the address book.
 	 *
 	 * @Address The message address to add.
-	 * @NodeId The identifier of the transport node that handles the message address.
+	 * @NodeId The identifier of the remote node that handles the message address.
 	 */
 	void Add( const FMessageAddress& Address, const FGuid& NodeId )
 	{
@@ -59,7 +59,7 @@ public:
 	}
 
 	/**
-	 * Gets the transport node identifiers for the specified list of message addresses.
+	 * Gets the remote node identifiers for the specified list of message addresses.
 	 *
 	 * @param Addresses The address list to retrieve the node identifiers for.
 	 * @return The list of node identifiers.
@@ -86,13 +86,13 @@ public:
 	/**
 	 * Removes all known message addresses.
 	 *
-	 * To remove only the addresses for a specific transport node, use RemoveNode().
-	 * If you are not interested in the removed addresses, use Clear().
+	 * To remove only the addresses for a specific remote node, use RemoveNode().
+	 * If you are not interested in the removed addresses, use Clear() instead.
 	 *
 	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
 	 * @see Clear, RemoveNode
 	 */
-	void RemoveAllNodes( TArray<FMessageAddress>& OutRemovedAddresses )
+	void RemoveAll( TArray<FMessageAddress>& OutRemovedAddresses )
 	{
 		OutRemovedAddresses.Reset();
 
@@ -103,9 +103,9 @@ public:
 	}
 
 	/**
-	 * Removes all known message addresses for the specified transport node identifier.
+	 * Removes all known message addresses for the specified remote node identifier.
 	 *
-	 * @param NodeId The identifier of the transport node to remove.
+	 * @param NodeId The identifier of the remote node to remove.
 	 * @param OutRemovedRecipients Will hold a list of recipients that were removed.
 	 * @see Clear, RemoveAllNodes
 	 */
@@ -134,6 +134,6 @@ private:
 	/** Holds a critical section to serialize access to the address book entries. */
 	FCriticalSection* CriticalSection;
 
-	/** Holds the collection of known addresses and their transport node identifiers. */
+	/** Holds the collection of known addresses and their remote node identifiers. */
 	TMap<FMessageAddress, FGuid> Entries;
 };

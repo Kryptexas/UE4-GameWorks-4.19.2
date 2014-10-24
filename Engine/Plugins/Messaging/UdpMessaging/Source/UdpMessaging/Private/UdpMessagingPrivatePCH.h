@@ -2,16 +2,14 @@
 
 #pragma once
 
-#include "UdpMessaging.h"
-
 
 /* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"
-#include "Json.h"
+#include "CoreUObject.h"
 #include "Messaging.h"
-#include "ModuleManager.h"
+#include "Networking.h"
 #include "Settings.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
@@ -23,8 +21,14 @@
 /** Defines the default IP endpoint for multicast traffic. */
 #define UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT FIPv4Endpoint(FIPv4Address(230, 0, 0, 1), 6666)
 
+/** Defines the maximum number of annotations a message can have. */
+#define UDP_MESSAGING_MAX_ANNOTATIONS 128
+
+/** Defines the maximum number of recipients a message can have. */
+#define UDP_MESSAGING_MAX_RECIPIENTS 1024
+
 /** Defines the protocol version of the UDP message transport. */
-#define UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION 9
+#define UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION 10
 
 
 /* Private includes
@@ -36,10 +40,13 @@
 
 // transport
 #include "UdpMessageBeacon.h"
-#include "ReassembledUdpMessage.h"
+#include "UdpReassembledMessage.h"
 #include "UdpMessageResequencer.h"
+#include "UdpDeserializedMessage.h"
+#include "UdpSerializedMessage.h"
 #include "UdpMessageSegmenter.h"
 #include "UdpMessageProcessor.h"
+#include "UdpSerializeMessageTask.h"
 #include "UdpMessageTransport.h"
 
 // tunnel

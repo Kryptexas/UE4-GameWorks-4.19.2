@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "FileManager.h"
+#include "IMessageAttachment.h"
+
 
 /**
  * Implements a message attachment whose data is held in a file.
