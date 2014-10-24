@@ -16,7 +16,7 @@ UGameplayAbilityBlueprint::UGameplayAbilityBlueprint(const FObjectInitializer& O
 
 UClass* UGameplayAbilityBlueprint::GetBlueprintClass() const
 {
-	return UGameplayAbilityBlueprint::StaticClass();
+	return UGameplayAbilityBlueprintGeneratedClass::StaticClass();
 }
 
 

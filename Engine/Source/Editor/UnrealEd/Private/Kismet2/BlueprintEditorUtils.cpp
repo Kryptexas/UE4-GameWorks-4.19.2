@@ -1404,26 +1404,18 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			FKismetCompilerOptions CompileOptions;
 			CompileOptions.bIsDuplicationInstigated = true;
 
-			//SCS can change structure of the class
-			const bool bDontCompileClassBeforeScsIsSet = FBlueprintEditorUtils::SupportsConstructionScript(Blueprint) ||  FBlueprintEditorUtils::IsActorBased(Blueprint);
-			if (bDontCompileClassBeforeScsIsSet)
-			{ 
-				FName NewSkelClassName, NewGenClassName;
-				Blueprint->GetBlueprintClassNames(NewGenClassName, NewSkelClassName);
-				UBlueprintGeneratedClass* NewClass = ConstructObject<UBlueprintGeneratedClass>(
-					Blueprint->GetBlueprintClass(), Blueprint->GetOutermost(), NewGenClassName, RF_Public | RF_Transactional);
+			FName NewSkelClassName, NewGenClassName;
+			Blueprint->GetBlueprintClassNames(NewGenClassName, NewSkelClassName);
 
-				Blueprint->GeneratedClass = NewClass;
-				NewClass->ClassGeneratedBy = Blueprint;
-				NewClass->SetSuperStruct(Blueprint->ParentClass);
+			UClass* NewClass = ConstructObject<UClass>(
+				Blueprint->GetBlueprintClass(), Blueprint->GetOutermost(), NewGenClassName, RF_Public | RF_Transactional);
 
-				// Since we just duplicated the generated class above, we don't need to do a full compile below
-				CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
-			}
-			else
-			{
-				Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
-			}
+			Blueprint->GeneratedClass = NewClass;
+			NewClass->ClassGeneratedBy = Blueprint;
+			NewClass->SetSuperStruct(Blueprint->ParentClass);
+
+			// Since we just duplicated the generated class above, we don't need to do a full compile below
+			CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 
 			TMap<UObject*, UObject*> OldToNewMap;
 
@@ -1483,10 +1475,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			Blueprint->ComponentTemplates = NewBPGC->ComponentTemplates;
 			Blueprint->Timelines = NewBPGC->Timelines;
 
-			if (bDontCompileClassBeforeScsIsSet)
-			{ 
-				Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
-			}
+			Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
 
 			// Create a new blueprint guid
 			Blueprint->GenerateNewGuid();
