@@ -258,6 +258,13 @@ void FMessageTracer::ResetMessages()
 	MessageInfos.Reset();
 	MessageTypes.Reset();
 
+	for (TMap<FMessageAddress, FMessageTracerEndpointInfoPtr>::TIterator It(AddressesToEndpointInfos); It; ++It)
+	{
+		FMessageTracerEndpointInfoPtr& EndpointInfo = It.Value();
+		EndpointInfo->ReceivedMessages.Reset();
+		EndpointInfo->SentMessages.Reset();
+	}
+
 	MessagesResetDelegate.Broadcast();
 }
 
