@@ -149,66 +149,6 @@ void FMaterialShader::SetParameters(
 		}
 	}
 
-	// Set 2D texture uniform expressions.
-	{
-		int32 Count = Uniform2DTextureShaderResourceParameters.Num();
-		for(int32 ParameterIndex = 0;ParameterIndex < Count;ParameterIndex++)
-		{
-			const TUniformParameter<FShaderResourceParameter>& TextureResourceParameter = Uniform2DTextureShaderResourceParameters[ParameterIndex];
-			check(UniformExpressionCache->Textures.IsValidIndex(TextureResourceParameter.Index));
-			const TUniformParameter<FShaderResourceParameter>& SamplerResourceParameter = Uniform2DTextureSamplerShaderResourceParameters[ParameterIndex];
-
-			const UTexture* Texture2D = UniformExpressionCache->Textures[TextureResourceParameter.Index];
-			const FTexture* Value = Texture2D ? Texture2D->Resource : NULL;
-
-			if( !Value )
-			{
-				Value = GWhiteTexture;
-			}
-
-			checkSlow(Value);
-			Value->LastRenderTime = FApp::GetCurrentTime();
-
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI, 
-				TextureResourceParameter.ShaderParameter, 
-				SamplerResourceParameter.ShaderParameter, 
-				bDeferredPass && Value->DeferredPassSamplerStateRHI ? Value->DeferredPassSamplerStateRHI : Value->SamplerStateRHI, 
-				Value->TextureRHI);
-		}
-	}
-
-	// Set cube texture uniform expressions.
-	{
-		int32 Count = UniformCubeTextureShaderResourceParameters.Num(); 
-		for(int32 ParameterIndex = 0;ParameterIndex < Count;ParameterIndex++)
-		{
-			const TUniformParameter<FShaderResourceParameter>& TextureResourceParameter = UniformCubeTextureShaderResourceParameters[ParameterIndex];
-			check(UniformExpressionCache->CubeTextures.IsValidIndex(TextureResourceParameter.Index));
-			const TUniformParameter<FShaderResourceParameter>& SamplerResourceParameter = UniformCubeTextureSamplerShaderResourceParameters[ParameterIndex];
-
-			const UTexture* CubeTexture = UniformExpressionCache->CubeTextures[TextureResourceParameter.Index];
-			const FTexture* Value = CubeTexture ? CubeTexture->Resource : NULL;
-
-			if( !Value )
-			{
-				Value = GWhiteTextureCube;
-			}
-
-			checkSlow(Value);
-			Value->LastRenderTime = FApp::GetCurrentTime();
-
-			SetTextureParameter(
-				RHICmdList, 
-				ShaderRHI,
-				TextureResourceParameter.ShaderParameter,
-				SamplerResourceParameter.ShaderParameter,
-				bDeferredPass && Value->DeferredPassSamplerStateRHI ? Value->DeferredPassSamplerStateRHI : Value->SamplerStateRHI, 
-				Value->TextureRHI);
-		}
-	}
-
 	DeferredParameters.Set(RHICmdList, ShaderRHI, View, TextureMode);
 
 	AtmosphericFogTextureParameters.Set(RHICmdList, ShaderRHI, View);

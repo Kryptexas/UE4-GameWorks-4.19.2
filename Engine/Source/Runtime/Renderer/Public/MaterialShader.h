@@ -128,10 +128,6 @@ private:
 
 	FShaderUniformBufferParameter MaterialUniformBuffer;
 	TArray<FShaderUniformBufferParameter> ParameterCollectionUniformBuffers;
-	TArray<TUniformParameter<FShaderResourceParameter> > Uniform2DTextureShaderResourceParameters;
-	TArray<TUniformParameter<FShaderResourceParameter> > Uniform2DTextureSamplerShaderResourceParameters;
-	TArray<TUniformParameter<FShaderResourceParameter> > UniformCubeTextureShaderResourceParameters;
-	TArray<TUniformParameter<FShaderResourceParameter> > UniformCubeTextureSamplerShaderResourceParameters;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter LightAttenuation;
 	FShaderResourceParameter LightAttenuationSampler;
