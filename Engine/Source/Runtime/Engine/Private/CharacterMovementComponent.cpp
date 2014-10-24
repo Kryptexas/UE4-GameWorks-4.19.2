@@ -2865,6 +2865,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		const FVector Gravity(0.f, 0.f, GetGravityZ());
 		Velocity = NewFallVelocity(Velocity, Gravity, timeTick);
 		VelocityNoAirControl = NewFallVelocity(VelocityNoAirControl, Gravity, timeTick);
+		const FVector AirControlAccel = (Velocity - VelocityNoAirControl) / timeTick;
 
 		if( bNotifyApex && CharacterOwner->Controller && (Velocity.Z <= 0.f) )
 		{
@@ -2873,17 +2874,19 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			NotifyJumpApex();
 		}
 
-		// Test air control to see if we should limit it.
-		const FVector AirControlAccel = (Velocity - VelocityNoAirControl) / timeTick;
+		// Not really necessary to limit air control since the first deflection uses non air control velocity for deflection!
+		/*
 		if (bHasAirControl)
 		{
+			const float LookAheadTime = 0.02f;
 			FHitResult TestAirResult(1.f);
-			if (FindAirControlImpact(timeTick, AirControlAccel, TestAirResult))
+			if (FindAirControlImpact(timeTick, LookAheadTime, Velocity, FallAcceleration, Gravity, TestAirResult))
 			{
-				const FVector LimitedAirAccel = LimitAirControl(timeTick, AirControlAccel, TestAirResult, /*bCheckForValidLandingSpot=*/ true);
+				const FVector LimitedAirAccel = LimitAirControl(timeTick, AirControlAccel, TestAirResult, true);
 				Velocity = VelocityNoAirControl + (LimitedAirAccel * timeTick);
 			}
 		}
+		*/
 
 
 		// Move
@@ -2942,7 +2945,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 				}
 
 				// Limit air control based on what we hit.
-				// We moved to the impact point using air control, but may want to deflect from there based on a non-air control acceleration.
+				// We moved to the impact point using air control, but may want to deflect from there based on a limited air control acceleration.
 				if (bHasAirControl)
 				{
 					const bool bCheckLandingSpot = false; // we already checked above.
@@ -2961,7 +2964,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 					Velocity = HasRootMotion() ? FVector(Velocity.X, Velocity.Y, NewVelocity.Z) : NewVelocity;
 				}
 
-				if ((Delta | Adjusted) > 0.f)
+				if (subTimeTickRemaining > KINDA_SMALL_NUMBER && (Delta | Adjusted) > 0.f)
 				{
 					// Move in deflected direction.
 					SafeMoveUpdatedComponent( Delta, PawnRotation, true, Hit);
@@ -3066,12 +3069,16 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 }
 
 
-bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, const FVector& FallAcceleration, FHitResult& OutHitResult)
+bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult)
 {
-	// test for slope to avoid using air control to climb walls
-	const float TestWalkTime = FMath::Max(DeltaTime, 0.01f);
-	const FVector PostGravityVelocity = NewFallVelocity(Velocity, FVector(0.f,0.f,GetGravityZ()), TestWalkTime);
-	const FVector TestWalk = ((FallAcceleration * TestWalkTime) + PostGravityVelocity) * TestWalkTime;
+	// Test for slope to avoid using air control to climb walls.
+	FVector TestWalk = Velocity * DeltaTime;
+	if (AdditionalTime > 0.f)
+	{
+		const FVector PostGravityVelocity = NewFallVelocity(FallVelocity, Gravity, AdditionalTime);
+		TestWalk += ((FallAcceleration * AdditionalTime) + PostGravityVelocity) * AdditionalTime;
+	}
+	
 	if (!TestWalk.IsZero())
 	{
 		static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));

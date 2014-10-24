@@ -519,7 +519,7 @@ void UMovementComponent::TwoWallAdjust(FVector& OutDelta, const FHitResult& Hit,
 		{
 			// we hit the same wall again even after adjusting to move along it the first time
 			// nudge away from it (this can happen due to precision issues)
-			Delta += HitNormal * 0.1f;
+			Delta += HitNormal * 0.01f;
 		}
 	}
 

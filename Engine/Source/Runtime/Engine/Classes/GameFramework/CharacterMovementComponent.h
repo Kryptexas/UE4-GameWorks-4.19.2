@@ -1034,16 +1034,19 @@ protected:
 	virtual float BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 	/**
-	 * Checks if air control will cause the player collision shape to hit something given current conditions.
+	 * Checks if air control will cause the player collision shape to hit something given the current location.
 	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
+	 * @param AdditionalTime	Time to look ahead further, applying acceleration and gravity.
+	 * @param FallVelocity		Velocity to test with.
 	 * @param FallAcceleration	Acceleration used during movement.
+	 * @param Gravity			Gravity to apply to any additional time.
 	 * @param OutHitResult		Result of impact, valid if this function returns true.
 	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
 	 * @see GetAirControl()
 	 */
-	virtual bool FindAirControlImpact(float DeltaTime, const FVector& FallAcceleration, FHitResult& OutHitResult);
+	virtual bool FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult);
 
 	/**
 	 * Limits the air control to use during falling movement, given an impact from FindAirControlImpact().
