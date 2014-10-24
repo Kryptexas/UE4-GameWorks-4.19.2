@@ -16,10 +16,23 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 {
 	for(UObject* Object : RuntimeObjects)
 	{
-		FLinearColor ColorValue = PropertyBindings->GetCurrentValue<FLinearColor>(Object);
-		if(ColorTrack->Eval(Position, LastPosition, ColorValue))
+		if( ColorTrack->IsSlateColor() )
 		{
-			PropertyBindings->CallFunction(Object, &ColorValue);
+			FSlateColor ColorValue = PropertyBindings->GetCurrentValue<FSlateColor>(Object);
+			FLinearColor LinearColor = ColorValue.GetSpecifiedColor();
+			if(ColorTrack->Eval(Position, LastPosition, LinearColor))
+			{
+				FSlateColor NewColor(LinearColor);
+				PropertyBindings->CallFunction(Object, &NewColor);
+			}
+		}
+		else
+		{
+			FLinearColor ColorValue = PropertyBindings->GetCurrentValue<FLinearColor>(Object);
+			if(ColorTrack->Eval(Position, LastPosition, ColorValue))
+			{
+				PropertyBindings->CallFunction(Object, &ColorValue);
+			}
 		}
 	}
 }

@@ -14,6 +14,6 @@ public class MovieSceneCoreTypes : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
 
-		PrivateDependencyModuleNames.Add("MovieSceneCore");
+		PrivateDependencyModuleNames.AddRange(new string[] {"MovieSceneCore", "SlateCore"} );
 	}
 }

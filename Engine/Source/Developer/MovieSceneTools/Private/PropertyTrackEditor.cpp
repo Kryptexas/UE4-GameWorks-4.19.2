@@ -281,6 +281,8 @@ FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector2D ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Color ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_LinearColor ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( "SlateColor").AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
+
 }
 
 FPropertyTrackEditor::~FPropertyTrackEditor()
@@ -296,6 +298,7 @@ FPropertyTrackEditor::~FPropertyTrackEditor()
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector2D).RemoveAll(this);
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Color).RemoveAll(this);
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_LinearColor).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertychanged("SlateColor").RemoveAll(this);
 	}
 }
 
@@ -424,7 +427,7 @@ void FPropertyTrackEditor::OnAnimatedVectorPropertyChanged(const FKeyPropertyPar
 
 void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FKeyPropertyParams& KeyPropertyParams )
 {
-	bool bIsFColor = false, bIsFLinearColor = false;
+	bool bIsFColor = false, bIsFLinearColor = false, bIsSlateColor = false;
 	const UStructProperty* StructProp = Cast<const UStructProperty>(KeyPropertyParams.PropertyHandle->GetProperty());
 	if (StructProp && StructProp->Struct)
 	{
@@ -432,10 +435,14 @@ void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FKeyPropertyPara
 
 		bIsFColor = StructName == NAME_Color;
 		bIsFLinearColor = StructName == NAME_LinearColor;
+		bIsSlateColor = StructName == FName("SlateColor");
 	}
-	if (!bIsFColor && !bIsFLinearColor) {return;}
 
-	check(bIsFColor ^ bIsFLinearColor);
+	if (!bIsFColor && !bIsFLinearColor && !bIsSlateColor) 
+	{
+		return;
+	}
+
 
 
 	FName PropertyName = KeyPropertyParams.PropertyHandle->GetProperty()->GetFName();
@@ -479,6 +486,7 @@ void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FKeyPropertyPara
 	Key.Value = ColorValue;
 	Key.CurveName = KeyPropertyParams.InnerStructPropertyName;
 	Key.bAddKeyEvenIfUnchanged = !KeyPropertyParams.bRequireAutoKey;
+	Key.bIsSlateColor = bIsSlateColor;
 
 	AnimatablePropertyChanged(UMovieSceneColorTrack::StaticClass(), KeyPropertyParams.bRequireAutoKey, FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FColorKey, UMovieSceneColorTrack>, KeyPropertyParams, Key) );
 }

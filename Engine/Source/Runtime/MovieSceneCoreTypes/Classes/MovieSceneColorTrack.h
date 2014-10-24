@@ -12,6 +12,7 @@ struct FColorKey
 	FLinearColor Value;
 	FName CurveName;
 	bool bAddKeyEvenIfUnchanged;
+	bool bIsSlateColor;
 };
 
 /**
@@ -45,4 +46,10 @@ public:
 	 * @return true if anything was evaluated. Note: if false is returned OutColor remains unchanged
 	 */
 	virtual bool Eval( float Position, float LastPostion, FLinearColor& OutColor ) const;
+
+	bool IsSlateColor() const { return bIsSlateColor; }
+
+private:
+	UPROPERTY()
+	bool bIsSlateColor;
 };
