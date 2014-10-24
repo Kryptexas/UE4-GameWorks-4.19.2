@@ -608,9 +608,16 @@ uint GetShadingModelId(float2 UV)
 // @param UV - UV space in the DBuffer textures (BufferSize resolution)
 FDBufferData GetDBufferData(float2 UV)
 {
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	// Share samplers to give artists more
+	float4 DBufferA = Texture2DSampleLevel(DBufferATexture, DBufferATextureSampler, UV, 0);
+	float4 DBufferB = Texture2DSampleLevel(DBufferBTexture, DBufferATextureSampler, UV, 0);
+	float2 DBufferC = Texture2DSampleLevel(DBufferCTexture, DBufferATextureSampler, UV, 0).rg;
+#else
 	float4 DBufferA = Texture2DSampleLevel(DBufferATexture, DBufferATextureSampler, UV, 0);
 	float4 DBufferB = Texture2DSampleLevel(DBufferBTexture, DBufferBTextureSampler, UV, 0);
 	float2 DBufferC = Texture2DSampleLevel(DBufferCTexture, DBufferCTextureSampler, UV, 0).rg;
+#endif
 	
 	return DecodeDBufferData(DBufferA, DBufferB, DBufferC);
 }

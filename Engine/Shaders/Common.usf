@@ -150,6 +150,9 @@
 #define FCOLOR_COMPONENT_SWIZZLE
 #endif
 
+// Whether the platform supports independent texture and samplers
+// When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
+#define SUPPORTS_INDEPENDENT_SAMPLERS (FEATURE_LEVEL_SM5 && !GL4_PROFILE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!

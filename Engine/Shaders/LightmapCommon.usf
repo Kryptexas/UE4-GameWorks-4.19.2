@@ -83,7 +83,12 @@ half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 
 float4 GetSkyBentNormalAndOcclusion(float2 LightmapUV)
 {
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	// Share sampler with lightmaps to give artists more available
+	float4 TextureValue = Texture2DSample(SkyOcclusionTexture, LightMapSampler, LightmapUV.xy);
+#else
 	float4 TextureValue = Texture2DSample(SkyOcclusionTexture, SkyOcclusionSampler, LightmapUV.xy);
+#endif
 	// Unpack vector
 	TextureValue.rgb = TextureValue.rgb * 2 - 1;
 	// Undo sqrt which allocated more precision toward 0
