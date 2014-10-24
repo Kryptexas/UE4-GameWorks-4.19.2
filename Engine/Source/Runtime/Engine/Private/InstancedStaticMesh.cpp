@@ -620,7 +620,6 @@ public:
 
 	~FInstancedStaticMeshRenderData()
 	{
-		ReleaseResources();
 	}
 
 	void InitResources()
@@ -652,14 +651,14 @@ public:
 		}
 	}
 
-	void ReleaseResources()
+	void ReleaseResources(FSceneInterface* Scene, const UStaticMesh* StaticMesh)
 	{
 		// unregister SpeedTree wind with the scene
-		if (Component && Component->GetScene() && Component->StaticMesh && Component->StaticMesh->SpeedTreeWind.IsValid())
+		if (Scene && StaticMesh && StaticMesh->SpeedTreeWind.IsValid())
 		{
 			for (int32 LODIndex = 0; LODIndex < VertexFactories.Num(); LODIndex++)
 			{
-				Component->GetScene()->RemoveSpeedTreeWind(&VertexFactories[LODIndex], Component->StaticMesh);
+				Scene->RemoveSpeedTreeWind(&VertexFactories[LODIndex], StaticMesh);
 			}
 		}
 
@@ -903,6 +902,11 @@ public:
 		// unselected only
 		UserData_DeselectedInstances = UserData_AllInstances;
 		UserData_DeselectedInstances.bRenderSelected = false;
+	}
+
+	~FInstancedStaticMeshSceneProxy()
+	{
+		InstancedRenderData.ReleaseResources(GetScene( ), StaticMesh);
 	}
 
 	// FPrimitiveSceneProxy interface.

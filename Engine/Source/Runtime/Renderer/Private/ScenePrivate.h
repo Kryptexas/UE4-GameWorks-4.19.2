@@ -1281,8 +1281,8 @@ public:
 	TArray<class FWindSourceSceneProxy*> WindSources;
 
 	/** SpeedTree wind objects in the scene. FLocalVertexFactoryShaderParameters needs to lookup by FVertexFactory, but wind objects are per tree (i.e. per UStaticMesh)*/
-	TMap<UStaticMesh*, FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
-	TMap<FVertexFactory*, UStaticMesh*> SpeedTreeVertexFactoryMap;
+	TMap<const UStaticMesh*, FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
+	TMap<FVertexFactory*, const UStaticMesh*> SpeedTreeVertexFactoryMap;
 
 	/** The attachment groups in the scene.  The map key is the attachment group's root primitive. */
 	TMap<FPrimitiveComponentId,FAttachmentGroupSceneInfo> AttachmentGroups;
@@ -1355,8 +1355,8 @@ public:
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const;
 	virtual FVector4 GetWindParameters(const FVector& Position) const;
 	virtual FVector4 GetDirectionalWindParameters() const;
-	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh);
-	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh);
+	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
+	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
 	virtual void UpdateSpeedTreeWind(double CurrentTime);
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory);
 	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const;

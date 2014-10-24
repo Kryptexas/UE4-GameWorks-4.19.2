@@ -1341,14 +1341,14 @@ FVector4 FScene::GetDirectionalWindParameters(void) const
 	return NumActiveWindSources > 0 ? AccumulatedDirectionAndSpeed / NumActiveWindSources : FVector4(0,0,1,0);
 }
 
-void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* StaticMesh)
+void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh)
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FAddSpeedTreeWindCommand,
 			FScene*,Scene,this,
-			UStaticMesh*,StaticMesh,StaticMesh,
+			const UStaticMesh*,StaticMesh,StaticMesh,
 			FVertexFactory*,VertexFactory,VertexFactory,
 			{
 				Scene->SpeedTreeVertexFactoryMap.Add(VertexFactory, StaticMesh);
@@ -1369,14 +1369,14 @@ void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, UStaticMesh* Static
 	}
 }
 
-void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh)
+void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh)
 {
 	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && StaticMesh->RenderData.IsValid())
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FRemoveSpeedTreeWindCommand,
 			FScene*,Scene,this,
-			UStaticMesh*, StaticMesh, StaticMesh,
+			const UStaticMesh*, StaticMesh, StaticMesh,
 			FVertexFactory*,VertexFactory,VertexFactory,
 			{
 				FSpeedTreeWindComputation** WindComputationRef = Scene->SpeedTreeWindComputationMap.Find(StaticMesh);
@@ -1415,9 +1415,9 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 		{
 			FVector4 WindInfo = Scene->GetDirectionalWindParameters();
 
-			for (TMap<UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It )
+			for (TMap<const UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It )
 			{
-				UStaticMesh* StaticMesh = It.Key();
+				const UStaticMesh* StaticMesh = It.Key();
 				FSpeedTreeWindComputation* WindComputation = It.Value();
 
 				if( !StaticMesh->RenderData )
@@ -1426,7 +1426,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 					continue;
 				}
 
-				if (StaticMesh->SpeedTreeWind->NeedsReload( ))
+				if (GIsEditor && StaticMesh->SpeedTreeWind->NeedsReload( ))
 				{
 					// reload the wind since it may have changed or been scaled differently during reimport
 					StaticMesh->SpeedTreeWind->SetNeedsReload(false);
@@ -1480,7 +1480,7 @@ FUniformBufferRHIParamRef FScene::GetSpeedTreeUniformBuffer(const FVertexFactory
 {
 	if (VertexFactory != NULL)
 	{
-		UStaticMesh** StaticMesh = SpeedTreeVertexFactoryMap.Find(VertexFactory);
+		const UStaticMesh** StaticMesh = SpeedTreeVertexFactoryMap.Find(VertexFactory);
 		if (StaticMesh != NULL)
 		{
 			FSpeedTreeWindComputation** WindComputation = SpeedTreeWindComputationMap.Find(*StaticMesh);
@@ -2102,8 +2102,8 @@ public:
 	}
 	virtual FVector4 GetWindParameters(const FVector& Position) const { return FVector4(0,0,1,0); }
 	virtual FVector4 GetDirectionalWindParameters() const { return FVector4(0,0,1,0); }
-	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) {}
-	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class UStaticMesh* StaticMesh) {}
+	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
+	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
 	virtual void UpdateSpeedTreeWind(double CurrentTime) {}
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) { return FUniformBufferRHIParamRef(); }
 
