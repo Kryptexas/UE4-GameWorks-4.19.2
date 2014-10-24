@@ -2,6 +2,7 @@
 
 
 #include "CorePrivatePCH.h"
+#include "Math/SHMath.h"
 
 //
 //	Spherical harmonic globals.

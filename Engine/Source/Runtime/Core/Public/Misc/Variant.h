@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Math/RandomStream.h"
+#include "Misc/NetworkGuid.h"
 
 /**
  * Enumerates the built-in types that can be stored in instances of FVariant.
