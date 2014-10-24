@@ -2,6 +2,7 @@
 
 #include "DeviceManagerPrivatePCH.h"
 #include "SDockTab.h"
+#include "WorkspaceMenuStructureModule.h"
 
 
 #define LOCTEXT_NAMESPACE "SDeviceManager"
