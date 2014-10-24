@@ -5,8 +5,9 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
-#include "UObjectAnnotation.h"
-#include "SecureHash.h"
+#include "Misc/SecureHash.h"
+#include "UObject/ConstructorHelpers.h"
+#include "UObject/UObjectAnnotation.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 

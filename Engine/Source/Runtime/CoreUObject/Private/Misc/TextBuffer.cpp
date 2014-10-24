@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
-
+#include "Misc/TextBuffer.h"
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UTextBuffer, UObject, { });
 

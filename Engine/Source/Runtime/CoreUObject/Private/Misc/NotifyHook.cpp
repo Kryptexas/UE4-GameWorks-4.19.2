@@ -6,7 +6,7 @@
 
 // Core includes.
 #include "CoreUObjectPrivate.h"
-
+#include "Misc/NotifyHook.h"
 
 void FNotifyHook::NotifyPreChange( FEditPropertyChain* PropertyAboutToChange )
 {

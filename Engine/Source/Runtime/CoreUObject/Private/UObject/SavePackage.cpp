@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "CoreUObjectPrivate.h"
+#include "UObject/UTextProperty.h"
+#include "Interface.h"
 #include "TargetPlatform.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
