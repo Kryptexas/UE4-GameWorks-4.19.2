@@ -42,7 +42,7 @@ struct FStructSerializerNumericTestStruct
 	double Double;
 
 	/** Default constructor. */
-	FStructSerializerNumericTestStruct( )
+	FStructSerializerNumericTestStruct()
 		: Int8(-8)
 		, Int16(-16)
 		, Int32(-32)
@@ -78,7 +78,7 @@ struct FStructSerializerBooleanTestStruct
 	uint32 Bitfield;
 
 	/** Default constructor. */
-	FStructSerializerBooleanTestStruct( )
+	FStructSerializerBooleanTestStruct()
 		: BoolFalse(false)
 		, BoolTrue(true)
 		, Bitfield(1)
@@ -104,7 +104,7 @@ struct FStructSerializerObjectTestStruct
 	class UObject* ObjectPtr;
 
 	/** Default constructor. */
-	FStructSerializerObjectTestStruct( )
+	FStructSerializerObjectTestStruct()
 		: ObjectPtr(nullptr)
 	{ }
 
@@ -134,7 +134,7 @@ struct FStructSerializerBuiltinTestStruct
 	FVector Vector;
 
 	/** Default constructor. */
-	FStructSerializerBuiltinTestStruct( )
+	FStructSerializerBuiltinTestStruct()
 		: String("Hello World!")
 		, Rotator(4096, 8192, 16384)
 		, Vector(1.0f, 2.0f, 3.0f)
@@ -169,7 +169,7 @@ struct FStructSerializerArrayTestStruct
 	TArray<FVector> VectorArray;
 
 	/** Default constructor. */
-	FStructSerializerArrayTestStruct( )
+	FStructSerializerArrayTestStruct()
 	{
 		Int32Array.Add(-1);
 		Int32Array.Add(0);

@@ -50,7 +50,7 @@ public:
 	 *
 	 * @return The field's name.
 	 */
-	virtual const FString& GetCurrentPropertyName( ) const = 0;
+	virtual const FString& GetCurrentPropertyName() const = 0;
 
 	/**
 	 * Gets a debug string for the reader's current state.
@@ -61,14 +61,14 @@ public:
 	 *
 	 * @return The debug string.
 	 */
-	virtual FString GetDebugString( ) const = 0;
+	virtual FString GetDebugString() const = 0;
 
 	/**
 	 * Gets the last error message.
 	 *
 	 * @return Error message.
 	 */
-	virtual const FString& GetLastErrorMessage( ) const = 0;
+	virtual const FString& GetLastErrorMessage() const = 0;
 
 	/**
 	 * Reads the next token from the stream.
@@ -90,13 +90,13 @@ public:
 	virtual bool ReadProperty( UProperty* Property, UProperty* Outer, void* Data, int32 ArrayIndex ) = 0;
 
 	/** Skips the array that is currently being read from the stream. */
-	virtual void SkipArray( ) = 0;
+	virtual void SkipArray() = 0;
 
 	/** Skips the object that is currently being read from the stream. */
-	virtual void SkipStructure( ) = 0;
+	virtual void SkipStructure() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~IStructDeserializerBackend( ) { }
+	virtual ~IStructDeserializerBackend() { }
 };

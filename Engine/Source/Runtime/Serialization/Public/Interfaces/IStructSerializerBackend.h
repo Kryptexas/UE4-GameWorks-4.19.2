@@ -45,7 +45,7 @@ public:
 	/**
 	 * Signals the end of an object.
 	 */
-	virtual void EndStructure( ) = 0;
+	virtual void EndStructure() = 0;
 
 	/**
 	 * Writes a comment to the output stream.
@@ -69,5 +69,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IStructSerializerBackend( ) { }
+	virtual ~IStructSerializerBackend() { }
 };

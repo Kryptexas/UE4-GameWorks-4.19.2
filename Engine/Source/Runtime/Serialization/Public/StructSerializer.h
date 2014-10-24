@@ -48,7 +48,7 @@ struct FStructSerializerPolicies
 	EStructSerializerReferenceLoopPolicies ReferenceLoops;
 
 	/** Default constructor. */
-	FStructSerializerPolicies( )
+	FStructSerializerPolicies()
 		: NullValues(EStructSerializerNullValuePolicies::Serialize)
 		, ReferenceLoops(EStructSerializerReferenceLoopPolicies::Ignore)
 	{ }

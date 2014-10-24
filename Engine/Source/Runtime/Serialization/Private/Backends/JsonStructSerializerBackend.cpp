@@ -83,7 +83,7 @@ void FJsonStructSerializerBackend::EndArray( UProperty* Property )
 }
 
 
-void FJsonStructSerializerBackend::EndStructure( )
+void FJsonStructSerializerBackend::EndStructure()
 {
 	JsonWriter->WriteObjectEnd();
 }

@@ -32,7 +32,7 @@ struct FStructDeserializerPolicies
 	EStructDeserializerErrorPolicies MissingFields;
 
 	/** Default constructor. */
-	FStructDeserializerPolicies( )
+	FStructDeserializerPolicies()
 		: MissingFields(EStructDeserializerErrorPolicies::Ignore)
 	{ }
 };

@@ -36,7 +36,7 @@ public:
 	virtual void BeginStructure( UProperty* Property ) override;
 	virtual void BeginStructure( UStruct* TypeInfo ) override;
 	virtual void EndArray( UProperty* Property ) override;
-	virtual void EndStructure( ) override;
+	virtual void EndStructure() override;
 	virtual void WriteComment( const FString& Comment ) override;
 	virtual void WriteProperty( UProperty* Property, const void* Data, UStruct* TypeInfo, int32 ArrayIndex ) override;
 
