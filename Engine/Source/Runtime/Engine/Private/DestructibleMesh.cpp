@@ -521,6 +521,14 @@ void UDestructibleMesh::LoadDefaultDestructibleParametersFromApexAsset()
 #endif
 }
 
+void UDestructibleMesh::CreateBodySetup()
+{
+	if (BodySetup == NULL)
+	{
+		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+	}
+}
+
 void UDestructibleMesh::CreateFractureSettings()
 {
 #if WITH_EDITORONLY_DATA

@@ -52,11 +52,9 @@ UBodySetup::UBodySetup(const FObjectInitializer& ObjectInitializer)
 	BuildScale_DEPRECATED = 1.0f;
 	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
 	SetFlags(RF_Transactional);
-	bSharedCookedData = false;
-	CookedFormatDataOverride = nullptr;
 }
 
-void UBodySetup::CopyBodyPropertiesFrom(const UBodySetup* FromSetup)
+void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
 {
 	AggGeom = FromSetup->AggGeom;
 
@@ -181,7 +179,7 @@ void UBodySetup::CreatePhysicsMeshes()
 	}
 
 	// Clear the cooked data
-	if (!GIsEditor && !bSharedCookedData)
+	if (!GIsEditor)
 	{
 		CookedFormatData.FlushData();
 	}
@@ -674,10 +672,7 @@ void UBodySetup::InvalidatePhysicsData()
 {
 	ClearPhysicsMeshes();
 	BodySetupGuid = FGuid::NewGuid(); // change the guid
-	if (!bSharedCookedData)
-	{
-		CookedFormatData.FlushData();
-	}
+	CookedFormatData.FlushData();
 }
 #endif // WITH_EDITOR
 
@@ -701,7 +696,6 @@ void UBodySetup::FinishDestroy()
 void UBodySetup::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
-
 
 	// Load GUID (or create one for older versions)
 	Ar << BodySetupGuid;
@@ -863,10 +857,8 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format)
 		return NULL;
 	}
 
-	FFormatContainer* UseCookedData = CookedFormatDataOverride ? CookedFormatDataOverride : &CookedFormatData;
-
-	bool bContainedData = UseCookedData->Contains(Format);
-	FByteBulkData* Result = &UseCookedData->GetFormat(Format);
+	bool bContainedData = CookedFormatData.Contains(Format);
+	FByteBulkData* Result = &CookedFormatData.GetFormat(Format);
 #if WITH_PHYSX
 	if (!bContainedData)
 	{

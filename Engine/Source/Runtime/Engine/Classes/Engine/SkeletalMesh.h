@@ -9,7 +9,6 @@
 #include "SkeletalMeshTypes.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
-#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -564,7 +563,7 @@ class FSkeletalMeshResource;
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
-class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider
+class USkeletalMesh : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -615,15 +614,6 @@ public:
 	/** Whether or not the mesh has vertex colors */
 	UPROPERTY()
 	uint32 bHasVertexColors:1;
-
-
-	/** Uses skinned data for collision data. Per poly collision cannot be used for simulation, in most cases you are better off using the physics asset */
-	UPROPERTY(EditAnywhere, Category = Physics)
-	uint32 bEnablePerPolyCollision : 1;
-
-	// Physics data for the per poly collision case. In 99% of cases you will not need this and are better off using simple ragdoll collision (physics asset)
-	UPROPERTY(transient)
-	class UBodySetup* BodySetup;
 
 	/**
 	 *	Physics and collision information used for this USkeletalMesh, set up in PhAT.
@@ -880,22 +870,6 @@ public:
 	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
 	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
 #endif// #if WITH_APEX_CLOTHING
-
-	ENGINE_API void CreateBodySetup();
-	ENGINE_API UBodySetup* GetBodySetup();
-
-	/** Trigger a physics build to ensure per poly collision is created */
-	ENGINE_API void BuildPhysicsData();
-	
-
-	// Begin Interface_CollisionDataProvider Interface
-	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
-	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
-	virtual bool WantsNegXTriMesh() override
-	{
-		return true;
-	}
-	// End Interface_CollisionDataProvider Interface
 
 private:
 

@@ -195,9 +195,9 @@ bool FDerivedDataPhysXCooker::BuildTriMesh( TArray<uint8>& OutData, bool bInMirr
 
 		UE_LOG(LogPhysics, Log, TEXT("Cook TriMesh: %s (FlipX: %d)"), *CollisionDataProvider->GetPathName(), bInMirrored);
 		bool bPerPolySkeletalMesh = false;
-		if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(CollisionDataProvider))
+		if (USkeletalMeshComponent * SkeletalMeshComponent = Cast<USkeletalMeshComponent>(CollisionDataProvider))
 		{
-			ensure(SkeletalMesh->bEnablePerPolyCollision);
+			ensure(SkeletalMeshComponent->bEnablePerPolyCollision);
 			bPerPolySkeletalMesh = true;
 		}
 		bResult = Cooker->CookTriMesh( Format, *MeshVertices, TriangleMeshDesc.Indices, TriangleMeshDesc.MaterialIndices, bInMirrored ? !TriangleMeshDesc.bFlipNormals : TriangleMeshDesc.bFlipNormals, OutData, bPerPolySkeletalMesh );

@@ -465,6 +465,16 @@ public:
 
 	void CreateBodySetup();
 
+	// Begin Interface_CollisionDataProvider Interface
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
+	virtual bool WantsNegXTriMesh() override
+	{
+		return true;
+	}
+	// End Interface_CollisionDataProvider Interface
+
+
 	/**
 	 * Misc 
 	 */

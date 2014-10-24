@@ -449,10 +449,6 @@ class UBodySetup : public UObject
 	UPROPERTY()
 	uint32 bGenerateNonMirroredCollision:1;
 
-	/** Whether the cooked data is shared by multiple body setups. This is needed for per poly collision case where we don't want to duplicate cooked data, but still need multiple body setups for in place geometry changes */
-	UPROPERTY()
-	uint32 bSharedCookedData : 1;
-
 	/** 
 	 *	Should we generate data necessary to support collision on mirrored versions of this mesh. 
 	 *	This halves the collision data size for this mesh, but disables collision on mirrored instances of the body.
@@ -493,9 +489,6 @@ class UBodySetup : public UObject
 	/** Cooked physics data for each format */
 	FFormatContainer CookedFormatData;
 
-	/** Cooked physics data override. This is needed in cases where some other body setup has the cooked data and you don't want to own it or copy it. See per poly skeletal mesh */
-	FFormatContainer* CookedFormatDataOverride;
-
 #if WITH_PHYSX
 	/** Physics triangle mesh, created from cooked data in CreatePhysicsMeshes */
 	physx::PxTriangleMesh* TriMesh;
@@ -526,7 +519,7 @@ public:
 	//
 	// UBodySetup interface.
 	//
-	ENGINE_API void CopyBodyPropertiesFrom(const UBodySetup* FromSetup);
+	ENGINE_API void CopyBodyPropertiesFrom(class UBodySetup* FromSetup);
 
 	/** Add collision shapes from another body setup to this one */
 	ENGINE_API void AddCollisionFrom(class UBodySetup* FromSetup);
