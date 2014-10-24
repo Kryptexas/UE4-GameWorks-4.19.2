@@ -11,6 +11,7 @@
 #include "IDelegateInstance.h"
 #include "DelegateBase.h"
 #include "MulticastDelegateBase.h"
+#include "UObject/ScriptDelegates.h"
 
 
 /**
