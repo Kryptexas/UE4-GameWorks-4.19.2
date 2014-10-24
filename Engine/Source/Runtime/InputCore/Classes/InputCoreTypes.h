@@ -287,13 +287,29 @@ struct INPUTCORE_API EKeys
 	static const FKey Equals;
 	static const FKey Comma;
 	static const FKey Underscore;
+	static const FKey Hyphen;
 	static const FKey Period;
 	static const FKey Slash;
 	static const FKey Tilde;
 	static const FKey LeftBracket;
 	static const FKey Backslash;
 	static const FKey RightBracket;
+	static const FKey Apostrophe;
+
+	static const FKey Ampersand;
+	static const FKey Asterix;
+	static const FKey Caret;
+	static const FKey Colon;
+	static const FKey Dollar;
+	static const FKey Exclamation;
+	static const FKey LeftParantheses;
+	static const FKey RightParantheses;
 	static const FKey Quote;
+
+	static const FKey A_AccentGrave;
+	static const FKey E_AccentGrave;
+	static const FKey E_AccentAigu;
+	static const FKey C_Cedille;
 
 	// Platform Keys
 	// These keys platform specific versions of keys that go by different names.

@@ -724,15 +724,31 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint16* KeyCodes, FStrin
 	ADDKEYMAP( ';', TEXT("Semicolon") );
 	ADDKEYMAP( '=', TEXT("Equals") );
 	ADDKEYMAP( ',', TEXT("Comma") );
-	ADDKEYMAP( '-', TEXT("Underscore") );
+	ADDKEYMAP( '-', TEXT("Hyphen") );
 	ADDKEYMAP( '.', TEXT("Period") );
 	ADDKEYMAP( '/', TEXT("Slash") );
 	ADDKEYMAP( '`', TEXT("Tilde") );
 	ADDKEYMAP( '[', TEXT("LeftBracket") );
 	ADDKEYMAP( '\\', TEXT("Backslash") );
 	ADDKEYMAP( ']', TEXT("RightBracket") );
-	ADDKEYMAP( '\'', TEXT("Quote") );
+	ADDKEYMAP( '\'', TEXT("Apostrophe") );
 	ADDKEYMAP( ' ', TEXT("SpaceBar") );
+
+	// AZERTY Keys
+	ADDKEYMAP( '&', TEXT("Ampersand") );
+	ADDKEYMAP( '*', TEXT("Asterix") );
+	ADDKEYMAP( '^', TEXT("Caret") );
+	ADDKEYMAP( ':', TEXT("Colon") );
+	ADDKEYMAP( '$', TEXT("Dollar") );
+	ADDKEYMAP( '!', TEXT("Exclamation") );
+	ADDKEYMAP( '(', TEXT("LeftParantheses") );
+	ADDKEYMAP( ')', TEXT("RightParantheses") );
+	ADDKEYMAP( '"', TEXT("Quote") );
+	ADDKEYMAP( '_', TEXT("Underscore") );
+	ADDKEYMAP( 224, TEXT("A_AccentGrave") );
+	ADDKEYMAP( 231, TEXT("C_Cedille") );
+	ADDKEYMAP( 233, TEXT("E_AccentAigu") );
+	ADDKEYMAP( 232, TEXT("E_AccentGrave") );
 
 	return NumMappings;
 }

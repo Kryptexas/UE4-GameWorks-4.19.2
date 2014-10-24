@@ -127,13 +127,30 @@ const FKey EKeys::Semicolon("Semicolon");
 const FKey EKeys::Equals("Equals");
 const FKey EKeys::Comma("Comma");
 const FKey EKeys::Underscore("Underscore");
+const FKey EKeys::Hyphen("Hyphen");
 const FKey EKeys::Period("Period");
 const FKey EKeys::Slash("Slash");
 const FKey EKeys::Tilde("Tilde");
 const FKey EKeys::LeftBracket("LeftBracket");
+const FKey EKeys::LeftParantheses("LeftParantheses");
 const FKey EKeys::Backslash("Backslash");
 const FKey EKeys::RightBracket("RightBracket");
+const FKey EKeys::RightParantheses("RightParantheses");
+const FKey EKeys::Apostrophe("Apostrophe");
 const FKey EKeys::Quote("Quote");
+
+const FKey EKeys::Asterix("Asterix");
+const FKey EKeys::Ampersand("Ampersand");
+const FKey EKeys::Caret("Caret");
+const FKey EKeys::Dollar("Dollar");
+const FKey EKeys::Exclamation("Exclamation");
+const FKey EKeys::Colon("Colon");
+
+const FKey EKeys::A_AccentGrave("A_AccentGrave");
+const FKey EKeys::E_AccentGrave("E_AccentGrave");
+const FKey EKeys::E_AccentAigu("E_AccentAigu");
+const FKey EKeys::C_Cedille("C_Cedille");
+
 
 // Setup platform specific keys
 #if PLATFORM_MAC
@@ -349,6 +366,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Semicolon, LOCTEXT("Semicolon", ";")));
 	AddKey(FKeyDetails(EKeys::Equals, LOCTEXT("Equals", "=")));
 	AddKey(FKeyDetails(EKeys::Comma, LOCTEXT("Comma", ",")));
+	AddKey(FKeyDetails(EKeys::Hyphen, LOCTEXT("Hyphen", "-")));
 	AddKey(FKeyDetails(EKeys::Underscore, LOCTEXT("Underscore", "_")));
 	AddKey(FKeyDetails(EKeys::Period, LOCTEXT("Period", ".")));
 	AddKey(FKeyDetails(EKeys::Slash, LOCTEXT("Slash", "/")));
@@ -356,7 +374,23 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::LeftBracket, LOCTEXT("LeftBracket", "[")));
 	AddKey(FKeyDetails(EKeys::Backslash, LOCTEXT("Backslash", "\\")));
 	AddKey(FKeyDetails(EKeys::RightBracket, LOCTEXT("RightBracket", "]")));
-	AddKey(FKeyDetails(EKeys::Quote, LOCTEXT("Quote", "'")));
+	AddKey(FKeyDetails(EKeys::Apostrophe, LOCTEXT("Apostrophe", "'")));
+	AddKey(FKeyDetails(EKeys::Quote, LOCTEXT("Quote", "\"")));
+
+	AddKey(FKeyDetails(EKeys::LeftParantheses, LOCTEXT("LeftParantheses", "(")));
+	AddKey(FKeyDetails(EKeys::RightParantheses, LOCTEXT("RightParantheses", ")")));
+	AddKey(FKeyDetails(EKeys::Ampersand, LOCTEXT("Ampersand", "&")));
+	AddKey(FKeyDetails(EKeys::Asterix, LOCTEXT("Asterix", "*")));
+	AddKey(FKeyDetails(EKeys::Caret, LOCTEXT("Caret", "^")));
+	AddKey(FKeyDetails(EKeys::Dollar, LOCTEXT("Dollar", "$")));
+	AddKey(FKeyDetails(EKeys::Exclamation, LOCTEXT("Exclamation", "!")));
+	AddKey(FKeyDetails(EKeys::Colon, LOCTEXT("Colon", ":")));
+
+	AddKey(FKeyDetails(EKeys::A_AccentGrave, LOCTEXT("A_AccentGrave", "à")));
+	AddKey(FKeyDetails(EKeys::E_AccentGrave, LOCTEXT("E_AccentGrave", "é")));
+	AddKey(FKeyDetails(EKeys::E_AccentAigu, LOCTEXT("E_AccentAigu", "è")));
+	AddKey(FKeyDetails(EKeys::C_Cedille, LOCTEXT("C_Cedille", "ç")));
+
 
 	// Setup Gamepad keys
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
