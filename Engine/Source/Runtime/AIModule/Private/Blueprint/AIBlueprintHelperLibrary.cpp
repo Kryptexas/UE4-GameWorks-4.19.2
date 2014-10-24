@@ -144,19 +144,6 @@ APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(class UObject* WorldContextOb
 	return NewPawn;
 }
 
-APawn* UAIBlueprintHelperLibrary::SpawnAI(class UObject* WorldContextObject, UBlueprint* Pawn, class UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
-{
-	APawn* NewPawn = NULL;
-
-	const bool bGoodBPGeneratedClass = Pawn && Pawn->GeneratedClass && Pawn->GeneratedClass->IsChildOf(APawn::StaticClass());
-	if (bGoodBPGeneratedClass)
-	{
-		NewPawn = SpawnAIFromClass(WorldContextObject, *(Pawn->GeneratedClass), BehaviorTree, Location, Rotation, bNoCollisionFail);
-	}
-
-	return NewPawn;
-}
-
 UBlackboardComponent* UAIBlueprintHelperLibrary::GetBlackboard(AActor* Target)
 {
 	UBlackboardComponent* BlackboardComp = nullptr;
