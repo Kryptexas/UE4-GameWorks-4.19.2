@@ -127,6 +127,8 @@ public:
 	FORCEINLINE bool IsLayerChanged(int32 LayerIdx) const { return DirtyLayers[LayerIdx]; }
 	/** Whether tile data was fully regenerated */
 	FORCEINLINE bool IsFullyRegenerated() const { return bRegenerateCompressedLayers; }
+	/** Whether tile task has anything to build */
+	bool HasDataToBuild() const;
 
 	TArray<FNavMeshTileData> GetCompressedLayers() const { return CompressedLayers; }
 	TArray<FNavMeshTileData> GetNavigationData() const { return NavigationData; }
@@ -211,43 +213,68 @@ protected:
 
 typedef FAsyncTask<FRecastTileGenerator> FRecastTileGeneratorTask;
 
-struct FTileElement
+struct FPendingTileElement
 {
 	/** tile coordinates on a grid in recast space */
 	FIntPoint	Coord;
 	/** distance to seed, used for sorting pending tiles */
 	float		SeedDistance; 
-	/** generator task associated with this tile */
-	FRecastTileGeneratorTask* AsyncTask;
 	/** Whether we need a full rebuild for this tile grid cell */
 	bool		bRebuildGeometry;
 	/** We need to store dirty area bounds to check which cached layers needs to be regenerated
 	 *  In case geometry is changed cached layers data will be fully regenerated without using dirty areas list
 	 */
 	TArray<FBox> DirtyAreas;
-	
-	FTileElement()
+
+	FPendingTileElement()
 		: Coord(FIntPoint::NoneValue)
 		, SeedDistance(MAX_flt)
-		, AsyncTask(nullptr)
 		, bRebuildGeometry(false)
 	{
 	}
 
-	bool operator == (const FTileElement& Other) const
+	bool operator == (const FPendingTileElement& Other) const
 	{
 		return Coord == Other.Coord;
 	}
 
-	bool operator < (const FTileElement& Other) const
+	bool operator < (const FPendingTileElement& Other) const
 	{
 		return Other.SeedDistance < SeedDistance;
 	}
 
-	friend uint32 GetTypeHash(const FTileElement& Element)
+	friend uint32 GetTypeHash(const FPendingTileElement& Element)
 	{
 		return GetTypeHash(Element.Coord);
 	}
+};
+
+struct FRunningTileElement
+{
+	FRunningTileElement()
+		: Coord(FIntPoint::NoneValue)
+		, bShouldDiscard(false)
+		, AsyncTask(nullptr)
+	{
+	}
+	
+	FRunningTileElement(FIntPoint InCoord)
+		: Coord(InCoord)
+		, bShouldDiscard(false)
+		, AsyncTask(nullptr)
+	{
+	}
+
+	bool operator == (const FRunningTileElement& Other) const
+	{
+		return Coord == Other.Coord;
+	}
+	
+	/** tile coordinates on a grid in recast space */
+	FIntPoint					Coord;
+	/** whether generated results should be discarded */
+	bool						bShouldDiscard; 
+	FRecastTileGeneratorTask*	AsyncTask;
 };
 
 struct FTileTimestamp
@@ -320,7 +347,7 @@ public:
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
 
 	/**  */
-	TArray<FNavMeshTileData> GetCachedLayersData(FIntPoint GridCoord) const;
+	TArray<FNavMeshTileData> GetIntermediateLayersData(FIntPoint GridCoord) const;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const;
@@ -351,11 +378,8 @@ private:
 	/** Marks grid tiles affected by specified areas as dirty */
 	void MarkDirtyTiles(const TArray<FNavigationDirtyArea>& DirtyAreas);
 	
-	/** Submits up to specified number of async generator tasks for grid tiles that was marked as dirty */
-	int32 SubmitDirtyTiles(const int32 NumTasksToSubmit);
-	
-	/** Collect completed async tasks and applies new tile data to a navmesh*/
-	TArray<uint32> CollectCompletedTiles();
+	/** Processes pending tile generattion tasks */
+	TArray<uint32> ProcessTileTasks(const int32 NumTasksToSubmit);
 
 	/** Removes all tiles at specified grid location */
 	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY);
@@ -387,10 +411,10 @@ private:
 	ARecastNavMesh*	DestNavMesh;
 	
 	/** List of dirty tiles that needs to be regenerated */
-	TNavStatArray<FTileElement> PendingDirtyTiles;			
+	TNavStatArray<FPendingTileElement> PendingDirtyTiles;			
 	
 	/** List of dirty tiles currently being regenerated */
-	TNavStatArray<FTileElement> RunningDirtyTiles;
+	TNavStatArray<FRunningTileElement> RunningDirtyTiles;
 
 #if WITH_EDITOR
 	/** List of tiles that were recently regenerated */
@@ -401,7 +425,7 @@ private:
 	FRecastNavMeshCachedData AdditionalCachedData;
 
 	/** Compressed layers data, can be reused for tiles generation */
-	TMap<FIntPoint, TArray<FNavMeshTileData>> CachedLayerDataMap;
+	TMap<FIntPoint, TArray<FNavMeshTileData>> IntermediateLayerDataMap;
 
 	/** */
 	TMapBase<const AActor*, FBox, false> ActorToAreaMap;
