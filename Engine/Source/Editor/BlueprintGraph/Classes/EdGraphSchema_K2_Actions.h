@@ -5,23 +5,6 @@
 #include "EdGraphSchema_K2_Actions.generated.h"
 
 /*******************************************************************************
-* FK2SchemaActionUtils
-*******************************************************************************/
-
-struct FK2SchemaActionUtils
-{
-	/**
-	 * A number of different palette actions hold onto node-templates in different 
-	 * ways. This handles most of those cases and looks to extract said node- 
-	 * template from the specified action.
-	 * 
-	 * @param  PaletteAction	The action you want a node-template for.
-	 * @return A pointer to the extracted node (NULL if the action doesn't have one, or we don't support the specific action type yet)
-	 */
-	static BLUEPRINTGRAPH_API UK2Node const* ExtractNodeTemplateFromAction(TSharedPtr<FEdGraphSchemaAction> PaletteAction);
-};
-
-/*******************************************************************************
 * FEdGraphSchemaAction_K2NewNode
 *******************************************************************************/
 

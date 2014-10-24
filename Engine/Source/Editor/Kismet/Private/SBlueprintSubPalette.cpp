@@ -14,6 +14,7 @@
 #include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
 #include "BlueprintDragDropMenuItem.h"
 #include "BlueprintActionDatabase.h"
+#include "BlueprintActionMenuUtils.h"
 #include "Engine/LevelScriptBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
@@ -58,7 +59,7 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 		bCanBePlaced = false;
 		ImpededReasonOut = LOCTEXT("DropOnlyInGraph", "Nodes can only be placed inside the blueprint graph");
 	}
-	else if (UK2Node const* NodeToBePlaced = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(DropActionIn))
+	else if (UK2Node const* NodeToBePlaced = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(DropActionIn))
 	{
 		UEdGraphSchema const* const GraphSchema = HoveredGraphIn->GetSchema();
 		check(GraphSchema != nullptr);

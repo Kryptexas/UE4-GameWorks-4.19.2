@@ -27,6 +27,7 @@
 #include "AnimStateConduitNode.h"
 #include "AnimationTransitionGraph.h"
 #include "BlueprintActionMenuItem.h"
+#include "BlueprintActionMenuUtils.h"
 #include "BlueprintDragDropMenuItem.h"
 #include "BlueprintNodeSpawner.h"
 #include "TutorialMetaData.h"
@@ -296,7 +297,7 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 			ToolTipOut = ComponentClass->GetName();
 		}
 	}
-	else if (UK2Node const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(ActionIn))
+	else if (UK2Node const* const NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(ActionIn))
 	{
 		// If the node wants to create tooltip text, use that instead, because its probably more detailed
 		FString NodeToolTipText = NodeTemplate->GetTooltipText().ToString();
@@ -1297,7 +1298,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 				ToolTipText = ComponentClass->GetToolTipText().ToString();
 			}
 		}
-		else if (UK2Node const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PaletteAction))
+		else if (UK2Node const* const NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(PaletteAction))
 		{
 			// Display the native title of the node when alt is held
 			if(FSlateApplication::Get().GetModifierKeys().IsAltDown())
@@ -1407,7 +1408,7 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 
 	if (PaletteAction.IsValid())
 	{
-		if (UEdGraphNode const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PaletteAction))
+		if (UEdGraphNode const* const NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(PaletteAction))
 		{
 			// Take rich tooltip from node
 			DocLink = NodeTemplate->GetDocumentationLink();
@@ -1466,7 +1467,7 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 	// English speakers have no real need to know this exists.
 	if(FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() != TEXT("en"))
 	{
-		if (UK2Node const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PaletteAction))
+		if (UK2Node const* const NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(PaletteAction))
 		{
 			struct Local
 			{

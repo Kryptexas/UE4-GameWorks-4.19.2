@@ -6,6 +6,7 @@
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintActionFilter.h"  // for FBlueprintActionInfo
 #include "BlueprintDragDropMenuItem.h"
+#include "BlueprintActionMenuUtils.h"
 
 /*******************************************************************************
  * Static UBlueprintPaletteFavorites Helpers
@@ -58,7 +59,7 @@ static FBlueprintNodeSignature BlueprintPaletteFavoritesImpl::ConstructLegacySig
 		SignatureSubObject = DelegateAction->GetDelegatePoperty();
 	}
 	// if we can pull out a node associated with this action
-	else if (UK2Node const* NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(InPaletteAction))
+	else if (UK2Node const* NodeTemplate = FBlueprintActionMenuUtils::ExtractNodeTemplateFromAction(InPaletteAction))
 	{
 		bool bIsSupported = false;
 		// now, if we need more info to help identify the node, let's fill 
