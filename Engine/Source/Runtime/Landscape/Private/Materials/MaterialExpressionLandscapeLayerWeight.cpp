@@ -3,7 +3,8 @@
 #include "Landscape.h"
 #include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
-
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
