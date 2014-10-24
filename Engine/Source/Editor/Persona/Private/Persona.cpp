@@ -1466,6 +1466,9 @@ void FPersona::Compile()
 	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
 	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->AnimScriptInstance == CurrentDebugObject);
 
+	// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
+	FAssetEditorManager::Get().CloseOtherEditors(PreviewComponent->AnimScriptInstance, nullptr);
+	
 	// Compile the blueprint
 	FBlueprintEditor::Compile();
 
