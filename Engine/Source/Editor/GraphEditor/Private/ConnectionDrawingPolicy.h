@@ -40,6 +40,7 @@ public:
 	FVector2D MidpointRadius;
 protected:
 	float ZoomFactor; 
+	float HoverDeemphasisDarkFraction;
 	const FSlateRect& ClippingRect;
 	FSlateWindowElementList& DrawElementsList;
 	TMap< UEdGraphPin*, TSharedRef<SGraphPin> > PinToPinWidgetMap;
