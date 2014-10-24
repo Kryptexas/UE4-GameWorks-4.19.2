@@ -406,6 +406,7 @@ struct TStructOpsTypeTraits<FPrimitiveComponentPostPhysicsTickFunction> : public
 };
 
 /** Types of network failures broadcast from the engine */
+UENUM(BlueprintType)
 namespace ENetworkFailure
 {
 	enum Type
@@ -429,7 +430,11 @@ namespace ENetworkFailure
 		/** There was an error during connection to the game */
 		PendingConnectionFailure
 	};
+}
 
+
+namespace ENetworkFailure
+{
 	inline const TCHAR* ToString(ENetworkFailure::Type FailureType)
 	{
 		switch (FailureType)
@@ -458,6 +463,7 @@ namespace ENetworkFailure
 }
 
 /** Types of server travel failures broadcast by the engine */
+UENUM(BlueprintType)
 namespace ETravelFailure
 {
 	enum Type
@@ -487,7 +493,10 @@ namespace ETravelFailure
 		/** There was an error during a client travel to a new map */
 		ClientTravelFailure,
 	};
+}
 
+namespace ETravelFailure
+{
 	inline const TCHAR* ToString(ETravelFailure::Type FailureType)
 	{
 		switch (FailureType)

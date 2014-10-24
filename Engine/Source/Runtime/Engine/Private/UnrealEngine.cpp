@@ -7654,6 +7654,9 @@ void UEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureT
 
 	UE_LOG(LogNet, Log, TEXT("TravelFailure: %s, Reason for Failure: '%s'"), ETravelFailure::ToString(FailureType), *ErrorString);
 
+	// Give the GameInstance a chance to handle the failure.
+	HandleTravelFailure_NotifyGameInstance(InWorld, FailureType);
+
 	ENetMode NetMode = GetNetMode(InWorld);
 
 	switch (FailureType)
@@ -7695,6 +7698,9 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 			}
 		}
 
+		// Give the GameInstance a chance to handle the failure.
+		HandleNetworkFailure_NotifyGameInstance(World, NetDriver, FailureType);
+
 		ENetMode FailureNetMode = NetDriver->GetNetMode();	// NetMode of the driver that failed
 		bool bShouldTravel = true;
 
@@ -7725,6 +7731,44 @@ void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetwor
 		{
 			CallHandleDisconnectForFailure(World, NetDriver);
 		}
+	}
+}
+
+void UEngine::HandleNetworkFailure_NotifyGameInstance(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType)
+{
+	bool bIsServer = true;
+
+	if (NetDriver != nullptr)
+	{
+		bIsServer = NetDriver->GetNetMode() != NM_Client;
+	}
+
+	if (World != nullptr && World->GetGameInstance() != nullptr)
+	{
+		World->GetGameInstance()->HandleNetworkError(FailureType, bIsServer);
+	}
+	else
+	{
+		// Since the UWorld passed in might be null, as well as the NetDriver's UWorld,
+		// go through the world contexts until we find the one with this net driver.
+		for (auto& Context : WorldList)
+		{
+			if (Context.PendingNetGame != nullptr &&
+				Context.PendingNetGame->NetDriver == NetDriver &&
+				Context.OwningGameInstance != nullptr)
+			{
+				// Use the GameInstance from the current context.
+				Context.OwningGameInstance->HandleNetworkError(FailureType, bIsServer);
+			}
+		}
+	}
+}
+
+void UEngine::HandleTravelFailure_NotifyGameInstance(UWorld *World, ETravelFailure::Type FailureType)
+{
+	if (World != nullptr && World->GetGameInstance() != nullptr)
+	{
+		World->GetGameInstance()->HandleTravelError(FailureType);
 	}
 }
 

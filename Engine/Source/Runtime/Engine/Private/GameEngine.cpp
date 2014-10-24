@@ -1067,3 +1067,24 @@ UWorld* UGameEngine::GetGameWorld()
 
 	return NULL;
 }
+
+void UGameEngine::HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType)
+{
+	if (GameInstance != nullptr)
+	{
+		bool bIsServer = true;
+		if (NetDriver != nullptr)
+		{
+			bIsServer = NetDriver->GetNetMode() != NM_Client;
+		}
+		GameInstance->HandleNetworkError(FailureType, bIsServer);
+	}
+}
+
+void UGameEngine::HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType)
+{
+	if (GameInstance != nullptr)
+	{
+		GameInstance->HandleTravelError(FailureType);
+	}
+}

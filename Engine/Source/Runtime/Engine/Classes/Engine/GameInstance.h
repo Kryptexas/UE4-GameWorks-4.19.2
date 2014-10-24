@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "EngineBaseTypes.h"
 #include "GameInstance.generated.h"
 
 
@@ -68,6 +69,14 @@ public:
 	/** Opportunity for blueprints to handle the game instance being shutdown. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Shutdown"))
 	virtual void ReceiveShutdown();
+
+	/** Opportunity for blueprints to handle network errors. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "NetworkError"))
+	virtual void HandleNetworkError(ENetworkFailure::Type FailureType, bool bIsServer);
+
+	/** Opportunity for blueprints to handle travel errors. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "TravelError"))
+	virtual void HandleTravelError(ETravelFailure::Type FailureType);
 
 	/* Called to initialize the game instance for standalone instances of the game */
 	void InitializeStandalone();

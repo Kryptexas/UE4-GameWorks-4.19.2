@@ -2525,6 +2525,12 @@ public:
 private:
 	void CreateGameUserSettings();
 
+	/** Allows subclasses to pass the failure to a UGameInstance if possible (mainly for blueprints) */
+	virtual void HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType);
+
+	/** Allows subclasses to pass the failure to a UGameInstance if possible (mainly for blueprints) */
+	virtual void HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType);
+
 public:
 	/**
 	 * Delegate we fire every time a new stat has been registered

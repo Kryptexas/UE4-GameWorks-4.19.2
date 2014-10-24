@@ -137,5 +137,9 @@ public:
 
 protected:
 	float GetGameViewportDPIScale(UGameViewportClient* GameViewportClient) const;
+
+private:
+	virtual void HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType) override;
+	virtual void HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType) override;
 };
 
