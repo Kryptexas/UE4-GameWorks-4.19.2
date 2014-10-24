@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnMathTest.cpp: Test harness for vector INTrinsics abstraction.
-=============================================================================*/
 #include "CorePrivatePCH.h" 
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealMathTest, Log, All);
 
@@ -11,6 +9,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealMathTest, Log, All);
 MS_ALIGN( 16 ) static float GScratch[16] GCC_ALIGN( 16 );
 static float GSum;
 static bool GPassing;
+
 
 /**
  * Tests if two vectors (xyzw) are bitwise equal
@@ -30,6 +29,7 @@ bool TestVectorsEqualBitwise( VectorRegister Vec0, VectorRegister Vec1)
 	GPassing = GPassing && Passed;
 	return Passed;
 }
+
 
 /**
  * Tests if two vectors (xyzw) are equal within an optional tolerance
@@ -54,6 +54,7 @@ bool TestVectorsEqual( VectorRegister Vec0, VectorRegister Vec1, float Tolerance
 	return GSum <= Tolerance;
 }
 
+
 /**
  * Tests if two vectors (xyz) are equal within an optional tolerance
  *
@@ -75,6 +76,7 @@ bool TestVectorsEqual3( VectorRegister Vec0, VectorRegister Vec1, float Toleranc
 	GPassing = GPassing && GSum <= Tolerance;
 	return GSum <= Tolerance;
 }
+
 
 /**
  * Tests if two matrices (4x4 xyzw) are equal within an optional tolerance
@@ -103,6 +105,7 @@ bool TestMatricesEqual( FMatrix &Mat0, FMatrix &Mat1, float Tolerance = 0.0f)
 	}
 	return true;
 }
+
 
 /**
  * Multiplies two 4x4 matrices.
@@ -138,6 +141,7 @@ void TestVectorMatrixMultiply( void* Result, const void* Matrix1, const void* Ma
 	Temp[3][3] = A[3][0] * B[0][3] + A[3][1] * B[1][3] + A[3][2] * B[2][3] + A[3][3] * B[3][3];
 	memcpy( Result, &Temp, 16*sizeof(float) );
 }
+
 
 /**
  * Calculate the inverse of an FMatrix.
@@ -229,6 +233,7 @@ void TestVectorMatrixMultiply( void* Result, const void* Matrix1, const void* Ma
 	memcpy( DstMatrix, &Result, 16*sizeof(float) );
 }
 
+
 /**
  * Calculate Homogeneous transform.
  *
@@ -250,6 +255,7 @@ VectorRegister TestVectorTransformVector(const VectorRegister&  VecP,  const voi
 
 	return Result.v;
 }
+
 
 /**
 * Multiplies two quaternions: The order matters.
@@ -278,6 +284,7 @@ void TestVectorQuaternionMultiply( void *Result, const void* Quat1, const void* 
 	R[3] = TW;
 }
 
+
 /**
  * Helper debugf function to print out success or failure information for a test
  *
@@ -294,6 +301,7 @@ void LogTest( const TCHAR *TestName, bool bHasPassed )
 	}
 }
 
+
 /** 
  * Set the contents of the scratch memory
  * 
@@ -307,6 +315,7 @@ void SetScratch( float X, float Y, float Z, float W, float U = 0.0f )
 	GScratch[3] = W;
 	GScratch[4] = U;
 }
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorRegisterAbstractionTest, "Core.Math.Vector Register Abstraction Test", EAutomationTestFlags::ATF_SmokeTest)
 
@@ -626,7 +635,6 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	V3 = MakeVectorRegister( 1.0f, -3.0f, 24.0f, -36.0f );
 	LogTest( TEXT("VectorBitwiseXor-Float"), TestVectorsEqual( V2, V3 ) );
 
-
 	V0 = MakeVectorRegister( -1.0f, -3.0f, -24.0f, 36.0f );
 	V1 = MakeVectorRegister( 5.0f, 35.0f, 23.0f, 48.0f );
 	V2 = VectorMergeVecXYZ_VecW( V0, V1 );
@@ -639,7 +647,6 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	V3 = MakeVectorRegister( 5.0f, 35.0f, 23.0f, 36.0f );
 	LogTest( TEXT("VectorMergeXYZ_VecW-2"), TestVectorsEqual( V2, V3 ) );
 
-
 	V0 = MakeVectorRegister( 1.0f, 1.0e6f, 1.3e-8f, 35.0f );
 	V1 = VectorReciprocal( V0 );
 	V3 = VectorMultiply(V1, V0);
@@ -649,7 +656,6 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	V1 = VectorReciprocalAccurate( V0 );
 	V3 = VectorMultiply(V1, V0);
 	LogTest( TEXT("VectorReciprocalAccurate"), TestVectorsEqual( VectorOne(), V3, 1e-7f ) );
-
 
 	V0 = MakeVectorRegister( 1.0f, 1.0e6f, 1.3e-8f, 35.0f );
 	V1 = VectorReciprocalSqrt( V0 );
@@ -679,7 +685,7 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	const float ZNear = -100.0f;
 	const float ZFar = 100.0f;
 
-	M1= 	FMatrix(FPlane(2.0f/(Right-Left),			0,							0,					0 ),
+	M1 = FMatrix(FPlane(2.0f/(Right-Left),	0,							0,					0 ),
 		FPlane(0,							2.0f/(Top-Bottom),			0,					0 ),
 		FPlane(0,							0,							1/(ZNear-ZFar),		0 ),
 		FPlane((Left+Right)/(Left-Right),	(Top+Bottom)/(Bottom-Top),	ZNear/(ZNear-ZFar), 1 ) );
@@ -738,4 +744,3 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 
 	return true;
 }
-

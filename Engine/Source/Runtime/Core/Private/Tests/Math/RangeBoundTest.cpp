@@ -1,15 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RangeBoundTest.cpp: Unit test for the TRangeBound template.
-=============================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRangeBoundTest, "Core.Math.RangeBound", EAutomationTestFlags::ATF_SmokeTest)
-
 
 bool FRangeBoundTest::RunTest( const FString& Parameters )
 {

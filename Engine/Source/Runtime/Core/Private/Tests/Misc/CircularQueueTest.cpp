@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CircularQueueTest.cpp: Unit test for the TCircularQueue template class.
-=============================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "Containers/CircularQueue.h"
 #include "Misc/AutomationTest.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCircularQueueTest, "Core.Misc.CircularQueue", EAutomationTestFlags::ATF_SmokeTest)
-
 
 bool FCircularQueueTest::RunTest( const FString& Parameters )
 {

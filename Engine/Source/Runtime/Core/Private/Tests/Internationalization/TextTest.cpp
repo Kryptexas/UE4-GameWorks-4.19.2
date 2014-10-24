@@ -4,11 +4,12 @@
 #include "AutomationTest.h"
 #include "ICUUtilities.h"
 
+
 // Disable optimization for TextTest as it compiles very slowly in development builds
 PRAGMA_DISABLE_OPTIMIZATION
 
-
 #define LOCTEXT_NAMESPACE "Core.Tests.TextFormatTest"
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "Core.Misc.Text", EAutomationTestFlags::ATF_None)
 
@@ -47,6 +48,7 @@ namespace
 		}
 	}
 }
+
 
 bool FTextTest::RunTest (const FString& Parameters)
 {
@@ -691,7 +693,6 @@ bool FICUTextTest::RunTest (const FString& Parameters)
 }
 
 #endif // #if UE_ENABLE_ICU
-
 
 #undef LOCTEXT_NAMESPACE 
 

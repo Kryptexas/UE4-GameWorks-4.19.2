@@ -1,15 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TimespanTest.cpp: Unit test for the FTimespan class.
-=============================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTimespanTest, "Core.Misc.Timespan", EAutomationTestFlags::ATF_SmokeTest)
-
 
 bool FTimespanTest::RunTest( const FString& Parameters )
 {

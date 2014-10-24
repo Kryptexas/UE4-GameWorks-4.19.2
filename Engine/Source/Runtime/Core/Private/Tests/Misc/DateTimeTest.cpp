@@ -6,8 +6,7 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDateTimeTest, "Core.Misc.DateTime", EAutomationTestFlags::ATF_SmokeTest)
 
-
-	bool FDateTimeTest::RunTest( const FString& Parameters )
+bool FDateTimeTest::RunTest( const FString& Parameters )
 {
 	const int32 UnixEpochTimestamp = 0;
 	const int32 UnixBillenniumTimestamp = 1000000000;

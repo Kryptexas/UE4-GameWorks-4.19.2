@@ -1,11 +1,8 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NumberFormattingRulesTest.cpp: Unit test for the FNumberFormattingRules class.
-=============================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
+
 
 // Disable optimization for NumberFormatingRulesTest as it compiles very slowly in development builds
 PRAGMA_DISABLE_OPTIMIZATION
@@ -22,6 +19,7 @@ namespace
 		}
 	}
 }
+
 
 bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 {

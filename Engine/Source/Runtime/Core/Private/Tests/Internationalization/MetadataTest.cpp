@@ -2,14 +2,10 @@
 
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
-
 #include "Internationalization/InternationalizationMetadata.h"
 
-/*=============================================================================
-	Metadatatest.cpp: Unit test for the various loc metadata classes
-=============================================================================*/
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetadataTest, "Core.Misc.Internationalization Metadata", EAutomationTestFlags::ATF_SmokeTest)
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetadataTest, "Core.Misc.Internationalization Metadata", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FMetadataTest::RunTest( const FString& Parameters )
 {
@@ -331,7 +327,6 @@ bool FMetadataTest::RunTest( const FString& Parameters )
 			TestFalse( TEXT("MetadataObjectAClone == MetadataObjectAClone2"),  MetadataObjectAClone.IsExactMatch( MetadataObjectAClone2) );
 		}
 
-
 		// Test less than operator
 		{
 			
@@ -364,8 +359,6 @@ bool FMetadataTest::RunTest( const FString& Parameters )
 			MetadataObjectAClone2.SetStringField( TEXT("*NoCompare"), TEXT("NoCompare") );
 			TestTrue( TEXT("MetadataObjectAClone < MetadataObjectAClone2"), MetadataObjectAClone < MetadataObjectAClone2 );
 		}
-
-		
 	}
 
 	return true;

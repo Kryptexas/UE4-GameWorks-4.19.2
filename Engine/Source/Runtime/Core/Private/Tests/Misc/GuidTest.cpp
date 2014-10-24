@@ -1,15 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GuidTest.cpp: Unit test for the FGuid class.
-=============================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGuidTest, "Core.Misc.Guid", EAutomationTestFlags::ATF_SmokeTest)
-
 
 bool FGuidTest::RunTest( const FString& Parameters )
 {

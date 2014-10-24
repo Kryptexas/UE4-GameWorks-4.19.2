@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*===============================================================================================
-	ArchiveTest.cpp: Unit test for the FInternationalizationArchive class and serializers
-=================================================================================================*/
-
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 #include "Internationalization/InternationalizationArchive.h"
 #include "Internationalization/InternationalizationMetadata.h"
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArchiveTest, "Core.Misc.Internationalization Archive", EAutomationTestFlags::ATF_SmokeTest)
 
@@ -211,10 +208,6 @@ bool FArchiveTest::RunTest( const FString& Parameters )
 			}
 		}
 	}
-
-
-
-	
 
 	return true;
 }
