@@ -27,7 +27,9 @@ namespace UnrealBuildTool
 		/** Compilation failed because generated code changed which was not supported */
 		FailedDueToHeaderChange = 1,
 		/** Compilation failed due to compilation errors */
-		OtherCompilationError,
+		OtherCompilationError = 2,
+		/** The process has most likely crashed. This is what UE returns in case of an assert */
+		CrashOrAssert = 3,
 		/** Compilation is not supported in the current build */
 		Unsupported,
 		/** Unknown error */
