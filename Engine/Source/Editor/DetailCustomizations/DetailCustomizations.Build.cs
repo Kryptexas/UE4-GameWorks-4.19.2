@@ -48,6 +48,7 @@ public class DetailCustomizations : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
+                "Engine",
 				"PropertyEditor",
 				"Landscape",
 				"LandscapeEditor",

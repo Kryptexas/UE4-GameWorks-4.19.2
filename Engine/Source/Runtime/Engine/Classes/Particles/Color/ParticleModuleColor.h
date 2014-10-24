@@ -11,7 +11,7 @@ class UParticleModuleColor : public UParticleModuleColorBase
 	GENERATED_UCLASS_BODY()
 
 	/** Initial color for a particle as a function of Emitter time. */
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, Category = Color, meta = (TreatAsColor))
 	struct FRawDistributionVector StartColor;
 
 	/** Initial alpha for a particle as a function of Emitter time. */

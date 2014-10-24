@@ -17,7 +17,7 @@ class UParticleModuleColorScaleOverLife : public UParticleModuleColorBase
 	GENERATED_UCLASS_BODY()
 
 	/** The scale factor for the color.													*/
-	UPROPERTY(EditAnywhere, Category=Color)
+	UPROPERTY(EditAnywhere, Category = Color, meta = (TreatAsColor))
 	struct FRawDistributionVector ColorScaleOverLife;
 
 	/** The scale factor for the alpha.													*/
