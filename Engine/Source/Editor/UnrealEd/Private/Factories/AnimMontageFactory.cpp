@@ -84,7 +84,7 @@ UObject* UAnimMontageFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 			FSlotAnimationTrack NewTrack;
 			NewTrack.AnimTrack.AnimSegments.Add(NewSegment);
 
-			NewTrack.SlotName = FName("");
+			NewTrack.SlotName = FAnimSlotGroup::DefaultSlotName;
 			AnimMontage->SlotAnimTracks.Add( NewTrack );
 			AnimMontage->SetSequenceLength(SourceAnimation->SequenceLength);
 		}

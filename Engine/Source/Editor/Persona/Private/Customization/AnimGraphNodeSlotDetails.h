@@ -25,33 +25,20 @@ private:
 
 	// property of the two 
 	TSharedPtr<IPropertyHandle> SlotNodeNamePropertyHandle;
-	TSharedPtr<IPropertyHandle> GroupNamePropertyHandle;
 
 	// slot node names
-	TSharedPtr< class STextComboBox>	SlotNameComboBox;
-	TArray< TSharedPtr< FString > >		SlotNameComboList;
+	TSharedPtr<class STextComboBox>	SlotNameComboBox;
+	TArray< TSharedPtr< FString > > SlotNameComboListItems;
+	TArray< FName > SlotNameList;
+	FName SlotNameComboSelectedName;
 
 	void OnSlotNameChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+	void OnSlotListOpening();
 
 	// slot node names buttons
-	FReply OnAddSlotName(TSharedRef<SWidget> Widget);
-	FReply OnManageSlotName();
+	FReply OnOpenAnimSlotManager();
 
-	void AddSlotName(const FText& SlotNameToAdd, ETextCommit::Type CommitInfo);
-	int32 RefreshSlotNames();
-
-	// group names
-	TSharedPtr< class STextComboBox>	GroupNameComboBox;
-	TArray< TSharedPtr< FString > >		GroupNameComboList;
-
-	void OnGroupNameChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-
-	// slot node names buttons
-	FReply OnAddGroupName(TSharedRef<SWidget> Widget);
-	FReply OnManageGroupName();
-
-	void AddGroupName(const FText& GroupNameToAdd, ETextCommit::Type CommitInfo);
-	int32 RefreshGroupNames();
+	void RefreshComboLists(bool bOnlyRefreshIfDifferent = false);
 
 	USkeleton* Skeleton;
 };

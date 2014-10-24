@@ -20,11 +20,6 @@ struct ENGINE_API FAnimNode_Slot : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(CustomizeProperty))
 	FName SlotName;
 
-	// The group name of this slot, exposed to gameplay code, etc...
-	// you can only play one montage per group
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(CustomizeProperty))
-	FName GroupName;
-
 protected:
 	/** Weight of Source Branch. This is the weight of the input pose coming from children.
 	This is different than (1.f - SourceWeight) since the Slot can play additive animations, which are overlayed on top of the source pose. */

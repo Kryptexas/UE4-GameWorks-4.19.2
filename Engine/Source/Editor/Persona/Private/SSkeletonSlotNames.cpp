@@ -11,6 +11,7 @@
 #include "SInlineEditableTextBlock.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSlotNames"
 
@@ -71,18 +72,23 @@ TSharedRef< SWidget > SSlotNameListRow::GenerateWidgetForColumn( const FName& Co
 {
 	check( ColumnName == ColumnId_SlotNameLabel );
 
-	return SNew( SVerticalBox )
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	.Padding( 0.0f, 4.0f )
-	.VAlign( VAlign_Center )
-	[
-		SAssignNew(Item->InlineEditableText, SInlineEditableTextBlock)
-		.Text( FText::FromName(Item->Name) )
-		.OnVerifyTextChanged(SlotNameListView.Get(), &SSkeletonSlotNames::OnVerifyNotifyNameCommit, Item)
-		.OnTextCommitted(SlotNameListView.Get(), &SSkeletonSlotNames::OnNotifyNameCommitted, Item)
-		.IsSelected(SlotNameListView.Get(), &SSkeletonSlotNames::IsSelected)
-	];
+	// Items can be either Slots or Groups.
+	FText ItemText = Item->bIsGroupItem ? FText::Format(LOCTEXT("AnimSlotManagerGroupItem", "(Group) {0}"), FText::FromName(Item->Name))
+		: FText::Format(LOCTEXT("AnimSlotManagerSlotItem", "(Slot) {0}"), FText::FromName(Item->Name));
+
+	return
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SExpanderArrow, SharedThis(this))
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(ItemText)
+		];
 }
 
 /////////////////////////////////////////////////////
@@ -91,13 +97,13 @@ TSharedRef< SWidget > SSlotNameListRow::GenerateWidgetForColumn( const FName& Co
 FSkeletonSlotNamesSummoner::FSkeletonSlotNamesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
 	: FWorkflowTabFactory(FPersonaTabs::SkeletonSlotNamesID, InHostingApp)
 {
-	TabLabel = LOCTEXT("SkeletonSlotNamesTabTitle", "Animation SlotName");
+	TabLabel = LOCTEXT("AnimSlotManagerTabTitle", "Anim Slot Manager");
 
 	EnableTabPadding();
 	bIsSingleton = true;
 
-	ViewMenuDescription = LOCTEXT("SkeletonSlotNamesMenu", "Animation SlotName");
-	ViewMenuTooltip = LOCTEXT("SkeletonSlotNames_ToolTip", "Shows the skeletons slot name list");
+	ViewMenuDescription = LOCTEXT("SkeletonSlotNamesMenu", "Anim Slots");
+	ViewMenuTooltip = LOCTEXT("SkeletonSlotNames_ToolTip", "Manage Skeleton's Slots and Groups.");
 }
 
 TSharedRef<SWidget> FSkeletonSlotNamesSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
@@ -116,9 +122,47 @@ void SSkeletonSlotNames::Construct(const FArguments& InArgs)
 
 	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SSkeletonSlotNames::PostUndo ) );
 
+	// Toolbar
+	FToolBarBuilder ToolbarBuilder(TSharedPtr< FUICommandList >(), FMultiBoxCustomization::None);
+
+	// Save USkeleton
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnSaveSkeleton))
+		, NAME_None
+		, LOCTEXT("AnimSlotManagerToolbarSaveLabel", "Save")
+		, LOCTEXT("AnimSlotManagerToolbarSaveTooltip", "Saves changes into Skeleton asset")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimSlotManager.SaveSkeleton")
+		);
+
+	ToolbarBuilder.AddSeparator();
+
+	// Add Slot
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnAddSlot))
+		, NAME_None
+		, LOCTEXT("AnimSlotManagerToolbarAddSlotLabel", "Add Slot")
+		, LOCTEXT("AnimSlotManagerToolbarAddSlotTooltip", "Create a new unique Slot name")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimSlotManager.AddSlot")
+		);
+
+	// Add Group
+	ToolbarBuilder.AddToolBarButton(
+		FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnAddGroup))
+		, NAME_None
+		, LOCTEXT("AnimSlotManagerToolbarAddGroupLabel", "Add Group")
+		, LOCTEXT("AnimSlotManagerToolbarAddGroupTooltip", "Create a new unique Group name")
+		, FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimSlotManager.AddGroup")
+		);
+
 	this->ChildSlot
 	[
 		SNew( SVerticalBox )
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			ToolbarBuilder.MakeWidget()
+		]
 
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -128,16 +172,18 @@ void SSkeletonSlotNames::Construct(const FArguments& InArgs)
 			.SelectAllTextWhenFocused( true )
 			.OnTextChanged( this, &SSkeletonSlotNames::OnFilterTextChanged )
 			.OnTextCommitted( this, &SSkeletonSlotNames::OnFilterTextCommitted )
-			.HintText( LOCTEXT( "SlotNameSearchBoxHint", "Search Animation SlotName...") )
+			.HintText( LOCTEXT( "AnimSlotManagerSlotNameSearchBoxHint", "Slot name filter...") )
 		]
 
 		+ SVerticalBox::Slot()
 		.FillHeight( 1.0f )		// This is required to make the scrollbar work, as content overflows Slate containers by default
 		[
 			SAssignNew( SlotNameListView, SSlotNameListType )
-			.ListItemsSource( &NotifyList )
+			.TreeItemsSource(&NotifyList)
 			.OnGenerateRow( this, &SSkeletonSlotNames::GenerateNotifyRow )
+			.OnGetChildren(this, &SSkeletonSlotNames::GetChildrenForInfo)
 			.OnContextMenuOpening( this, &SSkeletonSlotNames::OnGetContextMenuContent )
+			.SelectionMode(ESelectionMode::Single)
 			.OnSelectionChanged( this, &SSkeletonSlotNames::OnNotifySelectionChanged )
 			.ItemHeight( 22.0f )
 			.HeaderRow
@@ -184,33 +230,105 @@ TSharedRef<ITableRow> SSkeletonSlotNames::GenerateNotifyRow(TSharedPtr<FDisplaye
 		.SlotNameListView( SharedThis( this ) );
 }
 
+void SSkeletonSlotNames::GetChildrenForInfo(TSharedPtr<FDisplayedSlotNameInfo> InInfo, TArray< TSharedPtr<FDisplayedSlotNameInfo> >& OutChildren)
+{
+	check(InInfo.IsValid());
+	OutChildren = InInfo->Children;
+}
+
 TSharedPtr<SWidget> SSkeletonSlotNames::OnGetContextMenuContent() const
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, NULL);
 
-	MenuBuilder.BeginSection("SlotNameAction", LOCTEXT( "SlotNameActions", "Selected Notify Actions" ) );
-	{
-		{
-			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonSlotNames::OnDeleteSlotName ), 
-				FCanExecuteAction::CreateSP( this, &SSkeletonSlotNames::CanPerformDelete ) );
-			const FText Label = LOCTEXT("DeleteSlotNameButtonLabel", "Delete");
-			const FText ToolTip = LOCTEXT("DeleteSlotNameButtonTooltip", "Deletes the selected anim SlotName.");
-			MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
-		}
+	TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedItems = SlotNameListView.Get()->GetSelectedItems();
 
-		// for now disable rename, it doesn't work correctly
-// 		{
-// 			FUIAction Action = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonSlotNames::OnRenameSlotName ), 
-// 				FCanExecuteAction::CreateSP( this, &SSkeletonSlotNames::CanPerformRename ) );
-// 			const FText Label = LOCTEXT("RenameSlotNameButtonLabel", "Rename");
-// 			const FText ToolTip = LOCTEXT("RenameSlotNameButtonTooltip", "Renames the selected anim SlotName.");
-// 			MenuBuilder.AddMenuEntry( Label, ToolTip, FSlateIcon(), Action);
-// 		}
+	bool bHasSelectedItem = (SelectedItems.Num() > 0);
+	bool bShowGroupItem = bHasSelectedItem && SelectedItems[0].Get()->bIsGroupItem;
+	bool bShowSlotItem = bHasSelectedItem && !SelectedItems[0].Get()->bIsGroupItem;
+
+	if (bShowGroupItem)
+	{
+
+	}
+	else if (bShowSlotItem)
+	{
+		MenuBuilder.BeginSection("SlotManagerSlotActions", LOCTEXT("SlotManagerSlotActions", "Slot Actions"));
+		// Set Slot Group
+		{
+			MenuBuilder.AddSubMenu(
+				FText::Format(LOCTEXT("ContextMenuSetSlotGroupLabel", "Set Slot {0} Group to"), FText::FromName(SelectedItems[0].Get()->Name)),
+				FText::Format(LOCTEXT("ContextMenuSetSlotGroupToolTip", "Set Slot {0} Group"), FText::FromName(SelectedItems[0].Get()->Name)),
+				FNewMenuDelegate::CreateRaw(this, &SSkeletonSlotNames::FillSetSlotGroupSubMenu));
+			MenuBuilder.EndSection();
+		}
+	}
+
+	MenuBuilder.BeginSection("SlotManagerGeneralActions", LOCTEXT("SlotManagerGeneralActions", "Slot Manager Actions"));
+	// Add Slot
+	{
+		FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnAddSlot));
+		const FText Label = LOCTEXT("AnimSlotManagerContextMenuAddSlotLabel", "Add Slot");
+		const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuAddSlotTooltip", "Adds a new Slot");
+		MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
+	}
+	// Add Group
+	{
+		FUIAction Action = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonSlotNames::OnAddGroup));
+		const FText Label = LOCTEXT("AnimSlotManagerContextMenuAddGroupLabel", "Add Group");
+		const FText ToolTip = LOCTEXT("AnimSlotManagerContextMenuAddGroupTooltip", "Adds a new Group");
+		MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), Action);
 	}
 	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
+}
+
+void SSkeletonSlotNames::FillSetSlotGroupSubMenu(FMenuBuilder& MenuBuilder)
+{
+	const TArray<FAnimSlotGroup>& SlotGroups = TargetSkeleton->GetSlotGroups();
+	for (auto SlotGroup : SlotGroups)
+	{
+		const FName& GroupName = SlotGroup.GroupName;
+
+		const FText ToolTip = FText::Format(LOCTEXT("ContextMenuSetSlotSubMenuToolTip", "Changes slot's group to {0}"), FText::FromName(GroupName));
+/*		FString Label = Class->GetDisplayNameText().ToString();*/
+		const FText Label = FText::FromName(GroupName);
+
+		FUIAction UIAction;
+		UIAction.ExecuteAction.BindRaw(this, &SSkeletonSlotNames::ContextMenuOnSetSlot,	GroupName);
+		MenuBuilder.AddMenuEntry(Label, ToolTip, FSlateIcon(), UIAction);
+	}
+}
+
+void SSkeletonSlotNames::ContextMenuOnSetSlot(FName InNewGroupName)
+{
+	TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedItems = SlotNameListView.Get()->GetSelectedItems();
+
+	bool bHasSelectedItem = (SelectedItems.Num() > 0);
+	bool bShowSlotItem = bHasSelectedItem && !SelectedItems[0].Get()->bIsGroupItem;
+
+	if (bShowSlotItem)
+	{
+		const FName SlotName = SelectedItems[0].Get()->Name;
+		if (TargetSkeleton->ContainsSlotName(SlotName))
+		{
+			const FScopedTransaction Transaction(LOCTEXT("AnimSlotManager_ContextMenuOnSetSlot", "Set Slot Group Name"));
+			TargetSkeleton->SetSlotGroupName(SlotName, InNewGroupName);
+			TargetSkeleton->Modify(true);
+
+			RefreshSlotNameListWithFilter();
+		}
+
+		// Highlight newly created item.
+		TSharedPtr< FDisplayedSlotNameInfo > Item = FindItemNamed(SlotName);
+		if (Item.IsValid())
+		{
+			SlotNameListView->SetSelection(Item);
+		}
+
+		FSlateApplication::Get().DismissAllMenus();
+	}
 }
 
 void SSkeletonSlotNames::OnNotifySelectionChanged(TSharedPtr<FDisplayedSlotNameInfo> Selection, ESelectInfo::Type SelectInfo)
@@ -221,81 +339,107 @@ void SSkeletonSlotNames::OnNotifySelectionChanged(TSharedPtr<FDisplayedSlotNameI
 	}
 }
 
-bool SSkeletonSlotNames::CanPerformDelete() const
+void SSkeletonSlotNames::OnSaveSkeleton()
 {
-	TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedRows = SlotNameListView->GetSelectedItems();
-	return SelectedRows.Num() > 0;
-}
-
-bool SSkeletonSlotNames::CanPerformRename() const
-{
-	TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedRows = SlotNameListView->GetSelectedItems();
-	return SelectedRows.Num() == 1;
-}
-
-void SSkeletonSlotNames::OnDeleteSlotName()
-{
-	TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedRows = SlotNameListView->GetSelectedItems();
-
-	const FScopedTransaction Transaction( LOCTEXT("DeleteSlotName", "Delete Slot Name") );
-
-	// this one deletes all SlotName with same name. 
-	TArray<FName> SelectedSlotNames;
-	TargetSkeleton->Modify();
-
-	for(int Selection = 0; Selection < SelectedRows.Num(); ++Selection)
+	if (TargetSkeleton)
 	{
-		FName& SelectedName = SelectedRows[Selection]->Name;
-		TargetSkeleton->RemoveSlotNodeName(SelectedName);
-		SelectedSlotNames.Add(SelectedName);
+		TArray< UPackage* > PackagesToSave;
+		PackagesToSave.Add(TargetSkeleton->GetOutermost());
+
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
 	}
+}
 
-	TArray<FAssetData> CompatibleAnimMontages;
-	GetCompatibleAnimMontage(CompatibleAnimMontages);
+void SSkeletonSlotNames::OnAddSlot()
+{
+	TSharedRef<STextEntryPopup> TextEntry =
+		SNew(STextEntryPopup)
+		.Label(LOCTEXT("NewSlotName_AskSlotName", "New Slot Name"))
+		.OnTextCommitted(this, &SSkeletonSlotNames::AddSlotPopUpOnCommit);
 
-	int32 NumAnimationsModified = 0;
+	// Show dialog to enter new track name
+	FSlateApplication::Get().PushMenu(
+		SharedThis(this),
+		TextEntry,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+		);
 
-	for( int32 AssetIndex = 0; AssetIndex < CompatibleAnimMontages.Num(); ++AssetIndex )
+	TextEntry->FocusDefaultWidget();
+}
+
+void SSkeletonSlotNames::OnAddGroup()
+{
+	TSharedRef<STextEntryPopup> TextEntry =
+		SNew(STextEntryPopup)
+		.Label(LOCTEXT("NewGroupName_AskGroupName", "New Group Name"))
+		.OnTextCommitted(this, &SSkeletonSlotNames::AddGroupPopUpOnCommit);
+
+	// Show dialog to enter new track name
+	FSlateApplication::Get().PushMenu(
+		SharedThis(this),
+		TextEntry,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+		);
+
+	TextEntry->FocusDefaultWidget();
+}
+
+void SSkeletonSlotNames::AddSlotPopUpOnCommit(const FText & InNewSlotText, ETextCommit::Type CommitInfo)
+{
+	if (!InNewSlotText.IsEmpty())
 	{
-		const FAssetData& PossibleAnimAsset = CompatibleAnimMontages[AssetIndex];
-		UAnimMontage* Montage = CastChecked<UAnimMontage>(PossibleAnimAsset.GetAsset());
-	
-		for (auto & SlotAnim : Montage->SlotAnimTracks)
+		const FScopedTransaction Transaction(LOCTEXT("NewSlotName_AddSlotName", "Add New Slot Node Name"));
+
+		FName NewSlotName = FName(*InNewSlotText.ToString());
+		// Keep slot and group names unique
+		if (!TargetSkeleton->ContainsSlotName(NewSlotName) && (TargetSkeleton->FindAnimSlotGroup(NewSlotName) == NULL))
 		{
-			if ( SelectedSlotNames.Contains(SlotAnim.SlotName) )
-			{
-				// found one, set transaction mark
-				Montage->Modify();
+			TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedItems = SlotNameListView->GetSelectedItems();
+			bool bHasSelectedItem = (SelectedItems.Num() > 0);
+			bool bShowGroupItem = bHasSelectedItem && SelectedItems[0].Get()->bIsGroupItem;
 
-				// if this name is deleted, just clear it
-				// I don't think changing to something else will help
-				SlotAnim.SlotName = NAME_None;
-				// although people shouldn't have same slot name in the same montage, 
-				// just in case anybody does, it will loop
-				// this might cause issue because Modify will get called again.
+			TargetSkeleton->SetSlotGroupName(NewSlotName, bShowGroupItem ? SelectedItems[0].Get()->Name : FAnimSlotGroup::DefaultGroupName);
+			TargetSkeleton->Modify(true);
 
-				++NumAnimationsModified;
-			}
+			RefreshSlotNameListWithFilter();
 		}
+
+		// Highlight newly created item.
+		TSharedPtr< FDisplayedSlotNameInfo > Item = FindItemNamed(NewSlotName);
+		if (Item.IsValid())
+		{
+			SlotNameListView->SetSelection(Item);
+		}
+
+		FSlateApplication::Get().DismissAllMenus();
 	}
+}
 
-// 	TMultiMap<class UAnimBlueprint *, class UAnimGraphNode_Slot *> AssetsToFix;
-// 	GetCompatibleAnimBlueprints( AssetsToFix );
-
-	if(NumAnimationsModified > 0)
+void SSkeletonSlotNames::AddGroupPopUpOnCommit(const FText & InNewGroupText, ETextCommit::Type CommitInfo)
+{
+	if (!InNewGroupText.IsEmpty())
 	{
-		// Tell the user that the socket is a duplicate
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("NumAnimationsModified"), NumAnimationsModified );
-		FNotificationInfo Info( FText::Format( LOCTEXT( "SlotNamesDeleted", "{NumAnimationsModified} animation(s) modified to delete notifications" ), Args ) );
+		const FScopedTransaction Transaction(LOCTEXT("NewGroupName_AddGroupName", "Add New Slot Group Name"));
 
-		Info.bUseLargeFont = false;
-		Info.ExpireDuration = 5.0f;
+		FName NewGroupName = FName(*InNewGroupText.ToString());
+		// Keep slot and group names unique
+		if (!TargetSkeleton->ContainsSlotName(NewGroupName) && TargetSkeleton->AddSlotGroupName(NewGroupName))
+		{
+			TargetSkeleton->Modify(true);
+			RefreshSlotNameListWithFilter();
+		}
 
-		NotifyUser( Info );
+		// Highlight newly created item.
+		TSharedPtr< FDisplayedSlotNameInfo > Item = FindItemNamed(NewGroupName);
+		if (Item.IsValid())
+		{
+			SlotNameListView->SetSelection(Item);
+		}
+
+		FSlateApplication::Get().DismissAllMenus();
 	}
-
-	CreateSlotNameList( NameFilterBox->GetText().ToString() );
 }
 
 // void SSkeletonSlotNames::GetCompatibleAnimBlueprints( TMultiMap<class UAnimBlueprint *, class UAnimGraphNode_Slot *>& OutAssets )
@@ -313,123 +457,59 @@ void SSkeletonSlotNames::OnDeleteSlotName()
 // 	}
 // }
 
-void SSkeletonSlotNames::OnRenameSlotName()
-{
-	TArray< TSharedPtr< FDisplayedSlotNameInfo > > SelectedRows = SlotNameListView->GetSelectedItems();
-
-	check(SelectedRows.Num() == 1); // Should be guaranteed by CanPerformRename
-
-	SelectedRows[0]->InlineEditableText->EnterEditingMode();
-}
-
-bool SSkeletonSlotNames::OnVerifyNotifyNameCommit( const FText& NewName, FText& OutErrorMessage, TSharedPtr<FDisplayedSlotNameInfo> Item )
-{
-	bool bValid(true);
-
-	if(NewName.IsEmpty())
-	{
-		OutErrorMessage = LOCTEXT( "NameMissing_Error", "You must provide a name." );
-		bValid = false;
-	}
-
-	FName NotifyName( *NewName.ToString() );
-	if(NotifyName != Item->Name)
-	{
-		if(TargetSkeleton->DoesHaveSlotNodeName(NotifyName))
-		{
-			OutErrorMessage = FText::Format( LOCTEXT("AlreadyInUseMessage", "'{0}' is already in use."), NewName );
-			bValid = false;
-		}
-	}
-
-	return bValid;
-}
-
-void SSkeletonSlotNames::OnNotifyNameCommitted( const FText& NewName, ETextCommit::Type, TSharedPtr<FDisplayedSlotNameInfo> Item )
-{
-	const FScopedTransaction Transaction( LOCTEXT("RenameSlotName", "Rename Anim Notify") );
-
-	FName NewSlotName = FName( *NewName.ToString() );
-	FName SlotToRename = Item->Name;
-
-	// rename notify in skeleton
-	TargetSkeleton->Modify();
-
-	TArray<FAssetData> CompatibleAnimMontages;
-	GetCompatibleAnimMontage(CompatibleAnimMontages);
-
-	int32 NumAnimationsModified = 0;
-
-	for(int32 AssetIndex = 0; AssetIndex < CompatibleAnimMontages.Num(); ++AssetIndex)
-	{
-		const FAssetData& PossibleAnimAsset = CompatibleAnimMontages[AssetIndex];
-		UAnimMontage* Montage = Cast<UAnimMontage>(PossibleAnimAsset.GetAsset());
-
-		for (auto & SlotAnim : Montage->SlotAnimTracks)
-		{
-			if(SlotAnim.SlotName == SlotToRename)
-			{
-				// found one, set transaction mark
-				Montage->Modify();
-
-				// if this name is deleted, just clear it
-				// I don't think changing to something else will help
-				SlotAnim.SlotName = NewSlotName;
-				// although people shouldn't have same slot name in the same montage, 
-				// just in case anybody does, it will loop
-				// this might cause issue because Modify will get called again.
-
-				++NumAnimationsModified;
-			}
-		}
-	}
-
-	if(NumAnimationsModified > 0)
-	{
-		// Tell the user that the socket is a duplicate
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("NumAnimationsModified"), NumAnimationsModified );
-		FNotificationInfo Info( FText::Format( LOCTEXT( "SlotNamesRenamed", "{NumAnimationsModified} animation(s) modified to rename notification" ), Args ) );
-
-		Info.bUseLargeFont = false;
-		Info.ExpireDuration = 5.0f;
-
-		NotifyUser( Info );
-	}
-
-	RefreshSlotNameListWithFilter();
-}
-
 void SSkeletonSlotNames::RefreshSlotNameListWithFilter()
 {
 	CreateSlotNameList( NameFilterBox->GetText().ToString() );
 }
 
-void SSkeletonSlotNames::CreateSlotNameList( const FString& SearchText )
+void SSkeletonSlotNames::CreateSlotNameList(const FString& SearchText)
 {
 	NotifyList.Empty();
 
 	if ( TargetSkeleton )
 	{
-		const TArray<FName> & SlotNodeNames = TargetSkeleton->GetSlotNodeNames();
-		for(int i = 0; i < SlotNodeNames.Num(); ++i)
+		const TArray<FAnimSlotGroup>& SlotGroups = TargetSkeleton->GetSlotGroups();
+		for (auto SlotGroup : SlotGroups)
 		{
-			const FName& NotifyName = SlotNodeNames[i];
-			if ( !SearchText.IsEmpty() )
+			const FName& GroupName = SlotGroup.GroupName;
+			
+			TSharedRef<FDisplayedSlotNameInfo> GroupItem = FDisplayedSlotNameInfo::Make(GroupName, true);
+			SlotNameListView->SetItemExpansion(GroupItem, true);
+			NotifyList.Add(GroupItem);
+
+			for (auto SlotName : SlotGroup.SlotNames)
 			{
-				if ( NotifyName.ToString().Contains( SearchText ) )
+				if (SearchText.IsEmpty() || GroupName.ToString().Contains(SearchText) || SlotName.ToString().Contains(SearchText))
 				{
-					NotifyList.Add( FDisplayedSlotNameInfo::Make( NotifyName ) );
+					TSharedRef<FDisplayedSlotNameInfo> SlotItem = FDisplayedSlotNameInfo::Make(SlotName, false);
+					SlotNameListView->SetItemExpansion(SlotItem, true);
+					NotifyList[NotifyList.Num() - 1]->Children.Add(SlotItem);
 				}
-			}
-			else
-			{
-				NotifyList.Add( FDisplayedSlotNameInfo::Make( NotifyName ) );
 			}
 		}
 	}
 
-	SlotNameListView->RequestListRefresh();
+	SlotNameListView->RequestTreeRefresh();
+}
+
+TSharedPtr< FDisplayedSlotNameInfo > SSkeletonSlotNames::FindItemNamed(FName ItemName) const
+{
+	for (auto SlotGroupItem : NotifyList)
+	{
+		if (SlotGroupItem->Name == ItemName)
+		{
+			return SlotGroupItem;
+		}
+		for (auto SlotItem : SlotGroupItem->Children)
+		{
+			if (SlotItem->Name == ItemName)
+			{
+				return SlotItem;
+			}
+		}
+	}
+
+	return NULL;
 }
 
 void SSkeletonSlotNames::ShowNotifyInDetailsView(FName NotifyName)

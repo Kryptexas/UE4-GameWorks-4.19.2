@@ -1691,14 +1691,23 @@ bool UAnimInstance::IsPlayingSlotAnimation(UAnimSequenceBase* Asset, FName SlotN
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
 float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate/*= 1.f*/)
 {
-	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f))
+	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f) && MontageToPlay->HasValidSlotSetup())
 	{
 		if (CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
 		{
-			//@fixme laurent -- only stop montages that belong to same group. 
-			// or to ensure single root motion montage playing.
-			// when stopping old animations, make sure it does give current new blendintime to blend out
-			StopAllMontages(MontageToPlay->BlendInTime);
+			// Enforce 'a single montage at once per group' rule
+			FName NewMontageGroupName = MontageToPlay->GetGroupName();
+			StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendInTime);
+
+			// Enforce 'a single root motion montage at once' rule.
+			if (MontageToPlay->bEnableRootMotionTranslation || MontageToPlay->bEnableRootMotionRotation)
+			{
+				FAnimMontageInstance* ActiveRootMotionMontageInstance = GetRootMotionMontageInstance();
+				if (ActiveRootMotionMontageInstance)
+				{
+					ActiveRootMotionMontageInstance->Stop(MontageToPlay->BlendInTime);
+				}
+			}
 
 			FAnimMontageInstance * NewInstance = new FAnimMontageInstance(this);
 			check(NewInstance);
@@ -2159,6 +2168,18 @@ void UAnimInstance::StopAllMontages(float BlendOut)
 	for (int32 Index = MontageInstances.Num() - 1; Index >= 0; Index--)
 	{
 		MontageInstances[Index]->Stop(BlendOut, true);
+	}
+}
+
+void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, float BlendOutTime)
+{
+	for (int32 InstanceIndex = MontageInstances.Num() - 1; InstanceIndex >= 0; InstanceIndex--)
+	{
+		FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+		if (MontageInstance && MontageInstance->IsActive() && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
+		{
+			MontageInstances[InstanceIndex]->Stop(BlendOutTime, true);
+		}
 	}
 }
 

@@ -411,21 +411,36 @@ void UAnimMontage::PostLoad()
 	}
 
 	// verify if skeleton matches, otherwise clear it, this can happen if anim sequence has been modified when this hasn't been loaded. 
-	USkeleton* MySkeleton = GetSkeleton();
-	for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
 	{
-		if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
+		USkeleton* MySkeleton = GetSkeleton();
+		for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
 		{
-			UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
-			if ( Sequence && Sequence->GetSkeleton() != MySkeleton )
+			if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
 			{
-				SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = 0;
-				MarkPackageDirty();
-				break;
+				UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
+				if ( Sequence && Sequence->GetSkeleton() != MySkeleton )
+				{
+					SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = 0;
+					MarkPackageDirty();
+					break;
+				}
 			}
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
+
+	// Register Slots w/ Skeleton
+	{
+		USkeleton* MySkeleton = GetSkeleton();
+		if (MySkeleton)
+		{
+			for (int32 SlotIndex = 0; SlotIndex < SlotAnimTracks.Num(); SlotIndex++)
+			{
+				FName SlotName = SlotAnimTracks[SlotIndex].SlotName;
+				MySkeleton->RegisterSlotNode(SlotName);
+			}
+		}
+	}
 }
 
 void UAnimMontage::SortAnimBranchingPointByTime()
@@ -606,6 +621,64 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 		*RootMotion.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotion.RootMotionTransform.GetRotation().Rotator().ToCompactString() );
 
 	return RootMotion.RootMotionTransform;
+}
+
+/** Get Montage's Group Name */
+FName UAnimMontage::GetGroupName() const
+{
+	USkeleton* MySkeleton = GetSkeleton();
+	if (MySkeleton && (SlotAnimTracks.Num() > 0))
+	{
+		return MySkeleton->GetSlotGroupName(SlotAnimTracks[0].SlotName);
+	}
+
+	return FAnimSlotGroup::DefaultGroupName;
+}
+
+bool UAnimMontage::HasValidSlotSetup() const
+{
+	// We only need to worry about this if we have multiple tracks.
+	// Montages with a single track will always have a valid slot setup.
+	int32 NumAnimTracks = SlotAnimTracks.Num();
+	if (NumAnimTracks > 1)
+	{
+		USkeleton* MySkeleton = GetSkeleton();
+		if (MySkeleton)
+		{
+			FName MontageGroupName = GetGroupName();
+			TArray<FName> UniqueSlotNameList;
+			UniqueSlotNameList.Add(SlotAnimTracks[0].SlotName);
+
+			for (int32 TrackIndex = 1; TrackIndex < NumAnimTracks; TrackIndex++)
+			{
+				// Verify that slot names are unique.
+				FName CurrentSlotName = SlotAnimTracks[TrackIndex].SlotName;
+				bool bSlotNameAlreadyInUse = UniqueSlotNameList.Contains(CurrentSlotName);
+				if (!bSlotNameAlreadyInUse)
+				{
+					UniqueSlotNameList.Add(CurrentSlotName);
+				}
+				else
+				{
+					UE_LOG(LogAnimation, Warning, TEXT("Montage '%s' not properly setup. Slot named '%s' is already used in this Montage. All slots must be unique"),
+						*GetFullName(), *CurrentSlotName.ToString());
+					return false;
+				}
+
+				// Verify that all slots belong to the same group.
+				FName CurrentSlotGroupName = MySkeleton->GetSlotGroupName(CurrentSlotName);
+				bool bDifferentGroupName = (CurrentSlotGroupName != MontageGroupName);
+				if (bDifferentGroupName)
+				{
+					UE_LOG(LogAnimation, Warning, TEXT("Montage '%s' not properly setup. Slot's group '%s' is different than the Montage's group '%s'. All slots must belong to the same group."),
+						*GetFullName(), *CurrentSlotGroupName.ToString(), *MontageGroupName.ToString());
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 void UAnimMontage::EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const

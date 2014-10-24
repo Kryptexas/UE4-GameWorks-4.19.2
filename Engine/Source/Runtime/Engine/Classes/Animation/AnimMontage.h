@@ -44,7 +44,6 @@ struct FCompositeSection
 		, NextSectionName(NAME_None)
 	{
 	}
-
 };
 
 /**
@@ -63,9 +62,8 @@ struct FSlotAnimationTrack
 	FAnimTrack AnimTrack;
 
 	FSlotAnimationTrack()
-		: SlotName(NAME_None)
+		: SlotName(FAnimSlotGroup::DefaultSlotName)
 	{}
-
 };
 
 /** 
@@ -389,6 +387,12 @@ public:
 	 * These steps will be processed sequentially, and output the RootMotion transform in component space.
 	 */
 	FTransform ExtractRootMotionFromTrackRange(float StartTrackPosition, float EndTrackPosition) const;
+
+	/** Get the Montage's Group Name. This is the group from the first slot.  */
+	ENGINE_API FName GetGroupName() const;
+
+	/** true if valid, false otherwise. Will log warning if not valid. */
+	bool HasValidSlotSetup() const;
 
 private:
 	/** 

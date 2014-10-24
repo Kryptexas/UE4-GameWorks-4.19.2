@@ -64,7 +64,7 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	DebugLine += FString::Printf(TEXT("(Slot Name: '%s' Weight:%.1f%%)"), *SlotName.ToString(), SlotNodeWeight*100.f);
-
+	
 	bool const bIsPoseSource = (SourceWeight <= ZERO_ANIMWEIGHT_THRESH);
 	DebugData.AddDebugItem(DebugLine, bIsPoseSource);
 	Source.GatherDebugData(DebugData.BranchFlow(SourceWeight));
@@ -90,8 +90,8 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 }
 
 FAnimNode_Slot::FAnimNode_Slot()
-: GroupName(USkeleton::DefaultSlotGroupName)
-, SourceWeight(0.f)
-, SlotNodeWeight(0.f)
+	: SlotName(FAnimSlotGroup::DefaultSlotName)
+	, SourceWeight(0.f)
+	, SlotNodeWeight(0.f)
 {
 }

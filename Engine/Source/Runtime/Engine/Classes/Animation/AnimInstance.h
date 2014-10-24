@@ -472,6 +472,9 @@ protected:
 	/** Stop all montages that are active **/
 	void StopAllMontages(float BlendOut);
 
+	/** Stop all active montages belonging to 'InGroupName' */
+	void StopAllMontagesByGroupName(FName InGroupName, float BlendOutTime);
+
 	/** Update weight of montages  **/
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
 	/** Advance montages **/

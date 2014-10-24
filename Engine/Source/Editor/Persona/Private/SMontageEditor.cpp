@@ -460,7 +460,7 @@ void SMontageEditor::EnsureSlotNode()
 {
 	if (MontageObj && MontageObj->SlotAnimTracks.Num()==0)
 	{
-		AddNewMontageSlot(TEXT(""));
+		AddNewMontageSlot(FAnimSlotGroup::DefaultSlotName.ToString());
 		MontageObj->MarkPackageDirty();
 	}
 }

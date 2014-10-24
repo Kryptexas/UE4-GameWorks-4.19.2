@@ -30,19 +30,24 @@ class FDisplayedSlotNameInfo
 public:
 	FName Name;
 
+	bool bIsGroupItem;
+
+	TArray< TSharedPtr<FDisplayedSlotNameInfo> > Children;
+
 	/** Handle to editable text block for rename */
 	TSharedPtr<SInlineEditableTextBlock> InlineEditableText;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedSlotNameInfo> Make(const FName& NotifyName)
+	static TSharedRef<FDisplayedSlotNameInfo> Make(const FName& InItemName, bool InbIsGroupItem)
 	{
-		return MakeShareable(new FDisplayedSlotNameInfo(NotifyName));
+		return MakeShareable(new FDisplayedSlotNameInfo(InItemName, InbIsGroupItem));
 	}
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedSlotNameInfo(const FName& InNotifyName)
-		: Name( InNotifyName )
+	FDisplayedSlotNameInfo(const FName& InItemName, bool InbIsGroupItem)
+		: Name(InItemName)
+		, bIsGroupItem(InbIsGroupItem)
 	{}
 
 	/** Hidden constructor, always use Make above */
@@ -50,7 +55,7 @@ protected:
 };
 
 /** Widgets list type */
-typedef SListView< TSharedPtr<FDisplayedSlotNameInfo> > SSlotNameListType;
+typedef STreeView< TSharedPtr<FDisplayedSlotNameInfo> > SSlotNameListType;
 
 class SSkeletonSlotNames : public SCompoundWidget, public FGCObject
 {
@@ -86,14 +91,6 @@ public:
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// FGCObject interface end
 
-	/** When user attempts to commit the name of a track*/
-	bool OnVerifyNotifyNameCommit( const FText& NewName, FText& OutErrorMessage, TSharedPtr<FDisplayedSlotNameInfo> Item );
-
-	/** When user commits the name of a track*/
-	void OnNotifyNameCommitted( const FText& NewName, ETextCommit::Type, TSharedPtr<FDisplayedSlotNameInfo> Item );
-
-	/** Dummy handler to stop editable text boxes swallowing our list selected events */
-	bool IsSelected(){return false;}
 private:
 
 	/** Called when the user changes the contents of the search box */
@@ -105,26 +102,34 @@ private:
 	/** Delegate handler for generating rows in SlotNameListView */ 
 	TSharedRef<ITableRow> GenerateNotifyRow( TSharedPtr<FDisplayedSlotNameInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable );
 
+	/** Get all children for a given entry in the list */
+	void GetChildrenForInfo(TSharedPtr<FDisplayedSlotNameInfo> InInfo, TArray< TSharedPtr<FDisplayedSlotNameInfo> >& OutChildren);
+
 	/** Delegate handler called when the user right clicks in SlotNameListView */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
 
 	/** Delegate handler for when the user selects something in SlotNameListView */
 	void OnNotifySelectionChanged( TSharedPtr<FDisplayedSlotNameInfo> Selection, ESelectInfo::Type SelectInfo );
 
-	/** Delegate handler for determining whether we can show the delete menu options */
-	bool CanPerformDelete() const;
+	// Save Skeleton
+	void OnSaveSkeleton();
 
-	/** Delegate handler for deleting anim SlotName */
-	void OnDeleteSlotName();
+	// Add a new Slot
+	void OnAddSlot();
+	void AddSlotPopUpOnCommit(const FText& InNewSlotName, ETextCommit::Type CommitInfo);
 
-	/** Delegate handler for determining whether we can show the rename menu options */
-	bool CanPerformRename() const;
+	// Add a new Group
+	void OnAddGroup();
+	void AddGroupPopUpOnCommit(const FText& InNewGroupName, ETextCommit::Type CommitInfo);
 
-	/** Delegate handler for renaming anim SlotName */
-	void OnRenameSlotName();
+	// Set Slot Group
+	void FillSetSlotGroupSubMenu(FMenuBuilder& MenuBuilder);
+	void ContextMenuOnSetSlot(FName InNewGroupName);
 
 	/** Wrapper that populates SlotNameListView using current filter test */
 	void RefreshSlotNameListWithFilter();
+
+	TSharedPtr< FDisplayedSlotNameInfo > FindItemNamed(FName ItemName) const;
 
 	/** Populates SlotNameListView based on the skeletons SlotName and the supplied filter text */
 	void CreateSlotNameList( const FString& SearchText = FString("") );

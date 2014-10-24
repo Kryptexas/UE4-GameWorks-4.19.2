@@ -27,7 +27,8 @@ const FName USkeleton::RigTag = FName(TEXT("Rig"));
 // Names of smartname containers for skeleton properties
 const FName USkeleton::AnimCurveMappingName = FName(TEXT("AnimationCurves"));
 
-const FName USkeleton::DefaultSlotGroupName = FName(TEXT("Default"));
+const FName FAnimSlotGroup::DefaultGroupName = FName(TEXT("DefaultGroup"));
+const FName FAnimSlotGroup::DefaultSlotName = FName(TEXT("DefaultSlot"));
 
 FArchive& operator<<(FArchive& Ar, FReferencePose & P)
 {
@@ -48,12 +49,6 @@ USkeleton::USkeleton(const FObjectInitializer& ObjectInitializer)
 {
 	// Make sure we have somewhere for curve names.
 	SmartNames.AddContainer(AnimCurveMappingName);
-
-#if WITH_EDITORONLY_DATA
-	SlotGroupNames.Empty();
-	SlotGroupNames.Add(DefaultSlotGroupName);
-
-#endif
 }
 
 void USkeleton::PostInitProperties()
@@ -77,6 +72,9 @@ void USkeleton::PostLoad()
 		// Convert RefLocalPoses & BoneTree to FReferenceSkeleton
 		ConvertToFReferenceSkeleton();
 	}
+
+	// Build look up table between Slot nodes and their Group.
+	BuildSlotToGroupMap();
 
 	// catch any case if guid isn't valid
 	check(Guid.IsValid());
@@ -910,50 +908,6 @@ void USkeleton::UnregisterOnSkeletonHierarchyChanged(void* Unregister)
 
 #endif
 
-void USkeleton::AddSlotNodeName(FName SlotNodeName)
-{
-	SlotNodeNames.AddUnique(SlotNodeName);
-}
-
-void USkeleton::RemoveSlotNodeName(FName SlotNodeName)
-{
-	SlotNodeNames.Remove(SlotNodeName);
-}
-
-bool USkeleton::DoesHaveSlotNodeName(FName SlotNodeName) const
-{
-	return SlotNodeNames.Contains(SlotNodeName);
-}
-
-const TArray<FName> & USkeleton::GetSlotNodeNames() const
-{
-	return SlotNodeNames;
-}
-
-void USkeleton::AddSlotGroupName(FName GroupName)
-{
-	SlotGroupNames.AddUnique(GroupName);
-}
-
-void USkeleton::RemoveSlotGroupName(FName GroupName)
-{
-	// we can't delete the deafult one
-	if (GroupName != DefaultSlotGroupName)
-	{
-		SlotGroupNames.Remove(GroupName);
-	}
-}
-
-const TArray<FName> & USkeleton::GetSlotGroupNames() const
-{
-	return SlotGroupNames;
-}
-
-bool USkeleton::DoesHaveSlotGroupName(FName GroupName) const
-{
-	return SlotGroupNames.Contains(GroupName);
-}
-
 bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid)
 {
 	bool Successful = false;
@@ -1000,6 +954,111 @@ void USkeleton::RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping:
 }
 
 #endif // WITH_EDITORONLY_DATA
+
+const TArray<FAnimSlotGroup>& USkeleton::GetSlotGroups() const
+{
+	return SlotGroups;
+}
+
+void USkeleton::BuildSlotToGroupMap()
+{
+	SlotToGroupNameMap.Empty();
+
+	for (auto SlotGroup : SlotGroups)
+	{
+		for (auto SlotName : SlotGroup.SlotNames)
+		{
+			SlotToGroupNameMap.Add(SlotName, SlotGroup.GroupName);
+		}
+	}
+}
+
+FAnimSlotGroup* USkeleton::FindAnimSlotGroup(const FName& InGroupName)
+{
+	for (int32 GroupIndex = 0; GroupIndex < SlotGroups.Num(); GroupIndex++)
+	{
+		FAnimSlotGroup& SlotGroup = SlotGroups[GroupIndex];
+		if (SlotGroup.GroupName == InGroupName)
+		{
+			return &SlotGroup;
+		}
+	}
+	return NULL;
+}
+
+bool USkeleton::ContainsSlotName(const FName& InSlotName) 
+{
+	return SlotToGroupNameMap.Contains(InSlotName);
+}
+
+void USkeleton::RegisterSlotNode(const FName& InSlotName)
+{
+	// verify the slot name exists, if not create it in the default group.
+	if (!ContainsSlotName(InSlotName))
+	{
+		SetSlotGroupName(InSlotName, FAnimSlotGroup::DefaultGroupName);
+	}
+}
+
+void USkeleton::SetSlotGroupName(const FName& InSlotName, const FName& InGroupName)
+{
+// See if Slot already exists and belongs to a group.
+	const FName* FoundGroupNamePtr = SlotToGroupNameMap.Find(InSlotName);
+
+	// If slot exists, but is not in the right group, remove it from there
+	if (FoundGroupNamePtr && ((*FoundGroupNamePtr) != InGroupName))
+	{
+		FAnimSlotGroup* OldSlotGroupPtr = FindAnimSlotGroup(*FoundGroupNamePtr);
+		if (OldSlotGroupPtr)
+		{
+			OldSlotGroupPtr->SlotNames.RemoveSingleSwap(InSlotName);
+		}
+	}
+
+	// Add the slot to the right group if it's not
+	if ((FoundGroupNamePtr == NULL) || (*FoundGroupNamePtr != InGroupName))
+	{
+		// If the SlotGroup does not exist, create it.
+		FAnimSlotGroup* SlotGroupPtr = FindAnimSlotGroup(InGroupName);
+		if (SlotGroupPtr == NULL)
+		{
+			SlotGroups.AddZeroed(1);
+			SlotGroupPtr = &SlotGroups.Last();
+			SlotGroupPtr->GroupName = InGroupName;
+		}
+		// Add Slot to group.
+		SlotGroupPtr->SlotNames.Add(InSlotName);
+		// Keep our TMap up to date.
+		SlotToGroupNameMap.Add(InSlotName, InGroupName);
+	}
+}
+
+bool USkeleton::AddSlotGroupName(const FName& InNewGroupName)
+{
+	FAnimSlotGroup* ExistingSlotGroupPtr = FindAnimSlotGroup(InNewGroupName);
+	if (ExistingSlotGroupPtr == NULL)
+	{
+		// if not found, create a new one.
+		SlotGroups.AddZeroed(1);
+		ExistingSlotGroupPtr = &SlotGroups.Last();
+		ExistingSlotGroupPtr->GroupName = InNewGroupName;
+		return true;
+	}
+
+	return false;
+}
+
+FName USkeleton::GetSlotGroupName(const FName& InSlotName) const
+{
+	const FName* FoundGroupNamePtr = SlotToGroupNameMap.Find(InSlotName);
+	if (FoundGroupNamePtr)
+	{
+		return *FoundGroupNamePtr;
+	}
+
+	// If Group name cannot be found, use DefaultSlotGroupName.
+	return FAnimSlotGroup::DefaultGroupName;
+}
 
 void USkeleton::RegenerateGuid()
 {

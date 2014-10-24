@@ -186,6 +186,33 @@ struct FRigConfiguration
 	UPROPERTY()
 	TArray<FNameMapping> BoneMappingTable;
 };
+
+USTRUCT()
+struct FAnimSlotGroup
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	static ENGINE_API const FName DefaultGroupName;
+	static ENGINE_API const FName DefaultSlotName;
+
+	UPROPERTY()
+	FName GroupName;
+
+	UPROPERTY()
+	TArray<FName> SlotNames;
+
+	FAnimSlotGroup()
+		: GroupName(DefaultGroupName)
+	{
+	}
+
+	FAnimSlotGroup(FName InGroupName)
+		: GroupName(InGroupName)
+	{
+	}
+};
+
 /**
  *	USkeleton : that links between mesh and animation
  *		- Bone hierarchy for animations
@@ -247,19 +274,34 @@ public:
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
 
+	/************************************************************************/
+	/* Slot Groups */
+	/************************************************************************/
+private:
+	// serialized slot groups and slot names.
+	UPROPERTY()
+	TArray<FAnimSlotGroup> SlotGroups;
+
+	/** SlotName to GroupName TMap, only at runtime, not serialized. **/
+	TMap<FName, FName> SlotToGroupNameMap;
+
+	void BuildSlotToGroupMap();
+
+public:
+	ENGINE_API FAnimSlotGroup* FindAnimSlotGroup(const FName& InGroupName);
+	ENGINE_API const TArray<FAnimSlotGroup>& GetSlotGroups() const;
+	ENGINE_API bool ContainsSlotName(const FName& InSlotName);
+	ENGINE_API void RegisterSlotNode(const FName& InSlotName);
+	ENGINE_API void SetSlotGroupName(const FName& InSlotName, const FName& InGroupName);
+	/** Returns true if Group is added, false if it already exists */
+	ENGINE_API bool AddSlotGroupName(const FName& InNewGroupName);
+	ENGINE_API FName GetSlotGroupName(const FName& InSlotName) const;
+
 #if WITH_EDITORONLY_DATA
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */
 	UPROPERTY(duplicatetransient, AssetRegistrySearchable)
 	TAssetPtr<class USkeletalMesh> PreviewSkeletalMesh;
-
-	/** @todo collection of slotnode names available for this skeleton */
-	UPROPERTY()
-	TArray<FName> SlotNodeNames;
-
-	/** @todo collection of graoup names for slot node available for this skeleton */
-	UPROPERTY()
-	TArray<FName> SlotGroupNames;
 
 	UPROPERTY()
 	FRigConfiguration RigConfig;
@@ -333,17 +375,6 @@ public:
 
 	// @todo document
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);
-
-	// @todo document
-	ENGINE_API void AddSlotNodeName(FName SlotNodeName);
-	ENGINE_API void RemoveSlotNodeName(FName SlotNodeName);
-	ENGINE_API bool DoesHaveSlotNodeName(FName SlotNodeName) const;
-	ENGINE_API const TArray<FName> & GetSlotNodeNames() const;
-
-	ENGINE_API void AddSlotGroupName(FName GroupName);
-	ENGINE_API void RemoveSlotGroupName(FName GroupName);
-	ENGINE_API bool DoesHaveSlotGroupName(FName GroupName) const;
-	ENGINE_API const TArray<FName> & GetSlotGroupNames() const;
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
@@ -644,9 +675,6 @@ public:
 	ENGINE_API URig * GetRig() const;
 #endif
 
-public:
-	// this should be outside of editor because slot node is initialize to it
-	ENGINE_API static const FName DefaultSlotGroupName;
 private:
 	void RegenerateGuid();
 };

@@ -6,7 +6,6 @@
 #include "SSkeletonAnimNotifies.h"
 #include "IDocumentation.h"
 #include "SAnimBlueprintParentPlayerList.h"
-#include "SSkeletonSlotGroupNames.h"
 #include "SSkeletonSlotNames.h"
 #include "SSkeletonSmartNameManager.h"
 
@@ -67,7 +66,6 @@ FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InM
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetManagerTabSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotGroupNamesSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonCurveNameManagerSummoner(InPersona)));
 }
 

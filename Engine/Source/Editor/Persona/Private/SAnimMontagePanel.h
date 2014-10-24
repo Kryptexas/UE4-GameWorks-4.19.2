@@ -78,19 +78,7 @@ public:
 	void ShowBranchPointInDetailsView(int32 BranchPointIndex);
 	void ShowSectionInDetailsView(int32 SectionIndex);
 
-	void OnSlotNodeNameChangeCommit(const FText& NewText, ETextCommit::Type CommitInfo, int32 SlotNodeIndex);
-
 	void ClearSelected();
-
-	// helper method to check whether the slot name is empty or not. If empty, shows an error message to provide a valid name
-	void CheckSlotName(const FText& SlotName, int32 SlotNodeIndex, bool bShouldCheckCollapsed = false) const;
-
-	// check the slot name whether valid or not while the user is typing
-	void OnSlotNameChanged(const FText& NewText, int32 SlotNodeIndex);
-
-	// get slot name from a montage editor and check the slot name whether valid or not
-	FText GetMontageSlotName(int32 SlotIndex) const;
-
 
 private:
 	TWeakPtr<FPersona> Persona;
@@ -105,9 +93,26 @@ private:
 
 	STrackNodeSelectionSet SelectionSet;
 
-	// text box array for multiple slot names
-	TArray<TSharedPtr<SEditableTextBox>> SlotNameTextBoxes;
-	
+	TArray< TSharedPtr< class STextComboBox> >	SlotNameComboBoxes;
+	TArray< FName > SlotNameComboSelectedNames;
+
+	TArray< TSharedPtr< FString > > SlotNameComboListItems;
+	TArray< FName > SlotNameList;
+
+	TArray< TSharedPtr<SImage> > SlotWarningImages;
+
+	/************************************************************************/
+	/* Status Bar                                                                     */
+	/************************************************************************/
+	TSharedPtr<STextBlock> StatusBarTextBlock;
+	TSharedPtr<SImage> StatusBarWarningImage;
+
+	void OnSlotNameChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo, int32 AnimSlotIndex);
+	void OnSlotListOpening(int32 AnimSlotIndex);
+	FReply OnOpenAnimSlotManager();
+	void RefreshComboLists(bool bOnlyRefreshIfDifferent = false);
+	void UpdateSlotGroupWarningVisibility();
+
 	void CreateNewSlot(const FText& NewSlotName, ETextCommit::Type CommitInfo);
 	void CreateNewSection(const FText& NewSectionName, ETextCommit::Type CommitInfo, float StartTime);
 	void CreateNewBranch(const FText& NewBranchName, ETextCommit::Type CommitInfo, float StartTime);
