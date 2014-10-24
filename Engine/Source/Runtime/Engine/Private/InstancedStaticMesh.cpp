@@ -906,7 +906,7 @@ public:
 
 	~FInstancedStaticMeshSceneProxy()
 	{
-		InstancedRenderData.ReleaseResources(GetScene( ), StaticMesh);
+		InstancedRenderData.ReleaseResources(&GetScene( ), StaticMesh);
 	}
 
 	// FPrimitiveSceneProxy interface.
