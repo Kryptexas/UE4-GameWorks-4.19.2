@@ -34,7 +34,14 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 	else
 	{
 		// Sound decoding is complete, just waiting to finish playing
-		if (bBuffersToFlush) return;
+		if (bBuffersToFlush)
+		{
+			// set the player's state to stopped
+			SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
+			check(SL_RESULT_SUCCESS == result);
+
+			return;
+		}
 
 		// Enqueue the previously decoded buffer
 		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, AudioBuffers[BufferInUse].AudioData, AudioBuffers[BufferInUse].AudioDataSize );
@@ -415,7 +422,6 @@ void FSLESSoundSource::Stop( void )
 {
 	if( WaveInstance )
 	{
-		
 		// set the player's state to stopped
 		SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
 		check(SL_RESULT_SUCCESS == result);
@@ -485,8 +491,6 @@ bool FSLESSoundSource::IsFinished( void )
 		// Check for a non starved, stopped source
 		if( IsSourceFinished() )
 		{
-			
-			
 			// Notify the wave instance that it has finished playing
 			WaveInstance->NotifyFinished();
 			return true;
@@ -516,6 +520,5 @@ bool FSLESSoundSource::IsFinished( void )
 		
 		return false;
 	}
-	
 	return true;
 }

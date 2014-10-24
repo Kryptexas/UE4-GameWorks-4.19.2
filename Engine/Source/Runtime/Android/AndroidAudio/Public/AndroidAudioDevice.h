@@ -271,14 +271,6 @@ public:
 	/** Starts up any platform specific hardware/APIs */
 	virtual bool InitializeHardware() override;
  
-	/**
-	 * Update the audio device and calculates the cached inverse transform later
-	 * on used for spatialization.
-	 *
-	 * @param	Realtime	whether we are paused or not
-	 */
-	virtual void Update( bool bGameTicking );
-
 	/** Check if any background music or sound is playing through the audio device */
 	virtual bool IsExernalBackgroundSoundActive() override;
 
