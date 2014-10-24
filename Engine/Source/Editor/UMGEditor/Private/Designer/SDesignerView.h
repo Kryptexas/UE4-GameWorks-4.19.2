@@ -120,6 +120,7 @@ private:
 	FText GetCurrentResolutionText() const;
 	FText GetCurrentDPIScaleText() const;
 	FSlateColor GetResolutionTextColorAndOpacity() const;
+	EVisibility GetResolutionTextVisibility() const;
 
 	TOptional<int32> GetCustomResolutionWidth() const;
 	TOptional<int32> GetCustomResolutionHeight() const;
