@@ -192,7 +192,7 @@ public:
 		if( World.IsValid() && ensure( World->IsGameWorld() ) )
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
-			auto* PlayerController = TargetPlayer->PlayerController;
+			APlayerController* PlayerController = TargetPlayer->PlayerController;
 
 			if (TargetPlayer && PlayerController)
 			{
@@ -290,7 +290,7 @@ UWidgetComponent::UWidgetComponent( const class FObjectInitializer& PCIP )
 	, DrawSize( FIntPoint( 500, 500 ) )
 	, BackgroundColor( FLinearColor::Transparent )
 	, bIsOpaque( false )
-	, bIsTwoSided( true )
+	, bIsTwoSided( false )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;

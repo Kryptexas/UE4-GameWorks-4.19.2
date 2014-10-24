@@ -50,7 +50,7 @@ public:
 	/** @return The user widget object displayed by this component */
 	UUserWidget* GetUserWidgetObject() const { return Widget; }
 
-	/** @return  */
+	/** @return The path of hit widgets that were found when the component was hit */
 	TArray<FArrangedWidget> GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus );
 
 	/** @return The render target to which the user widget is rendered */
@@ -78,18 +78,18 @@ private:
 	TSubclassOf<UUserWidget> WidgetClass;
 
 	/** The background color of the component */
-	UPROPERTY( EditAnywhere, Category = UI )
+	UPROPERTY(EditAnywhere, Category=Rendering)
 	FLinearColor BackgroundColor;
 
 	/** 
 	 * Should the component be rendered opaque? 
 	 * This improves aliasing of the UI in the world.
 	 */
-	UPROPERTY(EditAnywhere, Category=UI)
+	UPROPERTY(EditAnywhere, Category=Rendering)
 	bool bIsOpaque;
 
 	/** Is the component visible from behind? */
-	UPROPERTY( EditAnywhere, Category = UI )
+	UPROPERTY(EditAnywhere, Category=Rendering)
 	bool bIsTwoSided;
 
 	/** The User Widget object displayed and managed by this component */
@@ -124,7 +124,7 @@ private:
 	UPROPERTY(transient, duplicatetransient)
 	UMaterialInstanceDynamic* MaterialInstance;
 
-	/**  */
+	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;
 
 	/** The slate 3D renderer used to render the user slate widget */
