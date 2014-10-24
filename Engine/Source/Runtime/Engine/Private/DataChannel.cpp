@@ -1982,13 +1982,6 @@ FString UActorChannel::Describe()
 void UActorChannel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	UActorChannel* This = CastChecked<UActorChannel>(InThis);	
-
-	// Let GC know that we're referencing UObject's in the replication shadow state
-	for ( auto MapIt = This->ReplicationMap.CreateIterator(); MapIt; ++MapIt )
-	{
-		MapIt.Value()->AddReferencedObjects( InThis, Collector );
-	}
-
 	Super::AddReferencedObjects( This, Collector );
 }
 

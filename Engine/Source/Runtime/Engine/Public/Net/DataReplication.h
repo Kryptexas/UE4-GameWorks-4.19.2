@@ -116,9 +116,6 @@ public:
 
 	void	ForceRefreshUnreliableProperties();
 
-	void	AddReferencedObjects( UObject* InThis, FReferenceCollector& Collector );
-
-
 	bool bHasReplicatedProperties;
 
 	void QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bunch );

@@ -229,53 +229,6 @@ public:
 	bool				bDoChecksum;
 };
 
-class FRepReaderState
-{
-public:
-	FRepReaderState( FNetBitReader & InBunch, FRepState * InRepState, bool bInDoChecksum ) : 
-		WaitingHandle( 0 ), 
-		CurrentHandle( 0 ), 
-		Bunch( InBunch ),
-		RepState( InRepState ),
-		bDoChecksum( bInDoChecksum ),
-		bHasUnmapped( false )
-	{}
-
-	uint32					WaitingHandle;
-	uint32					CurrentHandle;
-	FNetBitReader &			Bunch;
-	FRepState *				RepState;
-	bool					bDoChecksum;
-	bool					bHasUnmapped;
-};
-
-class FMergeDirtyListState
-{
-public:
-	FMergeDirtyListState( const TArray< uint16 > & InDirty1, const TArray< uint16 > & InDirty2, TArray< uint16 > & OutMergedDirty ) : 
-		DirtyList1( InDirty1 ), 
-		DirtyList2( InDirty2 ), 
-		DirtyListIndex1( 0 ),
-		DirtyListIndex2( 0 ),
-		Handle( 0 ),
-		DirtyValid1( true ),
-		DirtyValid2( true ),
-		MergedDirtyList( OutMergedDirty )
-	{}
-
-	const TArray< uint16 > & DirtyList1;
-	const TArray< uint16 > & DirtyList2;
-
-	int32				DirtyListIndex1;
-	int32				DirtyListIndex2;
-	uint16				Handle;
-
-	bool				DirtyValid1;
-	bool				DirtyValid2;
-
-	TArray< uint16 > & 	MergedDirtyList;
-};
-
 /** FRepLayout
  *  This class holds all replicated properties for a parent property, and all its children
  *	Helpers functions exist to read/write and compare property state.
@@ -342,7 +295,7 @@ public:
 	void ValidateWithChecksum( const void* RESTRICT Data, FArchive & Ar ) const;
 	uint32 GenerateChecksum( const FRepState* RepState ) const;
 
-	void MergeDirtyList( const void* RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
+	void MergeDirtyList( FRepState * RepState, const void* RESTRICT Data, const TArray< uint16 > & Dirty1, const TArray< uint16 > & Dirty2, TArray< uint16 > & MergedDirty ) const;
 
 	bool DiffProperties( FRepState * RepState, const void* RESTRICT Data, const bool bSync ) const;
 
@@ -356,8 +309,6 @@ public:
 	// Struct support
 	void SerializePropertiesForStruct( UStruct * Struct, FArchive & Ar, UPackageMap	* Map, void* Data, bool & bHasUnmapped ) const;	
 	void InitFromStruct( UStruct * InStruct );
-
-	void AddReferencedObjects( FRepState * RepState, UObject* ReferencingObject, FReferenceCollector& Collector ) const;
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
@@ -422,43 +373,6 @@ private:
 		const uint8* RESTRICT		Data, 
 		uint16						Handle ) const;
 
-	bool ReadProperty( 
-		FRepReaderState &		ReaderState, 
-		FUnmappedGuidMgr *		UnmappedGuids,
-		const int32				AbsOffset,
-		const FRepLayoutCmd &	Cmd, 
-		const int32				CurrentCmdIndex, 
-		uint8* RESTRICT		StoredData, 
-		uint8* RESTRICT		Data ) const;
-
-	bool ReceiveProperties_AnyArray_r( 
-		FRepReaderState &	ReaderState, 
-		FUnmappedGuidMgr *	UnmappedGuids,
-		const int32			AbsOffset,
-		const int32			ArrayNum, 
-		const int32			ElementSize, 
-		const int32			CmdIndex, 
-		uint8* RESTRICT	StoredData, 
-		uint8 *	RESTRICT	Data ) const;
-
-	bool ReceiveProperties_DynamicArray_r( 
-		FRepReaderState &		ReaderState, 
-		FUnmappedGuidMgr *		UnmappedGuids,
-		const int32				AbsOffset,
-		const FRepLayoutCmd &	Cmd, 
-		const int32				CmdIndex, 
-		uint8* RESTRICT		StoredData, 
-		uint8* RESTRICT		Data ) const;
-
-	bool ReceiveProperties_r( 
-		FRepReaderState &	ReaderState, 
-		FUnmappedGuidMgr *	UnmappedGuids,
-		const int32			AbsOffset,
-		const int32			CmdStart, 
-		const int32			CmdEnd, 
-		uint8* RESTRICT	StoredData, 
-		uint8* RESTRICT	Data ) const;
-
 	void UpdateUnmappedObjects_r( 
 		FRepState *			RepState, 
 		FUnmappedGuidMgr *	UnmappedGuids, 
@@ -472,10 +386,6 @@ private:
 
 	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data, FArchive & Ar ) const;
 	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT Data, FArchive & Ar ) const;
-
-	void MergeDirtyList_AnyArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd& Cmd, const int32 ArrayNum, const int32 ElementSize, const int32 CmdIndex, const uint8* RESTRICT Data ) const;
-	void MergeDirtyList_DynamicArray_r( FMergeDirtyListState & MergeState, const FRepLayoutCmd& Cmd, const int32 CmdIndex, const uint8* RESTRICT Data ) const;
-	void MergeDirtyList_r( FMergeDirtyListState & MergeState, const int32 CmdStart, const int32 CmdEnd, const uint8* RESTRICT Data ) const;
 
 	void SanityCheckChangeList_DynamicArray_r( 
 		const int32				CmdIndex, 
