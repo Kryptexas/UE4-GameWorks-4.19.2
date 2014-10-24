@@ -658,7 +658,7 @@ public:
 		{
 			for (int32 LODIndex = 0; LODIndex < VertexFactories.Num(); LODIndex++)
 			{
-				Scene->RemoveSpeedTreeWind(&VertexFactories[LODIndex], StaticMesh);
+				Scene->RemoveSpeedTreeWind_RenderThread(&VertexFactories[LODIndex], StaticMesh);
 			}
 		}
 

@@ -1379,28 +1379,33 @@ void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const clas
 			const UStaticMesh*, StaticMesh, StaticMesh,
 			FVertexFactory*,VertexFactory,VertexFactory,
 			{
-				FSpeedTreeWindComputation** WindComputationRef = Scene->SpeedTreeWindComputationMap.Find(StaticMesh);
-				if (WindComputationRef != NULL)
-				{
-					FSpeedTreeWindComputation* WindComputation = *WindComputationRef;
-
-					WindComputation->ReferenceCount--;
-					if (WindComputation->ReferenceCount < 1)
-					{
-						for (auto Iter = Scene->SpeedTreeVertexFactoryMap.CreateIterator(); Iter; ++Iter )
-						{
-							if (Iter.Value() == StaticMesh)
-							{
-								Iter.RemoveCurrent();
-							}
-						}
-
-						Scene->SpeedTreeWindComputationMap.Remove(StaticMesh);
-						WindComputation->UniformBuffer.ReleaseResource();
-						delete WindComputation;
-					}
-				}
+				Scene->RemoveSpeedTreeWind_RenderThread(VertexFactory, StaticMesh);
 			});
+	}
+}
+
+void FScene::RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh)
+{
+	FSpeedTreeWindComputation** WindComputationRef = SpeedTreeWindComputationMap.Find(StaticMesh);
+	if (WindComputationRef != NULL)
+	{
+		FSpeedTreeWindComputation* WindComputation = *WindComputationRef;
+
+		WindComputation->ReferenceCount--;
+		if (WindComputation->ReferenceCount < 1)
+		{
+			for (auto Iter = SpeedTreeVertexFactoryMap.CreateIterator(); Iter; ++Iter )
+			{
+				if (Iter.Value() == StaticMesh)
+				{
+					Iter.RemoveCurrent();
+				}
+			}
+
+			SpeedTreeWindComputationMap.Remove(StaticMesh);
+			WindComputation->UniformBuffer.ReleaseResource();
+			delete WindComputation;
+		}
 	}
 }
 
@@ -2104,6 +2109,7 @@ public:
 	virtual FVector4 GetDirectionalWindParameters() const { return FVector4(0,0,1,0); }
 	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
 	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
+	virtual void RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
 	virtual void UpdateSpeedTreeWind(double CurrentTime) {}
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) { return FUniformBufferRHIParamRef(); }
 
