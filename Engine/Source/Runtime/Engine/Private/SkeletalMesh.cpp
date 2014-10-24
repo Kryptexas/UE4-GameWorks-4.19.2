@@ -2218,6 +2218,14 @@ void USkeletalMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 		InitMorphTargets();
 	}
 
+	if ( GIsEditor &&
+		 PropertyThatChanged &&
+		 PropertyThatChanged->GetFName() == FName(TEXT("bEnablePerPolyCollision"))
+		)
+	{
+		BuildPhysicsData();
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -2397,6 +2405,11 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
 	}
 #endif
+
+	if (bEnablePerPolyCollision)
+	{
+		Ar << BodySetup;
+	}
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -3344,6 +3357,118 @@ bool USkeletalMesh::MirrorTableIsGood(FString& ProblemBones)
 	}
 }
 
+void USkeletalMesh::CreateBodySetup()
+{
+	if (BodySetup == nullptr)
+	{
+		BodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		BodySetup->bSharedCookedData = true;
+	}
+}
+
+UBodySetup* USkeletalMesh::GetBodySetup()
+{
+	CreateBodySetup();
+	return BodySetup;
+}
+
+#if WITH_EDITOR
+void USkeletalMesh::BuildPhysicsData()
+{
+	CreateBodySetup();
+	BodySetup->CookedFormatData.FlushData();	//we need to force a re-cook because we're essentially re-creating the bodysetup so that it swaps whether or not it has a trimesh
+	BodySetup->InvalidatePhysicsData();
+	BodySetup->CreatePhysicsMeshes();
+}
+#endif
+
+bool USkeletalMesh::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
+{
+	return bEnablePerPolyCollision;
+}
+
+bool USkeletalMesh::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool bInUseAllTriData)
+{
+#if WITH_EDITORONLY_DATA
+
+	// Fail if no mesh or not per poly collision
+	if (!ImportedResource.IsValid() || !bEnablePerPolyCollision)
+	{
+		return false;
+	}
+
+	const FStaticLODModel& Model = ImportedResource->LODModels[0];
+
+	{
+		// Copy all verts into collision vertex buffer.
+		CollisionData->Vertices.Empty();
+		CollisionData->Vertices.AddUninitialized(Model.NumVertices);
+		const uint32 NumChunks = Model.Chunks.Num();
+
+		for (uint32 ChunkIdx = 0; ChunkIdx < NumChunks; ++ChunkIdx)
+		{
+			const FSkelMeshChunk& Chunk = Model.Chunks[ChunkIdx];
+			{
+				//rigid
+				const uint32 RigidOffset = Chunk.GetRigidVertexBufferIndex();
+				const uint32 NumRigidVerts = Chunk.GetNumRigidVertices();
+				for (uint32 RigidIdx = 0; RigidIdx < NumRigidVerts; ++RigidIdx)
+				{
+					CollisionData->Vertices[RigidIdx + RigidOffset] = Chunk.RigidVertices[RigidIdx].Position;
+				}
+			}
+			{
+				//soft
+				const uint32 SoftOffset = Chunk.GetSoftVertexBufferIndex();
+				const uint32 NumSoftVerts = Chunk.GetNumSoftVertices();
+				for (uint32 SoftIdx = 0; SoftIdx < NumSoftVerts; ++SoftIdx)
+				{
+					CollisionData->Vertices[SoftIdx + SoftOffset] = Chunk.SoftVertices[SoftIdx].Position;
+				}
+			}
+
+		}
+	}
+
+	{
+		// Copy indices into collision index buffer
+		const FMultiSizeIndexContainer& IndexBufferContainer = Model.MultiSizeIndexContainer;
+
+		TArray<uint32> Indices;
+		IndexBufferContainer.GetIndexBuffer(Indices);
+
+		const uint32 NumTris = Indices.Num() / 3;
+		CollisionData->Indices.Empty();
+		CollisionData->Indices.Reserve(NumTris);
+
+		FTriIndices TriIndex;
+		for (int32 SectionIndex = 0; SectionIndex < Model.Sections.Num(); ++SectionIndex)
+		{
+			const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+
+			const uint32 OnePastLastIndex = Section.BaseIndex + Section.NumTriangles * 3;
+
+			for (uint32 i = Section.BaseIndex; i < OnePastLastIndex; i += 3)
+			{
+				TriIndex.v0 = Indices[i];
+				TriIndex.v1 = Indices[i + 1];
+				TriIndex.v2 = Indices[i + 2];
+
+				CollisionData->Indices.Add(TriIndex);
+				CollisionData->MaterialIndices.Add(Section.MaterialIndex);
+			}
+		}
+	}
+
+	CollisionData->bFlipNormals = true;
+
+	// We only have a valid TriMesh if the CollisionData has vertices AND indices. For meshes with disabled section collision, it
+	// can happen that the indices will be empty, in which case we do not want to consider that as valid trimesh data
+	return CollisionData->Vertices.Num() > 0 && CollisionData->Indices.Num() > 0;
+#else // #if WITH_EDITORONLY_DATA
+	return false;
+#endif // #if WITH_EDITORONLY_DATA
+}
 
 
 ////// SKELETAL MESH THUMBNAIL SUPPORT ////////
@@ -4778,6 +4903,11 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 #endif
+
+	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_AUTO_WELDING))
+	{
+		BodyInstance.bAutoWeld = false;
+	}
 }
 
 

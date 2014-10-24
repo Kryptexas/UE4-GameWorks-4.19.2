@@ -457,10 +457,6 @@ class UDestructibleMesh : public USkeletalMesh
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Effects)
 	TArray<struct FFractureEffect> FractureEffects;
 
-	/** Physics data.  Fields from BodySetup which are relevant to the DestructibleMesh will be used. */
-	UPROPERTY(EditAnywhere, Instanced, Category=DestructibleMesh)
-	class UBodySetup* BodySetup;
-
 #if WITH_EDITORONLY_DATA
 	/** Information used to author an NxDestructibleAsset*/
 	UPROPERTY(instanced)
@@ -515,11 +511,6 @@ public:
 
 	/** Fills DefaultDestructibleParameters with parameters from the NxDestructibleAsset. */
 	ENGINE_API void				LoadDefaultDestructibleParametersFromApexAsset();
-
-	/**
-	 * Create BodySetup for this DestructibleMesh if it doesn't have one
-	 */
-	ENGINE_API void				CreateBodySetup();
 
 	/**
 	 * Create DestructibleFractureSettings for this DestructibleMesh if it doesn't have one
