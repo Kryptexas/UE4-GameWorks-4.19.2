@@ -8,6 +8,7 @@
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
+#include "MaterialUniformExpressions.h"
 #include "MaterialInstanceSupport.h"
 #include "MaterialShaderType.h"
 #include "TargetPlatform.h"
@@ -759,6 +760,72 @@ void UMaterialInstance::OverrideTexture(const UTexture* InTextureToOverride, UTe
 			{
 				// Override this texture!
 				Expression->SetTransientOverrideTextureValue( OverrideTexture );
+				bShouldRecacheMaterialExpressions = true;
+			}
+		}
+	}
+
+	if (bShouldRecacheMaterialExpressions)
+	{
+		RecacheUniformExpressions();
+		RecacheMaterialInstanceUniformExpressions(this);
+	}
+#endif // #if WITH_EDITOR
+}
+
+void UMaterialInstance::OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type InFeatureLevel)
+{
+#if WITH_EDITOR
+	bool bShouldRecacheMaterialExpressions = false;
+
+	if (bHasStaticPermutationResource)
+	{
+		const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
+		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformVectorParameterExpressions();
+
+		// Iterate over each of the material's texture expressions.
+		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+		{
+			FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+			check(UniformExpression->GetType() == &FMaterialUniformExpressionVectorParameter::StaticType);
+			FMaterialUniformExpressionVectorParameter* VectorExpression = static_cast<FMaterialUniformExpressionVectorParameter*>(UniformExpression);
+
+			if (VectorExpression->GetParameterName() == ParameterName)
+			{
+				VectorExpression->SetTransientOverrideDefaultValue(Value, bOverride);
+				bShouldRecacheMaterialExpressions = true;
+			}
+		}
+	}
+
+	if (bShouldRecacheMaterialExpressions)
+	{
+		RecacheUniformExpressions();
+		RecacheMaterialInstanceUniformExpressions(this);
+	}
+#endif // #if WITH_EDITOR
+}
+
+void UMaterialInstance::OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type InFeatureLevel)
+{
+#if WITH_EDITOR
+	bool bShouldRecacheMaterialExpressions = false;
+
+	if (bHasStaticPermutationResource)
+	{
+		const FMaterialResource* SourceMaterialResource = GetMaterialResource(InFeatureLevel);
+		const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = SourceMaterialResource->GetUniformScalarParameterExpressions();
+
+		// Iterate over each of the material's texture expressions.
+		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
+		{
+			FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
+			check(UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType);
+			FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+			if (ScalarExpression->GetParameterName() == ParameterName)
+			{
+				ScalarExpression->SetTransientOverrideDefaultValue(Value, bOverride);
 				bShouldRecacheMaterialExpressions = true;
 			}
 		}

@@ -44,6 +44,8 @@ FEditorSupportDelegates::FOnWindowsMessage FEditorSupportDelegates::PreWindowsMe
 FEditorSupportDelegates::FOnWindowsMessage FEditorSupportDelegates::PostWindowsMessage;
 /** Sent after the usages flags on a material have changed*/
 FEditorSupportDelegates::FOnMaterialUsageFlagsChanged FEditorSupportDelegates::MaterialUsageFlagsChanged;
+FEditorSupportDelegates::FOnVectorParameterDefaultChanged FEditorSupportDelegates::VectorParameterDefaultChanged;
+FEditorSupportDelegates::FOnScalarParameterDefaultChanged FEditorSupportDelegates::ScalarParameterDefaultChanged;
 
 #endif // WITH_EDITOR
 

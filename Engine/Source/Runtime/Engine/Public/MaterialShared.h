@@ -88,8 +88,6 @@ struct ENGINE_API FMaterialRenderContext
 	const FMaterial& Material;
 	/** Whether or not selected objects should use their selection color. */
 	bool bShowSelection;
-	/** Whether to modify sampler state set with this context to work around mip map artifacts that show up in deferred passes. */
-	bool bWorkAroundDeferredMipArtifacts;
 
 	/** 
 	* Constructor
@@ -97,8 +95,7 @@ struct ENGINE_API FMaterialRenderContext
 	FMaterialRenderContext(
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterial,
-		const FSceneView* InView,
-		bool bInWorkAroundDeferredMipArtifacts = false);
+		const FSceneView* InView);
 };
 
 /**
@@ -957,6 +954,8 @@ public:
 	const TArray<UMaterialExpression*>& GetErrorExpressions() const { return ErrorExpressions; }
 	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& GetUniform2DTextureExpressions() const;
 	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& GetUniformCubeTextureExpressions() const;
+	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpression> >& GetUniformVectorParameterExpressions() const;
+	ENGINE_API const TArray<TRefCountPtr<FMaterialUniformExpression> >& GetUniformScalarParameterExpressions() const;
 	const FGuid& GetLegacyId() const { return Id_DEPRECATED; }
 
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }

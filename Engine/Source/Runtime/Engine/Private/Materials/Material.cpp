@@ -19,6 +19,7 @@
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "MaterialUniformExpressions.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "EditorSupportDelegates.h"
 #include "MaterialShaderType.h"
@@ -668,6 +669,65 @@ void UMaterial::OverrideTexture(const UTexture* InTextureToOverride, UTexture* O
 #endif // #if WITH_EDITOR
 }
 
+void UMaterial::OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type InFeatureLevel)
+{
+#if WITH_EDITOR
+	bool bShouldRecacheMaterialExpressions = false;
+
+	FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
+	// Iterate over both the 2D textures and cube texture expressions.
+	const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformVectorParameterExpressions();
+
+	// Iterate over each of the material's texture expressions.
+	for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+	{
+		check(UniformExpression->GetType() == &FMaterialUniformExpressionVectorParameter::StaticType);
+		FMaterialUniformExpressionVectorParameter* VectorExpression = static_cast<FMaterialUniformExpressionVectorParameter*>(UniformExpression);
+
+		if (VectorExpression->GetParameterName() == ParameterName)
+		{
+			VectorExpression->SetTransientOverrideDefaultValue(Value, bOverride);
+			bShouldRecacheMaterialExpressions = true;
+		}
+	}
+
+	if (bShouldRecacheMaterialExpressions)
+	{
+		RecacheUniformExpressions();
+		RecacheMaterialInstanceUniformExpressions(this);
+	}
+#endif // #if WITH_EDITOR
+}
+
+void UMaterial::OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type InFeatureLevel)
+{
+#if WITH_EDITOR
+	bool bShouldRecacheMaterialExpressions = false;
+
+	FMaterialResource* Resource = GetMaterialResource(InFeatureLevel);
+	// Iterate over both the 2D textures and cube texture expressions.
+	const TArray<TRefCountPtr<FMaterialUniformExpression> >& UniformExpressions = Resource->GetUniformScalarParameterExpressions();
+
+	// Iterate over each of the material's texture expressions.
+	for (FMaterialUniformExpression* UniformExpression : UniformExpressions)
+	{
+		check(UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType);
+		FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+		if (ScalarExpression->GetParameterName() == ParameterName)
+		{
+			ScalarExpression->SetTransientOverrideDefaultValue(Value, bOverride);
+			bShouldRecacheMaterialExpressions = true;
+		}
+	}
+
+	if (bShouldRecacheMaterialExpressions)
+	{
+		RecacheUniformExpressions();
+		RecacheMaterialInstanceUniformExpressions(this);
+	}
+#endif // #if WITH_EDITOR
+}
 
 void UMaterial::RecacheUniformExpressions() const
 {
@@ -904,7 +964,6 @@ bool UMaterial::NeedsSetMaterialUsage_Concurrent(bool &bOutHasUsage, EMaterialUs
 	}
 	return false;
 }
-
 
 bool UMaterial::SetMaterialUsage(bool &bNeedsRecompile, EMaterialUsage Usage, const bool bSkipPrim)
 {
@@ -2328,7 +2387,7 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 } 
 #endif // WITH_EDITOR
 
-bool UMaterial::AddExpressionParameter(UMaterialExpression* Expression)
+bool UMaterial::AddExpressionParameter(UMaterialExpression* Expression, TMap<FName, TArray<UMaterialExpression*> >& ParameterTypeMap)
 {
 	if(!Expression)
 	{
@@ -2341,11 +2400,11 @@ bool UMaterial::AddExpressionParameter(UMaterialExpression* Expression)
 	{
 		UMaterialExpressionParameter *Param = (UMaterialExpressionParameter*)Expression;
 
-		TArray<UMaterialExpression*> *ExpressionList = EditorParameters.Find(Param->ParameterName);
+		TArray<UMaterialExpression*> *ExpressionList = ParameterTypeMap.Find(Param->ParameterName);
 
 		if(!ExpressionList)
 		{
-			ExpressionList = &EditorParameters.Add(Param->ParameterName, TArray<UMaterialExpression*>());
+			ExpressionList = &ParameterTypeMap.Add(Param->ParameterName, TArray<UMaterialExpression*>());
 		}
 
 		ExpressionList->Add(Param);
@@ -2355,11 +2414,11 @@ bool UMaterial::AddExpressionParameter(UMaterialExpression* Expression)
 	{
 		UMaterialExpressionTextureSampleParameter *Param = (UMaterialExpressionTextureSampleParameter*)Expression;
 
-		TArray<UMaterialExpression*> *ExpressionList = EditorParameters.Find(Param->ParameterName);
+		TArray<UMaterialExpression*> *ExpressionList = ParameterTypeMap.Find(Param->ParameterName);
 
 		if(!ExpressionList)
 		{
-			ExpressionList = &EditorParameters.Add(Param->ParameterName, TArray<UMaterialExpression*>());
+			ExpressionList = &ParameterTypeMap.Add(Param->ParameterName, TArray<UMaterialExpression*>());
 		}
 
 		ExpressionList->Add(Param);
@@ -2369,11 +2428,11 @@ bool UMaterial::AddExpressionParameter(UMaterialExpression* Expression)
 	{
 		UMaterialExpressionFontSampleParameter *Param = (UMaterialExpressionFontSampleParameter*)Expression;
 
-		TArray<UMaterialExpression*> *ExpressionList = EditorParameters.Find(Param->ParameterName);
+		TArray<UMaterialExpression*> *ExpressionList = ParameterTypeMap.Find(Param->ParameterName);
 
 		if(!ExpressionList)
 		{
-			ExpressionList = &EditorParameters.Add(Param->ParameterName, TArray<UMaterialExpression*>());
+			ExpressionList = &ParameterTypeMap.Add(Param->ParameterName, TArray<UMaterialExpression*>());
 		}
 
 		ExpressionList->Add(Param);
@@ -2390,7 +2449,7 @@ bool UMaterial::RemoveExpressionParameter(UMaterialExpression* Expression)
 
 	if(GetExpressionParameterName(Expression, ParmName))
 	{
-		TArray<UMaterialExpression*> *ExpressionList = EditorParameters.Find(ParmName);
+		TArray<UMaterialExpression*>* ExpressionList = EditorParameters.Find(ParmName);
 
 		if(ExpressionList)
 		{
@@ -2437,11 +2496,11 @@ bool UMaterial::IsDynamicParameter(const UMaterialExpression* Expression)
 
 void UMaterial::BuildEditorParameterList()
 {
-	EmptyEditorParameters();
+	EditorParameters.Empty();
 
 	for(int32 MaterialExpressionIndex = 0 ; MaterialExpressionIndex < Expressions.Num() ; ++MaterialExpressionIndex)
 	{
-		AddExpressionParameter(Expressions[ MaterialExpressionIndex ]);
+		AddExpressionParameter(Expressions[MaterialExpressionIndex], EditorParameters);
 	}
 }
 
@@ -2452,13 +2511,13 @@ bool UMaterial::HasDuplicateParameters(const UMaterialExpression* Expression)
 
 	if(GetExpressionParameterName(Expression, ExpressionName))
 	{
-		TArray<UMaterialExpression*> *ExpressionList = EditorParameters.Find(ExpressionName);
+		TArray<UMaterialExpression*>* ExpressionList = EditorParameters.Find(ExpressionName);
 
 		if(ExpressionList)
 		{
 			for(int32 ParmIndex = 0; ParmIndex < ExpressionList->Num(); ++ParmIndex)
 			{
-				UMaterialExpression *CurNode = (*ExpressionList)[ParmIndex];
+				UMaterialExpression* CurNode = (*ExpressionList)[ParmIndex];
 				if(CurNode != Expression && CurNode->GetClass() == Expression->GetClass())
 				{
 					return true;
@@ -2515,7 +2574,7 @@ void UMaterial::PropagateExpressionParameterChanges(UMaterialExpression* Paramet
 
 	if(bRet)
 	{
-		TArray<UMaterialExpression*> *ExpressionList = EditorParameters.Find(ParmName);
+		TArray<UMaterialExpression*>* ExpressionList = EditorParameters.Find(ParmName);
 
 		if(ExpressionList && ExpressionList->Num() > 1)
 		{
@@ -2545,7 +2604,7 @@ void UMaterial::UpdateExpressionParameterName(UMaterialExpression* Expression)
 				EditorParameters.Remove(Iter.Key());
 			}
 
-			AddExpressionParameter(Expression);
+			AddExpressionParameter(Expression, EditorParameters);
 			break;
 		}
 	}

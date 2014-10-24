@@ -376,6 +376,56 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	return EmptyExpressions;
 }
 
+const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformVectorParameterExpressions() const 
+{ 
+	const FMaterialShaderMap* ShaderMapToUse = NULL;
+
+	if (IsInGameThread())
+	{
+		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
+		// This allows querying what textures a material uses even when it is being asynchronously compiled
+		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
+	}
+	else 
+	{
+		check(IsInRenderingThread());
+		ShaderMapToUse = GetRenderingThreadShaderMap();
+	}
+
+	if (ShaderMapToUse)
+	{
+		return ShaderMapToUse->GetUniformExpressionSet().UniformVectorExpressions; 
+	}
+
+	static const TArray<TRefCountPtr<FMaterialUniformExpression> > EmptyExpressions;
+	return EmptyExpressions;
+}
+
+const TArray<TRefCountPtr<FMaterialUniformExpression> >& FMaterial::GetUniformScalarParameterExpressions() const 
+{ 
+	const FMaterialShaderMap* ShaderMapToUse = NULL;
+
+	if (IsInGameThread())
+	{
+		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
+		// This allows querying what textures a material uses even when it is being asynchronously compiled
+		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
+	}
+	else 
+	{
+		check(IsInRenderingThread());
+		ShaderMapToUse = GetRenderingThreadShaderMap();
+	}
+
+	if (ShaderMapToUse)
+	{
+		return ShaderMapToUse->GetUniformExpressionSet().UniformScalarExpressions; 
+	}
+
+	static const TArray<TRefCountPtr<FMaterialUniformExpression> > EmptyExpressions;
+	return EmptyExpressions;
+}
+
 bool FMaterial::RequiresSceneColorCopy_GameThread() const
 {
 	check(IsInGameThread());
@@ -1488,11 +1538,9 @@ TSet<FMaterial*> FMaterial::EditorLoadedMaterialResources;
 FMaterialRenderContext::FMaterialRenderContext(
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterial,
-	const FSceneView* InView,
-	bool bInWorkAroundDeferredMipArtifacts)
+	const FSceneView* InView)
 		: MaterialRenderProxy(InMaterialRenderProxy)
 		, Material(InMaterial)
-		, bWorkAroundDeferredMipArtifacts(bInWorkAroundDeferredMipArtifacts)
 {
 	bShowSelection = GIsEditor && InView && InView->Family->EngineShowFlags.Selection;
 }

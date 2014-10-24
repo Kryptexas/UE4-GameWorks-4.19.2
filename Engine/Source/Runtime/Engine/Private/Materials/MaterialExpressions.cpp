@@ -163,14 +163,7 @@ bool IsAllowedExpressionType(UClass* Class, bool bMaterialFunction)
 
 	if (bMaterialFunction)
 	{
-		return bSharedAllowed
-			// Exclude parameter nodes from functions, as parameter functionality currently isn't setup to scan all functions as needed, 
-			// Also naming collisions would need to be communicated to the user
-			&& !Class->IsChildOf(UMaterialExpressionParameter::StaticClass())
-			&& !Class->IsChildOf(UMaterialExpressionTextureSampleParameter::StaticClass())
-			&& !Class->IsChildOf(UMaterialExpressionDynamicParameter::StaticClass())
-			&& !Class->IsChildOf(UMaterialExpressionFontSampleParameter::StaticClass())
-			&& !Class->GetDefaultObject<UMaterialExpression>()->IsParameterExpression();
+		return bSharedAllowed;
 	}
 	else
 	{
@@ -981,11 +974,6 @@ bool UMaterialExpression::ContainsInputLoop()
 	TArray<FMaterialExpressionKey> ExpressionStack;
 
 	return ContainsInputLoopInternal(ExpressionStack);
-}
-
-bool UMaterialExpression::IsParameterExpression() const
-{
-	return bIsParameterExpression;
 }
 
 bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack)
@@ -3549,6 +3537,7 @@ void UMaterialExpressionParameter::SetEditableName(const FString& NewName)
 {
 	ParameterName = *NewName;
 }
+
 #endif
 
 void UMaterialExpressionParameter::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
@@ -3594,6 +3583,26 @@ void UMaterialExpressionVectorParameter::GetCaption(TArray<FString>& OutCaptions
 	OutCaptions.Add(FString::Printf(TEXT("'%s'"), *ParameterName.ToString())); 
 }
 
+#if WITH_EDITOR
+
+void UMaterialExpressionVectorParameter::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	const FString PropertyName = PropertyThatChanged ? PropertyThatChanged->GetName() : TEXT("");
+
+	if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterialExpressionVectorParameter, DefaultValue))
+	{
+#if WITH_EDITOR
+		// Callback into the editor
+		FEditorSupportDelegates::VectorParameterDefaultChanged.Broadcast(this, ParameterName, DefaultValue);
+#endif
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+#endif
+
 //
 //	UMaterialExpressionScalarParameter
 //
@@ -3618,6 +3627,25 @@ void UMaterialExpressionScalarParameter::GetCaption(TArray<FString>& OutCaptions
 	 OutCaptions.Add(FString::Printf(TEXT("'%s'"), *ParameterName.ToString())); 
 }
 
+#if WITH_EDITOR
+
+void UMaterialExpressionScalarParameter::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	const FString PropertyName = PropertyThatChanged ? PropertyThatChanged->GetName() : TEXT("");
+
+	if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterialExpressionScalarParameter, DefaultValue))
+	{
+#if WITH_EDITOR
+		// Callback into the editor
+		FEditorSupportDelegates::ScalarParameterDefaultChanged.Broadcast(this, ParameterName, DefaultValue);
+#endif
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+#endif
 
 //
 //	UMaterialExpressionStaticSwitchParameter

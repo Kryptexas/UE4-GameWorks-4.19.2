@@ -324,6 +324,8 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	FMaterialEditorSpawnNodeCommands::Register();
 
 	FEditorSupportDelegates::MaterialUsageFlagsChanged.AddRaw(this, &FMaterialEditor::OnMaterialUsageFlagsChanged);
+	FEditorSupportDelegates::VectorParameterDefaultChanged.AddRaw(this, &FMaterialEditor::OnVectorParameterDefaultChanged);
+	FEditorSupportDelegates::ScalarParameterDefaultChanged.AddRaw(this, &FMaterialEditor::OnScalarParameterDefaultChanged);
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	
@@ -528,8 +530,20 @@ FMaterialEditor::FMaterialEditor()
 
 FMaterialEditor::~FMaterialEditor()
 {
+	for (int32 ParameterIndex = 0; ParameterIndex < OverriddenVectorParametersToRevert.Num(); ParameterIndex++)
+	{
+		SetVectorParameterDefaultOnDependentMaterials(OverriddenVectorParametersToRevert[ParameterIndex], FLinearColor::Black, false);
+	}
+
+	for (int32 ParameterIndex = 0; ParameterIndex < OverriddenScalarParametersToRevert.Num(); ParameterIndex++)
+	{
+		SetScalarParameterDefaultOnDependentMaterials(OverriddenScalarParametersToRevert[ParameterIndex], 0, false);
+	}
+
 	// Unregister this delegate
 	FEditorSupportDelegates::MaterialUsageFlagsChanged.RemoveAll(this);
+	FEditorSupportDelegates::VectorParameterDefaultChanged.RemoveAll(this);
+	FEditorSupportDelegates::ScalarParameterDefaultChanged.RemoveAll(this);
 
 	// Null out the expression preview material so they can be GC'ed
 	ExpressionPreviewMaterial = NULL;
@@ -1109,7 +1123,7 @@ void FMaterialEditor::RegenerateCodeView(bool bForce)
 
 	HLSLCode = TEXT("");
 
-	if (!bLivePreview && !bForce)
+	if (!CodeTab.IsValid() || (!bLivePreview && !bForce))
 	{
 		//When bLivePreview is false then the source can be out of date. 
 		return;
@@ -1774,6 +1788,10 @@ void FMaterialEditor::BindCommands()
 		FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertTextures));
 
 	ToolkitCommands->MapAction(
+		Commands.ConvertToConstant,
+		FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertObjects));
+
+	ToolkitCommands->MapAction(
 		Commands.StopPreviewNode,
 		FExecuteAction::CreateSP(this, &FMaterialEditor::OnPreviewNode));
 
@@ -1960,7 +1978,7 @@ void FMaterialEditor::OnConvertObjects()
 	const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
 	if (SelectedNodes.Num() > 0)
 	{
-		const FScopedTransaction Transaction( LOCTEXT("MaterialEditorConvert", "Material Editor: Convert to Parameter") );
+		const FScopedTransaction Transaction( LOCTEXT("MaterialEditorConvert", "Material Editor: Convert") );
 		Material->Modify();
 		Material->MaterialGraph->Modify();
 		TArray<class UEdGraphNode*> NodesToDelete;
@@ -1980,6 +1998,8 @@ void FMaterialEditor::OnConvertObjects()
 				UMaterialExpressionTextureSample* TextureSampleExpression = Cast<UMaterialExpressionTextureSample>(CurrentSelectedExpression);
 				UMaterialExpressionComponentMask* ComponentMaskExpression = Cast<UMaterialExpressionComponentMask>(CurrentSelectedExpression);
 				UMaterialExpressionParticleSubUV* ParticleSubUVExpression = Cast<UMaterialExpressionParticleSubUV>(CurrentSelectedExpression);
+				UMaterialExpressionScalarParameter* ScalarParameterExpression = Cast<UMaterialExpressionScalarParameter>(CurrentSelectedExpression);
+				UMaterialExpressionVectorParameter* VectorParameterExpression = Cast<UMaterialExpressionVectorParameter>(CurrentSelectedExpression);
 
 				// Setup the class to convert to
 				UClass* ClassToCreate = NULL;
@@ -2006,6 +2026,14 @@ void FMaterialEditor::OnConvertObjects()
 				else if (ComponentMaskExpression)
 				{
 					ClassToCreate = UMaterialExpressionStaticComponentMaskParameter::StaticClass();
+				}
+				else if (ScalarParameterExpression)
+				{
+					ClassToCreate = UMaterialExpressionConstant::StaticClass();
+				}
+				else if (VectorParameterExpression)
+				{
+					ClassToCreate = UMaterialExpressionConstant4Vector::StaticClass();
 				}
 
 				if (ClassToCreate)
@@ -2065,6 +2093,16 @@ void FMaterialEditor::OnConvertObjects()
 						{
 							bNeedsRefresh = true;
 							CastChecked<UMaterialExpressionTextureSampleParameterSubUV>(NewExpression)->Texture = ParticleSubUVExpression->Texture;
+						}
+						else if (ScalarParameterExpression)
+						{
+							bNeedsRefresh = true;
+							CastChecked<UMaterialExpressionConstant>(NewExpression)->R = ScalarParameterExpression->DefaultValue;
+						}
+						else if (VectorParameterExpression)
+						{
+							bNeedsRefresh = true;
+							CastChecked<UMaterialExpressionConstant4Vector>(NewExpression)->Constant = VectorParameterExpression->DefaultValue;
 						}
 
 						if (bNeedsRefresh)
@@ -2403,6 +2441,158 @@ void FMaterialEditor::OnMaterialUsageFlagsChanged(UMaterial* MaterialThatChanged
 	}
 }
 
+void FMaterialEditor::SetVectorParameterDefaultOnDependentMaterials(FName ParameterName, const FLinearColor& Value, bool bOverride)
+{
+	TArray<UMaterial*> MaterialsToOverride;
+
+	if (MaterialFunction)
+	{
+		// Find all materials that reference this function
+		for (TObjectIterator<UMaterial> It; It; ++It)
+		{
+			UMaterial* CurrentMaterial = *It;
+
+			if (CurrentMaterial != Material)
+			{
+				bool bUpdate = false;
+
+				for (int32 FunctionIndex = 0; FunctionIndex < CurrentMaterial->MaterialFunctionInfos.Num(); FunctionIndex++)
+				{
+					if (CurrentMaterial->MaterialFunctionInfos[FunctionIndex].Function == MaterialFunction->ParentFunction)
+					{
+						bUpdate = true;
+						break;
+					}
+				}
+
+				if (bUpdate)
+				{
+					MaterialsToOverride.Add(CurrentMaterial);
+				}
+			}
+		}
+	}
+	else
+	{
+		MaterialsToOverride.Add(OriginalMaterial);
+	}
+
+	const ERHIFeatureLevel::Type FeatureLevel = GEditor->GetEditorWorldContext().World()->FeatureLevel;
+
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialsToOverride.Num(); MaterialIndex++)
+	{
+		UMaterial* CurrentMaterial = MaterialsToOverride[MaterialIndex];
+
+		CurrentMaterial->OverrideVectorParameterDefault(ParameterName, Value, bOverride, FeatureLevel);
+	}
+
+	// Update MI's that reference any of the materials affected
+	for (TObjectIterator<UMaterialInstance> It; It; ++It)
+	{
+		UMaterialInstance* CurrentMaterialInstance = *It;
+
+		// Only care about MI's with static parameters, because we are overriding parameter defaults, 
+		// And only MI's with static parameters contain uniform expressions, which contain parameter defaults
+		if (CurrentMaterialInstance->bHasStaticPermutationResource)
+		{
+			UMaterial* BaseMaterial = CurrentMaterialInstance->GetMaterial();
+
+			if (MaterialsToOverride.Contains(BaseMaterial))
+			{
+				CurrentMaterialInstance->OverrideVectorParameterDefault(ParameterName, Value, bOverride, FeatureLevel);
+			}
+		}
+	}
+}
+
+void FMaterialEditor::OnVectorParameterDefaultChanged(class UMaterialExpression* Expression, FName ParameterName, const FLinearColor& Value)
+{
+	check(Expression);
+
+	if (Expression->Material == Material && OriginalMaterial)
+	{
+		SetVectorParameterDefaultOnDependentMaterials(ParameterName, Value, true);
+
+		OverriddenVectorParametersToRevert.AddUnique(ParameterName);
+	}
+}
+
+void FMaterialEditor::SetScalarParameterDefaultOnDependentMaterials(FName ParameterName, float Value, bool bOverride)
+{
+	TArray<UMaterial*> MaterialsToOverride;
+
+	if (MaterialFunction)
+	{
+		// Find all materials that reference this function
+		for (TObjectIterator<UMaterial> It; It; ++It)
+		{
+			UMaterial* CurrentMaterial = *It;
+
+			if (CurrentMaterial != Material)
+			{
+				bool bUpdate = false;
+
+				for (int32 FunctionIndex = 0; FunctionIndex < CurrentMaterial->MaterialFunctionInfos.Num(); FunctionIndex++)
+				{
+					if (CurrentMaterial->MaterialFunctionInfos[FunctionIndex].Function == MaterialFunction->ParentFunction)
+					{
+						bUpdate = true;
+						break;
+					}
+				}
+
+				if (bUpdate)
+				{
+					MaterialsToOverride.Add(CurrentMaterial);
+				}
+			}
+		}
+	}
+	else
+	{
+		MaterialsToOverride.Add(OriginalMaterial);
+	}
+
+	const ERHIFeatureLevel::Type FeatureLevel = GEditor->GetEditorWorldContext().World()->FeatureLevel;
+
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialsToOverride.Num(); MaterialIndex++)
+	{
+		UMaterial* CurrentMaterial = MaterialsToOverride[MaterialIndex];
+
+		CurrentMaterial->OverrideScalarParameterDefault(ParameterName, Value, bOverride, FeatureLevel);
+	}
+
+	// Update MI's that reference any of the materials affected
+	for (TObjectIterator<UMaterialInstance> It; It; ++It)
+	{
+		UMaterialInstance* CurrentMaterialInstance = *It;
+
+		// Only care about MI's with static parameters, because we are overriding parameter defaults, 
+		// And only MI's with static parameters contain uniform expressions, which contain parameter defaults
+		if (CurrentMaterialInstance->bHasStaticPermutationResource)
+		{
+			UMaterial* BaseMaterial = CurrentMaterialInstance->GetMaterial();
+
+			if (MaterialsToOverride.Contains(BaseMaterial))
+			{
+				CurrentMaterialInstance->OverrideScalarParameterDefault(ParameterName, Value, bOverride, FeatureLevel);
+			}
+		}
+	}
+}
+
+void FMaterialEditor::OnScalarParameterDefaultChanged(class UMaterialExpression* Expression, FName ParameterName, float Value)
+{
+	check(Expression);
+
+	if (Expression->Material == Material && OriginalMaterial)
+	{
+		SetScalarParameterDefaultOnDependentMaterials(ParameterName, Value, true);
+
+		OverriddenScalarParametersToRevert.AddUnique(ParameterName);
+	}
+}
+
 TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Preview(const FSpawnTabArgs& Args)
 {
 	TSharedRef<SDockTab> SpawnedTab =
@@ -2465,6 +2655,8 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_HLSLCode(const FSpawnTabArgs& Arg
 				CodeView.ToSharedRef()
 			]
 		];
+
+	CodeTab = SpawnedTab;
 
 	RegenerateCodeView();
 
@@ -2617,12 +2809,6 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		Material->Expressions.Add( NewExpression );
 		NewExpression->Material = Material;
 
-		if (MaterialFunction != NULL)
-		{
-			// Parameters currently not supported in material functions
-			check(!NewExpression->bIsParameterExpression);
-		}
-
 		// Set the expression location.
 		NewExpression->MaterialExpressionEditorX = NodePos.X;
 		NewExpression->MaterialExpressionEditorY = NodePos.Y;
@@ -2733,7 +2919,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			DynamicExpression->UpdateDynamicParameterNames();
 		}
 
-		Material->AddExpressionParameter(NewExpression);
+		Material->AddExpressionParameter(NewExpression, Material->EditorParameters);
 
 		if (NewExpression)
 		{
@@ -3452,7 +3638,8 @@ void FMaterialEditor::OnColorPickerCommitted(FLinearColor LinearColor)
 	if( Object )
 	{
 		Object->MarkPackageDirty();
-		Object->PostEditChange();
+		FPropertyChangedEvent Event(ColorPickerProperty.Get(false));
+		Object->PostEditChangeProperty(Event);
 	}
 
 	NotifyPostChange(NULL,NULL);
@@ -3520,6 +3707,10 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().ConvertToTextureSamples,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertTextures)
+			);
+
+		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().ConvertToConstant,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertObjects)
 			);
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().StopPreviewNode,
@@ -3778,6 +3969,9 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 
 		FColorChannels ChannelEditStruct;
 
+		// Reset to default
+		ColorPickerProperty = NULL;
+
 		if( Constant3Expression )
 		{
 			ChannelEditStruct.Red = &Constant3Expression->Constant.R;
@@ -3804,6 +3998,9 @@ void FMaterialEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			ChannelEditStruct.Green = &VectorExpression->DefaultValue.G;
 			ChannelEditStruct.Blue = &VectorExpression->DefaultValue.B;
 			ChannelEditStruct.Alpha = &VectorExpression->DefaultValue.A;
+			static FName DefaultValueName = FName(TEXT("DefaultValue"));
+			// Store off the property the color picker will be manipulating, so we can construct a useful PostEditChangeProperty later
+			ColorPickerProperty = VectorExpression->GetClass()->FindPropertyByName(DefaultValueName);
 		}
 
 		if (ChannelEditStruct.Red || ChannelEditStruct.Green || ChannelEditStruct.Blue || ChannelEditStruct.Alpha)

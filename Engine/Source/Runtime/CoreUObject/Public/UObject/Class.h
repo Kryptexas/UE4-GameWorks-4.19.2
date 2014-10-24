@@ -267,6 +267,8 @@ public:
 	// UField interface.
 	virtual void AddCppProperty(UProperty* Property) override;
 
+	UProperty* FindPropertyByName(FName Name) const;
+
 	/**
 	 * Creates new copies of components
 	 * 

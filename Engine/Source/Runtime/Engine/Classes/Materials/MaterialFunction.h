@@ -81,6 +81,34 @@ public:
 	/** Appends textures referenced by the expressions in this function. */
 	ENGINE_API void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const;
 
+	template<typename ExpressionType>
+	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+	{
+		for (int32 ExpressionIndex = 0; ExpressionIndex < FunctionExpressions.Num(); ExpressionIndex++)
+		{
+			UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<UMaterialExpressionMaterialFunctionCall>(FunctionExpressions[ExpressionIndex]);
+
+			if (FunctionExpression)
+			{
+				if (FunctionExpression->MaterialFunction)
+				{
+					FunctionExpression->MaterialFunction->GetAllParameterNames<ExpressionType>(OutParameterNames, OutParameterIds);
+				}
+			}
+			else
+			{
+				ExpressionType* ParameterExpression = Cast<ExpressionType>(FunctionExpressions[ExpressionIndex]);
+
+				if (ParameterExpression)
+				{
+					ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
+				}
+			}
+		}
+
+		check(OutParameterNames.Num() == OutParameterIds.Num());
+	}
+
 #if WITH_EDITOR
 	ENGINE_API UMaterial* GetPreviewMaterial();
 

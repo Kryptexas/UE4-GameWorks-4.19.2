@@ -6,6 +6,8 @@
 #include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/MaterialFunction.h"
 
 #include "Material.generated.h"
 
@@ -708,6 +710,7 @@ public:
 	 */
 	class FDefaultMaterialInstance* DefaultMaterialInstances[3];
 
+	/** Used to detect duplicate parameters.  Does not contain parameters in referenced functions! */
 	TMap<FName, TArray<UMaterialExpression*> > EditorParameters;
 
 #if WITH_EDITORONLY_DATA
@@ -760,6 +763,8 @@ public:
 	ENGINE_API virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
 	ENGINE_API virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
 	ENGINE_API virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel ) override;
+	ENGINE_API virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
+	ENGINE_API virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) override;
 	ENGINE_API virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
 	ENGINE_API virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
 	ENGINE_API virtual FMaterialResource* AllocateResource();
@@ -888,16 +893,27 @@ public:
 	 * @return	Returns a array of parameter names used in this material for the specified expression type.
 	 */
 	template<typename ExpressionType>
-	void GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
+	void GetAllParameterNames(TArray<FName>& OutParameterNames, TArray<FGuid>& OutParameterIds)
 	{
 		for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
 		{
-			ExpressionType* ParameterExpression =
-				Cast<ExpressionType>(Expressions[ExpressionIndex]);
+			UMaterialExpressionMaterialFunctionCall* FunctionExpression = Cast<UMaterialExpressionMaterialFunctionCall>(Expressions[ExpressionIndex]);
 
-			if (ParameterExpression)
+			if (FunctionExpression)
 			{
-				ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
+				if (FunctionExpression->MaterialFunction)
+				{
+					FunctionExpression->MaterialFunction->GetAllParameterNames<ExpressionType>(OutParameterNames, OutParameterIds);
+				}
+			}
+			else
+			{
+				ExpressionType* ParameterExpression = Cast<ExpressionType>(Expressions[ExpressionIndex]);
+
+				if (ParameterExpression)
+				{
+					ParameterExpression->GetAllParameterNames(OutParameterNames, OutParameterIds);
+				}
 			}
 		}
 
@@ -1019,7 +1035,7 @@ public:
 	 * Add an expression node that represents a parameter to the list of material parameters.
 	 * @param	Expression	Pointer to the node that is going to be inserted if it's a parameter type.
 	 */
-	ENGINE_API virtual bool AddExpressionParameter(UMaterialExpression* Expression);
+	ENGINE_API virtual bool AddExpressionParameter(UMaterialExpression* Expression, TMap<FName, TArray<UMaterialExpression*> >& ParameterTypeMap);
 
 	/**
 	 * Removes an expression node that represents a parameter from the list of material parameters.
@@ -1094,22 +1110,6 @@ public:
 	 * @param	Expression	The expression node to inspect.
 	 */
 	ENGINE_API static bool IsDynamicParameter(const UMaterialExpression* Expression);
-
-	/**
-	 * Return wheter the number of parameter groups. NOTE: The number returned can be innaccurate if you have parameters of different types with the same name.
-	 */
-	inline int32 GetNumEditorParameters() const
-	{
-		return EditorParameters.Num();
-	}
-
-	/**
-	 * Empty the editor parameters for the material.
-	 */
-	inline void EmptyEditorParameters()
-	{
-		EditorParameters.Empty();
-	}
 
 	/** Returns an array of the guids of functions used in this material, with the call hierarchy flattened. */
 	void GetReferencedFunctionIds(TArray<FGuid>& OutIds) const;

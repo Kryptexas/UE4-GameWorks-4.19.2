@@ -280,6 +280,14 @@ public:
 	 */
 	virtual void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
 
+	/** 
+	 * Overrides the default value of the given parameter (transient).  
+	 * This is used to implement realtime previewing of parameter defaults. 
+	 * Handles updating dependent MI's and cached uniform expressions.
+	 */
+	virtual void OverrideVectorParameterDefault(FName ParameterName, const FLinearColor& Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
+	virtual void OverrideScalarParameterDefault(FName ParameterName, float Value, bool bOverride, ERHIFeatureLevel::Type FeatureLevel) PURE_VIRTUAL(UMaterialInterface::OverrideTexture, return;);
+
 	/**
 	 * Checks if the material can be used with the given usage flag.  
 	 * If the flag isn't set in the editor, it will be set and the material will be recompiled with it.

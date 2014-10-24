@@ -9,6 +9,19 @@ struct FExpressionInput;
 //////////////////////////////////////////////////////////////////////////
 // FMaterialEditorUtilities
 
+class FGetVisibleMaterialParametersFunctionState
+{
+public:
+
+	FGetVisibleMaterialParametersFunctionState(UMaterialExpressionMaterialFunctionCall* InFunctionCall) :
+		FunctionCall(InFunctionCall)
+	{}
+
+	class UMaterialExpressionMaterialFunctionCall* FunctionCall;
+	TArray<FMaterialExpressionKey> ExpressionStack;
+	TSet<FMaterialExpressionKey> VisitedExpressions;
+};
+
 class MATERIALEDITOR_API FMaterialEditorUtilities
 {
 public:
@@ -139,7 +152,7 @@ public:
 	* 
 	* @return	Returns true if a value for the switch expression is found, otherwise returns false.
 	*/
-	static bool GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression *SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, const TArray<FFunctionExpressionInput>* FunctionInputs = NULL);
+	static bool GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression *SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, const TArray<FFunctionExpressionInput>* FunctionInputs);
 
 	/**
 	 * Populates the specified material's Expressions array (eg if cooked out or old content).
@@ -157,10 +170,12 @@ private:
 	 * @param	MaterialExpression				The expression to parse.
 	 * @param	MaterialInstance				The material instance that contains all parameter overrides.
 	 * @param	VisisbleExpressions				The array that will contain the id's of the visible parameter expressions.
-	 * @param	FunctionInputs					An array of FFunctionExpressionInput when parsing material functions calls
-	 * @param	VisibleFunctionInputExpressions	The array that will contain the id's of visible function inputs when parsing function calls.
 	 */
-	static void GetVisibleMaterialParametersFromExpression(UMaterialExpression *MaterialExpression, UMaterialInstance *MaterialInstance, TArray<FGuid> &VisibleExpressions, TArray<UMaterialExpression*> &ProcessedExpressions, const TArray<FFunctionExpressionInput>* FunctionInputs = NULL, TArray<FGuid>* VisibleFunctionInputExpressions = NULL);
+	static void GetVisibleMaterialParametersFromExpression(
+		FMaterialExpressionKey MaterialExpressionKey, 
+		UMaterialInstance* MaterialInstance, 
+		TArray<FGuid>& VisibleExpressions, 
+		TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack);
 
 	/** Get IMaterialEditor for given object, if it exists */
 	static TSharedPtr<class IMaterialEditor> GetIMaterialEditorForObject(const UObject* ObjectToFocusOn);

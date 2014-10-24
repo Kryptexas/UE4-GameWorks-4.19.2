@@ -360,13 +360,6 @@ class ENGINE_API UMaterialExpression : public UObject
 	/** Checks whether any inputs to this expression create a loop */
 	bool ContainsInputLoop();
 
-	/**
-	 * Tells if this material expression type is a parameter expression.
-	 *
-	 * @returns True if the type of this is a parameter expression. False otherwise.
-	 */
-	bool IsParameterExpression() const;
-
 protected:
 	/**
 	 * Checks whether any inputs to this expression create a loop by recursively
