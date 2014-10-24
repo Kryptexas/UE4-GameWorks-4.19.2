@@ -10,17 +10,17 @@
 #include "NotificationManager.h"
 
 
-// @todo slate : Move TranslatePointerEvent into FEventRouter
+// @todo slate : Move TranslatePointerEvent into FEventRouter. Remove external calls to it.
 template <typename PointerEventType>
-static PointerEventType TranslatePointerEvent( const FArrangedWidget& InWidget, const PointerEventType& InEvent )
+static PointerEventType TranslatePointerEvent( const TSharedPtr<FVirtualPointerPosition>& InPosition, const PointerEventType& InEvent )
 {
-	if ( !InWidget.VirtualCursorPosition.IsValid() )
+	if ( !InPosition.IsValid() )
 	{
 		return InEvent;
 	}
 	else
 	{
-		return FPointerEvent::MakeTranslatedEvent<PointerEventType>( InEvent, *InWidget.VirtualCursorPosition );
+		return FPointerEvent::MakeTranslatedEvent<PointerEventType>( InEvent, *InPosition );
 	}
 }
 
@@ -55,9 +55,10 @@ public:
 			bEventSent = true;
 		}
 
-		const FArrangedWidget& GetWidget() const
+		FWidgetAndPointer GetWidget() const
 		{
-			return RoutingPath.Widgets[RoutingPath.Widgets.Num()-1];
+			const int32 WidgetIndex = RoutingPath.Widgets.Num()-1;
+			return FWidgetAndPointer(RoutingPath.Widgets[WidgetIndex], RoutingPath.VirtualPointerPositions[WidgetIndex]);
 		}
 
 		const FWidgetPath& GetRoutingPath() const
@@ -89,9 +90,9 @@ public:
 			++WidgetIndex;
 		}
 
-		const FArrangedWidget& GetWidget() const
+		FWidgetAndPointer GetWidget() const
 		{
-			return RoutingPath.Widgets[WidgetIndex];
+			return FWidgetAndPointer(RoutingPath.Widgets[WidgetIndex], RoutingPath.VirtualPointerPositions[WidgetIndex]);
 		}
 		
 		const FWidgetPath& GetRoutingPath() const
@@ -124,9 +125,9 @@ public:
 			--WidgetIndex;
 		}
 
-		const FArrangedWidget& GetWidget() const
+		FWidgetAndPointer GetWidget() const
 		{
-			return RoutingPath.Widgets[WidgetIndex];
+			return FWidgetAndPointer(RoutingPath.Widgets[WidgetIndex], RoutingPath.VirtualPointerPositions[WidgetIndex]);
 		}
 
 		const FWidgetPath& GetRoutingPath() const
@@ -165,7 +166,7 @@ public:
 
 		for ( ; !Reply.IsEventHandled() && RoutingPolicy.ShouldKeepGoing(); RoutingPolicy.Next() )
 		{
-			const FArrangedWidget& ArrangedWidget = RoutingPolicy.GetWidget();
+			const FWidgetAndPointer& ArrangedWidget = RoutingPolicy.GetWidget();
 			Reply = Lambda( ArrangedWidget, KeyEventCopy ).SetHandler( ArrangedWidget.Widget );
 			ThisApplication->ProcessReply( RoutingPath, Reply, NULL, NULL );
 		}
@@ -195,8 +196,8 @@ public:
 
 		for ( ; !Reply.IsEventHandled() && RoutingPolicy.ShouldKeepGoing(); RoutingPolicy.Next() )
 		{
-			const FArrangedWidget& ArrangedWidget = RoutingPolicy.GetWidget();
-			const FPointerEvent TranslatedEvent = TranslatePointerEvent( ArrangedWidget, PointerEventCopy );
+			const FWidgetAndPointer& ArrangedWidget = RoutingPolicy.GetWidget();
+			const FPointerEvent TranslatedEvent = TranslatePointerEvent( ArrangedWidget.PointerPosition, PointerEventCopy );
 			Reply = Lambda( ArrangedWidget, TranslatedEvent ).SetHandler( ArrangedWidget.Widget );
 			const FWidgetPath* WidgetsUnderCursorPtr = &RoutingPath;
 			ThisApplication->ProcessReply( RoutingPath, Reply, WidgetsUnderCursorPtr, &TranslatedEvent );
@@ -758,8 +759,8 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 
 		if ( Window->IsVisible() && AcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate) && !bPrevWindowWasModal )
 		{
-			const TArray<FArrangedWidget> ArrangedWidgets = HittestGrid->GetBubblePath( ScreenspaceMouseCoordinate, bIgnoreEnabledStatus );
-			return FWidgetPath( ArrangedWidgets );
+			const TArray<FWidgetAndPointer> WidgetsAndCursors = HittestGrid->GetBubblePath( ScreenspaceMouseCoordinate, bIgnoreEnabledStatus );
+			return FWidgetPath( WidgetsAndCursors );
 		}
 	}
 
@@ -2109,14 +2110,14 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		for (int32 WidgetIndex=0; WidgetIndex < WidgetsUnderMouse->Widgets.Num(); ++WidgetIndex)
 		{
 			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets[WidgetIndex];
-			SomeWidget.Widget->OnMouseLeave( TranslatePointerEvent( SomeWidget, *InMouseEvent ) );
+			SomeWidget.Widget->OnMouseLeave( TranslatePointerEvent( WidgetsUnderMouse->VirtualPointerPositions[WidgetIndex], *InMouseEvent ) );
 		}
 
 		FDragDropEvent DragDropEvent( *InMouseEvent, ReplyDragDropContent );
 		for (int32 WidgetIndex=0; WidgetIndex < WidgetsUnderMouse->Widgets.Num(); ++WidgetIndex)
 		{
 			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets[WidgetIndex];
-			SomeWidget.Widget->OnDragEnter( SomeWidget.Geometry, TranslatePointerEvent( SomeWidget, DragDropEvent ) );
+			SomeWidget.Widget->OnDragEnter( SomeWidget.Geometry, TranslatePointerEvent( WidgetsUnderMouse->VirtualPointerPositions[WidgetIndex], DragDropEvent ) );
 		}
 	}
 	
@@ -2338,7 +2339,7 @@ void FSlateApplication::QueryCursor()
 				for( int32 WidgetIndex = WidgetsToQueryForCursor.Widgets.Num() - 1; !CursorResult.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
 				{
 					const FArrangedWidget& WidgetToQuery = WidgetsToQueryForCursor.Widgets[ WidgetIndex ];
-					CursorResult = WidgetToQuery.Widget->OnCursorQuery( WidgetToQuery.Geometry, TranslatePointerEvent( WidgetToQuery, CursorEvent ) );
+					CursorResult = WidgetToQuery.Widget->OnCursorQuery( WidgetToQuery.Geometry, TranslatePointerEvent( WidgetsToQueryForCursor.VirtualPointerPositions[WidgetIndex], CursorEvent ) );
 				}
 
 				if (CursorResult.IsEventHandled())
@@ -3152,7 +3153,7 @@ bool FSlateApplication::TakeScreenshot(TSharedRef<SWidget>& Widget, const FIntRe
 	FWidgetPath WidgetPath;
 	FSlateApplication::Get().GeneratePathToWidgetChecked(Widget, WidgetPath);
 
-	FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
+	FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(Widget).Get(FArrangedWidget::NullWidget);
 	FVector2D Position = ArrangedWidget.Geometry.AbsolutePosition;
 	FVector2D Size = ArrangedWidget.Geometry.GetDrawSize();
 	FVector2D WindowPosition = WidgetWindow->GetPositionInScreen();
@@ -3997,7 +3998,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 			FWidgetPath DragDetectPath = DragDetector.DetectDragForWidget.ToWidgetPath();
 			if( DragDetectPath.IsValid() && DragDetector.DetectDragForWidget.GetLastWidget().IsValid() )
 			{
-				FArrangedWidget DetectDragForMe = DragDetectPath.FindArrangedWidget(DragDetector.DetectDragForWidget.GetLastWidget().Pin().ToSharedRef());
+				FWidgetAndPointer DetectDragForMe = DragDetectPath.FindArrangedWidgetAndCursor(DragDetector.DetectDragForWidget.GetLastWidget().Pin().ToSharedRef()).Get(FWidgetAndPointer());
 
 				// A drag has been triggered. The cursor exited some widgets as a result.
 				// This assignment ensures that we will send OnLeave notifications to those widgets.
@@ -4012,7 +4013,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 				// Switch worlds widgets in the current path
 				FScopedSwitchWorldHack SwitchWorld( DragDetectPath );
 
-				FPointerEvent TranslatedMouseEvent = TranslatePointerEvent( DetectDragForMe, MouseEvent );
+				FPointerEvent TranslatedMouseEvent = TranslatePointerEvent( DetectDragForMe.PointerPosition, MouseEvent );
 				FReply Reply = DetectDragForMe.Widget->OnDragDetected(DetectDragForMe.Geometry, TranslatedMouseEvent ).SetHandler(DetectDragForMe.Widget);
 				ProcessReply( DragDetectPath, Reply, &DragDetectPath, &TranslatedMouseEvent );
 				LOG_EVENT( EEventLog::DragDetected, Reply );
@@ -4059,14 +4060,17 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 				const TSharedPtr<SWidget>& SomeWidgetPreviouslyUnderCursor = LastWidgetsUnderCursor.Widgets[WidgetIndex].Pin();
 				if( SomeWidgetPreviouslyUnderCursor.IsValid() )
 				{
-					//@todo dhertzka - return a TOptional<FArrangedWidget>
-					FArrangedWidget FoundWidget = WidgetsUnderCursor.FindArrangedWidget( SomeWidgetPreviouslyUnderCursor.ToSharedRef() );
-					if ( FoundWidget.Widget == SNullWidget::NullWidget )
+					TOptional<FArrangedWidget> FoundWidget = WidgetsUnderCursor.FindArrangedWidget( SomeWidgetPreviouslyUnderCursor.ToSharedRef() );
+					const bool bWidgetNoLongerUnderMouse = !FoundWidget.IsSet();
+					if ( bWidgetNoLongerUnderMouse )
 					{
 						// Widget is no longer under cursor, so send a MouseLeave.
+						// The widget might not even be in the hierarchy any more!
+						// Thus, we cannot translate the PointerPosition into the appropriate space for this event.
 						if ( IsDragDropping() )
 						{
-							SomeWidgetPreviouslyUnderCursor->OnDragLeave( TranslatePointerEvent( FoundWidget, DragDropEvent ) );
+							// Note that the event's pointer position is not translated.
+							SomeWidgetPreviouslyUnderCursor->OnDragLeave( DragDropEvent );
 							LOG_EVENT( EEventLog::DragLeave, SomeWidgetPreviouslyUnderCursor );
 
 							// Reset the cursor override
@@ -4074,7 +4078,8 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 						}
 						else
 						{
-							SomeWidgetPreviouslyUnderCursor->OnMouseLeave( TranslatePointerEvent( FoundWidget, MouseEvent ) );
+							// Note that the event's pointer position is not translated.
+							SomeWidgetPreviouslyUnderCursor->OnMouseLeave( MouseEvent );
 							LOG_EVENT( EEventLog::MouseLeave, SomeWidgetPreviouslyUnderCursor );
 						}			
 					}
@@ -4131,13 +4136,13 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 				if ( IsDragDropping() )
 				{
 					// Doing a drag and drop; send a DragDropEvent
-					SomeWidgetUnderCursor.Widget->OnDragEnter( SomeWidgetUnderCursor.Geometry, TranslatePointerEvent( SomeWidgetUnderCursor, DragDropEvent ) );
+					SomeWidgetUnderCursor.Widget->OnDragEnter( SomeWidgetUnderCursor.Geometry, TranslatePointerEvent( WidgetsUnderCursor.VirtualPointerPositions[WidgetIndex], DragDropEvent ) );
 					LOG_EVENT( EEventLog::DragEnter, SomeWidgetUnderCursor.Widget );
 				}
 				else
 				{
 					// Not drag dropping; send regular mouse event
-					SomeWidgetUnderCursor.Widget->OnMouseEnter( SomeWidgetUnderCursor.Geometry, TranslatePointerEvent( SomeWidgetUnderCursor, MouseEvent ) );
+					SomeWidgetUnderCursor.Widget->OnMouseEnter( SomeWidgetUnderCursor.Geometry, TranslatePointerEvent( WidgetsUnderCursor.VirtualPointerPositions[WidgetIndex], MouseEvent ) );
 					LOG_EVENT( EEventLog::MouseEnter, SomeWidgetUnderCursor.Widget );
 				}
 			}

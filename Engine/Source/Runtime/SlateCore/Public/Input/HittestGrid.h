@@ -9,11 +9,11 @@ class ICustomHitTestPath
 public:
 	virtual ~ICustomHitTestPath(){}
 
-	virtual TArray<FArrangedWidget> GetBubblePath( const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus ) const = 0;
+	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors( const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus ) const = 0;
 
 	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const = 0;
 
-	virtual TSharedPtr<struct FVirtualCursorPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const = 0;
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const = 0;
 };
 
 class SLATECORE_API FHittestGrid
@@ -26,7 +26,7 @@ public:
 	 * Given a Slate Units coordinate in virtual desktop space, perform a hittest
 	 * and return the path along which the corresponding event would be bubbled.
 	 */
-	TArray<FArrangedWidget> GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus );
+	TArray<FWidgetAndPointer> GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus );
 
 	/**
 	 * Clear the hittesting area and prepare to execute a new frame.

@@ -4,6 +4,8 @@
 
 #include "WidgetComponent.generated.h"
 
+struct FVirtualPointerPosition;
+
 /**
 * Beware! This feature is experimental and may be substantially changed or removed in future releases.
 * A 3D instance of a Widget Blueprint that can be interacted with in the world.
@@ -50,8 +52,8 @@ public:
 	/** @return The user widget object displayed by this component */
 	UUserWidget* GetUserWidgetObject() const { return Widget; }
 
-	/** @return The path of hit widgets that were found when the component was hit */
-	TArray<FArrangedWidget> GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus );
+	/** @return List of widgets with their geometry and the cursor position transformed into this Widget component's space. */
+	TArray<FWidgetAndPointer> GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus );
 
 	/** @return The render target to which the user widget is rendered */
 	UTextureRenderTarget2D* GetRenderTarget() const { return RenderTarget; };

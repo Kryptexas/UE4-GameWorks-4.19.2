@@ -84,8 +84,12 @@ private:
 /**
  * Represents the current and last cursor position in a "virtual window" for events that are routed to widgets transformed in a 3D scene.
  */
-struct FVirtualCursorPosition
+struct FVirtualPointerPosition
 {
+	FVirtualPointerPosition()
+	: CurrentCursorPosition(FVector2D::ZeroVector)
+	, LastCursorPosition(FVector2D::ZeroVector)
+	{}
 	FVector2D CurrentCursorPosition;
 	FVector2D LastCursorPosition;
 };
@@ -271,7 +275,7 @@ public:
 	/** The event path provides additional context for handling */
 	FGeometry FindGeometry( const TSharedRef<SWidget>& WidgetToFind ) const
 	{
-		return EventPath->FindArrangedWidget(WidgetToFind).Geometry;
+		return EventPath->FindArrangedWidget(WidgetToFind).Get(FArrangedWidget::NullWidget).Geometry;
 	}
 
 	TSharedRef<SWindow> GetWindow() const
@@ -628,7 +632,7 @@ public:
 	SLATECORE_API virtual FText ToText() const override;
 
 	template<typename PointerEventType>
-	static PointerEventType MakeTranslatedEvent( const PointerEventType& InPointerEvent, const FVirtualCursorPosition& VirtualPosition )
+	static PointerEventType MakeTranslatedEvent( const PointerEventType& InPointerEvent, const FVirtualPointerPosition& VirtualPosition )
 	{
 		PointerEventType NewEvent = InPointerEvent;
 		NewEvent.ScreenSpacePosition = VirtualPosition.CurrentCursorPosition;

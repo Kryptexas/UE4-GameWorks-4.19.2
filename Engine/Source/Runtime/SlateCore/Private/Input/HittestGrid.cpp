@@ -39,7 +39,7 @@ FHittestGrid::FHittestGrid()
 {
 }
 
-TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus )
+TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus )
 {
 	if (WidgetsCachedThisFrame->Num() > 0 && Cells.Num() > 0)
 	{
@@ -82,18 +82,18 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 			}
 		}
 		
-		TArray<FArrangedWidget> BubblePath =[&]()
+		TArray<FWidgetAndPointer> BubblePath =[&]()
 		{
 			if( HitWidgetIndex != INDEX_NONE )
 			{
 				const FCachedWidget& PhysicallyHitWidget = (*WidgetsCachedThisFrame)[HitWidgetIndex];
 				if(PhysicallyHitWidget.CustomPath.IsValid())
 				{
-					return PhysicallyHitWidget.CustomPath.Pin()->GetBubblePath(PhysicallyHitWidget.CachedGeometry, DesktopSpaceCoordinate, bIgnoreEnabledStatus);
+					return PhysicallyHitWidget.CustomPath.Pin()->GetBubblePathAndVirtualCursors(PhysicallyHitWidget.CachedGeometry, DesktopSpaceCoordinate, bIgnoreEnabledStatus);
 				}
 			}
 
-			return TArray<FArrangedWidget>();
+			return TArray<FWidgetAndPointer>();
 
 		}();
 
@@ -111,7 +111,7 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 				bPathUninterrupted = CachedWidgetPtr.IsValid();
 				if (bPathUninterrupted)
 				{
-					BubblePath.Insert(FArrangedWidget(CachedWidgetPtr.ToSharedRef(), CurCachedWidget.CachedGeometry), 0);
+					BubblePath.Insert( FWidgetAndPointer( FArrangedWidget(CachedWidgetPtr.ToSharedRef(), CurCachedWidget.CachedGeometry), TSharedPtr<FVirtualPointerPosition>() ), 0 );
 					CurWidgetIndex = CurCachedWidget.ParentIndex;
 				}
 			}
@@ -122,7 +122,7 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 				// A widget in the path to the root has been removed, so anything
 				// we thought we had hittest is no longer actually there.
 				// Pretend we didn't hit anything.
-				BubblePath = TArray<FArrangedWidget>();
+				BubblePath = TArray<FWidgetAndPointer>();
 			}
 
 			// Disabling a widget disables all of its logical children
@@ -141,12 +141,12 @@ TArray<FArrangedWidget> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoord
 		}
 		else
 		{
-			return TArray<FArrangedWidget>();
+			return TArray<FWidgetAndPointer>();
 		}
 	}
 	else
 	{
-		return TArray<FArrangedWidget>();
+		return TArray<FWidgetAndPointer>();
 	}
 }
 

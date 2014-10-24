@@ -320,7 +320,7 @@ void SViewport::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 	}
 }
 
-TSharedPtr<FVirtualCursorPosition> SViewport::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
+TSharedPtr<FVirtualPointerPosition> SViewport::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
 {
 	if( CustomHitTestPath.IsValid() )
 	{

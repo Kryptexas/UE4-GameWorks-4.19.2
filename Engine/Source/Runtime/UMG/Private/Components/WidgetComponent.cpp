@@ -187,7 +187,7 @@ public:
 	{}
 
 	// ICustomHitTestPath implementation
-	virtual TArray<FArrangedWidget> GetBubblePath(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override
+	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override
 	{
 		if( World.IsValid() && ensure( World->IsGameWorld() ) )
 		{
@@ -207,7 +207,7 @@ public:
 				}
 			}
 		}
-		return TArray<FArrangedWidget>();
+		return TArray<FWidgetAndPointer>();
 	}
 
 	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const override
@@ -225,7 +225,7 @@ public:
 		}
 	}
 
-	virtual TSharedPtr<struct FVirtualCursorPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const override
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const override
 	{
 		if(World.IsValid() && ensure(World->IsGameWorld()))
 		{
@@ -248,7 +248,7 @@ public:
 						{
 							if ( WidgetComponent == HitResult.Component.Get() )
 							{
-								TSharedPtr<FVirtualCursorPosition> VirtualCursorPos = MakeShareable(new FVirtualCursorPosition);
+								TSharedPtr<FVirtualPointerPosition> VirtualCursorPos = MakeShareable(new FVirtualPointerPosition);
 
 								FVector2D LocalHitLocation = FVector2D( WidgetComponent->ComponentToWorld.InverseTransformPosition( HitResult.Location ) );
 
@@ -680,11 +680,11 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 	}	
 }
 
-TArray<FArrangedWidget> UWidgetComponent::GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus  )
+TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus  )
 {
 	FVector2D LocalHitLocation = FVector2D( ComponentToWorld.InverseTransformPosition( HitResult.Location ) );
 
-	TSharedRef<FVirtualCursorPosition> VirtualMouseCoordinate = MakeShareable( new FVirtualCursorPosition );
+	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable( new FVirtualPointerPosition );
 
 	VirtualMouseCoordinate->CurrentCursorPosition = LocalHitLocation;
 	VirtualMouseCoordinate->LastCursorPosition = LastLocalHitLocation;
@@ -692,11 +692,11 @@ TArray<FArrangedWidget> UWidgetComponent::GetHitWidgetPath( const FHitResult& Hi
 	// Cache the location of the hit
 	LastLocalHitLocation = LocalHitLocation;
 
-	TArray<FArrangedWidget> ArrangedWidgets = HitTestGrid->GetBubblePath( LocalHitLocation, bIgnoreEnabledStatus );
+	TArray<FWidgetAndPointer> ArrangedWidgets = HitTestGrid->GetBubblePath( LocalHitLocation, bIgnoreEnabledStatus );
 
-	for( FArrangedWidget& Widget : ArrangedWidgets )
+	for( FWidgetAndPointer& Widget : ArrangedWidgets )
 	{
-		Widget.VirtualCursorPosition = VirtualMouseCoordinate;
+		Widget.PointerPosition = VirtualMouseCoordinate;
 	}
 
 	return ArrangedWidgets;

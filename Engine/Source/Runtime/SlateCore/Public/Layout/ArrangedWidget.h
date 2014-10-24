@@ -4,7 +4,7 @@
 
 #include "Geometry.h"
 
-struct FVirtualCursorPosition;
+struct FVirtualPointerPosition;
 
 /**
  * A pair: Widget and its Geometry. Widgets populate an list of WidgetGeometries
@@ -18,6 +18,8 @@ public:
 		: Geometry(InGeometry)
 		, Widget(InWidget)
 	{ }
+
+	SLATECORE_API static FArrangedWidget NullWidget;
 
 public:
 
@@ -48,7 +50,13 @@ public:
 
 	/** The widget that is being arranged. */
 	TSharedRef<SWidget> Widget;
+};
 
-	/** Virtual cursor position if this widget is transformed in a 3D scene */
-	TSharedPtr<FVirtualCursorPosition> VirtualCursorPosition;
+struct SLATECORE_API FWidgetAndPointer : public FArrangedWidget
+{
+	FWidgetAndPointer();
+
+	FWidgetAndPointer( const FArrangedWidget& InWidget, const TSharedPtr<FVirtualPointerPosition>& InPosition );
+
+	TSharedPtr<FVirtualPointerPosition> PointerPosition;
 };

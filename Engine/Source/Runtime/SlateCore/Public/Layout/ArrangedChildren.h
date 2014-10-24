@@ -30,10 +30,14 @@ class SLATECORE_API FArrangedChildren
 	}
 
 	// @todo hittest2.0 : we should get rid of this eventually.
-	static FArrangedChildren Hittest2_FromArray(const TArray<FArrangedWidget>& InWidgets)
+	static FArrangedChildren Hittest2_FromArray(const TArray<FWidgetAndPointer>& InWidgets)
 	{
 		FArrangedChildren Temp( EVisibility::All );
-		Temp.Array = InWidgets;
+		Temp.Array.Reserve(InWidgets.Num());
+		for (const FWidgetAndPointer& WidgetAndPointer : InWidgets)
+		{
+			Temp.Array.Add(WidgetAndPointer);
+		}		
 		return Temp;
 	}
 
@@ -136,6 +140,12 @@ public:
 	int32 FindItemIndex(const FArrangedWidget& ItemToFind ) const
 	{
 		return Array.Find(ItemToFind);
+	}
+
+	template<typename PredicateType>
+	int32 IndexOfByPredicate( const PredicateType& Pred ) const
+	{
+		return Array.IndexOfByPredicate( Pred );
 	}
 
 	void Remove( int32 Index, int32 Count=1 )
