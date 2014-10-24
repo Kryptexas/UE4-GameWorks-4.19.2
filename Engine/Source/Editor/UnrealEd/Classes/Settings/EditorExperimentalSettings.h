@@ -77,6 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Cook On The Side (Run a cook on the fly server in the background of the editor)"))
 	bool bCookOnTheSide;
 
+	/** Enables Environment Queries editor */
+	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
+	bool bEQSEditor;
 
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.

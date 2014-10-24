@@ -100,7 +100,7 @@ void SGraphNode_EnvironmentQuery::AddTest(TSharedPtr<SGraphNode> TestWidget)
 FSlateColor SGraphNode_EnvironmentQuery::GetBorderBackgroundColor() const
 {
 	UEnvironmentQueryGraphNode_Test* TestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
-	const bool bSelectedSubNode = TestNode && TestNode->ParentNode && GetOwnerPanel()->SelectionManager.SelectedNodes.Contains(GraphNode);
+	const bool bSelectedSubNode = TestNode && TestNode->ParentNode && GetOwnerPanel().IsValid() && GetOwnerPanel()->SelectionManager.SelectedNodes.Contains(GraphNode);
 
 	return bSelectedSubNode ? EnvironmentQueryColors::NodeBorder::Selected :
 		EnvironmentQueryColors::NodeBorder::Default;
@@ -676,6 +676,19 @@ FString SGraphNode_EnvironmentQuery::GetPreviewCornerText() const
 const FSlateBrush* SGraphNode_EnvironmentQuery::GetNameIcon() const
 {
 	return FEditorStyle::GetBrush( TEXT("Graph.StateNode.Icon") );
+}
+
+void SGraphNode_EnvironmentQuery::SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel)
+{
+	SGraphNode::SetOwner(OwnerPanel);
+
+	for (auto& ChildWidget : TestWidgets)
+	{
+		if (ChildWidget.IsValid())
+		{
+			ChildWidget->SetOwner(OwnerPanel);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

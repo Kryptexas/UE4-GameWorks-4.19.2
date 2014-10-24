@@ -1810,7 +1810,11 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// cooking needs this module too
 	bool bEnvironmentQueryEditor = false;
 	GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnvironmentQueryEditor, GEngineIni);
-	if (bEnvironmentQueryEditor)
+	if (bEnvironmentQueryEditor 
+#if WITH_EDITOR
+		|| GetDefault<UEditorExperimentalSettings>()->bEQSEditor
+#endif // WITH_EDITOR
+		)
 	{
 		FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 	}

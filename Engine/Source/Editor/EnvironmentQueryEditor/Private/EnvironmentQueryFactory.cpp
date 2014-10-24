@@ -20,6 +20,11 @@ UObject* UEnvironmentQueryFactory::FactoryCreateNew(UClass* Class,UObject* InPar
 
 bool UEnvironmentQueryFactory::CanCreateNew() const
 {
+	if (GetDefault<UEditorExperimentalSettings>()->bEQSEditor)
+	{
+		return true;
+	}
+
 	// Check ini to see if we should enable creation
 	bool bEnableEnvironmentQueryEd = false;
 	GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnableEnvironmentQueryEd, GEngineIni);

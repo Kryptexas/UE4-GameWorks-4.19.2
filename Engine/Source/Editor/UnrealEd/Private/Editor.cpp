@@ -584,7 +584,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 		bool bEnvironmentQueryEditor = false;
 		GConfig->GetBool(TEXT("EnvironmentQueryEd"), TEXT("EnableEnvironmentQueryEd"), bEnvironmentQueryEditor, GEngineIni);
-		if (bEnvironmentQueryEditor)
+		if (bEnvironmentQueryEditor || GetDefault<UEditorExperimentalSettings>()->bEQSEditor)
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
