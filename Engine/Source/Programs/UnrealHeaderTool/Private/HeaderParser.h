@@ -547,6 +547,7 @@ private:
 	 * @returns True if matched. False otherwise.
 	 */
 	bool TryToMatchConstructorParameterList(FToken Token);
+	void SkipDeprecatedMacroIfNecessary();
 };
 
 /////////////////////////////////////////////////////

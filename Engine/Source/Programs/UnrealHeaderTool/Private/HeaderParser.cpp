@@ -1139,6 +1139,8 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	// The required API module for this struct, if any
 	FString RequiredAPIMacroIfPresent;
 
+	SkipDeprecatedMacroIfNecessary();
+
 	// Read the struct name
 	ParseNameWithPotentialAPIMacroPrefix(/*out*/ StructNameInScript, /*out*/ RequiredAPIMacroIfPresent, TEXT("struct"));
 
@@ -4269,6 +4271,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	// New style files have the class name / extends afterwards
 	RequireIdentifier(TEXT("class"), TEXT("Class declaration"));
+
+	SkipDeprecatedMacroIfNecessary();
 
 	FString DeclaredClassName;
 	FString RequiredAPIMacroIfPresent;
@@ -7612,4 +7616,28 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 	}
 
 	return true;
+}
+
+void FHeaderParser::SkipDeprecatedMacroIfNecessary()
+{
+	if (!MatchIdentifier(TEXT("DEPRECATED")))
+	{
+		return;
+	}
+
+	FToken Token;
+	// DEPRECATED(Version, "Message")
+	RequireSymbol(TEXT("("), TEXT("DEPRECATED macro"));
+	if (GetToken(Token) && (Token.Type != CPT_Float || Token.TokenType != TOKEN_Const))
+	{
+		FError::Throwf(TEXT("Expected engine version in DEPRECATED macro"));
+	}
+
+	RequireSymbol(TEXT(","), TEXT("DEPRECATED macro"));
+	if (GetToken(Token) && (Token.Type != CPT_String || Token.TokenType != TOKEN_Const))
+	{
+		FError::Throwf(TEXT("Expected deprecation message in DEPRECATED macro"));
+	}
+
+	RequireSymbol(TEXT(")"), TEXT("DEPRECATED macro"));
 }
