@@ -23,6 +23,13 @@ public partial class Project : CommandUtils
 		ThisPlatform.GetFilesToArchive(Params, SC);
 
 		//@todo add any archive meta data files as needed
+
+		if (Params.ArchiveMetaData)
+		{
+			// archive the build.properties for extra info for testing, etc
+			string BuildPropertiesFile = CombinePaths(SC.LocalRoot, "Engine", "Build", "build.properties");
+			SC.ArchiveFiles(Path.GetDirectoryName(BuildPropertiesFile), Path.GetFileName(BuildPropertiesFile));
+		}
 	}
 
 	public static void ApplyArchiveManifest(ProjectParams Params, DeploymentContext SC)
