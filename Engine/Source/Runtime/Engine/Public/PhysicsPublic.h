@@ -55,6 +55,7 @@ namespace physx
 	class PxSimulationEventCallback;
 	struct PxActiveTransform;
 	class PxActor;
+	class PxRigidActor;
 	
 #if WITH_APEX
 	namespace apex
@@ -447,14 +448,14 @@ private:
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
 
-	/** Cache of active transforms */ //TODO: this solution is not great
-	TArray<const PxActiveTransform*> ActiveTransforms[PST_MAX];
+	/** Cache of active transforms sorted into types */ //TODO: this solution is not great
+	TArray<struct FBodyInstance*> ActiveBodyInstances[PST_MAX];	//body instances that have moved
+	TArray<const physx::PxRigidActor*> ActiveDestructibleActors[PST_MAX];	//destructible actors that have moved
 
-	/** Updates our cache of active transforms */
+	/** Fetch results from simulation and get the active transforms. Make sure to lock before calling this function as the fetch and data you use must be treated as an atomic operation */
 	void UpdateActiveTransforms(uint32 SceneType);
+	void RemoveActiveBody(FBodyInstance* BodyInstance, uint32 SceneType);
 
-	/** When actors are destroyed they must be removed from active transforms */
-	void RemoveBodyFromActiveTransforms(PxActor * PActor, uint32 SceneType);
 #endif
 
 #if WITH_SUBSTEPPING
