@@ -20,6 +20,7 @@ public:
 	FRenderingCompositionGraph& Graph;
 	const FViewInfo& View;
 
+	// 0 if there was no scene color available at constructor call time
 	FRenderingCompositePass* SceneColor;
 	FRenderingCompositePass* SceneDepth;
 

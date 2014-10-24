@@ -254,11 +254,6 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass);
 
-		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
-
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = GSceneRenderTargets.GetSceneColor()->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
-
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
 

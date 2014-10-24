@@ -714,18 +714,11 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	bool bDBuffer = IsDBufferEnabled();
 	float bDecalPreStencil = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
 
-	{
-		FRenderingCompositeOutput* OutputOfMyInput = GetInput(ePId_Input0)->GetOutput();
-		PassOutputs[0].PooledRenderTarget = OutputOfMyInput->PooledRenderTarget;
-		OutputOfMyInput->RenderTargetDesc.DebugName = PassOutputs[0].RenderTargetDesc.DebugName;
-		PassOutputs[0].RenderTargetDesc = OutputOfMyInput->RenderTargetDesc;
-	}
-
 	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals);
 
 	if(RenderStage == 0)
 	{
-		// before BasePass, onkly if DBuffer is enabled
+		// before BasePass, only if DBuffer is enabled
 
 		check(bDBuffer);
 
@@ -836,8 +829,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	}
 
 	if(SortedDecals.Num() > 0)
-	{		
-		FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
+	{
 		FIntRect SrcRect = View.ViewRect;
 		FIntRect DestRect = View.ViewRect;
 
@@ -938,7 +930,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					case RTM_SceneColorAndGBuffer:
 						{
 							FTextureRHIParamRef RenderTargets[5];
-							RenderTargets[0] = PassOutputs[0].PooledRenderTarget->GetRenderTargetItem().TargetableTexture;
+							RenderTargets[0] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[1] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[2] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
 							RenderTargets[3] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
@@ -952,7 +944,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						break;
 					
 					case RTM_SceneColor:
-						SetRenderTarget(RHICmdList, PassOutputs[0].PooledRenderTarget->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
+						SetRenderTarget(RHICmdList, GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 						break;
 
 					case RTM_DBuffer:

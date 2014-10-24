@@ -392,6 +392,9 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetSceneColor();
 
+	// changes depending at which part of the frame this is called
+	bool IsSceneColorAllocated() const;
+
 	void SetSceneColor(IPooledRenderTarget* In);
 
 	// ---

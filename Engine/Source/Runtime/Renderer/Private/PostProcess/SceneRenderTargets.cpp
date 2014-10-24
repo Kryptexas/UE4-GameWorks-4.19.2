@@ -551,6 +551,11 @@ const TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor() co
 	return GetSceneColorForCurrentShadingPath();
 }
 
+bool FSceneRenderTargets::IsSceneColorAllocated() const
+{
+	return GetSceneColorForCurrentShadingPath() != 0;
+}
+
 TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
 {
 	if (!GetSceneColorForCurrentShadingPath())

@@ -83,7 +83,7 @@ static TAutoConsoleVariable<int32> CVarUpsampleQuality(
 static TAutoConsoleVariable<float> CVarMotionBlurSoftEdgeSize(
 	TEXT("r.MotionBlurSoftEdgeSize"),
 	1.0f,
-	TEXT("Defines how lange object motion blur is blurred (percent of screen width) to allow soft edge motion blur.\n")
+	TEXT("Defines how wide the object motion blur is blurred (percent of screen width) to allow soft edge motion blur.\n")
 	TEXT("This scales linearly with the size (up to a maximum of 32 samples, 2.5 is about 18 samples) and with screen resolution\n")
 	TEXT("Smaller values are better for performance and provide more accurate motion vectors but the blurring outside the object is reduced.\n")
 	TEXT("If needed this can be exposed like the other motionblur settings.\n")
@@ -97,8 +97,14 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostpro
 FPostprocessContext::FPostprocessContext(class FRenderingCompositionGraph& InGraph, const FViewInfo& InView)
 	: Graph(InGraph)
 	, View(InView)
+	, SceneColor(0)
+	, SceneDepth(0)
 {
-	SceneColor = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GetSceneColor()));
+	if(GSceneRenderTargets.IsSceneColorAllocated())
+	{
+		SceneColor = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GetSceneColor()));
+	}
+
 	SceneDepth = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.SceneDepthZ));
 
 	FinalOutput = FRenderingCompositeOutputRef(SceneColor);
