@@ -14,6 +14,10 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	BundleIdentifier = TEXT("com.YourCompany.GameNameNoSpaces");
 	VersionInfo = TEXT("1.0.0");
     FrameRateLock = EPowerUsageFrameRateLock::PUFRL_30;
+	bSupportsIPad = true;
+	bSupportsIPhone = true;
+	MinimumiOSVersion = EIOSVersion::IOS_6;
+	CompressionLevel = 0;
 }
 
 #if WITH_EDITOR

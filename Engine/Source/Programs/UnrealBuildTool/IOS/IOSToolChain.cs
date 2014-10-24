@@ -47,13 +47,19 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string ShippingArchitectures = "armv7";
 
-		/** Which version of the iOS to allow at run time */
+		/** Which version of the iOS to allow at build time */
 		[XmlConfig]
-		public static string IOSVersion = "6.0";
+		public static string BuildIOSVersion = "6.0";
+
+		/** Which version of the iOS to allow at run time */
+		public static string RunTimeIOSVersion = "6.0";
 
 		/** Which developer directory to root from */
 		[XmlConfig]
 		public static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
+
+		/** which devices the game is allowed to run on */
+		public static string RunTimeIOSDevices = "1,2";
 
 		/** Location of the SDKs */
 		private static string BaseSDKDir;
@@ -83,10 +89,51 @@ namespace UnrealBuildTool
 			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
 		}
 
+		public static void ParseProjectSettings()
+		{
+			// look in ini settings for what platforms to compile for
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
+			string MinVersion = "IOS_6";
+			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
+			{
+				switch (MinVersion)
+				{
+					case "IOS_6":
+						RunTimeIOSVersion = "6.0";
+						break;
+					case "IOS_7":
+						RunTimeIOSVersion = "7.0";
+						break;
+					case "IOS_8":
+						RunTimeIOSVersion = "8.0";
+						break;
+				}
+			}
+
+			bool biPhoneAllowed = true;
+			bool biPadAllowed = true;
+			Ini.GetBool ("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPhone", out biPhoneAllowed);
+			Ini.GetBool ("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPad", out biPadAllowed);
+			if (biPhoneAllowed && biPadAllowed)
+			{
+				RunTimeIOSDevices = "1,2";
+			}
+			else if (biPadAllowed)
+			{
+				RunTimeIOSDevices = "2";
+			}
+			else if (biPhoneAllowed)
+			{
+				RunTimeIOSDevices = "1";
+			}
+		}
+
 		/** Hunt down the latest IOS sdk if desired */
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
+
+			ParseProjectSettings();
 
 			if (IOSSDKVersion == "latest")
 			{
@@ -251,7 +298,7 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + BaseSDKDir + "/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 
-			Result += " -miphoneos-version-min=" + IOSVersion;
+			Result += " -miphoneos-version-min=" + BuildIOSVersion;
 
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
@@ -416,7 +463,7 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 			Result += " -dead_strip";
-			Result += " -miphoneos-version-min=" + IOSVersion;
+			Result += " -miphoneos-version-min=" + BuildIOSVersion;
 			Result += " -Wl,-no_pie";
 			//			Result += " -v";
 
@@ -1319,7 +1366,14 @@ namespace UnrealBuildTool
 
 		public override string GetPlatformVersion()
 		{
-			return IOSVersion;
+			ParseProjectSettings();
+			return RunTimeIOSVersion;
+		}
+
+		public override string GetPlatformDevices()
+		{
+			ParseProjectSettings();
+			return RunTimeIOSDevices;
 		}
 
 		public static int RunExecutableAndWait( string ExeName, string ArgumentList, out string StdOutResults )

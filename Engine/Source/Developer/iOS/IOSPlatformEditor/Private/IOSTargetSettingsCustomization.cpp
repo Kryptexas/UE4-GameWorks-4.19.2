@@ -74,6 +74,9 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	IDetailCategoryBuilder& BundleCategory = DetailLayout.EditCategory(TEXT("Bundle Information"));
 	IDetailCategoryBuilder& OrientationCategory = DetailLayout.EditCategory(TEXT("Orientation"));
 	IDetailCategoryBuilder& RenderCategory = DetailLayout.EditCategory(TEXT("Rendering"));
+	IDetailCategoryBuilder& OSInfoCategory = DetailLayout.EditCategory(TEXT("OS Info"));
+	IDetailCategoryBuilder& DeviceCategory = DetailLayout.EditCategory(TEXT("Devices"));
+	IDetailCategoryBuilder& CookCategory = DetailLayout.EditCategory(TEXT("Cook Settings"));
 
 	TSharedRef<SPlatformSetupMessage> PlatformSetupMessage = SNew(SPlatformSetupMessage, GameInfoPath)
 		.PlatformName(LOCTEXT("iOSPlatformName", "iOS"))
@@ -150,6 +153,11 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	
 	SETUP_PLIST_PROP(bSupportsMetal, RenderCategory, TEXT("Whether or not to add support for Metal API (requires IOS8 and A7 processors)."));
 	SETUP_PLIST_PROP(bSupportsOpenGLES2, RenderCategory, TEXT("Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version and use \"metal\" instead of \"opengles-2\" in UIRequiredDeviceCapabilities)"));
+
+	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory, TEXT("Whether or not to add support for iPad devices"));
+	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory, TEXT("Whether or not to add support for iPhone devices"));
+
+	SETUP_PLIST_PROP(MinimumiOSVersion, OSInfoCategory, TEXT("WMinimum iOS version this game supports"));
 
 #undef SETUP_PLIST_PROP
 }
@@ -291,6 +299,38 @@ void FIOSTargetSettingsCustomization::OnPlistPropertyModified()
 	}
 	DeviceCapsArrayBody += TEXT("\t");
 	Updater.ReplaceKey(RequiredDeviceCaps, ClosingArray, DeviceCapsArrayBody);
+
+	// build the replacement device families
+	const FString DeviceFamilyKey(TEXT("<key>UIDeviceFamily</key>"));
+	FString FamilyKeyBody = TEXT("\n\t<array>\n");
+	// automatically add armv7 for now
+	if (Settings.bSupportsIPhone)
+	{
+		FamilyKeyBody += TEXT("\t\t<integer>1</integer>\n");
+	}
+	if (Settings.bSupportsIPad)
+	{
+		FamilyKeyBody += TEXT("\t\t<integer>2</integer>\n");
+	}
+	FamilyKeyBody += TEXT("\t");
+	Updater.ReplaceKey(DeviceFamilyKey, ClosingArray, FamilyKeyBody);
+
+	// build the replacement min iOS version
+	const FString MiniOSVersionKey(TEXT("<key>MinimumOSVersion</key>"));
+	FString iOSVersionBody = TEXT("\n\t<string>");
+	switch (Settings.MinimumiOSVersion)
+	{
+	case EIOSVersion::IOS_6:
+		iOSVersionBody += TEXT("6.0");
+		break;
+	case EIOSVersion::IOS_7:
+		iOSVersionBody += TEXT("7.0");
+		break;
+	case EIOSVersion::IOS_8:
+		iOSVersionBody += TEXT("8.0");
+		break;
+	}
+	Updater.ReplaceKey(MiniOSVersionKey, ClosingString, iOSVersionBody);
 
 	// Write out the updated .plist
 	Updater.Finalize(GameInfoPath, true, FFileHelper::EEncodingOptions::ForceUTF8);

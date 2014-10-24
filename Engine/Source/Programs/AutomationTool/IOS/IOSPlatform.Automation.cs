@@ -306,7 +306,7 @@ public class IOSPlatform : Platform
 		bWasGenerated = false;
 		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
-		if (!Directory.Exists (XcodeProj))
+		//		if (!Directory.Exists (XcodeProj))
 		{
 			// project.xcodeproj doesn't exist, so generate temp project
 			string Arguments = "-project=\"" + RawProjectPath + "\"";

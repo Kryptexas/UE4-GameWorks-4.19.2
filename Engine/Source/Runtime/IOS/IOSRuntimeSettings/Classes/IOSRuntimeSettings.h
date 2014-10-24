@@ -21,6 +21,18 @@ enum class EPowerUsageFrameRateLock : uint8
     PUFRL_60 = 60 UMETA(DisplayName="60 FPS"),
 };
 
+UENUM()
+	enum class EIOSVersion : uint8
+{
+	/** iOS 6 */
+	IOS_6 = 6 UMETA(DisplayName="6.0"),
+
+	/** iOS 7 */
+	IOS_7 = 7 UMETA(DisplayName="7.0"),
+
+	/** iOS 8 */
+	IOS_8 = 8 UMETA(DisplayName="8.0"),
+};
 
 /**
  * Implements the settings for the iOS target platform.
@@ -78,6 +90,22 @@ public:
     /** Set the maximum frame rate to save on power consumption */
     UPROPERTY(GlobalConfig, EditAnywhere, Category = PowerUsage)
     TEnumAsByte<EPowerUsageFrameRateLock> FrameRateLock;
+
+	/** Set the minimum iOS setting */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo)
+	TEnumAsByte<EIOSVersion> MinimumiOSVersion;
+
+	/** Does the application support iPad */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)
+	uint32 bSupportsIPad : 1;
+
+	// Does the application support iPhone */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)
+	uint32 bSupportsIPhone : 1;
+
+	// Texture compression value
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = CookSettings)
+	uint32 CompressionLevel;
 
 #if WITH_EDITOR
 	// UObject interface
