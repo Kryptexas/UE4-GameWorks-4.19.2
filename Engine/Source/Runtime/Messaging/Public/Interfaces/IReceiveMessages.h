@@ -3,6 +3,8 @@
 #pragma once
 
 
+// forward declarations
+enum ENamedThreads::Type;
 class IMessageContext;
 
 

@@ -3,6 +3,7 @@
 #pragma once
 
 
+// forward declarations
 enum class EMessageScope;
 class IReceiveMessages;
 

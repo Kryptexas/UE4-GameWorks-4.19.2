@@ -6,7 +6,7 @@
 /* FMessageRouter structors
  *****************************************************************************/
 
-FMessageRouter::FMessageRouter( )
+FMessageRouter::FMessageRouter()
 	: DelayedMessagesSequence(0)
 	, Stopping(false)
 	, Tracer(MakeShareable(new FMessageTracer()))
@@ -16,7 +16,7 @@ FMessageRouter::FMessageRouter( )
 }
 
 
-FMessageRouter::~FMessageRouter( )
+FMessageRouter::~FMessageRouter()
 {
 	delete WorkEvent;
 }
@@ -25,13 +25,13 @@ FMessageRouter::~FMessageRouter( )
 /* FRunnable interface
  *****************************************************************************/
 
-bool FMessageRouter::Init( )
+bool FMessageRouter::Init()
 {
 	return true;
 }
 
 
-uint32 FMessageRouter::Run( )
+uint32 FMessageRouter::Run()
 {
 	CurrentTime = FDateTime::UtcNow();
 
@@ -58,7 +58,7 @@ uint32 FMessageRouter::Run( )
 }
 
 
-void FMessageRouter::Stop( )
+void FMessageRouter::Stop()
 {
 	Tracer->Stop();
 
@@ -66,7 +66,7 @@ void FMessageRouter::Stop( )
 }
 
 
-void FMessageRouter::Exit( )
+void FMessageRouter::Exit()
 {
 	TArray<IReceiveMessagesWeakPtr> Recipients;
 
@@ -91,7 +91,7 @@ void FMessageRouter::Exit( )
 /* FMessageRouter implementation
  *****************************************************************************/
 
-FTimespan FMessageRouter::CalculateWaitTime( )
+FTimespan FMessageRouter::CalculateWaitTime()
 {
 	FTimespan WaitTime = FTimespan::FromMilliseconds(100);
 
@@ -199,7 +199,7 @@ void FMessageRouter::FilterSubscriptions( TArray<IMessageSubscriptionPtr>& Subsc
 }
 
 
-void FMessageRouter::ProcessDelayedMessages( )
+void FMessageRouter::ProcessDelayedMessages()
 {
 	FDelayedMessage DelayedMessage;
 

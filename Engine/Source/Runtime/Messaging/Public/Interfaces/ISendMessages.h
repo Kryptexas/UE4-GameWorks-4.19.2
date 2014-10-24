@@ -3,6 +3,7 @@
 #pragma once
 
 
+// forward declarations
 class IMessageContext;
 
 

@@ -5,6 +5,7 @@
 #include "IMessageContext.h"
 
 
+// forward declarations
 class IMessageAttachment;
 class UScriptStruct;
 

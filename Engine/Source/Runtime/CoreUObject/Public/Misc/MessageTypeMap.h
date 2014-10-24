@@ -1,14 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageTypeMap.h: Declares the FMessageTypeMap class.
-=============================================================================*/
-
 #pragma once
 
 
 /**
- * Implements a type map for messages
+ * Implements a type map for messages.
  */
 class FMessageTypeMap
 {

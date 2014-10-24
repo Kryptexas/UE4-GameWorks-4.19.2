@@ -6,7 +6,7 @@
 /* FMessageTracer structors
  *****************************************************************************/
 
-FMessageTracer::FMessageTracer( )
+FMessageTracer::FMessageTracer()
 	: Breaking(false)
 	, ResetPending(false)
 	, Running(false)
@@ -15,7 +15,7 @@ FMessageTracer::FMessageTracer( )
 }
 
 
-FMessageTracer::~FMessageTracer( )
+FMessageTracer::~FMessageTracer()
 {
 	delete ContinueEvent;
 }
@@ -253,7 +253,7 @@ void FMessageTracer::ProcessSentMessage( IMessageContextRef Context, double Time
 }
 
 
-void FMessageTracer::ResetMessages( )
+void FMessageTracer::ResetMessages()
 {
 	MessageInfos.Reset();
 	MessageTypes.Reset();
