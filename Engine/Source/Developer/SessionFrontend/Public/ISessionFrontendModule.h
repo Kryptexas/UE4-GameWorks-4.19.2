@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
+
+// forward declarations
+class ISessionManager;
+class SWidget;
+
 
 /**
  * Interface for launcher UI modules.
@@ -17,19 +24,17 @@ public:
 	 * @param SessionManager The session manager to use.
 	 * @return The new session browser widget.
 	 */
-	virtual TSharedRef<class SWidget> CreateSessionBrowser( const ISessionManagerRef& SessionManager ) = 0;
+	virtual TSharedRef<SWidget> CreateSessionBrowser( const TSharedRef<ISessionManager>& SessionManager ) = 0;
 	
 	/**
 	 * Creates a session console widget.
 	 *
 	 * @param SessionManager The session manager to use.
 	 */
-	virtual TSharedRef<class SWidget> CreateSessionConsole( const ISessionManagerRef& SessionManager ) = 0;
+	virtual TSharedRef<SWidget> CreateSessionConsole( const TSharedRef<ISessionManager>& SessionManager ) = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISessionFrontendModule( ) { }
+	/** Virtual destructor. */
+	virtual ~ISessionFrontendModule() { }
 };

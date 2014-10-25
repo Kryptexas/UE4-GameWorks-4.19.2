@@ -49,48 +49,50 @@ protected:
 
 	/**
 	 * Submits the entered command.
+	 *
+	 * @param Command the command to submit.
 	 */
 	void SubmitCommand( const FString& Command );
 
 private:
 
-	// Handles changing the input text box's content.
+	/** Handles changing the input text box's content. */
 	void HandleInputTextChanged( const FText& InText );
 
-	// Handles committing the input text box's content.
+	/** Handles committing the input text box's content. */
 	void HandleInputTextCommitted( const FText& InText, ETextCommit::Type CommitInfo );
 
-	// Handles showing a history in the input text box.
+	/** Handles showing a history in the input text box. */
 	void HandleInputTextShowingHistory( TArray<FString>& OutHistory );
 
-	// Handles showing suggestions in the input text box.
+	/** Handles showing suggestions in the input text box. */
 	void HandleInputTextShowingSuggestions( const FString& Text, TArray<FString>& OutSuggestions );
 
-	//Handles clicking the promote to shortcut button
-	FReply HandlePromoteToShortcutButtonClicked( );
+	/** Handles clicking the promote to shortcut button. */
+	FReply HandlePromoteToShortcutButtonClicked();
 
-	// Handles clicking the send button.
-	FReply HandleSendButtonClicked( );
+	/** Handles clicking the send button. */
+	FReply HandleSendButtonClicked();
 
 private:
 
-	// Holds the command history.
+	/** Holds the command history. */
 	TArray<FString> CommandHistory;
 
-	// Holds the input text box.
+	/** Holds the input text box. */
 	TSharedPtr<SSuggestionTextBox> InputTextBox;
 
-	// Holds the send button.
+	/** Holds the send button. */
 	TSharedPtr<SButton> SendButton;
 
-	// Holds the promote to shortcut button.
+	/** Holds the promote to shortcut button. */
 	TSharedPtr<SButton> PromoteToShortcutButton;
 
 private:
 
-	// Holds a delegate that is executed when a command is submitted.
+	/** Holds a delegate that is executed when a command is submitted. */
 	FOnSessionConsoleCommandSubmitted OnCommandSubmitted;
 
-	// Holds a delegate that is executed when the Promote To Shortcut button is clicked.
+	/** Holds a delegate that is executed when the Promote To Shortcut button is clicked. */
 	FOnSessionConsoleCommandSubmitted OnPromoteToShortcutClicked;
 };

@@ -131,7 +131,7 @@ bool SSessionConsoleFilterBar::FilterLogMessage( const FSessionLogMessageRef& Lo
 }
 
 
-void SSessionConsoleFilterBar::ResetFilter( )
+void SSessionConsoleFilterBar::ResetFilter()
 {
 	CategoriesList.Reset();
 	CategoryCounters.Reset();

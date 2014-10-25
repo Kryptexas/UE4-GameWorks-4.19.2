@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "SessionFrontend.h"
-
 
 /* Dependencies
  *****************************************************************************/

@@ -128,7 +128,7 @@ void SSessionFrontend::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedP
 }
 
 
-void SSessionFrontend::InitializeControllers( )
+void SSessionFrontend::InitializeControllers()
 {
 	// load required modules and objects
 	ISessionServicesModule& SessionServicesModule = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices");

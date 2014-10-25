@@ -31,7 +31,10 @@ public:
 public:
 
 	/**
-	 * Adds a new shortcut to the list of commands and saves the list
+	 * Adds a new shortcut to the list of commands and saves the list.
+	 *
+	 * @param InName The name of the shortcut to add.
+	 * @param InCommandString The command associated with the shortcut.
 	 */
 	void AddShortcut( const FString& InName, const FString& InCommandString );
 
@@ -42,7 +45,7 @@ public:
 	 */
 	void Construct( const FArguments& InArgs );
 
-private:
+protected:
 
 	/**
 	 * Adds a new shortcut to the list of commands.
@@ -53,63 +56,63 @@ private:
 	void AddShortcutInternal( const FString& InName, const FString& InCommandString );
 
 	/**
-	 * Callback for when a shortcut name or command is being edited
+	 * Gets the name of the file that stores the shortcuts.
+	 *
+	 * @return The file name.
 	 */
-	void EditShortcut( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FString InPromptTitle );
+	FString GetShortcutFilename() const;
 
 	/**
-	 * Gets the filename where the shortcuts are saved/loaded from
+	 * Loads commands from save file.
+	 *
+	 * @see SaveShortcuts
 	 */
-	FString GetShortcutFilename( ) const;
+	void LoadShortcuts();
+
+	/** Rebuild UI or hide of there are no entries. */
+	void RebuildUI();
 
 	/**
-	 * Loads commands from save file
+	 * Saves commands to save file.
+	 *
+	 * @see LoadShortcuts
 	 */
-	void LoadShortcuts( );
-
-	/**
-	 * Rebuild UI or hide of there are no entries
-	 */
-	void RebuildUI( );
-
-	/**
-	 * Callback for when a shortcut should be removed
-	 */
-	void RemoveShortcut( TSharedPtr<FConsoleShortcutData> InShortcut );
-
-	/**
-	 * Saves commands to save file
-	 */
-	void SaveShortcuts( ) const;
+	void SaveShortcuts() const;
 
 private:
 
-	// Callback for when a shortcut is executed
+	/** Callback for when a shortcut should be removed. */
+	void HandleDeleteCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut );
+
+	/** Callback for when a shortcut is executed. */
 	FReply HandleExecuteButtonClicked( TSharedPtr<FConsoleShortcutData> InShortcut );
 
-	// Generates a row widget for a shortcut.
+	/** Callback for when a shortcut name or command is being edited. */
+	void HandleEditCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FString InPromptTitle );
+
+	/** Generates a row widget for a shortcut. */
 	TSharedRef<ITableRow> HandleShortcutListViewGenerateRow( TSharedPtr<FConsoleShortcutData> InItem, const TSharedRef<STableViewBase>& OwnerTable );
 
-	// Callback for committing changes to command
+	/** Callback for committing changes to command. */
 	void HandleShortcutTextEntryCommitted( const FText& CommandText, ETextCommit::Type CommitInfo );
 
 private:
 
-	/** Whether to edit the name or command */
+	/** Whether to edit the name or command. */
 	bool bEditCommand;
 
-	/** Reference to owner of the current pop-up */
+	/** Reference to owner of the current pop-up. */
 	TSharedPtr<FConsoleShortcutData> EditedShortcut;
 
-	/** Reference to owner of the current pop-up */
+	/** Reference to owner of the current pop-up. */
 	TSharedPtr<class SWindow> NameEntryPopupWindow;
 
 	/** Holds a delegate that is executed when a command is submitted. */
 	FOnSessionConsoleCommandSubmitted OnCommandSubmitted;
 
-	/** List of all commands that are currently supported by shortcuts */
+	/** List of all commands that are currently supported by shortcuts. */
 	TArray<TSharedPtr<FConsoleShortcutData>> Shortcuts;
 
-	/** The list view for showing all commands */
+	/** The list view for showing all commands. */
 	TSharedPtr<SListView<TSharedPtr<FConsoleShortcutData>>> ShortcutListView;
 };

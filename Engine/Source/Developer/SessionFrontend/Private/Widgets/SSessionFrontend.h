@@ -35,36 +35,34 @@ protected:
 	 */
 	static void FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager );
 
-	/**
-	 * Creates and initializes the controller classes.
-	 */
-	void InitializeControllers( );
+	/** Creates and initializes the controller classes. */
+	void InitializeControllers();
 
 private:
 
-	// Callback for handling automation module shutdowns.
+	/** Callback for handling automation module shutdowns. */
 	void HandleAutomationModuleShutdown();
 
-	// Callback for spawning tabs.
+	/** Callback for spawning tabs. */
 	TSharedRef<SDockTab> HandleTabManagerSpawnTab( const FSpawnTabArgs& Args, FName TabIdentifier ) const;
 
 private:
 
-	// Holds the target device proxy manager.
+	/** Holds the target device proxy manager. */
 	ITargetDeviceProxyManagerPtr DeviceProxyManager;
 	
-	// Holds a flag indicating whether the launcher overlay is visible.
+	/** Holds a flag indicating whether the launcher overlay is visible. */
 	bool LauncherOverlayVisible;
 
-	// Holds the 'new session' button.
+	/** Holds the 'new session' button. */
 	TSharedPtr<SButton> NewSessionButton;
 
-	// Holds a pointer to the session manager.
+	/** Holds a pointer to the session manager. */
 	ISessionManagerPtr SessionManager;
 
-	// Holds a pointer to the session manager.
+	/** Holds a pointer to the session manager. */
 	IScreenShotManagerPtr ScreenShotManager;
 
-	// Holds the tab manager that manages the front-end's tabs.
+	/** Holds the tab manager that manages the front-end's tabs. */
 	TSharedPtr<FTabManager> TabManager;
 };

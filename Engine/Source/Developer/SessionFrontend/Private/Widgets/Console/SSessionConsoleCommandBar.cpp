@@ -127,7 +127,7 @@ void SSessionConsoleCommandBar::HandleInputTextShowingSuggestions( const FString
 }
 
 
-FReply SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked( )
+FReply SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked()
 {
 	if (OnPromoteToShortcutClicked.IsBound())
 	{
@@ -140,7 +140,7 @@ FReply SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked( )
 }
 
 
-FReply SSessionConsoleCommandBar::HandleSendButtonClicked( )
+FReply SSessionConsoleCommandBar::HandleSendButtonClicked()
 {
 	SubmitCommand(InputTextBox->GetText().ToString());
 

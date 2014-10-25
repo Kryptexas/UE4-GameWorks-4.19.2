@@ -4,17 +4,15 @@
 
 
 /**
- * The device details commands
+ * The device details commands.
  */
 class FSessionConsoleCommands
 	: public TCommands<FSessionConsoleCommands>
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FSessionConsoleCommands( )
+	/** Default constructor. */
+	FSessionConsoleCommands()
 		: TCommands<FSessionConsoleCommands>(
 			"SessionConsole",
 			NSLOCTEXT("Contexts", "SessionConsole", "Session Console"),
@@ -26,7 +24,7 @@ public:
 
 	// TCommands interface
 
-	virtual void RegisterCommands( ) override
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(Clear, "Clear Log", "Clear the log window", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(SessionCopy, "Copy", "Copy the selected log messages to the clipboard", EUserInterfaceActionType::Button, FInputGesture());

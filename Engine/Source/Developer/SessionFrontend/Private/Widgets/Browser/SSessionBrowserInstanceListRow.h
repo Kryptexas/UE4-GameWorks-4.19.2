@@ -147,20 +147,20 @@ public:
 
 private:
 
-	// Callback for getting the text in the 'Device' column.
-	FText HandleDeviceColumnText( ) const
+	/** Callback for getting the text in the 'Device' column. */
+	FText HandleDeviceColumnText() const
 	{
 		return FText::FromString(InstanceInfo->GetDeviceName());
 	}
 
-	// Callback for getting the border color for this row.
-	FSlateColor HandleInstanceBorderBackgroundColor( ) const
+	/** Callback for getting the border color for this row. */
+	FSlateColor HandleInstanceBorderBackgroundColor() const
 	{
 		return FLinearColor((GetTypeHash(InstanceInfo->GetInstanceId()) & 0xff) * 360.0 / 256.0, 0.8, 0.3, 1.0).HSVToLinearRGB();
 	}
 
-	// Callback for getting the border brush for this row.
-	const FSlateBrush* HandleInstanceBorderBrush( ) const
+	/** Callback for getting the border brush for this row. */
+	const FSlateBrush* HandleInstanceBorderBrush() const
 	{
 		if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
 		{
@@ -170,14 +170,14 @@ private:
 		return FEditorStyle::GetBrush("ErrorReporting.EmptyBox");
 	}
 
-	// Callback for getting the instance's current level.
-	FString HandleLevelColumnText( ) const
+	/** Callback for getting the instance's current level. */
+	FString HandleLevelColumnText() const
 	{
 		return InstanceInfo->GetCurrentLevel();
 	}
 
-	// Callback for getting the text in the 'Status' column.
-	FText HandleStatusColumnText( ) const
+	/** Callback for getting the text in the 'Status' column. */
+	FText HandleStatusColumnText() const
 	{
 		if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
 		{
@@ -187,8 +187,8 @@ private:
 		return LOCTEXT("StatusTimedOut", "Timed Out");
 	}
 
-	// Callback for getting the foreground text color.
-	FSlateColor HandleTextColorAndOpacity( ) const
+	/** Callback for getting the foreground text color. */
+	FSlateColor HandleTextColorAndOpacity() const
 	{
 		if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
 		{
@@ -200,10 +200,10 @@ private:
 
 private:
 
-	// Holds a reference to the instance info that is displayed in this row.
+	/** Holds a reference to the instance info that is displayed in this row. */
 	ISessionInstanceInfoPtr InstanceInfo;
 
-	// Holds a delegate to be invoked when the check box state changed.
+	/** Holds a delegate to be invoked when the check box state changed. */
 	FOnCheckStateChanged OnCheckStateChanged;
 };
 

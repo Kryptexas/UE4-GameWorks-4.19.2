@@ -91,8 +91,8 @@ public:
 
 protected:
 
-	// Callback for getting the name of the session.
-	FString HandleGetSessionName( ) const
+	/** Callback for getting the name of the session. */
+	FString HandleGetSessionName() const
 	{
 		const FString& SessionName = SessionInfo->GetSessionName();
 
@@ -103,8 +103,6 @@ protected:
 		}
 
 		// generate name for a standalone session
-
-
 		TArray<ISessionInstanceInfoPtr> Instances;
 		SessionInfo->GetInstances(Instances);
 
@@ -130,10 +128,10 @@ protected:
 
 private:
 
-	// Holds the highlight string for the session name.
+	/** Holds the highlight string for the session name. */
 	TAttribute<FText> HighlightText;
 
-	// Holds a reference to the session info that is displayed in this row.
+	/** Holds a reference to the session info that is displayed in this row. */
 	ISessionInfoPtr SessionInfo;
 };
 

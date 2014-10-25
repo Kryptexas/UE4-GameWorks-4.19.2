@@ -10,7 +10,7 @@
 /* SSessionConsolePanel structors
  *****************************************************************************/
 
-SSessionConsole::~SSessionConsole( )
+SSessionConsole::~SSessionConsole()
 {
 	if (SessionManager.IsValid())
 	{
@@ -160,7 +160,7 @@ void SSessionConsole::Construct( const FArguments& InArgs, ISessionManagerRef In
 /* SSessionConsolePanel implementation
  *****************************************************************************/
 
-void SSessionConsole::BindCommands( )
+void SSessionConsole::BindCommands()
 {
 	FSessionConsoleCommands::Register();
 
@@ -183,14 +183,14 @@ void SSessionConsole::BindCommands( )
 }
 
 
-void SSessionConsole::ClearLog( )
+void SSessionConsole::ClearLog()
 {
 	LogMessages.Reset();
 	LogListView->RequestListRefresh();
 }
 
 
-void SSessionConsole::CopyLog( )
+void SSessionConsole::CopyLog()
 {
 	TArray<FSessionLogMessagePtr> SelectedItems = LogListView->GetSelectedItems();
 
@@ -261,7 +261,7 @@ void SSessionConsole::ReloadLog( bool FullyReload )
 }
 
 
-void SSessionConsole::SaveLog( )
+void SSessionConsole::SaveLog()
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
@@ -373,13 +373,13 @@ FReply SSessionConsole::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 /* SSessionConsolePanel event handlers
  *****************************************************************************/
 
-void SSessionConsole::HandleClearActionExecute( )
+void SSessionConsole::HandleClearActionExecute()
 {
 	ClearLog();
 }
 
 
-bool SSessionConsole::HandleClearActionCanExecute( )
+bool SSessionConsole::HandleClearActionCanExecute()
 {
 	return (LogMessages.Num() > 0);
 }
@@ -397,19 +397,19 @@ void SSessionConsole::HandleCommandSubmitted( const FString& CommandString )
 }
 
 
-void SSessionConsole::HandleCopyActionExecute( )
+void SSessionConsole::HandleCopyActionExecute()
 {
 	CopyLog();
 }
 
 
-bool SSessionConsole::HandleCopyActionCanExecute( )
+bool SSessionConsole::HandleCopyActionCanExecute()
 {
 	return (LogListView->GetNumItemsSelected() > 0);
 }
 
 
-void SSessionConsole::HandleFilterChanged( )
+void SSessionConsole::HandleFilterChanged()
 {
 	HighlightText = FilterBar->GetFilterText().ToString();
 
@@ -439,31 +439,31 @@ TSharedRef<ITableRow> SSessionConsole::HandleLogListGenerateRow( FSessionLogMess
 }
 
 
-FText SSessionConsole::HandleLogListGetHighlightText( ) const
+FText SSessionConsole::HandleLogListGetHighlightText() const
 {
 	return FText::FromString(HighlightText); //FilterBar->GetFilterText();
 }
 
 
-bool SSessionConsole::HandleMainContentIsEnabled( ) const
+bool SSessionConsole::HandleMainContentIsEnabled() const
 {
 	return SessionManager->GetSelectedSession().IsValid();
 }
 
 
-void SSessionConsole::HandleSaveActionExecute( )
+void SSessionConsole::HandleSaveActionExecute()
 {
 	SaveLog();
 }
 
 
-bool SSessionConsole::HandleSaveActionCanExecute( )
+bool SSessionConsole::HandleSaveActionCanExecute()
 {
 	return (LogMessages.Num() > 0);
 }
 
 
-EVisibility SSessionConsole::HandleSelectSessionOverlayVisibility( ) const
+EVisibility SSessionConsole::HandleSelectSessionOverlayVisibility() const
 {
 	if (SessionManager->GetSelectedSession().IsValid())
 	{
@@ -474,7 +474,7 @@ EVisibility SSessionConsole::HandleSelectSessionOverlayVisibility( ) const
 }
 
 
-void SSessionConsole::HandleSessionManagerInstanceSelectionChanged( )
+void SSessionConsole::HandleSessionManagerInstanceSelectionChanged()
 {
 	ReloadLog(true);
 }
