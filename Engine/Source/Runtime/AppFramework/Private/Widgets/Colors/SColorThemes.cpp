@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
+#include "SColorThemes.h"
 
 
 void FColorDragDrop::OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent )

@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "SlateBasics.h"
+
+
+// forward declarations
+class SThemeColorBlocksBar;
+
 
 /**
  * A Color Theme is a name and an array of Colors.
@@ -14,7 +20,10 @@ public:
 	FColorTheme(const FString& InName = TEXT(""), const TArray< TSharedPtr<FLinearColor> >& InColors = TArray< TSharedPtr<FLinearColor> >());
 
 	/** Get a list of all the colors in the theme */
-	const TArray< TSharedPtr<FLinearColor> >& GetColors() const { return Colors; }
+	const TArray< TSharedPtr<FLinearColor> >& GetColors() const
+	{
+		return Colors;
+	}
 
 	/** Insert a color at a specific point in the list and broadcast change */
 	void InsertNewColor(TSharedPtr<FLinearColor> InColor, int32 InsertPosition);
@@ -34,7 +43,10 @@ public:
 	FString Name;
 
 	DECLARE_EVENT( FColorTheme, FRefreshEvent );
-	FRefreshEvent& OnRefresh() { return RefreshEvent; }
+	FRefreshEvent& OnRefresh()
+	{
+		return RefreshEvent;
+	}
 
 private:
 
@@ -48,7 +60,8 @@ private:
  * The SColorTrash is a multipurpose widget which allows FColorDragDrops
  * to be dropped on to to be 
  */
-class SColorTrash : public SCompoundWidget
+class SColorTrash
+	: public SCompoundWidget
 {
 public:
 
@@ -98,15 +111,13 @@ private:
 };
 
 
-class SThemeColorBlocksBar;
-
-
 /**
  * SThemeColorBlocks are Color Blocks which point to a Color in a ColorTheme.
  * They can be dragged and dropped, and clicking on one in the Color Picker will
  * give the color that they point to.
  */
-class SThemeColorBlock : public SCompoundWidget
+class SThemeColorBlock
+	: public SCompoundWidget
 {
 public:
 
@@ -205,7 +216,8 @@ private:
 /**
  * SThemeColorBlocksBars are panels for dragging and dropping SColorThemeBlocks onto and off of.
  */
-class SThemeColorBlocksBar : public SPanel
+class SThemeColorBlocksBar
+	: public SPanel
 {
 public:
 
@@ -329,9 +341,8 @@ public:
 	 * This removes a callback from the Color Theme that this bar has a pointer to
 	 */
 	void RemoveRefreshCallback();
-	/**
-	 * Adds a callback to the Color Theme that this bar has a pointer to
-	 */
+
+	/** Adds a callback to the Color Theme that this bar has a pointer to. */
 	void AddRefreshCallback();
 
 	/**
@@ -343,9 +354,7 @@ public:
 	
 private:
 
-	/**
-	 * Destroys the placeholder block in this widget
-	 */
+	/** Destroys the placeholder block in this widget. */
 	void DestroyPlaceholders();
 
 	/** The children blocks of this panel */
@@ -356,10 +365,13 @@ private:
 	 * FColorDragDrop onto this widget. It "replaces" the FColorDragDrop widget with a preview SThemeColorBlock
 	 */
 	TSharedPtr<SThemeColorBlock> NewColorBlockPlaceholder;
+
 	/** The placeholder's color, also used to determine whether the placeholder is real or not (by IsValid) */
 	TSharedPtr<FLinearColor> NewColorPlaceholder;
+
 	/** Current x offset of the placeholder block */
 	float PlaceholderBlockOffset;
+
 	/** The initial grab offset when grabbing the placeholder */
 	FVector2D PlaceholderInitialGrabOffset;
 
@@ -380,6 +392,7 @@ private:
 
 	/** Callback to pass down to the FColorDragDrop for it to show the trash */
 	FSimpleDelegate ShowTrashCallback;
+
 	/** Callback to pass down to the FColorDragDrop for it to hide the trash */
 	FSimpleDelegate HideTrashCallback;
 
@@ -391,7 +404,7 @@ private:
 };
 
 
-DECLARE_DELEGATE_OneParam( FOnCurrentThemeChanged, TSharedPtr<FColorTheme> )
+DECLARE_DELEGATE_OneParam(FOnCurrentThemeChanged, TSharedPtr<FColorTheme>)
 
 
 /**
@@ -456,6 +469,7 @@ private:
 
 	/** Callback to pass down to the FColorDragDrop for it to show the trash */
 	FSimpleDelegate ShowTrashCallback;
+
 	/** Callback to pass down to the FColorDragDrop for it to hide the trash */
 	FSimpleDelegate HideTrashCallback;
 	
@@ -495,12 +509,16 @@ public:
 
 	/** Load the color theme settings from the config */
 	static void LoadColorThemesFromIni();
+
 	/** Save the color theme settings to the config */
 	static void SaveColorThemesToIni();
 	
 	/** Callbacks to execute whenever we change the global current theme */
 	DECLARE_EVENT( SColorThemesViewer, FCurrentThemeChangedEvent );
-	FCurrentThemeChangedEvent& OnCurrentThemeChanged() { return CurrentThemeChangedEvent; }
+	FCurrentThemeChangedEvent& OnCurrentThemeChanged()
+	{
+		return CurrentThemeChangedEvent;
+	}
 
 	/** Whether to use display sRGB color */
 	static bool bSRGBEnabled;
@@ -567,7 +585,8 @@ private:
 	TAttribute<bool> bUseAlpha;
 
 	/** A static holder of the color themes for the entire program */
-	static TArray< TSharedPtr<FColorTheme> > ColorThemes;
+	static TArray<TSharedPtr<FColorTheme>> ColorThemes;
+
 	/** A static pointer to the color theme that is currently selected for the entire program */
 	static TWeakPtr<FColorTheme> CurrentlySelectedThemePtr;
 };

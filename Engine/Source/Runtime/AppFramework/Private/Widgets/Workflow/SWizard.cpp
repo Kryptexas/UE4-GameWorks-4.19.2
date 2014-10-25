@@ -232,7 +232,7 @@ void SWizard::ShowPage( int32 PageIndex )
 /* SCompoundWidget overrides
  *****************************************************************************/
 
-FVector2D SWizard::ComputeDesiredSize( ) const
+FVector2D SWizard::ComputeDesiredSize() const
 {
 	if (DesiredSize.IsZero())
 	{
@@ -246,7 +246,7 @@ FVector2D SWizard::ComputeDesiredSize( ) const
 /* SWizard callbacks
  *****************************************************************************/
 
-FReply SWizard::HandleCancelButtonClicked( )
+FReply SWizard::HandleCancelButtonClicked()
 {
 	OnCanceled.ExecuteIfBound();
 
@@ -254,7 +254,7 @@ FReply SWizard::HandleCancelButtonClicked( )
 }
 
 
-FReply SWizard::HandleFinishButtonClicked( )
+FReply SWizard::HandleFinishButtonClicked()
 {
 	OnFinished.ExecuteIfBound();
 
@@ -262,7 +262,7 @@ FReply SWizard::HandleFinishButtonClicked( )
 }
 
 
-FReply SWizard::HandleNextButtonClicked( )
+FReply SWizard::HandleNextButtonClicked()
 {
 	ShowPage(WidgetSwitcher->GetActiveWidgetIndex() + 1);
 
@@ -270,13 +270,13 @@ FReply SWizard::HandleNextButtonClicked( )
 }
 
 
-bool SWizard::HandleNextButtonIsEnabled( ) const
+bool SWizard::HandleNextButtonIsEnabled() const
 {
 	return CanShowPage(WidgetSwitcher->GetActiveWidgetIndex() + 1);
 }
 
 
-EVisibility SWizard::HandleNextButtonVisibility( ) const
+EVisibility SWizard::HandleNextButtonVisibility() const
 {
 	if (Pages.IsValidIndex(WidgetSwitcher->GetActiveWidgetIndex() + 1))
 	{
@@ -313,7 +313,7 @@ bool SWizard::HandlePageButtonIsEnabled( int32 PageIndex ) const
 }
 
 
-FReply SWizard::HandlePrevButtonClicked( )
+FReply SWizard::HandlePrevButtonClicked()
 {
 	if ( WidgetSwitcher->GetActiveWidgetIndex() == 0 && OnFirstPageBackClicked.IsBound() )
 	{
@@ -328,7 +328,7 @@ FReply SWizard::HandlePrevButtonClicked( )
 }
 
 
-bool SWizard::HandlePrevButtonIsEnabled( ) const
+bool SWizard::HandlePrevButtonIsEnabled() const
 {
 	if ( WidgetSwitcher->GetActiveWidgetIndex() == 0 && OnFirstPageBackClicked.IsBound() )
 	{
@@ -339,7 +339,7 @@ bool SWizard::HandlePrevButtonIsEnabled( ) const
 }
 
 
-EVisibility SWizard::HandlePrevButtonVisibility( ) const
+EVisibility SWizard::HandlePrevButtonVisibility() const
 {
 	if (WidgetSwitcher->GetActiveWidgetIndex() > 0 || OnFirstPageBackClicked.IsBound())
 	{

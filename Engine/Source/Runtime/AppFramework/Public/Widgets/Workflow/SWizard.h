@@ -71,7 +71,7 @@ public:
 		 *
 		 * @return true if the page can be shown, false otherwise.
 		 */
-		bool CanShow( ) const
+		bool CanShow() const
 		{
 			return Showable.Get();
 		}
@@ -81,7 +81,7 @@ public:
 		 *
 		 * @return The button content widget.
 		 */
-		const TSharedRef<SWidget>& GetButtonContent( ) const
+		const TSharedRef<SWidget>& GetButtonContent() const
 		{
 			return ButtonContent.Widget;
 		}
@@ -91,7 +91,7 @@ public:
 		 *
 		 * @return The page contents.
 		 */
-		const TSharedRef<SWidget>& GetPageContent( ) const
+		const TSharedRef<SWidget>& GetPageContent() const
 		{
 			return PageContent.Widget;
 		}
@@ -101,7 +101,7 @@ public:
 		 *
 		 * @return The delegate.
 		 */
-		FSimpleDelegate& OnEnter( )
+		FSimpleDelegate& OnEnter()
 		{
 			return OnEnterDelegate;
 		}
@@ -111,7 +111,7 @@ public:
 		 *
 		 * @return The delegate.
 		 */
-		FSimpleDelegate& OnLeave( )
+		FSimpleDelegate& OnLeave()
 		{
 			return OnLeaveDelegate;
 		}
@@ -208,7 +208,7 @@ public:
 	 *
 	 * @return The number of pages.
 	 */
-	int32 GetNumPages( ) const;
+	int32 GetNumPages() const;
 
 	/**
 	 * Gets the index of the specified wizard page widget.
@@ -229,7 +229,7 @@ public:
 
 	// SCompoundWidget interface
 
-	virtual FVector2D ComputeDesiredSize( ) const override;
+	virtual FVector2D ComputeDesiredSize() const override;
 
 public:
 
@@ -239,7 +239,7 @@ public:
 	 * @param PageName The name of the page.
 	 * @return A new slot.
 	 */
-	static FWizardPage::FArguments Page( )
+	static FWizardPage::FArguments Page()
 	{
 		FWizardPage::FArguments Args;
 		return Args;
@@ -248,19 +248,19 @@ public:
 private:
 
 	// Callback for clicking the 'Cancel' button.
-	FReply HandleCancelButtonClicked( );
+	FReply HandleCancelButtonClicked();
 
 	// Callback for clicking the 'Launch' button.
-	FReply HandleFinishButtonClicked( );
+	FReply HandleFinishButtonClicked();
 
 	// Callback for clicking the 'Next' button.
-	FReply HandleNextButtonClicked( );
+	FReply HandleNextButtonClicked();
 
 	// Callback for getting the enabled state of the 'Next' button.
-	bool HandleNextButtonIsEnabled( ) const;
+	bool HandleNextButtonIsEnabled() const;
 
 	// Callback for getting the visibility of the 'Next' button.
-	EVisibility HandleNextButtonVisibility( ) const;
+	EVisibility HandleNextButtonVisibility() const;
 
 	// Callback for getting the checked state of a page button.
 	void HandlePageButtonCheckStateChanged( ESlateCheckBoxState::Type NewState, int32 PageIndex );
@@ -272,13 +272,13 @@ private:
 	bool HandlePageButtonIsEnabled( int32 PageIndex ) const;
 
 	// Callback for clicking the 'Previous' button.
-	FReply HandlePrevButtonClicked( );
+	FReply HandlePrevButtonClicked();
 
 	// Callback for getting the enabled state of the 'Previous' button.
-	bool HandlePrevButtonIsEnabled( ) const;
+	bool HandlePrevButtonIsEnabled() const;
 
 	// Callback for getting the visibility of the 'Previous' button.
-	EVisibility HandlePrevButtonVisibility( ) const;
+	EVisibility HandlePrevButtonVisibility() const;
 
 private:
 

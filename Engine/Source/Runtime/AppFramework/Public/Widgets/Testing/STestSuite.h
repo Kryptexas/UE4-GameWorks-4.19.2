@@ -4,5 +4,4 @@
 
 
 APPFRAMEWORK_API void RestoreSlateTestSuite();
-
 APPFRAMEWORK_API void MakeSplitterTest();

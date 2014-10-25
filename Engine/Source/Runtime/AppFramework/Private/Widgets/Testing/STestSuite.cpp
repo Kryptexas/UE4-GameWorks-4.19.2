@@ -22,8 +22,11 @@
 #include "SSearchBox.h"
 #include "SVolumeControl.h"
 #include "SResponsiveGridPanel.h"
+#include "SColorPicker.h"
+
 
 #define LOCTEXT_NAMESPACE "STestSuite"
+
 
 namespace
 {

@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "SlateBasics.h"
+
+
+// forward declarations
+class SColorThemesViewer;
+class SComboButton;
+class SThemeColorBlocksBar;
+
 
 /** Called when the color picker cancel button is pressed */
 DECLARE_DELEGATE_OneParam(FOnColorPickerCancelled, FLinearColor);
@@ -187,7 +195,7 @@ protected:
 	void ShowSmallTrash();
 
 	/** Cycles the color picker's mode. */
-	void CycleMode( );
+	void CycleMode();
 
 	/**
 	 * Creates a color slider widget for the specified channel.
@@ -210,7 +218,7 @@ protected:
 	 *
 	 * @return The new color preview box.
 	 */
-	TSharedRef<SWidget> MakeColorPreviewBox( ) const;
+	TSharedRef<SWidget> MakeColorPreviewBox() const;
 
 protected:	
 
@@ -230,7 +238,7 @@ private:
 	void HandleAdvancedAreaExpansionChanged( bool Expanded );
 
 	// Callback for getting the visibility of the alpha channel portion in color blocks.
-	EVisibility HandleAlphaColorBlockVisibility( ) const;
+	EVisibility HandleAlphaColorBlockVisibility() const;
 
 	// Callback for clicking the Cancel button.
 	FReply HandleCancelButtonClicked();
@@ -239,7 +247,7 @@ private:
 	FReply HandleColorAreaMouseDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
 	// Callback for clicking the color picker mode button.
-	FReply HandleColorPickerModeButtonClicked( );
+	FReply HandleColorPickerModeButtonClicked();
 
 	// Callback for getting the visibility of the given color picker mode.
 	EVisibility HandleColorPickerModeVisibility( EColorPickerModes Mode ) const;
@@ -260,10 +268,10 @@ private:
 	void HandleColorSpinBoxValueChanged( float NewValue, EColorPickerChannels Channel );
 
 	// Callback for completed eye dropper interactions.
-	void HandleEyeDropperButtonComplete( );
+	void HandleEyeDropperButtonComplete();
 
 	// Callback for getting the text in the hex box.
-	FText HandleHexBoxText( ) const;
+	FText HandleHexBoxText() const;
 
 	// Callback for committed text in the hex input box.
 	void HandleHexInputTextCommitted( const FText& Text, ETextCommit::Type CommitType );
@@ -272,10 +280,10 @@ private:
 	void HandleHSVColorChanged( FLinearColor NewValue );
 
 	// Callback for when interactive user input begins.
-	void HandleInteractiveChangeBegin( );
+	void HandleInteractiveChangeBegin();
 
 	// Callback for when interactive user input ends.
-	void HandleInteractiveChangeEnd( );
+	void HandleInteractiveChangeEnd();
 
 	// Callback for when interactive user input ends.
 	void HandleInteractiveChangeEnd( float NewValue );
@@ -284,13 +292,13 @@ private:
 	FReply HandleNewColorBlockMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bCheckAlpha );
 
 	// Callback for clicking the OK button.
-	FReply HandleOkButtonClicked( );
+	FReply HandleOkButtonClicked();
 
 	// Callback for clicking the old color preview block.
 	FReply HandleOldColorBlockMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bCheckAlpha );
 
 	// Callback for checking whether sRGB colors should be rendered.
-	bool HandleColorPickerUseSRGB( ) const;
+	bool HandleColorPickerUseSRGB() const;
 
 	// Callback for when the parent window has been closed.
 	void HandleParentWindowClosed( const TSharedRef<SWindow>& Window );
@@ -302,22 +310,22 @@ private:
 	void HandleSRGBCheckBoxCheckStateChanged( ESlateCheckBoxState::Type InIsChecked );
 
 	// Callback for determining whether the sRGB check box should be checked.
-	ESlateCheckBoxState::Type HandleSRGBCheckBoxIsChecked( ) const;
+	ESlateCheckBoxState::Type HandleSRGBCheckBoxIsChecked() const;
 
 	// Callback for selecting a color in the color theme bar.
 	void HandleThemeBarColorSelected( FLinearColor NewValue );
 
 	// Callback for getting the theme bar's color theme.
-	TSharedPtr<class FColorTheme> HandleThemeBarColorTheme( ) const;
+	TSharedPtr<class FColorTheme> HandleThemeBarColorTheme() const;
 
 	// Callback for getting the visibility of the theme bar hint text.
-	EVisibility HandleThemeBarHintVisibility( ) const;
+	EVisibility HandleThemeBarHintVisibility() const;
 
 	// Callback for determining whether the theme bar should display the alpha channel.
-	bool HandleThemeBarUseAlpha( ) const;
+	bool HandleThemeBarUseAlpha() const;
 
 	// Callback for theme viewer changes.
-	void HandleThemesViewerThemeChanged( );
+	void HandleThemesViewerThemeChanged();
 
 private:
 	
@@ -388,13 +396,13 @@ private:
 	TWeakPtr<SWindow> ParentWindowPtr;
 
 	/** The widget which holds the currently selected theme */
-	TSharedPtr<class SThemeColorBlocksBar> CurrentThemeBar;
+	TSharedPtr<SThemeColorBlocksBar> CurrentThemeBar;
 
 	/** Widget which is either the button to show the color themes viewer, or to be a color trash */
 	TSharedPtr<SBorder> ColorThemeButtonOrSmallTrash;
 
 	/** The button to show the color themes viewer */
-	TSharedPtr<class SComboButton> ColorThemeComboButton;
+	TSharedPtr<SComboButton> ColorThemeComboButton;
 
 	/** The small color trash shown in place of the combo button */
 	TSharedPtr<SWidget> SmallTrash;
@@ -431,7 +439,7 @@ private:
 private:
 
 	/** A static pointer to the global color themes viewer */
-	static TWeakPtr<class SColorThemesViewer> ColorThemesViewer;
+	static TWeakPtr<SColorThemesViewer> ColorThemesViewer;
 };
 
 

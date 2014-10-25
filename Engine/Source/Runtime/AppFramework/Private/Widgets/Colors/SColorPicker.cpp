@@ -5,8 +5,10 @@
 #include "SSimpleGradient.h"
 #include "SColorValueSlider.h"
 #include "SEyeDropperButton.h"
+#include "SColorPicker.h"
 #include "SColorWheel.h"
 #include "SColorSpectrum.h"
+#include "SColorThemes.h"
 #include "SExpandableArea.h"
 
 
@@ -765,7 +767,7 @@ void SColorPicker::ShowSmallTrash()
 /* SColorPicker implementation
  *****************************************************************************/
 
-void SColorPicker::CycleMode( )
+void SColorPicker::CycleMode()
 {
 	if (CurrentMode == EColorPickerModes::Spectrum)
 	{
@@ -958,7 +960,7 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 }
 
 
-TSharedRef<SWidget> SColorPicker::MakeColorPreviewBox( ) const
+TSharedRef<SWidget> SColorPicker::MakeColorPreviewBox() const
 {
 	return SNew(SOverlay)
 
@@ -1126,13 +1128,13 @@ void SColorPicker::HandleAdvancedAreaExpansionChanged( bool Expanded )
 }
 
 
-EVisibility SColorPicker::HandleAlphaColorBlockVisibility( ) const
+EVisibility SColorPicker::HandleAlphaColorBlockVisibility() const
 {
 	return bUseAlpha.Get() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
-FReply SColorPicker::HandleCancelButtonClicked( )
+FReply SColorPicker::HandleCancelButtonClicked()
 {
 	bClosedViaOkOrCancel = true;
 
@@ -1239,7 +1241,7 @@ void SColorPicker::HandleColorSpinBoxValueChanged( float NewValue, EColorPickerC
 }
 
 
-void SColorPicker::HandleEyeDropperButtonComplete( )
+void SColorPicker::HandleEyeDropperButtonComplete()
 {
 	bIsInteractive = false;
 
@@ -1252,7 +1254,7 @@ void SColorPicker::HandleEyeDropperButtonComplete( )
 }
 
 
-FText SColorPicker::HandleHexBoxText( ) const
+FText SColorPicker::HandleHexBoxText() const
 {
 	return FText::FromString(CurrentColorRGB.ToFColor(false).ToHex());
 }
@@ -1274,7 +1276,7 @@ void SColorPicker::HandleHSVColorChanged( FLinearColor NewValue )
 }
 
 
-void SColorPicker::HandleInteractiveChangeBegin( )
+void SColorPicker::HandleInteractiveChangeBegin()
 {
 	if( bIsInteractive && OnInteractivePickEnd.IsBound() )
 	{
@@ -1286,7 +1288,7 @@ void SColorPicker::HandleInteractiveChangeBegin( )
 }
 
 
-void SColorPicker::HandleInteractiveChangeEnd( )
+void SColorPicker::HandleInteractiveChangeEnd()
 {
 	HandleInteractiveChangeEnd(0.0f);
 }
@@ -1314,7 +1316,7 @@ FReply SColorPicker::HandleColorAreaMouseDown( const FGeometry& MyGeometry, cons
 }
 
 
-FReply SColorPicker::HandleColorPickerModeButtonClicked( )
+FReply SColorPicker::HandleColorPickerModeButtonClicked()
 {
 	CycleMode();
 
@@ -1346,7 +1348,7 @@ FReply SColorPicker::HandleNewColorBlockMouseButtonDown( const FGeometry& MyGeom
 }
 
 
-FReply SColorPicker::HandleOkButtonClicked( )
+FReply SColorPicker::HandleOkButtonClicked()
 {
 	bClosedViaOkOrCancel = true;
 
@@ -1380,7 +1382,7 @@ FReply SColorPicker::HandleOldColorBlockMouseButtonDown( const FGeometry& MyGeom
 }
 
 
-bool SColorPicker::HandleColorPickerUseSRGB( ) const
+bool SColorPicker::HandleColorPickerUseSRGB() const
 {
 	return SColorThemesViewer::bSRGBEnabled;
 }
@@ -1428,7 +1430,7 @@ void SColorPicker::HandleSRGBCheckBoxCheckStateChanged( ESlateCheckBoxState::Typ
 }
 
 
-ESlateCheckBoxState::Type SColorPicker::HandleSRGBCheckBoxIsChecked( ) const
+ESlateCheckBoxState::Type SColorPicker::HandleSRGBCheckBoxIsChecked() const
 {
 	return SColorThemesViewer::bSRGBEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
@@ -1460,7 +1462,7 @@ TSharedPtr<FColorTheme> SColorPicker::HandleThemeBarColorTheme() const
 }
 
 
-EVisibility SColorPicker::HandleThemeBarHintVisibility( ) const
+EVisibility SColorPicker::HandleThemeBarHintVisibility() const
 {
 	TSharedPtr<SColorThemesViewer> ThemesViewer = ColorThemesViewer.Pin();
 
@@ -1478,7 +1480,7 @@ EVisibility SColorPicker::HandleThemeBarHintVisibility( ) const
 }
 
 
-bool SColorPicker::HandleThemeBarUseAlpha( ) const
+bool SColorPicker::HandleThemeBarUseAlpha() const
 {
 	return bUseAlpha.Get();
 }
