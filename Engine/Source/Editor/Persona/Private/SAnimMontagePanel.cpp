@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #include "PersonaPrivatePCH.h"
-
 #include "SAnimMontagePanel.h"
 #include "ScopedTransaction.h"
 #include "SCurveEditor.h"
@@ -12,8 +10,11 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "SExpandableArea.h"
 #include "STextEntryPopup.h"
+#include "STextComboBox.h"
+
 
 #define LOCTEXT_NAMESPACE "AnimMontagePanel"
+
 
 //////////////////////////////////////////////////////////////////////////
 // SMontageBranchingPointNode
