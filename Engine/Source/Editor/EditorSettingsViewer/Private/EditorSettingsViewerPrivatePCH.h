@@ -11,4 +11,3 @@
 #include "InputBindingEditor.h"
 #include "InternationalizationSettingsModel.h"
 #include "MessageLog.h"
-#include "SettingsEditor.h"

@@ -1,7 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "NotifyHook.h"
 #include "SNotificationList.h"
+
+
+// forward declarations
+class FEditPropertyChain;
+struct FPropertyChangedEvent;
+class IDetailsView;
+class SSettingsEditorCheckoutNotice;
+class UObject;
 
 
 /**
@@ -18,10 +28,8 @@ public:
 
 public:
 
-	/**
-	 * Destructor.
-	 */
-	~SSettingsEditor( );
+	/** Destructor. */
+	~SSettingsEditor();
 
 public:
 
@@ -46,7 +54,7 @@ protected:
 	 *
 	 * @return true if the check-out succeeded, false otherwise.
 	 */
-	bool CheckOutDefaultConfigFile( );
+	bool CheckOutDefaultConfigFile();
 
 	/**
 	 * Gets the absolute path to the Default.ini for the specified object.
@@ -61,7 +69,14 @@ protected:
 	 *
 	 * @return The settings object.
 	 */
-	TWeakObjectPtr<UObject> GetSelectedSettingsObject( ) const;
+	TWeakObjectPtr<UObject> GetSelectedSettingsObject() const;
+
+	/**
+	 * Checks whether the default config file needs to be checked out for editing.
+	 *
+	 * @return true if the file needs to be checked out, false otherwise.
+	 */
+	bool IsDefaultConfigCheckOutNeeded() const;
 
 	/**
 	 * Creates a widget for the given settings category.
@@ -76,12 +91,18 @@ protected:
 	 *
 	 * @return true if it was made writable, false otherwise.
 	 */
-	bool MakeDefaultConfigFileWritable( );
+	bool MakeDefaultConfigFileWritable();
 
 	/**
-	 * Reloads the settings categories.
+	 * Reports a preference changed event to the analytics system.
+	 *
+	 * @param SelectedSection The currently selected settings section.
+	 * @param PropertyChangedEvent The event for the changed property.
 	 */
-	void ReloadCategories( );
+	void RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const;
+
+	/** Reloads the settings categories. */
+	void ReloadCategories();
 
 	/**
 	 * Shows a notification pop-up.
@@ -93,100 +114,95 @@ protected:
 
 private:
 
-	// Callback for clicking the Back link.
-	FReply HandleBackButtonClicked( );
+	/** Callback for clicking the Back link. */
+	FReply HandleBackButtonClicked();
 
-	// Callback for when the user's culture has changed.
-	void HandleCultureChanged( );
+	/** Returns the config file name currently being edited. */
+	FString HandleCheckoutNoticeConfigFilePath() const;
 
-	// Callback for determining the visibility of the 'Locked' notice.
-	EVisibility HandleDefaultConfigNoticeVisibility( ) const;
+	/** Reloads the configuration object. */
+	void HandleCheckoutNoticeFileProbablyModifiedExternally();
 
-	// Callback for clicking the 'Reset to Defaults' button.
-	FReply HandleExportButtonClicked( );
+	/** Callback for determining the visibility of the 'Locked' notice. */
+	EVisibility HandleCheckoutNoticeVisibility() const;
 
-	// Callback for getting the enabled state of the 'Export' button.
-	bool HandleExportButtonEnabled( ) const;
+	/** Callback for when the user's culture has changed. */
+	void HandleCultureChanged();
 
-	// Callback for clicking the 'Reset to Defaults' button.
-	FReply HandleImportButtonClicked( );
+	/** Callback for clicking the 'Reset to Defaults' button. */
+	FReply HandleExportButtonClicked();
 
-	// Callback for getting the enabled state of the 'Import' button.
-	bool HandleImportButtonEnabled( ) const;
+	/** Callback for getting the enabled state of the 'Export' button. */
+	bool HandleExportButtonEnabled() const;
 
-	// Callback for changing the selected settings section.
-	void HandleModelSelectionChanged( );
+	/** Callback for clicking the 'Reset to Defaults' button. */
+	FReply HandleImportButtonClicked();
 
-	// Callback for clicking the 'Reset to Defaults' button.
-	FReply HandleResetDefaultsButtonClicked( );
+	/** Callback for getting the enabled state of the 'Import' button. */
+	bool HandleImportButtonEnabled() const;
 
-	// Callback for getting the enabled state of the 'Reset to Defaults' button.
-	bool HandleResetToDefaultsButtonEnabled( ) const;
+	/** Callback for changing the selected settings section. */
+	void HandleModelSelectionChanged();
 
-	// Callback for getting the visibility of options that are only visible when editing something that came from a non-default object
-	EVisibility EditingNonDefaultSettingsVisibility( ) const;
+	/** Callback for clicking the 'Reset to Defaults' button. */
+	FReply HandleResetDefaultsButtonClicked();
 
-	// Callback for navigating a settings section link.
+	/** Callback for getting the enabled state of the 'Reset to Defaults' button. */
+	bool HandleResetToDefaultsButtonEnabled() const;
+
+	/** Callback for navigating a settings section link. */
 	void HandleSectionLinkNavigate( ISettingsSectionPtr Section );
 
-	// Callback for getting the visibility of a section link image.
+	/** Callback for getting the visibility of a section link image. */
 	EVisibility HandleSectionLinkImageVisibility( ISettingsSectionPtr Section ) const;
 
-	// Callback for clicking the 'Set as Defaults' button.
-	FReply HandleSetAsDefaultButtonClicked( );
+	/** Callback for clicking the 'Set as Defaults' button. */
+	FReply HandleSetAsDefaultButtonClicked();
 
-	// Callback for getting the enabled state of the 'Set as Defaults' button.
-	bool HandleSetAsDefaultButtonEnabled( ) const;
+	/** Callback for getting the enabled state of the 'Set as Defaults' button. */
+	bool HandleSetAsDefaultButtonEnabled() const;
 
-	// Callback for getting the section description text.
-	FText HandleSettingsBoxDescriptionText( ) const;
+	/** Callback for getting the visibility of options that are only visible when editing something that came from a non-default object. */
+	EVisibility HandleSetAsDefaultButtonVisibility() const;
 
-	// Callback for getting the section text for the settings box.
-	FString HandleSettingsBoxTitleText( ) const;
+	/** Callback for getting the section description text. */
+	FText HandleSettingsBoxDescriptionText() const;
 
-	// Callback for determining the visibility of the settings box.
-	EVisibility HandleSettingsBoxVisibility( ) const;
+	/** Callback for getting the section text for the settings box. */
+	FString HandleSettingsBoxTitleText() const;
 
-	// Callback for the modification of categories in the settings container.
+	/** Callback for determining the visibility of the settings box. */
+	EVisibility HandleSettingsBoxVisibility() const;
+
+	/** Callback for the modification of categories in the settings container. */
 	void HandleSettingsContainerCategoryModified( const FName& CategoryName );
 
-	// Callback for checking whether the settings view is enabled.
-	bool HandleSettingsViewEnabled( ) const;
+	/** Callback for checking whether the settings view is enabled. */
+	bool HandleSettingsViewEnabled() const;
 
-	// Callback for determining the visibility of the settings view.
-	EVisibility HandleSettingsViewVisibility( ) const;
-
-	// Reports a preference changed event to the analytics system */
-	void RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const;
-
-	// Returns the config file name currently being edited
-	FString GetConfigFileName() const;
-
-	// Do we need to edit the default config file?
-	bool IsDefaultConfigCheckOutNeeded() const;
-
-	void ReloadConfigObject();
+	/** Callback for determining the visibility of the settings view. */
+	EVisibility HandleSettingsViewVisibility() const;
 
 private:
 
-	// Watcher widget for the default config file (checks file status / SCC state)
-	TSharedPtr<class SSettingsEditorCheckoutNotice> FileWatcherWidget;
-
-	// Holds the vertical box for settings categories.
+	/** Holds the vertical box for settings categories. */
 	TSharedPtr<SVerticalBox> CategoriesBox;
 
-	// Holds the overlay slot for custom widgets.
+	/** Holds the overlay slot for custom widgets. */
 	SOverlay::FOverlaySlot* CustomWidgetSlot;
 
-	// Holds the path to the directory that the last settings were exported to.
+	/** Watcher widget for the default config file (checks file status / SCC state). */
+	TSharedPtr<SSettingsEditorCheckoutNotice> FileWatcherWidget;
+
+	/** Holds the path to the directory that the last settings were exported to. */
 	FString LastExportDir;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	ISettingsEditorModelPtr Model;
 
-	// Holds the settings container.
+	/** Holds the settings container. */
 	ISettingsContainerPtr SettingsContainer;
 
-	// Holds the details view.
+	/** Holds the details view. */
 	TSharedPtr<IDetailsView> SettingsView;
 };

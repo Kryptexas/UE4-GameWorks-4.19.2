@@ -22,10 +22,8 @@ public:
 		SettingsContainer->OnSectionRemoved().AddRaw(this, &FSettingsEditorModel::HandleSettingsContainerSectionRemoved);
 	}
 
-	/**
-	 * Destructor.
-	 */
-	~FSettingsEditorModel( )
+	/** Virtual destructor. */
+	virtual ~FSettingsEditorModel()
 	{
 		SettingsContainer->OnSectionRemoved().RemoveAll(this);
 	}
@@ -34,17 +32,17 @@ public:
 
 	// ISettingsEditorModel interface
 
-	virtual const ISettingsSectionPtr& GetSelectedSection( ) const override
+	virtual const ISettingsSectionPtr& GetSelectedSection() const override
 	{
 		return SelectedSection;
 	}
 
-	virtual const ISettingsContainerRef& GetSettingsContainer( ) const override
+	virtual const ISettingsContainerRef& GetSettingsContainer() const override
 	{
 		return SettingsContainer;
 	}
 
-	virtual FSimpleMulticastDelegate& OnSelectionChanged( ) override
+	virtual FSimpleMulticastDelegate& OnSelectionChanged() override
 	{
 		return OnSelectionChangedDelegate;
 	}
@@ -57,13 +55,12 @@ public:
 		}
 
 		SelectedSection = Section;
-
 		OnSelectionChangedDelegate.Broadcast();
 	}
 
 private:
 
-	// Handles the removal of sections from the settings container.
+	/** Handles the removal of sections from the settings container. */
 	void HandleSettingsContainerSectionRemoved( const ISettingsSectionRef& Section )
 	{
 		if (SelectedSection == Section)
@@ -74,14 +71,14 @@ private:
 
 private:
 
-	// Holds the currently selected settings section.
+	/** Holds the currently selected settings section. */
 	ISettingsSectionPtr SelectedSection;
 
-	// Holds a reference to the settings container.
+	/** Holds a reference to the settings container. */
 	ISettingsContainerRef SettingsContainer;
 
 private:
 
-	// Holds a delegate that is executed when the selected settings section has changed.
+	/** Holds a delegate that is executed when the selected settings section has changed. */
 	FSimpleMulticastDelegate OnSelectionChangedDelegate;
 };

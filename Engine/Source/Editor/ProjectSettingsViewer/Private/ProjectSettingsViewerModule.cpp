@@ -3,15 +3,18 @@
 #include "ProjectSettingsViewerPrivatePCH.h"
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
-#include "CookerSettings.h"
 #include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsEditorModel.h"
+#include "ISettingsEditorModule.h"
 #include "ISettingsModule.h"
 #include "ISettingsViewer.h"
 #include "ModuleManager.h"
 #include "SDockTab.h"
 
-#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
+#include "CookerSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 
@@ -51,7 +54,7 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
@@ -68,13 +71,13 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hide);
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectSettingsTabName);
 		UnregisterSettings();
 	}
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -239,7 +242,7 @@ protected:
 	}
 
 	/** Unregisters all settings. */
-	void UnregisterSettings( )
+	void UnregisterSettings()
 	{
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
@@ -282,7 +285,7 @@ private:
 
 			if (SettingsContainer.IsValid())
 			{
-				ISettingsEditorModule& SettingsEditorModule = ISettingsEditorModule::GetRef();
+				ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
 				ISettingsEditorModelRef SettingsEditorModel = SettingsEditorModule.CreateModel(SettingsContainer.ToSharedRef());
 
 				SettingsEditor = SettingsEditorModule.CreateEditor(SettingsEditorModel);

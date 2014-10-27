@@ -8,8 +8,7 @@ public class SettingsEditor : ModuleRules
 	{
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
-                "EditorStyle",
-				"Slate",
+				"Core",
 			}
 		);
 
@@ -21,16 +20,17 @@ public class SettingsEditor : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
             new string[] {
-				"Core",
+				"Analytics",
                 "CoreUObject",
-                "InputCore",
 				"DesktopPlatform",
+                "EditorStyle",
+				"Engine",
+                "InputCore",
 				"PropertyEditor",
+				"SharedSettingsWidgets",
+				"Slate",
 				"SlateCore",
 				"SourceControl",
-				"Analytics",
-				"SharedSettingsWidgets",
-				"Engine",
             }
         );
 

@@ -1,14 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SettingsEditorPrivatePCH.h"
-#include "SSettingsEditor.h"
-#include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
+#include "DesktopPlatformModule.h"
+#include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
-#include "SSettingsEditorCheckoutNotice.h"
+#include "NotificationManager.h"
+#include "PropertyEditing.h"
 #include "SHyperlink.h"
 #include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "SSettingsEditorCheckoutNotice.h"
+
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
 
@@ -16,7 +18,7 @@
 /* SSettingsEditor structors
  *****************************************************************************/
 
-SSettingsEditor::~SSettingsEditor( )
+SSettingsEditor::~SSettingsEditor()
 {
 	Model->OnSelectionChanged().RemoveAll(this);
 	SettingsContainer->OnCategoryModified().RemoveAll(this);
@@ -51,11 +53,10 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	SettingsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled));
 
 	// Create the watcher widget for the default config file (checks file status / SCC state)
-	FileWatcherWidget =
-		SNew(SSettingsEditorCheckoutNotice)
-		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
-		.OnFileProbablyModifiedExternally(this, &SSettingsEditor::ReloadConfigObject)
-		.ConfigFilePath(this, &SSettingsEditor::GetConfigFileName);
+	FileWatcherWidget = SNew(SSettingsEditorCheckoutNotice)
+		.Visibility(this, &SSettingsEditor::HandleCheckoutNoticeVisibility)
+		.OnFileProbablyModifiedExternally(this, &SSettingsEditor::HandleCheckoutNoticeFileProbablyModifiedExternally)
+		.ConfigFilePath(this, &SSettingsEditor::HandleCheckoutNoticeConfigFilePath);
 
 	ChildSlot
 	[
@@ -147,7 +148,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									[
 										// set as default button
 										SNew(SButton)
-											.Visibility(this, &SSettingsEditor::EditingNonDefaultSettingsVisibility)
+											.Visibility(this, &SSettingsEditor::HandleSetAsDefaultButtonVisibility)
 											.IsEnabled(this, &SSettingsEditor::HandleSetAsDefaultButtonEnabled)
 											.OnClicked(this, &SSettingsEditor::HandleSetAsDefaultButtonClicked)
 											.Text(LOCTEXT("SaveDefaultsButtonText", "Set as Default"))
@@ -190,7 +191,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									[
 										// reset defaults button
 										SNew(SButton)
-											.Visibility(this, &SSettingsEditor::EditingNonDefaultSettingsVisibility)
+											.Visibility(this, &SSettingsEditor::HandleSetAsDefaultButtonVisibility)
 											.IsEnabled(this, &SSettingsEditor::HandleResetToDefaultsButtonEnabled)
 											.OnClicked(this, &SSettingsEditor::HandleResetDefaultsButtonClicked)
 											.Text(LOCTEXT("ResetDefaultsButtonText", "Reset to Defaults"))
@@ -250,7 +251,7 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 /* SSettingsEditor implementation
  *****************************************************************************/
 
-bool SSettingsEditor::CheckOutDefaultConfigFile( )
+bool SSettingsEditor::CheckOutDefaultConfigFile()
 {
 	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
 
@@ -317,7 +318,7 @@ FString SSettingsEditor::GetDefaultConfigFilePath( const TWeakObjectPtr<UObject>
 }
 
 
-TWeakObjectPtr<UObject> SSettingsEditor::GetSelectedSettingsObject( ) const
+TWeakObjectPtr<UObject> SSettingsEditor::GetSelectedSettingsObject() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -327,6 +328,21 @@ TWeakObjectPtr<UObject> SSettingsEditor::GetSelectedSettingsObject( ) const
 	}
 
 	return nullptr;
+}
+
+
+bool SSettingsEditor::IsDefaultConfigCheckOutNeeded() const
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		return !FileWatcherWidget->IsUnlocked();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 
@@ -419,7 +435,7 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 }
 
 
-bool SSettingsEditor::MakeDefaultConfigFileWritable( )
+bool SSettingsEditor::MakeDefaultConfigFileWritable()
 {
 	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
 
@@ -434,7 +450,23 @@ bool SSettingsEditor::MakeDefaultConfigFileWritable( )
 }
 
 
-void SSettingsEditor::ReloadCategories( )
+void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const
+{
+	UProperty* ChangedProperty = PropertyChangedEvent.MemberProperty;
+	// submit analytics data
+	if(FEngineAnalytics::IsAvailable() && ChangedProperty != nullptr)
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertySection"), SelectedSection->GetDisplayName().ToString()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyClass"), ChangedProperty->GetOwnerClass()->GetName()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyName"), ChangedProperty->GetName()));
+
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PreferencesChanged"), EventAttributes);
+	}
+}
+
+
+void SSettingsEditor::ReloadCategories()
 {
 	CategoriesBox->ClearChildren();
 
@@ -466,30 +498,7 @@ void SSettingsEditor::ShowNotification( const FText& Text, SNotificationItem::EC
 /* SSettingsEditor callbacks
  *****************************************************************************/
 
-
-void SSettingsEditor::HandleCultureChanged( )
-{
-	ReloadCategories();
-}
-
-
-
-void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const
-{
-	UProperty* ChangedProperty = PropertyChangedEvent.MemberProperty;
-	// submit analytics data
-	if(FEngineAnalytics::IsAvailable() && ChangedProperty != nullptr)
-	{
-		TArray<FAnalyticsEventAttribute> EventAttributes;
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertySection"), SelectedSection->GetDisplayName().ToString()));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyClass"), ChangedProperty->GetOwnerClass()->GetName()));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyName"), ChangedProperty->GetName()));
-
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PreferencesChanged"), EventAttributes);
-	}
-}
-
-FString SSettingsEditor::GetConfigFileName() const
+FString SSettingsEditor::HandleCheckoutNoticeConfigFilePath() const
 {
 	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
 
@@ -503,7 +512,19 @@ FString SSettingsEditor::GetConfigFileName() const
 	}
 }
 
-EVisibility SSettingsEditor::HandleDefaultConfigNoticeVisibility( ) const
+
+void SSettingsEditor::HandleCheckoutNoticeFileProbablyModifiedExternally()
+{
+	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
+
+	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+	{
+		SettingsObject->ReloadConfig();
+	}
+}
+
+
+EVisibility SSettingsEditor::HandleCheckoutNoticeVisibility() const
 {
 	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
 
@@ -516,7 +537,13 @@ EVisibility SSettingsEditor::HandleDefaultConfigNoticeVisibility( ) const
 }
 
 
-FReply SSettingsEditor::HandleExportButtonClicked( )
+void SSettingsEditor::HandleCultureChanged()
+{
+	ReloadCategories();
+}
+
+
+FReply SSettingsEditor::HandleExportButtonClicked()
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -550,7 +577,7 @@ FReply SSettingsEditor::HandleExportButtonClicked( )
 }
 
 
-bool SSettingsEditor::HandleExportButtonEnabled( ) const
+bool SSettingsEditor::HandleExportButtonEnabled() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -563,7 +590,7 @@ bool SSettingsEditor::HandleExportButtonEnabled( ) const
 }
 
 
-FReply SSettingsEditor::HandleImportButtonClicked( )
+FReply SSettingsEditor::HandleImportButtonClicked()
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -591,7 +618,7 @@ FReply SSettingsEditor::HandleImportButtonClicked( )
 }
 
 
-bool SSettingsEditor::HandleImportButtonEnabled( ) const
+bool SSettingsEditor::HandleImportButtonEnabled() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -604,7 +631,7 @@ bool SSettingsEditor::HandleImportButtonEnabled( ) const
 }
 
 
-void SSettingsEditor::HandleModelSelectionChanged( )
+void SSettingsEditor::HandleModelSelectionChanged()
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -653,7 +680,7 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 }
 
 
-FReply SSettingsEditor::HandleResetDefaultsButtonClicked( )
+FReply SSettingsEditor::HandleResetDefaultsButtonClicked()
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -666,7 +693,7 @@ FReply SSettingsEditor::HandleResetDefaultsButtonClicked( )
 }
 
 
-bool SSettingsEditor::HandleResetToDefaultsButtonEnabled( ) const
+bool SSettingsEditor::HandleResetToDefaultsButtonEnabled() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -679,7 +706,7 @@ bool SSettingsEditor::HandleResetToDefaultsButtonEnabled( ) const
 }
 
 
-EVisibility SSettingsEditor::EditingNonDefaultSettingsVisibility( ) const
+EVisibility SSettingsEditor::HandleSetAsDefaultButtonVisibility() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -704,7 +731,7 @@ EVisibility SSettingsEditor::HandleSectionLinkImageVisibility( ISettingsSectionP
 }
 
 
-FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
+FReply SSettingsEditor::HandleSetAsDefaultButtonClicked()
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -741,7 +768,7 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
 }
 
 
-bool SSettingsEditor::HandleSetAsDefaultButtonEnabled( ) const
+bool SSettingsEditor::HandleSetAsDefaultButtonEnabled() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -754,7 +781,7 @@ bool SSettingsEditor::HandleSetAsDefaultButtonEnabled( ) const
 }
 
 
-FText SSettingsEditor::HandleSettingsBoxDescriptionText( ) const
+FText SSettingsEditor::HandleSettingsBoxDescriptionText() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -767,7 +794,7 @@ FText SSettingsEditor::HandleSettingsBoxDescriptionText( ) const
 }
 
 
-FString SSettingsEditor::HandleSettingsBoxTitleText( ) const
+FString SSettingsEditor::HandleSettingsBoxTitleText() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -780,7 +807,7 @@ FString SSettingsEditor::HandleSettingsBoxTitleText( ) const
 }
 
 
-EVisibility SSettingsEditor::HandleSettingsBoxVisibility( ) const
+EVisibility SSettingsEditor::HandleSettingsBoxVisibility() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -799,7 +826,7 @@ void SSettingsEditor::HandleSettingsContainerCategoryModified( const FName& Cate
 }
 
 
-bool SSettingsEditor::HandleSettingsViewEnabled( ) const
+bool SSettingsEditor::HandleSettingsViewEnabled() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -807,7 +834,7 @@ bool SSettingsEditor::HandleSettingsViewEnabled( ) const
 }
 
 
-EVisibility SSettingsEditor::HandleSettingsViewVisibility( ) const
+EVisibility SSettingsEditor::HandleSettingsViewVisibility() const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -819,29 +846,5 @@ EVisibility SSettingsEditor::HandleSettingsViewVisibility( ) const
 	return EVisibility::Hidden;
 }
 
-
-// Do we need to edit the default config file?
-bool SSettingsEditor::IsDefaultConfigCheckOutNeeded() const
-{
-	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
-	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
-	{
-		return !FileWatcherWidget->IsUnlocked();
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void SSettingsEditor::ReloadConfigObject()
-{
-	TWeakObjectPtr<UObject> SettingsObject = GetSelectedSettingsObject();
-
-	if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
-	{
-		SettingsObject->ReloadConfig();
-	}
-}
 
 #undef LOCTEXT_NAMESPACE

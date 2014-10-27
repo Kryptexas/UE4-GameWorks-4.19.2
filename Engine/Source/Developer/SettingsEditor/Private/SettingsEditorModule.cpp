@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SettingsEditorPrivatePCH.h"
-#include "SSettingsEditor.h"
+#include "ISettingsEditorModule.h"
 
 
 /**
@@ -14,12 +14,12 @@ public:
 
 	// ISettingsEditorModule interface
 
-	virtual TSharedRef<SWidget> CreateEditor( const ISettingsEditorModelRef& Model ) override
+	virtual TSharedRef<SWidget> CreateEditor( const TSharedRef<ISettingsEditorModel>& Model ) override
 	{
 		return SNew(SSettingsEditor, Model);
 	}
 
-	virtual ISettingsEditorModelRef CreateModel( const ISettingsContainerRef& SettingsContainer ) override
+	virtual ISettingsEditorModelRef CreateModel( const TSharedRef<ISettingsContainer>& SettingsContainer ) override
 	{
 		return MakeShareable(new FSettingsEditorModel(SettingsContainer));
 	}

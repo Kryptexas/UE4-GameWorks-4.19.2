@@ -3,21 +3,22 @@
 #pragma once
 
 
-#include "SettingsEditor.h"
-
-
 /* Dependencies
  *****************************************************************************/
 
-#include "DesktopPlatformModule.h"
-#include "ModuleManager.h"
-#include "PropertyEditing.h"
+#include "Core.h"
+#include "CoreUObject.h"
+#include "EditorStyle.h"
 #include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsEditorModel.h"
+#include "ISettingsSection.h"
 #include "ISourceControlModule.h"
+#include "SlateBasics.h"
 
 
 /* Private includes
  *****************************************************************************/
 
 #include "SettingsEditorModel.h"
-
+#include "SSettingsEditor.h"

@@ -8,7 +8,6 @@
 #include "MacGraphicsSwitchingWidget.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Runtime/SlateCore/Public/Rendering/SlateRenderer.h"
-#include "Developer/Settings/Public/Settings.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 #include "ISettingsModule.h"
 #include "LevelEditor.h"

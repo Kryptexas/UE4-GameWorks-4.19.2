@@ -3,11 +3,8 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of ISettingsEditorModel. */
-typedef TSharedPtr<class ISettingsEditorModel> ISettingsEditorModelPtr;
-
-/** Type definition for shared references to instances of ISettingsEditorModel. */
-typedef TSharedRef<class ISettingsEditorModel> ISettingsEditorModelRef;
+// forward declarations
+class ISettingsSection;
 
 
 /**
@@ -27,14 +24,14 @@ public:
 	 *
 	 * @return The selected section, if any.
 	 */
-	virtual const ISettingsSectionPtr& GetSelectedSection( ) const = 0;
+	virtual const TSharedPtr<ISettingsSection>& GetSelectedSection() const = 0;
 
 	/**
 	 * Gets the settings container.
 	 *
 	 * @return The settings container.
 	 */
-	virtual const ISettingsContainerRef& GetSettingsContainer( ) const = 0;
+	virtual const TSharedRef<ISettingsContainer>& GetSettingsContainer() const = 0;
 
 	/**
 	 * Selects the specified settings section to be displayed in the editor.
@@ -43,7 +40,7 @@ public:
 	 *
 	 * @see SelectPreviousSection
 	 */
-	virtual void SelectSection( const ISettingsSectionPtr& Section ) = 0;
+	virtual void SelectSection( const TSharedPtr<ISettingsSection>& Section ) = 0;
 
 public:
 
@@ -52,12 +49,17 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleMulticastDelegate& OnSelectionChanged( ) = 0;
+	virtual FSimpleMulticastDelegate& OnSelectionChanged() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISettingsEditorModel( ) { }
+	/** Virtual destructor. */
+	virtual ~ISettingsEditorModel() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISettingsEditorModel. */
+typedef TSharedPtr<ISettingsEditorModel> ISettingsEditorModelPtr;
+
+/** Type definition for shared references to instances of ISettingsEditorModel. */
+typedef TSharedRef<ISettingsEditorModel> ISettingsEditorModelRef;

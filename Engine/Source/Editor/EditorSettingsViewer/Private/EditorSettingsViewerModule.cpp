@@ -2,6 +2,9 @@
 
 #include "EditorSettingsViewerPrivatePCH.h"
 #include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsEditorModel.h"
+#include "ISettingsEditorModule.h"
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
 #include "ISettingsViewer.h"
@@ -256,7 +259,7 @@ private:
 
 			if (SettingsContainer.IsValid())
 			{
-				ISettingsEditorModule& SettingsEditorModule = ISettingsEditorModule::GetRef();
+				ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
 				ISettingsEditorModelRef SettingsEditorModel = SettingsEditorModule.CreateModel(SettingsContainer.ToSharedRef());
 
 				SettingsEditor = SettingsEditorModule.CreateEditor(SettingsEditorModel);
