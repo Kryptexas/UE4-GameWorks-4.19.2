@@ -3,15 +3,15 @@
 #pragma once
 
 #include "Perception/AIPerceptionSystem.h"
-#include "Perception/AISenseImplementation.h"
-#include "AISenseImplementation_Prediction.generated.h"
+#include "Perception/AISense.h"
+#include "AISense_Prediction.generated.h"
 
 USTRUCT()
 struct AIMODULE_API FAIPredictionEvent
 {	
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISenseImplementation_Prediction FSenseClass;
+	typedef class UAISense_Prediction FSenseClass;
 	
 	UPROPERTY()
 	class AActor* Requestor;
@@ -30,7 +30,7 @@ struct AIMODULE_API FAIPredictionEvent
 };
 
 UCLASS(ClassGroup=AI)
-class AIMODULE_API UAISenseImplementation_Prediction : public UAISenseImplementation
+class AIMODULE_API UAISense_Prediction : public UAISense
 {
 	GENERATED_UCLASS_BODY()
 

@@ -2,7 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "Perception/AISightTargetInterface.h"
-#include "Perception/AISenseImplementation_Sight.h"
+#include "Perception/AISense_Sight.h"
 
 DECLARE_CYCLE_STAT(TEXT("Perception Sense: Sight"),STAT_AI_Sense_Sight,STATGROUP_AI);
 
@@ -43,7 +43,7 @@ FAISightTarget::FAISightTarget(AActor* InTarget, FGenericTeamId InTeamId)
 //----------------------------------------------------------------------//
 // UAISense_Sight
 //----------------------------------------------------------------------//
-UAISenseImplementation_Sight::UAISenseImplementation_Sight(const FObjectInitializer& ObjectInitializer)
+UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, MaxTracesPerTick(DefaultMaxTracesPerTick)
 	, HighImportanceQueryDistanceThreshold(300.f)
@@ -52,26 +52,26 @@ UAISenseImplementation_Sight::UAISenseImplementation_Sight(const FObjectInitiali
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		OnNewListenerDelegate.BindUObject(this, &UAISenseImplementation_Sight::OnNewListenerImpl);
-		OnListenerUpdateDelegate.BindUObject(this, &UAISenseImplementation_Sight::OnListenerUpdateImpl);
-		OnListenerRemovedDelegate.BindUObject(this, &UAISenseImplementation_Sight::OnListenerRemovedImpl);
+		OnNewListenerDelegate.BindUObject(this, &UAISense_Sight::OnNewListenerImpl);
+		OnListenerUpdateDelegate.BindUObject(this, &UAISense_Sight::OnListenerUpdateImpl);
+		OnListenerRemovedDelegate.BindUObject(this, &UAISense_Sight::OnListenerRemovedImpl);
 	}
 }
 
-FORCEINLINE_DEBUGGABLE float UAISenseImplementation_Sight::CalcQueryImportance(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq) const
+FORCEINLINE_DEBUGGABLE float UAISense_Sight::CalcQueryImportance(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq) const
 {
 	const float DistanceSq = FVector::DistSquared(Listener.CachedLocation, TargetLocation);
 	return DistanceSq <= HighImportanceDistanceSquare ? MaxQueryImportance
 		: FMath::Clamp((SightLimitQueryImportance - MaxQueryImportance) / SightRadiusSq * DistanceSq + MaxQueryImportance, 0.f, MaxQueryImportance);
 }
 
-void UAISenseImplementation_Sight::PostInitProperties()
+void UAISense_Sight::PostInitProperties()
 {
 	Super::PostInitProperties();
 	HighImportanceDistanceSquare = FMath::Square(HighImportanceQueryDistanceThreshold);
 }
 
-float UAISenseImplementation_Sight::Update()
+float UAISense_Sight::Update()
 {
 	static const FName NAME_AILineOfSight = FName(TEXT("AILineOfSight"));
 
@@ -222,17 +222,17 @@ float UAISenseImplementation_Sight::Update()
 	return 0.f;
 }
 
-void UAISenseImplementation_Sight::RegisterEvent(const FAISightEvent& Event)
+void UAISense_Sight::RegisterEvent(const FAISightEvent& Event)
 {
 
 }
 
-void UAISenseImplementation_Sight::RegisterSource(AActor& SourceActor) 
+void UAISense_Sight::RegisterSource(AActor& SourceActor) 
 {
 	RegisterTarget(SourceActor, Sort);
 }
 
-void UAISenseImplementation_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess)
+void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 	
@@ -279,7 +279,7 @@ void UAISenseImplementation_Sight::RegisterTarget(AActor& TargetActor, FQueriesO
 	}
 }
 
-void UAISenseImplementation_Sight::OnNewListenerImpl(const FPerceptionListener& NewListener)
+void UAISense_Sight::OnNewListenerImpl(const FPerceptionListener& NewListener)
 {
 	if (NewListener.HasSense(GetSenseIndex()) == false)
 	{
@@ -319,7 +319,7 @@ void UAISenseImplementation_Sight::OnNewListenerImpl(const FPerceptionListener& 
 	}
 }
 
-void UAISenseImplementation_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedListener)
+void UAISense_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedListener)
 {
 	// first, naive implementation:
 	// 1. remove all queries by this listener
@@ -345,7 +345,7 @@ void UAISenseImplementation_Sight::OnListenerUpdateImpl(const FPerceptionListene
 	OnNewListenerImpl(UpdatedListener);
 }
 
-void UAISenseImplementation_Sight::OnListenerRemovedImpl(const FPerceptionListener& UpdatedListener)
+void UAISense_Sight::OnListenerRemovedImpl(const FPerceptionListener& UpdatedListener)
 {
 	RemoveAllQueriesByListener(UpdatedListener, DontSort);
 
@@ -365,7 +365,7 @@ void UAISenseImplementation_Sight::OnListenerRemovedImpl(const FPerceptionListen
 	}
 }
 
-void UAISenseImplementation_Sight::RemoveAllQueriesByListener(const FPerceptionListener& Listener, FQueriesOperationPostProcess PostProcess)
+void UAISense_Sight::RemoveAllQueriesByListener(const FPerceptionListener& Listener, FQueriesOperationPostProcess PostProcess)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 
@@ -393,7 +393,7 @@ void UAISenseImplementation_Sight::RemoveAllQueriesByListener(const FPerceptionL
 	}
 }
 
-void UAISenseImplementation_Sight::RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOperationPostProcess PostProcess)
+void UAISense_Sight::RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOperationPostProcess PostProcess)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 

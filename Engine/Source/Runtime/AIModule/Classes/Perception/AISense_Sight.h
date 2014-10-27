@@ -3,8 +3,8 @@
 #pragma once
 
 #include "Perception/AIPerceptionSystem.h"
-#include "Perception/AISenseImplementation.h"
-#include "AISenseImplementation_Sight.generated.h"
+#include "Perception/AISense.h"
+#include "AISense_Sight.generated.h"
 
 class IAISightTargetInterface;
 
@@ -23,7 +23,7 @@ struct AIMODULE_API FAISightEvent
 {
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISenseImplementation_Sight FSenseClass;
+	typedef class UAISense_Sight FSenseClass;
 
 	float Age;
 	ESightPerceptionEventName::Type EventType;	
@@ -98,7 +98,7 @@ struct FAISightQuery
 
 
 UCLASS(ClassGroup=AI, config=Game)
-class AIMODULE_API UAISenseImplementation_Sight : public UAISenseImplementation
+class AIMODULE_API UAISense_Sight : public UAISense
 {
 	GENERATED_UCLASS_BODY()
 

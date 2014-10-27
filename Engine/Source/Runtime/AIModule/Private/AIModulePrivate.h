@@ -56,7 +56,7 @@
 
 #include "GenericTeamAgentInterface.h"
 
-#include "Perception/AISenseImplementation.h"
+#include "Perception/AISense.h"
 #include "Perception/AIPerceptionComponent.h"
 
 #include "VisualLog.h"

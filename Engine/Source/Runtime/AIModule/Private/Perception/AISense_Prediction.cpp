@@ -1,25 +1,24 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "Perception/AISenseImplementation_Touch.h"
+#include "Perception/AISense_Prediction.h"
 
-UAISenseImplementation_Touch::UAISenseImplementation_Touch(const FObjectInitializer& ObjectInitializer) :
+UAISense_Prediction::UAISense_Prediction(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	
 }
 
-float UAISenseImplementation_Touch::Update()
+float UAISense_Prediction::Update()
 {
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 
 	for (int32 EventIndex = 0; EventIndex < RegisteredEvents.Num(); ++EventIndex)
 	{
-		const FAITouchEvent& Event = RegisteredEvents[EventIndex];
+		const FAIPredictionEvent& Event = RegisteredEvents[EventIndex];
 
-		if (Event.TouchReceiver != NULL && Event.OtherActor != NULL)
+		if (Event.Requestor != NULL && Event.PredictedActor != NULL)
 		{
-			IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.TouchReceiver);
+			IAIPerceptionListenerInterface* PerceptionListener = Cast<IAIPerceptionListenerInterface>(Event.Requestor);
 			if (PerceptionListener != NULL)
 			{
 				UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();
@@ -28,7 +27,10 @@ float UAISenseImplementation_Touch::Update()
 					// this has to succeed, will assert a failure
 					FPerceptionListener& Listener = ListenersMap[PerceptionComponent->GetListenerId()];
 
-					Listener.RegisterStimulus(Event.OtherActor, FAIStimulus(GetSenseIndex(), 1.f, Event.Location, Event.Location));
+					// calculate the prediction here:
+					const FVector PredictedLocation = Event.PredictedActor->GetActorLocation() + Event.PredictedActor->GetVelocity() * Event.TimeToPredict;
+
+					Listener.RegisterStimulus(Event.PredictedActor, FAIStimulus(GetSenseIndex(), 1.f, PredictedLocation, Listener.CachedLocation));
 				}
 			}
 		}
@@ -40,9 +42,8 @@ float UAISenseImplementation_Touch::Update()
 	return SuspendNextUpdate;
 }
 
-void UAISenseImplementation_Touch::RegisterEvent(const FAITouchEvent& Event)
+void UAISense_Prediction::RegisterEvent(const FAIPredictionEvent& Event)
 {
 	RegisteredEvents.Add(Event);
-
 	RequestImmediateUpdate();
 }

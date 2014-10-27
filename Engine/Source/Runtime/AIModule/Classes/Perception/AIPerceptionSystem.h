@@ -7,7 +7,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAIPerception, Warning, All);
 
-class UAISenseImplementation;
+class UAISense;
 class UAIPerceptionComponent;
 
 /**
@@ -22,7 +22,7 @@ protected:
 	AIPerception::FListenerMap ListenerContainer;
 
 	UPROPERTY()
-	TArray<UAISenseImplementation*> Senses;
+	TArray<UAISense*> Senses;
 
 	UPROPERTY(config)
 	float PerceptionAgingRate;
@@ -105,7 +105,7 @@ protected:
 
 	void AgeStimuli();
 
-	friend class UAISenseImplementation;
+	friend class UAISense;
 	FORCEINLINE AIPerception::FListenerMap& GetListenersMap() { return ListenerContainer; }
 
 private:

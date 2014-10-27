@@ -2,12 +2,12 @@
 
 #include "AIModulePrivate.h"
 #include "Perception/AIPerceptionSystem.h"
-#include "Perception/AISenseImplementation_Hearing.h"
-#include "Perception/AISenseImplementation_Sight.h"
-#include "Perception/AISenseImplementation_Team.h"
-#include "Perception/AISenseImplementation_Touch.h"
-#include "Perception/AISenseImplementation_Prediction.h"
-#include "Perception/AISenseImplementation_Damage.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Team.h"
+#include "Perception/AISense_Touch.h"
+#include "Perception/AISense_Prediction.h"
+#include "Perception/AISense_Damage.h"
 
 DECLARE_CYCLE_STAT(TEXT("Perception System"),STAT_AI_PerceptionSys,STATGROUP_AI);
 
@@ -25,12 +25,12 @@ UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitial
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		Senses.AddZeroed(ECorePerceptionTypes::MAX);
-		Senses[ECorePerceptionTypes::Hearing] = ConstructObject<UAISenseImplementation>(UAISenseImplementation_Hearing::StaticClass(), this);
-		Senses[ECorePerceptionTypes::Sight] = ConstructObject<UAISenseImplementation>(UAISenseImplementation_Sight::StaticClass(), this);
-		Senses[ECorePerceptionTypes::Damage] = ConstructObject<UAISenseImplementation>(UAISenseImplementation_Damage::StaticClass(), this);
-		Senses[ECorePerceptionTypes::Touch] = ConstructObject<UAISenseImplementation>(UAISenseImplementation_Touch::StaticClass(), this);		
-		Senses[ECorePerceptionTypes::Team] = ConstructObject<UAISenseImplementation>(UAISenseImplementation_Team::StaticClass(), this);		
-		Senses[ECorePerceptionTypes::Prediction] = ConstructObject<UAISenseImplementation>(UAISenseImplementation_Prediction::StaticClass(), this);
+		Senses[ECorePerceptionTypes::Hearing] = ConstructObject<UAISense>(UAISense_Hearing::StaticClass(), this);
+		Senses[ECorePerceptionTypes::Sight] = ConstructObject<UAISense>(UAISense_Sight::StaticClass(), this);
+		Senses[ECorePerceptionTypes::Damage] = ConstructObject<UAISense>(UAISense_Damage::StaticClass(), this);
+		Senses[ECorePerceptionTypes::Touch] = ConstructObject<UAISense>(UAISense_Touch::StaticClass(), this);		
+		Senses[ECorePerceptionTypes::Team] = ConstructObject<UAISense>(UAISense_Team::StaticClass(), this);		
+		Senses[ECorePerceptionTypes::Prediction] = ConstructObject<UAISense>(UAISense_Prediction::StaticClass(), this);
 	}
 	else
 	{
@@ -75,7 +75,7 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 
 void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
 {
-	UAISenseImplementation** SenseInstance = Senses.GetData();
+	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 	{
 		if (*SenseInstance != NULL)
@@ -87,7 +87,7 @@ void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
 
 void UAIPerceptionSystem::OnListenerUpdate(const FPerceptionListener& UpdatedListener)
 {
-	UAISenseImplementation** SenseInstance = Senses.GetData();
+	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 	{
 		if (*SenseInstance != NULL)
@@ -117,7 +117,7 @@ void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
 	}
 
 	{
-		UAISenseImplementation** SenseInstance = Senses.GetData();
+		UAISense** SenseInstance = Senses.GetData();
 		for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 		{
 			bNeedsUpdate |= *SenseInstance != NULL && (*SenseInstance)->ProgressTime(DeltaSeconds);
@@ -140,7 +140,7 @@ void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
 			}
 		}
 
-		UAISenseImplementation** SenseInstance = Senses.GetData();
+		UAISense** SenseInstance = Senses.GetData();
 		for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 		{
 			if (*SenseInstance != NULL)
@@ -253,7 +253,7 @@ void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent* Listener)
 
 void UAIPerceptionSystem::OnListenerRemoved(const FPerceptionListener& NewListener)
 {
-	UAISenseImplementation** SenseInstance = Senses.GetData();
+	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
 	{
 		if (*SenseInstance != NULL)

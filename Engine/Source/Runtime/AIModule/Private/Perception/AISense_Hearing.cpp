@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "Perception/AISenseImplementation_Hearing.h"
+#include "Perception/AISense_Hearing.h"
 
 //----------------------------------------------------------------------//
 // FAINoiseEvent
@@ -15,13 +15,13 @@ FAINoiseEvent::FAINoiseEvent(AActor* InInstigator, const FVector& InNoiseLocatio
 //----------------------------------------------------------------------//
 // UAISense_Hearing
 //----------------------------------------------------------------------//
-UAISenseImplementation_Hearing::UAISenseImplementation_Hearing(const FObjectInitializer& ObjectInitializer) :
+UAISense_Hearing::UAISense_Hearing(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
 	
 }
 
-float UAISenseImplementation_Hearing::Update()
+float UAISense_Hearing::Update()
 {
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 	UAIPerceptionSystem* PerseptionSys = GetPerceptionSystem();
@@ -60,7 +60,7 @@ float UAISenseImplementation_Hearing::Update()
 	return SuspendNextUpdate;
 }
 
-void UAISenseImplementation_Hearing::RegisterEvent(const FAINoiseEvent& Event)
+void UAISense_Hearing::RegisterEvent(const FAINoiseEvent& Event)
 {
 	NoiseEvents.Add(Event);
 
