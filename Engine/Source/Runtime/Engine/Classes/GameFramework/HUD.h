@@ -583,9 +583,10 @@ public:
 	
 	/**
 	 * Update the list of hitboxes and dispatch events for any hits.
-	 * @param	InEventType	Input event that triggered the call.
+	 * @param   ClickLocation	Location of the click event
+	 * @param	InEventType		Type of input event that triggered the call.
 	 */
-	bool UpdateAndDispatchHitBoxClickEvents(const FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent);
+	bool UpdateAndDispatchHitBoxClickEvents(const FVector2D ClickLocation, const EInputEvent InEventType);
 	
 	/**
 	 * Update a the list of hitboxes that have been hit this frame.

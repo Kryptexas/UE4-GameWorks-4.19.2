@@ -879,15 +879,15 @@ bool AHUD::AnyCurrentHitBoxHits() const
 	return HitBoxHits.Num() != 0;
 }
 
-bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType, const bool bIsTouchEvent)
+bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EInputEvent InEventType)
 {
 	ClickLocation += GetCoordinateOffset();
 
 	const bool bIsClickEvent = (InEventType == IE_Pressed || InEventType == IE_DoubleClick);
 	bool bHit = false;
 
-	// If this is a touch event we likely don't have the hit box in the hit list yet so we need to check all HitBoxes
-	if (bIsTouchEvent && bIsClickEvent)
+	// If this is a click event we may not have the hit box in the hit list yet (particularly for touch events) so we need to check all HitBoxes
+	if (bIsClickEvent)
 	{
 		for (FHUDHitBox& HitBox : HitBoxMap)
 		{
@@ -912,11 +912,7 @@ bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EIn
 			{
 				bHit = true;
 
-				if (bIsClickEvent)
-				{
-					ReceiveHitBoxClick(HitBoxHit->GetName());
-				}
-				else if (InEventType == IE_Released)
+				if (InEventType == IE_Released)
 				{
 					ReceiveHitBoxRelease(HitBoxHit->GetName());
 				}

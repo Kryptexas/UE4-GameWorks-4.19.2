@@ -2118,7 +2118,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 				}
 				if( GetHUD() )
 				{
-					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(MousePosition, EventType, false))
+					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(MousePosition, EventType))
 					{
 						ClickedPrimitive = NULL;
 					}
@@ -2181,7 +2181,7 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 			{
 				if (Type == ETouchType::Began || Type == ETouchType::Ended)
 				{
-					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(TouchLocation, (Type == ETouchType::Began ? EInputEvent::IE_Pressed : EInputEvent::IE_Released), true))
+					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(TouchLocation, (Type == ETouchType::Began ? EInputEvent::IE_Pressed : EInputEvent::IE_Released)))
 					{
 						CurrentComponent = NULL;
 					}
