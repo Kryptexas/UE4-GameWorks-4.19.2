@@ -106,6 +106,8 @@ public class BuildCookRun : BuildCommand
 			Params.DirectoriesToCook = new ParamList<string>(DirectoriesToCook.Split('+'));
 		}
 
+        var InternationalizationPreset = ParseParamValue("i18npreset");
+
         var CulturesToCook = ParseParamValue("cookcultures");
         if (!String.IsNullOrEmpty(CulturesToCook))
         {

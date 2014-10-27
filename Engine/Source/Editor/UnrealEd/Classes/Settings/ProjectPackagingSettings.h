@@ -21,6 +21,27 @@ enum EProjectPackagingBuildConfigurations
 	PPBC_Shipping UMETA(DisplayName="Shipping")
 };
 
+/**
+ * Enumerates the the available internationalization data presets for project packaging.
+ */
+UENUM()
+enum class EProjectPackagingInternationalizationPresets
+{
+	/** English only. */
+	English,
+
+	/** English, French, Italian, German, Spanish */
+	EFIGS,
+
+	/** English, French, Italian, German, Spanish, Chinese, Japanese, Korean */
+	EFIGSCJK,
+
+	/** Chinese, Japanese, Korean */
+	CJK,
+
+	/** All known cultures. */
+	All
+};
 
 /**
  * Implements the Editor's user settings.
@@ -76,11 +97,12 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = Packaging, meta = (DisplayName = "Package .pak in APK"))
 	bool UseOBB_InAPK;
 
-	/**
-	 * ISO codes of cultures whose data should be cooked, staged, and packaged.
-	 * Note: These paths are relative to your project Content directory
-	 */
-	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Cultures to Package"))
+	/** Predefined sets of culture whose internationalization data should be packaged. */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Internationalization Support"))
+	TEnumAsByte<EProjectPackagingInternationalizationPresets> InternationalizationPreset;
+
+	/** Cultures whose data should be cooked, staged, and packaged. */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Localizations to Package"))
 	TArray<FString> CulturesToStage;
 
 	/**

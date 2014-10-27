@@ -88,8 +88,6 @@ public abstract class BaseWinPlatform : Platform
 		// Copy the splash screen, windows specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
-        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Internationalization/icudt53l"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-
         if (Params.StageNonMonolithic)
         {
             if (SC.DedicatedServer)

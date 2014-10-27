@@ -55,8 +55,6 @@ public abstract class BaseLinuxPlatform : Platform
 		}
 
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
-        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Internationalization/icudt53l"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
-
 
         if (Params.StageNonMonolithic)
         {

@@ -217,6 +217,30 @@ public partial class Project : CommandUtils
 		{
             ConfigCacheIni PlatformGameConfig = new ConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Game", CommandUtils.GetDirectoryName(Params.RawProjectPath));
 
+            // Initialize internationalization preset.
+            string InternationalizationPreset = null;
+
+            // Use parameters if provided.
+            if (string.IsNullOrEmpty(InternationalizationPreset))
+            {
+                InternationalizationPreset = Params.InternationalizationPreset;
+            }
+
+            // Use configuration if otherwise lacking an internationalization preset.
+            if (string.IsNullOrEmpty(InternationalizationPreset))
+            {
+                if (PlatformGameConfig != null)
+                {
+                    PlatformGameConfig.GetString("/Script/UnrealEd.ProjectPackagingSettings", "InternationalizationPreset", out InternationalizationPreset);
+                }
+            }
+
+            // Error if no preset has been provided.
+            if (string.IsNullOrEmpty(InternationalizationPreset))
+            {
+                throw new AutomationException("No internationalization preset was specified for packaging. This will lead to fatal errors when launching. Specify preset via commandline (-I18NPreset=) or project packaging settings (InternationalizationPreset).");
+            }
+
             // Initialize cultures to stage.
             List<string> CulturesToStage = null;
 
@@ -240,6 +264,9 @@ public partial class Project : CommandUtils
             {
                 throw new AutomationException("No cultures were specified for cooking and packaging. This will lead to fatal errors when launching. Specify culture codes via commandline (-CookCultures=) or using project packaging settings (+CulturesToStage).");
             }
+
+            // Stage ICU internationalization data from Engine.
+            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), "*", true, null, CombinePaths("Engine", "Content", "Internationalization"), true, !Params.UsePak(SC.StageTargetPlatform));
 
 			// Engine ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
@@ -329,7 +356,8 @@ public partial class Project : CommandUtils
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Shaders/StandaloneRenderer"));
 
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Internationalization/icudt53l"));
+                SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine", "Content", "Internationalization", InternationalizationPreset), "*", true, null, CombinePaths("Engine", "Content", "Internationalization"), false, true);
+
 				// Linux platform stages ICU in GetFilesToDeployOrStage(), accounting for the actual architecture
 				if (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win64 ||
 					SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.Win32 ||
