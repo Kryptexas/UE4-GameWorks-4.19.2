@@ -7,7 +7,7 @@
 
 
 /** Viewer/editor for a DataTable */
-class FNiagaraEditor : public INiagaraEditor
+class FNiagaraEditor : public INiagaraEditor, public FNotifyHook
 {
 
 public:
@@ -33,12 +33,22 @@ public:
 	void DeleteSelectedNodes();
 	bool CanDeleteNodes() const;
 
+	// Widget Accessors
+	TSharedRef<class IDetailsView> GetDetailView() const { return NiagaraDetailsView.ToSharedRef(); }
+protected:
+
+	/** Called when the selection changes in the GraphEditor */
+	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection);
+
 private:
 	/** Create widget for graph editing */
 	TSharedRef<class SGraphEditor> CreateGraphEditorWidget(UEdGraph* InGraph);
 
 	/** Spawns the tab with the update graph inside */
 	TSharedRef<SDockTab> SpawnTab_UpdateGraph(const FSpawnTabArgs& Args);
+
+	/** Spawns the tab with the node details inside. */
+	TSharedRef<SDockTab> SpawnTab_NodeProperties(const FSpawnTabArgs& Args);
 
 	/** Builds the toolbar widget */
 	void ExtendToolbar();
@@ -54,6 +64,11 @@ private:
 	/** The command list for this editor */
 	TSharedPtr<FUICommandList> GraphEditorCommands;
 
-	/**	Graph editor tab */
+	/** Property View */
+	TSharedPtr<class IDetailsView> NiagaraDetailsView;
+
+	/**	The tab ids for the Niagara editor */
 	static const FName UpdateGraphTabId;
+	static const FName PropertiesTabId;
+
 };
