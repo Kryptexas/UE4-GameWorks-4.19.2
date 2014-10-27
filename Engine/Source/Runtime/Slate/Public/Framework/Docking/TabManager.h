@@ -107,8 +107,9 @@ namespace ETabSpawnerMenuType
 {
 	enum Type
 	{
-		Display,		// Display this spawner in menus
-		Hide			// Do not display this spawner in menus, it will be invoked manually
+		Enabled,		// Display this spawner in menus
+		Disabled,		// Display this spawner in menus, but make it disabled
+		Hidden,			// Do not display this spawner in menus, it will be invoked manually
 	};
 }
 
@@ -119,10 +120,9 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		, TabType( InTabType )
 		, OnSpawnTab( InSpawnTabMethod )
 		, OnFindTabToReuse()
-		, MenuType(ETabSpawnerMenuType::Display)
+		, MenuType(ETabSpawnerMenuType::Enabled)
 		, bAutoGenerateMenuEntry(true)
 		, SpawnedTabPtr()
-
 	{
 	}
 
@@ -156,7 +156,7 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		return *this;
 	}
 
-	FTabSpawnerEntry& SetMenuType( ETabSpawnerMenuType::Type InMenuType )
+	FTabSpawnerEntry& SetMenuType( const TAttribute<ETabSpawnerMenuType::Type>& InMenuType )
 	{
 		MenuType = InMenuType;
 		return *this;
@@ -178,7 +178,8 @@ private:
 	FOnSpawnTab OnSpawnTab;
 	/** When this method is not provided, we assume that the tab should only allow 0 or 1 instances */
 	FOnFindTabToReuse OnFindTabToReuse;
-	ETabSpawnerMenuType::Type MenuType;
+	/** Whether this menu item should be enabled, disabled, or hidden */
+	TAttribute<ETabSpawnerMenuType::Type> MenuType;
 	/** Whether to automatically generate a menu entry for this tab spawner */
 	bool bAutoGenerateMenuEntry;
 

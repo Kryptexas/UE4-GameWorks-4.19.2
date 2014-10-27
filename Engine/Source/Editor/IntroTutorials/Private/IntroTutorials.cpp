@@ -151,7 +151,7 @@ void FIntroTutorials::StartupModule()
 	}
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("TutorialsBrowser"), FOnSpawnTab::CreateRaw(this, &FIntroTutorials::SpawnTutorialsBrowserTab))
-		.SetMenuType(ETabSpawnerMenuType::Hide);
+		.SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
 void FIntroTutorials::ShutdownModule()

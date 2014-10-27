@@ -66,7 +66,7 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(EditorSettingsTabName, FOnSpawnTab::CreateRaw(this, &FEditorSettingsViewerModule::HandleSpawnSettingsTab))
 			.SetDisplayName(LOCTEXT("EditorSettingsTabTitle", "Editor Preferences"))
-			.SetMenuType(ETabSpawnerMenuType::Hide);
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
 	}
 
 	virtual void ShutdownModule() override

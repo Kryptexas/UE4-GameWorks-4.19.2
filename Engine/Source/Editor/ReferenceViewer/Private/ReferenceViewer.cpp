@@ -38,7 +38,7 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ReferenceViewerTabId, FOnSpawnTab::CreateRaw( this, &FReferenceViewerModule::SpawnReferenceViewerTab ) )
 			.SetDisplayName( LOCTEXT("ReferenceViewerTitle", "Reference Viewer") )
-			.SetMenuType( ETabSpawnerMenuType::Hide );
+			.SetMenuType( ETabSpawnerMenuType::Hidden );
 	}
 
 	virtual void ShutdownModule() override

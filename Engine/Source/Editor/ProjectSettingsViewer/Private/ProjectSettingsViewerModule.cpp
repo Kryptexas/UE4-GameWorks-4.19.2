@@ -68,7 +68,7 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ProjectSettingsTabName, FOnSpawnTab::CreateRaw(this, &FProjectSettingsViewerModule::HandleSpawnSettingsTab))
 			.SetDisplayName(LOCTEXT("ProjectSettingsTabTitle", "Project Settings"))
-			.SetMenuType(ETabSpawnerMenuType::Hide);
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
 	}
 
 	virtual void ShutdownModule() override
