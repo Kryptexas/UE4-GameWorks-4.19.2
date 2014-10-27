@@ -113,12 +113,8 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	else
 	{
 		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+        GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearToDefault);
 	}
-
-	// Clear color and depth buffer
-	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-	RHICmdList.Clear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
 	RenderForwardShadingBasePass(RHICmdList);
 
