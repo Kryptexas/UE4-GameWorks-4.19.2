@@ -90,9 +90,6 @@ bool GIsReconstructingBlueprintInstances = false;
 /** Force blueprints to not compile on load */
 bool GForceDisableBlueprintCompileOnLoad = false;
 
-
-float					GVolumeMultiplier				= 1.0f;						/* Use to silence the app when it loses focus */
-
 #if WITH_EDITORONLY_DATA
 bool					GIsEditor						= false;					/* Whether engine was launched for editing */
 bool					GIsImportingT3D					= false;					/* Whether editor is importing T3D */

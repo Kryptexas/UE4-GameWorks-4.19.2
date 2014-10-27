@@ -398,7 +398,7 @@ bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
  */
 void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume )
 {
-	if( GVolumeMultiplier == 0.0f )
+	if (FApp::GetVolumeMultiplier() == 0.0f)
 	{
 		for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 		{
@@ -584,7 +584,7 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains unreasonble value %f in channel %d: %s"), ChannelVolumes[i], i, *Describe_Internal(true, false));
 		}
 
-		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * GVolumeMultiplier, 0.0f, MAX_VOLUME);
+		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * FApp::GetVolumeMultiplier(), 0.0f, MAX_VOLUME);
 	}
 }
 

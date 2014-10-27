@@ -123,8 +123,8 @@ void FWinRTMisc::PumpMessages(bool bFromMainLoop)
 	// have focus)
 	//@todo.WinRT: Will this always be true?
 	bool HasFocus = true;
-	// if its our window, allow sound, otherwise silence it
-	GVolumeMultiplier = HasFocus ? 1.0f : 0.0f;
+	// if its our window, allow sound, otherwise apply multiplier
+	FApp::SetVolumeMultiplier(HasFocus ? 1.0f : FApp::GetUnfocusedVolumeMultiplier());
 }
 
 uint32 FWinRTMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)

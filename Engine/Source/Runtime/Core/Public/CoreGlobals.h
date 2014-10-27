@@ -56,8 +56,6 @@ extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
 /** Helper function to flush resource streaming. */
 extern CORE_API void(*GFlushStreamingFunc)(void);
 
-extern CORE_API float GVolumeMultiplier;
-
 
 #if WITH_EDITORONLY_DATA
 

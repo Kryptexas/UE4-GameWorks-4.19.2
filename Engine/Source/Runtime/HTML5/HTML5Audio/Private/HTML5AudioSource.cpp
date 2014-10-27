@@ -81,7 +81,7 @@ void FALSoundSource::Update( void )
 		// Emulate the bleed to rear speakers followed by stereo fold down
 		Volume *= 1.25f;
 	}
-	Volume *= GVolumeMultiplier;
+	Volume *= FApp::GetVolumeMultiplier();
 
  			Volume	= 	FMath::Clamp(Volume, 0.0f, MAX_VOLUME ); 
 	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH ); 

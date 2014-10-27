@@ -991,12 +991,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		if (!PlayWorld)
 		{
 			// Adjust the global volume multiplier if the window has focus and there is no pie world or no viewport overriding audio.
-			GVolumeMultiplier = GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel;
+			FApp::SetVolumeMultiplier( GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel );
 		}
 		else
 		{
 			// If there is currently a pie world a viewport is overriding audio settings do not adjust the volume.
-			GVolumeMultiplier = 1.0f;
+			FApp::SetVolumeMultiplier( 1.0f );
 		}
 	}
 

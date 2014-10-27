@@ -182,7 +182,7 @@ FMacApplication::FMacApplication()
 								}
 
 								// app is active, allow sound
-								GVolumeMultiplier = 1.0f;
+								FApp::SetVolumeMultiplier( 1.0f );
 							}];
 
 	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidResignActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
@@ -229,8 +229,8 @@ FMacApplication::FMacApplication()
 										FPlatformProcess::Sleep(0.005f);
 									}
 
-									// app is inactive, silence it
-									GVolumeMultiplier = 0.0f;
+									// app is inactive, apply multiplier
+									FApp::SetVolumeMultiplier(FApp::GetUnfocusedVolumeMultiplier());
 								}];
 	
 	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification object:[NSWorkspace sharedWorkspace] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){

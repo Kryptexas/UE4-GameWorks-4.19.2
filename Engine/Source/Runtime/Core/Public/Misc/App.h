@@ -388,6 +388,33 @@ public:
 		DeltaTime = Seconds;
 	}
 
+	/**
+	 * Get Volume Multiplier
+	 * 
+	 * @return Current volume multiplier
+	 */
+	FORCEINLINE static float GetVolumeMultiplier()
+	{
+		return VolumeMultiplier;
+	}
+
+	/**
+	 * Set Volume Multiplier
+	 * 
+	 * @param  InVolumeMultiplier	new volume multiplier
+	 */
+	FORCEINLINE static void SetVolumeMultiplier(float InVolumeMultiplier)
+	{
+		VolumeMultiplier = InVolumeMultiplier;
+	}
+
+	/**
+	 * Helper function to get UnfocusedVolumeMultiplier from config and store so it's not retrieved every frame
+	 * 
+	 * @return Volume multiplier to use when app loses focus
+	 */
+	static float GetUnfocusedVolumeMultiplier();
+
 private:
 
 	/** Holds the instance identifier. */
@@ -419,6 +446,12 @@ private:
 
 	/** Holds current delta time in seconds. */
 	static double DeltaTime;
+
+	/** Use to affect the app volume when it loses focus */
+	static float VolumeMultiplier;
+
+	/** Read from config to define the volume when app loses focus */
+	static float UnfocusedVolumeMultiplier;
 };
 
 

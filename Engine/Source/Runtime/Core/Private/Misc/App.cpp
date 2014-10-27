@@ -18,6 +18,8 @@ double FApp::FixedDeltaTime = 1 / 30.0;
 double FApp::CurrentTime = 0.0;
 double FApp::LastTime = 0.0;
 double FApp::DeltaTime = 1 / 30.0;
+float FApp::VolumeMultiplier = 1.0f;
+float FApp::UnfocusedVolumeMultiplier = 0.0f;
 
 
 /* FApp static interface
@@ -130,3 +132,15 @@ bool FApp::ShouldUseThreadingForPerformance( )
 
 
 #endif // HAVE_RUNTIME_THREADING_SWITCHES
+
+float FApp::GetUnfocusedVolumeMultiplier()
+{
+	static bool bInitialisedFromConfig = false;
+
+	if (!bInitialisedFromConfig)
+	{
+		bInitialisedFromConfig = true;
+		GConfig->GetFloat(TEXT("Audio"), TEXT("UnfocusedVolumeMultiplier"), UnfocusedVolumeMultiplier, GEngineIni);
+	}
+	return UnfocusedVolumeMultiplier;
+}
