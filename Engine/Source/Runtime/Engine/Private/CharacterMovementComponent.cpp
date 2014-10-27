@@ -380,7 +380,7 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 		StopActiveMovement();
 	}
 
-	if (bEnablePhysicsInteraction)
+	if (UpdatedComponent && bEnablePhysicsInteraction)
 	{
 		UpdatedComponent->OnComponentBeginOverlap.AddUniqueDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}
