@@ -236,11 +236,14 @@ public:
 
 protected:
 
-	/** Whether this instance of the object has its own custom walkability override setting. */
+	/** Whether this instance of the object has its own custom walkable slope override setting. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
 	uint32 bOverrideWalkableSlopeOnInstance:1;
 
-	/** Custom walkability override setting for this instance. @see GetWalkableFloorOverride() */
+	/**
+	 * Custom walkable slope override setting for this instance.
+	 * @see GetWalkableSlopeOverride(), SetWalkableSlopeOverride()
+	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics, meta=(editcondition="bOverrideWalkableSlopeOnInstance"))
 	struct FWalkableSlopeOverride WalkableSlopeOverride;
 
@@ -386,6 +389,9 @@ public:
 
 	/** Returns the slope override struct for this instance. If we don't have our own custom setting, it will return the setting from the body setup. */
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
+
+	/** Sets a custom slope override struct for this instance. Implicitly sets bOverrideWalkableSlopeOnInstance to true. */
+	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
 
 	/** Returns whether this body wants (and can) use the async scene. */
 	bool UseAsyncScene() const;

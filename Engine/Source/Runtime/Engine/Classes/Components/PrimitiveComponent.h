@@ -642,6 +642,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
 
+	/** Sets a new slope override for this component instance. */
+	UFUNCTION(BlueprintCallable, Category="Physics")
+	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
+
 	/** 
 	 *	Sets whether or not a single body should use physics simulation, or should be 'fixed' (kinematic).
 	 *

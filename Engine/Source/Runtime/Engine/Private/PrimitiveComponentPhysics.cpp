@@ -143,6 +143,11 @@ const struct FWalkableSlopeOverride& UPrimitiveComponent::GetWalkableSlopeOverri
 	return BodyInstance.GetWalkableSlopeOverride();
 }
 
+void UPrimitiveComponent::SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride)
+{
+	BodyInstance.SetWalkableSlopeOverride(NewOverride);
+}
+
 void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
 {
 	BodyInstance.SetInstanceSimulatePhysics(bSimulate);
