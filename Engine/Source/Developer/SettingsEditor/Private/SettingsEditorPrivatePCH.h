@@ -12,6 +12,7 @@
 #include "DesktopPlatformModule.h"
 #include "ModuleManager.h"
 #include "PropertyEditing.h"
+#include "ISettingsCategory.h"
 #include "ISourceControlModule.h"
 
 

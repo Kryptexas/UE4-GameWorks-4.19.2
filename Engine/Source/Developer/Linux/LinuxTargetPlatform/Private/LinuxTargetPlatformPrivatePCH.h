@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LinuxTargetPlatformPrivatePCH.h: Pre-compiled header file for the LinuxTargetPlatform module.
-=============================================================================*/
-
 #pragma once
 
 
@@ -11,9 +7,6 @@
  *****************************************************************************/
 
 #include "Core.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "Settings.h"
 #include "Runtime/Core/Public/Linux/LinuxPlatformProperties.h"
 
 #if WITH_ENGINE

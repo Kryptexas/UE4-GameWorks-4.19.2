@@ -9,7 +9,7 @@
 #include "BlueprintUtilities.h"
 
 #include "LauncherServices.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "TargetDeviceServices.h"
 #include "IMainFrameModule.h"
 

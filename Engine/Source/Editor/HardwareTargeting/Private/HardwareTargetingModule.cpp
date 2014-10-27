@@ -3,14 +3,17 @@
 #include "HardwareTargetingPrivatePCH.h"
 #include "HardwareTargetingModule.h"
 #include "HardwareTargetingSettings.h"
-#include "Settings.h"
 #include "Internationalization.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
 #include "SDecoratedEnumCombo.h"
 
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
 
+
 #define LOCTEXT_NAMESPACE "HardwareTargeting"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FMetaSettingGatherer
@@ -140,13 +143,16 @@ private:
 
 void FHardwareTargetingModule::StartupModule()
 {
-	ISettingsModule& SettingsModule = *ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		
-	SettingsModule.RegisterSettings("Project", "Project", "HardwareTargeting",
-		LOCTEXT("HardwareTargetingSettingsName", "Target Hardware"),
-		LOCTEXT("HardwareTargetingSettingsDescription", "Options for choosing which class of hardware to target"),
-		GetMutableDefault<UHardwareTargetingSettings>()
-	);
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->RegisterSettings("Project", "Project", "HardwareTargeting",
+			LOCTEXT("HardwareTargetingSettingsName", "Target Hardware"),
+			LOCTEXT("HardwareTargetingSettingsDescription", "Options for choosing which class of hardware to target"),
+			GetMutableDefault<UHardwareTargetingSettings>()
+		);
+	}
 
 	// Apply any settings on startup if necessary
 	ApplyHardwareTargetingSettings();

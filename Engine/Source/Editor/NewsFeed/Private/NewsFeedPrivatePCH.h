@@ -20,12 +20,10 @@
 #include "IHttpResponse.h"
 #include "ImageWrapper.h"
 #include "Json.h"
-#include "ModuleManager.h"
 #include "Online.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineTitleFileInterface.h"
 #include "SecureHash.h"
-#include "Settings.h"
 #include "Ticker.h"
 
 

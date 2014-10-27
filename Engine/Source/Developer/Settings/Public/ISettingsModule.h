@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
+
+// forward declarations
+class ISettingsContainer;
+class ISettingsSection;
+class ISettingsViewer;
+class SWidget;
+class UObject;
+
 
 /**
  * Interface for settings UI modules.
@@ -24,7 +34,7 @@ public:
 	 * @param ContainerName The name of the container to get.
 	 * @return The settings container, or nullptr if it doesn't exist.
 	 */
-	virtual ISettingsContainerPtr GetContainer( const FName& ContainerName ) = 0;
+	virtual TSharedPtr<ISettingsContainer> GetContainer( const FName& ContainerName ) = 0;
 
 	/**
 	 * Adds a settings section to the specified settings container (using a settings object).
@@ -37,10 +47,9 @@ public:
 	 * @param DisplayName The section's localized display name.
 	 * @param Description The section's localized description text.
 	 * @param SettingsObject The object that holds the section's settings.
-	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
-	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates ) = 0;
+	virtual TSharedPtr<ISettingsSection> RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject ) = 0;
 
 	/**
 	 * Adds a settings section to the specified settings container (using a custom settings widget).
@@ -53,10 +62,9 @@ public:
 	 * @param DisplayName The section's localized display name.
 	 * @param Description The section's localized description text.
 	 * @param CustomWidget A custom settings widget.
-	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
-	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates ) = 0;
+	virtual TSharedPtr<ISettingsSection> RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget ) = 0;
 
 	/**
 	 * Registers a viewer for the specified settings container.
@@ -93,61 +101,6 @@ public:
 
 public:
 
-	/**
-	 * Adds a settings section to the specified settings category (using a settings object).
-	 *
-	 * If a section with the specified settings objects already exists, the existing section will be replaced.
-	 *
-	 * @param CategoryName The name of the category to add the section to.
-	 * @param SectionName The name of the settings section to add.
-	 * @param DisplayName The section's localized display name.
-	 * @param Description The section's localized description text.
-	 * @param SettingsObject The object that holds the section's settings.
-	 * @return The added settings section, or nullptr if the category does not exist.
-	 */
-	ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject )
-	{
-		return RegisterSettings(ContainerName, CategoryName, SectionName, DisplayName, Description, SettingsObject, FSettingsSectionDelegates());
-	}
-
-	/**
-	 * Adds a settings section to the specified settings container (using a custom settings widget).
-	 *
-	 * If a section with the specified settings objects already exists, the existing section will be replaced.
-	 *
-	 * @param ContainerName The name of the container that will contain the settings.
-	 * @param CategoryName The name of the category within the container.
-	 * @param SectionName The name of the section within the category.
-	 * @param DisplayName The section's localized display name.
-	 * @param Description The section's localized description text.
-	 * @param CustomWidget A custom settings widget.
-	 * @return The added settings section, or nullptr if the category does not exist.
-	 */
-	ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget )
-	{
-		return RegisterSettings(ContainerName, CategoryName, SectionName, DisplayName, Description, CustomWidget, FSettingsSectionDelegates());
-	}
-
-public:
-
-	/**
-	 * Gets a pointer to the Settings module instance.
-	 *
-	 * @todo gmp: better implementation using dependency injection / abstract factory.
-	 * @return A pointer to the Settings module, or nullptr if the module isn't loaded.
-	 */
-	static ISettingsModule* Get( )
-	{
-		if (FModuleManager::Get().IsModuleLoaded("Settings"))
-		{
-			return &FModuleManager::GetModuleChecked<ISettingsModule>("Settings");
-		}
-
-		return nullptr;
-	}
-
-public:
-
 	/** Virtual destructor. */
-	virtual ~ISettingsModule( ) { }
+	virtual ~ISettingsModule() { }
 };

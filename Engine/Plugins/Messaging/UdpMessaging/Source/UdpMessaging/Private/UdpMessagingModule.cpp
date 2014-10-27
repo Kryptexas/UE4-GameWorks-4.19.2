@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 
@@ -34,19 +36,20 @@ public:
 		}
 
 		// register settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
-			FSettingsSectionDelegates SettingsDelegates;
-			SettingsDelegates.ModifiedDelegate = FOnSettingsSectionModified::CreateRaw(this, &FUdpMessagingModule::HandleSettingsSaved);
-
-			SettingsModule->RegisterSettings("Project", "Plugins", "UdpMessaging",
+			ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "UdpMessaging",
 				LOCTEXT("UdpMessagingSettingsName", "UDP Messaging"),
 				LOCTEXT("UdpMessagingSettingsDescription", "Configure the UDP Messaging plug-in."),
-				GetMutableDefault<UUdpMessagingSettings>(),
-				SettingsDelegates
+				GetMutableDefault<UUdpMessagingSettings>()
 			);
+
+			if (SettingsSection.IsValid())
+			{
+				SettingsSection->OnModified().BindRaw(this, &FUdpMessagingModule::HandleSettingsSaved);
+			}
 		}
 
 		// register application events
@@ -63,7 +66,7 @@ public:
 		FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveAll(this);
 
 		// unregister settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

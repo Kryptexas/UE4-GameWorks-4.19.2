@@ -10,7 +10,6 @@
 #include "CoreUObject.h"
 #include "Messaging.h"
 #include "Networking.h"
-#include "Settings.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 

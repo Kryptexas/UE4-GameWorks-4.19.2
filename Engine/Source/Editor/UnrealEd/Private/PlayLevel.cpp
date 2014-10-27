@@ -22,7 +22,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "LauncherServices.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "TargetDeviceServices.h"
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"

@@ -5,15 +5,18 @@
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
 #include "Runtime/SlateCore/Public/Rendering/SlateRenderer.h"
-#include "Developer/Settings/Public/Settings.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
+#include "ISettingsModule.h"
 #include "SNotificationList.h"
+#include "ModuleManager.h"
 #include "NotificationManager.h"
+
 
 IMPLEMENT_MODULE( FEditorLiveStreaming, EditorLiveStreaming );
 
 #define LOCTEXT_NAMESPACE "EditorLiveStreaming"
+
 
 FEditorLiveStreaming::FEditorLiveStreaming()
 	: bIsBroadcasting( false ),
@@ -28,7 +31,8 @@ FEditorLiveStreaming::FEditorLiveStreaming()
 void FEditorLiveStreaming::StartupModule()
 {
 	// Register settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
 	if( ensure( SettingsModule != nullptr ) )
 	{
 		SettingsModule->RegisterSettings( "Editor", "General", "EditorLiveStreaming",
@@ -43,7 +47,8 @@ void FEditorLiveStreaming::StartupModule()
 void FEditorLiveStreaming::ShutdownModule()
 {
 	// Unregister settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
 	if( SettingsModule != nullptr )
 	{
 		SettingsModule->UnregisterSettings( "Editor", "General", "EditorLiveStreaming" );

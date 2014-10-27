@@ -6,13 +6,15 @@
 #include "ModuleManager.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Runtime/Core/Public/Stats/Stats2.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC( LogTwitch, Log, All );
 
-#if WITH_TWITCH
-IMPLEMENT_MODULE( FTwitchLiveStreaming, TwitchLiveStreaming )
 
+#if WITH_TWITCH
+
+IMPLEMENT_MODULE( FTwitchLiveStreaming, TwitchLiveStreaming )
 DECLARE_MEMORY_STAT( TEXT( "Twitch Memory" ), STAT_TwitchMemory, STATGROUP_Memory );
 
 #define LOCTEXT_NAMESPACE "TwitchPlugin"
@@ -94,7 +96,7 @@ void FTwitchLiveStreaming::StartupModule()
 	// @todo twitch: Editor: Ideally we want a "zoom in" feature to use during editor live streams
 
 	// Register our custom project settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if( SettingsModule != nullptr )
 	{
 		SettingsModule->RegisterSettings(
@@ -115,7 +117,7 @@ void FTwitchLiveStreaming::ShutdownModule()
 	IModularFeatures::Get().UnregisterModularFeature( TEXT( "LiveStreaming" ), this );
 
 	// Unregister custom project settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if( SettingsModule != nullptr )
 	{
 		SettingsModule->UnregisterSettings( "Project", "Plugins", "Twitch" );

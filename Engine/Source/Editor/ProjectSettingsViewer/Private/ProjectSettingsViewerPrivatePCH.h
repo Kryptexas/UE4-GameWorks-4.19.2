@@ -3,12 +3,12 @@
 #pragma  once
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Engine.h"
 #include "EngineSettings.h"
 #include "ModuleManager.h"
+#include "MoviePlayerSettings.h"
 #include "SettingsEditor.h"
 #include "UnrealEd.h"
-#include "MoviePlayerSettings.h"

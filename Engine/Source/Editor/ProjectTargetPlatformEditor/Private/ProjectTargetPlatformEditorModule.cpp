@@ -1,18 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectTargetPlatformEditorPrivatePCH.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
+
 
 #define LOCTEXT_NAMESPACE "FProjectTargetPlatformEditorModule"
+
 
 /**
  * Implements the platform target platform editor module
  */
-class FProjectTargetPlatformEditorModule : public IProjectTargetPlatformEditorModule
+class FProjectTargetPlatformEditorModule
+	: public IProjectTargetPlatformEditorModule
 {
 public:
 
-	// Begin IProjectTargetPlatformEditorModule interface
+	// IProjectTargetPlatformEditorModule interface
 
 	virtual TWeakPtr<SWidget> CreateProjectTargetPlatformEditorPanel() override
 	{
@@ -131,13 +134,12 @@ public:
 		return true;
 	}
 
-	// End IProjectTargetPlatformEditorModule interface
-
 private:
 
 	// Holds the collection of created editor panels.
 	TArray<TSharedPtr<SWidget> > EditorPanels;
 };
+
 
 #undef LOCTEXT_NAMESPACE
 

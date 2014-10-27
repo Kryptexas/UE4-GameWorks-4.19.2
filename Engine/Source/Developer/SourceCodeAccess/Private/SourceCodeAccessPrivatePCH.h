@@ -5,4 +5,3 @@
 #include "Core.h"
 #include "CoreUObject.h"
 #include "SlateBasics.h"
-#include "ModuleManager.h"

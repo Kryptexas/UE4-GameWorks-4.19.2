@@ -2,6 +2,7 @@
 
 #include "TextureEditorPrivatePCH.h"
 #include "Factories.h"
+#include "ISettingsModule.h"
 #include "SDockTab.h"
 #include "SNumericEntryBox.h"
 

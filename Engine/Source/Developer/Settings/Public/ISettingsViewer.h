@@ -21,5 +21,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~ISettingsViewer( ) { }
+	virtual ~ISettingsViewer() { }
 };

@@ -9,7 +9,7 @@
 #include "PaperEditorCommands.h"
 
 #include "AssetEditorToolkit.h"
-
+#include "ModuleManager.h"
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
 
 // Sprite support
@@ -37,7 +37,7 @@
 
 // Settings
 #include "PaperRuntimeSettings.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 
 // Intro tutorials
 #include "Editor/IntroTutorials/Public/IIntroTutorials.h"
@@ -212,19 +212,19 @@ private:
 
 	void RegisterSettings()
 	{
-		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
 			SettingsModule->RegisterSettings("Project", "Plugins", "Paper2D",
 				LOCTEXT("RuntimeSettingsName", "Paper 2D"),
 				LOCTEXT("RuntimeSettingsDescription", "Configure the Paper 2D plugin"),
 				GetMutableDefault<UPaperRuntimeSettings>()
-				);
+			);
 		}
 	}
 
 	void UnregisterSettings()
 	{
-		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
 			SettingsModule->UnregisterSettings("Project", "Plugins", "Paper2D");
 		}

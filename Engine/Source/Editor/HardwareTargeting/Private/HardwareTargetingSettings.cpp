@@ -3,9 +3,9 @@
 #include "HardwareTargetingPrivatePCH.h"
 #include "HardwareTargetingModule.h"
 #include "HardwareTargetingSettings.h"
-#include "Settings.h"
 #include "Internationalization.h"
 #include "SDecoratedEnumCombo.h"
+
 
 UHardwareTargetingSettings::UHardwareTargetingSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -13,8 +13,8 @@ UHardwareTargetingSettings::UHardwareTargetingSettings(const FObjectInitializer&
 	, AppliedTargetedHardwareClass(EHardwareClass::Unspecified)
 	, DefaultGraphicsPerformance(EGraphicsPreset::Unspecified)
 	, AppliedDefaultGraphicsPerformance(EGraphicsPreset::Unspecified)
-{
-}
+{ }
+
 
 bool UHardwareTargetingSettings::HasPendingChanges() const
 {
@@ -25,6 +25,7 @@ bool UHardwareTargetingSettings::HasPendingChanges() const
 
 	return AppliedTargetedHardwareClass != TargetedHardwareClass || AppliedDefaultGraphicsPerformance != DefaultGraphicsPerformance;
 }
+
 
 void UHardwareTargetingSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {

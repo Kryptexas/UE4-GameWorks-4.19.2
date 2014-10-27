@@ -29,7 +29,7 @@
 //#include "SearchUI.h"
 #include "SourceCodeNavigation.h"
 #include "SourceControlWindows.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "TargetPlatform.h"
 #include "PlatformInfo.h"
 #include "UnrealEd.h"

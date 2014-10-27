@@ -1,10 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MacTargetPlatformModule.cpp: Implements the FMacTargetPlatformModule class.
-=============================================================================*/
-
 #include "MacTargetPlatformPrivatePCH.h"
+#include "ModuleManager.h"
+#include "ISettingsModule.h"
 
 
 #define LOCTEXT_NAMESPACE "FMacTargetPlatformModule"
@@ -59,7 +57,7 @@ public:
 		TargetSettings = ConstructObject<UMacTargetSettings>(UMacTargetSettings::StaticClass(), GetTransientPackage(), "MacTargetSettings", RF_Standalone);
 		TargetSettings->AddToRoot();
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -73,7 +71,7 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

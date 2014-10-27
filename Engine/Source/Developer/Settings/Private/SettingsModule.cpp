@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SettingsPrivatePCH.h"
+#include "ISettingsModule.h"
 
 
 #define LOCTEXT_NAMESPACE "FSettingsModule"
@@ -26,14 +27,14 @@ public:
 		return ContainerNamesToContainers.FindRef(ContainerName);
 	}
 
-	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates ) override
+	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject ) override
 	{
-		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, SettingsObject, Delegates);
+		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, SettingsObject);
 	}
 
-	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates ) override
+	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget ) override
 	{
-		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, CustomWidget, Delegates);
+		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, CustomWidget);
 	}
 
 	virtual void RegisterViewer( const FName& ContainerName, ISettingsViewer& SettingsViewer )
@@ -70,7 +71,7 @@ public:
 
 	// IModuleInterface interface
 	
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		// @todo gmp: move this into the modules that own these setting categories
 		TSharedRef<FSettingsContainer> EditorSettingsContainer = FindOrAddContainer("Editor");
@@ -89,7 +90,7 @@ public:
 		ProjectSettingsContainer->DescribeCategory("Plugins", LOCTEXT("ProjectPluginsCategoryName", "Plugins"), LOCTEXT("ProjectPluginsCategoryDescription", "Plugins settings description text here"));
 	}
 
-	virtual void ShutdownModule( ) override { }
+	virtual void ShutdownModule() override { }
 
 protected:
 
@@ -113,13 +114,13 @@ protected:
 
 private:
 
-	// Holds the default settings container.
+	/** Holds the default settings container. */
 	ISettingsContainerPtr DefaultSettingsContainer;
 
-	// Holds the collection of global settings containers.
+	/** Holds the collection of global settings containers. */
 	TMap<FName, TSharedPtr<FSettingsContainer> > ContainerNamesToContainers;
 
-	// Holds the collection of registered settings viewers.
+	/** Holds the collection of registered settings viewers. */
 	TMap<FName, ISettingsViewer*> ContainerNamesToViewers;
 };
 

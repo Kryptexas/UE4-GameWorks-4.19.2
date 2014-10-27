@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
 
 /**
  * Interface for target platform modules.
@@ -12,12 +14,14 @@ class ITargetPlatformModule
 public:
 
 	/**
-	 * Gets the target platform for this module.
+	 * Gets the module's target platform.
+	 *
+	 * @return The target platform.
 	 */
 	virtual ITargetPlatform* GetTargetPlatform() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	~ITargetPlatformModule() { }
+	virtual ~ITargetPlatformModule() { }
 };

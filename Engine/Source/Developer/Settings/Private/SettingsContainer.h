@@ -16,9 +16,7 @@ public:
 	 *
 	 * @param InName The container's name.
 	 */
-	FSettingsContainer( const FName& InName )
-		: Name(InName)
-	{ }
+	FSettingsContainer( const FName& InName );
 
 public:
 
@@ -32,23 +30,9 @@ public:
 	 * @param DisplayName The section's localized display name.
 	 * @param Description The section's localized description text.
 	 * @param SettingsObject The object that holds the section's settings.
-	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
-	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates )
-	{
-		TSharedPtr<FSettingsCategory> Category = Categories.FindRef(CategoryName);
-
-		if (!Category.IsValid())
-		{
-			return nullptr;
-		}
-
-		ISettingsSectionRef Section = Category->AddSection(SectionName, InDisplayName, InDescription, SettingsObject, Delegates);
-		CategoryModifiedDelegate.Broadcast(CategoryName);
-
-		return Section;
-	}
+	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject );
 
 	/**
 	 * Adds a settings section to the specified category (using a custom settings widget).
@@ -60,23 +44,9 @@ public:
 	 * @param DisplayName The section's localized display name.
 	 * @param Description The section's localized description text.
 	 * @param CustomWidget A custom settings widget.
-	 * @param Delegates The section's optional callback delegates.
 	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
-	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates )
-	{
-		TSharedPtr<FSettingsCategory> Category = Categories.FindRef(CategoryName);
-
-		if (!Category.IsValid())
-		{
-			return nullptr;
-		}
-
-		ISettingsSectionRef Section = Category->AddSection(SectionName, InDisplayName, InDescription, CustomWidget, Delegates);
-		CategoryModifiedDelegate.Broadcast(CategoryName);
-
-		return Section;
-	}
+	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget );
 
 	/**
 	 * Removes a settings section.
@@ -84,116 +54,73 @@ public:
 	 * @param CategoryName The name of the category that contains the section.
 	 * @param SectionName The name of the section to remove.
 	 */
-	void RemoveSection( const FName& CategoryName, const FName& SectionName )
-	{
-		TSharedPtr<FSettingsCategory> Category = Categories.FindRef(CategoryName);
-
-		if (Category.IsValid())
-		{
-			ISettingsSectionPtr Section = Category->GetSection(SectionName);
-
-			if (Section.IsValid())
-			{
-				Category->RemoveSection(SectionName);
-				SectionRemovedDelegate.Broadcast(Section.ToSharedRef());
-				CategoryModifiedDelegate.Broadcast(CategoryName);
-			}
-		}
-	}
+	void RemoveSection( const FName& CategoryName, const FName& SectionName );
 
 public:
 
 	// ISettingsContainer interface
 
-	virtual void Describe( const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) override
-	{
-		Description = InDescription;
-		DisplayName = InDisplayName;
-		IconName = InIconName;
-	}
+	virtual void Describe( const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) override;
+	virtual void DescribeCategory( const FName& CategoryName, const FText& InDisplayName, const FText& InDescription ) override;
+	virtual int32 GetCategories( TArray<TSharedPtr<ISettingsCategory>>& OutCategories ) const override;
 
-	virtual void DescribeCategory( const FName& CategoryName, const FText& InDisplayName, const FText& InDescription ) override
-	{
-		TSharedPtr<FSettingsCategory>& Category = Categories.FindOrAdd(CategoryName);
-
-		if (!Category.IsValid())
-		{
-			Category = MakeShareable(new FSettingsCategory(CategoryName));
-		}
-
-		Category->Describe(InDisplayName, InDescription);
-		CategoryModifiedDelegate.Broadcast(CategoryName);
-	}
-
-	virtual int32 GetCategories( TArray<ISettingsCategoryPtr>& OutCategories ) const override
-	{
-		OutCategories.Empty(Categories.Num());
-
-		for (TMap<FName, TSharedPtr<FSettingsCategory> >::TConstIterator It(Categories); It; ++It)
-		{
-			OutCategories.Add(It.Value());
-		}
-
-		return OutCategories.Num();
-	}
-
-	virtual ISettingsCategoryPtr GetCategory( const FName& CategoryName ) const override
+	virtual TSharedPtr<ISettingsCategory> GetCategory( const FName& CategoryName ) const override
 	{
 		return Categories.FindRef(CategoryName);
 	}
 
-	virtual const FText& GetDescription( ) const override
+	virtual const FText& GetDescription() const override
 	{
 		return Description;
 	}
 
-	virtual const FText& GetDisplayName( ) const override
+	virtual const FText& GetDisplayName() const override
 	{
 		return DisplayName;
 	}
 
-	virtual const FName& GetIconName( ) const override
+	virtual const FName& GetIconName() const override
 	{
 		return IconName;
 	}
 
-	virtual const FName& GetName( ) const override
+	virtual const FName& GetName() const override
 	{
 		return Name;
 	}
 
-	virtual FOnSettingsContainerCategoryModified& OnCategoryModified( ) override
+	virtual FOnCategoryModified& OnCategoryModified() override
 	{
 		return CategoryModifiedDelegate;
 	}
 
-	virtual FOnSettingsContainerSectionRemoved& OnSectionRemoved( ) override
+	virtual FOnSectionRemoved& OnSectionRemoved() override
 	{
 		return SectionRemovedDelegate;
 	}
 
 private:
 
-	// Holds the collection of setting categories
+	/** Holds the collection of setting categories. */
 	TMap<FName, TSharedPtr<FSettingsCategory>> Categories;
 
-	// Holds the container's description text.
+	/** Holds the container's description text. */
 	FText Description;
 
-	// Holds the container's localized display name.
+	/** Holds the container's localized display name. */
 	FText DisplayName;
 
-	// Holds the name of the container's icon.
+	/** Holds the name of the container's icon. */
 	FName IconName;
 
-	// Holds the container's name.
+	/** Holds the container's name. */
 	FName Name;
 
 private:
 
-	// Holds a delegate that is executed when a settings category has been added or modified.
-	FOnSettingsContainerCategoryModified CategoryModifiedDelegate;
+	/** Holds a delegate that is executed when a settings category has been added or modified. */
+	FOnCategoryModified CategoryModifiedDelegate;
 
-	// Holds a delegate that is executed when a settings section has been removed.
-	FOnSettingsContainerSectionRemoved SectionRemovedDelegate;
+	/** Holds a delegate that is executed when a settings section has been removed. */
+	FOnSectionRemoved SectionRemovedDelegate;
 };

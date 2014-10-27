@@ -1,9 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorSettingsViewerPrivatePCH.h"
+#include "ISettingsCategory.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
+#include "ISettingsViewer.h"
+#include "ModuleManager.h"
+#include "SDockTab.h"
+
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
-#include "SDockTab.h"
+
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -41,9 +48,9 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -59,13 +66,13 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hide);
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(EditorSettingsTabName);
 		UnregisterSettings();
 	}
 
-	virtual bool SupportsDynamicReloading( ) override
+	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
 	}
@@ -74,43 +81,48 @@ protected:
 
 	/**
 	 * Registers general Editor settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterGeneralSettings( ISettingsModule& SettingsModule )
 	{
-		// automation settings
+		// automation
 		SettingsModule.RegisterSettings("Editor", "General", "AutomationTest",
 			LOCTEXT("AutomationSettingsName", "Automation"),
 			LOCTEXT("AutomationSettingsDescription", "Set up automation test assets."),
 			GetMutableDefault<UAutomationTestSettings>()
 		);
 
-		// input bindings
-		FSettingsSectionDelegates InputBindingDelegates;
-		InputBindingDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsExport);
-		InputBindingDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsImport);
-		InputBindingDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsResetToDefault);
-		InputBindingDelegates.SaveDelegate = FOnSettingsSectionSave::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsSave);
-
-		FSettingsSectionDelegates RegionAndLanguageDelegates;
-		RegionAndLanguageDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
-		RegionAndLanguageDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
-		RegionAndLanguageDelegates.SaveDefaultsDelegate = FOnSettingsSectionSaveDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
-		RegionAndLanguageDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
-
-		SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
+		// region & language
+		ISettingsSectionPtr RegionAndLanguageSettingsSection = SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
 			LOCTEXT("InternationalizationSettingsModelName", "Region & Language"),
 			LOCTEXT("InternationalizationSettingsModelDescription", "Configure the editor's behavior to use a language and fit a region's culture."),
-			GetMutableDefault<UInternationalizationSettingsModel>(),
-			RegionAndLanguageDelegates
+			GetMutableDefault<UInternationalizationSettingsModel>()
 		);
 
+		if (RegionAndLanguageSettingsSection.IsValid())
+		{
+			RegionAndLanguageSettingsSection->OnExport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
+			RegionAndLanguageSettingsSection->OnImport().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
+			RegionAndLanguageSettingsSection->OnSaveDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
+			RegionAndLanguageSettingsSection->OnResetDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
+		}
+
+		// input bindings
 		TWeakPtr<SWidget> InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
-		SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
+		ISettingsSectionPtr InputBindingSettingsSection = SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
 			LOCTEXT("InputBindingsSettingsName", "Keyboard Shortcuts"),
 			LOCTEXT("InputBindingsSettingsDescription", "Configure keyboard shortcuts to quickly invoke operations."),
-			InputBindingEditorPanel.Pin().ToSharedRef(),
-			InputBindingDelegates
+			InputBindingEditorPanel.Pin().ToSharedRef()
 		);
+
+		if (InputBindingSettingsSection.IsValid())
+		{
+			InputBindingSettingsSection->OnExport().BindRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsExport);
+			InputBindingSettingsSection->OnImport().BindRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsImport);
+			InputBindingSettingsSection->OnResetDefaults().BindRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsResetToDefault);
+			InputBindingSettingsSection->OnSave().BindRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsSave);
+		}
 
 		// loading & saving features
 		SettingsModule.RegisterSettings("Editor", "General", "LoadingSaving",
@@ -138,7 +150,9 @@ protected:
 	}
 
 	/**
-	 * Registers Level Editor settings
+	 * Registers Level Editor settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterLevelEditorSettings( ISettingsModule& SettingsModule )
 	{
@@ -165,7 +179,9 @@ protected:
 	}
 
 	/**
-	 * Registers Other Tools settings
+	 * Registers Other Tools settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterContentEditorsSettings( ISettingsModule& SettingsModule )
 	{
@@ -198,12 +214,10 @@ protected:
 		);
 	}
 
-	/**
-	 * Unregisters all settings.
-	 */
-	void UnregisterSettings( )
+	/** Unregisters all settings. */
+	void UnregisterSettings()
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -230,10 +244,10 @@ protected:
 
 private:
 
-	// Handles creating the editor settings tab.
+	/** Handles creating the editor settings tab. */
 	TSharedRef<SDockTab> HandleSpawnSettingsTab( const FSpawnTabArgs& SpawnTabArgs )
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		TSharedRef<SWidget> SettingsEditor = SNullWidget::NullWidget;
 
 		if (SettingsModule != nullptr)
@@ -379,7 +393,7 @@ private:
 
 private:
 
-	// Holds a pointer to the settings editor's view model.
+	/** Holds a pointer to the settings editor's view model. */
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;
 };
 

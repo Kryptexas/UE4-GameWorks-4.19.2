@@ -6,8 +6,9 @@
 /* Dependencies
  *****************************************************************************/
 
+#include "ISettingsContainer.h"
+#include "ISettingsSection.h"
 #include "ModuleInterface.h"
-#include "Settings.h"
 #include "SlateBasics.h"
 #include "EditorStyle.h"
 

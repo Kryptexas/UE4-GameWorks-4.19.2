@@ -17,7 +17,7 @@
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
 #include "TutorialSettings.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "EditorTutorial.h"
 #include "SEditorTutorials.h"
 #include "STutorialsBrowser.h"
@@ -32,10 +32,13 @@
 #include "EngineBuildSettings.h"
 #include "IDocumentation.h"
 #include "SDockTab.h"
+#include "ModuleManager.h"
+
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
 IMPLEMENT_MODULE(FIntroTutorials, IntroTutorials)
+
 
 FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
@@ -117,7 +120,8 @@ void FIntroTutorials::StartupModule()
 	}
 
 	// Register to display our settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
 	if (SettingsModule != nullptr)
 	{
 		SettingsModule->RegisterSettings("Editor", "General", "Tutorials",
@@ -173,7 +177,7 @@ void FIntroTutorials::ShutdownModule()
 		MainFrameModule.OnMainFrameCreationFinished().RemoveAll(this);
 	}
 
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 	if (SettingsModule != nullptr)
 	{
 		SettingsModule->UnregisterSettings("Editor", "General", "Tutorials");

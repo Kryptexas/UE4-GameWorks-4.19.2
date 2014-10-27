@@ -25,7 +25,7 @@
 #include "LevelUtils.h"
 #include "HighresScreenshotUI.h"
 #include "SCaptureRegionWidget.h"
-#include "Settings.h"
+#include "ISettingsModule.h"
 #include "SceneOutlinerTreeItems.h"
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"

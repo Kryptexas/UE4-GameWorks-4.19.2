@@ -3,7 +3,7 @@
 #pragma once
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "UnrealEd.h"
@@ -11,5 +11,4 @@
 #include "InputBindingEditor.h"
 #include "InternationalizationSettingsModel.h"
 #include "MessageLog.h"
-#include "Settings.h"
 #include "SettingsEditor.h"

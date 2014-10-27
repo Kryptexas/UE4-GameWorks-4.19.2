@@ -4,10 +4,16 @@
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
 #include "CookerSettings.h"
+#include "ISettingsCategory.h"
+#include "ISettingsModule.h"
+#include "ISettingsViewer.h"
+#include "ModuleManager.h"
+#include "SDockTab.h"
+
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
-#include "SDockTab.h"
+
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -47,7 +53,7 @@ public:
 
 	virtual void StartupModule( ) override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -77,6 +83,8 @@ protected:
 
 	/**
 	 * Registers Engine settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterEngineSettings( ISettingsModule& SettingsModule )
 	{
@@ -174,6 +182,8 @@ protected:
 
 	/**
 	 * Registers Project settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
 	 */
 	void RegisterProjectSettings( ISettingsModule& SettingsModule )
 	{
@@ -228,12 +238,10 @@ protected:
 		);*/
 	}
 
-	/**
-	 * Unregisters all settings.
-	 */
+	/** Unregisters all settings. */
 	void UnregisterSettings( )
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -262,11 +270,11 @@ protected:
 
 private:
 
-	// Handles creating the project settings tab.
+	/** Handles creating the project settings tab. */
 	TSharedRef<SDockTab> HandleSpawnSettingsTab( const FSpawnTabArgs& SpawnTabArgs )
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
 		TSharedRef<SWidget> SettingsEditor = SNullWidget::NullWidget;
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -291,7 +299,7 @@ private:
 
 private:
 
-	// Holds a pointer to the settings editor's view model.
+	/** Holds a pointer to the settings editor's view model. */
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;
 };
 

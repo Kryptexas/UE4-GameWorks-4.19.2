@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
+
 
 /**
  * Declares the Editor's visual style.
@@ -17,7 +20,7 @@ public:
 
 #if WITH_EDITOR
 		Settings = GetMutableDefault<UEditorStyleSettings>();
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -35,7 +38,7 @@ public:
 
 	static void Shutdown()
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

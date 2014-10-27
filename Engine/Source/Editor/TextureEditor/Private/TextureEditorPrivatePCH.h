@@ -15,7 +15,6 @@
 #include "SceneViewport.h"
 #include "SColorPicker.h"
 #include "ScopedTransaction.h"
-#include "Settings.h"
 #include "Texture2DPreview.h"
 #include "Toolkits/IToolkitHost.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"

@@ -2,6 +2,7 @@
 
 
 #include "TextureEditorPrivatePCH.h"
+#include "ISettingsModule.h"
 #include "ModuleManager.h"
 
 
@@ -50,7 +51,7 @@ public:
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
 		// register settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -65,7 +66,7 @@ public:
 	virtual void ShutdownModule( ) override
 	{
 		// unregister settings
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{

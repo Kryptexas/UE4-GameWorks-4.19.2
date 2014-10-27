@@ -2,7 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-#include "Settings.h"
+#include "ISettingsModule.h"
 
 #include "Designer/DesignTimeUtils.h"
 

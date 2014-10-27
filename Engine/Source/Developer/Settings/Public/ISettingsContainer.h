@@ -3,26 +3,9 @@
 #pragma once
 
 
-/**
- * Delegate type for modified settings categories.
- *
- * The first parameter is the name of the settings category that was modified.
- */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSettingsContainerCategoryModified, const FName&)
-
-/**
- * Delegate type for removed settings sections.
- *
- * The first parameter is the section that was removed.
- */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSettingsContainerSectionRemoved, const ISettingsSectionRef&)
-
-
-/** Type definition for shared pointers to instances of ISettingsContainer. */
-typedef TSharedPtr<class ISettingsContainer> ISettingsContainerPtr;
-
-/** Type definition for shared references to instances of ISettingsContainer. */
-typedef TSharedRef<class ISettingsContainer> ISettingsContainerRef;
+// forward declarations
+class ISettingsCategory;
+class ISettingsSection;
 
 
 /**
@@ -60,61 +43,70 @@ public:
 	 * @param OutCategories Will hold the collection of categories.
 	 * @return The number of categories returned.
 	 */
-	virtual int32 GetCategories( TArray<ISettingsCategoryPtr>& OutCategories ) const = 0;
+	virtual int32 GetCategories( TArray<TSharedPtr<ISettingsCategory>>& OutCategories ) const = 0;
 
 	/**
 	 * Gets the category with the specified name.
 	 *
 	 * @return The category, or nullptr if it doesn't exist.
 	 */
-	virtual ISettingsCategoryPtr GetCategory( const FName& CategoryName ) const = 0;
+	virtual TSharedPtr<ISettingsCategory> GetCategory( const FName& CategoryName ) const = 0;
 
 	/**
 	 * Gets the container's localized description text.
 	 *
 	 * @return Description text.
 	 */
-	virtual const FText& GetDescription( ) const = 0;
+	virtual const FText& GetDescription() const = 0;
 
 	/**
 	 * Gets the container's localized display name.
 	 *
 	 * @return Display name.
 	 */
-	virtual const FText& GetDisplayName( ) const = 0;
+	virtual const FText& GetDisplayName() const = 0;
 
 	/**
 	 * Gets the name of the container's icon.
 	 *
 	 * @return Icon image name.
 	 */
-	virtual const FName& GetIconName( ) const = 0;
+	virtual const FName& GetIconName() const = 0;
 
 	/**
 	 * Gets the container's name.
 	 *
 	 * @return Container name.
 	 */
-	virtual const FName& GetName( ) const = 0;
+	virtual const FName& GetName() const = 0;
 
 public:
 
 	/**
-	 * Returns a delegate that is executed when a settings category has been added or modified.
+	 * A delegate that is executed when a settings category has been added or modified.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSettingsContainerCategoryModified& OnCategoryModified( ) = 0;
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCategoryModified, const FName&)
+	virtual FOnCategoryModified& OnCategoryModified() = 0;
 
 	/**
-	 * Returns a delegate that is executed when a settings section has been removed.
+	 * A delegate that is executed when a settings section has been removed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FOnSettingsContainerSectionRemoved& OnSectionRemoved( ) = 0;
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSectionRemoved, const TSharedRef<ISettingsSection>&)
+	virtual FOnSectionRemoved& OnSectionRemoved() = 0;
 
 public:
 
 	/** Virtual destructor. */
-	virtual ~ISettingsContainer( ) { }
+	virtual ~ISettingsContainer() { }
 };
+
+
+/** Type definition for shared pointers to instances of ISettingsContainer. */
+typedef TSharedPtr<ISettingsContainer> ISettingsContainerPtr;
+
+/** Type definition for shared references to instances of ISettingsContainer. */
+typedef TSharedRef<ISettingsContainer> ISettingsContainerRef;

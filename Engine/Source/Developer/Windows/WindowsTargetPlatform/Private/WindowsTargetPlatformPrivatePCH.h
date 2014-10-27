@@ -7,8 +7,6 @@
  *****************************************************************************/
 
 #include "Core.h"
-#include "ModuleManager.h"
-#include "Settings.h"
 #include "WindowsPlatformProperties.h"
 
 #if WITH_ENGINE

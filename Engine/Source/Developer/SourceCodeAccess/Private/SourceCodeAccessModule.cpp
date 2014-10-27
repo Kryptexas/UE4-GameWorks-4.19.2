@@ -2,9 +2,11 @@
 
 #include "SourceCodeAccessPrivatePCH.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "ISettingsModule.h"
+#include "ModuleManager.h"
 #include "SourceCodeAccessModule.h"
 #include "SourceCodeAccessSettings.h"
-#include "Settings.h"
+
 
 IMPLEMENT_MODULE( FSourceCodeAccessModule, SourceCodeAccess );
 
@@ -12,10 +14,11 @@ IMPLEMENT_MODULE( FSourceCodeAccessModule, SourceCodeAccess );
 
 static FName SourceCodeAccessorFeatureName(TEXT("SourceCodeAccessor"));
 
+
 FSourceCodeAccessModule::FSourceCodeAccessModule()
 	: CurrentSourceCodeAccessor(nullptr)
-{
-}
+{ }
+
 
 void FSourceCodeAccessModule::StartupModule()
 {
@@ -29,7 +32,8 @@ void FSourceCodeAccessModule::StartupModule()
 	IModularFeatures::Get().RegisterModularFeature(SourceCodeAccessorFeatureName, &DefaultSourceCodeAccessor);
 
 	// Register to display our settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
 	if (SettingsModule != nullptr)
 	{
 		SettingsModule->RegisterSettings("Editor", "General", "Source Code",
@@ -40,10 +44,12 @@ void FSourceCodeAccessModule::StartupModule()
 	}
 }
 
+
 void FSourceCodeAccessModule::ShutdownModule()
 {
 	// Unregister our settings
-	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
 	if (SettingsModule != nullptr)
 	{
 		SettingsModule->UnregisterSettings("Editor", "General", "Source Code");
@@ -57,15 +63,18 @@ void FSourceCodeAccessModule::ShutdownModule()
 	IModularFeatures::Get().OnModularFeatureUnregistered().RemoveAll(this);
 }
 
+
 bool FSourceCodeAccessModule::CanAccessSourceCode() const
 {
 	return CurrentSourceCodeAccessor->CanAccessSourceCode();
 }
 
+
 ISourceCodeAccessor& FSourceCodeAccessModule::GetAccessor() const
 {
 	return *CurrentSourceCodeAccessor;
 }
+
 
 void FSourceCodeAccessModule::SetAccessor(const FName& InName)
 {
@@ -89,6 +98,7 @@ void FSourceCodeAccessModule::SetAccessor(const FName& InName)
 	}
 }
 
+
 FLaunchingCodeAccessor& FSourceCodeAccessModule::OnLaunchingCodeAccessor()
 {
 	return LaunchingCodeAccessorDelegate;
@@ -99,10 +109,12 @@ FDoneLaunchingCodeAccessor& FSourceCodeAccessModule::OnDoneLaunchingCodeAccessor
 	return DoneLaunchingCodeAccessorDelegate;
 }
 
+
 FOpenFileFailed& FSourceCodeAccessModule::OnOpenFileFailed()
 {
 	return OpenFileFailedDelegate;
 }
+
 
 void FSourceCodeAccessModule::HandleModularFeatureRegistered(const FName& Type, IModularFeature* ModularFeature)
 {
@@ -133,6 +145,7 @@ void FSourceCodeAccessModule::HandleModularFeatureRegistered(const FName& Type, 
 	}
 }
 
+
 void FSourceCodeAccessModule::HandleModularFeatureUnregistered(const FName& Type, IModularFeature* ModularFeature)
 {
 	if(Type == SourceCodeAccessorFeatureName && CurrentSourceCodeAccessor == static_cast<ISourceCodeAccessor*>(ModularFeature))
@@ -141,4 +154,5 @@ void FSourceCodeAccessModule::HandleModularFeatureUnregistered(const FName& Type
 	}
 }
 
-#undef LOCTEXT_NAMESPACE 
+
+#undef LOCTEXT_NAMESPACE

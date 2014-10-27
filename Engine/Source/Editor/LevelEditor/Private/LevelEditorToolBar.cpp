@@ -16,13 +16,18 @@
 #include "EngineBuildSettings.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
-#include "Settings.h"
+#include "ISettingsCategory.h"
+#include "ISettingsContainer.h"
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
 #include "DesktopPlatformModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
 #include "KismetEditorUtilities.h"
 #include "ISourceControlModule.h"
 #include "SVolumeControl.h"
+#include "ModuleManager.h"
+
 
 namespace LevelEditorActionHelpers
 {
@@ -783,7 +788,7 @@ void LevelEditorActionHelpers::OnSelectGameModeClassPicked(UClass* InChosenClass
 	{
 		UGameMapsSettings::SetGlobalDefaultGameMode(InChosenClass? InChosenClass->GetPathName() : FString());
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
 		{
 			ISettingsContainerPtr SettingsContainer = SettingsModule->GetContainer("Project");

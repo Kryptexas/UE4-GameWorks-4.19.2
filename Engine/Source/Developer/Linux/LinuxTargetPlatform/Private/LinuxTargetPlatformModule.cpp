@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LinuxTargetPlatformModule.cpp: Implements the FAndroidTargetPlatformModule class.
-=============================================================================*/
-
 #include "LinuxTargetPlatformPrivatePCH.h"
+#include "ISettingsModule.h"
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FLinuxTargetPlatformModule"
@@ -24,18 +23,15 @@ class FLinuxTargetPlatformModule
 {
 public:
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FLinuxTargetPlatformModule( )
 	{
 		Singleton = NULL;
 	}
 
-
 public:
 	
-	// Begin ITargetPlatformModule interface
+	// ITargetPlatformModule interface
 
 	virtual ITargetPlatform* GetTargetPlatform( ) override
 	{
@@ -47,12 +43,9 @@ public:
 		return Singleton;
 	}
 
-	// End ITargetPlatformModule interface
-
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule() override
 	{
@@ -62,7 +55,7 @@ public:
 		GConfig->GetArray(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
 		TargetSettings->AddToRoot();
 
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -76,7 +69,7 @@ public:
 
 	virtual void ShutdownModule() override
 	{
-		ISettingsModule* SettingsModule = ISettingsModule::Get();
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
 		{
@@ -93,12 +86,10 @@ public:
 			TargetSettings = NULL;
 		}
 	}
-	// End IModuleInterface interface
-
 
 private:
 
-	// Holds the target settings.
+	/** Holds the target settings. */
 	ULinuxTargetSettings* TargetSettings;
 };
 

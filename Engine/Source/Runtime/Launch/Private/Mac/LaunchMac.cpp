@@ -6,7 +6,7 @@
 
 #if WITH_EDITOR
 	#include "MainFrame.h"
-	#include "Settings.h"
+	#include "ISettingsModule.h"
 #endif
 
 #include <signal.h>
