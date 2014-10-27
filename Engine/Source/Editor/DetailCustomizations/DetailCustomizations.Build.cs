@@ -39,7 +39,6 @@ public class DetailCustomizations : ModuleRules
                 "InternationalizationSettings",
 				"SourceCodeAccess",
 				"RHI",
-                "Media",
                 "MediaAssets",
                 "HardwareTargeting",
 				"SharedSettingsWidgets"
@@ -49,16 +48,17 @@ public class DetailCustomizations : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
                 "Engine",
-				"PropertyEditor",
+                "Media",
 				"Landscape",
 				"LandscapeEditor",
+				"PropertyEditor",
 			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
+				"Layers",
 				"PropertyEditor",
-				"Layers"
 			}
 		);
 	}

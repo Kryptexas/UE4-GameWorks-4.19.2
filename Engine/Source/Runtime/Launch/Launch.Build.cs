@@ -23,7 +23,6 @@ public class Launch : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"InputCore",
-                "Media",
 				"MediaAssets",
                 "MoviePlayer",
 				"Networking",
@@ -81,6 +80,7 @@ public class Launch : ModuleRules
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
+                "Media",
 				"Renderer",
 			}
 		);
