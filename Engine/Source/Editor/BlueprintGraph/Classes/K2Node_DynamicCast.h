@@ -20,6 +20,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Cast_16x"); }
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface
@@ -28,6 +29,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual FBlueprintNodeSignature GetSignature() const override;
+	virtual bool IsNodePure() const override { return bIsPureCast; }
 	// End of UK2Node interface
 
 	/** Get the 'valid cast' exec pin */
@@ -42,8 +44,22 @@ class UK2Node_DynamicCast : public UK2Node
 	/** Get the input object to be casted pin */
 	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetCastSourcePin() const;
 
+	/**
+	 * Will change the node's purity, and reallocate pins accordingly (adding/
+	 * removing exec pins).
+	 * 
+	 * @param  bNewPurity  The new value for bIsPureCast.
+	 */
+	void SetPurity(bool bNewPurity);
+
 protected:
+	/** Flips the node's purity (adding/removing exec pins as needed). */
+	void TogglePurity();
+
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTextCache CachedNodeTitle;
+
+	UPROPERTY()
+	bool bIsPureCast;
 };
 

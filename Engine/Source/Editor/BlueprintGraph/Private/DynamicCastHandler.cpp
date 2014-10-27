@@ -35,22 +35,6 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 		CompilerContext.MessageLog.Error(*LOCTEXT("BadCastNoTargetType_Error", "Node @@ has an invalid target type, please delete and recreate it").ToString(), Node);
 	}
 
-	// Successful interface cast execution
-	UEdGraphPin* SuccessPin = DynamicCastNode->GetValidCastPin();
-	UEdGraphNode* SuccessNode = NULL;
-	if (SuccessPin->LinkedTo.Num() > 0)
-	{
-		SuccessNode = SuccessPin->LinkedTo[0]->GetOwningNode();
-	}
-
-	// Failed interface cast execution
-	UEdGraphPin* FailurePin = DynamicCastNode->GetInvalidCastPin();
-	UEdGraphNode* FailureNode = NULL;
-	if (FailurePin->LinkedTo.Num() > 0)
-	{
-		FailureNode = FailurePin->LinkedTo[0]->GetOwningNode();
-	}
-
 	// Self Pin
 	UEdGraphPin* SourceObjectPin = DynamicCastNode->GetCastSourcePin();
 	UEdGraphPin* PinToTry = FEdGraphUtilities::GetNetFromPin(SourceObjectPin);
@@ -132,26 +116,35 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	CastStatement.RHS.Add(ClassTerm);
 	CastStatement.RHS.Add(*ObjectToCast);
 
-	// Check result of cast statement
-	FBlueprintCompiledStatement& CheckResultStatement = Context.AppendStatementForNode(Node);
-	const UClass* SubObjectClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
-	const bool bIsInterfaceCast = (SubObjectClass != NULL && SubObjectClass->HasAnyClassFlags(CLASS_Interface));
+	UEdGraphPin* SuccessPin = DynamicCastNode->GetValidCastPin();
+	bool const bIsPureCast = (SuccessPin == nullptr);
 
-	CheckResultStatement.Type = KCST_ObjectToBool;
-	CheckResultStatement.LHS = BoolTerm;
-	CheckResultStatement.RHS.Add(*CastResultTerm);
+	if (!bIsPureCast)
+	{
+		// Check result of cast statement
+		FBlueprintCompiledStatement& CheckResultStatement = Context.AppendStatementForNode(Node);
+		const UClass* SubObjectClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
+		const bool bIsInterfaceCast = (SubObjectClass != NULL && SubObjectClass->HasAnyClassFlags(CLASS_Interface));
 
-	// Failure condition...skip to the failed output
-	FBlueprintCompiledStatement& FailCastGoto = Context.AppendStatementForNode(Node);
-	FailCastGoto.Type = KCST_GotoIfNot;
-	FailCastGoto.LHS = BoolTerm;
-	Context.GotoFixupRequestMap.Add(&FailCastGoto, FailurePin);
+		CheckResultStatement.Type = KCST_ObjectToBool;
+		CheckResultStatement.LHS = BoolTerm;
+		CheckResultStatement.RHS.Add(*CastResultTerm);
+	
+		UEdGraphPin* FailurePin = DynamicCastNode->GetInvalidCastPin();
+		check(FailurePin != nullptr);
+		// Failure condition...skip to the failed output
+		FBlueprintCompiledStatement& FailCastGoto = Context.AppendStatementForNode(Node);
+		FailCastGoto.Type = KCST_GotoIfNot;
+		FailCastGoto.LHS = BoolTerm;
+		Context.GotoFixupRequestMap.Add(&FailCastGoto, FailurePin);
 
-	// Successful cast...hit the success output node
-	FBlueprintCompiledStatement& SuccessCastGoto = Context.AppendStatementForNode(Node);
-	SuccessCastGoto.Type = KCST_UnconditionalGoto;
-	SuccessCastGoto.LHS = BoolTerm;
-	Context.GotoFixupRequestMap.Add(&SuccessCastGoto, SuccessPin);
+		// Successful cast...hit the success output node
+		FBlueprintCompiledStatement& SuccessCastGoto = Context.AppendStatementForNode(Node);
+		SuccessCastGoto.Type = KCST_UnconditionalGoto;
+		SuccessCastGoto.LHS = BoolTerm;
+		Context.GotoFixupRequestMap.Add(&SuccessCastGoto, SuccessPin);
+	}
+	
 }
 
 #undef LOCTEXT_NAMESPACE

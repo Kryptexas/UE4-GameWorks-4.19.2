@@ -9,6 +9,7 @@
 
 UK2Node_DynamicCast::UK2Node_DynamicCast(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bIsPureCast(false)
 {
 }
 
@@ -18,22 +19,30 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 	//@TODO: Move this somewhere more sensible
 	check((TargetType == NULL) || (!TargetType->HasAnyClassFlags(CLASS_NewerVersionExists)));
 
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+	check(K2Schema != nullptr);
+	if (!K2Schema->DoesGraphSupportImpureFunctions(GetGraph()))
+	{
+		bIsPureCast = true;
+	}
 
-	// Input - Execution Pin
-	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+	if (!bIsPureCast)
+	{
+		// Input - Execution Pin
+		CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
+
+		// Output - Execution Pins
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastSucceeded);
+		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastFailed);
+	}
 
 	// Input - Source type Pin
 	CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, K2Schema->PN_ObjectToCast);
 
-	// Output - Execution Pins
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastSucceeded);
-	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_CastFailed);
-
 	// Output - Data Pin
 	if (TargetType != NULL)
 	{
-		FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetName();
+		FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
 		if (TargetType->IsChildOf(UInterface::StaticClass()))
 		{
 			CreatePin(EGPD_Output, K2Schema->PC_Interface, TEXT(""), *TargetType, false, false, CastResultPinName);
@@ -81,13 +90,57 @@ FText UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitle;
 }
 
+void UK2Node_DynamicCast::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
+{
+	Super::GetContextMenuActions(Context);
+
+	Context.MenuBuilder->BeginSection("K2NodeDynamicCast", LOCTEXT("DynamicCastHeader", "Cast"));
+	{
+		FText MenuEntryTitle   = LOCTEXT("MakePureTitle",   "Convert to pure cast");
+		FText MenuEntryTooltip = LOCTEXT("MakePureTooltip", "Removes the execution pins to make the node more versitile (NOTE: the cast could still, resulting in an invalid output).");
+
+		bool bCanTogglePurity = true;
+		auto CanExecutePurityToggle = [](bool const bCanTogglePurity)->bool
+		{
+			return bCanTogglePurity;
+		};
+
+		if (bIsPureCast)
+		{
+			MenuEntryTitle   = LOCTEXT("MakeImpureTitle",   "Convert to impure cast");
+			MenuEntryTooltip = LOCTEXT("MakeImpureTooltip", "Adds in branching execution pins so that you can separatly handle when the cast fails/succeeds.");
+		
+			const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+			check(K2Schema != nullptr);
+
+			bCanTogglePurity = K2Schema->DoesGraphSupportImpureFunctions(GetGraph());
+			if (!bCanTogglePurity)
+			{
+				MenuEntryTooltip = LOCTEXT("CannotMakeImpureTooltip", "This graph does not support impure calls (and you should therefore test the cast's result for validity).");
+			}
+		}
+		
+		Context.MenuBuilder->AddMenuEntry(
+			MenuEntryTitle,
+			MenuEntryTooltip,
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateUObject(this, &UK2Node_DynamicCast::TogglePurity),
+				FCanExecuteAction::CreateStatic(CanExecutePurityToggle, bCanTogglePurity),
+				FIsActionChecked()
+			)
+		);
+	}
+	Context.MenuBuilder->EndSection();
+}
+
 UEdGraphPin* UK2Node_DynamicCast::GetValidCastPin() const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UEdGraphPin* Pin = FindPin(K2Schema->PN_CastSucceeded);
-	check(Pin != NULL);
-	check(Pin->Direction == EGPD_Output);
+	check((Pin != nullptr) || bIsPureCast);
+	check((Pin == nullptr) || (Pin->Direction == EGPD_Output));
 	return Pin;
 }
 
@@ -96,8 +149,8 @@ UEdGraphPin* UK2Node_DynamicCast::GetInvalidCastPin() const
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	UEdGraphPin* Pin = FindPin(K2Schema->PN_CastFailed);
-	check(Pin != NULL);
-	check(Pin->Direction == EGPD_Output);
+	check((Pin != nullptr) || bIsPureCast);
+	check((Pin == nullptr) || (Pin->Direction == EGPD_Output));
 	return Pin;
 }
 
@@ -108,7 +161,7 @@ UEdGraphPin* UK2Node_DynamicCast::GetCastResultPin() const
 	if(TargetType != NULL)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FString PinName = K2Schema->PN_CastedValuePrefix + TargetType->GetName();
+		FString PinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
 		Pin = FindPin(PinName);
 	}
 		
@@ -123,6 +176,25 @@ UEdGraphPin* UK2Node_DynamicCast::GetCastSourcePin() const
 	check(Pin != NULL);
 	check(Pin->Direction == EGPD_Input);
 	return Pin;
+}
+
+void UK2Node_DynamicCast::SetPurity(bool bNewPurity)
+{
+	if (bNewPurity != bIsPureCast)
+	{
+		bIsPureCast = bNewPurity;
+
+		bool const bHasBeenConstructed = (Pins.Num() > 0);
+		if (bHasBeenConstructed)
+		{
+			ReconstructNode();
+		}
+	}
+}
+
+void UK2Node_DynamicCast::TogglePurity()
+{
+	SetPurity(!bIsPureCast);
 }
 
 UK2Node::ERedirectType UK2Node_DynamicCast::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
