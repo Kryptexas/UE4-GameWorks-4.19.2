@@ -11,8 +11,11 @@ class FAvfMediaTrack
 {
 public:
 
-    FAvfMediaTrack(){}
-    ~FAvfMediaTrack(){}
+	/** Default constructor. */
+    FAvfMediaTrack() { }
+
+	/** Destructor. */
+    ~FAvfMediaTrack() { }
 
 public:
 

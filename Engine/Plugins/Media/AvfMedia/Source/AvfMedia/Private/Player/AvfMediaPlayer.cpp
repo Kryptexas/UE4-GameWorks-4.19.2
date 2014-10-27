@@ -6,6 +6,7 @@
 #include "CocoaThread.h"
 #endif
 
+
 /* FAvfMediaPlayer structors
  *****************************************************************************/
 
@@ -169,7 +170,6 @@ bool FAvfMediaPlayer::IsReady() const
 /* FAvfMediaPlayer implementation
  *****************************************************************************/
 
-
 bool FAvfMediaPlayer::Open( const FString& Url )
 {
     // Cache off the url for use on other threads.
@@ -308,11 +308,6 @@ bool FAvfMediaPlayer::SetRate( float Rate )
 /* FTickerBase interface
  *****************************************************************************/
 
-bool FAvfMediaPlayer::ShouldAdvanceFrames() const
-{
-    return IsReady() && IsPlaying();
-}
-
 bool FAvfMediaPlayer::Tick( float DeltaTime )
 {
     if( ShouldAdvanceFrames() )
@@ -332,4 +327,13 @@ bool FAvfMediaPlayer::Tick( float DeltaTime )
 
     
     return true;
+}
+
+
+/* FAvfMediaPlayer implementation
+ *****************************************************************************/
+
+bool FAvfMediaPlayer::ShouldAdvanceFrames() const
+{
+    return IsReady() && IsPlaying();
 }

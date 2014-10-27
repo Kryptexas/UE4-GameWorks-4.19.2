@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "IMediaInfo.h"
+#include "IMediaPlayer.h"
+
 
 /**
  * Implements a media player using the Windows Media Foundation framework.
@@ -67,12 +70,13 @@ public:
 
     virtual bool Tick( float DeltaTime ) override;
 
+protected:
 
-private:
-
-    // FAVFMediaPlayer interface
-
-    /** Should the media player try and progress */
+    /**
+	 * Whether the media player should advance to the next frame.
+	 *
+	 * @return true if the player should advance, false otherwise.
+	 */
     bool ShouldAdvanceFrames() const;
 
 private:
