@@ -1865,8 +1865,17 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 
 		if ( !Package->IsFullyLoaded() )
 		{
-			// If this package isn't fully loaded, don't complain, assume it will fully load at some point
-			return NULL;
+			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
+			{
+				// If this package isn't fully loaded (and we are async loading here), don't complain, assume it will fully load at some point
+				return NULL;
+			}
+			else
+			{
+				// If package isn't fully loaded, flush async loading now
+				FlushAsyncLoading(); 
+				check( Package->IsFullyLoaded() );
+			}
 		}
 
 		if ( Package->GetGuid() != CacheObjectPtr->PackageGuid && CVarIgnorePackageMismatch.GetValueOnGameThread() == 0 )
