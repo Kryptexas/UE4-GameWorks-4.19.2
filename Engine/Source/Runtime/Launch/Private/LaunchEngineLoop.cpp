@@ -1203,6 +1203,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
 
+	InitializeSharedSamplerStates();
+
 	if (!FPlatformProperties::RequiresCookedData())
 	{
 		check(!GShaderCompilingManager);

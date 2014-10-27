@@ -1287,7 +1287,7 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 {
 	if (Texture || TextureObject.Expression)
 	{
-		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture);
+		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, SamplerSource);
 
 		UTexture* EffectiveTexture = Texture;
 		EMaterialSamplerType EffectiveSamplerType = (EMaterialSamplerType)SamplerType;
@@ -1328,7 +1328,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 				(EMaterialSamplerType)EffectiveSamplerType,
 				MipValue.Expression ? MipValue.Compile(Compiler) : Compiler->Constant(ConstMipValue),
-				MipValueMode
+				MipValueMode,
+				SamplerSource
 				);
 		}
 		else
@@ -1465,11 +1466,12 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 	}
 
 	return Compiler->TextureSample(
-					Compiler->TextureParameter(ParameterName, Texture),
+					Compiler->TextureParameter(ParameterName, Texture, SamplerSource),
 					Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 					(EMaterialSamplerType)SamplerType,
 					MipValue.Expression ? MipValue.Compile(Compiler) : Compiler->Constant(ConstMipValue),
-					MipValueMode
+					MipValueMode,
+					SamplerSource
 					);
 }
 

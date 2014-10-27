@@ -2093,7 +2093,14 @@ protected:
 				);
 		}
 
-	virtual int32 TextureSample(int32 TextureIndex,int32 CoordinateIndex,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None) override
+	virtual int32 TextureSample(
+		int32 TextureIndex,
+		int32 CoordinateIndex,
+		EMaterialSamplerType SamplerType,
+		int32 MipValueIndex=INDEX_NONE,
+		ETextureMipValueMode MipValueMode=TMVM_None,
+		ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
+		) override
 	{
 		if(TextureIndex == INDEX_NONE || CoordinateIndex == INDEX_NONE)
 		{
@@ -2131,6 +2138,23 @@ protected:
 			MipValueMode = TMVM_MipLevel;
 		}
 
+		FString SamplerStateCode;
+
+		if (SamplerSource == SSM_FromTextureAsset)
+		{
+			SamplerStateCode = TEXT("%sSampler");
+		}
+		else if (SamplerSource == SSM_Wrap_WorldGroupSettings)
+		{
+			// Use the shared sampler to save sampler slots
+			SamplerStateCode = TEXT("GetMaterialSharedSampler(%sSampler,Material.Wrap_WorldGroupSettings)");
+		}
+		else if (SamplerSource == SSM_Clamp_WorldGroupSettings)
+		{
+			// Use the shared sampler to save sampler slots
+			SamplerStateCode = TEXT("GetMaterialSharedSampler(%sSampler,Material.Clamp_WorldGroupSettings)");
+		}
+
 		FString SampleCode = 
 			(TextureType == MCT_TextureCube)
 			? TEXT("TextureCubeSample")
@@ -2138,7 +2162,7 @@ protected:
 	
 		if(MipValueMode == TMVM_None)
 		{
-			SampleCode += TEXT("(%s,%sSampler,%s)");
+			SampleCode += FString(TEXT("(%s,")) + SamplerStateCode + TEXT(",%s)");
 		}
 		else if(MipValueMode == TMVM_MipLevel)
 		{
@@ -2437,7 +2461,7 @@ protected:
 			);
 	}
 
-	virtual int32 Texture(UTexture* InTexture) override
+	virtual int32 Texture(UTexture* InTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2448,10 +2472,10 @@ protected:
 		EMaterialValueType ShaderType = InTexture->GetMaterialType();
 		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->Texture() without implementing UMaterialExpression::GetReferencedTexture properly"));
-		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex),ShaderType,TEXT(""));
+		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
-	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue) override
+	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2462,7 +2486,7 @@ protected:
 		EMaterialValueType ShaderType = DefaultValue->GetMaterialType();
 		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
-		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName,TextureReferenceIndex),ShaderType,TEXT(""));
+		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
 	virtual int32 StaticBool(bool bValue) override

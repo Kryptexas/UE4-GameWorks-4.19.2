@@ -265,8 +265,8 @@ public:
 
 	FMaterialUniformExpressionTextureParameter() {}
 
-	FMaterialUniformExpressionTextureParameter(FName InParameterName, int32 InTextureIndex) :
-		Super(InTextureIndex),
+	FMaterialUniformExpressionTextureParameter(FName InParameterName, int32 InTextureIndex, ESamplerSourceMode InSourceMode) :
+		Super(InTextureIndex, InSourceMode),
 		ParameterName(InParameterName)
 	{}
 
@@ -276,9 +276,10 @@ public:
 		Ar << ParameterName;
 		Super::Serialize(Ar);
 	}
-	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const
+	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue,ESamplerSourceMode& OutSamplerSource) const
 	{
 		check(IsInParallelRenderingThread());
+		OutSamplerSource = SamplerSource;
 		if( TransientOverrideValue_RenderThread != NULL )
 		{
 			OutValue = TransientOverrideValue_RenderThread;

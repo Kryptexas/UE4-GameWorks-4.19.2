@@ -292,3 +292,29 @@ FViewUniformShaderParameters::FViewUniformShaderParameters()
 	, DirectionalLightShadowSampler(TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI())
 {
 }
+
+void FSharedSamplerState::InitRHI()
+{
+	const float MipMapBias = UTexture2D::GetGlobalMipMapLODBias();
+
+	FSamplerStateInitializerRHI SamplerStateInitializer
+	(
+		GSystemSettings.TextureLODSettings.GetSamplerFilter(TEXTUREGROUP_World),
+		bWrap ? AM_Wrap : AM_Clamp,
+		bWrap ? AM_Wrap : AM_Clamp,
+		bWrap ? AM_Wrap : AM_Clamp,
+		MipMapBias
+	);
+	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
+}
+
+FSharedSamplerState* Wrap_WorldGroupSettings = NULL;
+FSharedSamplerState* Clamp_WorldGroupSettings = NULL;
+
+void InitializeSharedSamplerStates()
+{
+	Wrap_WorldGroupSettings = new FSharedSamplerState(true);
+	Clamp_WorldGroupSettings = new FSharedSamplerState(false);
+	BeginInitResource(Wrap_WorldGroupSettings);
+	BeginInitResource(Clamp_WorldGroupSettings);
+}

@@ -39,6 +39,15 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSample, meta=(DisplayName = "MipValueMode"))
 	TEnumAsByte<enum ETextureMipValueMode> MipValueMode;
 
+	/** 
+	 * Controls where the sampler for this texture lookup will come from.  
+	 * Choose 'from texture asset' to make use of the UTexture addressing settings,
+	 * Otherwise use one of the global samplers, which will not consume a sampler slot.
+	 * This allows materials to use more than 16 unique textures on SM5 platforms.
+	 */
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSample)
+	TEnumAsByte<enum ESamplerSourceMode> SamplerSource;
+
 	/** only used if Coordinates is not hooked up */
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
 	uint32 ConstCoordinate;

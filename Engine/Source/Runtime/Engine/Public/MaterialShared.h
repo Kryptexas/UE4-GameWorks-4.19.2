@@ -176,11 +176,11 @@ public:
 
 	FMaterialUniformExpressionTexture();
 
-	FMaterialUniformExpressionTexture(int32 InTextureIndex);
+	FMaterialUniformExpressionTexture(int32 InTextureIndex, ESamplerSourceMode InSamplerSource);
 
 	// FMaterialUniformExpression interface.
 	virtual void Serialize(FArchive& Ar);
-	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const;
+	virtual void GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue,ESamplerSourceMode& OutSamplerSource) const;
 	/** Accesses the texture used for rendering this uniform expression. */
 	virtual void GetGameThreadTextureValue(const class UMaterialInterface* MaterialInterface,const FMaterial& Material,UTexture*& OutValue,bool bAllowOverride=true) const;
 	virtual class FMaterialUniformExpressionTexture* GetTextureUniformExpression() { return this; }
@@ -197,6 +197,7 @@ public:
 protected:
 	/** Index into FMaterial::GetReferencedTextures */
 	int32 TextureIndex;
+	ESamplerSourceMode SamplerSource;
 	/** Texture that may be used in the editor for overriding the texture but never saved to disk, accessible only by the game thread! */
 	UTexture* TransientOverrideValue_GameThread;
 	/** Texture that may be used in the editor for overriding the texture but never saved to disk, accessible only by the rendering thread! */
@@ -1190,10 +1191,6 @@ struct FUniformExpressionCache
 	FUniformBufferRHIRef UniformBuffer;
 	/** Material uniform buffer. */
 	FLocalUniformBuffer LocalUniformBuffer;
-	/** Textures referenced by uniform expressions. */
-	TArray<const UTexture*> Textures;
-	/** Cube textures referenced by uniform expressions. */
-	TArray<const UTexture*> CubeTextures;
 	/** Ids of parameter collections needed for rendering. */
 	TArray<FGuid> ParameterCollections;
 	/** True if the cache is up to date. */

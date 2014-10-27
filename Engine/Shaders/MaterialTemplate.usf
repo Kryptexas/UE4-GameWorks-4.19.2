@@ -586,6 +586,18 @@ MaterialFloat ProcessMaterialLinearGreyscaleTextureLookup(MaterialFloat TextureV
 	return TextureValue;
 }
 
+/** Accesses a shared material sampler or falls back if independent samplers are not supported. */
+SamplerState GetMaterialSharedSampler(SamplerState TextureSampler, SamplerState SharedSampler)
+{
+#if SUPPORTS_INDEPENDENT_SAMPLERS
+	return SharedSampler;
+#else
+	// Note: to match behavior on platforms that don't support SUPPORTS_INDEPENDENT_SAMPLERS, 
+	// TextureSampler should have been set to the same sampler.  This is not currently done.
+	return TextureSampler;
+#endif
+}
+
 /** Calculate a reflection vector about the specified world space normal. Optionally normalize this normal **/
 MaterialFloat3 ReflectionAboutCustomWorldNormal(FMaterialPixelParameters Parameters, MaterialFloat3 WorldNormal, bool bNormalizeInputNormal)
 {

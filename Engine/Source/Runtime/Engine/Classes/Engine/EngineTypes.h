@@ -89,6 +89,17 @@ enum EBlendMode
 };
 
 UENUM()
+enum ESamplerSourceMode
+{
+	/** Get the sampler from the texture.  Every unique texture will consume a sampler slot, which are limited in number. */
+	SSM_FromTextureAsset UMETA(DisplayName="From texture asset"),
+	/** Shared sampler source that does not consume a sampler slot.  Uses wrap addressing and gets filter mode from the world texture group. */
+	SSM_Wrap_WorldGroupSettings UMETA(DisplayName="Shared: Wrap"),
+	/** Shared sampler source that does not consume a sampler slot.  Uses clamp addressing and gets filter mode from the world texture group. */
+	SSM_Clamp_WorldGroupSettings UMETA(DisplayName="Shared: Clamp")
+};
+
+UENUM()
 enum ETranslucencyLightingMode
 {
 	/** 

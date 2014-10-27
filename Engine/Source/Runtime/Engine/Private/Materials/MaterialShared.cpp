@@ -1563,24 +1563,6 @@ void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& O
 	// Create and cache the material's uniform buffer.
 	OutUniformExpressionCache.UniformBuffer = UniformExpressionSet.CreateUniformBuffer(Context, CommandListIfLocalMode, &OutUniformExpressionCache.LocalUniformBuffer);
 
-	// Cache 2D texture uniform expressions.
-	OutUniformExpressionCache.Textures.Empty(UniformExpressionSet.Uniform2DTextureExpressions.Num());
-	for(int32 ExpressionIndex = 0;ExpressionIndex < UniformExpressionSet.Uniform2DTextureExpressions.Num();ExpressionIndex++)
-	{
-		const UTexture* Value;
-		UniformExpressionSet.Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(Context,Context.Material,Value);
-		OutUniformExpressionCache.Textures.Add(Value);
-	}
-
-	// Cache cube texture uniform expressions.
-	OutUniformExpressionCache.CubeTextures.Empty(UniformExpressionSet.UniformCubeTextureExpressions.Num());
-	for(int32 ExpressionIndex = 0;ExpressionIndex < UniformExpressionSet.UniformCubeTextureExpressions.Num();ExpressionIndex++)
-	{
-		const UTexture* Value;
-		UniformExpressionSet.UniformCubeTextureExpressions[ExpressionIndex]->GetTextureValue(Context,Context.Material,Value);
-		OutUniformExpressionCache.CubeTextures.Add(Value);
-	}
-
 	OutUniformExpressionCache.ParameterCollections = UniformExpressionSet.ParameterCollections;
 
 	OutUniformExpressionCache.bUpToDate = true;

@@ -319,3 +319,8 @@ ESamplerFilter FTextureLODSettings::GetSamplerFilter( const UTexture* Texture ) 
 
 	return Filter;
 }
+
+ESamplerFilter FTextureLODSettings::GetSamplerFilter( int32 InLODGroup) const
+{
+	return TextureLODGroups[InLODGroup].Filter;
+}

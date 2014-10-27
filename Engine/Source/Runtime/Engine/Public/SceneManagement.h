@@ -1831,3 +1831,30 @@ int8 ENGINE_API ComputeStaticMeshLOD(const FStaticMeshRenderData* RenderData, co
  * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
  */
 int8 ENGINE_API ComputeLODForMeshes(const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale = 1.0f);
+
+class FSharedSamplerState : public FRenderResource
+{
+public:
+	FSamplerStateRHIRef SamplerStateRHI;
+	bool bWrap;
+
+	FSharedSamplerState(bool bInWrap) :
+		bWrap(bInWrap)
+	{}
+
+	virtual void InitRHI() override;
+
+	virtual void ReleaseRHI() override
+	{
+		SamplerStateRHI.SafeRelease();
+	}
+};
+
+/** Sampler state using Wrap addressing and taking filter mode from the world texture group. */
+extern ENGINE_API FSharedSamplerState* Wrap_WorldGroupSettings;
+
+/** Sampler state using Clamp addressing and taking filter mode from the world texture group. */
+extern ENGINE_API FSharedSamplerState* Clamp_WorldGroupSettings;
+
+/** Initializes the shared sampler states. */
+extern ENGINE_API void InitializeSharedSamplerStates();

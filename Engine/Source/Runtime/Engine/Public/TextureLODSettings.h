@@ -83,6 +83,8 @@ struct FTextureLODSettings
 	 */
 	ENGINE_API ESamplerFilter GetSamplerFilter( const UTexture* Texture ) const;
 
+	ENGINE_API ESamplerFilter GetSamplerFilter( int32 InLODGroup) const;
+
 	/**
 	 * Returns the LODGroup mip gen settings
 	 *
