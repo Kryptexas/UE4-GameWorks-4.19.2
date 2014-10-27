@@ -253,6 +253,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	AvoidanceGroup.bGroup0 = true;
 	GroupsToAvoid.Packed = 0xFFFFFFFF;
 	GroupsToIgnore.Packed = 0;
+	AvoidanceConsiderationRadius = 500.0f;
 
 	OldBaseQuat = FQuat::Identity;
 	OldBaseLocation = FVector::ZeroVector;
@@ -2314,12 +2315,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 		}
 		else
 		{
-			FNavAvoidanceData CurrentData;
-			CurrentData.Init(AvoidanceManager, GetActorFeetLocation(),
-				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight(),
-				Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
-
-			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityIgnoringUID(CurrentData, AvoidanceManager->DeltaTimeToPredict, AvoidanceUID);
+			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityForComponent(this);
 			if (bUseRVOPostProcess)
 			{
 				PostProcessAvoidanceVelocity(NewVelocity);
@@ -2350,9 +2346,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 			}
 		}
 		//RickH - We might do better to do this later in our update
-		AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorFeetLocation(),
-			OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight() * 2.0f,
-			Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
+		AvoidanceManager->UpdateRVO(this);
 
 		bWasAvoidanceUpdated = true;
 	}
@@ -2389,9 +2383,7 @@ void UCharacterMovementComponent::UpdateDefaultAvoidance()
 	{
 		if (UCapsuleComponent *OurCapsule = GetCharacterOwner()->GetCapsuleComponent())
 		{
-			AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorFeetLocation(),
-				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight() * 2.0f,
-				Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
+			AvoidanceManager->UpdateRVO(this);
 
 			//Consider this a clean move because we didn't even try to avoid.
 			SetAvoidanceVelocityLock(AvoidanceManager, AvoidanceManager->LockTimeAfterClean);
@@ -2399,6 +2391,68 @@ void UCharacterMovementComponent::UpdateDefaultAvoidance()
 	}
 
 	bWasAvoidanceUpdated = false;		//Reset for next frame
+}
+
+void UCharacterMovementComponent::SetRVOAvoidanceUID(int32 UID)
+{
+	AvoidanceUID = UID;
+}
+
+int32 UCharacterMovementComponent::GetRVOAvoidanceUID()
+{
+	return AvoidanceUID;
+}
+
+void UCharacterMovementComponent::SetRVOAvoidanceWeight(float Weight)
+{
+	AvoidanceWeight = Weight;
+}
+
+float UCharacterMovementComponent::GetRVOAvoidanceWeight()
+{
+	return AvoidanceWeight;
+}
+
+FVector UCharacterMovementComponent::GetRVOAvoidanceOrigin()
+{
+	return GetActorFeetLocation();
+}
+
+float UCharacterMovementComponent::GetRVOAvoidanceRadius()
+{
+	UCapsuleComponent* CapsuleComp = GetCharacterOwner()->GetCapsuleComponent();
+	return CapsuleComp ? CapsuleComp->GetScaledCapsuleRadius() : 0.0f;
+}
+
+float UCharacterMovementComponent::GetRVOAvoidanceConsiderationRadius()
+{
+	return AvoidanceConsiderationRadius;
+}
+
+float UCharacterMovementComponent::GetRVOAvoidanceHeight()
+{
+	UCapsuleComponent* CapsuleComp = GetCharacterOwner()->GetCapsuleComponent();
+	return CapsuleComp ? CapsuleComp->GetScaledCapsuleHalfHeight() : 0.0f;
+}
+
+FVector UCharacterMovementComponent::GetVelocityForRVOConsideration()
+{
+	return Velocity;
+}
+
+int32 UCharacterMovementComponent::GetAvoidanceGroupMask()
+{
+	return AvoidanceGroup.Packed;
+}
+
+int32 UCharacterMovementComponent::GetGroupsToAvoidMask()
+{
+	return GroupsToAvoid.Packed;
+}
+
+int32 UCharacterMovementComponent::GetGroupsToIgnoreMask()
+{
+	return GroupsToIgnore.Packed;
 }
 
 void UCharacterMovementComponent::SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration)

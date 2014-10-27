@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AI/RVOAvoidanceInterface.h"
 #include "AvoidanceManager.generated.h"
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Avoidance Time"),STAT_AI_ObstacleAvoidance,STATGROUP_AI, );
+
+class UAvoidanceManager;
 
 USTRUCT()
 struct FNavAvoidanceData
@@ -40,9 +43,17 @@ struct FNavAvoidanceData
 	/** Do NOT avoid agents is they belong to one of specified groups, takes priority over GroupsToAvoid */
 	int32 GroupsToIgnore;
 
+	/** Radius of the area to consider for avoidance */
+	float TestRadius2D;
+
+	FNavAvoidanceData() {}
+	FNavAvoidanceData(UAvoidanceManager* Manager, IRVOAvoidanceInterface* AvoidanceComp);
+
 	/** Init function for internal use to guard against data changes not being reflected in blueprint-accessible creation functions */
 	void Init(class UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
-		const FVector& InVelocity, float InWeight, int32 InGroupMask, int32 InGroupsToAvoid, int32 InGroupsToIgnore);
+		const FVector& InVelocity, float InWeight = 0.5f,
+		int32 InGroupMask = 1, int32 InGroupsToAvoid = 0xffffffff, int32 InGroupsToIgnore = 0,
+		float InTestRadius2D = 500.0f);
 
 	FORCEINLINE bool ShouldBeIgnored() const
 	{
@@ -85,10 +96,6 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	UPROPERTY(EditAnywhere, Category="Avoidance", config, meta=(ClampMin = "0.0"))
 	float ArtificialRadiusExpansion;
 
-	/** Test against obstacles within given radius from moving agent */
-	UPROPERTY(EditAnywhere, Category="Avoidance", config, meta=(ClampMin = "0.0"))
-	float TestRadius2D;
-
 	/** Test against obstacles within given height difference from moving agent */
 	UPROPERTY(EditAnywhere, Category="Avoidance", config, meta=(ClampMin = "0.0"))
 	float TestHeightDifference;
@@ -105,11 +112,15 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	 *  @param AvoidanceWeight	When avoiding each other, actors divert course in proportion to their relative weights. Range is 0.0 to 1.0. Special: at 1.0, actor will not divert course at all.
 	 */
 	UFUNCTION(BlueprintCallable, Category="AI")
-	bool RegisterMovementComponent(class UCharacterMovementComponent* MovementComp, float AvoidanceWeight = 0.5f);
+	bool RegisterMovementComponent(class UMovementComponent* MovementComp, float AvoidanceWeight = 0.5f);
 
 	/** Get your latest data. */
 	FNavAvoidanceData* GetAvoidanceObjectForUID(int32 AvoidanceUID) { return AvoidanceObjects.Find(AvoidanceUID); }
 	const FNavAvoidanceData* GetAvoidanceObjectForUID(int32 AvoidanceUID) const { return AvoidanceObjects.Find(AvoidanceUID); }
+
+	/** Calculate avoidance velocity for component (avoids collisions with the supplied component) */
+	UFUNCTION(BlueprintCallable, Category="AI")
+	FVector GetAvoidanceVelocityForComponent(UMovementComponent* MovementComp);
 
 	/** Only use if you want manual velocity planning. Provide your AvoidanceUID in order to avoid colliding with yourself. */
 	UFUNCTION(BlueprintCallable, Category="AI")
@@ -119,8 +130,8 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	UFUNCTION(BlueprintCallable, Category="AI")
 	FVector GetAvoidanceVelocity(const FNavAvoidanceData& AvoidanceData, float DeltaTime);
 
-	/** Inform the avoidance manager of your current information, using the ID you were given as a key. */
-	void UpdateRVO(int32 AvoidanceUID, FVector Center, float Radius, float Height, FVector Velocity, float Weight = 0.5f, int32 GroupMask = 1, int32 AvoidMask = 0xFFFFFFFF, int32 IgnoreMask = 0);
+	/** Update the RVO avoidance data for the participating UMovementComponent */
+	void UpdateRVO(UMovementComponent* MovementComp);
 
 	/** For Duration seconds, set this object to ignore all others. */
 	void OverrideToMaxWeight(int32 AvoidanceUID, float Duration);

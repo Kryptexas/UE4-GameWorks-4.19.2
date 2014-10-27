@@ -107,7 +107,18 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	SteeringInputRate.RiseRate = 2.5f;
 	SteeringInputRate.FallRate = 5.0f;
 
-
+	bUseRVOAvoidance = false;
+	AvoidanceVelocity = FVector::ZeroVector;
+	AvoidanceLockVelocity = FVector::ZeroVector;
+	AvoidanceLockTimer = 0.0f;
+	AvoidanceGroup.bGroup0 = true;
+	GroupsToAvoid.Packed = 0xFFFFFFFF;
+	GroupsToIgnore.Packed = 0;
+	RVOAvoidanceRadius = 400.0f;
+	RVOAvoidanceHeight = 200.0f;
+	AvoidanceConsiderationRadius = 2000.0f;
+	RVOSteeringStep = 0.5f;
+	RVOThrottleStep = 0.25f;
 
 #if WITH_VEHICLE
 	// tire load filtering
@@ -479,6 +490,14 @@ void UWheeledVehicleMovementComponent::GenerateTireForces( UVehicleWheel* Wheel,
 
 void UWheeledVehicleMovementComponent::PostSetupVehicle()
 {
+	if (bUseRVOAvoidance)
+	{
+		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+		if (AvoidanceManager)
+		{
+			AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
+		}
+	}
 }
 
 FVector UWheeledVehicleMovementComponent::GetWheelRestingPosition( const FWheelSetup& WheelSetup )
@@ -664,6 +683,11 @@ void UWheeledVehicleMovementComponent::DestroyWheels()
 
 void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 {
+	if (AvoidanceLockTimer > 0.0f)
+	{
+		AvoidanceLockTimer -= DeltaTime;
+	}
+
 	// movement updates and replication
 	if (PVehicle && UpdatedComponent)
 	{
@@ -725,6 +749,39 @@ void UWheeledVehicleMovementComponent::UpdateSimulation( float DeltaTime )
 
 #endif // WITH_VEHICLE
 
+void UWheeledVehicleMovementComponent::UpdateAvoidance(float DeltaTime)
+{
+	UpdateDefaultAvoidance();
+}
+
+void UWheeledVehicleMovementComponent::UpdateDefaultAvoidance()
+{
+	if (!bUseRVOAvoidance)
+	{
+		return;
+	}
+
+	SCOPE_CYCLE_COUNTER(STAT_AI_ObstacleAvoidance);
+
+	UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+	if (AvoidanceManager && !bWasAvoidanceUpdated)
+	{
+		AvoidanceManager->UpdateRVO(this);
+		
+		//Consider this a clean move because we didn't even try to avoid.
+		SetAvoidanceVelocityLock(AvoidanceManager, AvoidanceManager->LockTimeAfterClean);
+	}
+
+	bWasAvoidanceUpdated = false;		//Reset for next frame
+}
+
+void UWheeledVehicleMovementComponent::SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration)
+{
+	Avoidance->OverrideToMaxWeight(AvoidanceUID, Duration);
+	AvoidanceLockVelocity = AvoidanceVelocity;
+	AvoidanceLockTimer = Duration;
+}
+
 void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 {
 	// update input values
@@ -744,6 +801,12 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 			}
 		}
 		
+		if (bUseRVOAvoidance)
+		{
+			CalculateAvoidanceVelocity(DeltaTime);
+			UpdateAvoidance(DeltaTime);
+		}
+
 		SteeringInput = SteeringInputRate.InterpInputValue(DeltaTime, SteeringInput, CalcSteeringInput());
 		ThrottleInput = ThrottleInputRate.InterpInputValue( DeltaTime, ThrottleInput, CalcThrottleInput() );
 		BrakeInput = BrakeInputRate.InterpInputValue(DeltaTime, BrakeInput, CalcBrakeInput());
@@ -790,6 +853,19 @@ void UWheeledVehicleMovementComponent::ServerUpdateState_Implementation(float In
 
 float UWheeledVehicleMovementComponent::CalcSteeringInput()
 {
+	if (bUseRVOAvoidance)
+	{
+		const float AngleDiff = AvoidanceVelocity.HeadingAngle() - GetVelocityForRVOConsideration().HeadingAngle();
+		if (AngleDiff > 0.0f)
+		{
+			RawSteeringInput = FMath::Clamp(RawSteeringInput + RVOSteeringStep, 0.0f, 1.0f);
+		}
+		else if (AngleDiff < 0.0f)
+		{
+			RawSteeringInput = FMath::Clamp(RawSteeringInput - RVOSteeringStep, -1.0f, 0.0f);
+		}
+	}
+
 	return RawSteeringInput;
 }
 
@@ -843,6 +919,21 @@ float UWheeledVehicleMovementComponent::CalcHandbrakeInput()
 
 float UWheeledVehicleMovementComponent::CalcThrottleInput()
 {
+	if (bUseRVOAvoidance)
+	{
+		const float AvoidanceSpeedSq = AvoidanceVelocity.SizeSquared();
+		const float DesiredSpeedSq = GetVelocityForRVOConsideration().SizeSquared();
+
+		if (AvoidanceSpeedSq > DesiredSpeedSq)
+		{
+			RawThrottleInput = FMath::Clamp(RawThrottleInput + RVOThrottleStep, -1.0f, 1.0f);
+		}
+		else if (AvoidanceSpeedSq < DesiredSpeedSq)
+		{
+			RawThrottleInput = FMath::Clamp(RawThrottleInput - RVOThrottleStep, -1.0f, 1.0f);
+		}		
+	}
+
 	//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
 	if ( (RawThrottleInput > 0.f && GetTargetGear() < 0) || (RawThrottleInput < 0.f && GetTargetGear() > 0)) 
 	{
@@ -1387,6 +1478,178 @@ void UWheeledVehicleMovementComponent::ComputeConstants()
 {
 	DragArea = ChassisWidth * ChassisHeight;
 	MaxEngineRPM = 5000.f;
+}
+
+void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTime)
+{
+	if (!bUseRVOAvoidance)
+	{
+		return;
+	}
+	
+	SCOPE_CYCLE_COUNTER(STAT_AI_ObstacleAvoidance);
+	
+	UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
+	
+	if (AvoidanceWeight >= 1.0f || AvoidanceManager == NULL || MyOwner == NULL)
+	{
+		return;
+	}
+	
+	if (MyOwner->Role != ROLE_Authority)
+	{	
+		return;
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const bool bShowDebug = AvoidanceManager->IsDebugEnabled(AvoidanceUID);
+#endif
+
+	// since we don't assign the avoidance velocity but instead use it to adjust steering and throttle,
+	// always reset the avoidance velocity to the current velocity
+	AvoidanceVelocity = GetVelocityForRVOConsideration();
+
+	if (!AvoidanceVelocity.IsZero())
+	{
+		//See if we're doing a locked avoidance move already, and if so, skip the testing and just do the move.
+		if (AvoidanceLockTimer > 0.0f)
+		{
+			AvoidanceVelocity = AvoidanceLockVelocity;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (bShowDebug)
+			{
+				DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + AvoidanceVelocity, FColor(0, 0, 255), true, 0.5f, SDPG_MAX);
+			}
+#endif
+		}
+		else
+		{
+			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityForComponent(this);
+			if (!NewVelocity.Equals(AvoidanceVelocity))		//Really want to branch hint that this will probably not pass
+			{
+				//Had to divert course, lock this avoidance move in for a short time. This will make us a VO, so unlocked others will know to avoid us.
+				AvoidanceVelocity = NewVelocity;
+				SetAvoidanceVelocityLock(AvoidanceManager, AvoidanceManager->LockTimeAfterAvoid);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if (bShowDebug)
+				{
+					DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + AvoidanceVelocity, FColor(255, 0, 0), true, 20.0f, SDPG_MAX, 10.0f);
+				}
+#endif
+			}
+			else
+			{
+				//Although we didn't divert course, our velocity for this frame is decided. We will not reciprocate anything further, so treat as a VO for the remainder of this frame.
+				SetAvoidanceVelocityLock(AvoidanceManager, AvoidanceManager->LockTimeAfterClean);	//10 ms of lock time should be adequate.
+			}
+		}
+
+		AvoidanceManager->UpdateRVO(this);
+		bWasAvoidanceUpdated = true;
+	}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	else if (bShowDebug)
+	{
+		DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + GetVelocityForRVOConsideration(), FColor(255, 255, 0), true, 0.05f, SDPG_MAX);
+	}
+
+	if (bShowDebug)
+	{
+		FVector UpLine(0, 0, 500);
+		DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor(255, 0, 0) : FColor(0, 0, 255), true, 0.05f, SDPG_MAX, 5.0f);
+	}
+#endif
+}
+
+void UWheeledVehicleMovementComponent::SetAvoidanceGroup(int32 GroupFlags)
+{
+	AvoidanceGroup.SetFlagsDirectly(GroupFlags);
+}
+
+void UWheeledVehicleMovementComponent::SetGroupsToAvoid(int32 GroupFlags)
+{
+	GroupsToAvoid.SetFlagsDirectly(GroupFlags);
+}
+
+void UWheeledVehicleMovementComponent::SetGroupsToIgnore(int32 GroupFlags)
+{
+	GroupsToIgnore.SetFlagsDirectly(GroupFlags);
+}
+
+void UWheeledVehicleMovementComponent::SetAvoidanceEnabled(bool bEnable)
+{
+	if (bUseRVOAvoidance != bEnable)
+	{
+		bUseRVOAvoidance = bEnable;
+		
+		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+		if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+		{
+			AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
+		}
+	}
+}
+
+
+void UWheeledVehicleMovementComponent::SetRVOAvoidanceUID(int32 UID)
+{
+	AvoidanceUID = UID;
+}
+
+int32 UWheeledVehicleMovementComponent::GetRVOAvoidanceUID()
+{
+	return AvoidanceUID;
+}
+
+void UWheeledVehicleMovementComponent::SetRVOAvoidanceWeight(float Weight)
+{
+	AvoidanceWeight = Weight;
+}
+
+float UWheeledVehicleMovementComponent::GetRVOAvoidanceWeight()
+{
+	return AvoidanceWeight;
+}
+
+FVector UWheeledVehicleMovementComponent::GetRVOAvoidanceOrigin()
+{
+	return UpdatedComponent->GetComponentLocation();
+}
+
+float UWheeledVehicleMovementComponent::GetRVOAvoidanceRadius()
+{
+	return RVOAvoidanceRadius;
+}
+
+float UWheeledVehicleMovementComponent::GetRVOAvoidanceHeight()
+{
+	return RVOAvoidanceHeight;
+}
+
+float UWheeledVehicleMovementComponent::GetRVOAvoidanceConsiderationRadius()
+{
+	return AvoidanceConsiderationRadius;
+}
+
+FVector UWheeledVehicleMovementComponent::GetVelocityForRVOConsideration()
+{
+	return UpdatedComponent->GetComponentVelocity();
+}
+
+int32 UWheeledVehicleMovementComponent::GetAvoidanceGroupMask()
+{
+	return AvoidanceGroup.Packed;
+}
+
+int32 UWheeledVehicleMovementComponent::GetGroupsToAvoidMask()
+{
+	return GroupsToAvoid.Packed;
+}
+
+int32 UWheeledVehicleMovementComponent::GetGroupsToIgnoreMask()
+{
+	return GroupsToIgnore.Packed;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -2,13 +2,29 @@
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/AvoidanceManager.h"
-#include "GameFramework/Character.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "AI/RVOAvoidanceInterface.h"
 
 DEFINE_STAT(STAT_AI_ObstacleAvoidance);
 
+FNavAvoidanceData::FNavAvoidanceData(UAvoidanceManager* Manager, IRVOAvoidanceInterface* AvoidanceComp)
+{
+	Init(Manager,
+		AvoidanceComp->GetRVOAvoidanceOrigin(),
+		AvoidanceComp->GetRVOAvoidanceRadius(),
+		AvoidanceComp->GetRVOAvoidanceHeight(),
+		AvoidanceComp->GetVelocityForRVOConsideration(),
+		AvoidanceComp->GetRVOAvoidanceWeight(),
+		AvoidanceComp->GetAvoidanceGroupMask(),
+		AvoidanceComp->GetGroupsToAvoidMask(),
+		AvoidanceComp->GetGroupsToIgnoreMask(),
+		AvoidanceComp->GetRVOAvoidanceConsiderationRadius()
+		);
+}
+
 void FNavAvoidanceData::Init(class UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
-							 const FVector& InVelocity, float InWeight, int32 InGroupMask, int32 InGroupsToAvoid, int32 InGroupsToIgnore)
+							 const FVector& InVelocity, float InWeight,
+							 int32 InGroupMask, int32 InGroupsToAvoid, int32 InGroupsToIgnore,
+							 float InTestRadius2D)
 {
 	Center = InCenter;
 	Velocity = InVelocity;
@@ -20,6 +36,7 @@ void FNavAvoidanceData::Init(class UAvoidanceManager* Avoidance, const FVector& 
 	GroupsToIgnore = InGroupsToIgnore;
 	OverrideWeightTime = 0.0f;
 	RemainingTimeToLive = Avoidance->DefaultTimeToLive;
+	TestRadius2D = InTestRadius2D;
 
 	//RickH - This is kind of a hack, but ultimately this is going to be a 2D solution with 3D culling/broad-phase anyway.
 	Velocity.Z = 0.0f;
@@ -36,7 +53,6 @@ UAvoidanceManager::UAvoidanceManager(const FObjectInitializer& ObjectInitializer
 	LockTimeAfterClean = 0.01f;
 	DeltaTimeToPredict = 0.5f;
 	ArtificialRadiusExpansion = 1.5f;
-	TestRadius2D = 500.0f;
 	TestHeightDifference = 500.0f;
 	bRequestedUpdateTimer = false;
 
@@ -111,26 +127,34 @@ int32 UAvoidanceManager::GetNewAvoidanceUID()
 	return NewUID;
 }
 
-bool UAvoidanceManager::RegisterMovementComponent(UCharacterMovementComponent* MovementComp, float AvoidanceWeight)
+bool UAvoidanceManager::RegisterMovementComponent(UMovementComponent* MovementComp, float AvoidanceWeight)
 {
-	if (MovementComp && MovementComp->GetCharacterOwner())
+	if (IRVOAvoidanceInterface* AvoidingComp = Cast<IRVOAvoidanceInterface>(MovementComp))
 	{
-		if (UCapsuleComponent *OurCapsule = MovementComp->GetCharacterOwner()->GetCapsuleComponent())
-		{
-			const int32 NewAvoidanceUID = GetNewAvoidanceUID();
-			MovementComp->AvoidanceUID = NewAvoidanceUID;
-			MovementComp->AvoidanceWeight = AvoidanceWeight;
+		const int32 NewAvoidanceUID = GetNewAvoidanceUID();
+		AvoidingComp->SetRVOAvoidanceUID(NewAvoidanceUID);
+		AvoidingComp->SetRVOAvoidanceWeight(AvoidanceWeight);
 
-			RequestUpdateTimer();
-			UpdateRVO(NewAvoidanceUID, MovementComp->GetActorFeetLocation(),
-				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight(),
-				MovementComp->Velocity, AvoidanceWeight,
-				MovementComp->AvoidanceGroup.Packed, MovementComp->GroupsToAvoid.Packed, MovementComp->GroupsToIgnore.Packed);
+		RequestUpdateTimer();
 
-			return true;
-		}
+		FNavAvoidanceData AvoidanceData(this, AvoidingComp);
+		UpdateRVO_Internal(AvoidingComp->GetRVOAvoidanceUID(), AvoidanceData);
+
+		return true;
 	}
+
 	return false;
+}
+
+FVector UAvoidanceManager::GetAvoidanceVelocityForComponent(UMovementComponent* MovementComp)
+{
+	if (IRVOAvoidanceInterface* AvoidingComp = Cast<IRVOAvoidanceInterface>(MovementComp))
+	{
+		FNavAvoidanceData AvoidanceData(this, AvoidingComp);
+		return GetAvoidanceVelocityIgnoringUID(AvoidanceData, DeltaTimeToPredict, AvoidingComp->GetRVOAvoidanceUID());
+	}
+
+	return FVector::ZeroVector;
 }
 
 FVector UAvoidanceManager::GetAvoidanceVelocityIgnoringUID(const FNavAvoidanceData& inAvoidanceData, float DeltaTime, int32 inIgnoreThisUID)
@@ -143,12 +167,13 @@ FVector UAvoidanceManager::GetAvoidanceVelocity(const FNavAvoidanceData& inAvoid
 	return GetAvoidanceVelocity_Internal(inAvoidanceData, DeltaTime);
 }
 
-void UAvoidanceManager::UpdateRVO(int32 inAvoidanceUID, FVector inCenter, float inRadius, float inHeight, FVector inVelocity, float inWeight, int32 GroupMask, int32 AvoidMask, int32 IgnoreMask)
+void UAvoidanceManager::UpdateRVO(UMovementComponent* MovementComp)
 {
-	FNavAvoidanceData NewAvoidanceData;
-	NewAvoidanceData.Init(this, inCenter, inRadius, inHeight, inVelocity, inWeight, GroupMask, AvoidMask, IgnoreMask);
-
-	UpdateRVO_Internal(inAvoidanceUID, NewAvoidanceData);
+	if (IRVOAvoidanceInterface* AvoidingComp = Cast<IRVOAvoidanceInterface>(MovementComp))
+	{
+		FNavAvoidanceData NewAvoidanceData(this, AvoidingComp);
+		UpdateRVO_Internal(AvoidingComp->GetRVOAvoidanceUID(), NewAvoidanceData);
+	}
 }
 
 void UAvoidanceManager::UpdateRVO_Internal(int32 inAvoidanceUID, const FNavAvoidanceData& inAvoidanceData)
@@ -301,7 +326,7 @@ FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData
 
 		//RickH - We should have a max-radius parameter/option here, so I'm just going to hardcode one for now.
 		//if ((OtherObject.Radius + _AvoidanceData.Radius + MaxSpeed + OtherObject.Velocity.Size2D()) < FVector::Dist(OtherObject.Center, _AvoidanceData.Center))
-		if (FVector2D(OtherObject.Center - inAvoidanceData.Center).SizeSquared() > FMath::Square(TestRadius2D))
+		if (FVector2D(OtherObject.Center - inAvoidanceData.Center).SizeSquared() > FMath::Square(inAvoidanceData.TestRadius2D))
 		{
 			continue;
 		}

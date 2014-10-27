@@ -2,6 +2,7 @@
 
 #pragma once
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "AI/RVOAvoidanceInterface.h"
 #include "Animation/AnimationAsset.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
@@ -122,7 +123,7 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
  */
 
 UCLASS()
-class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
+class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public IRVOAvoidanceInterface, public INetworkPredictionInterface
 {
 	GENERATED_BODY()
 public:
@@ -622,6 +623,9 @@ public:
 	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
 	uint32 bUseRVOAvoidance:1;
 
+	UPROPERTY(Category="Avoidance", EditAnywhere, BlueprintReadOnly)
+	float AvoidanceConsiderationRadius;
+	
 	/**
 	 * Should use acceleration for path following?
 	 * If true, acceleration is applied when path following to reach the target velocity.
@@ -1643,6 +1647,21 @@ protected:
 
 	/** lock avoidance velocity */
 	void SetAvoidanceVelocityLock(class UAvoidanceManager* Avoidance, float Duration);
+
+	/** BEGIN IRVOAvoidanceInterface */
+	virtual void SetRVOAvoidanceUID(int32 UID) override;
+	virtual int32 GetRVOAvoidanceUID() override;
+	virtual void SetRVOAvoidanceWeight(float Weight) override;
+	virtual float GetRVOAvoidanceWeight() override;
+	virtual FVector GetRVOAvoidanceOrigin() override;
+	virtual float GetRVOAvoidanceRadius() override;
+	virtual float GetRVOAvoidanceHeight() override;
+	virtual float GetRVOAvoidanceConsiderationRadius() override;
+	virtual FVector GetVelocityForRVOConsideration() override;
+	virtual int32 GetAvoidanceGroupMask() override;
+	virtual int32 GetGroupsToAvoidMask() override;
+	virtual int32 GetGroupsToIgnoreMask() override;
+	/** END IRVOAvoidanceInterface */
 
 public:
 

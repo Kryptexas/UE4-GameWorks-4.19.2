@@ -8,8 +8,14 @@
 #include "AI/Navigation/NavPathObserverInterface.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
+#include "AI/RVOAvoidanceInterface.h"
 
 uint32 INavLinkCustomInterface::NextUniqueId = 1;
+
+URVOAvoidanceInterface::URVOAvoidanceInterface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
 
 UNavAgentInterface::UNavAgentInterface(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -32,7 +38,7 @@ UNavLinkHostInterface::UNavLinkHostInterface(const FObjectInitializer& ObjectIni
 }
 
 UNavLinkCustomInterface::UNavLinkCustomInterface(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
