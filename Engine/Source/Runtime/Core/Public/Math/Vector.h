@@ -852,6 +852,22 @@ public:
 	static CORE_API float EvaluateBezier(const FVector* ControlPoints, int32 NumPoints, TArray<FVector>& OutPoints);
 
 	/**
+	 * Converts a vector containing radian values to a vector containing degree values.
+	 *
+	 * @param RadVector	Vector containing radian values
+	 * @return Vector  containing degree values
+	 */
+	static FVector RadiansToDegrees(const FVector& RadVector);
+
+	/**
+	 * Converts a vector containing degree values to a vector containing radian values.
+	 *
+	 * @param DegVector	Vector containing degree values
+	 * @return Vector containing radian values
+	 */
+	static FVector DegreesToRadians(const FVector& DegVector);
+
+	/**
 	 * Given a current set of cluster centers, a set of points, iterate N times to move clusters to be central. 
 	 *
 	 * @param Clusters Reference to array of Clusters.
@@ -1100,6 +1116,16 @@ inline float FVector::Triple( const FVector& X, const FVector& Y, const FVector&
 	(	(X.X * (Y.Y * Z.Z - Y.Z * Z.Y))
 	+	(X.Y * (Y.Z * Z.X - Y.X * Z.Z))
 	+	(X.Z * (Y.X * Z.Y - Y.Y * Z.X)) );
+}
+
+inline FVector FVector::RadiansToDegrees(const FVector& RadVector)
+{
+	return RadVector * (180.f / PI);
+}
+
+inline FVector FVector::DegreesToRadians(const FVector& DegVector)
+{
+	return DegVector * (PI / 180.f);
 }
 
 FORCEINLINE FVector::FVector()

@@ -301,7 +301,13 @@ struct FMath : public FPlatformMath
 	 * @return					Value in degrees.
 	 */
 	template<class T>
-	static FORCEINLINE T RadiansToDegrees(T const& RadVal)
+	static FORCEINLINE float RadiansToDegrees(T const& RadVal)
+	{
+		return RadVal * (180.f / PI);
+	}
+
+	/** This overload allows us to maintain double precision */
+	static FORCEINLINE double RadiansToDegrees(double RadVal)
 	{
 		return RadVal * (180.f / PI);
 	}
@@ -312,7 +318,13 @@ struct FMath : public FPlatformMath
 	 * @return					Value in radians.
 	 */
 	template<class T>
-	static FORCEINLINE T DegreesToRadians(T const& DegVal)
+	static FORCEINLINE float DegreesToRadians(T const& DegVal)
+	{
+		return DegVal * (PI / 180.f);
+	}
+
+	/** This overload allows us to maintain double precision */
+	static FORCEINLINE double DegreesToRadians(double DegVal)
 	{
 		return DegVal * (PI / 180.f);
 	}

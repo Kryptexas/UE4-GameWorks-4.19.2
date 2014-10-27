@@ -509,7 +509,7 @@ namespace MovementBaseUtility
 					if (MovementBaseUtility::GetMovementBaseTransform(MovementBase, BoneName, BaseLocation, BaseRotation))
 					{
 						const FVector RadialDistanceToBase = WorldLocation - BaseLocation;
-						const FVector TangentialVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
+						const FVector TangentialVel = FVector::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
 						return TangentialVel;
 					}
 				}

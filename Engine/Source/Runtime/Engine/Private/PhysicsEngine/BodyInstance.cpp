@@ -2421,7 +2421,7 @@ FVector FBodyInstance::GetUnrealWorldAngularVelocity() const
 	if (PRigidBody != NULL)
 	{
 		SCOPED_SCENE_READ_LOCK(PRigidBody->getScene());
-		AngVel = FMath::RadiansToDegrees(P2UVector(PRigidBody->getAngularVelocity()));
+		AngVel = FVector::RadiansToDegrees(P2UVector(PRigidBody->getAngularVelocity()));
 	}
 #endif // WITH_PHYSX
 
@@ -2978,7 +2978,7 @@ void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurr
 #if WITH_PHYSX
 	if (PxRigidBody* PRigidBody = GetPxRigidBody())
 	{
-		PxVec3 PNewAngVel = U2PVector( FMath::DegreesToRadians(NewAngVel) );
+		PxVec3 PNewAngVel = U2PVector( FVector::DegreesToRadians(NewAngVel) );
 
 		if (bAddToCurrent)
 		{
