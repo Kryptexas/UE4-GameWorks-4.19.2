@@ -300,25 +300,31 @@ bool FTextTest::RunTest (const FString& Parameters)
 	FText::SetSuppressWarnings(true);
 
 #if UE_ENABLE_ICU
-	I18N.SetCurrentCulture("en-US");
+	if (I18N.SetCurrentCulture("en-US"))
+	{
 #define TEST( A, B, ComparisonLevel ) if( !(FText::FromString(A)).EqualTo(FText::FromString(B), (ComparisonLevel)) ) AddError(FString::Printf(TEXT("Testing comparison of equivalent characters with comparison level (%s). - A=%s B=%s"),TEXT(#ComparisonLevel),(A),(B)))
 
-	// Basic sanity checks
-	TEST( TEXT("a"), TEXT("A"), ETextComparisonLevel::Primary ); // Basic sanity check
-	TEST( TEXT("a"), TEXT("a"), ETextComparisonLevel::Tertiary ); // Basic sanity check
-	TEST( TEXT("A"), TEXT("A"), ETextComparisonLevel::Tertiary ); // Basic sanity check
+		// Basic sanity checks
+		TEST( TEXT("a"), TEXT("A"), ETextComparisonLevel::Primary ); // Basic sanity check
+		TEST( TEXT("a"), TEXT("a"), ETextComparisonLevel::Tertiary ); // Basic sanity check
+		TEST( TEXT("A"), TEXT("A"), ETextComparisonLevel::Tertiary ); // Basic sanity check
 
-	// Test equivalence
-	TEST( TEXT("ss"), TEXT("\x00DF"), ETextComparisonLevel::Primary ); // Lowercase Sharp s
-	TEST( TEXT("SS"), TEXT("\x1E9E"), ETextComparisonLevel::Primary ); // Uppercase Sharp S
-	TEST( TEXT("ae"), TEXT("\x00E6"), ETextComparisonLevel::Primary ); // Lowercase ae
-	TEST( TEXT("AE"), TEXT("\x00C6"), ETextComparisonLevel::Primary ); // Uppercase AE
+		// Test equivalence
+		TEST( TEXT("ss"), TEXT("\x00DF"), ETextComparisonLevel::Primary ); // Lowercase Sharp s
+		TEST( TEXT("SS"), TEXT("\x1E9E"), ETextComparisonLevel::Primary ); // Uppercase Sharp S
+		TEST( TEXT("ae"), TEXT("\x00E6"), ETextComparisonLevel::Primary ); // Lowercase ae
+		TEST( TEXT("AE"), TEXT("\x00C6"), ETextComparisonLevel::Primary ); // Uppercase AE
 
-	// Test accentuation
-	TEST( TEXT("u") , TEXT("\x00FC"), ETextComparisonLevel::Primary ); // Lowercase u with dieresis
-	TEST( TEXT("U") , TEXT("\x00DC"), ETextComparisonLevel::Primary ); // Uppercase U with dieresis
+		// Test accentuation
+		TEST( TEXT("u") , TEXT("\x00FC"), ETextComparisonLevel::Primary ); // Lowercase u with dieresis
+		TEST( TEXT("U") , TEXT("\x00DC"), ETextComparisonLevel::Primary ); // Uppercase U with dieresis
 
 #undef TEST
+	}
+	else
+	{
+		AddWarning(FString::Printf(TEXT("Internationalization data for %s missing - test is partially disabled."), TEXT("en-US")));
+	}
 #else
 	AddWarning("ICU is disabled thus locale-aware string comparison is disabled.");
 #endif
@@ -326,8 +332,8 @@ bool FTextTest::RunTest (const FString& Parameters)
 #if UE_ENABLE_ICU
 	// Sort Testing
 	// French
+	if (I18N.SetCurrentCulture("fr"))
 	{
-		I18N.SetCurrentCulture("fr");
 		TArray<FText> CorrectlySortedValues;
 		CorrectlySortedValues.Add( FText::FromString( TEXT("cote") ) );
 		CorrectlySortedValues.Add( FText::FromString( TEXT("coté") ) );
@@ -363,10 +369,14 @@ bool FTextTest::RunTest (const FString& Parameters)
 			}
 		}
 	}
+	else
+	{
+		AddWarning(FString::Printf(TEXT("Internationalization data for %s missing - test is partially disabled."), TEXT("fr")));
+	}
 
 	// French Canadian
+	if (I18N.SetCurrentCulture("fr-CA"))
 	{
-		I18N.SetCurrentCulture("fr-CA");
 		TArray<FText> CorrectlySortedValues;
 		CorrectlySortedValues.Add( FText::FromString( TEXT("cote") ) );
 		CorrectlySortedValues.Add( FText::FromString( TEXT("côte") ) );
@@ -398,6 +408,10 @@ bool FTextTest::RunTest (const FString& Parameters)
 				//currently failing AddError(FString::Printf(TEXT("Sort order is wrong for culture (%s)."), *FInternationalization::Get().GetCurrentCulture()->GetEnglishName()));
 			}
 		}
+	}
+	else
+	{
+		AddWarning(FString::Printf(TEXT("Internationalization data for %s missing - test is partially disabled."), TEXT("fr-CA")));
 	}
 #else
 	AddWarning("ICU is disabled thus locale-aware string collation is disabled.");

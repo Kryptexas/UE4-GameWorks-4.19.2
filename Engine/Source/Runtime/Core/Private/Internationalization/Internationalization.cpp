@@ -33,9 +33,9 @@ void FInternationalization::TearDown()
 	}
 }
 
-void FInternationalization::SetCurrentCulture(const FString& Name)
+bool FInternationalization::SetCurrentCulture(const FString& Name)
 {
-	Implementation->SetCurrentCulture(Name);
+	return Implementation->SetCurrentCulture(Name);
 }
 
 FCulturePtr FInternationalization::GetCulture(const FString& Name)

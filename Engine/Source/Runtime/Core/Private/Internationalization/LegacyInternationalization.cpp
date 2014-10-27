@@ -25,8 +25,9 @@ void FLegacyInternationalization::Terminate()
 {
 }
 
-void FLegacyInternationalization::SetCurrentCulture(const FString& Name)
+bool FLegacyInternationalization::SetCurrentCulture(const FString& Name)
 {
+	return Name.IsEmpty();
 }
 
 void FLegacyInternationalization::GetCultureNames(TArray<FString>& CultureNames) const

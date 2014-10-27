@@ -27,7 +27,7 @@ public:
 	}
 
 	//Set the current culture by name
-	CORE_API void SetCurrentCulture(const FString& Name);
+	CORE_API bool SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
 	CORE_API FCultureRef GetCurrentCulture() const

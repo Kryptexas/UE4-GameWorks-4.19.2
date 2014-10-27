@@ -13,7 +13,7 @@ public:
 	bool Initialize();
 	void Terminate();
 
-	void SetCurrentCulture(const FString& Name);
+	bool SetCurrentCulture(const FString& Name);
 	void GetCultureNames(TArray<FString>& CultureNames) const;
 	FCulturePtr GetCulture(const FString& Name);
 
@@ -23,7 +23,7 @@ private:
 	void UnloadDLLs();
 #endif
 
-	FCulturePtr FindOrMakeCulture(const FString& Name);
+	FCulturePtr FindOrMakeCulture(const FString& Name, const bool AllowDefaultFallback = false);
 
 private:
 	FInternationalization* const I18N;

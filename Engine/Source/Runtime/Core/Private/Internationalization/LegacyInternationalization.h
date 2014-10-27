@@ -11,7 +11,7 @@ public:
 	bool Initialize();
 	void Terminate();
 
-	void SetCurrentCulture(const FString& Name);
+	bool SetCurrentCulture(const FString& Name);
 	void GetCultureNames(TArray<FString>& CultureNames) const;
 	FCulturePtr GetCulture(const FString& Name);
 

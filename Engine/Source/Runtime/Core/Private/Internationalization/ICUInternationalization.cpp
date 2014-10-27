@@ -122,8 +122,12 @@ bool FICUInternationalization::Initialize()
 
 	FICUBreakIteratorManager::Create();
 
-	I18N->InvariantCulture = FindOrMakeCulture(TEXT("en-US-POSIX"));
-	I18N->DefaultCulture = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale());
+	I18N->InvariantCulture = FindOrMakeCulture(TEXT("en-US-POSIX"), false);
+	if (!I18N->InvariantCulture.IsValid())
+	{
+		I18N->InvariantCulture = FindOrMakeCulture(TEXT(""), true);
+	}
+	I18N->DefaultCulture = FindOrMakeCulture(FPlatformMisc::GetDefaultLocale(), true);
 	SetCurrentCulture( I18N->GetDefaultCulture()->GetName() );
 	return U_SUCCESS(ICUStatus) ? true : false;
 }
@@ -229,7 +233,7 @@ namespace
 }
 #endif
 
-void FICUInternationalization::SetCurrentCulture(const FString& Name)
+bool FICUInternationalization::SetCurrentCulture(const FString& Name)
 {
 	FCulturePtr NewCurrentCulture = FindOrMakeCulture(Name);
 
@@ -245,6 +249,8 @@ void FICUInternationalization::SetCurrentCulture(const FString& Name)
 			FInternationalization::Get().BroadcastCultureChanged();
 		}
 	}
+
+	return I18N->CurrentCulture == NewCurrentCulture;
 }
 
 void FICUInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
@@ -264,15 +270,32 @@ FCulturePtr FICUInternationalization::GetCulture(const FString& Name)
 	return FindOrMakeCulture(Name);
 }
 
-FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name)
+FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, const bool AllowDefaultFallback)
 {
-	FCultureRef* FoundCulture = CachedCultures.Find(Name);
+	const FString CanonicalName = FCulture::GetCanonicalName(Name);
+
+	// Find the cached culture.
+	FCultureRef* FoundCulture = CachedCultures.Find(CanonicalName);
+
+	// If no cached culture is found, try to make one.
 	if (!FoundCulture)
 	{
-		FCulturePtr NewCulture = FCulture::Create(Name);
-		if (NewCulture.IsValid())
+		UErrorCode ICUStatus = U_ZERO_ERROR;
+
+		// Confirm if data for the desired culture exists.
+		if (UResourceBundle* ICUResourceBundle = ures_open(nullptr, StringCast<char>(*CanonicalName).Get(), &ICUStatus))
 		{
-			FoundCulture = &(CachedCultures.Add(Name, NewCulture.ToSharedRef()));
+			// Make the culture only if it actually has some form of data and doesn't fallback to default "root" data, unless overriden ot allow it.
+			if (ICUStatus != U_USING_DEFAULT_WARNING || AllowDefaultFallback)
+			{
+				FCulturePtr NewCulture = FCulture::Create(CanonicalName);
+				if (NewCulture.IsValid())
+				{
+					FoundCulture = &(CachedCultures.Add(CanonicalName, NewCulture.ToSharedRef()));
+				}
+			}
+
+			ures_close(ICUResourceBundle);
 		}
 	}
 
