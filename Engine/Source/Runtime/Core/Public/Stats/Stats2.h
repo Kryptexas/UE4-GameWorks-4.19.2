@@ -55,6 +55,9 @@ struct CORE_API FStats
 
 	/** Advances stats for the current frame. */
 	static void AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate = FOnAdvanceRenderingThreadStats() );
+
+	/** Current game thread stats frame. */
+	static int32 GameThreadStatsFrame;
 };
 
 #if STATS
@@ -949,19 +952,18 @@ typedef TStatMessage<EComplexStatField> FComplexStatMessage;
 
 template<> struct TIsPODType<FComplexStatMessage> { enum { Value = true }; };
 
+
+enum class EStatMessagesArrayConstants
+{
+	MESSAGES_CHUNK_SIZE = 64*1024,
+};
+typedef TChunkedArray<FStatMessage,(uint32)EStatMessagesArrayConstants::MESSAGES_CHUNK_SIZE> FStatMessagesArray;
+
 /**
 * A stats packet. Sent between threads. Includes and array of messages and some information about the thread. 
 */
 struct FStatPacket
 {
-	enum 
-	{
-		MESSAGES_CHUNK_SIZE = 1024*1024,
-	};
-
-	//typedef TChunkedArray<FStatMessage,MESSAGES_CHUNK_SIZE> TStatMessagesArray;
-	typedef TArray<FStatMessage> TStatMessagesArray;
-
 	/** Assigned later, this is the frame number this packet is for **/
 	int64 Frame;
 	/** ThreadId this packet came from **/
@@ -971,8 +973,8 @@ struct FStatPacket
 	/** true if this packet has broken callstacks **/
 	bool bBrokenCallstacks;
 	/** messages in this packet **/
-	TStatMessagesArray StatMessages;
-	/** Size we presize the message buffer to, currently the max of what we have seen so far. **/
+	FStatMessagesArray StatMessages;
+	/** Size we presize the message buffer to, currently the max of what we have seen for the last PRESIZE_MAX_NUM_ENTRIES. **/
 	TArray<int32> StatMessagesPresize;
 
 	/** constructor **/
@@ -1000,6 +1002,12 @@ struct FStatPacket
 */
 class FThreadStats
 {
+	enum
+	{
+		PRESIZE_MAX_NUM_ENTRIES = 10,
+		PRESIZE_MAX_SIZE = EStatMessagesArrayConstants::MESSAGES_CHUNK_SIZE,
+	};
+
 	/** Used to control when we are collecting stats. User of the stats system increment and decrement this counter as they need data. **/
 	CORE_API static FThreadSafeCounter MasterEnableCounter;
 	/** Every time bMasterEnable changes, we update this. This is used to determine frames that have complete data. **/
@@ -1015,12 +1023,18 @@ class FThreadStats
 
 	friend class FStatsThread;
 
+	/** Current game frame for this thread stat. */
+	int32 CurrentGameFrame;
+
 	/** Tracks current stack depth for cycle counters. **/
 	uint32 ScopeCount;
-	/** Tracks current stack depth for cycle counters. **/
-	bool bSawExplicitFlush;
+
 	/** Tracks current stack depth for cycle counters. **/
 	uint32 bWaitForExplicitFlush;
+
+	/** Tracks current stack depth for cycle counters. **/
+	bool bSawExplicitFlush;
+
 	/** The data we are eventually going to send to the stats thread. **/
 	FStatPacket Packet;
 
@@ -1058,17 +1072,6 @@ public:
 		}
 	}
 
-	/** Used to send messages that came in before the thread was ready. Adds em and flushes **/
-	static void AddMessages(TArray<FStatMessage> const& Messages)
-	{
-		if (WillEverCollectData())
-		{
-			FThreadStats* ThreadStats = GetThreadStats();
-			ThreadStats->Packet.StatMessages += Messages;
-			ThreadStats->Flush();
-		}
-	}
-
 	/** Clock operation. **/
 	static FORCEINLINE_STATS void AddMessage(FName InStatName, EStatOperation::Type InStatOperation)
 	{
@@ -1103,7 +1106,7 @@ public:
 		{
 			FThreadStats* ThreadStats = GetThreadStats();
 			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation, Value, bIsCycle);
-			if (!ThreadStats->ScopeCount) // we can't guarantee other threads will ever be flushed, so we need to flush ever counter item!
+			if(!ThreadStats->ScopeCount)
 			{
 				ThreadStats->Flush();
 			}
@@ -1677,6 +1680,7 @@ DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Niagara"),STATGROUP_Niagara, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Object"),STATGROUP_Object, STATCAT_Advanced);
+DECLARE_STATS_GROUP_VERBOSE(TEXT("ObjectVerbose"),STATGROUP_ObjectVerbose, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("OpenGL RHI"),STATGROUP_OpenGLRHI, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Pak File"),STATGROUP_PakFile, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Particle Mem"),STATGROUP_ParticleMem, STATCAT_Advanced);
@@ -1714,5 +1718,6 @@ DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("StatUnit FPS"), STAT_FPS, STATGROUP_Engi
 /** Stats for the stat system */
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("DrawStats"),STAT_DrawStats,STATGROUP_StatSystem, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Stat messages memory"),STAT_StatMessagesMemory,STATGROUP_StatSystem, CORE_API);
 
 #endif

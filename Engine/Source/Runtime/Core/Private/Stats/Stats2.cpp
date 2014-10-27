@@ -24,20 +24,22 @@ static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
 {} FForceInitAtBootFStats2;
 
 DECLARE_FLOAT_COUNTER_STAT( TEXT( "Seconds Per Cycle" ), STAT_SecondsPerCycle, STATGROUP_Engine );
+DEFINE_STAT(STAT_StatMessagesMemory);
 
 /*-----------------------------------------------------------------------------
 	FStats2
 -----------------------------------------------------------------------------*/
+
+int32 FStats::GameThreadStatsFrame = 1;
 
 void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate /*= FOnAdvanceRenderingThreadStats()*/ )
 {
 #if STATS
 	check( IsInGameThread() );
 	static int32 MasterDisableChangeTagStartFrame = -1;
-	static int64 StatsFrame = 1;
-	StatsFrame++;
+	FPlatformAtomics::InterlockedIncrement(&GameThreadStatsFrame);
 
-	int64 Frame = StatsFrame;
+	int64 Frame = GameThreadStatsFrame;
 	if( bDiscardCallstack )
 	{
 		FThreadStats::FrameDataIsIncomplete(); // we won't collect call stack stats this frame
@@ -48,7 +50,7 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 	}
 	if( !FThreadStats::IsCollectingData() || MasterDisableChangeTagStartFrame != FThreadStats::MasterDisableChangeTag() )
 	{
-		Frame = -StatsFrame; // mark this as a bad frame
+		Frame = -GameThreadStatsFrame; // mark this as a bad frame
 	}
 	static FStatNameAndInfo Adv( NAME_AdvanceFrame, "", "", TEXT( "" ), EStatDataType::ST_int64, true, false );
 	FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
@@ -59,7 +61,7 @@ void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThre
 
 	if( AdvanceRenderingThreadStatsDelegate.IsBound() )
 	{
-		AdvanceRenderingThreadStatsDelegate.Execute( bDiscardCallstack, StatsFrame, MasterDisableChangeTagStartFrame );
+		AdvanceRenderingThreadStatsDelegate.Execute( bDiscardCallstack, GameThreadStatsFrame, MasterDisableChangeTagStartFrame );
 	}
 	else
 	{
@@ -87,8 +89,6 @@ averages stay as int64, it might be better if they were floats, but then we woul
 set a DEBUG_STATS define that allows this all to be debugged. Otherwise, inline and get rid of checks to the MAX. Also maybe just turn off stats in debug or debug game.
 
 It should be possible to load stats data without STATS
-
-Put version and FPlatformTime::GetSecondsPerCycle() in the header
 
 //@todo this probably goes away after we redo the programmer interface
 
@@ -618,7 +618,6 @@ FName FStatNameAndInfo::GetGroupCategoryFrom(FName InLongName)
 	return NAME_None;
 }
 
-uint32 StatsThreadId = 0;
 static TAutoConsoleVariable<int32> CVarDumpStatPackets(	TEXT("DumpStatPackets"),0,	TEXT("If true, dump stat packets."));
 
 /** The rendering thread runnable object. */
@@ -648,7 +647,6 @@ public:
 
 	virtual uint32 Run()
 	{
-		StatsThreadId = FPlatformTLS::GetCurrentThreadId();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);
 		return 0;
@@ -710,6 +708,7 @@ public:
 
 		bReadyToProcess = Packet->ThreadType != EThreadType::Other;
 		IncomingData.Packets.Add(Packet);
+		INC_MEMORY_STAT_BY(STAT_StatMessagesMemory,Packet->StatMessages.GetAllocatedSize());
 		Tick();
 	}
 
@@ -747,10 +746,11 @@ public:
 	}
 };
 
-FThreadStats::FThreadStats()
-	: ScopeCount(0)
-	, bSawExplicitFlush(false)
-	, bWaitForExplicitFlush(0)
+FThreadStats::FThreadStats():
+	CurrentGameFrame(FStatsThreadState::GetLocalState().CurrentGameFrame),
+	ScopeCount(0), 
+	bWaitForExplicitFlush(0),
+	bSawExplicitFlush(false)
 {
 	Packet.ThreadId = FPlatformTLS::GetCurrentThreadId();
 	if (Packet.ThreadId == GGameThreadId)
@@ -769,16 +769,6 @@ FThreadStats::FThreadStats()
 	FPlatformTLS::SetTlsValue(TlsSlot, this);
 }
 
-// copy for sending to the stats thread
-FThreadStats::FThreadStats(FThreadStats const& Other)
-	: ScopeCount(0)
-	, bSawExplicitFlush(false)
-	, bWaitForExplicitFlush(0)
-{
-	Packet.ThreadId = Other.Packet.ThreadId;
-	Packet.ThreadType = Other.Packet.ThreadType;
-}
-
 void FThreadStats::CheckEnable()
 {
 	bool bOldMasterEnable(bMasterEnable);
@@ -794,44 +784,59 @@ void FThreadStats::CheckEnable()
 
 void FThreadStats::Flush(bool bHasBrokenCallstacks)
 {
-	const int32 PresizeMaxNumEntries = 10;
-	const int32 PresizeMaxSize = 256 * 1024;
-
 	if (bMasterDisableForever)
 	{
 		Packet.StatMessages.Empty();
 		return;
 	}
+
+	if( Packet.ThreadType == EThreadType::Other )
+	{
+		FPlatformMisc::MemoryBarrier();
+		const bool bFrameHasChanged = FStats::GameThreadStatsFrame > CurrentGameFrame;
+		if( bFrameHasChanged )
+		{
+			CurrentGameFrame = FStats::GameThreadStatsFrame;
+		}
+		else
+		{
+			return;
+		}
+	}
+
 	if (!ScopeCount && Packet.StatMessages.Num())
 	{
-		if( Packet.StatMessagesPresize.Num() >= PresizeMaxNumEntries )
+		if( Packet.StatMessagesPresize.Num() >= PRESIZE_MAX_NUM_ENTRIES )
 		{
 			Packet.StatMessagesPresize.RemoveAt(0);
 		}
-		if (Packet.StatMessages.Num() < PresizeMaxSize)
+		if (Packet.StatMessages.Num() < PRESIZE_MAX_SIZE)
 		{
 			Packet.StatMessagesPresize.Add(Packet.StatMessages.Num());
 		}
 		else
 		{
-			UE_LOG( LogStats, Verbose, TEXT( "StatMessage Packet has more than %i messages.  Ignoring for the presize history." ), (int32)PresizeMaxSize );
+			UE_LOG( LogStats, Verbose, TEXT( "StatMessage Packet has more than %i messages.  Ignoring for the presize history." ), (int32)PRESIZE_MAX_SIZE );
 		}
 		FStatPacket* ToSend = new FStatPacket(Packet);
 		Exchange(ToSend->StatMessages, Packet.StatMessages);
 		ToSend->bBrokenCallstacks = bHasBrokenCallstacks;
+
 		check(!Packet.StatMessages.Num());
-		int32 MaxPresize = Packet.StatMessagesPresize[0];
-		for (int32 Index = 0; Index < Packet.StatMessagesPresize.Num(); ++Index)
+		if( Packet.StatMessagesPresize.Num() > 0 )
 		{
-			if (MaxPresize < Packet.StatMessagesPresize[Index])
+			int32 MaxPresize = Packet.StatMessagesPresize[0];
+			for (int32 Index = 0; Index < Packet.StatMessagesPresize.Num(); ++Index)
 			{
-				MaxPresize = Packet.StatMessagesPresize[Index];
+				if (MaxPresize < Packet.StatMessagesPresize[Index])
+				{
+					MaxPresize = Packet.StatMessagesPresize[Index];
+				}
 			}
+			Packet.StatMessages.Empty(MaxPresize);
 		}
-		Packet.StatMessages.Empty(MaxPresize);
-		{
-			TGraphTask<FStatMessagesTask>::CreateTask().ConstructAndDispatchWhenReady(ToSend);
-		}
+
+		TGraphTask<FStatMessagesTask>::CreateTask().ConstructAndDispatchWhenReady(ToSend);
 		if (Packet.ThreadType != EThreadType::Other && bSawExplicitFlush)
 		{
 			bWaitForExplicitFlush = 1;

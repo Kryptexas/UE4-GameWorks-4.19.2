@@ -455,6 +455,16 @@ void FComplexRawStatStackNode::CopyExclusivesFromSelf()
 	FStatsThreadState
 -----------------------------------------------------------------------------*/
 
+void FStatPacketArray::Empty()
+{
+	for (int32 Index = 0; Index < Packets.Num(); Index++)
+	{
+		DEC_MEMORY_STAT_BY(STAT_StatMessagesMemory,Packets[Index]->StatMessages.GetAllocatedSize());
+		delete Packets[Index];
+	}
+	Packets.Empty();
+}
+
 FStatsThreadState::FStatsThreadState(int32 InHistoryFrames)
 	: HistoryFrames(InHistoryFrames)
 	, MaxFrameSeen(0)
@@ -462,6 +472,7 @@ FStatsThreadState::FStatsThreadState(int32 InHistoryFrames)
 	, LastFullFrameMetaAndNonFrame(-1)
 	, LastFullFrameProcessed(-1)
 	, bWasLoaded(false)
+	, bFindMemoryExtensiveStats(false)
 	, CurrentGameFrame(1)
 	, CurrentRenderFrame(1)
 {
@@ -523,9 +534,9 @@ int64 FStatsThreadState::GetLatestValidFrame() const
 	return Result;
 }
 
-void FStatsThreadState::ScanForAdvance(FStatPacket::TStatMessagesArray const& Data)
+void FStatsThreadState::ScanForAdvance(const FStatMessagesArray& Data)
 {
-	for (int32 Index = Data.Num() - 1; Index >= 0 ; Index--)
+	for (int32 Index = 0; Index < Data.Num(); Index++)
 	{
 		FStatMessage const& Item = Data[Index];
 		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
@@ -548,7 +559,8 @@ void FStatsThreadState::ScanForAdvance(FStatPacket::TStatMessagesArray const& Da
 					BadFrames.Add(Frame - 1);
 				}
 			}
-			CurrentGameFrame = NewGameFrame;
+			// CurrentGameFrame can be accessed by other threads.
+			FPlatformAtomics::InterlockedExchange( &CurrentGameFrame, NewGameFrame );
 		}
 		else if (Op == EStatOperation::AdvanceFrameEventRenderThread)
 		{
@@ -587,58 +599,12 @@ void FStatsThreadState::ScanForAdvance(FStatPacketArray& NewData)
 	{
 		int64 FrameNum = NewData.Packets[Index]->ThreadType == EThreadType::Renderer ? CurrentRenderFrame : CurrentGameFrame;
 		NewData.Packets[Index]->Frame = FrameNum;
-		FStatPacket::TStatMessagesArray const& Data = NewData.Packets[Index]->StatMessages;
+		const FStatMessagesArray& Data = NewData.Packets[Index]->StatMessages;
 		ScanForAdvance(Data);
 		Count += Data.Num();
 	}
 	INC_DWORD_STAT_BY(STAT_StatFramePackets, NewData.Packets.Num());
 	INC_DWORD_STAT_BY(STAT_StatFrameMessages, Count);
-}
-
-void FStatsThreadState::ProcessMetaDataForLoad(TArray<FStatMessage>& Data)
-{
-	check(bWasLoaded);
-	for (int32 Index = 0; Index < Data.Num() ; Index++)
-	{
-		FStatMessage& Item = Data[Index];
-		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
-		if (Op == EStatOperation::SetLongName)
-		{
-			FindOrAddMetaData(Item);
-		}
-		else if (Op == EStatOperation::AdvanceFrameEventGameThread)
-		{
-			check(Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
-			if (Item.GetValue_int64() > 0)
-			{
-				CurrentGameFrame = Item.GetValue_int64();
-				if (CurrentGameFrame > MaxFrameSeen)
-				{
-					MaxFrameSeen = CurrentGameFrame;
-				}
-				if (MinFrameSeen < 0)
-				{
-					MinFrameSeen = CurrentGameFrame;
-				}
-			}
-		}
-		else if (Op == EStatOperation::AdvanceFrameEventRenderThread)
-		{
-			check(Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
-			if (Item.GetValue_int64() > 0)
-			{
-				CurrentRenderFrame = Item.GetValue_int64();
-				if (CurrentGameFrame > MaxFrameSeen)
-				{
-					MaxFrameSeen = CurrentGameFrame;
-				}
-				if (MinFrameSeen < 0)
-				{
-					MinFrameSeen = CurrentGameFrame;
-				}
-			}
-		}
-	}
 }
 
 void FStatsThreadState::ProcessMetaDataOnly(TArray<FStatMessage>& Data)
@@ -652,7 +618,14 @@ void FStatsThreadState::ProcessMetaDataOnly(TArray<FStatMessage>& Data)
 	}
 }
 
-void FStatsThreadState::ProcessNonFrameStats(FStatPacket::TStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound)
+
+void FStatsThreadState::ToggleFindMemoryExtensiveStats()
+{
+	bFindMemoryExtensiveStats = !bFindMemoryExtensiveStats;
+	UE_LOG(LogStats, Log, TEXT("bFindMemoryExtensiveStats is %s now"), bFindMemoryExtensiveStats?TEXT("enabled"):TEXT("disabled"));
+}
+
+void FStatsThreadState::ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound)
 {
 	check(!bWasLoaded);
 	for (int32 Index = 0; Index < Data.Num() ; Index++)
@@ -744,6 +717,11 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 
 			FStatPacket const* PacketToCopyForNonFrame = NULL;
 
+			if( bFindMemoryExtensiveStats )
+			{
+				FindAndDumpMemoryExtensiveStats(Frame);
+			}
+
 			TSet<FName> NonFrameStatsFound;
 			for (int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++)
 			{
@@ -760,7 +738,7 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 
 				check(PacketToCopyForNonFrame);
 
-				FStatPacket::TStatMessagesArray* NonFrameMessages = NULL;
+				FStatMessagesArray* NonFrameMessages = NULL;
 
 				for (TMap<FName, FStatMessage>::TConstIterator It(NotClearedEveryFrame); It; ++It)
 				{
@@ -768,12 +746,15 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 					{
 						if (!NonFrameMessages)
 						{
-							int32 NonFrameIndex = Frame.Packets.Add(new FStatPacket(*PacketToCopyForNonFrame));
+							const int32 NonFrameIndex = Frame.Packets.Add(new FStatPacket(*PacketToCopyForNonFrame));
 							NonFrameMessages = &Frame.Packets[NonFrameIndex]->StatMessages;
 						}
 						new (*NonFrameMessages) FStatMessage(It.Value());
 					}
 				}
+
+				INC_MEMORY_STAT_BY(STAT_StatMessagesMemory,NonFrameMessages->GetAllocatedSize());
+
 				GoodFrames.Add(FrameNum);
 			}
 			LastFullFrameMetaAndNonFrame = FrameNum;
@@ -1018,7 +999,7 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 			Stack.Add(ThreadRoot);
 			FRawStatStackNode* Current = Stack.Last();
 
-			FStatPacket::TStatMessagesArray const& Data = Packet.StatMessages;
+			const FStatMessagesArray& Data = Packet.StatMessages;
 			for (int32 Index = 0; Index < Data.Num(); Index++)
 			{
 				FStatMessage const& Item = Data[Index];
@@ -1154,7 +1135,7 @@ int64 FStatsThreadState::GetFastThreadFrameTimeInternal( int64 TargetFrame, int3
 
 		if( Packet.ThreadId == ThreadID || Packet.ThreadType == Thread )
 		{
-			FStatPacket::TStatMessagesArray const& Data = Packet.StatMessages;
+			const FStatMessagesArray& Data = Packet.StatMessages;
 			for (int32 Index = 0; Index < Data.Num(); Index++)
 			{
 				FStatMessage const& Item = Data[Index];
@@ -1317,6 +1298,43 @@ void FStatsThreadState::AddMissingStats(TArray<FStatMessage>& Dest, TSet<FName> 
 		if (Zero)
 		{
 			new (Dest) FStatMessage(*Zero);
+		}
+	}
+}
+
+void FStatsThreadState::FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame )
+{
+	int32 TotalMessages = 0;
+	TMap<FName,int32> NameToCount;
+
+	// Generate some data statistics.
+	for( const FStatPacket* StatPacket : Frame.Packets )
+	{
+		for( int32 MessageIndex = 0; MessageIndex < StatPacket->StatMessages.Num(); MessageIndex++)
+		{
+			const FName ShortName = StatPacket->StatMessages[MessageIndex].NameAndInfo.GetShortName();
+			NameToCount.FindOrAdd(ShortName) += 1;
+			TotalMessages++;
+		}
+	}
+
+	// Dump stats to the log.
+	NameToCount.ValueSort( TGreater<uint32>() );
+
+	const float MaxPctDisplayed = 0.9f;
+	int32 CurrentIndex = 0;
+	int32 DisplayedSoFar = 0;
+	UE_LOG( LogStats, Warning, TEXT("%2s, %32s, %5s"), TEXT("No"), TEXT("Name"), TEXT("Count") );
+	for( const auto& It : NameToCount )
+	{
+		UE_LOG( LogStats, Warning, TEXT("%2i, %32s, %5i"), CurrentIndex, *It.Key.ToString(), It.Value );
+		CurrentIndex++;
+		DisplayedSoFar += It.Value;
+
+		const float CurrentPct = (float)DisplayedSoFar/(float)TotalMessages;
+		if( CurrentPct > MaxPctDisplayed )
+		{
+			break;
 		}
 	}
 }

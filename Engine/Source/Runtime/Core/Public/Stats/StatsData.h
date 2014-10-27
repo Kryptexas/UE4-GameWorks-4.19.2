@@ -180,7 +180,7 @@ struct FStatCallCountComparer<FStatMessage>
 * An indirect array of stat packets.
 */
 //@todo can we just use TIndirectArray here?
-struct FStatPacketArray
+struct CORE_API FStatPacketArray
 {
 	TArray<FStatPacket*> Packets;
 
@@ -189,14 +189,7 @@ struct FStatPacketArray
 		Empty();
 	}
 
-	void Empty()
-	{
-		for (int32 Index = 0; Index < Packets.Num(); Index++)
-		{
-			delete Packets[Index];
-		}
-		Packets.Empty();
-	}
+	void Empty();
 };
 
 /**
@@ -417,7 +410,7 @@ class CORE_API FStatsThreadState
 	friend class FStatsThread;
 
 	/** Internal method to scan the messages to update the current frame **/
-	void ScanForAdvance(FStatPacket::TStatMessagesArray const& Data);
+	void ScanForAdvance(const FStatMessagesArray& Data);
 
 	/** Internal method to scan the messages to update the current frame and accumulate any non-frame stats. **/
 	void ScanForAdvance(FStatPacketArray& NewData);
@@ -435,12 +428,18 @@ public:
 		bWasLoaded =  true;
 	}
 
+	/** Toggles tracking the most memory expensive stats. */
+	void ToggleFindMemoryExtensiveStats();
+
 private:
 	/** Internal method to scan the messages to accumulate any non-frame stats. **/
-	void ProcessNonFrameStats(FStatPacket::TStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound);
+	void ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound);
 
 	/** Internal method to place the data into the history, discard and broadcast any new frames to anyone who cares. **/
 	void AddToHistoryAndEmpty(FStatPacketArray& NewData);
+
+	/** Generates a list of most memory expensive stats and dump to the log. */
+	void FindAndDumpMemoryExtensiveStats( FStatPacketArray &Frame );
 
 	/** Called in response to SetLongName messages to update ShortNameToLongName and NotClearedEveryFrame **/
 	void FindOrAddMetaData(FStatMessage const& Item);
@@ -471,6 +470,9 @@ private:
 
 	/** Valid frame computation is different if we just loaded these stats **/
 	bool bWasLoaded;
+
+	/** If true, stats each frame will dump to the log a list of most memory expensive stats. */
+	bool bFindMemoryExtensiveStats;
 
 	/** Cached condensed frames. This saves a lot of time since multiple listeners can use the same condensed data **/
 	mutable TMap<int64, TArray<FStatMessage>* > CondensedStackHistory;
