@@ -72,8 +72,13 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define GCC_PACK(n)			__attribute__((packed,aligned(n)))
 #define GCC_ALIGN(n)		__attribute__((aligned(n)))
 
-// Operator new/delete handling.
+// operator new/delete operators
+// As of 10.9 we need to use _NOEXCEPT & cxx_noexcept compatible definitions
+#if __has_feature(cxx_noexcept)
+#define OPERATOR_NEW_THROW_SPEC
+#else
 #define OPERATOR_NEW_THROW_SPEC throw (std::bad_alloc)
-#define OPERATOR_DELETE_THROW_SPEC throw()
-#define OPERATOR_NEW_NOTHROW_SPEC throw ()
-#define OPERATOR_DELETE_NOTHROW_SPEC throw()
+#endif
+#define OPERATOR_DELETE_THROW_SPEC noexcept
+#define OPERATOR_NEW_NOTHROW_SPEC  noexcept
+#define OPERATOR_DELETE_NOTHROW_SPEC  noexcept
