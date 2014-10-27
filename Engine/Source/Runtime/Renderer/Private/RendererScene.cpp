@@ -31,6 +31,7 @@ SIZE_T FStaticMeshDrawListBase::TotalBytesUsed = 0;
 FSceneViewState::FSceneViewState()
 	: OcclusionQueryPool(RQT_Occlusion)
 {
+	OcclusionFrameCounter = 0;
 	LastRenderTime = -FLT_MAX;
 	LastRenderTimeDelta = 0.0f;
 	MotionBlurTimeScale = 1.0f;

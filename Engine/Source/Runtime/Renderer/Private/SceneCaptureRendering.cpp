@@ -179,6 +179,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	ViewInitOptions.ViewMatrix = ViewMatrix;
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverrideFarClippingPlaneDistance = MaxViewDistance;
+	ViewInitOptions.SceneViewStateInterface = SceneCaptureComponent->GetViewState();
 
 	if (bCaptureSceneColour)
 	{

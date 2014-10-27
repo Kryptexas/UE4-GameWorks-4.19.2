@@ -478,6 +478,9 @@ public:
 	FMatrix		PrevViewMatrixForOcclusionQuery;
 	FVector		PrevViewOriginForOcclusionQuery;
 
+	// A counter incremented once each time this view is rendered.
+	uint32 OcclusionFrameCounter;
+
 	/** Used by states that have IsViewParent() == true to store primitives for child states. */
 	TSet<FPrimitiveComponentId> ParentPrimitives;
 

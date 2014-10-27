@@ -31,5 +31,16 @@ public:
 	/** Adds all primitive components in the actor to our list of hidden components. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	ENGINE_API void HideActorComponents(AActor* InActor);
+
+	/** Returns the view state, if any, and allocates one if needed. This function can return NULL, e.g. when bCaptureEveryFrame is false. */
+	ENGINE_API FSceneViewStateInterface* GetViewState();
+	
+private:
+
+	/**
+	 * The view state holds persistent scene rendering state and enables occlusion culling in scene captures.
+	 * NOTE: This object is used by the rendering thread. The smart pointer's destructor will destroy it and that
+	 */
+	FSceneViewStateReference ViewState;
 };
 

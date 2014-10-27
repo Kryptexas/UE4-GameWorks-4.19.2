@@ -172,6 +172,22 @@ void USceneCaptureComponent::HideActorComponents(AActor* InActor)
 	}
 }
 
+FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
+{
+	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
+	if (bCaptureEveryFrame && ViewStateInterface == NULL)
+	{
+		ViewState.Allocate();
+		ViewStateInterface = ViewState.GetReference();
+	}
+	else if (!bCaptureEveryFrame && ViewStateInterface)
+	{
+		ViewState.Destroy();
+		ViewStateInterface = NULL;
+	}
+	return ViewStateInterface;
+}
+
 // -----------------------------------------------
 
 
