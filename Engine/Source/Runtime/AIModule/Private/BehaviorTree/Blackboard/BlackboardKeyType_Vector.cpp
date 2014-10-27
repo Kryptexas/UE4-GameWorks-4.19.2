@@ -19,6 +19,11 @@ bool UBlackboardKeyType_Vector::SetValue(uint8* RawData, const FVector& Value)
 	return SetValueInMemory<FVector>(RawData, Value);
 }
 
+bool UBlackboardKeyType_Vector::Clear(uint8* RawData) const 
+{
+	return SetValueInMemory<FVector>(RawData, FAISystem::InvalidLocation);
+}
+
 FString UBlackboardKeyType_Vector::DescribeValue(const uint8* RawData) const
 {
 	const FVector Location = GetValue(RawData);

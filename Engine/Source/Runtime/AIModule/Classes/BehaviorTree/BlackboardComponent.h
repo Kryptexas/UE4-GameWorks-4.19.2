@@ -120,7 +120,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FRotator GetValueAsRotator(const FName& KeyName) const;
-	FRotator GetValueAsRotator(uint8 KeyID) const;
+	FRotator GetValueAsRotator(FBlackboard::FKey KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsObject(const FName& KeyName, UObject* ObjectValue);
@@ -169,11 +169,11 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsRotator(const FName& KeyName, FRotator VectorValue);
-	void SetValueAsRotator(uint8 KeyID, const FRotator& VectorValue);
+	void SetValueAsRotator(FBlackboard::FKey KeyID, const FRotator& VectorValue);
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void ClearValueAsRotator(const FName& KeyName);
-	void ClearValueAsRotator(uint8 KeyID);
+	void ClearValueAsRotator(FBlackboard::FKey KeyID);
 
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
@@ -184,6 +184,10 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const;
 	bool GetRotationFromEntry(FBlackboard::FKey KeyID, FRotator& ResultRotation) const;
+
+	UFUNCTION(BlueprintCallable, Category = "AI|Components|Blackboard")
+	void ClearValue(const FName& KeyName);
+	void ClearValue(FBlackboard::FKey KeyID);
 
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }

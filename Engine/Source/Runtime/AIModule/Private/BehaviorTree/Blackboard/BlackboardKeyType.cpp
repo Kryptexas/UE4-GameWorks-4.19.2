@@ -45,6 +45,21 @@ bool UBlackboardKeyType::GetRotation(const uint8* MemoryBlock, FRotator& Rotatio
 	return false;
 }
 
+bool UBlackboardKeyType::Clear(uint8* MemoryBlock) const
+{
+	for (int32 ByteIndex = 0; ByteIndex < GetValueSize(); ++ByteIndex)
+	{
+		if (MemoryBlock[ByteIndex] != uint8(0))
+		{
+			FMemory::Memzero(MemoryBlock, GetValueSize());
+			return true;
+		}		
+	}
+
+	// value already "0", return false to indicate it had not changed
+	return false;
+}
+
 EBlackboardCompare::Type UBlackboardKeyType::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
 { 
 	return MemoryBlockA == MemoryBlockB ? EBlackboardCompare::Equal : EBlackboardCompare::NotEqual;

@@ -13,6 +13,7 @@ class AIMODULE_API UBlackboardKeyType_Rotator : public UBlackboardKeyType
 	virtual void Initialize(uint8* RawData) const override;
 	virtual FString DescribeValue(const uint8* RawData) const override;
 	virtual bool GetRotation(const uint8* RawData, FRotator& Rotation) const override;
+	virtual bool Clear(uint8* MemoryBlock) const override;
 	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const override;
 	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const override;
 };

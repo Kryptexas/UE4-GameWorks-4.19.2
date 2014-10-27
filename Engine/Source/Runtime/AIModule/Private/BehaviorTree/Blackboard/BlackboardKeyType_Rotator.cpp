@@ -19,6 +19,11 @@ bool UBlackboardKeyType_Rotator::SetValue(uint8* RawData, const FRotator& Value)
 	return SetValueInMemory<FRotator>(RawData, Value);
 }
 
+bool UBlackboardKeyType_Rotator::Clear(uint8* RawData) const 
+{
+	return SetValueInMemory<FRotator>(RawData, FAISystem::InvalidRotation);
+}
+
 FString UBlackboardKeyType_Rotator::DescribeValue(const uint8* RawData) const
 {
 	const FRotator Rotation = GetValue(RawData);
