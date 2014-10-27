@@ -25,6 +25,12 @@ private:
 	void PrevDiff();
 	bool HasNextDiff() const;
 	bool HasPrevDiff() const;
+
+	void NextConflict();
+	void PrevConflict();
+	bool HasNextConflict() const;
+	bool HasPrevConflict() const;
+
 	void OnFinishMerge();
 	void OnCancelClicked();
 	void OnModeChanged(FName NewMode);
@@ -34,23 +40,26 @@ private:
 
 	TSharedPtr<SBorder>		MainView;
 
-	struct FDiffControl
+	struct FMergeControl
 	{
-		FDiffControl()
+		FMergeControl()
 			: Widget()
 			, DiffControl(NULL)
+			, MergeControl(NULL)
 		{
 		}
 
 		TSharedPtr<SWidget> Widget;
 		class IDiffControl* DiffControl;
+		class IMergeControl* MergeControl;
 	};
 
-	FDiffControl GraphControl;
-	FDiffControl TreeControl;
-	FDiffControl DetailsControl;
+	FMergeControl GraphControl;
+	FMergeControl TreeControl;
+	FMergeControl DetailsControl;
 
 	class IDiffControl* CurrentDiffControl;
+	class IMergeControl* CurrentMergeControl;
 
 	// This has to be allocated here because SListView cannot own the list
 	// that it is displaying. It also seems like the display list *has*

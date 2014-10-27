@@ -877,7 +877,7 @@ bool SBlueprintDiff::HasPrevDiff() const
 
 void SBlueprintDiff::FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew, FListItemGraphToDiff* Diff )
 {
-	HandleGraphChanged( GraphOld ? GraphOld->GetName() : GraphNew->GetName() );
+	HandleGraphChanged( GraphOld ? GraphOld->GetFName() : GraphNew->GetFName() );
 
 	ResetGraphEditors();
 
@@ -1109,19 +1109,19 @@ FDiffPanel& SBlueprintDiff::GetDiffPanelForNode(UEdGraphNode& Node)
 	return Default;
 }
 
-void SBlueprintDiff::HandleGraphChanged( const FString& GraphName )
+void SBlueprintDiff::HandleGraphChanged( const FName GraphName )
 {
 	TArray<UEdGraph*> GraphsOld, GraphsNew;
 	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
 	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
 
 	UEdGraph* GraphOld = NULL;
-	if( UEdGraph** Iter = GraphsOld.FindByPredicate(FMatchName(GraphName)) )
+	if( UEdGraph** Iter = GraphsOld.FindByPredicate(FMatchFName(GraphName)) )
 	{
 		GraphOld = *Iter;
 	}
 	UEdGraph* GraphNew = NULL;
-	if (UEdGraph** Iter = GraphsNew.FindByPredicate(FMatchName(GraphName)))
+	if (UEdGraph** Iter = GraphsNew.FindByPredicate(FMatchFName(GraphName)))
 	{
 		GraphNew = *Iter;
 	}

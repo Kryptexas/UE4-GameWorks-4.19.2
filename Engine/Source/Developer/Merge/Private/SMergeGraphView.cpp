@@ -7,11 +7,25 @@
 
 #define LOCTEXT_NAMESPACE "SMergeGraphView"
 
+struct FGraphMergeConflict
+{
+	FGraphMergeConflict(FName InGraphName, const FDiffSingleResult& InFirstResult, const FDiffSingleResult& InSecondResult )
+		: GraphName(InGraphName)
+		, FirstResult(InFirstResult)
+		, SecondResult(InSecondResult)
+	{
+	}
+
+	FName GraphName;
+	FDiffSingleResult FirstResult;
+	FDiffSingleResult SecondResult;
+};
+
 // This cludge is used to move arrays of structures into arrays of 
 // shared ptrs of those structures. It is used because SListView
 // does not support arrays of values:
 template< typename T >
-TArray< TSharedPtr<T> > HackToShared(const TArray<T>& Values)
+TArray< TSharedPtr<T> > ConcreteToShared(const TArray<T>& Values)
 {
 	TArray< TSharedPtr<T> > Ret;
 	for (const auto& Value : Values)
@@ -35,7 +49,7 @@ struct FBlueprintRevPair
 
 struct FMergeGraphRowEntry
 {
-	FString GraphName;
+	FName GraphName;
 
 	// These lists contain shared ptrs because they are displayed by a
 	// SListView, and it currently does not support lists of values.
@@ -48,13 +62,13 @@ struct FMergeGraphRowEntry
 	bool bDiffersInLocal;
 };
 
-static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString& GraphName)
+static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FName& GraphName)
 {
 	TArray<UEdGraph*> Graphs;
 	FromBlueprint.GetAllGraphs(Graphs);
 
 	UEdGraph* Ret = NULL;
-	if (UEdGraph** Result = Graphs.FindByPredicate(FMatchName(GraphName)))
+	if (UEdGraph** Result = Graphs.FindByPredicate(FMatchFName(GraphName)))
 	{
 		Ret = *Result;
 	}
@@ -84,26 +98,26 @@ static FDiffPanel InitializePanel(const FBlueprintRevPair& BlueprintRevPair)
 	return Ret;
 }
 
-static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBlueprintRevPair& RemoteBlueprint, const FBlueprintRevPair& BaseBlueprint, const FBlueprintRevPair& LocalBlueprint)
+static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBlueprintRevPair& RemoteBlueprint, const FBlueprintRevPair& BaseBlueprint, const FBlueprintRevPair& LocalBlueprint,  TArray< TSharedPtr<FGraphMergeConflict> >& OutMergeConflicts )
 {
 	// Index all the graphs by name, we use the name of the graph as the 
 	// basis of comparison between the various versions of the blueprint.
-	TMap< FString, UEdGraph* > RemoteGraphMap, BaseGraphMap, LocalGraphMap;
+	TMap< FName, UEdGraph* > RemoteGraphMap, BaseGraphMap, LocalGraphMap;
 	// We also want the set of all graph names in these blueprints, so that we 
 	// can iterate over every graph.
-	TSet< FString > AllGraphNames;
+	TSet< FName > AllGraphNames;
 	{
 		TArray<UEdGraph*> GraphsRemote, GraphsBase, GraphsLocal;
 		RemoteBlueprint.Blueprint->GetAllGraphs(GraphsRemote);
 		BaseBlueprint.Blueprint->GetAllGraphs(GraphsBase);
 		LocalBlueprint.Blueprint->GetAllGraphs(GraphsLocal);
 
-		const auto ToMap = [&AllGraphNames](const TArray<UEdGraph*>& InList, TMap<FString, UEdGraph*>& OutMap)
+		const auto ToMap = [&AllGraphNames](const TArray<UEdGraph*>& InList, TMap<FName, UEdGraph*>& OutMap)
 		{
 			for (auto Graph : InList)
 			{
-				OutMap.Add(Graph->GetName(), Graph);
-				AllGraphNames.Add(Graph->GetName());
+				OutMap.Add(Graph->GetFName(), Graph);
+				AllGraphNames.Add(Graph->GetFName());
 			}
 		};
 		ToMap(GraphsRemote, RemoteGraphMap);
@@ -146,19 +160,23 @@ static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBl
 				{
 					for (const auto& RemoteDifference : RemoteDifferences)
 					{
-						bool bConflicted = false;
-						if (RemoteDifference.Diff)
+						const FDiffSingleResult* ConflictingDifference = nullptr;
+
 						for (const auto& LocalDifference : LocalDifferences)
 						{
 							if (RemoteDifference.Node1 == LocalDifference.Node1 )
 							{
-								bConflicted |=	RemoteDifference.Diff == EDiffType::NODE_REMOVED 
-												|| LocalDifference.Diff == EDiffType::NODE_REMOVED;
-								bConflicted |= RemoteDifference.Pin1 == LocalDifference.Pin1;
+								if( RemoteDifference.Diff == EDiffType::NODE_REMOVED || 
+									LocalDifference.Diff == EDiffType::NODE_REMOVED ||
+									RemoteDifference.Pin1 == LocalDifference.Pin1 )
+								{
+									ConflictingDifference = &LocalDifference;
+									break;
+								}
 							}
 						}
 
-						if (bConflicted)
+						if (ConflictingDifference != nullptr)
 						{
 							// For now, we don't want to create a hard conflict for changes that don't effect runtime behavior:
 							if (RemoteDifference.Diff == EDiffType::NODE_MOVED ||
@@ -166,7 +184,8 @@ static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBl
 							{
 								continue;
 							}
-							// @todo doc: flag the conflict somehow...
+
+							OutMergeConflicts.Push(MakeShareable( new FGraphMergeConflict( GraphName, RemoteDifference, *ConflictingDifference)) );
 						}
 						else
 						{
@@ -238,7 +257,7 @@ static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBl
 
 			FMergeGraphRowEntry NewEntry = {
 				GraphName,
-				HackToShared(AllDifferences),
+				ConcreteToShared(AllDifferences),
 				bExistsInRemote,
 				bExistsInBase,
 				bExistsInLocal,
@@ -304,8 +323,10 @@ const FLinearColor MergeRed = FLinearColor(1.0f, 0.2f, 0.3f);
 const FLinearColor MergeYellow = FLinearColor::Yellow;
 const FLinearColor MergeWhite = FLinearColor::White;
 
-void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData)
+void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData )
 {
+	CurrentMergeConflict = INDEX_NONE;
+
 	Data = InData;
 	bViewsAreLocked = true;
 	DiffResultsListData = NULL;
@@ -331,7 +352,8 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 
 	DifferencesFromBase = GenerateDiffListItems(BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_REMOTE]
 												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_BASE]
-												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]);
+												, BlueprintsForDisplay[EMergeParticipant::MERGE_PARTICIPANT_LOCAL]
+												, MergeConflicts);
 
 	// This is the function we'll use to generate a row in the control that lists all the available graphs:
 	const auto RowGenerator = [](TSharedPtr<FMergeGraphRowEntry> ParamItem, const TSharedRef<STableViewBase>& OwnerTable) -> TSharedRef<ITableRow>
@@ -388,7 +410,7 @@ void SMergeGraphView::Construct(const FArguments InArgs, const FBlueprintMergeDa
 				[
 					SNew(STextBlock)
 					.ColorAndOpacity(FLinearColor::White)
-					.Text(ParamItem->GraphName)
+					.Text(ParamItem->GraphName.GetPlainNameString())
 				]
 				+ Box(ParamItem->bExistsInRemote, RemoteColor)
 				+ Box(ParamItem->bExistsInBase, BaseColor)
@@ -491,6 +513,71 @@ bool SMergeGraphView::HasPrevDifference() const
 	return DiffWidgetUtils::HasPrevDifference(*DiffResultList.Pin(), *DiffResultsListData);
 }
 
+void SMergeGraphView::HighlightNextConflict()
+{
+	if( CurrentMergeConflict + 1 < MergeConflicts.Num())
+	{
+		++CurrentMergeConflict;
+	}
+	HighlightConflict(*MergeConflicts[CurrentMergeConflict]);
+}
+
+void SMergeGraphView::HighlightPrevConflict()
+{
+	if (CurrentMergeConflict - 1 >= 0 )
+	{
+		--CurrentMergeConflict;
+	}
+	HighlightConflict(*MergeConflicts[CurrentMergeConflict]);
+}
+
+bool SMergeGraphView::HasNextConflict() const 
+{
+	// return true if we have one conflict so that users can reselect the conflict if they desire. If we 
+	// return false when we already have selected this one and only conflict then there will be no way
+	// to reselect it if the user wants to.
+	return MergeConflicts.Num() == 1 || CurrentMergeConflict < MergeConflicts.Num();
+}
+
+bool SMergeGraphView::HasPrevConflict() const
+{
+	// note in HasNextConflict applies here as well.
+	return MergeConflicts.Num() == 1 || CurrentMergeConflict > 0;
+}
+
+void SMergeGraphView::HighlightConflict(const FGraphMergeConflict& Conflict)
+{
+	for( const auto& MergeGraphEntry : DifferencesFromBase )
+	{
+		if( MergeGraphEntry->GraphName == Conflict.GraphName )
+		{
+			OnGraphListSelectionChanged(MergeGraphEntry, ESelectInfo::Direct);
+			break;
+		}
+	}
+
+	// highlight the change made to the remote graph:
+	if( UEdGraphPin* Pin1 = Conflict.FirstResult.Pin2 )
+	{
+		// then look for the diff panel and focus on the change:
+		GetDiffPanelForNode(*Pin1->GetOwningNode(), DiffPanels).FocusDiff(*Pin1);
+	}
+	else if( UEdGraphNode* Node1 = Conflict.FirstResult.Node2 )
+	{
+		GetDiffPanelForNode(*Node1, DiffPanels).FocusDiff(*Node1);
+	}
+	
+	// and the change made to the local graph:
+	if (UEdGraphPin* Pin1 = Conflict.SecondResult.Pin2)
+	{
+		GetDiffPanelForNode(*Pin1->GetOwningNode(), DiffPanels).FocusDiff(*Pin1);
+	}
+	else if (UEdGraphNode* Node1 = Conflict.SecondResult.Node2)
+	{
+		GetDiffPanelForNode(*Node1, DiffPanels).FocusDiff(*Node1);
+	}
+}
+
 bool SMergeGraphView::HasNoDifferences() const
 {
 	auto DiffResultListPtr = DiffResultList.Pin();
@@ -499,12 +586,14 @@ bool SMergeGraphView::HasNoDifferences() const
 
 void SMergeGraphView::OnGraphListSelectionChanged(TSharedPtr<FMergeGraphRowEntry> Item, ESelectInfo::Type SelectionType)
 {
-	if (SelectionType != ESelectInfo::OnMouseClick || !Item.IsValid())
+	if (( SelectionType != ESelectInfo::OnMouseClick &&
+		  SelectionType != ESelectInfo::Direct) ||
+		!Item.IsValid())
 	{
 		return;
 	}
 
-	FString GraphName = Item->GraphName;
+	FName GraphName = Item->GraphName;
 
 	UEdGraph* GraphRemote = FindGraphByName(*GetRemotePanel().Blueprint, GraphName);
 	UEdGraph* GraphBase = FindGraphByName(*GetBasePanel().Blueprint, GraphName);

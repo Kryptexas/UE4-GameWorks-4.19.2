@@ -5,19 +5,19 @@
 #include "Editor/GraphEditor/Public/DiffResults.h"
 #include "GraphEditor.h"
 
-struct FMatchName
+struct FMatchFName
 {
-	FMatchName(const FString& InName)
+	FMatchFName(FName InName)
 	: Name(InName)
 	{
 	}
 
 	bool operator() (const UObject* Object)
 	{
-		return Object->GetName() == Name;
+		return Object->GetFName() == Name;
 	}
 
-	FString const& Name;
+	FName const Name;
 };
 
 /** Individual Diff item shown in the list of diffs */
@@ -158,7 +158,7 @@ protected:
 	FDiffPanel& GetDiffPanelForNode(UEdGraphNode& Node);
 
 	/** Event handler that updates the graph view when user selects a new graph */
-	void HandleGraphChanged( const FString& GraphName );
+	void HandleGraphChanged( const FName GraphName );
 
 	TSharedRef<SWidget> GenerateGraphPanel();
 	TSharedRef<SWidget> GenerateDefaultsPanel();

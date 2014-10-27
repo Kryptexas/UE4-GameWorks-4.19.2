@@ -70,6 +70,18 @@ struct FDiffSingleResult
 	FLinearColor DisplayColor;
 };
 
+FORCEINLINE bool operator==( const FDiffSingleResult& LHS, const FDiffSingleResult& RHS )
+{
+	return	LHS.Diff == RHS.Diff &&
+			LHS.Node1 == RHS.Node1 &&
+			LHS.Node2 == RHS.Node2 &&
+			LHS.Pin1 == RHS.Pin1 &&
+			LHS.Pin2 == RHS.Pin2 &&
+			LHS.DisplayString == RHS.DisplayString &&
+			LHS.ToolTip == RHS.ToolTip &&
+			LHS.DisplayColor == RHS.DisplayColor;
+}
+
 /** Collects the Diffs found for a node */
 struct FDiffResults
 {
