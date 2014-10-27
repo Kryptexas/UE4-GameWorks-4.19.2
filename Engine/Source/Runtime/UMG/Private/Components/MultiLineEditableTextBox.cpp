@@ -17,6 +17,8 @@ UMultiLineEditableTextBox::UMultiLineEditableTextBox(const FObjectInitializer& O
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
 
+	bAutoWrapText = true;
+
 	SMultiLineEditableTextBox::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 	TextStyle = *Defaults._TextStyle;
@@ -46,6 +48,8 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)
 		.ReadOnlyForegroundColor(ReadOnlyForegroundColor)
+		.AutoWrapText( bAutoWrapText )
+		.WrapTextAt( WrapTextAt )
 //		.MinDesiredWidth(MinimumDesiredWidth)
 //		.Padding(Padding)
 //		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)

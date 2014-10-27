@@ -40,6 +40,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Content)
 	TEnumAsByte<ETextJustify::Type> Justification;
 
+	/** Whether to wrap text automatically based on the widget's computed horizontal space.*/
+	UPROPERTY(EditDefaultsOnly, Category=Content)
+	bool bAutoWrapText;
+
+	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category=Content)
+	float WrapTextAt;
+
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateFontInfo Font;

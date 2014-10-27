@@ -13,6 +13,7 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;
 
+	bAutoWrapText = true;
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
 }
@@ -37,6 +38,8 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 	.TextStyle(&WidgetStyle)
 	.Font(FSlateFontInfo(FontPath, Font.Size))
 	.Justification(Justification)
+	.WrapTextAt( WrapTextAt )
+	.AutoWrapText( bAutoWrapText )
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 //	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
