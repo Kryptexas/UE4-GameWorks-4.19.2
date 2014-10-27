@@ -1269,6 +1269,9 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 {
 	check(InBlueprints.Num() == 1 || bShouldOpenInDefaultsMode);
 
+	// TRUE if a single Blueprint is being opened and is marked as newly created
+	bool bNewlyCreated = InBlueprints.Num() == 1 && InBlueprints[0]->bIsNewlyCreated;
+
 	TArray< UObject* > Objects;
 	for( auto BlueprintIter = InBlueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
 	{
@@ -1304,7 +1307,7 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 	
 	RegenerateMenusAndToolbars();
 
-	RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode);
+	RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode, bNewlyCreated);
 
 	// Cache the project type ( Blueprint or Code Based )
 	if( FPaths::IsProjectFilePathSet() )
@@ -1323,10 +1326,10 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();	
 }
 
-void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated/* = false*/)
 {
 	// Newly-created Blueprints will open in Components mode rather than Standard mode
-	bool bShouldOpenInComponentsMode = !bShouldOpenInDefaultsMode && InBlueprints.Num() == 1 && InBlueprints[0]->bIsNewlyCreated;
+	bool bShouldOpenInComponentsMode = !bShouldOpenInDefaultsMode && bNewlyCreated;
 
 	// Create the modes and activate one (which will populate with a real layout)
 	if ( UBlueprint* SingleBP = GetBlueprintObj() )

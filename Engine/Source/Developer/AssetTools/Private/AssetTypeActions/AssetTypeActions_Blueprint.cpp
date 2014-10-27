@@ -70,14 +70,8 @@ void FAssetTypeActions_Blueprint::OpenAssetEditor( const TArray<UObject*>& InObj
 		auto Blueprint = Cast<UBlueprint>(*ObjIt);
 		if (Blueprint && Blueprint->SkeletonGeneratedClass && Blueprint->GeneratedClass )
 		{
-			// Open to the full editor
-			const bool bSavedForceFullEditor = Blueprint->bForceFullEditor;
-			Blueprint->bForceFullEditor = true;
-
 			FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>( "Kismet" );
 			TSharedRef< IBlueprintEditor > NewKismetEditor = BlueprintEditorModule.CreateBlueprintEditor( Mode, EditWithinLevelEditor, Blueprint, ShouldUseDataOnlyEditor(Blueprint) );
-			
-			Blueprint->bForceFullEditor = bSavedForceFullEditor;
 		}
 		else
 		{

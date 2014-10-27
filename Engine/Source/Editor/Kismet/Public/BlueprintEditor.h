@@ -503,7 +503,7 @@ public:
 
 protected:
 	/** Called during initialization of the blueprint editor to register any application modes. */
-	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
+	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false);
 	
 	// Zooming to fit the entire graph
 	void ZoomToWindow_Clicked();
