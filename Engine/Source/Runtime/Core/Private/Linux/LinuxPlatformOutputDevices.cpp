@@ -149,7 +149,9 @@ void FOutputDeviceLinuxError::HandleError()
 
 		GLog->Flush();
 
+#if !UE_SERVER
 		FPlatformMisc::ClipboardCopy(GErrorHist);
+#endif // !UE_SERVER
 		FPlatformMisc::SubmitErrorReport(GErrorHist, EErrorReportMode::Interactive);
 		FCoreDelegates::OnShutdownAfterError.Broadcast();
 #if !PLATFORM_EXCEPTIONS_DISABLED
