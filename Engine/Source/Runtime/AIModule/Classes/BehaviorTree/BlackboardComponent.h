@@ -239,6 +239,9 @@ protected:
 
 	/** notifies behavior tree decorators about change in blackboard */
 	void NotifyObservers(FBlackboard::FKey KeyID) const;
+
+	/** initializes parent chain in asset */
+	void InitializeParentChain(UBlackboardData* NewAsset);
 };
 
 //////////////////////////////////////////////////////////////////////////

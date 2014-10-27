@@ -109,6 +109,9 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 	/** updates parent key cache for editor */
 	void UpdateParentKeys();
 
+	/** forces update of FirstKeyID, which depends on parent chain */
+	void UpdateKeyIDs();
+
 protected:
 
 	enum EKeyLookupMode

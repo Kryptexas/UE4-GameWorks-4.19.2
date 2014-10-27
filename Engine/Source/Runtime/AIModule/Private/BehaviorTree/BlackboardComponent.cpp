@@ -59,6 +59,15 @@ struct FBlackboardInitializationData
 	};
 };
 
+void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
+{
+	if (NewAsset)
+	{
+		InitializeParentChain(NewAsset->Parent);
+		NewAsset->UpdateKeyIDs();
+	}
+}
+
 void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
@@ -76,6 +85,8 @@ void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 	{
 		if (BlackboardAsset->IsValid())
 		{
+			InitializeParentChain(BlackboardAsset);
+
 			TArray<FBlackboardInitializationData> InitList;
 			const int32 NumKeys = BlackboardAsset->GetNumKeys();
 			InitList.Reserve(NumKeys);

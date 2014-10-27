@@ -185,6 +185,11 @@ void UBlackboardData::UpdateParentKeys()
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	FirstKeyID = Parent ? Parent->GetNumKeys() : 0;
+	UpdateKeyIDs();
 	OnUpdateKeys.Broadcast(this);
+}
+
+void UBlackboardData::UpdateKeyIDs()
+{
+	FirstKeyID = Parent ? Parent->GetNumKeys() : 0;
 }
