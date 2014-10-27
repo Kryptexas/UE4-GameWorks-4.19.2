@@ -5,6 +5,9 @@
 #include "AllowWindowsPlatformTypes.h"
 
 
+/**
+ * Implements a video track using the Windows Media Foundation.
+ */
 class FWmfMediaVideoTrack
 	: public FWmfMediaTrack
 	, public IMediaTrackVideoDetails

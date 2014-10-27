@@ -5,6 +5,10 @@
 #include "AllowWindowsPlatformTypes.h"
 
 
+// forward declarations
+enum class EMediaPlaybackDirections;
+
+
 /**
  * Enumerates possible states of media playback.
  */
