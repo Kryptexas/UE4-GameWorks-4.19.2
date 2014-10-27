@@ -60,19 +60,19 @@ void UNetworkSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 				UByteProperty* ByteProperty = Cast<UByteProperty>(PropertyChangedEvent.Property);
 				if (ByteProperty != NULL && ByteProperty->Enum != NULL)
 				{
-					CVar->Set(ByteProperty->GetPropertyValue_InContainer(this), ECVF_SetByNetwork);
+					CVar->Set(ByteProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 				else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropertyChangedEvent.Property))
 				{
-					CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this), ECVF_SetByNetwork);
+					CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 				else if (UIntProperty* IntProperty = Cast<UIntProperty>(PropertyChangedEvent.Property))
 				{
-					CVar->Set(IntProperty->GetPropertyValue_InContainer(this), ECVF_SetByNetwork);
+					CVar->Set(IntProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 				else if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(PropertyChangedEvent.Property))
 				{
-					CVar->Set(FloatProperty->GetPropertyValue_InContainer(this), ECVF_SetByNetwork);
+					CVar->Set(FloatProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 				}
 			}
 		}

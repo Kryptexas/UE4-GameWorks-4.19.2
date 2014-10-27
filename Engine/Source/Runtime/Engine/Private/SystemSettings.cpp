@@ -476,64 +476,57 @@ void FSystemSettings::ApplyNewSettings( const FSystemSettingsData& NewSettings, 
 
 void FSystemSettings::ApplyOverrides()
 {
-	bool bUseMaxQualityMode = CVarUseMaxQualityMode.GetValueOnGameThread() != 0;
+	EConsoleVariableFlags SetBy = ECVF_SetByMask;
 
-	if (FParse::Param(FCommandLine::Get(),TEXT("MAXQUALITYMODE")))
+	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		bUseMaxQualityMode = true;
+		if (CVarUseMaxQualityMode.GetValueOnGameThread() != 0)
+		{
+			SetBy = (EConsoleVariableFlags)(CVarUseMaxQualityMode.AsVariable()->GetFlags() & ECVF_SetByMask);
+		}
+
+		if (FParse::Param(FCommandLine::Get(),TEXT("MAXQUALITYMODE")))
+		{
+			SetBy = ECVF_SetByCommandline;
+		}
 	}
 
-	if (FParse::Param(FCommandLine::Get(),TEXT("MSAA")))
-	{
-		check(0);
-		// todo: set console variable to activate MSAA
-	}
-
-	if (!FPlatformProperties::SupportsWindowedMode())
-	{
-		bUseMaxQualityMode = false;
-	}
-	else
-	{
-		// Dump(TEXT("Startup System Settings:"));
-	}
-
-	if (bUseMaxQualityMode)
+	if (SetBy != ECVF_SetByMask)
 	{
 		// Modify various system settings to get the best quality regardless of performance impact
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinResolution"));
-			CVar->Set(16, ECVF_SetByCode);
+			CVar->Set(16, SetBy);
 		}
 
 		// Disable shadow fading out over distance
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.FadeResolution"));
-			CVar->Set(1, ECVF_SetByCode);
+			CVar->Set(1, SetBy);
 		}
 
 		// Increase minimum preshadow resolution
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinPreShadowResolution"));
-			CVar->Set(16, ECVF_SetByCode);
+			CVar->Set(16, SetBy);
 		}
 
 		// Disable preshadow fading out over distance
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowFadeResolution"));
-			CVar->Set(1, ECVF_SetByCode);
+			CVar->Set(1, SetBy);
 		}
 
 		// Increase shadow texel density
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.TexelsPerPixel"));
-			CVar->Set(4.0f, ECVF_SetByCode);
+			CVar->Set(4.0f, SetBy);
 		}
 
 		// Don't downsample preshadows
 		{
 			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowResolutionFactor"));
-			CVar->Set(1.0f, ECVF_SetByCode);
+			CVar->Set(1.0f, SetBy);
 		}
 
 		for (int32 GroupIndex = 0; GroupIndex < TEXTUREGROUP_MAX; GroupIndex++)

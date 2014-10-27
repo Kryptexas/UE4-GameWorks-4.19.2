@@ -6,7 +6,7 @@
 
 
 /**
- * Implements project settings for the Rendering sub-system.
+ * Implements project settings for the Network sub-system.
  */
 UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UNetworkSettings

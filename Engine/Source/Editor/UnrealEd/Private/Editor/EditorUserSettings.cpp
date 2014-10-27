@@ -21,7 +21,7 @@ void UEditorUserSettings::PostInitProperties()
 
 	//Ensure the material quality cvar is set to the settings loaded.
 	static IConsoleVariable* MaterialQualityLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
-	MaterialQualityLevelVar->Set(MaterialQualityLevel, ECVF_SetByEditorSetting);
+	MaterialQualityLevelVar->Set(MaterialQualityLevel, ECVF_SetByConsole);
 }
 
 void UEditorUserSettings::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
