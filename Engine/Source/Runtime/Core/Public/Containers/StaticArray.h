@@ -24,7 +24,7 @@ public:
 	/** Copy constructor. */
 	TStaticArray(const TStaticArray& Other)
 	{
-		CopyConstructItems((void*)Elements, (const TElement*)Other.Elements, NumElements);
+		ConstructItems<TElement>((void*)Elements, (const TElement*)Other.Elements, NumElements);
 	}
 
 #if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES

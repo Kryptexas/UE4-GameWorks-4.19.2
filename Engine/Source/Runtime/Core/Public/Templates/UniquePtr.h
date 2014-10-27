@@ -221,7 +221,19 @@ FORCEINLINE bool operator!=(const TUniquePtr<T>& Lhs, const TUniquePtr<T>& Rhs)
 	return Lhs.Get() != Rhs.Get();
 }
 
-template <typename T> struct TIsZeroConstructType<TUniquePtr<T>> { enum { Value = true }; };
+// Trait which allows TUniquePtr to be default constructed by memsetting to zero.
+template <typename T>
+struct TIsZeroConstructType<TUniquePtr<T>>
+{
+	enum { Value = true };
+};
+
+// Trait which allows TUniquePtr to be memcpy'able from pointers.
+template <typename T>
+struct TIsBitwiseConstructible<TUniquePtr<T>, T*>
+{
+	enum { Value = true };
+};
 
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 

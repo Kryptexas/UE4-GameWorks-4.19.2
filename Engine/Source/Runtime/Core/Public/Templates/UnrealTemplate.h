@@ -3,6 +3,8 @@
 #pragma once
 
 #include "EnableIf.h"
+#include "PointerIsConvertibleFromTo.h"
+#include "TypeWrapper.h"
 #include "HAL/Platform.h"
 #include "Templates/UnrealTypeTraits.h"
 
@@ -11,20 +13,16 @@
 	Standard templates.
 -----------------------------------------------------------------------------*/
 
-#if PLATFORM_SUPPORTS_CanConvertPointerFromTo
-
 /** 
 * CanConvertPointerFromTo<From, To>::Result is an enum value equal to 1 if From* is automatically convertable to a To* (without regard to const!)
 **/
 template<class From, class To>
 class CanConvertPointerFromTo
 {
-	static uint8 Test(...);
-	static uint16 Test(To const*);
 public:
 	enum Type
 	{
-		Result = sizeof(Test((From*)0)) - 1
+		Result = TPointerIsConvertibleFromTo<From, const To>::Value
 	};
 };
 
@@ -57,8 +55,6 @@ static_assert(!(CanConvertPointerFromTo<bool, CanConvertPointerFromTo_TestBase>:
 static_assert(!(CanConvertPointerFromTo<void, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
 static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
 static_assert(!(CanConvertPointerFromTo<void, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
-
-#endif
 
 
 
@@ -346,24 +342,6 @@ struct TKeyValuePair
 	ValueType	Value;
 };
 
-/** Tests whether two typenames refer to the same type. */
-template<typename A,typename B>
-struct TAreTypesEqual;
-
-template<typename,typename>
-struct TAreTypesEqual
-{
-	enum { Value = false };
-};
-
-template<typename A>
-struct TAreTypesEqual<A,A>
-{
-	enum { Value = true };
-};
-
-#define ARE_TYPES_EQUAL(A,B) TAreTypesEqual<A,B>::Value
-
 //
 // Macros that can be used to specify multiple template parameters in a macro parameter.
 // This is necessary to prevent the macro parsing from interpreting the template parameter
@@ -441,16 +419,6 @@ FORCEINLINE T StaticCast(ArgType&& Arg)
 {
 	return static_cast<T>(Arg);
 }
-
-/**
- * TRemoveCV<type> will remove any const/volatile qualifiers from a type.
- * (based on std::remove_cv<>
- * note: won't remove the const from "const int*", as the pointer is not const
- */
-template <typename T> struct TRemoveCV                   { typedef T Type; };
-template <typename T> struct TRemoveCV<const T>          { typedef T Type; };
-template <typename T> struct TRemoveCV<volatile T>       { typedef T Type; };
-template <typename T> struct TRemoveCV<const volatile T> { typedef T Type; };
 
 /**
  * TRValueToLValueReference converts any rvalue reference type into the equivalent lvalue reference, otherwise returns the same type.
@@ -609,69 +577,4 @@ struct TOrValue<true, RHS>
 template <typename LHS, typename RHS>
 struct TOr : TOrValue<LHS::Value, RHS>
 {
-};
-
-/**
- * Wraps a type.
- *
- * The intended use of this template is to allow types to be passed around where the unwrapped type would give different behavior.
- * An example of this is when you want a template specialization to refer to the primary template, but doing that would cause
- * infinite recursion through the specialization, e.g.:
- *
- * // Before
- * template <typename T>
- * struct TThing
- * {
- *     void f(T t)
- *     {
- *          DoSomething(t);
- *     }
- * };
- *
- * template <>
- * struct TThing<int>
- * {
- *     void f(int t)
- *     {
- *         DoSomethingElseFirst(t);
- *         TThing<int>::f(t); // Infinite recursion
- *     }
- * };
- *
- *
- * // After
- * template <typename T>
- * struct TThing
- * {
- *     typedef typename TUnwrapType<T>::Type RealT;
- *
- *     void f(RealT t)
- *     {
- *          DoSomething(t);
- *     }
- * };
- *
- * template <>
- * struct TThing<int>
- * {
- *     void f(int t)
- *     {
- *         DoSomethingElseFirst(t);
- *         TThing<TTypeWrapper<int>>::f(t); // works
- *     }
- * };
- */
-template <typename T>
-struct TTypeWrapper;
-
-template <typename T>
-struct TUnwrapType
-{
-	typedef T Type;
-};
-
-template <typename T>
-struct TUnwrapType<TTypeWrapper<T>>
-{
-	typedef T Type;
 };

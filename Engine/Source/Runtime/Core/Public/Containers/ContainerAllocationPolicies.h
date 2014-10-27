@@ -426,7 +426,7 @@ public:
 			if (!Other.SecondaryData.GetAllocation())
 			{
 				// Relocate objects from other inline storage only if it was stored inline in Other
-				RelocateItems((void*)InlineData, Other.GetInlineElements(), NumInlineElements);
+				RelocateConstructItems<ElementType>((void*)InlineData, Other.GetInlineElements(), NumInlineElements);
 			}
 
 			// Move secondary storage in any case.
@@ -448,7 +448,7 @@ public:
 				// If the old allocation wasn't in the inline data area, relocate it into the inline data area.
 				if(SecondaryData.GetAllocation())
 				{
-					RelocateItems((void*)InlineData, (ElementType*)SecondaryData.GetAllocation(), PreviousNumElements);
+					RelocateConstructItems<ElementType>((void*)InlineData, (ElementType*)SecondaryData.GetAllocation(), PreviousNumElements);
 
 					// Free the old indirect allocation.
 					SecondaryData.ResizeAllocation(0,0,NumBytesPerElement);
@@ -462,7 +462,7 @@ public:
 					SecondaryData.ResizeAllocation(0,NumElements,NumBytesPerElement);
 
 					// Move the data out of the inline data area into the new allocation.
-					RelocateItems((void*)SecondaryData.GetAllocation(), GetInlineElements(), PreviousNumElements);
+					RelocateConstructItems<ElementType>((void*)SecondaryData.GetAllocation(), GetInlineElements(), PreviousNumElements);
 				}
 				else
 				{
@@ -543,7 +543,7 @@ public:
 			check(this != &Other);
 
 			// Relocate objects from other inline storage
-			RelocateItems((void*)InlineData, Other.GetInlineElements(), NumInlineElements);
+			RelocateConstructItems<ElementType>((void*)InlineData, Other.GetInlineElements(), NumInlineElements);
 		}
 
 		// FContainerAllocatorInterface

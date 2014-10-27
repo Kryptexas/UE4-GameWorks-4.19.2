@@ -69,7 +69,7 @@ FORCEINLINE void MoveByRelocate(T& A, T& B)
 	A.~T();
 
 	// Relocate B into the 'hole' left by the destruction of A, leaving a hole in B instead.
-	RelocateItems(&A, &B, 1);
+	RelocateConstructItems<T>(&A, &B, 1);
 }
 
 /** Either NULL or an identifier for an element of a set. */

@@ -345,6 +345,29 @@ public:
 	}
 };
 
+namespace UE4Array_Private
+{
+	template <typename FromArrayType, typename ToArrayType>
+	struct TCanMoveTArrayPointersBetweenArrayTypes
+	{
+		typedef typename FromArrayType::Allocator   FromAllocatorType;
+		typedef typename ToArrayType  ::Allocator   ToAllocatorType;
+		typedef typename FromArrayType::ElementType FromElementType;
+		typedef typename ToArrayType  ::ElementType ToElementType;
+
+		enum
+		{
+			Value =
+				TAreTypesEqual<FromAllocatorType, ToAllocatorType>::Value && // Allocators must be equal
+				TContainerTraits<FromArrayType>::MoveWillEmptyContainer &&   // A move must be allowed to leave the source array empty
+				(
+					TAreTypesEqual         <ToElementType, FromElementType>::Value || // The element type of the container must be the same, or...
+					TIsBitwiseConstructible<ToElementType, FromElementType>::Value    // ... the element type of the source container must be bitwise constructible from the element type in the destination container
+				)
+		};
+	};
+}
+
 /**
  * Templated dynamic array
  *
@@ -356,11 +379,15 @@ public:
  * Caution: as noted below some methods are not safe for element types that require constructors.
  *
  **/
-template<typename InElementType, typename Allocator>
+template<typename InElementType, typename InAllocator>
 class TArray
 {
+	template <typename OtherInElementType, typename OtherAllocator>
+	friend class TArray;
+
 public:
 	typedef InElementType ElementType;
+	typedef InAllocator   Allocator;
 
 	/**
 	 * Constructor, initializes element number counters.
@@ -375,8 +402,8 @@ public:
 	 *
 	 * @param Other The source array to copy.
 	 */
-	template<typename OtherAllocator>
-	explicit TArray(const TArray<ElementType,OtherAllocator>& Other)
+	template <typename OtherElementType, typename OtherAllocator>
+	explicit TArray(const TArray<OtherElementType, OtherAllocator>& Other)
 	{
 		CopyToEmpty(Other);
 	}
@@ -425,7 +452,7 @@ public:
 	 *
 	 * @param Other The source array to assign from.
 	 */
-	TArray& operator=(const TArray<ElementType, Allocator>& Other)
+	TArray& operator=(const TArray& Other)
 	{
 		if (this != &Other)
 		{
@@ -434,8 +461,6 @@ public:
 		}
 		return *this;
 	}
-
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
 
 private:
 	/**
@@ -446,8 +471,8 @@ private:
 	 * @param ToArray Array to move into.
 	 * @param FromArray Array to move from.
 	 */
-	template <typename ArrayType>
-	static FORCEINLINE typename TEnableIf<TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray)
+	template <typename FromArrayType, typename ToArrayType>
+	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray)
 	{
 		ToArray.AllocatorInstance.MoveToEmpty(FromArray.AllocatorInstance);
 
@@ -467,8 +492,8 @@ private:
 	 * @param ExtraSlack Tells how much extra memory should be preallocated
 	 *                   at the end of the array in the number of elements.
 	 */
-	template <typename ArrayType>
-	static FORCEINLINE typename TEnableIf<TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray, int32 ExtraSlack)
+	template <typename FromArrayType, typename ToArrayType>
+	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 ExtraSlack)
 	{
 		MoveOrCopy(ToArray, FromArray);
 
@@ -485,23 +510,30 @@ private:
 	 * @param ExtraSlack Tells how much extra memory should be preallocated
 	 *                   at the end of the array in the number of elements.
 	 */
-	template <typename ArrayType>
-	static FORCEINLINE typename TEnableIf<!TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray, int32 ExtraSlack = 0)
+	template <typename FromArrayType, typename ToArrayType>
+	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 ExtraSlack = 0)
 	{
 		ToArray.CopyToEmpty(FromArray, ExtraSlack);
 	}
 
 public:
-	// We don't implement move semantics for general OtherAllocators, as there's no way
-	// to tell if they're compatible with the current one.  Probably going to be a pretty
-	// rare requirement anyway.
+	/**
+	 * Move constructor.
+	 *
+	 * @param Other Array to move from.
+	 */
+	FORCEINLINE TArray(TArray&& Other)
+	{
+		MoveOrCopy(*this, Other);
+	}
 
 	/**
 	 * Move constructor.
 	 *
 	 * @param Other Array to move from.
 	 */
-	TArray(TArray<ElementType, Allocator>&& Other)
+	template <typename OtherElementType, typename OtherAllocator>
+	FORCEINLINE explicit TArray(TArray<OtherElementType, OtherAllocator>&& Other)
 	{
 		MoveOrCopy(*this, Other);
 	}
@@ -513,8 +545,13 @@ public:
 	 * @param ExtraSlack Tells how much extra memory should be preallocated
 	 *                   at the end of the array in the number of elements.
 	 */
-	TArray(TArray<ElementType, Allocator>&& Other, int32 ExtraSlack)
+	template <typename OtherElementType>
+	TArray(TArray<OtherElementType, Allocator>&& Other, int32 ExtraSlack)
 	{
+		// We don't implement move semantics for general OtherAllocators, as there's no way
+		// to tell if they're compatible with the current one.  Probably going to be a pretty
+		// rare requirement anyway.
+
 		MoveOrCopy(*this, Other, ExtraSlack);
 	}
 
@@ -523,7 +560,7 @@ public:
 	 *
 	 * @param Other Array to assign and move from.
 	 */
-	TArray& operator=(TArray<ElementType, Allocator>&& Other)
+	TArray& operator=(TArray&& Other)
 	{
 		if (this != &Other)
 		{
@@ -532,8 +569,6 @@ public:
 		}
 		return *this;
 	}
-
-#endif
 
 	/**
 	 * Destructor.
@@ -1267,7 +1302,7 @@ public:
 			AllocatorInstance.ResizeAllocation(OldNum, ArrayMax, sizeof(ElementType));
 		}
 		ElementType* Data = GetData() + Index;
-		RelocateItems(Data + Count, Data, OldNum - Index);
+		RelocateConstructItems<ElementType>(Data + Count, Data, OldNum - Index);
 	}
 
 	/**
@@ -1322,7 +1357,7 @@ public:
 		check(Ptr != NULL);
 
 		InsertUninitialized(Index, Count);
-		CopyConstructItems(GetData() + Index, Ptr, Count);
+		ConstructItems<ElementType>(GetData() + Index, Ptr, Count);
 
 		return Index;
 	}
@@ -1556,8 +1591,8 @@ public:
 	 *
 	 * @param Source The array to append.
 	 */
-	template <typename OtherAllocator>
-	FORCEINLINE void Append(const TArray<InElementType, OtherAllocator>& Source)
+	template <typename OtherElementType, typename OtherAllocator>
+	FORCEINLINE void Append(const TArray<OtherElementType, OtherAllocator>& Source)
 	{
 		check((void*)this != (void*)&Source);
 
@@ -1572,7 +1607,7 @@ public:
 		// Allocate memory for the new elements.
 		Reserve(ArrayNum + SourceCount);
 
-		CopyConstructItems(GetData() + ArrayNum, Source.GetData(), SourceCount);
+		ConstructItems<ElementType>(GetData() + ArrayNum, Source.GetData(), SourceCount);
 
 		ArrayNum += SourceCount;
 	}
@@ -1582,7 +1617,8 @@ public:
 	 *
 	 * @param Source The array to append.
 	 */
-	FORCEINLINE void Append(TArray&& Source)
+	template <typename OtherElementType, typename OtherAllocator>
+	FORCEINLINE void Append(TArray<OtherElementType, OtherAllocator>&& Source)
 	{
 		check((void*)this != (void*)&Source);
 
@@ -1597,7 +1633,7 @@ public:
 		// Allocate memory for the new elements.
 		Reserve(ArrayNum + SourceCount);
 
-		RelocateItems(GetData() + ArrayNum, Source.GetData(), SourceCount);
+		RelocateConstructItems<ElementType>(GetData() + ArrayNum, Source.GetData(), SourceCount);
 		Source.ArrayNum = 0;
 
 		ArrayNum += SourceCount;
@@ -1614,7 +1650,7 @@ public:
 		check(Ptr != NULL);
 
 		int32 Pos = AddUninitialized(Count);
-		CopyConstructItems(GetData() + Pos, Ptr, Count);
+		ConstructItems<ElementType>(GetData() + Pos, Ptr, Count);
 	}
 
 	/**
@@ -1625,7 +1661,11 @@ public:
 	 *
 	 * @param Other The array to append.
 	 */
-	FORCEINLINE TArray& operator+=(TArray&& Other) { Append(MoveTemp(Other)); return *this; }
+	FORCEINLINE TArray& operator+=(TArray&& Other)
+	{
+		Append(MoveTemp(Other));
+		return *this;
+	}
 
 	/**
 	 * Appends the specified array to this array.
@@ -1633,7 +1673,11 @@ public:
 	 *
 	 * @param Other The array to append.
 	 */
-	FORCEINLINE TArray& operator+=(const TArray& Other) { Append(Other); return *this; }
+	FORCEINLINE TArray& operator+=(const TArray& Other)
+	{
+		Append(Other);
+		return *this;
+	}
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -2152,15 +2196,15 @@ private:
 	 *                   the end of the buffer. Counted in elements. Zero by
 	 *                   default.
 	 */
-	template<typename OtherAllocator>
-	void CopyToEmpty(const TArray<ElementType, OtherAllocator>& Source, int32 ExtraSlack = 0)
+	template <typename OtherElementType, typename OtherAllocator>
+	void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 ExtraSlack = 0)
 	{
 		check(ExtraSlack >= 0);
 
 		int32 SourceCount = Source.Num();
 		AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
 
-		CopyConstructItems(GetData(), Source.GetData(), SourceCount);
+		ConstructItems<ElementType>(GetData(), Source.GetData(), SourceCount);
 
 		ArrayNum = SourceCount;
 		ArrayMax = SourceCount + ExtraSlack;
@@ -2525,9 +2569,7 @@ struct TIsZeroConstructType<TArray<InElementType, Allocator>>
 template <typename InElementType, typename Allocator>
 struct TContainerTraits<TArray<InElementType, Allocator> > : public TContainerTraitsBase<TArray<InElementType, Allocator> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TAllocatorTraits<Allocator>::SupportsMove };
+	enum { MoveWillEmptyContainer = TAllocatorTraits<Allocator>::SupportsMove };
 };
 
 /**
@@ -2613,15 +2655,10 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
-	TMRUArray(const TMRUArray&) = default;
-	TMRUArray& operator=(const TMRUArray&) = default;
-
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 	TMRUArray(TMRUArray&&) = default;
+	TMRUArray(const TMRUArray&) = default;
 	TMRUArray& operator=(TMRUArray&&) = default;
-
-#endif
+	TMRUArray& operator=(const TMRUArray&) = default;
 
 #else
 
@@ -2648,7 +2685,6 @@ public:
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
 	/**
 	 * Move constructor.
 	 *
@@ -2671,8 +2707,6 @@ public:
 		(Super&)*this = (Super&&)Other;
 		return *this;
 	}
-
-#endif
 
 #endif
 	/**
@@ -2749,9 +2783,7 @@ public:
 template<typename T, typename Allocator>
 struct TContainerTraits<TMRUArray<T, Allocator> > : public TContainerTraitsBase<TMRUArray<T, Allocator> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraitsBase<typename TMRUArray<T, Allocator>::Super>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraitsBase<typename TMRUArray<T, Allocator>::Super>::MoveWillEmptyContainer };
 };
 
 /*-----------------------------------------------------------------------------
@@ -3266,9 +3298,7 @@ private:
 template<typename T, typename Allocator>
 struct TContainerTraits<TIndirectArray<T, Allocator> > : public TContainerTraitsBase<TIndirectArray<T, Allocator> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraitsBase<typename TIndirectArray<T, Allocator>::InternalArrayType>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraitsBase<typename TIndirectArray<T, Allocator>::InternalArrayType>::MoveWillEmptyContainer };
 };
 
 template <typename T,typename Allocator> void* operator new( size_t Size, TIndirectArray<T,Allocator>& Array )
@@ -3340,15 +3370,10 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	TTransArray(TTransArray&&) = default;
 	TTransArray(const TTransArray&) = default;
+	TTransArray& operator=(TTransArray&&) = default;
 	TTransArray& operator=(const TTransArray&) = default;
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		TTransArray(TTransArray&&) = default;
-		TTransArray& operator=(TTransArray&&) = default;
-
-	#endif
 
 #else
 
@@ -3365,22 +3390,18 @@ public:
 		return *this;
 	}
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
+	FORCEINLINE TTransArray(TTransArray&& Other)
+		: Super((TTransArray&&)Other)
+		, Owner(Other.Owner)
+	{
+	}
 
-		FORCEINLINE TTransArray(TTransArray&& Other)
-			: Super((TTransArray&&)Other)
-			, Owner(Other.Owner)
-		{
-		}
-
-		FORCEINLINE TTransArray& operator=(TTransArray&& Other)
-		{
-			(Super&)*this = (Super&&)Other;
-			Owner         = Other.Owner;
-			return *this;
-		}
-
-	#endif
+	FORCEINLINE TTransArray& operator=(TTransArray&& Other)
+	{
+		(Super&)*this = (Super&&)Other;
+		Owner         = Other.Owner;
+		return *this;
+	}
 
 #endif
 
@@ -3510,9 +3531,7 @@ protected:
 template<typename T>
 struct TContainerTraits<TTransArray<T> > : public TContainerTraitsBase<TTransArray<T> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraitsBase<typename TTransArray<T>::Super>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraitsBase<typename TTransArray<T>::Super>::MoveWillEmptyContainer };
 };
 
 //
