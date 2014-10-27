@@ -55,6 +55,17 @@ namespace UnrealBuildTool
 		Dictionary<string, IniSection> Sections;
 
 		/// <summary>
+		/// Constructor. Parses ini hierarchy for the specified project.  No Platform settings.
+		/// </summary>
+		/// <param name="ProjectDirectory">Project path</param>
+		/// <param name="Platform">Target platform</param>
+		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		public ConfigCacheIni(string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
+		{
+			Init(UnrealTargetPlatform.Unknown, BaseIniName, ProjectDirectory, EngineDirectory);
+		}
+
+		/// <summary>
 		/// Constructor. Parses ini hierarchy for the specified platform and project.
 		/// </summary>
 		/// <param name="ProjectDirectory">Project path</param>
@@ -62,16 +73,33 @@ namespace UnrealBuildTool
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
 		public ConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
+			Init(Platform, BaseIniName, ProjectDirectory, EngineDirectory);
+		}
+
+		private void Init(UnrealTargetPlatform Platform, string BaseIniName, string ProjectDirectory, string EngineDirectory)
+		{
 			Sections = new Dictionary<string, IniSection>(StringComparer.InvariantCultureIgnoreCase);
 			if (String.IsNullOrEmpty(EngineDirectory))
 			{
 				EngineDirectory = BuildConfiguration.RelativeEnginePath;
 			}
-			foreach (var IniFileName in EnumerateIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName))
+
+			foreach (var IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, BaseIniName))
 			{
 				if (File.Exists(IniFileName))
 				{
 					ParseIniFile(IniFileName);
+				}
+			}
+
+			if (Platform != UnrealTargetPlatform.Unknown)
+			{
+				foreach (var IniFileName in EnumeratePlatformSpecificIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName))
+				{
+					if (File.Exists(IniFileName))
+					{
+						ParseIniFile(IniFileName);
+					}
 				}
 			}
 		}
@@ -442,10 +470,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns a list of INI filenames for the given project
 		/// </summary>
-		private static IEnumerable<string> EnumerateIniFileNames(string ProjectDirectory, string EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName)
+		private static IEnumerable<string> EnumerateCrossPlatformIniFileNames(string ProjectDirectory, string EngineDirectory, string BaseIniName)
 		{
-			string PlatformName = GetIniPlatformName(Platform);
-
 			// Engine/Config/Base.ini (included in every ini type, required)
 			yield return Path.Combine(EngineDirectory, "Config", "Base.ini");
 
@@ -454,13 +480,21 @@ namespace UnrealBuildTool
 
 			// Game/Config/Default* ini
 			yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
+		}
+
+		/// <summary>
+		/// Returns a list of INI filenames for the given project
+		/// </summary>
+		private static IEnumerable<string> EnumeratePlatformSpecificIniFileNames(string ProjectDirectory, string EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName)
+		{
+			string PlatformName = GetIniPlatformName(Platform);			
 
 			// Engine/Config/Platform/Platform* ini
 			yield return Path.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 
 			// Game/Config/Platform/Platform* ini
 			yield return Path.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
-		}
+		}		
 
 		/// <summary>
 		/// Returns the platform name to use as part of platform-specific config files

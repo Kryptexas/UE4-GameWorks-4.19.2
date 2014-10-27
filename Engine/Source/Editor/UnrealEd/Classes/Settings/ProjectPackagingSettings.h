@@ -61,6 +61,13 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;
 
+	/** 
+	 * If enabled, will generate pak file chunks.  Assets can be assigned to chunks in the editor or via a delegate (See ShooterGameDelegates.cpp). 
+	 * Can be used for streaming installs (PS4 Playgo, XboxOne Streaming Install, etc)
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bGenerateChunks;
+
 	/** Specifies whether to include prerequisites of packaged games, such as redistributable operating system components, whenever possible. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
@@ -97,7 +104,7 @@ public:
 	 * Note: These paths are relative to your project Content directory
 	 */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
-	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;
+	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;	
 
 public:
 
