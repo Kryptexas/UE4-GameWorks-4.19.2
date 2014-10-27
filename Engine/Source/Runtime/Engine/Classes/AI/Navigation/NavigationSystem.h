@@ -459,6 +459,8 @@ public:
 	static void UpdateNavOctreeAll(AActor* Actor);
 	/** removes all navoctree entries for actor and its components */
 	static void ClearNavOctreeAll(AActor* Actor);
+	/** updates bounds of all components implementing INavRelevantInterface */
+	static void UpdateNavOctreeBounds(AActor* Actor);
 
 	void AddDirtyArea(const FBox& NewArea, int32 Flags);
 	void AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags);

@@ -125,6 +125,7 @@ void AActor::PostEditMove(bool bFinished)
 	{
 		// update actor and all its components in navigation system after finishing move
 		// USceneComponent::UpdateNavigationData works only in game world
+		UNavigationSystem::UpdateNavOctreeBounds(this);
 		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }

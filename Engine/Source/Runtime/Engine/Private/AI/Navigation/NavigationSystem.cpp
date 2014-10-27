@@ -2059,6 +2059,21 @@ void UNavigationSystem::UpdateNavOctreeAll(class AActor* Actor)
 	}
 }
 
+void UNavigationSystem::UpdateNavOctreeBounds(class AActor* Actor)
+{
+	TArray<UActorComponent*> Components;
+	Actor->GetComponents(Components);
+
+	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	{
+		INavRelevantInterface* NavElement = Cast<INavRelevantInterface>(Components[Idx]);
+		if (NavElement)
+		{
+			NavElement->UpdateNavigationBounds();
+		}
+	}
+}
+
 void UNavigationSystem::ClearNavOctreeAll(class AActor* Actor)
 {
 	if (Actor)

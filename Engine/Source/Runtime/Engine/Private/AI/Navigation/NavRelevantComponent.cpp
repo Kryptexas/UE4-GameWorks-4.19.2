@@ -34,6 +34,11 @@ bool UNavRelevantComponent::IsNavigationRelevant() const
 	return bNavigationRelevant;
 }
 
+void UNavRelevantComponent::UpdateNavigationBounds()
+{
+	CalcBounds();
+}
+
 void UNavRelevantComponent::CalcBounds()
 {
 	AActor* OwnerActor = GetOwner();
