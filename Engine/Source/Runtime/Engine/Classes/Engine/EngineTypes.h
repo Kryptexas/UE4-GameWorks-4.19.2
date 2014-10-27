@@ -2363,7 +2363,7 @@ struct FRepAttachment
 UENUM(BlueprintType)
 enum EWalkableSlopeBehavior
 {
-	/** Don't affect the walkable slope. */
+	/** Don't affect the walkable slope. Walkable slope angle will be ignored. */
 	WalkableSlope_Default		UMETA(DisplayName="Unchanged"),
 
 	/**
@@ -2409,6 +2409,12 @@ struct FWalkableSlopeOverride
 	FWalkableSlopeOverride()
 	: WalkableSlopeBehavior(WalkableSlope_Default)
 	, WalkableSlopeAngle(0.f)
+	{
+	}
+
+	FWalkableSlopeOverride(EWalkableSlopeBehavior NewSlopeBehavior, float NewSlopeAngle)
+	: WalkableSlopeBehavior(NewSlopeBehavior)
+	, WalkableSlopeAngle(NewSlopeAngle)
 	{
 	}
 
