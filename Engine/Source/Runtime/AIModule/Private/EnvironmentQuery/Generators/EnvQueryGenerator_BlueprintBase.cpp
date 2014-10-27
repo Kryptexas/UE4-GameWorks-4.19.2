@@ -7,7 +7,7 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_BlueprintBase.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Actor.h"
 #include "AI/Navigation/RecastNavMesh.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 

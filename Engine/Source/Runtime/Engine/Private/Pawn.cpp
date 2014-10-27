@@ -14,7 +14,7 @@
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
 #include "NetworkingDistanceConstants.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "Engine/InputDelegateBinding.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);

@@ -2,7 +2,6 @@
 
 #include "EnginePrivate.h"
 
-#include "VisualLog.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerAutomationTests.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
@@ -20,9 +19,6 @@ class FVisualLoggerTestDevice : public FVisualLogDevice
 public:
 	FVisualLoggerTestDevice();
 	virtual void Cleanup(bool bReleaseMemory = false) override;
-	virtual void StartRecordingToFile(float TImeStamp) override;
-	virtual void StopRecordingToFile(float TImeStamp) override;
-	virtual void SetFileName(const FString& InFileName) override;
 	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
 
 	class UObject* LastObject;
@@ -40,22 +36,7 @@ void FVisualLoggerTestDevice::Cleanup(bool bReleaseMemory)
 	LastEntry.Reset();
 }
 
-void FVisualLoggerTestDevice::StartRecordingToFile(float TImeStamp)
-{
-
-}
-
-void FVisualLoggerTestDevice::StopRecordingToFile(float TImeStamp)
-{
-
-}
-
-void FVisualLoggerTestDevice::SetFileName(const FString& InFileName)
-{
-
-}
-
-void FVisualLoggerTestDevice::Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
+void FVisualLoggerTestDevice::Serialize(const UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
 {
 	LastObject = const_cast<class UObject*>(LogOwner);
 	LastEntry = LogEntry;
@@ -120,10 +101,10 @@ bool FVisualLogTest::RunTest(const FString& Parameters)
 
 	{
 		const FString TextToLog = TEXT("Hello World");
-		UE_VLOG(GWorld, LogVisual, Log, *TextToLog);
+		UE_VLOG_UELOG(GWorld, LogVisual, Warning, TEXT("%s"), *TextToLog);
 		CHECK_SUCCESS(Context.Device.LastObject != GWorld);
 		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
-		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
+		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, ECreateIfNeeded::DontCreate);
 		
 		float CurrentTimestamp = GWorld->TimeSeconds;
 		for (int32 Index = 0; Index < 2; ++Index)
@@ -165,7 +146,7 @@ bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 		UE_VLOG_SEGMENT(GWorld, LogVisual, Log, StartPoint, EndPoint, FColor::Red, TEXT("Simple segment log"));
 		CHECK_SUCCESS(Context.Device.LastObject == NULL);
 		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
-		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
+		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, ECreateIfNeeded::DontCreate);
 
 		float CurrentTimestamp = GWorld->TimeSeconds;
 		for (int32 Index = 0; Index < 2; ++Index)
@@ -173,7 +154,7 @@ bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 			CHECK_SUCCESS(CurrentEntry != NULL);
 			CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
 			CHECK_SUCCESS(CurrentEntry->ElementsToDraw.Num() == 1);
-			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].GetType() == FVisualLogEntry::FElementToDraw::Segment);
+			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].GetType() == EVisualLoggerShapeElement::Segment);
 			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points.Num() == 2);
 			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[0] == StartPoint);
 			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[1] == EndPoint);
@@ -206,7 +187,7 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	CHECK_SUCCESS(EventTest3.Name == TEXT("EventTest3"));
 	CHECK_SUCCESS(EventTest3.FriendlyDesc == TEXT("Third simple event for tests"));
 
-	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, VisualLogger::DontCreate);
+	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, ECreateIfNeeded::DontCreate);
 	float CurrentTimestamp = GWorld->TimeSeconds;
 	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest);
 	CHECK_SUCCESS(CurrentEntry != NULL);

@@ -7,7 +7,7 @@
 #include "RecastNavMeshGenerator.h"
 #endif // WITH_RECAST
 #include "AI/NavigationSystemHelpers.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 namespace NavigationHelper
 {

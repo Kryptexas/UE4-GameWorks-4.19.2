@@ -2,7 +2,7 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)

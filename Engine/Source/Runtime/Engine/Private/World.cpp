@@ -30,7 +30,7 @@
 #include "TickTaskManagerInterface.h"
 #include "FXSystem.h"
 #include "SoundDefinitions.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "LevelUtils.h"
 #include "PhysicsPublic.h"
 #include "AI/AISystemBase.h"

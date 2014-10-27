@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavigationPath.h"
@@ -267,7 +267,7 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, in
 void FNavigationPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const 
 {
 	const int32 NumPathVerts = PathPoints.Num();
-	FVisualLogEntry::FElementToDraw Element(FVisualLogEntry::FElementToDraw::Path);
+	FVisualLogShapeElement Element(EVisualLoggerShapeElement::Path);
 	Element.Category = LogNavigation.GetCategoryName();
 	Element.SetColor(FColorList::Green);
 	Element.Points.Reserve(NumPathVerts);
@@ -909,7 +909,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 
 	// draw corridor
 #if WITH_RECAST
-	FVisualLogEntry::FElementToDraw CorridorElem(FVisualLogEntry::FElementToDraw::Segment);
+	FVisualLogShapeElement CorridorElem(EVisualLoggerShapeElement::Segment);
 	CorridorElem.SetColor(FColorList::Cyan);
 	CorridorElem.Category = LogNavigation.GetCategoryName();
 	CorridorElem.Points.Reserve(PathCorridor.Num() * 6);
@@ -940,7 +940,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 		{
-			FVisualLogEntry::FElementToDraw AreaMarkElem(FVisualLogEntry::FElementToDraw::Segment);
+			FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
 			AreaMarkElem.SetColor(FColorList::Orange);
 			AreaMarkElem.Category = LogNavigation.GetCategoryName();
 			AreaMarkElem.Thicknes = 2;

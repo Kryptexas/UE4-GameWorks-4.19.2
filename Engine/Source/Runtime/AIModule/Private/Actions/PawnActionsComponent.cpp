@@ -521,7 +521,7 @@ void UPawnActionsComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) cons
 			continue;
 		}
 
-		FVisualLogEntry::FStatusCategory StatusCategory;
+		FVisualLogStatusCategory StatusCategory;
 		StatusCategory.Category = Category + TEXT(": ") + GetPriorityName(PriorityIndex);
 
 		while (Action)

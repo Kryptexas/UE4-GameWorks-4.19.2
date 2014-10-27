@@ -9,7 +9,7 @@
 #include "Engine/ObjectReferencer.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Console.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "FileManagerGeneric.h"
 #include "Database.h"
 #include "SkeletalMeshMerge.h"

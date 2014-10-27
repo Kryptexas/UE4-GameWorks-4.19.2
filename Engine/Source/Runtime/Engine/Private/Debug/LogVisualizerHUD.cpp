@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "Debug/LogVisualizerHUD.h"
 #include "Debug/LogVisualizerCameraController.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 #define LOCTEXT_NAMESPACE "ALogVisualizerHUD"
 

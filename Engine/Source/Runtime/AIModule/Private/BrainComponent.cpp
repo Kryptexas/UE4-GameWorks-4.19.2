@@ -193,7 +193,7 @@ void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 		return;
 	}
 
-	FVisualLogEntry::FStatusCategory StatusCategory;
+	FVisualLogStatusCategory StatusCategory;
 	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockSourceName());
 	for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
 	{

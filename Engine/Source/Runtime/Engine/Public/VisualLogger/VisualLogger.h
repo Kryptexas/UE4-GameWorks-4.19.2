@@ -14,6 +14,9 @@
 // Text, regular log
 #define UE_VLOG(LogOwner, CategoryName, Verbosity, Format, ...) FVisualLogger::CategorizedLogf(LogOwner, CategoryName, ELogVerbosity::Verbosity, INDEX_NONE, Format, ##__VA_ARGS__)
 #define UE_CVLOG(Condition, LogOwner, CategoryName, Verbosity, Format, ...)  if(Condition) {UE_VLOG(LogOwner, CategoryName, Verbosity, Format, ##__VA_ARGS__);} 
+// Text, log with output to regular unreal logs too
+#define UE_VLOG_UELOG(LogOwner, CategoryName, Verbosity, Format, ...) { FVisualLogger::CategorizedLogf(LogOwner, CategoryName, ELogVerbosity::Verbosity, INDEX_NONE, Format, ##__VA_ARGS__); UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); }
+#define UE_CVLOG_UELOG(Condition, LogOwner, CategoryName, Verbosity, Format, ...)  if(Condition) {UE_VLOG_DEBUG(LogOwner, CategoryName, Verbosity, Format, ##__VA_ARGS__);} 
 // Segment shape
 #define UE_VLOG_SEGMENT(LogOwner, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, Format, ...) FVisualLogger::GeometryShapeLogf(LogOwner, CategoryName, ELogVerbosity::Verbosity, INDEX_NONE, SegmentStart, SegmentEnd, Color, Format, ##__VA_ARGS__)
 #define UE_CVLOG_SEGMENT(Condition, LogOwner, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, Format, ...) if(Condition) {UE_VLOG_SEGMENT(LogOwner, CategoryName, Verbosity, INDEX_NONE, SegmentStart, SegmentEnd, Color, Format, ##__VA_ARGS__);}
@@ -55,6 +58,8 @@
 
 #define UE_VLOG(Actor, CategoryName, Verbosity, Format, ...)
 #define UE_CVLOG(Condition, Actor, CategoryName, Verbosity, Format, ...)
+#define UE_VLOG_UELOG(LogOwner, CategoryName, Verbosity, Format, ...)
+#define UE_CVLOG_UELOG(Condition, Actor, CategoryName, Verbosity, Format, ...)
 #define UE_VLOG_SEGMENT(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...)
 #define UE_CVLOG_SEGMENT(Condition, Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...)
 #define UE_VLOG_SEGMENT_THICK(Actor, CategoryName, Verbosity, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...)
@@ -136,7 +141,7 @@ public:
 		return GVisLog;
 	}
 
-	virtual ~FVisualLogger();
+	virtual ~FVisualLogger() {}
 
 	// called on engine shutdown to flush all, etc.
 	virtual void Shutdown();
@@ -188,7 +193,7 @@ public:
 	/** Remove visual logger output device */
 	TArray<FVisualLogDevice*>& GetDevices() { return OutputDevices; }
 	/** Returns  current entry for given TimeStap or creates another one  but first it serialize previous entry as completed to vislog devices. Use VisualLogger::DontCreate to get current entry without serialization*/
-	FVisualLogEntry* GetEntryToWrite(const class UObject* Object, float TimeStamp, VisualLogger::ECreateIfNeeded ShouldCreate = VisualLogger::Create);
+	FVisualLogEntry* GetEntryToWrite(const class UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate = ECreateIfNeeded::Create);
 	/** flush and serialize data if timestamp allows it */
 	virtual void Flush() override;
 
@@ -241,31 +246,6 @@ protected:
 	bool UseBinaryFileDevice;
 };
 
-/**
- * Interface for Visual Logger Device
- */
-class FVisualLogDevice
-{
-public:
-	virtual void Cleanup(bool bReleaseMemory = false) = 0;
-	virtual void StartRecordingToFile(float TImeStamp) = 0;
-	virtual void StopRecordingToFile(float TImeStamp) = 0;
-	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) = 0;
-	virtual void SetFileName(const FString& InFileName) = 0;
-	virtual bool HasFlags(int32 InFlags) { return !!(InFlags & (VisualLogger::CanSaveToFile | VisualLogger::StoreLogsLocally)); }
-};
-
-/**
- * Interface for extensions
- */
-class FVisualLogExtensionInterface
-{
-public:
-	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor) = 0;
-	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
-	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp) = 0;
-	virtual void LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName) = 0;
-};
 
 #include "VisualLogger.inl"
 

@@ -8,7 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "NetworkingDistanceConstants.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"

@@ -32,7 +32,7 @@ bool CheckVisualLogInputInternal(const class UObject* Object, const struct FLogC
 }
 
 FORCEINLINE
-FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, float TimeStamp, VisualLogger::ECreateIfNeeded ShouldCreate)
+FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate)
 {
 	FVisualLogEntry* CurrentEntry = NULL;
 	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
@@ -41,7 +41,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 	if (CurrentEntryPerObject.Contains(LogOwner))
 	{
 		CurrentEntry = &CurrentEntryPerObject[LogOwner];
-		if (TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == VisualLogger::Create)
+		if (TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create)
 		{
 			if (CurrentEntry->TimeStamp >= 0) //-1 means not initialized entry information
 			{
@@ -122,6 +122,7 @@ void FVisualLogger::Flush()
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::CategorizedLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -137,6 +138,7 @@ VARARG_BODY(void, FVisualLogger::CategorizedLogf, const TCHAR*, VARARG_EXTRA(con
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(const FVector& Start) VARARG_EXTRA(const FVector& End) VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -152,6 +154,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(const FVector& Location) VARARG_EXTRA(float Radius) VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -167,6 +170,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(const FBox& Box) VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -182,6 +186,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(const FVector& Orgin) VARARG_EXTRA(const FVector& Direction) VARARG_EXTRA(const float Length) VARARG_EXTRA(const float Angle)  VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -197,6 +202,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(const FVector& Start) VARARG_EXTRA(const FVector& End) VARARG_EXTRA(const float Radius) VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -212,6 +218,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(const FVector& Center) VARARG_EXTRA(float HalfHeight) VARARG_EXTRA(float Radius) VARARG_EXTRA(const FQuat& Rotation) VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -220,13 +227,14 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	GROWABLE_LOGF(
-		CurrentEntry->AddCapsule(Center, HalfHeight, Radius, Rotation, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Center, HalfHeight, Radius, Rotation, Category.GetCategoryName(), Color, Buffer);
 	);
 }
 
 FORCEINLINE
 VARARG_BODY(void, FVisualLogger::HistogramDataLogf, const TCHAR*, VARARG_EXTRA(const class UObject* Object) VARARG_EXTRA(const struct FLogCategoryBase& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(int32 UniqueLogId) VARARG_EXTRA(FName GraphName) VARARG_EXTRA(FName DataName) VARARG_EXTRA(const FVector2D& Data) VARARG_EXTRA(const FColor& Color))
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
@@ -277,6 +285,7 @@ void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1,
 FORCEINLINE
 void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1, const FVisualLogEventBase& Event, const FName EventTag2, const FName EventTag3, const FName EventTag4, const FName EventTag5, const FName EventTag6)
 {
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
 	UWorld *World = NULL;
 	FVisualLogEntry *CurrentEntry = NULL;
 	const FLogCategory<ELogVerbosity::Log, ELogVerbosity::Log> Category(*Event.Name);
@@ -285,7 +294,7 @@ void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1,
 		return;
 	}
 
-	int32 Index = CurrentEntry->Events.Find(FVisualLogEntry::FLogEvent(Event));
+	int32 Index = CurrentEntry->Events.Find(FVisualLogEvent(Event));
 	if (Index != INDEX_NONE)
 	{
 		CurrentEntry->Events[Index].Counter++;
@@ -303,5 +312,3 @@ void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1,
 	CurrentEntry->Events[Index].EventTags.FindOrAdd(EventTag6)++;
 	CurrentEntry->Events[Index].EventTags.Remove(NAME_None);
 }
-
-#undef  CHECK_VLOG_DATA

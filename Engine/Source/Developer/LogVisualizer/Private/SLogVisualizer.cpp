@@ -19,6 +19,7 @@
 #	include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #endif
 
+#include "VIsualLogger/VisualLoggerBinaryFileDevice.h"
 #include "GameplayDebuggingComponent.h"
 #include "LogVisualizerModule.h"
 #include "SLogVisualizerReport.h"
@@ -36,10 +37,9 @@ const FName SLogVisualizer::NAME_LogTimeSpan = TEXT("LogTimeSpan");
 
 namespace LogVisualizer
 {
-	static const FString LogFileExtensionPure = TEXT("vlog");
 	static const FString LogFileDescription = LOCTEXT("FileTypeDescription", "Visual Log File").ToString();
-	static const FString LogFileExtension = FString::Printf(TEXT("*.%s"), *LogFileExtensionPure);
-	static const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *LogFileDescription, *LogFileExtension, *LogFileExtension );
+	static const FString LoadFileTypes = FString::Printf(TEXT("%s (*.vlog;*.%s)|*.vlog;*.%s"), *LogFileDescription, VISLOG_FILENAME_EXT, VISLOG_FILENAME_EXT);
+	static const FString SaveFileTypes = FString::Printf(TEXT("%s (*.%s)|*.%s"), *LogFileDescription, VISLOG_FILENAME_EXT, VISLOG_FILENAME_EXT);
 }
 
 FColor SLogVisualizer::ColorPalette[] = {
@@ -574,6 +574,7 @@ SLogVisualizer::~SLogVisualizer()
 	UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.RemoveAll(this);
 	LogVisualizer->OnLogAdded().RemoveAll(this);
 	UDebugDrawService::Unregister(DrawingOnCanvasDelegate);
+
 	InvalidateCanvas();
 }
 
@@ -770,7 +771,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 			{
 				for (int32 LogLineIndex = 0; LogLineIndex < CurrentEntry->LogLines.Num(); ++LogLineIndex)
 				{
-					const FVisualLogEntry::FLogLine &CurrentLine = CurrentEntry->LogLines[LogLineIndex];
+					const FVisualLogLine &CurrentLine = CurrentEntry->LogLines[LogLineIndex];
 					const FString CurrentCategory = CurrentLine.Category.ToString();
 					if (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentLine.Verbosity))
 					{
@@ -789,7 +790,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 			for (int32 ElementIndex = 0; ElementIndex < CurrentEntry->ElementsToDraw.Num(); ++ElementIndex)
 			{
 				const FString CurrentCategory = CurrentEntry->ElementsToDraw[ElementIndex].Category.ToString();
-				FVisualLogEntry::FElementToDraw &CurrentElement = CurrentEntry->ElementsToDraw[ElementIndex];
+				FVisualLogShapeElement &CurrentElement = CurrentEntry->ElementsToDraw[ElementIndex];
 				if (CurrentElement.Category != NAME_None && (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentElement.Verbosity)))
 				{
 					OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
@@ -804,7 +805,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 
 			for (int32 SampleIndex = 0; SampleIndex < CurrentEntry->HistogramSamples.Num(); ++SampleIndex)
 			{
-				const FVisualLogEntry::FHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+				const FVisualLogHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
 				const FName CurrentCategory = CurrentSample.Category;
 				const FName CurrentDataName = CurrentSample.DataName;
 
@@ -828,7 +829,7 @@ void SLogVisualizer::UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& 
 			{
 				for (int32 LogLineIndex = 0; LogLineIndex < CurrentEntry->Events.Num(); ++LogLineIndex)
 				{
-					const FVisualLogEntry::FLogEvent &CurrentLine = CurrentEntry->Events[LogLineIndex];
+					const FVisualLogEvent &CurrentLine = CurrentEntry->Events[LogLineIndex];
 					const FString CurrentCategory = CurrentLine.Name;
 					if (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentLine.Verbosity))
 					{
@@ -904,7 +905,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 				{
 					for (int32 j = 0; j < CurrentEntry->LogLines.Num(); ++j)
 					{
-						const FVisualLogEntry::FLogLine &CurrentLine = CurrentEntry->LogLines[j];
+						const FVisualLogLine &CurrentLine = CurrentEntry->LogLines[j];
 						const FString CurrentCategory = CurrentLine.Category.ToString();
 						if (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentLine.Verbosity))
 						{
@@ -923,7 +924,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 				for (int32 j = 0; j < CurrentEntry->ElementsToDraw.Num(); ++j)
 				{
 					const FString CurrentCategory = CurrentEntry->ElementsToDraw[j].Category.ToString();
-					FVisualLogEntry::FElementToDraw &CurrentElement = CurrentEntry->ElementsToDraw[j];
+					FVisualLogShapeElement &CurrentElement = CurrentEntry->ElementsToDraw[j];
 					if (CurrentElement.Category != NAME_None && (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentElement.Verbosity)))
 					{
 						OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
@@ -938,7 +939,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 
 				for (int32 SampleIndex = 0; SampleIndex < CurrentEntry->HistogramSamples.Num(); ++SampleIndex)
 				{
-					const FVisualLogEntry::FHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+					const FVisualLogHistogramSample &CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
 					const FName CurrentCategory = CurrentSample.Category;
 					const FName CurrentDataName = CurrentSample.DataName;
 
@@ -960,7 +961,7 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 				for (int32 j = 0; j < CurrentEntry->Events.Num(); ++j)
 				{
 					const FString CurrentCategory = CurrentEntry->Events[j].Name;
-					FVisualLogEntry::FLogEvent &CurrentElement = CurrentEntry->Events[j];
+					FVisualLogEvent &CurrentElement = CurrentEntry->Events[j];
 					if (CurrentElement.Name.Len() > 0 && (FilterListPtr->IsFilterEnabled(CurrentCategory, CurrentElement.Verbosity)))
 					{
 						OutEntriesCached[CachedLogIndex].CachedEntries.AddUnique(CurrentEntry);
@@ -1862,7 +1863,7 @@ void SLogVisualizer::ShowEntry(const FVisualLogEntry* LogEntry)
 	UpdateStatusItems(LogEntry);
 	LogEntryLines.Reset();
 	
-	const FVisualLogEntry::FLogLine* LogLine = LogEntry->LogLines.GetData();
+	const FVisualLogLine* LogLine = LogEntry->LogLines.GetData();
 	for (int LineIndex = 0; LineIndex < LogEntry->LogLines.Num(); ++LineIndex, ++LogLine)
 	{
 		bool bShowLine = true;
@@ -2246,7 +2247,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
 				for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
 				{
-					FVisualLogEntry::FHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+					FVisualLogHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
 
 					const FName CurrentCategory = CurrentSample.Category;
 					const FName CurrentGraphName = CurrentSample.GraphName;
@@ -2392,7 +2393,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				}
 			}
 
-			const FVisualLogEntry::FElementToDraw* ElementToDraw = Entry->ElementsToDraw.GetData();
+			const FVisualLogShapeElement* ElementToDraw = Entry->ElementsToDraw.GetData();
 			const int32 ElementsCount = Entry->ElementsToDraw.Num();
 			
 			for (int32 ElementIndex = 0; ElementIndex < ElementsCount; ++ElementIndex, ++ElementToDraw)
@@ -2407,7 +2408,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 
 				switch(ElementToDraw->GetType())
 				{
-				case FVisualLogEntry::FElementToDraw::SinglePoint:
+				case EVisualLoggerShapeElement::SinglePoint:
 					{
 						const float Radius = float(ElementToDraw->Radius);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2423,7 +2424,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisualLogEntry::FElementToDraw::Segment:
+				case EVisualLoggerShapeElement::Segment:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
@@ -2453,7 +2454,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisualLogEntry::FElementToDraw::Path:
+				case EVisualLoggerShapeElement::Path:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						FVector Location = ElementToDraw->Points[0];
@@ -2467,7 +2468,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisualLogEntry::FElementToDraw::Box:
+				case EVisualLoggerShapeElement::Box:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false && ElementToDraw->Points.Num() > 2;
@@ -2498,7 +2499,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisualLogEntry::FElementToDraw::Cone:
+				case EVisualLoggerShapeElement::Cone:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2516,7 +2517,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisualLogEntry::FElementToDraw::Cylinder:
+				case EVisualLoggerShapeElement::Cylinder:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2534,7 +2535,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 						}
 					}
 					break;
-				case FVisualLogEntry::FElementToDraw::Capsule:
+				case EVisualLoggerShapeElement::Capsule:
 					{
 						const float Thickness = float(ElementToDraw->Thicknes);
 						const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
@@ -2614,7 +2615,7 @@ FReply SLogVisualizer::OnLoad()
 			LOCTEXT("OpenProjectBrowseTitle", "Open Project").ToString(),
 			LastBrowsePath,
 			TEXT(""),
-			LogVisualizer::FileTypes,
+			LogVisualizer::LoadFileTypes,
 			EFileDialogFlags::None,
 			OpenFilenames
 			);
@@ -2656,7 +2657,7 @@ FReply SLogVisualizer::OnSave()
 			LOCTEXT("NewProjectBrowseTitle", "Choose a project location").ToString(),
 			LastBrowsePath,
 			TEXT(""),
-			LogVisualizer::FileTypes,
+			LogVisualizer::SaveFileTypes,
 			EFileDialogFlags::None,
 			SaveFilenames
 			);
@@ -2827,38 +2828,74 @@ EColumnSortMode::Type SLogVisualizer::GetLogsSortMode() const
 
 void SLogVisualizer::LoadFiles(TArray<FString>& OpenFilenames)
 {
+	TArray<FVisualLogDevice::FVisualLogEntryItem> FrameCache;
+
 	for (int FilenameIndex = 0; FilenameIndex < OpenFilenames.Num(); ++FilenameIndex)
 	{
-		FArchive* FileAr = IFileManager::Get().CreateFileReader(*(OpenFilenames[FilenameIndex]));
-		if (FileAr != NULL)
+		FString CurrentFileName = OpenFilenames[FilenameIndex];
+		const bool bIsBinaryFile = CurrentFileName.Find(TEXT(".bvlog")) != INDEX_NONE;
+		if (!bIsBinaryFile)
 		{
-			TSharedPtr<FJsonObject> Object;
-			TSharedRef<TJsonReader<UCS2CHAR> > Reader = TJsonReader<UCS2CHAR>::Create(FileAr);
-
-			if (FJsonSerializer::Deserialize(Reader, Object))
+			FArchive* FileAr = IFileManager::Get().CreateFileReader(*CurrentFileName);
+			if (FileAr != NULL)
 			{
-				TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(VisualLogJson::TAG_LOGS);
-				for (int32 LogIndex = 0; LogIndex < JsonLogs.Num(); ++LogIndex)
+				TSharedPtr<FJsonObject> Object;
+				TSharedRef<TJsonReader<UCS2CHAR> > Reader = TJsonReader<UCS2CHAR>::Create(FileAr);
+
+				if (FJsonSerializer::Deserialize(Reader, Object))
 				{
-					TSharedPtr<FJsonObject> JsonLogObject = JsonLogs[LogIndex]->AsObject();
-					if (JsonLogObject.IsValid() != false)
+					TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(VisualLogJson::TAG_LOGS);
+					for (int32 LogIndex = 0; LogIndex < JsonLogs.Num(); ++LogIndex)
 					{
-						if (JsonLogObject->HasTypedField<EJson::String>(VisualLogJson::TAG_NAME))
+						TSharedPtr<FJsonObject> JsonLogObject = JsonLogs[LogIndex]->AsObject();
+						if (JsonLogObject.IsValid() != false)
 						{
-							TSharedPtr<FActorsVisLog> NewLog = MakeShareable(new FActorsVisLog(JsonLogs[LogIndex]));
-							LogVisualizer->AddLoadedLog(NewLog);
+							if (JsonLogObject->HasTypedField<EJson::String>(VisualLogJson::TAG_NAME))
+							{
+								TSharedPtr<FActorsVisLog> NewLog = MakeShareable(new FActorsVisLog(JsonLogs[LogIndex]));
+								LogVisualizer->AddLoadedLog(NewLog);
+							}
 						}
 					}
+					bIgnoreTrivialLogs = false;
 				}
-				bIgnoreTrivialLogs = false;
-			}
 
-			FileAr->Close();
+				FileAr->Close();
+			}
+		}
+		else
+		{
+			TArray<FVisualLogDevice::FVisualLogEntryItem> RecordedLogs;
+			FArchive* FileArchive = IFileManager::Get().CreateFileReader(*(OpenFilenames[FilenameIndex]));
+			FVisualLoggerHelpers::Serialize(*FileArchive, RecordedLogs);
+			FrameCache.Append(RecordedLogs);
+			FileArchive->Close();
+			delete FileArchive;
+			FileArchive = NULL;
 		}
 	}
 
 	if (OpenFilenames.Num() > 0)
 	{
+		if (FrameCache.Num() > 0)
+		{
+			TMap<FName, TSharedPtr<FActorsVisLog>> HelperMap;
+
+			for (auto& CurrentLog : FrameCache)
+			{
+				if (HelperMap.Contains(CurrentLog.OwnerName) == false)
+				{
+					HelperMap.Add(CurrentLog.OwnerName, MakeShareable(new FActorsVisLog(CurrentLog.OwnerName, NULL)));
+				}
+				HelperMap[CurrentLog.OwnerName]->Entries.Add(MakeShareable(new FVisualLogEntry(CurrentLog.Entry)));
+			}
+
+			for (auto& CurrentLog : HelperMap)
+			{
+				LogVisualizer->AddLoadedLog(CurrentLog.Value);
+			}
+		}
+
 		LogsList.Reset();
 		OutEntriesCached.Reset();
 		RebuildFilteredList();
@@ -2867,9 +2904,7 @@ void SLogVisualizer::LoadFiles(TArray<FString>& OpenFilenames)
 
 void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 {
-	TSharedPtr<FJsonObject> Object = MakeShareable(new FJsonObject);
-
-	TArray< TSharedPtr<FJsonValue> > EntriesArray;
+	FVisualLogger::Get().Flush();
 	TArray< TSharedPtr<FLogsListItem> > ItemsToSave = LogsListWidget->GetSelectedItems();
 	if (ItemsToSave.Num() == 0)
 	{
@@ -2877,30 +2912,26 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 		ItemsToSave = LogsList;
 	}
 
-	EntriesArray.Reserve(ItemsToSave.Num());
-
-
-	TSharedPtr<FLogsListItem>* LogListItem = ItemsToSave.GetData();
-	for (int32 ItemIndex = 0; ItemIndex < ItemsToSave.Num(); ++ItemIndex, ++LogListItem)
+	TArray<FVisualLogDevice::FVisualLogEntryItem> FrameCache;
+	for (auto CurrentItem : ItemsToSave)
 	{
-		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
+		if (CurrentItem.IsValid() && LogVisualizer->Logs.IsValidIndex(CurrentItem->LogIndex))
 		{
-			TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[(*LogListItem)->LogIndex];
-			EntriesArray.Add(Log->ToJson());
+			TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[CurrentItem->LogIndex];
+			for (auto CurrentEntry : Log->Entries)
+			{
+				FrameCache.Add(FVisualLogDevice::FVisualLogEntryItem(Log->Name, *CurrentEntry.Get()));
+			}
 		}
 	}
-	
-	if (EntriesArray.Num() > 0)
-	{
-		Object->SetArrayField(VisualLogJson::TAG_LOGS, EntriesArray);
 
-		FArchive* FileAr = IFileManager::Get().CreateFileWriter(*Filename);
-		if (FileAr != NULL)
-		{
-			TSharedRef<TJsonWriter<UCS2CHAR> > Writer = TJsonWriter<UCS2CHAR>::Create(FileAr);
-			FJsonSerializer::Serialize( Object.ToSharedRef(), Writer );		
-			FileAr->Close();
-		}
+	if (FrameCache.Num())
+	{
+		FArchive* FileArchive = IFileManager::Get().CreateFileWriter(*Filename);
+		FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
+		FileArchive->Close();
+		delete FileArchive;
+		FileArchive = NULL;
 	}
 }
 

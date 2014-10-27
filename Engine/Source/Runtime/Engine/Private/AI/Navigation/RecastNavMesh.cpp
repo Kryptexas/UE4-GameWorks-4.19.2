@@ -7,7 +7,7 @@
 #include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"

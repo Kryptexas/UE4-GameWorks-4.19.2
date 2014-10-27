@@ -111,7 +111,7 @@ void AAIController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Debug
 
 void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 {
-	FVisualLogEntry::FStatusCategory MyCategory;
+	FVisualLogStatusCategory MyCategory;
 	MyCategory.Category = TEXT("AI Controller");
 	MyCategory.Add(TEXT("Pawn"), GetNameSafe(GetPawn()));
 	AActor* FocusActor = GetFocusActor();

@@ -27,7 +27,7 @@ void FVisualLoggerExtension::OnTimestampChange(float Timestamp, UWorld* InWorld,
 #endif
 }
 
-void FVisualLoggerExtension::DisableDrawingForData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp)
+void FVisualLoggerExtension::DisableDrawingForData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp)
 {
 #if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS && CurrentTimestamp == Timestamp)
@@ -65,7 +65,7 @@ void FVisualLoggerExtension::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryIt
 
 extern RENDERCORE_API FTexture* GWhiteTexture;
 
-void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp)
+void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp)
 {
 #if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS && HelperActor)

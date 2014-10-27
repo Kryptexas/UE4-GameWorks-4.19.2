@@ -14,7 +14,7 @@
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/DemoNetDriver.h"
 

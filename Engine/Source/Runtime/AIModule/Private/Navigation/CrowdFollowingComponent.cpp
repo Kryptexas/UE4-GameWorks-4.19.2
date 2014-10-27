@@ -867,7 +867,7 @@ void UCrowdFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) c
 		return;
 	}
 
-	FVisualLogEntry::FStatusCategory Category;
+	FVisualLogStatusCategory Category;
 	Category.Category = TEXT("Path following");
 
 	if (DestinationActor.IsValid())

@@ -6,7 +6,7 @@
 #include "SlateReflector.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 
 #if WITH_EDITOR

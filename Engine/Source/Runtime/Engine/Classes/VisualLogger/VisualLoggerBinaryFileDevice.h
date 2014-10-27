@@ -3,6 +3,9 @@
 #include "VisualLogger/VisualLogger.h"
 
 #if ENABLE_VISUAL_LOG
+
+#define VISLOG_FILENAME_EXT TEXT("bvlog")
+
 class FVisualLoggerBinaryFileDevice : public FVisualLogDevice
 {
 public:
@@ -18,15 +21,9 @@ public:
 	virtual void StopRecordingToFile(float TImeStamp) override;
 	virtual void SetFileName(const FString& InFileName) override;
 	virtual void Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry) override;
+	virtual void GetRecordedLogs(TArray<FVisualLogEntryItem>& RecordedLogs) const override { RecordedLogs = FrameCache; }
+	virtual bool HasFlags(int32 InFlags) const { return !!(InFlags & (EVisualLoggerDeviceFlags::CanSaveToFile | EVisualLoggerDeviceFlags::StoreLogsLocally)); }
 
-	struct FFrameCacheItem
-	{
-		FFrameCacheItem() {}
-		FFrameCacheItem(FName InOwnerName, const FVisualLogEntry& LogEntry) : OwnerName(InOwnerName), Entry(LogEntry) { }
-
-		FName OwnerName;
-		FVisualLogEntry Entry;
-	};
 protected:
 	int32 bUseCompression : 1;
 	float FrameCacheLenght;
@@ -35,6 +32,6 @@ protected:
 	FArchive* FileArchive;
 	FString TempFileName;
 	FString FileName;
-	TArray<FFrameCacheItem> FrameCache;
+	TArray<FVisualLogEntryItem> FrameCache;
 };
 #endif

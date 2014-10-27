@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 struct FLogEntryBarProxy
 {

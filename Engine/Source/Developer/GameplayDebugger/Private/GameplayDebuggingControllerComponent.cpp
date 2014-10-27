@@ -5,7 +5,7 @@
 #include "GameFramework/PlayerInput.h"
 #include "BehaviorTreeDelegates.h"
 #include "TimerManager.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugging, Log, All);
 

@@ -17,7 +17,7 @@
 #include "RecastNavMeshGenerator.h"
 
 #include "AI/Navigation/NavLinkCustomInterface.h"
-#include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 
 
 //----------------------------------------------------------------------//

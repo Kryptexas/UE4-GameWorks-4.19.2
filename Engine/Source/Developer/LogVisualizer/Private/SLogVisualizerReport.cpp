@@ -63,19 +63,19 @@ SLogVisualizerReport::~SLogVisualizerReport()
 FText SLogVisualizerReport::GenerateReportText() const
 {
 	FString OutString;
-	TArray<FVisualLogEntry::FLogEvent> GlobalEventsStats;
+	TArray<FVisualLogEvent> GlobalEventsStats;
 	TMap<FString, TArray<FString> >	 EventToObjectsMap;
 
 
 	for (auto LogItem : SelectedItems)
 	{
-		TArray<FVisualLogEntry::FLogEvent> AllEvents;
+		TArray<FVisualLogEvent> AllEvents;
 
 		for (TSharedPtr<FVisualLogEntry> CurrentEntry : LogItem->Entries)
 		{
-			for (FVisualLogEntry::FLogEvent& Event : CurrentEntry->Events)
+			for (FVisualLogEvent& Event : CurrentEntry->Events)
 			{
-				int32 Index = AllEvents.Find(FVisualLogEntry::FLogEvent(Event));
+				int32 Index = AllEvents.Find(FVisualLogEvent(Event));
 				if (Index != INDEX_NONE)
 				{
 					for (auto& CurrentEventTag : Event.EventTags)
@@ -112,7 +112,7 @@ FText SLogVisualizerReport::GenerateReportText() const
 			OutString.Append( FString::Printf(TEXT("        %s occurred %d times\n\n"), *CurrentEvent.Name, CurrentEvent.Counter) );
 
 			bool bJustAdded = false;
-			int32 Index = GlobalEventsStats.Find(FVisualLogEntry::FLogEvent(CurrentEvent));
+			int32 Index = GlobalEventsStats.Find(FVisualLogEvent(CurrentEvent));
 			if (Index != INDEX_NONE)
 			{
 				GlobalEventsStats[Index].Counter += CurrentEvent.Counter;
@@ -125,7 +125,7 @@ FText SLogVisualizerReport::GenerateReportText() const
 				EventToObjectsMap.FindOrAdd(CurrentEvent.Name).Add(LogItem->Name.ToString());
 			}
 
-			Index = GlobalEventsStats.Find(FVisualLogEntry::FLogEvent(CurrentEvent));
+			Index = GlobalEventsStats.Find(FVisualLogEvent(CurrentEvent));
 			for (auto& CurrentEventTag : CurrentEvent.EventTags)
 			{
 				if (!bJustAdded)

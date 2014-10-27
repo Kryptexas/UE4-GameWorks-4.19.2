@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #if ENABLE_VISUAL_LOG
-#	include "VisualLog.h"
+#include "VisualLogger/VisualLogger.h"
 #endif
 #include "VisualLoggerExtension.generated.h"
 
@@ -16,8 +16,8 @@ class FVisualLoggerExtension : public FVisualLogExtensionInterface
 public:
 	FVisualLoggerExtension();
 	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor) override;
-	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const struct FVisualLogEntry::FDataBlock& DataBlock, float Timestamp) override;
-	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp) override;
+	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const struct FVisualLogDataBlock& DataBlock, float Timestamp) override;
+	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp) override;
 	virtual void LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName) override;
 
 private:

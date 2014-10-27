@@ -3,12 +3,6 @@
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
 
 #if ENABLE_VISUAL_LOG
-FArchive& operator<<(FArchive& Ar, FVisualLoggerBinaryFileDevice::FFrameCacheItem& FrameCacheItem)
-{
-	Ar << FrameCacheItem.OwnerName;
-	Ar << FrameCacheItem.Entry;
-	return Ar;
-}
 
 FVisualLoggerBinaryFileDevice::FVisualLoggerBinaryFileDevice()
 	: FileArchive(NULL)
@@ -38,7 +32,7 @@ void FVisualLoggerBinaryFileDevice::StartRecordingToFile(float TimeStamp)
 
 	StartRecordingTime = TimeStamp;
 	LastLogTimeStamp = StartRecordingTime;
-	TempFileName = FVisualLoggerHelpers::GenerateTemporaryFilename(TEXT("bvlog"));
+	TempFileName = FVisualLoggerHelpers::GenerateTemporaryFilename(VISLOG_FILENAME_EXT);
 	const FString FullFilename = FString::Printf(TEXT("%slogs/%s"), *FPaths::GameSavedDir(), *TempFileName);
 
 	FileArchive = IFileManager::Get().CreateFileWriter(*FullFilename);
@@ -83,22 +77,16 @@ void FVisualLoggerBinaryFileDevice::SetFileName(const FString& InFileName)
 	FileName = InFileName;
 }
 
-void FVisualLoggerBinaryFileDevice::Serialize(const class UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
+void FVisualLoggerBinaryFileDevice::Serialize(const UObject* LogOwner, FName OwnerName, const FVisualLogEntry& LogEntry)
 {
 	const int32 NumEntries = FrameCache.Num();
-	if (NumEntries> 0 && FrameCache[NumEntries - 1].Entry.TimeStamp + FrameCacheLenght < LogEntry.TimeStamp && FileArchive)
+	if (NumEntries> 0 && LastLogTimeStamp + FrameCacheLenght <= LogEntry.TimeStamp && FileArchive)
 	{
-		int32 FrameTag = 0xFAFA;
-		*FileArchive << FrameTag;
-
-		int32 FrameCacheNum = FrameCache.Num();
-		*FileArchive << FrameCacheNum;
-
-		*FileArchive << FrameCache;
+		FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
 		FrameCache.Reset();
 	}
 
 	LastLogTimeStamp = LogEntry.TimeStamp;
-	FrameCache.Add(FFrameCacheItem(OwnerName, LogEntry));
+	FrameCache.Add(FVisualLogEntryItem(OwnerName, LogEntry));
 }
 #endif

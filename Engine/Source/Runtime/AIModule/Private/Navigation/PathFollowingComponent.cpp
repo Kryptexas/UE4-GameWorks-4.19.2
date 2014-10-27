@@ -1308,7 +1308,7 @@ void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayI
 #if ENABLE_VISUAL_LOG
 void UPathFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
-	FVisualLogEntry::FStatusCategory Category;
+	FVisualLogStatusCategory Category;
 	Category.Category = TEXT("Path following");
 
 	if (DestinationActor.IsValid())
