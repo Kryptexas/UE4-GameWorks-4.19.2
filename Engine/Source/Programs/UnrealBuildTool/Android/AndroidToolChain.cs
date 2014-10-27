@@ -13,6 +13,9 @@ namespace UnrealBuildTool
 	{
 		static private bool bHasNDKExtensionsCompiled = false;
 
+		// the number of the clang version being used to compile 
+		static private float ClangVersionFloat = 0;
+
 		// the list of architectures we will compile for
 		static private string[] Arches = null;
 		// the list of GPU architectures we will compile for
@@ -187,8 +190,13 @@ namespace UnrealBuildTool
 			string ClangVersion = "";
 			string GccVersion = "";
 
-			// prefer clang 3.3, but fall back to 3.1 if needed for now
-			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")))
+			// prefer clang 3.5, but fall back if needed for now
+			if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")))
+			{
+				ClangVersion = "3.5";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")))
 			{
 				ClangVersion = "3.3";
 				GccVersion = "4.8";
@@ -202,6 +210,9 @@ namespace UnrealBuildTool
 			{
 				return;
 			}
+
+			ClangVersionFloat = float.Parse(ClangVersion, System.Globalization.CultureInfo.InvariantCulture);
+			// Console.WriteLine("Compiling with clang {0}", ClangVersionFloat);
 
             string ArchitecturePath = "";
             string ArchitecturePathWindows32 = @"prebuilt\windows";
@@ -268,6 +279,13 @@ namespace UnrealBuildTool
 			Result += " -Wno-unknown-pragmas";			// probably should kill this one, sign of another issue in PhysX?
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
+
+			// new for clang4.5 warnings:
+			if (ClangVersionFloat >= 3.5)
+			{
+				Result += " -Wno-undefined-bool-conversion"; // 'this' pointer cannot be null in well-defined C++ code; pointer may be assumed to always convert to true (if (this))
+
+			}
 
 			// shipping builds will cause this warning with "ensure", so disable only in those case
 			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)

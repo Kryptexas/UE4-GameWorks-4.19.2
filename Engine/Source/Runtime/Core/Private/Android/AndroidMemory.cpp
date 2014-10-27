@@ -95,7 +95,8 @@ FMalloc* FAndroidPlatformMemory::BaseAllocator()
 
 void* FAndroidPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {
-	return valloc(Size);
+	// valloc was deprecated, this is a functional equivalent, for SDK 21
+	return memalign(sysconf(_SC_PAGESIZE), Size);
 }
 
 void FAndroidPlatformMemory::BinnedFreeToOS( void* Ptr )

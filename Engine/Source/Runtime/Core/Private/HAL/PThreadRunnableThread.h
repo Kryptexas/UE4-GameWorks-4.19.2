@@ -4,7 +4,7 @@
 
 #include <pthread.h>
 
-#if PLATFORM_LINUX
+#if PLATFORM_LINUX || PLATFORM_ANDROID
 #define PTHREAD_NULL -1
 #else
 #define PTHREAD_NULL NULL

@@ -73,8 +73,10 @@ namespace UnrealBuildTool
 
             NDKPath = NDKPath.Replace("\"", "");
 
-            // can't find llvm-3.3 or llvm-3.1 in the toolchains
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) && !Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
+            // need a supported llvm
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")) && 
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
             {
                 return false;
             }

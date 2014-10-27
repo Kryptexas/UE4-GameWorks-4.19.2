@@ -7,3 +7,5 @@
 
 #pragma once
 
+// The register keyword is deprecated
+#define register
