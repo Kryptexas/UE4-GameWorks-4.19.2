@@ -6,7 +6,6 @@
 
 
 // forward declarations
-enum EMediaPlayerStreamModes;
 class IMediaPlayer;
 
 
