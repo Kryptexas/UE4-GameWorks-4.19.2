@@ -112,6 +112,16 @@ void FKismet2Menu::FillDeveloperMenu( FMenuBuilder& MenuBuilder )
 	}
 	MenuBuilder.EndSection();
 
+	static const FBoolConfigValueHelper NativeCodeGenerationTool(TEXT("Kismet"), TEXT("bNativeCodeGenerationTool"), GEngineIni);
+	if (NativeCodeGenerationTool)
+	{
+		MenuBuilder.BeginSection("GenerateNativeCode", LOCTEXT("Cpp", "C++"));
+		{
+			MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().GenerateNativeCode);
+		}
+		MenuBuilder.EndSection();
+	}
+
 	if (false)
 	{
 		MenuBuilder.BeginSection("FileDeveloperFindReferences");

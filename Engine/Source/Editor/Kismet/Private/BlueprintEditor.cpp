@@ -83,6 +83,7 @@
 #include "GenericCommands.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "NativeCodeGenerationTool.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -2038,7 +2039,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FBlueprintEditor::NewDocument_IsVisibleForType, CGT_NewAnimationGraph));
 	*/
-
+	
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().SaveIntermediateBuildProducts,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleSaveIntermediateBuildProducts),
 		FCanExecuteAction(),
@@ -2059,6 +2060,25 @@ void FBlueprintEditor::CreateDefaultCommands()
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
 		FExecuteAction::CreateSP(this, &FBlueprintEditor::CreateMergeToolTab),
 		FCanExecuteAction());
+
+	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().GenerateNativeCode,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::OpenNativeCodeGenerationTool),
+		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanGenerateNativeCode));
+}
+
+void FBlueprintEditor::OpenNativeCodeGenerationTool()
+{
+	auto Blueprint = GetBlueprintObj();
+	if (Blueprint)
+	{
+		FNativeCodeGenerationTool::Open(*Blueprint, SharedThis(this));
+	}
+}
+
+bool FBlueprintEditor::CanGenerateNativeCode() const
+{
+	auto Blueprint = GetBlueprintObj();
+	return Blueprint && FNativeCodeGenerationTool::CanGenerate(*Blueprint);
 }
 
 void FBlueprintEditor::FindInBlueprint_Clicked()

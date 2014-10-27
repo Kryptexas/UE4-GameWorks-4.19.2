@@ -86,6 +86,10 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 		{
 			return FString::Printf(TEXT("TEXT(\"%s\")"), *(Term->Name));
 		}
+		else if(CoerceProperty->IsA(UTextProperty::StaticClass()))
+		{
+			return FString::Printf(TEXT("FText::FromString(TEXT(\"%s\"))"), *(Term->Name));
+		}
 		else if (CoerceProperty->IsA(UFloatProperty::StaticClass()))
 		{
 			float Value = FCString::Atof(*(Term->Name));
@@ -434,9 +438,10 @@ struct FEmitHelper
 	{
 		TArray<FString> Tags;
 
-		//TODO: BlueprintNativeEvent, BlueprintImplementableEvent
+		//Pointless: BlueprintNativeEvent, BlueprintImplementableEvent
+		//Pointless: CustomThunk
+
 		//TODO: SealedEvent
-		//TODO: CustomThunk
 		//TODO: Unreliable
 		//TODO: ServiceRequest, ServiceResponse
 		
@@ -535,6 +540,38 @@ struct FEmitHelper
 
 		return Results;
 	}
+
+	static FString MakeCppClassName(UClass* SourceClass)
+	{
+		check(SourceClass);
+		return FString(SourceClass->GetPrefixCPP()) + SourceClass->GetName();
+	}
+
+	static FString EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const TCHAR* InCurrentIndent)
+	{
+		FString Result;
+		bool bFunctionInitilzed = false;
+		const FString CppClassName = MakeCppClassName(SourceClass);
+		for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+		{
+			if ((It->PropertyFlags & CPF_Net) != 0)
+			{
+				if (!bFunctionInitilzed)
+				{
+					Result += FString::Printf(TEXT("%svoid %s::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const\n"), InCurrentIndent, *CppClassName);
+					Result += FString::Printf(TEXT("%s{\n"), InCurrentIndent);
+					Result += FString::Printf(TEXT("%s\tSuper::GetLifetimeReplicatedProps(OutLifetimeProps);\n"), InCurrentIndent);
+					bFunctionInitilzed = true;
+				}
+				Result += FString::Printf(TEXT("%s\tDOREPLIFETIME( %s, %s);\n"), InCurrentIndent, *CppClassName, *It->GetNameCPP());
+			}
+		}
+		if (bFunctionInitilzed)
+		{
+			Result += FString::Printf(TEXT("%s}\n"), InCurrentIndent);
+		}
+		return Result;
+	}
 };
 
 void FKismetCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass)
@@ -565,11 +602,12 @@ void FKismetCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass*
 
 void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
 {
-	CppClassName = FString(SourceClass->GetPrefixCPP()) + SourceClass->GetName();
+	CppClassName = FEmitHelper::MakeCppClassName(SourceClass);
 
 	UClass* SuperClass = SourceClass->GetSuperClass();
 
 	Emit(Header, TEXT("#pragma once\n\n"));
+	//Emit(Header, TEXT("#inlcude \"Public/Engine.h\"\n"));
 	Emit(Header, *FString::Printf(TEXT("#include \"%s.generated.h\"\n\n"), *SourceClass->GetName()));
 
 	// MC DELEGATE DECLARATION
@@ -651,6 +689,8 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArra
 	}
 
 	Emit(Header, TEXT("};\n\n"));
+
+	Emit(Body, *FEmitHelper::EmitLifetimeReplicatedPropsImpl(SourceClass, TEXT("")));
 }
 
 void FKismetCppBackend::EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -762,8 +802,7 @@ void FKismetCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext
 	Statement.FunctionToCall->GetName(FunctionNameToCall);
 	if( Statement.bIsParentContext )
 	{
-		const FString ContextString = Statement.FunctionToCall->GetOuter()->GetName();
-		FunctionNameToCall = ContextString + TEXT("::") + FunctionNameToCall;
+		FunctionNameToCall = TEXT("Super::") + FunctionNameToCall;
 	}
 	Emit(Body, *FString::Printf(TEXT("%s"), *FunctionNameToCall));
 

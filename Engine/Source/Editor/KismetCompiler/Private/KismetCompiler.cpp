@@ -704,7 +704,7 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 	ensure(Context.IsEventGraph() || !Context.EventGraphLocals.Num());
 	ensure(!Context.IsEventGraph() || !Context.Locals.Num());
 
-	const bool bPersistentUberGraphFrame = UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && Context.bIsUbergraph;
+	const bool bPersistentUberGraphFrame = UsePersistentUberGraphFrame() && Context.bIsUbergraph;
 	// Local stack frame (or maybe class for the ubergraph)
 	{
 		const bool bArePropertiesLocal = true;
@@ -1179,7 +1179,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Add the function to it's owner class function name -> function map
 		Context.NewClass->AddFunctionToFunctionMap(Context.Function);
-		if (UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && Context.bIsUbergraph)
+		if (UsePersistentUberGraphFrame() && Context.bIsUbergraph)
 		{
 			ensure(!NewClass->UberGraphFunction);
 			NewClass->UberGraphFunction = Context.Function;
@@ -2355,7 +2355,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 			if (AssignmentNode == NULL)
 			{
 				// Create a variable write node to store the parameters into the ubergraph frame storage
-				if (UBlueprintGeneratedClass::UsePersistentUberGraphFrame())
+				if (UsePersistentUberGraphFrame())
 				{
 					AssignmentNode = SpawnIntermediateNode<UK2Node_SetVariableOnPersistentFrame>(SrcEventNode, ChildStubGraph);
 				}
@@ -3293,7 +3293,7 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
-	if (UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && UbergraphContext)
+	if (UsePersistentUberGraphFrame() && UbergraphContext)
 	{
 		//UBER GRAPH PERSISTENT FRAME
 		FEdGraphPinType Type(TEXT("struct"), TEXT(""), FPointerToUberGraphFrame::StaticStruct(), false, false);
@@ -3662,6 +3662,11 @@ void FKismetCompilerContext::SetCanEverTickForActor()
 		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flags for Actor class '%s': CanEverTick %s "), *NewClass->GetName(),
 			CDActor->PrimaryActorTick.bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
 	}
+}
+
+bool FKismetCompilerContext::UsePersistentUberGraphFrame() const
+{
+	return UBlueprintGeneratedClass::UsePersistentUberGraphFrame();
 }
 
 #undef LOCTEXT_NAMESPACE

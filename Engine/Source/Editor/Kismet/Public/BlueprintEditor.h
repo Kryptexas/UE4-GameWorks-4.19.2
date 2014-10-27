@@ -468,6 +468,12 @@ public:
 	/** Closes the merge tool, rather than simply hiding it */
 	void CloseMergeTool();
 
+	/** Opens a native code generation modal window */
+	void OpenNativeCodeGenerationTool();
+
+	/** Can generate native code for current blueprint */
+	bool CanGenerateNativeCode() const;
+
 	/** 
 	 * Check to see if we can customize the SCS editor for the passed-in scene component 
 	 * @param	InComponentToCustomize	The component to check to see if a customization exists

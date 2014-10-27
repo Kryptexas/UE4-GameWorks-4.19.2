@@ -2,8 +2,12 @@
 
 #pragma once
 
+// Common libraries
 #include "Kismet/KismetArrayLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
+
+// Special libraries
 #include "Kismet/DataTableFunctionLibrary.h"
 
 FORCEINLINE UClass* DynamicMetaCast(const UClass* DesiredClass, UClass* SourceClass)
