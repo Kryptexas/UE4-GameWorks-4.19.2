@@ -3,15 +3,15 @@
 #pragma once
 
 #include "Perception/AIPerceptionSystem.h"
-#include "Perception/AISense.h"
-#include "AISense_Touch.generated.h"
+#include "Perception/AISenseImplementation.h"
+#include "AISenseImplementation_Touch.generated.h"
 
 USTRUCT()
 struct AIMODULE_API FAITouchEvent
 {	
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISense_Touch FSenseClass;
+	typedef class UAISenseImplementation_Touch FSenseClass;
 
 	FVector Location;
 	
@@ -30,7 +30,7 @@ struct AIMODULE_API FAITouchEvent
 };
 
 UCLASS(ClassGroup=AI)
-class AIMODULE_API UAISense_Touch : public UAISense
+class AIMODULE_API UAISenseImplementation_Touch : public UAISenseImplementation
 {
 	GENERATED_UCLASS_BODY()
 

@@ -3,15 +3,15 @@
 #pragma once
 
 #include "Perception/AIPerceptionSystem.h"
-#include "Perception/AISense.h"
-#include "AISense_Team.generated.h"
+#include "Perception/AISenseImplementation.h"
+#include "AISenseImplementation_Team.generated.h"
 
 USTRUCT()
 struct AIMODULE_API FAITeamStimulusEvent
 {	
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISense_Team FSenseClass;
+	typedef class UAISenseImplementation_Team FSenseClass;
 
 	FVector LastKnowLocation;
 private:
@@ -42,7 +42,7 @@ public:
 };
 
 UCLASS(ClassGroup=AI)
-class AIMODULE_API UAISense_Team : public UAISense
+class AIMODULE_API UAISenseImplementation_Team : public UAISenseImplementation
 {
 	GENERATED_UCLASS_BODY()
 

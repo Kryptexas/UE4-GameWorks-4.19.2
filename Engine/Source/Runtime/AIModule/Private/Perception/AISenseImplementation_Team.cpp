@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "Perception/AISense_Team.h"
+#include "Perception/AISenseImplementation_Team.h"
 
 //----------------------------------------------------------------------//
 // 
@@ -17,13 +17,13 @@ FAITeamStimulusEvent::FAITeamStimulusEvent(AActor* InBroadcaster, AActor* InEnem
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
-UAISense_Team::UAISense_Team(const FObjectInitializer& ObjectInitializer) :
+UAISenseImplementation_Team::UAISenseImplementation_Team(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
 	
 }
 
-float UAISense_Team::Update()
+float UAISenseImplementation_Team::Update()
 {
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 	
@@ -58,7 +58,7 @@ float UAISense_Team::Update()
 	return SuspendNextUpdate;
 }
 
-void UAISense_Team::RegisterEvent(const FAITeamStimulusEvent& Event)
+void UAISenseImplementation_Team::RegisterEvent(const FAITeamStimulusEvent& Event)
 {
 	RegisteredEvents.Add(Event);
 

@@ -1,15 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "Perception/AISense_Damage.h"
+#include "Perception/AISenseImplementation_Damage.h"
 
-UAISense_Damage::UAISense_Damage(const FObjectInitializer& ObjectInitializer) :
+UAISenseImplementation_Damage::UAISenseImplementation_Damage(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
 	
 }
 
-float UAISense_Damage::Update()
+float UAISenseImplementation_Damage::Update()
 {
 	AIPerception::FListenerMap& ListenersMap = *GetListeners();
 
@@ -37,7 +37,7 @@ float UAISense_Damage::Update()
 	return SuspendNextUpdate;
 }
 
-void UAISense_Damage::RegisterEvent(const FAIDamageEvent& Event)
+void UAISenseImplementation_Damage::RegisterEvent(const FAIDamageEvent& Event)
 {
 	RegisteredEvents.Add(Event);
 

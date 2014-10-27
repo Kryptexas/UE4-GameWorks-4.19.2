@@ -1,17 +1,17 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "Perception/AISense.h"
+#include "Perception/AISenseImplementation.h"
 
-const float UAISense::SuspendNextUpdate = FLT_MAX;
+const float UAISenseImplementation::SuspendNextUpdate = FLT_MAX;
 
-UAISense::UAISense(const FObjectInitializer& ObjectInitializer)
+UAISenseImplementation::UAISenseImplementation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, TimeUntilNextUpdate(SuspendNextUpdate)
 {
 }
 
-void UAISense::PostInitProperties() 
+void UAISenseImplementation::PostInitProperties() 
 {
 	Super::PostInitProperties();
 
@@ -21,7 +21,7 @@ void UAISense::PostInitProperties()
 	}
 }
 
-AIPerception::FListenerMap* UAISense::GetListeners() 
+AIPerception::FListenerMap* UAISenseImplementation::GetListeners() 
 {
 	check(PerceptionSystemInstance);
 	return &(PerceptionSystemInstance->GetListenersMap());

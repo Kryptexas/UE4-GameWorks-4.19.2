@@ -3,12 +3,12 @@
 #pragma once
 
 #include "AIPerceptionTypes.h"
-#include "AISense.generated.h"
+#include "AISenseImplementation.generated.h"
 
 DECLARE_DELEGATE_OneParam(FOnPerceptionListenerUpdateDelegate, const FPerceptionListener&);
 
 UCLASS(ClassGroup=AI, abstract)
-class AIMODULE_API UAISense : public UObject
+class AIMODULE_API UAISenseImplementation : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
