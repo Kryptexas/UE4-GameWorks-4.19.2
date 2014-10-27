@@ -3,10 +3,11 @@
 #pragma once
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "Runtime/Core/Public/Mac/MacPlatformProperties.h"
 
 #if WITH_ENGINE
