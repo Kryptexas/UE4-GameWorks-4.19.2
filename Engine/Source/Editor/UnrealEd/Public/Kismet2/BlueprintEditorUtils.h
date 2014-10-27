@@ -442,6 +442,10 @@ public:
 
 	/** Checks if given graph contains a delegate signature */
 	static bool IsDelegateSignatureGraph(const UEdGraph* Graph);
+
+	/** Checks if given graph is owned by a Math Expression node */
+	static bool IsMathExpressionGraph(const UEdGraph* InGraph);
+
 	/**
 	 * Gets a list of pins that should hidden for a given function
 	 *

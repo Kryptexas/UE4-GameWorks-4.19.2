@@ -2379,6 +2379,15 @@ bool FBlueprintEditorUtils::IsDelegateSignatureGraph(const UEdGraph* Graph)
 	return false;
 }
 
+bool FBlueprintEditorUtils::IsMathExpressionGraph(const UEdGraph* InGraph)
+{
+	if(InGraph)
+	{
+		return InGraph->GetOuter()->GetClass() == UK2Node_MathExpression::StaticClass();
+	}
+	return false;
+}
+
 bool FBlueprintEditorUtils::IsInterfaceBlueprint(const UBlueprint* Blueprint)
 {
 	return (Blueprint->BlueprintType == BPTYPE_Interface);

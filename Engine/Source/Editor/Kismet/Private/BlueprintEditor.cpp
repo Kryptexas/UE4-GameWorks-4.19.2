@@ -6806,8 +6806,9 @@ bool FBlueprintEditor::IsGraphPanelEnabled(UEdGraph* InGraph) const
 {
 	bool const bIsInterface = (FBlueprintEditorUtils::FindBlueprintForGraph(InGraph)->BlueprintType == BPTYPE_Interface);
 	bool const bIsDelegate  = FBlueprintEditorUtils::IsDelegateSignatureGraph(InGraph);
+	bool const bIsMathExpression = FBlueprintEditorUtils::IsMathExpressionGraph(InGraph);
 
-	return !bIsInterface && !bIsDelegate;
+	return !bIsInterface && !bIsDelegate && !bIsMathExpression;
 }
 
 float FBlueprintEditor::GetInstructionTextOpacity(UEdGraph* InGraph) const
