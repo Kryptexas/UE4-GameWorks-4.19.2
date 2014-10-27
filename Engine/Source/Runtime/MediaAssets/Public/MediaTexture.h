@@ -2,10 +2,15 @@
 
 #pragma once
 
-#include "MediaSampleBuffer.h"
+#include "Engine/Texture.h"
 #include "MediaTexture.generated.h"
 
 
+// forward declarations
+class IMediaPlayer;
+class IMediaTrack;
+enum EPixelFormat;
+enum TextureAddress;
 class UMediaPlayer;
 
 
@@ -20,11 +25,11 @@ class MEDIAASSETS_API UMediaTexture
 
 	/** The addressing mode to use for the X axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)
-	TEnumAsByte<enum TextureAddress> AddressX;
+	TEnumAsByte<TextureAddress> AddressX;
 
 	/** The addressing mode to use for the Y axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)
-	TEnumAsByte<enum TextureAddress> AddressY;
+	TEnumAsByte<TextureAddress> AddressY;
 
 	/** The color used to clear the texture if no video data is drawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture)
@@ -56,7 +61,7 @@ public:
 	 *
 	 * @return Pixel format (always PF_B8G8R8A8 for all movie textures).
 	 */
-	TEnumAsByte<enum EPixelFormat> GetFormat() const
+	TEnumAsByte<EPixelFormat> GetFormat() const
 	{
 		return PF_B8G8R8A8;
 	}
@@ -66,14 +71,14 @@ public:
 	 *
 	 * @return The player, or nullptr if no player is available.
 	 */
-	TSharedPtr<class IMediaPlayer> GetPlayer() const;
+	TSharedPtr<IMediaPlayer> GetPlayer() const;
 
 	/**
 	 * Gets the currently selected video track, if any.
 	 *
 	 * @return The selected video track, or nullptr if none is selected.
 	 */
-	TSharedPtr<class IMediaTrack, ESPMode::ThreadSafe> GetVideoTrack() const
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetVideoTrack() const
 	{
 		return VideoTrack;
 	}
@@ -141,8 +146,8 @@ private:
 	FRenderCommandFence* ReleasePlayerFence;
 
 	/** The video sample buffer. */
-	FMediaSampleBufferRef VideoBuffer;
+	TSharedRef<FMediaSampleBuffer, ESPMode::ThreadSafe> VideoBuffer;
 
 	/** Holds the selected video track. */
-	IMediaTrackPtr VideoTrack;
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> VideoTrack;
 };

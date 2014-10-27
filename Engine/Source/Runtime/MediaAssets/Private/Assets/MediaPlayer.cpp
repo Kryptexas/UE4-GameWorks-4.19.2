@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
+#include "IMediaModule.h"
+#include "ModuleManager.h"
 
 
 /* UMediaPlayer structors
@@ -230,7 +232,14 @@ void UMediaPlayer::InitializePlayer()
 		}
 
 		// create new player
-		Player = IMediaModule::Get().CreatePlayer(URL);
+		IMediaModule* MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
+
+		if (MediaModule == nullptr)
+		{
+			return;
+		}
+
+		Player = MediaModule->CreatePlayer(URL);
 
 		if (!Player.IsValid())
 		{

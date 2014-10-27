@@ -9,13 +9,13 @@
 #include "Core.h"
 #include "CoreUObject.h"
 #include "Engine.h"
-#include "Media.h"
-#include "MediaPlayer.h"
-#include "MediaSoundWave.h"
-#include "MediaTexture.h"
+#include "IMediaPlayer.h"
+#include "MediaSampleBuffer.h"
 
 
 /* Private includes
  *****************************************************************************/
 
+#include "MediaPlayer.h"
+#include "MediaTexture.h"
 #include "MediaTextureResource.h"

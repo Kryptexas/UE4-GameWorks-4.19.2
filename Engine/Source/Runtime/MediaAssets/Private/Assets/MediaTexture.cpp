@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
-#include "MediaTextureResource.h"
+#include "IMediaTrackVideoDetails.h"
+#include "MediaSampleBuffer.h"
 
 
 /* UMediaTexture structors

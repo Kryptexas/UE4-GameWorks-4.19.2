@@ -5,6 +5,11 @@
 #include "MediaPlayer.generated.h"
 
 
+// forward declarations
+enum EMediaPlayerStreamModes;
+class IMediaPlayer;
+
+
 /**
  * Enumerates available media streaming modes.
  */
@@ -259,7 +264,7 @@ public:
 	 *
 	 * @return The player, or nullptr if no player was created.
 	 */
-	TSharedPtr<class IMediaPlayer> GetPlayer() const
+	TSharedPtr<IMediaPlayer> GetPlayer() const
 	{
 		return Player;
 	}
@@ -297,7 +302,7 @@ protected:
 
 	/** Select where to stream the media from, i.e. file or memory. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Source)
-	TEnumAsByte<enum EMediaPlayerStreamModes> StreamMode;
+	TEnumAsByte<EMediaPlayerStreamModes> StreamMode;
 
 	/** The path or URL to the media file to be played. */
 	UPROPERTY(EditAnywhere, Category=Source)
@@ -317,7 +322,7 @@ private:
 	FString CurrentUrl;
 
 	/** Holds the low-level player used to play the media source. */
-	TSharedPtr<class IMediaPlayer> Player;
+	TSharedPtr<IMediaPlayer> Player;
 
 private:
 

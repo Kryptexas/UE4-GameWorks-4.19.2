@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
+#include "IMediaTrackAudioDetails.h"
+#include "MediaSampleQueue.h"
+#include "MediaSoundWave.h"
 
 
 /* UMediaSoundWave structors
