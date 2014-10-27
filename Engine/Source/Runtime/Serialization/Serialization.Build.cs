@@ -5,13 +5,19 @@ namespace UnrealBuildTool.Rules
 	public class Serialization : ModuleRules
 	{
 		public Serialization(TargetInfo Target)
-		{	
-			PrivateDependencyModuleNames.AddRange(
+		{
+			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
-					"CoreUObject",
 					"Json",
+				}
+			);
+
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"CoreUObject",
 				}
 			);
 

@@ -3,8 +3,8 @@
 #pragma once
 
 
+// forward declarations
 class UProperty;
-class UStruct;
 
 
 /**

@@ -10,24 +10,33 @@
 
 namespace StructSerializer
 {
-	// Structure for the write state stack.
+	/**
+	 * Structure for the write state stack.
+	 */
 	struct FWriteState
 	{
-		// Holds a pointer to the property's data.
+		/** Holds a pointer to the property's data. */
 		const void* Data;
 
-		// Holds a flag indicating whether the property has been processed.
+		/** Holds a flag indicating whether the property has been processed. */
 		bool HasBeenProcessed;
 
-		// Holds the property's meta data.
+		/** Holds the property's meta data. */
 		UProperty* Property;
 
-		// Holds a pointer to the UStruct describing the data.
+		/** Holds a pointer to the UStruct describing the data. */
 		UStruct* TypeInfo;
 	};
 
 
-	// Gets the value from the given property.
+	/**
+	 * Gets the value from the given property.
+	 *
+	 * @param PropertyType The type name of the property.
+	 * @param State The stack state that holds the property's data.
+	 * @param Property A pointer to the property.
+	 * @return A pointer to the property's value, or nullptr if it couldn't be found.
+	 */
 	template<typename UPropertyType, typename PropertyType>
 	PropertyType* GetPropertyValue( const FWriteState& State, UProperty* Property )
 	{

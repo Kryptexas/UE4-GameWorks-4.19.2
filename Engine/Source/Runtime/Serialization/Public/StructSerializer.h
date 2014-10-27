@@ -3,6 +3,7 @@
 #pragma once
 
 
+// forward declarations
 class IStructSerializerBackend;
 class UStruct;
 
@@ -41,7 +42,7 @@ enum class EStructSerializerReferenceLoopPolicies
  */
 struct FStructSerializerPolicies
 {
-	/** Holds the policy for NULL values. */
+	/** Holds the policy for null values. */
 	EStructSerializerNullValuePolicies NullValues;
 
 	/** Holds the policy for reference loops. */

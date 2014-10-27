@@ -6,6 +6,10 @@
 #include "Json.h"
 
 
+// forward declarations
+class UProperty;
+
+
 /**
  * Implements a reader for UStruct deserialization using Json.
  *

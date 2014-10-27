@@ -10,24 +10,31 @@
 
 namespace StructDeserializer
 {
-	// Structure for the read state stack.
+	/**
+	 * Structure for the read state stack.
+	 */
 	struct FReadState
 	{
-		// Holds the property's current array index.
+		/** Holds the property's current array index. */
 		int32 ArrayIndex;
 
-		// Holds a pointer to the property's data.
+		/** Holds a pointer to the property's data. */
 		void* Data;
 
-		// Holds the property's meta data.
+		/** Holds the property's meta data. */
 		UProperty* Property;
 
-		// Holds a pointer to the UStruct describing the data.
+		/** Holds a pointer to the UStruct describing the data. */
 		UStruct* TypeInfo;
 	};
 
 
-	// Finds the class for the given stack state.
+	/**
+	 * Finds the class for the given stack state.
+	 *
+	 * @param State The stack state to find the class for.
+	 * @return The class, if found.
+	 */
 	UStruct* FindClass( const FReadState& State )
 	{
 		UStruct* Class = nullptr;

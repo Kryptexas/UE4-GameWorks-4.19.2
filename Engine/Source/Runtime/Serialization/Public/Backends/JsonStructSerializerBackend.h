@@ -6,6 +6,11 @@
 #include "Json.h"
 
 
+// forward declarations
+class UProperty;
+class UStruct;
+
+
 /**
  * Implements a writer for UStruct serialization using Json.
  *
