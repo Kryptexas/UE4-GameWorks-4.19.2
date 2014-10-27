@@ -38,8 +38,11 @@ void UMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComp
 	if ( UpdatedComponent && UpdatedComponent!=NewUpdatedComponent )
 	{
 		UpdatedComponent->bShouldUpdatePhysicsVolume = false;
-		UpdatedComponent->SetPhysicsVolume(NULL, true);
-		UpdatedComponent->PhysicsVolumeChangedDelegate.RemoveDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
+		if (!UpdatedComponent->IsPendingKill())
+		{
+			UpdatedComponent->SetPhysicsVolume(NULL, true);
+			UpdatedComponent->PhysicsVolumeChangedDelegate.RemoveDynamic(this, &UMovementComponent::PhysicsVolumeChanged);
+		}
 
 		// remove from tick prerequisite
 		UpdatedComponent->PrimaryComponentTick.RemovePrerequisite(this, PrimaryComponentTick); 
