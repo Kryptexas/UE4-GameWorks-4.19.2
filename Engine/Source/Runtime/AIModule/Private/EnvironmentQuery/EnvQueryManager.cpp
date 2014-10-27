@@ -14,7 +14,7 @@
 #include "Editor/EditorEngine.h"
 #include "EngineUtils.h"
 
-extern UNREALED_API class UEditorEngine* GEditor;
+extern UNREALED_API UEditorEngine* GEditor;
 #endif // WITH_EDITOR
 
 DEFINE_LOG_CATEGORY(LogEQS);
@@ -30,7 +30,7 @@ DEFINE_STAT(STAT_AI_EQS_InstanceMemory);
 //////////////////////////////////////////////////////////////////////////
 // FEnvQueryRequest
 
-FEnvQueryRequest& FEnvQueryRequest::SetNamedParams(const TArray<struct FEnvNamedValue>& Params)
+FEnvQueryRequest& FEnvQueryRequest::SetNamedParams(const TArray<FEnvNamedValue>& Params)
 {
 	for (int32 ParamIndex = 0; ParamIndex < Params.Num(); ParamIndex++)
 	{
@@ -88,7 +88,7 @@ UEnvQueryManager::UEnvQueryManager(const FObjectInitializer& ObjectInitializer) 
 	NextQueryID = 0;
 }
 
-class UWorld* UEnvQueryManager::GetWorld() const
+UWorld* UEnvQueryManager::GetWorld() const
 {
 	return Cast<UWorld>(GetOuter());
 }
@@ -161,7 +161,7 @@ int32 UEnvQueryManager::RunQuery(const FEnvQueryRequest& Request, EEnvQueryRunMo
 	return RunQuery(QueryInstance, FinishDelegate);
 }
 
-int32 UEnvQueryManager::RunQuery(TSharedPtr<struct FEnvQueryInstance> QueryInstance, FQueryFinishedSignature const& FinishDelegate)
+int32 UEnvQueryManager::RunQuery(TSharedPtr<FEnvQueryInstance> QueryInstance, FQueryFinishedSignature const& FinishDelegate)
 {
 	if (QueryInstance.IsValid() == false)
 	{
@@ -196,7 +196,7 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 	return QueryInstance;
 }
 
-TSharedPtr<struct FEnvQueryInstance> UEnvQueryManager::PrepareQueryInstance(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode)
+TSharedPtr<FEnvQueryInstance> UEnvQueryManager::PrepareQueryInstance(const FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode)
 {
 	TSharedPtr<FEnvQueryInstance> QueryInstance = CreateQueryInstance(Request.QueryTemplate, RunMode);
 	if (!QueryInstance.IsValid())
@@ -510,7 +510,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 	return NewInstance;
 }
 
-void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, struct FEnvQueryInstance& Instance)
+void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, FEnvQueryInstance& Instance)
 {
 	FEnvQueryOptionInstance OptionInstance;
 	OptionInstance.Generator = OptionTemplate->Generator;

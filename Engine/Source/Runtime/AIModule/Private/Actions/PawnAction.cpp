@@ -167,7 +167,7 @@ void UPawnAction::SetFinishResult(EPawnActionResult::Type Result)
 	}
 }
 
-void UPawnAction::SetOwnerComponent(class UPawnActionsComponent* Component)
+void UPawnAction::SetOwnerComponent(UPawnActionsComponent* Component)
 {
 	if (OwnerComponent != NULL && OwnerComponent != Component)
 	{

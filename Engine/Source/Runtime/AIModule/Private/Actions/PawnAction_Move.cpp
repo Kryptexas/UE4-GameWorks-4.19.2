@@ -25,7 +25,7 @@ void UPawnAction_Move::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
+UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld& World, AActor* GoalActor, EPawnActionMoveMode::Type Mode)
 {
 	if (GoalActor == NULL)
 	{
@@ -289,7 +289,7 @@ void UPawnAction_Move::ClearPendingRepath()
 	}
 }
 
-bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const FVector& TestLocation, float Radius)
+bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController* Controller, const FVector& TestLocation, float Radius)
 {
 	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestLocation, Radius);
 	if (bAlreadyAtGoal)
@@ -301,7 +301,7 @@ bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const
 	return bAlreadyAtGoal;
 }
 
-bool UPawnAction_Move::CheckAlreadyAtGoal(class AAIController* Controller, const AActor* TestGoal, float Radius)
+bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController* Controller, const AActor* TestGoal, float Radius)
 {
 	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestGoal, Radius);
 	if (bAlreadyAtGoal)

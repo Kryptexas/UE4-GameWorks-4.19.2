@@ -71,7 +71,7 @@ void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp
 	}
 }
 
-void UBTService_BlueprintBase::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
+void UBTService_BlueprintBase::OnSearchStart(FBehaviorTreeSearchData& SearchData)
 {
 	// skip flag, will be handled by bNotifyOnSearch
 

@@ -20,7 +20,7 @@ UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer)
 	BlackboardKey.AddVectorFilter(this);
 }
 
-EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	EBTNodeResult::Type NodeResult = EBTNodeResult::InProgress;
 
@@ -40,7 +40,7 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* Ow
 	return NodeResult;
 }
 
-EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
@@ -90,7 +90,7 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(class UBehaviorTreeComponent
 	return NodeResult;
 }
 
-EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveTo::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
 	if (!MyMemory->bWaitingForPath)
@@ -106,7 +106,7 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* Owne
 	return Super::AbortTask(OwnerComp, NodeMemory);
 }
 
-void UBTTask_MoveTo::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTTask_MoveTo::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
 	if (MyMemory->bWaitingForPath && !OwnerComp->IsPaused())
@@ -126,7 +126,7 @@ void UBTTask_MoveTo::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* No
 	}
 }
 
-void UBTTask_MoveTo::OnMessage(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 SenderID, bool bSuccess)
+void UBTTask_MoveTo::OnMessage(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 SenderID, bool bSuccess)
 {
 	// AIMessage_RepathFailed means task has failed
 	bSuccess &= (Message != UBrainComponent::AIMessage_RepathFailed);
@@ -145,7 +145,7 @@ FString UBTTask_MoveTo::GetStaticDescription() const
 	return FString::Printf(TEXT("%s: %s"), *Super::GetStaticDescription(), *KeyDesc);
 }
 
-void UBTTask_MoveTo::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_MoveTo::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

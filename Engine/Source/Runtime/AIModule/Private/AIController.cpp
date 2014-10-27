@@ -486,7 +486,7 @@ void AAIController::InitNavigationControl(UNavigationComponent*& PathFindingComp
 	PathFollowingComp = PathFollowingComponent;
 }
 
-EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass)
+EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveToActor);
 	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
@@ -602,7 +602,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	return Result;
 }
 
-FAIRequestID AAIController::RequestMove(FNavPathSharedPtr Path, class AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData)
+FAIRequestID AAIController::RequestMove(FNavPathSharedPtr Path, AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData)
 {
 	uint32 RequestID = FAIRequestID::InvalidRequest;
 	if (PathFollowingComponent)
@@ -639,7 +639,7 @@ void AAIController::StopMovement()
 	PathFollowingComponent->AbortMove(TEXT("StopMovement"));
 }
 
-FNavPathSharedPtr AAIController::FindPath(class AActor* Goal, bool bUsePathfinding, TSharedPtr<const FNavigationQueryFilter> QueryFilter)
+FNavPathSharedPtr AAIController::FindPath(AActor* Goal, bool bUsePathfinding, TSharedPtr<const FNavigationQueryFilter> QueryFilter)
 {
 	if (NavComponent)
 	{

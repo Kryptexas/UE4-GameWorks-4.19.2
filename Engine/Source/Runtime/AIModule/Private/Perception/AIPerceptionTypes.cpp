@@ -11,7 +11,7 @@ const float FAIStimulus::NeverHappenedAge = FLT_MAX;
 //----------------------------------------------------------------------//
 const FPerceptionListener FPerceptionListener::NullListener((UAIPerceptionComponent*)NULL);
 
-FPerceptionListener::FPerceptionListener(class UAIPerceptionComponent* InListener) 
+FPerceptionListener::FPerceptionListener(UAIPerceptionComponent* InListener) 
 	: Listener(InListener)
 	, PeripheralVisionAngleCos(1.f)
 	, HearingRangeSq(-1.f)

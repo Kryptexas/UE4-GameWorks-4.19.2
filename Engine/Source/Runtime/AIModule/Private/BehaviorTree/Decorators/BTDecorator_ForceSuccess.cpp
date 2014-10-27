@@ -13,7 +13,7 @@ UBTDecorator_ForceSuccess::UBTDecorator_ForceSuccess(const FObjectInitializer& O
 	bAllowAbortChildNodes = false;
 }
 
-void UBTDecorator_ForceSuccess::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
+void UBTDecorator_ForceSuccess::OnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
 {
 	NodeResult = EBTNodeResult::Succeeded;
 }

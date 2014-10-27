@@ -23,7 +23,7 @@ FVector UEnvQueryItemType_Point::GetLocation(const uint8* RawData) const
 	return UEnvQueryItemType_Point::GetValue(RawData);
 }
 
-void UEnvQueryItemType_Point::SetContextHelper(struct FEnvQueryContextData& ContextData, const FVector& SinglePoint)
+void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData, const FVector& SinglePoint)
 {
 	ContextData.ValueType = UEnvQueryItemType_Point::StaticClass();
 	ContextData.NumValues = 1;
@@ -32,7 +32,7 @@ void UEnvQueryItemType_Point::SetContextHelper(struct FEnvQueryContextData& Cont
 	UEnvQueryItemType_Point::SetValue((uint8*)ContextData.RawData.GetData(), SinglePoint);
 }
 
-void UEnvQueryItemType_Point::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FVector>& MultiplePoints)
+void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<FVector>& MultiplePoints)
 {
 	ContextData.ValueType = UEnvQueryItemType_Point::StaticClass();
 	ContextData.NumValues = MultiplePoints.Num();

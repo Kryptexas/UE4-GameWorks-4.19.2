@@ -11,7 +11,7 @@ UBTComposite_SimpleParallel::UBTComposite_SimpleParallel(const FObjectInitialize
 	OnNextChild.BindUObject(this, &UBTComposite_SimpleParallel::GetNextChildHandler);
 }
 
-int32 UBTComposite_SimpleParallel::GetNextChildHandler(struct FBehaviorTreeSearchData& SearchData, int32 PrevChild, EBTNodeResult::Type LastResult) const
+int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& SearchData, int32 PrevChild, EBTNodeResult::Type LastResult) const
 {
 	FBTParallelMemory* MyMemory = GetNodeMemory<FBTParallelMemory>(SearchData);
 	int32 NextChildIdx = BTSpecialChild::ReturnToParent;
@@ -31,7 +31,7 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(struct FBehaviorTreeSearc
 	return NextChildIdx;
 }
 
-void UBTComposite_SimpleParallel::NotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
+void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 	FBTParallelMemory* MyMemory = (FBTParallelMemory*)NodeMemory;
 	if (ChildIdx == EBTParallelChild::MainTask)
@@ -81,7 +81,7 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(class UBehaviorTreeCompon
 	}
 }
 
-void UBTComposite_SimpleParallel::NotifyNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
+void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 	FBTParallelMemory* MyMemory = GetNodeMemory<FBTParallelMemory>(SearchData);
 	const uint16 ActiveInstanceIdx = SearchData.OwnerComp->GetActiveInstanceIdx();
@@ -128,7 +128,7 @@ uint16 UBTComposite_SimpleParallel::GetInstanceMemorySize() const
 	return sizeof(FBTParallelMemory);
 }
 
-bool UBTComposite_SimpleParallel::CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
+bool UBTComposite_SimpleParallel::CanPushSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
 {
 	return (ChildIdx != EBTParallelChild::MainTask);
 }
@@ -147,7 +147,7 @@ FString UBTComposite_SimpleParallel::GetStaticDescription() const
 		FinishMode < 2 ? *FinishDesc[FinishMode] : TEXT(""));
 }
 
-void UBTComposite_SimpleParallel::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTComposite_SimpleParallel::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

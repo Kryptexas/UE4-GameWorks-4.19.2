@@ -8,7 +8,7 @@ UEnvQueryContext_Querier::UEnvQueryContext_Querier(const FObjectInitializer& Obj
 {
 }
 
-void UEnvQueryContext_Querier::ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const
+void UEnvQueryContext_Querier::ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const
 {
 	AActor* QueryOwner = Cast<AActor>(QueryInstance.Owner.Get());
 	UEnvQueryItemType_Actor::SetContextHelper(ContextData, QueryOwner);

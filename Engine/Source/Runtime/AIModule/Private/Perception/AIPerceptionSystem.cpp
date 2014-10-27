@@ -181,7 +181,7 @@ void UAIPerceptionSystem::AgeStimuli()
 	}
 }
 
-UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(class UObject* WorldContextObject)
+UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = Cast<UWorld>(WorldContextObject);
 

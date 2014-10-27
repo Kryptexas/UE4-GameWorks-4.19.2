@@ -14,18 +14,18 @@ UBTDecorator_ConditionalLoop::UBTDecorator_ConditionalLoop(const FObjectInitiali
 	bAllowAbortChildNodes = false;
 }
 
-bool UBTDecorator_ConditionalLoop::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_ConditionalLoop::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	// always allows execution
 	return true;
 }
 
-void UBTDecorator_ConditionalLoop::OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
+void UBTDecorator_ConditionalLoop::OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	// empty, don't react to blackboard value changes
 }
 
-void UBTDecorator_ConditionalLoop::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
+void UBTDecorator_ConditionalLoop::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
 	if (NodeResult != EBTNodeResult::Aborted && SearchData.OwnerComp)
 	{

@@ -55,7 +55,7 @@ UEnvQueryContext_BlueprintBase::UEnvQueryContext_BlueprintBase(const FObjectInit
 	}
 }
 
-void UEnvQueryContext_BlueprintBase::ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const
+void UEnvQueryContext_BlueprintBase::ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const
 {
 	AActor* QuerierActor = Cast<AActor>(QueryInstance.Owner.Get());
 
@@ -99,7 +99,7 @@ void UEnvQueryContext_BlueprintBase::ProvideContext(struct FEnvQueryInstance& Qu
 	}
 }
 
-class UWorld* UEnvQueryContext_BlueprintBase::GetWorld() const
+UWorld* UEnvQueryContext_BlueprintBase::GetWorld() const
 {
 	check(GetOuter() != NULL);
 	
@@ -110,10 +110,10 @@ class UWorld* UEnvQueryContext_BlueprintBase::GetWorld() const
 	}
 
 	// Outer should always be UEnvQueryManager* in the game, which implements GetWorld() and therefore makes this
-	// class a correct world context.  However, in the editor the outer is /Script/AIModule (at compile time), which
+	// a correct world context.  However, in the editor the outer is /Script/AIModule (at compile time), which
 	// does not explicitly implement GetWorld().  For that reason, calling GetWorld() generically in that case on the
-	// AIModule calls to the base class implementation, which causes a blueprint compile warning in the Editor
-	// which states that the function isn't safe to call on this class (due to requiring WorldContext which it doesn't
+	// AIModule calls to the base implementation, which causes a blueprint compile warning in the Editor
+	// which states that the function isn't safe to call on this (due to requiring WorldContext which it doesn't
 	// provide).  Simply returning NULL in this case fixes those erroneous blueprint compile warnings.
 	return NULL;
 }

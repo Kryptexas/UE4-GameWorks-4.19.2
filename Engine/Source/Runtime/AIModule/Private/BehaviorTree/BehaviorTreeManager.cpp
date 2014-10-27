@@ -162,7 +162,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 	}
 }
 
-bool UBehaviorTreeManager::LoadTree(UBehaviorTree& Asset, class UBTCompositeNode*& Root, uint16& InstanceMemorySize)
+bool UBehaviorTreeManager::LoadTree(UBehaviorTree& Asset, UBTCompositeNode*& Root, uint16& InstanceMemorySize)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_LoadTime);
 
@@ -359,7 +359,7 @@ void UBehaviorTreeManager::DumpUsageStats() const
 		AllNodesCounter.Append(TreeNodeCounter);
 	}
 	
-	UE_LOG(LogBehaviorTree, Display, TEXT("--- Total Nodes class usage:"));
+	UE_LOG(LogBehaviorTree, Display, TEXT("--- Total Nodes usage:"));
 	AllNodesCounter.Print(TEXT(","));
 }
 

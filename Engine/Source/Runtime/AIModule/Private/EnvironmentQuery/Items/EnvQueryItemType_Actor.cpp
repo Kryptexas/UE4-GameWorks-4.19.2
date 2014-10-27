@@ -37,7 +37,7 @@ AActor* UEnvQueryItemType_Actor::GetActor(const uint8* RawData) const
 	return UEnvQueryItemType_Actor::GetValue(RawData);
 }
 
-void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const AActor* SingleActor)
+void UEnvQueryItemType_Actor::SetContextHelper(FEnvQueryContextData& ContextData, const AActor* SingleActor)
 {
 	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
 	ContextData.NumValues = 1;
@@ -46,7 +46,7 @@ void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& Cont
 	UEnvQueryItemType_Actor::SetValue(ContextData.RawData.GetData(), SingleActor);
 }
 
-void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<const AActor*>& MultipleActors)
+void UEnvQueryItemType_Actor::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<const AActor*>& MultipleActors)
 {
 	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
 	ContextData.NumValues = MultipleActors.Num();
@@ -60,7 +60,7 @@ void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& Cont
 	}
 }
 
-void UEnvQueryItemType_Actor::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors)
+void UEnvQueryItemType_Actor::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors)
 {
 	ContextData.ValueType = UEnvQueryItemType_Actor::StaticClass();
 	ContextData.NumValues = MultipleActors.Num();

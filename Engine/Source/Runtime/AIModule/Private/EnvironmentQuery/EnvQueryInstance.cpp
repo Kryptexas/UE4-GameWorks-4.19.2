@@ -418,9 +418,9 @@ void FEnvQueryInstance::SortScores()
 	struct FSortHelperForDebugData
 	{
 		FEnvQueryItem	Item;
-		struct FEnvQueryItemDetails ItemDetails;
+		FEnvQueryItemDetails ItemDetails;
 
-		FSortHelperForDebugData(const FEnvQueryItem&	InItem, struct FEnvQueryItemDetails& InDebugDetails) : Item(InItem), ItemDetails(InDebugDetails) {}
+		FSortHelperForDebugData(const FEnvQueryItem&	InItem, FEnvQueryItemDetails& InDebugDetails) : Item(InItem), ItemDetails(InDebugDetails) {}
 		bool operator<(const FSortHelperForDebugData& Other) const
 		{
 			return Item < Other.Item;

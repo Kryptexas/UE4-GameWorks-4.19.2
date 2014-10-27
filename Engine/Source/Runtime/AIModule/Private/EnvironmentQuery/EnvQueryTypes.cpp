@@ -57,7 +57,7 @@ FText UEnvQueryTypes::GetShortTypeName(const UObject* Ob)
 	return FText::FromString(TypeDesc);
 }
 
-FText UEnvQueryTypes::DescribeContext(TSubclassOf<class UEnvQueryContext> ContextClass)
+FText UEnvQueryTypes::DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass)
 {
 	return GetShortTypeName(ContextClass);
 }

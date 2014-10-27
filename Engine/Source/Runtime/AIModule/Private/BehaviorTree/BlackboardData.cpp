@@ -6,7 +6,7 @@
 
 UBlackboardData::FKeyUpdate UBlackboardData::OnUpdateKeys;
 
-static void UpdatePersistentKeys(class UBlackboardData* Asset)
+static void UpdatePersistentKeys(UBlackboardData* Asset)
 {
 	UBlackboardKeyType_Object* SelfKeyType = Asset->UpdatePersistentKey<UBlackboardKeyType_Object>(FBlackboard::KeySelf);
 	if (SelfKeyType)
@@ -110,7 +110,7 @@ void UBlackboardData::PostLoad()
 
 #if WITH_EDITOR
 
-void UBlackboardData::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UBlackboardData::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 

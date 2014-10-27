@@ -77,7 +77,7 @@ void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalA
 #endif // ENABLE_VISUAL_LOG
 }
 
-void LogBlockHelper(AActor* LogOwner, class UNavMovementComponent* MoveComp, float RadiusPct, float HeightPct, const FVector& SegmentStart, const FVector& SegmentEnd)
+void LogBlockHelper(AActor* LogOwner, UNavMovementComponent* MoveComp, float RadiusPct, float HeightPct, const FVector& SegmentStart, const FVector& SegmentEnd)
 {
 #if ENABLE_VISUAL_LOG
 	if (MoveComp && LogOwner)
@@ -1004,7 +1004,7 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	bHeightFailed = (CurrentHeight > UseHeight) ? 1 : 0;
 }
 
-void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint)
+void UPathFollowingComponent::StartUsingCustomLink(INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint)
 {
 	INavLinkCustomInterface* PrevNavLink = Cast<INavLinkCustomInterface>(CurrentCustomLinkOb.Get());
 	if (PrevNavLink)
@@ -1031,7 +1031,7 @@ void UPathFollowingComponent::StartUsingCustomLink(class INavLinkCustomInterface
 	}
 }
 
-void UPathFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
+void UPathFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink)
 {
 	UObject* NavLinkOb = Cast<UObject>(CustomNavLink);
 	if (CurrentCustomLinkOb == NavLinkOb)
@@ -1286,7 +1286,7 @@ FString UPathFollowingComponent::GetResultDesc(EPathFollowingResult::Type Result
 	return TEXT("Unknown");
 }
 
-void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const
+void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const
 {
 	Canvas->SetDrawColor(FColor::Blue);
 	UFont* RenderFont = GEngine->GetSmallFont();
@@ -1306,7 +1306,7 @@ void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const FDebugDi
 }
 
 #if ENABLE_VISUAL_LOG
-void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
+void UPathFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	FVisualLogEntry::FStatusCategory Category;
 	Category.Category = TEXT("Path following");

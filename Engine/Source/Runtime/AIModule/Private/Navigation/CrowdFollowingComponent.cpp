@@ -384,7 +384,7 @@ void UCrowdFollowingComponent::OnLanded()
 	}
 }
 
-void UCrowdFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
+void UCrowdFollowingComponent::FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink)
 {
 	const bool bPrevCustomLink = CurrentCustomLinkOb.IsValid();
 	Super::FinishUsingCustomLink(CustomNavLink);
@@ -847,7 +847,7 @@ void UCrowdFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TAr
 
 #if ENABLE_VISUAL_LOG
 
-void UCrowdFollowingComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
+void UCrowdFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	if (!bEnableCrowdSimulation)
 	{

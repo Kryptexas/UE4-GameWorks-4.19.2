@@ -7,7 +7,7 @@ UEnvQueryContext::UEnvQueryContext(const FObjectInitializer& ObjectInitializer) 
 {
 }
 
-void UEnvQueryContext::ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const
+void UEnvQueryContext::ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const
 {
 	// empty in base class
 }

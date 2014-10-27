@@ -870,7 +870,7 @@ void UNavigationComponent::CacheNavQueryExtent() const
 	}
 }
 
-void UNavigationComponent::OnNavDataRegistered(class ANavigationData* NavData)
+void UNavigationComponent::OnNavDataRegistered(ANavigationData* NavData)
 {
 	// re-pick regardless of whether we have MyNavData set already - the new one can be better!
 	PickNavData();
@@ -902,7 +902,7 @@ void UNavigationComponent::SetReceiveSmartLinkUpdates(bool bEnabled)
 	bUpdateForSmartLinks = bEnabled;
 }
 
-void UNavigationComponent::OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink)
+void UNavigationComponent::OnCustomLinkBroadcast(UNavLinkCustomComponent* NearbyLink)
 {
 	// update only when agent is actually moving
 	if (NearbyLink == NULL || !Path.IsValid() ||

@@ -39,7 +39,7 @@ FString UEnvQueryItemType_Direction::GetDescription(const uint8* RawData) const
 	return FString::Printf(TEXT("(P=%.0f,Y=%.0f,R=%.0f)"), Rot.Pitch, Rot.Yaw, Rot.Roll);
 }
 
-void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& ContextData, const FVector& SingleDirection)
+void UEnvQueryItemType_Direction::SetContextHelper(FEnvQueryContextData& ContextData, const FVector& SingleDirection)
 {
 	ContextData.ValueType = UEnvQueryItemType_Direction::StaticClass();
 	ContextData.NumValues = 1;
@@ -48,7 +48,7 @@ void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& 
 	UEnvQueryItemType_Direction::SetValue((uint8*)ContextData.RawData.GetData(), SingleDirection);
 }
 
-void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& ContextData, const FRotator& SingleRotation)
+void UEnvQueryItemType_Direction::SetContextHelper(FEnvQueryContextData& ContextData, const FRotator& SingleRotation)
 {
 	ContextData.ValueType = UEnvQueryItemType_Direction::StaticClass();
 	ContextData.NumValues = 1;
@@ -57,7 +57,7 @@ void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& 
 	UEnvQueryItemType_Direction::SetValueRot((uint8*)ContextData.RawData.GetData(), SingleRotation);
 }
 
-void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FVector>& MultipleDirections)
+void UEnvQueryItemType_Direction::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<FVector>& MultipleDirections)
 {
 	ContextData.ValueType = UEnvQueryItemType_Direction::StaticClass();
 	ContextData.NumValues = MultipleDirections.Num();
@@ -71,7 +71,7 @@ void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& 
 	}
 }
 
-void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FRotator>& MultipleRotations)
+void UEnvQueryItemType_Direction::SetContextHelper(FEnvQueryContextData& ContextData, const TArray<FRotator>& MultipleRotations)
 {
 	ContextData.ValueType = UEnvQueryItemType_Direction::StaticClass();
 	ContextData.NumValues = MultipleRotations.Num();

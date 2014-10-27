@@ -184,7 +184,7 @@ UBrainComponent::UBrainComponent(const FObjectInitializer& ObjectInitializer) : 
 }
 
 #if ENABLE_VISUAL_LOG
-void UBrainComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
+void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
 

@@ -19,13 +19,13 @@ void UBTService::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, 
 	SetNextTickTime(NodeMemory, NextTickTime);
 }
 
-void UBTService::OnSearchStart(struct FBehaviorTreeSearchData& SearchData)
+void UBTService::OnSearchStart(FBehaviorTreeSearchData& SearchData)
 {
 	uint8* NodeMemory = GetNodeMemory<uint8>(SearchData);
 	TickNode(SearchData.OwnerComp, NodeMemory, 0.0f);
 }
 
-void UBTService::NotifyParentActivation(struct FBehaviorTreeSearchData& SearchData)
+void UBTService::NotifyParentActivation(FBehaviorTreeSearchData& SearchData)
 {
 	if (bNotifyOnSearch)
 	{

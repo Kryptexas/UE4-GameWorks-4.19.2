@@ -36,7 +36,7 @@ bool UBlackboardKeyType_NativeEnum::IsAllowedByFilter(UBlackboardKeyType* Filter
 }
 
 #if WITH_EDITOR
-void UBlackboardKeyType_NativeEnum::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UBlackboardKeyType_NativeEnum::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 

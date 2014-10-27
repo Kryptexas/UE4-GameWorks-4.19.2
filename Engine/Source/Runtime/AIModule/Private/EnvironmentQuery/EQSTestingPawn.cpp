@@ -14,7 +14,7 @@
 #if WITH_EDITOR
 #include "Engine/Brush.h"
 #include "Editor/EditorEngine.h"
-extern UNREALED_API class UEditorEngine* GEditor;
+extern UNREALED_API UEditorEngine* GEditor;
 #endif // WITH_EDITOR
 
 #include "Engine/Selection.h"
@@ -231,7 +231,7 @@ const FEnvQueryInstance* AEQSTestingPawn::GetQueryInstance() const
 
 #if WITH_EDITOR
 
-void AEQSTestingPawn::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
+void AEQSTestingPawn::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_QueryTemplate = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, QueryTemplate);
 	static const FName NAME_StepToDebugDraw = GET_MEMBER_NAME_CHECKED(AEQSTestingPawn, StepToDebugDraw);

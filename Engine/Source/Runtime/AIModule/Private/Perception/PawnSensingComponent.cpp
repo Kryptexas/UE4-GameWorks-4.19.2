@@ -179,7 +179,7 @@ bool UPawnSensingComponent::IsSensorActor(const AActor* Actor) const
 	return (Actor == GetSensorActor());
 }
 
-bool UPawnSensingComponent::HasLineOfSightTo(const class AActor* Other) const
+bool UPawnSensingComponent::HasLineOfSightTo(const AActor* Other) const
 {
 	AController* SensorController = GetSensorController();
 	if (SensorController == NULL)

@@ -15,7 +15,7 @@ FVisualLoggerExtension::FVisualLoggerExtension()
 
 }
 
-void FVisualLoggerExtension::OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor )
+void FVisualLoggerExtension::OnTimestampChange(float Timestamp, UWorld* InWorld, AActor* HelperActor )
 {
 #if USE_EQS_DEBUGGER
 	if (CurrentTimestamp != Timestamp)
@@ -27,7 +27,7 @@ void FVisualLoggerExtension::OnTimestampChange(float Timestamp, class UWorld* In
 #endif
 }
 
-void FVisualLoggerExtension::DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp)
+void FVisualLoggerExtension::DisableDrawingForData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp)
 {
 #if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS && CurrentTimestamp == Timestamp)
@@ -37,7 +37,7 @@ void FVisualLoggerExtension::DisableDrawingForData(class UWorld* InWorld, class 
 #endif
 }
 
-void FVisualLoggerExtension::DisableEQSRendering(class AActor* HelperActor)
+void FVisualLoggerExtension::DisableEQSRendering(AActor* HelperActor)
 {
 #if USE_EQS_DEBUGGER
 	if (HelperActor)
@@ -55,7 +55,7 @@ void FVisualLoggerExtension::DisableEQSRendering(class AActor* HelperActor)
 #endif
 }
 
-void FVisualLoggerExtension::LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName)
+void FVisualLoggerExtension::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, int64 UserData, FName TagName)
 {
 	if (TagName == *EVisLogTags::TAG_EQS)
 	{
@@ -63,9 +63,9 @@ void FVisualLoggerExtension::LogEntryLineSelectionChanged(TSharedPtr<struct FLog
 	}
 }
 
-extern RENDERCORE_API class FTexture* GWhiteTexture;
+extern RENDERCORE_API FTexture* GWhiteTexture;
 
-void FVisualLoggerExtension::DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp)
+void FVisualLoggerExtension::DrawData(UWorld* InWorld, UCanvas* Canvas, AActor* HelperActor, const FName& TagName, const FVisualLogEntry::FDataBlock& DataBlock, float Timestamp)
 {
 #if USE_EQS_DEBUGGER
 	if (TagName == *EVisLogTags::TAG_EQS && HelperActor)

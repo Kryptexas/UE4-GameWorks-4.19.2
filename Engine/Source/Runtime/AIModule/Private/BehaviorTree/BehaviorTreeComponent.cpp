@@ -650,7 +650,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	ScheduleExecutionUpdate();
 }
 
-void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<struct FBehaviorTreeSearchUpdate>& UpdateList, int32 NewNodeExecutionIndex, bool bPostUpdate)
+void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<FBehaviorTreeSearchUpdate>& UpdateList, int32 NewNodeExecutionIndex, bool bPostUpdate)
 {
 	for (int32 Index = 0; Index < UpdateList.Num(); Index++)
 	{
@@ -756,7 +756,7 @@ void UBehaviorTreeComponent::ApplySearchData(UBTNode* NewActiveNode)
 
 void UBehaviorTreeComponent::ApplyDiscardedSearch()
 {
-	TArray<struct FBehaviorTreeSearchUpdate> UpdateList;
+	TArray<FBehaviorTreeSearchUpdate> UpdateList;
 	for (int32 Idx = 0; Idx < SearchData.PendingUpdates.Num(); Idx++)
 	{
 		const FBehaviorTreeSearchUpdate& UpdateInfo = SearchData.PendingUpdates[Idx];
@@ -1608,7 +1608,7 @@ FString UBehaviorTreeComponent::DescribeActiveTrees() const
 }
 
 #if ENABLE_VISUAL_LOG
-void UBehaviorTreeComponent::DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const
+void UBehaviorTreeComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
 	if (IsPendingKill())
 	{
