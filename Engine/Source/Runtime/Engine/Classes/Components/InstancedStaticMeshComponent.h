@@ -122,7 +122,7 @@ public:
 
 #if WITH_PHYSX
 	/** Aggregate physx representation of the instances' bodies. */
-	class physx::PxAggregate* Aggregate;
+	TArray<physx::PxAggregate*> Aggregates;
 #endif	//WITH_PHYSX
 
 	/** Physics representation of the instance bodies */
