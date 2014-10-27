@@ -107,6 +107,10 @@ public class BuildCookRun : BuildCommand
 		}
 
         var InternationalizationPreset = ParseParamValue("i18npreset");
+        if (!String.IsNullOrEmpty(InternationalizationPreset))
+        {
+            Params.InternationalizationPreset = InternationalizationPreset;
+        }
 
         var CulturesToCook = ParseParamValue("cookcultures");
         if (!String.IsNullOrEmpty(CulturesToCook))
