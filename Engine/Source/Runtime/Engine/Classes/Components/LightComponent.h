@@ -177,9 +177,6 @@ public:
 	void SetLightFunctionFadeDistance(float NewLightFunctionFadeDistance);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
-	void SetCastShadows(bool bNewValue);
-
-	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetAffectDynamicIndirectLighting(bool bNewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")

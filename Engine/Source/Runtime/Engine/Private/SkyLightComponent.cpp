@@ -466,6 +466,28 @@ void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 	}
 }
 
+void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
+{
+	// Can't set on a static light
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& OcclusionTint != InTint)
+	{
+		OcclusionTint = InTint;
+		MarkRenderStateDirty();
+	}
+}
+
+void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
+{
+	// Can't set on a static light
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& MinOcclusion != InMinOcclusion)
+	{
+		MinOcclusion = InMinOcclusion;
+		MarkRenderStateDirty();
+	}
+}
+
 void USkyLightComponent::RecaptureSky()
 {
 	SetCaptureIsDirty();

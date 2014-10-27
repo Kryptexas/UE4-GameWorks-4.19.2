@@ -65,6 +65,16 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
 	return Ar;
 }
 
+void ULightComponentBase::SetCastShadows(bool bNewValue)
+{
+	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+		&& CastShadows != bNewValue)
+	{
+		CastShadows = bNewValue;
+		MarkRenderStateDirty();
+	}
+}
+
 void ULightComponentBase::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -717,16 +727,6 @@ void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDis
 		&& NewLightFunctionFadeDistance != LightFunctionFadeDistance)
 	{
 		LightFunctionFadeDistance = NewLightFunctionFadeDistance;
-		MarkRenderStateDirty();
-	}
-}
-
-void ULightComponent::SetCastShadows(bool bNewValue)
-{
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
-		&& CastShadows != bNewValue)
-	{
-		CastShadows = bNewValue;
 		MarkRenderStateDirty();
 	}
 }

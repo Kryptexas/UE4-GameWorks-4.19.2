@@ -168,6 +168,12 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UFUNCTION(BlueprintCallable, Category="SkyLight")
 	void SetCubemap(UTextureCube* NewCubemap);
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
+	void SetOcclusionTint(const FColor& InTint);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
+	void SetMinOcclusion(float InMinOcclusion);
+
 	/** Indicates that the capture needs to recapture the scene, adds it to the recapture queue. */
 	void SetCaptureIsDirty();
 
