@@ -2,6 +2,8 @@
 
 #pragma once
 
+EMIT_DEPRECATED_WARNING_MESSAGE("Including Media.h is deprecated. Please include the individual interface headers that you actually use!");
+
 
 /* Public Dependencies
  *****************************************************************************/
