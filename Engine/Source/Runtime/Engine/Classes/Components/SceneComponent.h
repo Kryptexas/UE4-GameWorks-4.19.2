@@ -142,6 +142,9 @@ protected:
 	UPROPERTY(Transient)
 	uint32 bWorldToComponentUpdated:1;
 
+	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
+	uint32 bDisableDetachmentUpdateOverlaps:1;
+
 public:
 
 	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */

@@ -766,9 +766,17 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			return;
 		}
 
+		// Don't call UpdateOverlaps() when detaching, since we are going to do it anyway after we reattach below.
+		// Aside from a perf benefit this also maintains correct behavior when we don't have KeepWorldPosition set.
+		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
+		bDisableDetachmentUpdateOverlaps = true;
+
 		// Make sure we are detached
-		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
+		const bool bMaintainWorldPosition = (AttachType == EAttachLocation::KeepWorldPosition);
 		DetachFromParent(bMaintainWorldPosition);
+		
+		// Restore detachment update overlaps flag.
+		bDisableDetachmentUpdateOverlaps = bSavedDisableDetachmentUpdateOverlaps;
 
 		{
 			//This code requires some explaining. Inside the editor we allow user to attach physically simulated objects to other objects. This is done for convenience so that users can group things together in hierarchy.
@@ -952,7 +960,7 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
 		UpdateComponentToWorld();
 
 		// Update overlaps, in case location changed or overlap state depends on attachment.
-		if (IsRegistered())
+		if (IsRegistered() && !bDisableDetachmentUpdateOverlaps)
 		{
 			UpdateOverlaps();
 		}
