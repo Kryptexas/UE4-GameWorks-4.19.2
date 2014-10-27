@@ -2,7 +2,7 @@
 
 
 #include "MediaPlayerEditorPrivatePCH.h"
-#include "ModuleManager.h"
+#include "ModuleInterface.h"
 
 
 #define LOCTEXT_NAMESPACE "FMediaPlayerEditorModule"
