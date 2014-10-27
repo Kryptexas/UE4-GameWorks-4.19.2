@@ -3,6 +3,10 @@
 #pragma once
 
 
+// forward declarations
+class FSettingsCategory;
+
+
 /**
  * Implements a settings container.
  */

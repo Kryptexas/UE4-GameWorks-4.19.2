@@ -17,6 +17,6 @@
 /* Private includes
  *****************************************************************************/
 
-#include "SettingsSection.h"
 #include "SettingsCategory.h"
 #include "SettingsContainer.h"
+#include "SettingsSection.h"

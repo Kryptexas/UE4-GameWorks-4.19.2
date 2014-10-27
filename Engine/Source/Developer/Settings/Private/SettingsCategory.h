@@ -3,6 +3,10 @@
 #pragma once
 
 
+// forward declarations
+class FSettingsSection;
+
+
 /**
  * Implements a settings category.
  */
