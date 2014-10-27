@@ -3,6 +3,10 @@
 #pragma once
 
 
+// forward declarations
+class IMediaPlayer;
+
+
 /**
  * Type definition for media file container formats.
  *

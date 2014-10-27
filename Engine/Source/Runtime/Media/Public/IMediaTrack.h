@@ -3,6 +3,13 @@
 #pragma once
 
 
+// forward declarations
+class IMediaSink;
+class IMediaTrackAudioDetails;
+class IMediaTrackCaptionDetails;
+class IMediaTrackVideoDetails;
+
+
 /**
  * Enumerates supported media track types.
  *
@@ -21,13 +28,6 @@ enum class EMediaTrackTypes
 	/** Video track. */
 	Video
 };
-
-
-/** Type definition for shared pointers to instances of IMediaTrack. */
-typedef TSharedPtr<class IMediaTrack, ESPMode::ThreadSafe> IMediaTrackPtr;
-
-/** Type definition for shared references to instances of IMediaTrack. */
-typedef TSharedRef<class IMediaTrack, ESPMode::ThreadSafe> IMediaTrackRef;
 
 
 /**
@@ -60,7 +60,7 @@ public:
 	 * @param Sink The sink to add.
 	 * @see RemoveSink
 	 */
-	virtual void AddSink( const IMediaSinkRef& Sink ) = 0;
+	virtual void AddSink( const TSharedRef<IMediaSink, ESPMode::ThreadSafe>& Sink ) = 0;
 
 	/**
 	 * Disables this track.
@@ -173,7 +173,7 @@ public:
 	 * @param Other The other track to check with.
 	 * @return true if the tracks are mutually exclusive, false otherwise.
 	 */
-	virtual bool IsMutuallyExclusive( const IMediaTrackRef& Other ) const = 0;
+	virtual bool IsMutuallyExclusive( const TSharedRef<IMediaTrack, ESPMode::ThreadSafe>& Other ) const = 0;
 
 	/**
 	 * Checks whether this track has protected content, i.e. DRM.
@@ -187,10 +187,17 @@ public:
 	 *
 	 * @param Sink The sink to remove.
 	 */
-	virtual void RemoveSink( const IMediaSinkRef& Sink ) = 0;
+	virtual void RemoveSink( const TSharedRef<IMediaSink, ESPMode::ThreadSafe>& Sink ) = 0;
 
 public:
 
 	/** Virtual destructor. */
 	virtual ~IMediaTrack() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMediaTrack. */
+typedef TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> IMediaTrackPtr;
+
+/** Type definition for shared references to instances of IMediaTrack. */
+typedef TSharedRef<IMediaTrack, ESPMode::ThreadSafe> IMediaTrackRef;

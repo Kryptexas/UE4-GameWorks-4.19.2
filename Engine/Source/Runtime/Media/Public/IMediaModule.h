@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
+
+
+// forward declarations
+class IMediaPlayer;
+class IMediaPlayerFactory;
+
 
 /**
  * Interface for media modules.
@@ -23,7 +31,7 @@ public:
 	 *
 	 * @param OutFormats Will hold the supported formats.
 	 */
-	virtual int32 GetSupportedFormats( FMediaFormats& OutFormats ) = 0;
+	virtual int32 GetSupportedFormats( TMap<FString, FText>& OutFormats ) = 0;
 
 	/**
 	 * Registers a media player factory.

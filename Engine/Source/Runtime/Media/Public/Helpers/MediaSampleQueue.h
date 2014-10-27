@@ -2,12 +2,7 @@
 
 #pragma once
 
-
-/** Type definition for shared pointers to instances of FMediaSampleQueue. */
-typedef TSharedPtr<class FMediaSampleQueue, ESPMode::ThreadSafe> FMediaSampleQueuePtr;
-
-/** Type definition for shared references to instances of FMediaSampleQueue. */
-typedef TSharedRef<class FMediaSampleQueue, ESPMode::ThreadSafe> FMediaSampleQueueRef;
+#include "IMediaSink.h"
 
 
 /**
@@ -35,3 +30,10 @@ public:
 		Enqueue(MakeShareable(Sample));
 	}
 };
+
+
+/** Type definition for shared pointers to instances of FMediaSampleQueue. */
+typedef TSharedPtr<FMediaSampleQueue, ESPMode::ThreadSafe> FMediaSampleQueuePtr;
+
+/** Type definition for shared references to instances of FMediaSampleQueue. */
+typedef TSharedRef<FMediaSampleQueue, ESPMode::ThreadSafe> FMediaSampleQueueRef;

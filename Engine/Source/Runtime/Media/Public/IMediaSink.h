@@ -3,16 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of IMediaSink. */
-typedef TSharedPtr<class IMediaSink, ESPMode::ThreadSafe> IMediaSinkPtr;
-
-/** Type definition for shared references to instances of IMediaSink. */
-typedef TSharedRef<class IMediaSink, ESPMode::ThreadSafe> IMediaSinkRef;
-
-/** Type definition for weak pointers to instances of IMediaSink. */
-typedef TWeakPtr<class IMediaSink, ESPMode::ThreadSafe> IMediaSinkWeakPtr;
-
-
 /**
  * Interface for recipients of media samples.
  */
@@ -37,3 +27,13 @@ public:
 	/** Virtual destructor. */
 	~IMediaSink() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMediaSink. */
+typedef TSharedPtr<IMediaSink, ESPMode::ThreadSafe> IMediaSinkPtr;
+
+/** Type definition for shared references to instances of IMediaSink. */
+typedef TSharedRef<IMediaSink, ESPMode::ThreadSafe> IMediaSinkRef;
+
+/** Type definition for weak pointers to instances of IMediaSink. */
+typedef TWeakPtr<IMediaSink, ESPMode::ThreadSafe> IMediaSinkWeakPtr;

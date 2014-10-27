@@ -2,12 +2,7 @@
 
 #pragma once
 
-
-/** Type definition for shared pointers to instances of FMediaSampleBuffer. */
-typedef TSharedPtr<class FMediaSampleBuffer, ESPMode::ThreadSafe> FMediaSampleBufferPtr;
-
-/** Type definition for shared references to instances of FMediaSampleBuffer. */
-typedef TSharedRef<class FMediaSampleBuffer, ESPMode::ThreadSafe> FMediaSampleBufferRef;
+#include "IMediaSink.h"
 
 
 /**
@@ -73,3 +68,10 @@ private:
 	/** The playback time of the currently available media sample. */
 	FTimespan CurrentSampleTime;
 };
+
+
+/** Type definition for shared pointers to instances of FMediaSampleBuffer. */
+typedef TSharedPtr<FMediaSampleBuffer, ESPMode::ThreadSafe> FMediaSampleBufferPtr;
+
+/** Type definition for shared references to instances of FMediaSampleBuffer. */
+typedef TSharedRef<FMediaSampleBuffer, ESPMode::ThreadSafe> FMediaSampleBufferRef;

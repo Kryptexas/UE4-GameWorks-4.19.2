@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "IMediaInfo.h"
+#include "IMediaTrack.h"
+
+
+// forward declaration
+class IMediaTrack;
+
 
 /**
  * Enumerates directions for seeking in media.
@@ -20,13 +27,6 @@ enum class EMediaSeekDirection
 	/** Seek forward from current position. */
 	Forward
 };
-
-
-/** Type definition for shared pointers to instances of IMediaPlayer. */
-typedef TSharedPtr<class IMediaPlayer> IMediaPlayerPtr;
-
-/** Type definition for shared references to instances of IMediaPlayer. */
-typedef TSharedRef<class IMediaPlayer> IMediaPlayerRef;
 
 
 /**
@@ -83,7 +83,7 @@ public:
 	 * @return Media tracks interface.
 	 * @see GetFirstTrack, GetTrack
 	 */
-	virtual const TArray<IMediaTrackRef>& GetTracks() const = 0;
+	virtual const TArray<TSharedRef<IMediaTrack, ESPMode::ThreadSafe>>& GetTracks() const = 0;
 
 	/**
 	 * Checks whether playback is currently looping.
@@ -190,9 +190,9 @@ public:
 	 * @return The first matching track, nullptr otherwise.
 	 * @see GetTrack, GetTracks
 	 */
-	IMediaTrackPtr GetFirstTrack( EMediaTrackTypes TrackType )
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetFirstTrack( EMediaTrackTypes TrackType )
 	{
-		for (const IMediaTrackRef& Track : GetTracks())
+		for (const TSharedRef<IMediaTrack, ESPMode::ThreadSafe>& Track : GetTracks())
 		{
 			if (Track->GetType() == TrackType)
 			{
@@ -211,11 +211,11 @@ public:
 	 * @return The track if it exists, nullptr otherwise.
 	 * @see GetFirstTrack, GetTracks
 	 */
-	IMediaTrackPtr GetTrack( int32 TrackIndex, EMediaTrackTypes TrackType )
+	TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> GetTrack( int32 TrackIndex, EMediaTrackTypes TrackType )
 	{
 		if (GetTracks().IsValidIndex(TrackIndex))
 		{
-			IMediaTrackPtr Track = GetTracks()[TrackIndex];
+			TSharedPtr<IMediaTrack, ESPMode::ThreadSafe> Track = GetTracks()[TrackIndex];
 
 			if (Track->GetType() == TrackType)
 			{
@@ -291,3 +291,10 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMediaPlayer() { }
 };
+
+
+/** Type definition for shared pointers to instances of IMediaPlayer. */
+typedef TSharedPtr<IMediaPlayer> IMediaPlayerPtr;
+
+/** Type definition for shared references to instances of IMediaPlayer. */
+typedef TSharedRef<IMediaPlayer> IMediaPlayerRef;
