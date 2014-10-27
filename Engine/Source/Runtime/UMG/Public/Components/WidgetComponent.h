@@ -67,17 +67,24 @@ public:
 	/** @return The draw size of the quad in the world */
 	const FIntPoint& GetDrawSize() const { return DrawSize; }
 
+	/** @return The max distance from which a player can interact with this widget */
+	float GetMaxInteractionDistance() const { return MaxInteractionDistance; }
+
 	/** @return True if the component is opaque */
 	bool IsOpaque() const { return bIsOpaque; }
 	
 private:
-	/** The size of the displayed quad */
-	UPROPERTY(EditAnywhere, Category=UI)
-	FIntPoint DrawSize;
-
 	/** The class of User Widget to create and display an instance of */
 	UPROPERTY(EditAnywhere, Category=UI)
 	TSubclassOf<UUserWidget> WidgetClass;
+	
+	/** The size of the displayed quad */
+	UPROPERTY(EditAnywhere, Category=UI)
+	FIntPoint DrawSize;
+	
+	/** The maximum distance from which a player can interact with this widget */
+	UPROPERTY(EditAnywhere, Category=UI, meta=(ClampMin="0.0", UIMax="5000.0", ClampMax="100000.0"))
+	float MaxInteractionDistance;
 
 	/** The background color of the component */
 	UPROPERTY(EditAnywhere, Category=Rendering)
