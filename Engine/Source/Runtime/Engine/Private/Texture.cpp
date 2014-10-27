@@ -482,7 +482,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 		// Make sure textures can be streamed out so that we can unload current mips.
 		static auto CVarOnlyStreamInTextures = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OnlyStreamInTextures"));
 		const bool bOldOnlyStreamInTextures = CVarOnlyStreamInTextures->GetInt() != 0;
-		CVarOnlyStreamInTextures->Set(false);
+		CVarOnlyStreamInTextures->Set(false, ECVF_SetByCode);
 
 #if WITH_EDITOR
 		for( TObjectIterator<UTexture2D> It; It; ++It )
@@ -502,7 +502,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 		IStreamingManager::Get().BlockTillAllRequestsFinished();
 
 		// Restore streaming out of textures.
-		CVarOnlyStreamInTextures->Set(bOldOnlyStreamInTextures);
+		CVarOnlyStreamInTextures->Set(bOldOnlyStreamInTextures, ECVF_SetByCode);
 	}
 
 	return true;

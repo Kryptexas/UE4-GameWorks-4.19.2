@@ -965,11 +965,11 @@ static void RunGPUSortTestWithDebug(FRHICommandListImmediate& RHICmdList, int32 
 	static IConsoleVariable* IVarDebugSort = IConsoleManager::Get().FindConsoleVariable(TEXT("GPUSort.DebugSort"));
 	const bool bWasDebuggingOffsets = CVarDebugOffsets.GetValueOnRenderThread() != 0;
 	const bool bWasDebuggingSort = CVarDebugSort.GetValueOnRenderThread() != 0;
-	IVarDebugOffsets->Set(1);
-	IVarDebugSort->Set(1);
+	IVarDebugOffsets->Set(1, ECVF_SetByCode);
+	IVarDebugSort->Set(1, ECVF_SetByCode);
 	RunGPUSortTest(RHICmdList, TestSize, FeatureLevel);
-	IVarDebugOffsets->Set(bWasDebuggingOffsets ? 1 : 0);
-	IVarDebugSort->Set(bWasDebuggingSort ? 1 : 0);
+	IVarDebugOffsets->Set(bWasDebuggingOffsets ? 1 : 0, ECVF_SetByCode);
+	IVarDebugSort->Set(bWasDebuggingSort ? 1 : 0, ECVF_SetByCode);
 }
 
 /**

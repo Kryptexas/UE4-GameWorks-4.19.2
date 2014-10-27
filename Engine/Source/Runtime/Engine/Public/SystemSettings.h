@@ -115,13 +115,6 @@ public:
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	// End Exec Interface
 
-	/** 
-	 * Exec command handlers
-	 */
-	bool HandleLowendCommand( const TCHAR* Cmd , FOutputDevice& Ar );
-	bool HandleHighendCommand( const TCHAR* Cmd , FOutputDevice& Ar );
-	bool HandleResetCommand( const TCHAR* Cmd , FOutputDevice& Ar );
-
 	/** Mask where 1 bits mean we want to force the engine show flag to be off */
 	const FEngineShowFlags& GetForce0Mask() const { return Force0Mask; }
 	/** Mask where 1 bits mean we want to force the engine show flag to be on */
@@ -130,9 +123,6 @@ public:
 private:
 	/** Since System Settings is called into before GIsEditor is set, we must cache this value. */
 	bool bIsEditor;
-
-	/** The initial high quality lightmap settings. Used to stop the user changing it at runtime. */
-	bool bInitialUseHighQualityLightmaps;
 
 	/** Mask where 1 bits mean we want to force the engine show flag to be off */
 	FEngineShowFlags Force0Mask;

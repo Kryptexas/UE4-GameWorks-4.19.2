@@ -59,11 +59,13 @@ public:
 
 	// ------
 
-	void OnChanged()
+	void OnChanged(EConsoleVariableFlags SetBy)
 	{
 		// only change on main thread
 
 		Flags = (EConsoleVariableFlags)((uint32)Flags | ECVF_Changed);
+
+		Flags = (EConsoleVariableFlags)(((uint32)Flags & ~ECVF_SetByMask) | SetBy);
 
 		OnChangedCallback.ExecuteIfBound(this);
 	}
@@ -204,10 +206,10 @@ public:
 	{
 		delete this; 
 	} 
-	virtual void Set(const TCHAR* InValue)
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 	{
 		TTypeFromString<T>::FromString(Data.ShadowedValue[0], InValue);
-		OnChanged();
+		OnChanged(SetBy);
 	}
 
 	virtual int32 GetInt() const;
@@ -228,11 +230,11 @@ private: // ----------------------------------------------------
 		return This->Data.GetReferenceOnAnyThread();
 	}
 
-	void OnChanged()
+	void OnChanged(EConsoleVariableFlags SetBy)
 	{
 		// propagate from main thread to render thread
 		OnCVarChange(Data.ShadowedValue[1], Data.ShadowedValue[0], Flags);
-		FConsoleVariableBase::OnChanged();
+		FConsoleVariableBase::OnChanged(SetBy);
 	}
 };
 
@@ -277,10 +279,10 @@ template<> TConsoleVariableData<float>* FConsoleVariable<float>::AsVariableFloat
 
 // specialization for FString
 
-template<> void FConsoleVariable<FString>::Set(const TCHAR* InValue)
+template<> void FConsoleVariable<FString>::Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 {
 	Data.ShadowedValue[0] = InValue;
-	OnChanged();
+	OnChanged(SetBy);
 }
 template<> int32 FConsoleVariable<FString>::GetInt() const
 {
@@ -318,10 +320,10 @@ public:
 	{
 		delete this; 
 	} 
-	virtual void Set(const TCHAR* InValue)
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 	{
 		TTypeFromString<T>::FromString(MainValue, InValue);
-		OnChanged();
+		OnChanged(SetBy);
 	}
 	virtual int32 GetInt() const
 	{
@@ -350,11 +352,11 @@ private: // ----------------------------------------------------
 		return (Index == 0) ? MainValue : RefValue;
 	}
 
-	void OnChanged()
+	void OnChanged(EConsoleVariableFlags SetBy)
 	{
 		// propagate from main thread to render thread or to reference
 		OnCVarChange(RefValue, MainValue, Flags);
-		FConsoleVariableBase::OnChanged();
+		FConsoleVariableBase::OnChanged(SetBy);
 	}
 };
 
@@ -383,7 +385,7 @@ public:
 	{
 		delete this; 
 	} 
-	virtual void Set(const TCHAR* InValue)
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy)
 	{
 		int32 Value = FCString::Atoi(InValue);
 
@@ -391,6 +393,8 @@ public:
 
 		FMath::SetBoolInBitField(Force0MaskPtr, BitNumber, Value == 0);
 		FMath::SetBoolInBitField(Force1MaskPtr, BitNumber, Value == 1);
+
+		OnChanged(SetBy);
 	}
 	virtual int32 GetInt() const
 	{
@@ -427,6 +431,30 @@ private: // ----------------------------------------------------
 IConsoleVariable* FConsoleManager::RegisterConsoleVariableBitRef(const TCHAR* CVarName, const TCHAR* FlagName, uint32 BitNumber, uint8* Force0MaskPtr, uint8* Force1MaskPtr, const TCHAR* Help, uint32 Flags)
 {
 	return AddConsoleObject(CVarName, new FConsoleVariableBitRef(FlagName, BitNumber, Force0MaskPtr, Force1MaskPtr, Help, (EConsoleVariableFlags)Flags))->AsVariable();
+}
+
+
+static TCHAR* GetLastSetBy(EConsoleVariableFlags InSetBy)
+{
+	EConsoleVariableFlags SetBy = (EConsoleVariableFlags)((uint32)InSetBy & ECVF_SetByMask);
+
+	switch(SetBy)
+	{
+#define CASE(A) case ECVF_SetBy##A: return TEXT(#A);
+		CASE(Constructor)
+		CASE(Code)
+		CASE(Scalability)
+		CASE(ConsoleVariablesIni)
+		CASE(SystemSettingsIni)
+		CASE(DeviceProfile)
+		CASE(Console)
+		CASE(Commandline)
+		CASE(EditorSetting)
+		CASE(GameSetting)
+		CASE(Network)
+#undef CASE 
+	}
+	return TEXT("<UNKNOWN>");
 }
 
 void FConsoleManager::CallAllConsoleVariableSinks()
@@ -890,7 +918,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		if(*It == 0)
 		{
 			// get current state
-			Ar.Logf(TEXT("%s = \"%s\""), *Param1, *CVar->GetString());
+			Ar.Logf(TEXT("%s = \"%s\"      LastSetBy: %s"), *Param1, *CVar->GetString(), GetLastSetBy(CVar->GetFlags()));
 		}
 		else
 		{
@@ -920,7 +948,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 				else
 				{
 					// set value
-					CVar->Set(*Param2);
+					CVar->Set(*Param2, ECVF_SetByConsole);
 
 					Ar.Logf(TEXT("%s = \"%s\""), *Param1, *CVar->GetString());
 
@@ -997,7 +1025,7 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 			if(ExistingVar->TestFlags(ECVF_CreatedFromIni))
 			{
 				// The existing one came from the ini, get the value and destroy the existing one (no need to call sink because that will happen after all ini setting have been loaded)
-				Var->Set(*ExistingVar->GetString());
+				Var->Set(*ExistingVar->GetString(), (EConsoleVariableFlags)((uint32)ExistingVar->GetFlags() & ECVF_SetByMask));
 				ExistingVar->Release();
 
 				ConsoleObjects.Add(Name, Var);
@@ -1265,10 +1293,10 @@ void FConsoleManager::Test()
 
 		// call Set(string)
 
-		VarA->Set(TEXT("3.1"));
-		VarB->Set(TEXT("3.1"));
-		VarD->Set(TEXT("3.1"));
-		VarE->Set(TEXT("3.1"));
+		VarA->Set(TEXT("3.1"), ECVF_SetByConsole);
+		VarB->Set(TEXT("3.1"), ECVF_SetByConsole);
+		VarD->Set(TEXT("3.1"), ECVF_SetByConsole);
+		VarE->Set(TEXT("3.1"), ECVF_SetByConsole);
 
 		check(GConsoleVariableCallbackTestCounter == 1);
 
@@ -1288,7 +1316,7 @@ void FConsoleManager::Test()
 		check(RefD == 3);
 		check(RefE == 3.1f);
 
-		VarB->Set(TEXT("3.1"));
+		VarB->Set(TEXT("3.1"), ECVF_SetByCode);
 		check(GConsoleVariableCallbackTestCounter == 2);
 
 		// unregister
@@ -1322,7 +1350,7 @@ void FConsoleManager::Test()
 			check(FMath::IsNearlyEqual(VarC->GetFloat(), 1.23f, KINDA_SMALL_NUMBER));
 			check(VarC->GetString() == FString(TEXT("1.23")));
 			check(!VarC->TestFlags(ECVF_Changed));
-			VarC->Set(TEXT("3.1"));
+			VarC->Set(TEXT("3.1"), ECVF_SetByCode);
 			check(VarC->TestFlags(ECVF_Changed));
 			check(VarC->GetString() == FString(TEXT("3.1")));
 			UnregisterConsoleObject(TEXT("TestNameC"), false);

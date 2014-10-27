@@ -193,14 +193,14 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 	EWindowMode::Type NewWindowMode = GetFullscreenMode();
 
 	{
-		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set(NewWindowMode);
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
+		CVar->Set(NewWindowMode, ECVF_SetByGameSetting);
 	}
 
 	// Update vsync cvar
 	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")); 
-		CVar->Set(IsVSyncEnabled());
+		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")); 
+		CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
 	}
 
 	// in init those are loaded earlier, after that we apply consolevariables.ini
@@ -219,8 +219,8 @@ void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrid
 	EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
 
 	{
-		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(NewFullscreenMode);
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+		CVar->Set(NewFullscreenMode, ECVF_SetByGameSetting);
 	}
 
 	// Request a resolution change
@@ -273,8 +273,8 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 
 
 	{
-		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(InWindowMode);
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+		CVar->Set(InWindowMode, ECVF_SetByGameSetting);
 	}
 	FSystemResolution::RequestResolutionChange(InResolutionX, InResolutionY, InWindowMode);
 }
@@ -333,8 +333,8 @@ void UGameUserSettings::PreloadResolutionSettings()
 	}
 
 	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set((int32)WindowMode);
+		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
+		CVar->Set((int32)WindowMode, ECVF_SetByGameSetting);
 	}
 
 	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);

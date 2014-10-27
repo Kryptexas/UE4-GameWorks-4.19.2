@@ -147,7 +147,8 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("Set the display resolution for the current game view. Has no effect in the editor.\n")
 	TEXT("e.g. 1280x720w for windowed\n")
 	TEXT("     1920x1080f for fullscreen\n")
-	TEXT("     1920x1080wf for windowed fullscreen")
+	TEXT("     1920x1080wf for windowed fullscreen\n")
+	TEXT("     1920x1080wm for windowed mirror")
 	);
 
 static TAutoConsoleVariable<float> CVarDepthOfFieldNearBlurSizeThreshold(
@@ -1164,7 +1165,7 @@ void UEngine::ParseCommandline()
 	
 		if (CVarDumpFrames)
 		{
-			CVarDumpFrames->Set(1);
+			CVarDumpFrames->Set(1, ECVF_SetByCommandline);
 		}
 	}
 
@@ -10298,7 +10299,7 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 	}
 
 	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, *WindowModeSuffix);
-	CVarSystemResolution->Set(*NewValue);
+	CVarSystemResolution->Set(*NewValue, ECVF_SetByCode);
 }
 
 

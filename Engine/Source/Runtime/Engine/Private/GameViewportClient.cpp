@@ -717,7 +717,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 					// Mode is out of range, so display a message to the user, and reset the mode back to the previous valid one
 					UE_LOG(LogConsoleResponse, Warning, TEXT("Buffer visualization mode '%s' does not exist"), *ModeNameString);
 					NewBufferVisualizationMode = CurrentBufferVisualizationMode;
-					ICVar->Set(*NewBufferVisualizationMode.GetPlainNameString());
+					// todo: cvars are user settings, here the cvar state is used to avoid log spam and to auto correct for the user (likely not what the user wants)
+					ICVar->Set(*NewBufferVisualizationMode.GetPlainNameString(), ECVF_SetByCode);
 				}
 				else
 				{

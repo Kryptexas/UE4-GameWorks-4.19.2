@@ -94,7 +94,7 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 						if( CVar )
 						{
 							UE_LOG(LogInit, Log, TEXT("Setting Device Profile CVar: [[%s:%s]]"), *CVarKey, *CVarValue);
-							CVar->Set( *CVarValue );
+							CVar->Set( *CVarValue, ECVF_SetByDeviceProfile);
 							CVarsAlreadySetList.Add( CVarKey, CVarValue );
 						}
 						else

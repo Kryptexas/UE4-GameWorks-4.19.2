@@ -81,6 +81,20 @@ enum EConsoleVariableFlags
 
 	/* those cvars control other cvars with the flag ECVF_Scalability, names should start with "sg." */
 	ECVF_ScalabilityGroup = 0x80,
+
+	/* to get some history of where the last value was set by ( useful for track down why a cvar is in a specific state */
+	ECVF_SetByMask =				0xff000000,
+	ECVF_SetByConstructor =			0x00000000,
+	ECVF_SetByCode =				0x01000000,	// least useful, likely a hack, maybe better to start a new SetBy...
+	ECVF_SetByScalability =			0x02000000,
+	ECVF_SetByConsoleVariablesIni = 0x03000000,
+	ECVF_SetBySystemSettingsIni =	0x04000000,
+	ECVF_SetByDeviceProfile =		0x05000000,
+	ECVF_SetByConsole =				0x06000000,
+	ECVF_SetByCommandline =			0x07000000,	// a minus comman e.g. -VSync
+	ECVF_SetByEditorSetting =		0x08000000,
+	ECVF_SetByGameSetting =			0x09000000,
+	ECVF_SetByNetwork =				0x0a000000,
 };
 
 class IConsoleVariable;
@@ -200,8 +214,11 @@ class IConsoleVariable : public IConsoleObject
 {
 public:
 
-	/** Set the internal value from the specified string. */
-	virtual void Set(const TCHAR* InValue) = 0;
+	/**
+	 * Set the internal value from the specified string. 
+	 * @param SetBy anything in ECVF_LastSetMask e.g. ECVF_SetByScalability
+	 **/
+	virtual void Set(const TCHAR* InValue, EConsoleVariableFlags SetBy = ECVF_SetByCode) = 0;
 	/**
 	 * Get the internal value as int (should not be used on strings).
 	 * @return value is not rounded (simple cast)
@@ -227,16 +244,16 @@ public:
 	// convenience methods
 
 	/** Set the internal value from the specified int. */
-	void Set(int32 InValue)
+	void Set(int32 InValue, EConsoleVariableFlags SetBy = ECVF_SetByCode)
 	{
 		// inefficient but no common code path
-		Set(*FString::Printf(TEXT("%d"), InValue));
+		Set(*FString::Printf(TEXT("%d"), InValue), SetBy);
 	}
 	/** Set the internal value from the specified float. */
-	void Set(float InValue)
+	void Set(float InValue, EConsoleVariableFlags SetBy = ECVF_SetByCode)
 	{
 		// inefficient but no common code path
-		Set(*FString::Printf(TEXT("%g"), InValue));
+		Set(*FString::Printf(TEXT("%g"), InValue), SetBy);
 	}
 
 };

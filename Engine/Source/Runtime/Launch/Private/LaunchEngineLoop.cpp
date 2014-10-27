@@ -1065,7 +1065,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	GSystemSettings.Initialize( bHasEditorToken );
 
 	// Apply renderer settings from console variables stored in the INI.
-	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni, ECVF_SetBySystemSettingsIni);
 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())

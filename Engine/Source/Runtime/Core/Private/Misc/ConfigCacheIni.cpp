@@ -2785,7 +2785,7 @@ void FConfigCacheIni::LoadLocalIniFile(FConfigFile& ConfigFile, const TCHAR* Ini
 	if (!bGenerateDestIni)
 	{
 		// generate path to the .ini file (not a Default ini, IniName is the complete name of the file, without path)
-		FString SourceIniFilename = FString::Printf(TEXT("%s/%s.ini"), *FPaths::SourceConfigDir(), IniName);
+		FString SourceIniFilename = FString::Printf(TEXT("%s%s.ini"), *FPaths::SourceConfigDir(), IniName);
 
 		// load the .ini file straight up
 		LoadAnIniFile(*SourceIniFilename, ConfigFile);
@@ -2868,7 +2868,7 @@ void FConfigCacheIni::LoadConsoleVariablesFromINI()
 				if(CVar)
 				{
 					// Set if the variable exists.
-					CVar->Set(*ValueString);
+					CVar->Set(*ValueString, ECVF_SetByConsoleVariablesIni);
 				}
 				else
 				{
@@ -2962,7 +2962,7 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 	Write(DiskFilename, true, NewFile);
 }
 
-void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename)
+void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename, uint32 SetBy)
 {
 	// Lookup the config section for this section and group number
 	TArray<FString> SectionStrings;
@@ -2984,17 +2984,17 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 						|| FCString::Stricmp(*CVarValue, TEXT("Yes")) == 0
 						|| FCString::Stricmp(*CVarValue, TEXT("On")) == 0)
 					{
-						CVar->Set(1);
+						CVar->Set(1, (EConsoleVariableFlags)SetBy);
 					}
 					else if(FCString::Stricmp(*CVarValue, TEXT("False")) == 0
 						|| FCString::Stricmp(*CVarValue, TEXT("No")) == 0
 						|| FCString::Stricmp(*CVarValue, TEXT("Off")) == 0)
 					{
-						CVar->Set(0);
+						CVar->Set(0, (EConsoleVariableFlags)SetBy);
 					}
 					else
 					{
-						CVar->Set(*CVarValue);
+						CVar->Set(*CVarValue, (EConsoleVariableFlags)SetBy);
 					}
 				}
 			}
@@ -3007,9 +3007,9 @@ void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFile
 	}
 }
 
-void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename)
+void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename, uint32 SetBy)
 {
 	// Lookup the config section for this section and group number
 	FString SectionName = FString::Printf(TEXT("%s@%d"), InSectionBaseName, InGroupNumber);
-	ApplyCVarSettingsFromIni(*SectionName,InIniFilename);
+	ApplyCVarSettingsFromIni(*SectionName,InIniFilename, SetBy);
 }

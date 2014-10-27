@@ -449,7 +449,7 @@ void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel
 
 	//Ensure the material quality cvar is also set.
 	static IConsoleVariable* MaterialQualityLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
-	MaterialQualityLevelVar->Set(NewQualityLevel);
+	MaterialQualityLevelVar->Set(NewQualityLevel, ECVF_SetByEditorSetting);
 
 	GUnrealEd->RedrawAllViewports();
 }
@@ -1911,7 +1911,7 @@ void FLevelEditorActionCallbacks::OnToggleFreezeParticleSimulation()
 	IConsoleVariable* CVar = ConsoleManager.FindConsoleVariable(TEXT("FX.FreezeParticleSimulation"));
 	if (CVar)
 	{
-		CVar->Set(CVar->GetInt() == 0 ? 1 : 0);
+		CVar->Set(CVar->GetInt() == 0 ? 1 : 0, ECVF_SetByEditorSetting);
 	}
 }
 
@@ -1921,7 +1921,7 @@ bool FLevelEditorActionCallbacks::OnIsParticleSimulationFrozen()
 	static const auto* CVar = ConsoleManager.FindTConsoleVariableDataInt(TEXT("FX.FreezeParticleSimulation"));
 	if (CVar)
 	{
-		return CVar->GetValueOnGameThread() == 0 ? false : true;
+		return CVar->GetValueOnGameThread() != 0;
 	}
 	return false;
 }

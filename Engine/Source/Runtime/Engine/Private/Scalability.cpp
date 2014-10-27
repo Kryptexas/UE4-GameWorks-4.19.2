@@ -154,7 +154,7 @@ static void SetGroupQualityLevel(const TCHAR* InGroupName, int32 InQualityLevel)
 
 //	UE_LOG(LogConsoleResponse, Display, TEXT("  %s %d"), InGroupName, InQualityLevel);
 
-	ApplyCVarSettingsGroupFromIni(InGroupName, InQualityLevel, *GScalabilityIni);
+	ApplyCVarSettingsGroupFromIni(InGroupName, InQualityLevel, *GScalabilityIni, ECVF_SetByScalability);
 }
 
 static void SetResolutionQualityLevel(int32 InResolutionQualityLevel)
@@ -168,7 +168,7 @@ static void SetResolutionQualityLevel(int32 InResolutionQualityLevel)
 	// if it wasn't created yet we either need to change the order or store like we do for ini loading
 	check(CVar);
 
-	CVar->Set(InResolutionQualityLevel);
+	CVar->Set(InResolutionQualityLevel, ECVF_SetByScalability);
 }
 
 void OnChangeResolutionQuality(IConsoleVariable* Var)
@@ -346,13 +346,13 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 
 void SetQualityLevels(const FQualityLevels& QualityLevels)
 {
-	CVarResolutionQuality.AsVariable()->Set(QualityLevels.ResolutionQuality);
-	CVarViewDistanceQuality.AsVariable()->Set(QualityLevels.ViewDistanceQuality);
-	CVarAntiAliasingQuality.AsVariable()->Set(QualityLevels.AntiAliasingQuality);
-	CVarShadowQuality.AsVariable()->Set(QualityLevels.ShadowQuality);
-	CVarPostProcessQuality.AsVariable()->Set(QualityLevels.PostProcessQuality);
-	CVarTextureQuality.AsVariable()->Set(QualityLevels.TextureQuality);
-	CVarEffectsQuality.AsVariable()->Set(QualityLevels.EffectsQuality);
+	CVarResolutionQuality.AsVariable()->Set(QualityLevels.ResolutionQuality, ECVF_SetByScalability);
+	CVarViewDistanceQuality.AsVariable()->Set(QualityLevels.ViewDistanceQuality, ECVF_SetByScalability);
+	CVarAntiAliasingQuality.AsVariable()->Set(QualityLevels.AntiAliasingQuality, ECVF_SetByScalability);
+	CVarShadowQuality.AsVariable()->Set(QualityLevels.ShadowQuality, ECVF_SetByScalability);
+	CVarPostProcessQuality.AsVariable()->Set(QualityLevels.PostProcessQuality, ECVF_SetByScalability);
+	CVarTextureQuality.AsVariable()->Set(QualityLevels.TextureQuality, ECVF_SetByScalability);
+	CVarEffectsQuality.AsVariable()->Set(QualityLevels.EffectsQuality, ECVF_SetByScalability);
 }
 
 FQualityLevels GetQualityLevels()

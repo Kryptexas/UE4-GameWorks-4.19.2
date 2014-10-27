@@ -385,7 +385,7 @@ void FRHICommandListExecutor::LatchBypass()
 			if (FParse::Param(FCommandLine::Get(),TEXT("parallelrendering")) && CVarRHICmdBypass.GetValueOnRenderThread() >= 1)
 			{
 				IConsoleVariable* BypassVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmdBypass"));
-				BypassVar->Set(0);
+				BypassVar->Set(0, ECVF_SetByCommandline);
 			}
 		}
 

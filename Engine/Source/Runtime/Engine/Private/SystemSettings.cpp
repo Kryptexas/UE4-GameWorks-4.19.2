@@ -86,18 +86,18 @@ public:
 			|| FCString::Stricmp(Value, TEXT("Yes")) == 0
 			|| FCString::Stricmp(Value, TEXT("On")) == 0)
 			{
-				CVar->Set(1);
+				CVar->Set(1, ECVF_SetBySystemSettingsIni);
 			}
 			else
 			if(FCString::Stricmp(Value, TEXT("False")) == 0
 			|| FCString::Stricmp(Value, TEXT("No")) == 0
 			|| FCString::Stricmp(Value, TEXT("Off")) == 0)
 			{
-				CVar->Set(0);
+				CVar->Set(0, ECVF_SetBySystemSettingsIni);
 			}
 			else
 			{
-				CVar->Set(Value);
+				CVar->Set(Value, ECVF_SetBySystemSettingsIni);
 			}
 		}
 	}
@@ -232,7 +232,6 @@ void FSystemSettingsData::DumpTextureLODGroup(TextureGroup TextureGroupID, const
  */
 FSystemSettings::FSystemSettings() :
 	bIsEditor( false ),
-	bInitialUseHighQualityLightmaps(false),
 	Force0Mask(ESFIM_All0),
 	Force1Mask(ESFIM_All0)
 {
@@ -340,8 +339,6 @@ void FSystemSettings::Initialize( bool bSetupForEditor )
 
 	ApplyOverrides();
 
-	bInitialUseHighQualityLightmaps = AllowHighQualityLightmaps(GMaxRHIFeatureLevel);
-
 	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateRaw(this, &FSystemSettings::CVarSink));
 
 	// intialize a critical texture streaming value used by texture loading, etc
@@ -355,115 +352,12 @@ void FSystemSettings::CVarSink()
 	ApplyOverrides();
 }
 
-bool FSystemSettings::HandleLowendCommand( const TCHAR* Cmd , FOutputDevice& Ar )
-{
-	{
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OnlyStreamInTextures"));
-		CVar->Set(0);
-	}
-
-	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinResolution"));
-		CVar->Set(32);
-	}
-
-	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowResolutionFactor"));
-		CVar->Set(0.5f);
-	}
-
-	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.TexelsPerPixel"));
-		CVar->Set(2.0f);
-	}
-
-	return true;
-}
-
-bool FSystemSettings::HandleHighendCommand( const TCHAR* Cmd , FOutputDevice& Ar )
-{
-	{
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OnlyStreamInTextures"));
-		CVar->Set(0);
-	}
-	
-	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinResolution"));
-		CVar->Set(32);
-	}
-
-	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowResolutionFactor"));
-		CVar->Set(1.0f);
-	}
-
-	{
-		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.TexelsPerPixel"));
-		CVar->Set(2.0f);
-	}
-
-	return true;
-}
-
-bool FSystemSettings::HandleResetCommand( const TCHAR* Cmd , FOutputDevice& Ar )
-{
-	// Reset values to defaults from ini.
-	LoadFromIni();
-	return true;
-}
-
-/**
- * Exec handler implementation.
- *
- * @param InWorld World context
- * @param Cmd	Command to parse
- * @param Ar	Output device to log to
- *
- * @return true if command was handled, false otherwise
- */
 bool FSystemSettings::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FSystemSettingsData OldSystemSettings = *this;
-
-	// Keep track whether the command was handled or not.
-	bool bHandledCommand = false;
-
-	if( FParse::Command(&Cmd,TEXT("SCALE")) )
-	{
-		// Some of these settings are used in both threads so we need to stop the rendering thread before changing them.
-		FlushRenderingCommands();
-
-		if( FParse::Command(&Cmd,TEXT("LOWEND")) )
-		{
-			bHandledCommand	= HandleLowendCommand( Cmd, Ar );
-		}
-		else if( FParse::Command(&Cmd,TEXT("HIGHEND")) )
-		{
-			bHandledCommand	= HandleHighendCommand( Cmd, Ar );	
-		}
-
-		if (!bHandledCommand)
-		{
-			Ar.Logf(TEXT("Unrecognized system setting (note that console variables can be set much easier)"));
-		}
-		else
-		{
-			// Write the new settings to the INI.
-			SaveToIni();
-		}
-	}
-
-	return bHandledCommand;
+	// no longer needed, we have the "Scalability" console command
+	return false;
 }
 
-/**
- * Reads a single entry and parses it into the group array.
- *
- * @param	TextureGroupID		Index/enum of group to parse
- * @param	MinLODSize			Minimum size, in pixels, below which the code won't bias.
- * @param	MaxLODSize			Maximum size, in pixels, above which the code won't bias.
- * @param	LODBias				Group LOD bias.
- */
 void FSystemSettings::SetTextureLODGroup(TextureGroup TextureGroupID, int32 MinLODSize, int32 MaxLODSize, int32 LODBias, TextureMipGenSettings MipGenSettings)
 {
 	TextureLODSettings.GetTextureLODGroup(TextureGroupID).MinLODMipCount	= FMath::CeilLogTwo( MinLODSize );
@@ -608,38 +502,38 @@ void FSystemSettings::ApplyOverrides()
 	{
 		// Modify various system settings to get the best quality regardless of performance impact
 		{
-			auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinResolution"));
-			CVar->Set(16);
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinResolution"));
+			CVar->Set(16, ECVF_SetByCode);
 		}
 
 		// Disable shadow fading out over distance
 		{
-			auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.FadeResolution"));
-			CVar->Set(1);
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.FadeResolution"));
+			CVar->Set(1, ECVF_SetByCode);
 		}
 
 		// Increase minimum preshadow resolution
 		{
-			auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinPreShadowResolution"));
-			CVar->Set(16);
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.MinPreShadowResolution"));
+			CVar->Set(16, ECVF_SetByCode);
 		}
 
 		// Disable preshadow fading out over distance
 		{
-			auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowFadeResolution"));
-			CVar->Set(1);
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowFadeResolution"));
+			CVar->Set(1, ECVF_SetByCode);
 		}
 
 		// Increase shadow texel density
 		{
-			auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.TexelsPerPixel"));
-			CVar->Set(4.0f);
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.TexelsPerPixel"));
+			CVar->Set(4.0f, ECVF_SetByCode);
 		}
 
 		// Don't downsample preshadows
 		{
-			auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowResolutionFactor"));
-			CVar->Set(1.0f);
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.PreShadowResolutionFactor"));
+			CVar->Set(1.0f, ECVF_SetByCode);
 		}
 
 		for (int32 GroupIndex = 0; GroupIndex < TEXTUREGROUP_MAX; GroupIndex++)
