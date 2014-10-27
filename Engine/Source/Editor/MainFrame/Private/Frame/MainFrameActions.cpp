@@ -163,7 +163,7 @@ FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyboardEvent& 
 	{
 		return FReply::Handled();
 	}
-	else if( GEditor->PlayWorld && InKeyboardEvent.GetKey() == EKeys::Escape )
+	else if( GEditor && GEditor->PlayWorld && InKeyboardEvent.GetKey() == EKeys::Escape )
 	{
 		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked< FLevelEditorModule >(TEXT("LevelEditor"));
 		if( LevelEditor.GetLevelEditorTab()->IsForeground()  )
