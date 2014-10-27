@@ -153,21 +153,6 @@ struct FMessageTracerTypeInfo
 
 
 /**
- * Implements a delegate that is executed when a message has been added to the collection of traced messages.
- *
- * The first parameter is the information for the message that was added.
- */
-DECLARE_MULTICAST_DELEGATE_OneParam(FMessageTracerMessageAdded, FMessageTracerMessageInfoRef)
-
-/**
- * Implements a delegate that is executed when a type has been added to the collection of traced message types.
- *
- * The first parameter is the information for the message type that was added.
- */
-DECLARE_MULTICAST_DELEGATE_OneParam(FMessageTracerTypeAdded, FMessageTracerTypeInfoRef)
-
-
-/**
  * Interface for message tracers.
  *
  * This interface provides access to the message tracer that is built into a message bus. Message tracers are
@@ -277,25 +262,28 @@ public:
 public:
 
 	/**
-	 * Returns a delegate that is executed when the collection of known messages has changed.
+	 * A delegate that is executed when the collection of known messages has changed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FMessageTracerMessageAdded& OnMessageAdded() = 0;
+	DECLARE_EVENT_OneParam(IMessageTracer, FOnMessageAdded, FMessageTracerMessageInfoRef)
+	virtual FOnMessageAdded& OnMessageAdded() = 0;
 
 	/**
-	 * Returns a delegate that is executed when the message history has been reset.
+	 * A delegate that is executed when the message history has been reset.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FSimpleMulticastDelegate& OnMessagesReset() = 0;
+	DECLARE_EVENT(IMessageTracer, FOnMessagesReset)
+	virtual FOnMessagesReset& OnMessagesReset() = 0;
 
 	/**
-	 * Returns a delegate that is executed when the collection of known messages types has changed.
+	 * A delegate that is executed when the collection of known messages types has changed.
 	 *
 	 * @return The delegate.
 	 */
-	virtual FMessageTracerTypeAdded& OnTypeAdded() = 0;
+	DECLARE_EVENT_OneParam(IMessageTracer, FOnTypeAdded, FMessageTracerTypeInfoRef)
+	virtual FOnTypeAdded& OnTypeAdded() = 0;
 
 protected:
 

@@ -32,17 +32,17 @@ public:
 		return "UdpMessageTransport";
 	}
 
-	virtual FOnMessageTransportMessageReceived& OnMessageReceived() override
+	virtual FOnMessageReceived& OnMessageReceived() override
 	{
 		return MessageReceivedDelegate;
 	}
 
-	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered() override
+	virtual FOnNodeDiscovered& OnNodeDiscovered() override
 	{
 		return NodeDiscoveredDelegate;
 	}
 
-	virtual FOnMessageTransportNodeLost& OnNodeLost() override
+	virtual FOnNodeLost& OnNodeLost() override
 	{
 		return NodeLostDelegate;
 	}
@@ -106,11 +106,11 @@ private:
 private:
 
 	/** Holds a delegate to be invoked when a message was received on the transport channel. */
-	FOnMessageTransportMessageReceived MessageReceivedDelegate;
+	FOnMessageReceived MessageReceivedDelegate;
 
 	/** Holds a delegate to be invoked when a network node was discovered. */
-	FOnMessageTransportNodeDiscovered NodeDiscoveredDelegate;
+	FOnNodeDiscovered NodeDiscoveredDelegate;
 
 	/** Holds a delegate to be invoked when a network node was lost. */
-	FOnMessageTransportNodeLost NodeLostDelegate;
+	FOnNodeLost NodeLostDelegate;
 };

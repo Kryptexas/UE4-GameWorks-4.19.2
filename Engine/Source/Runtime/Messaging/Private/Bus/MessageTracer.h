@@ -256,17 +256,20 @@ public:
 		return Running;
 	}
 
-	virtual FMessageTracerMessageAdded& OnMessageAdded() override
+	DECLARE_DERIVED_EVENT(FMessageTracer, IMessageTracer::FOnMessageAdded, FOnMessageAdded)
+	virtual FOnMessageAdded& OnMessageAdded() override
 	{
 		return MessagesAddedDelegate;
 	}
 
-	virtual FSimpleMulticastDelegate& OnMessagesReset() override
+	DECLARE_DERIVED_EVENT(FMessageTracer, IMessageTracer::FOnMessagesReset, FOnMessagesReset)
+	virtual FOnMessagesReset& OnMessagesReset() override
 	{
 		return MessagesResetDelegate;
 	}
 
-	virtual FMessageTracerTypeAdded& OnTypeAdded() override
+	DECLARE_DERIVED_EVENT(FMessageTracer, IMessageTracer::FOnTypeAdded, FOnTypeAdded)
+	virtual FOnTypeAdded& OnTypeAdded() override
 	{
 		return TypeAddedDelegate;
 	}
@@ -462,13 +465,13 @@ private:
 private:
 
 	/** Holds a delegate that is executed when a new message has been added to the collection of known messages. */
-	FMessageTracerMessageAdded MessagesAddedDelegate;
+	FOnMessageAdded MessagesAddedDelegate;
 
 	/** Holds a delegate that is executed when the message history has been reset. */
-	FSimpleMulticastDelegate MessagesResetDelegate;
+	FOnMessagesReset MessagesResetDelegate;
 
 	/** Holds a delegate that is executed when a new type has been added to the collection of known message types. */
-	FMessageTracerTypeAdded TypeAddedDelegate;
+	FOnTypeAdded TypeAddedDelegate;
 };
 
 

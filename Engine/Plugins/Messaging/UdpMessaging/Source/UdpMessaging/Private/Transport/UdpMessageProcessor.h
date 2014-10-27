@@ -4,16 +4,6 @@
 
 
 /**
- * Delegate type for handling the message reassembly completion.
- *
- * The first parameter is the reassembled message data.
- * The second parameter contains the optional message attachment.
- * The third parameter is the identifier of the node that sent the message.
- */
-DECLARE_DELEGATE_ThreeParams(FOnMessageProcessorMessageReassembled, const FUdpReassembledMessageRef& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/);
-
-
-/**
  * Implements a message processor for UDP messages.
  */
 class FUdpMessageProcessor
@@ -142,12 +132,13 @@ public:
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	FOnMessageProcessorMessageReassembled& OnMessageReassembled()
+	DECLARE_DELEGATE_ThreeParams(FOnMessageReassembled, const FUdpReassembledMessageRef& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/)
+	FOnMessageReassembled& OnMessageReassembled()
 	{
 		return MessageReassembledDelegate;
 	}
 
-	FOnMessageTransportNodeDiscovered& OnNodeDiscovered()
+	IMessageTransport::FOnNodeDiscovered& OnNodeDiscovered()
 	{
 		return NodeDiscoveredDelegate;
 	}
@@ -157,7 +148,7 @@ public:
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	FOnMessageTransportNodeLost& OnNodeLost()
+	IMessageTransport::FOnNodeLost& OnNodeLost()
 	{
 		return NodeLostDelegate;
 	}
@@ -344,13 +335,13 @@ private:
 private:
 
 	/** Holds a delegate to be invoked when a message was received on the transport channel. */
-	FOnMessageProcessorMessageReassembled MessageReassembledDelegate;
+	FOnMessageReassembled MessageReassembledDelegate;
 
 	/** Holds a delegate to be invoked when a network node was discovered. */
-	FOnMessageTransportNodeDiscovered NodeDiscoveredDelegate;
+	IMessageTransport::FOnNodeDiscovered NodeDiscoveredDelegate;
 
 	/** Holds a delegate to be invoked when a network node was lost. */
-	FOnMessageTransportNodeLost NodeLostDelegate;
+	IMessageTransport::FOnNodeLost NodeLostDelegate;
 
 private:
 

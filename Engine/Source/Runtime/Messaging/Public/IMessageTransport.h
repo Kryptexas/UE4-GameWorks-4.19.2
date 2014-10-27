@@ -9,32 +9,6 @@ class IMessageData;
 
 
 /**
- * Delegate type for receiving transport messages.
- *
- * The first parameter is the context of the received message.
- * The second parameter is the identifier of the transport node that sent the message.
- */
-DECLARE_DELEGATE_TwoParams(FOnMessageTransportMessageReceived, const IMessageContextRef&, const FGuid&);
-
-/**
- * Delegate type for handling the discovery of transport nodes.
- *
- * The first parameter is the identifier of the transport node that was discovered.
- */
-DECLARE_DELEGATE_OneParam(FOnMessageTransportNodeDiscovered, const FGuid&);
-
-/**
- * Delegate type for handling disconnected or timed out transport nodes.
- *
- * Remote nodes can be lost if they disconnect from the bus or if a keep-alive
- * message was not received within the required timeout (i.e. in case of a crash).
- *
- * The first parameter is the identifier of the transport node that was lost.
- */
-DECLARE_DELEGATE_OneParam(FOnMessageTransportNodeLost, const FGuid&);
-
-
-/**
  * Interface for message transport technologies.
  *
  * Licensees can implement this interface to add support for custom message transport
@@ -78,25 +52,28 @@ public:
 public:
 
 	/**
-	 * Returns a delegate that is executed when message data has been received.
+	 * A delegate that is executed when message data has been received.
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	virtual FOnMessageTransportMessageReceived& OnMessageReceived() = 0;
+	DECLARE_DELEGATE_TwoParams(FOnMessageReceived, const IMessageContextRef&, const FGuid&)
+	virtual FOnMessageReceived& OnMessageReceived() = 0;
 
 	/**
-	 * Returns a delegate that is executed when a transport node has been discovered.
+	 * A delegate that is executed when a transport node has been discovered.
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	virtual FOnMessageTransportNodeDiscovered& OnNodeDiscovered() = 0;
+	DECLARE_DELEGATE_OneParam(FOnNodeDiscovered, const FGuid&)
+	virtual FOnNodeDiscovered& OnNodeDiscovered() = 0;
 
 	/**
-	 * Returns a delegate that is executed when a transport node has closed or timed out.
+	 * A delegate that is executed when a transport node has closed or timed out.
 	 *
 	 * @param Delegate The delegate to set.
 	 */
-	virtual FOnMessageTransportNodeLost& OnNodeLost() = 0;
+	DECLARE_DELEGATE_OneParam(FOnNodeLost, const FGuid&)
+	virtual FOnNodeLost& OnNodeLost() = 0;
 
 protected:
 
