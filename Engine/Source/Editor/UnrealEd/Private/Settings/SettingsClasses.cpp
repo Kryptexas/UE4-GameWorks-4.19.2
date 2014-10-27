@@ -183,8 +183,8 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const FObjectInitial
 {
 	bLevelStreamingVolumePrevis = false;
 	BillboardScale = 1.0f;
-
 	TransformWidgetSizeAdjustment = 0.0f;
+	MeasuringToolUnits = MeasureUnits_Centimeters;
 
 	// Set a default preview mesh
 	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));

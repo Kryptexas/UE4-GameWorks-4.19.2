@@ -36,6 +36,18 @@ enum EWASDType
 
 
 /**
+ * Units used by measuring tool
+ */
+UENUM()
+enum EMeasuringToolUnits
+{
+	MeasureUnits_Centimeters UMETA(DisplayName="Centimeters"),
+	MeasureUnits_Meters UMETA(DisplayName="Meters"),
+	MeasureUnits_Kilometers UMETA(DisplayName="Kilometers")
+};
+
+
+/**
  * Implements the Level Editor's per-instance view port settings.
  */
 USTRUCT()
@@ -380,6 +392,10 @@ public:
 	/** When enabled, engine stats that are enabled in level viewports are preserved between editor sessions */
 	UPROPERTY(EditAnywhere, config, Category = LookAndFeel)
 	uint32 bSaveEngineStats : 1;
+
+	/** Specify the units used by the measuring tool */
+	UPROPERTY(EditAnywhere, config, Category = LookAndFeel)
+	TEnumAsByte<EMeasuringToolUnits> MeasuringToolUnits;
 
 private:
 
