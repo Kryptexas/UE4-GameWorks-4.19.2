@@ -81,12 +81,14 @@ bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 	// We always need to create a new PIE world unless we're using the editor world for SIE
 	UWorld* NewWorld = nullptr;
 
-	if (PlayInSettings->PlayNetMode == PIE_Client)
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+	if (PlayNetMode == PIE_Client)
 	{
 		// We are going to connect, so just load an empty world
 		NewWorld = EditorEngine->CreatePIEWorldFromEntry(*WorldContext, EditorEngine->EditorWorld, PIEMapName);
 	}
-	else if (PlayInSettings->PlayNetMode == PIE_ListenServer && !PlayInSettings->RunUnderOneProcess)
+	else if (PlayNetMode == PIE_ListenServer && !CanRunUnderOneProcess)
 	{
 		// We *have* to save the world to disk in order to be a listen server that allows other processes to connect.
 		// Otherwise, clients would not be able to load the world we are using
@@ -150,8 +152,10 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 	ULevelEditorPlaySettings const* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+
 	// for clients, just connect to the server
-	if (PlayInSettings->PlayNetMode == PIE_Client)
+	if (PlayNetMode == PIE_Client)
 	{
 		FString Error;
 		FURL BaseURL = WorldContext->LastURL;
@@ -239,7 +243,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 			InitStreamingLevelsForPIEStartup(GameViewport, PlayWorld);
 		}
 		
-		if (PlayInSettings->PlayNetMode == PIE_ListenServer)
+		if (PlayNetMode == PIE_ListenServer)
 		{
 			// start listen server with the built URL
 			PlayWorld->Listen(URL);

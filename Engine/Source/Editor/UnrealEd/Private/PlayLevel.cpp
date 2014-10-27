@@ -725,30 +725,30 @@ void AdvanceWindowPositionForNextPIEWindow(FIntPoint &WinPos, const FIntPoint &W
 /* returns the size of the window depending on the net mode. */
 void GetWindowSizeForInstanceType(FIntPoint &WindowSize, const ULevelEditorPlaySettings* PlayInSettings)
 {
-	if (PlayInSettings->PlayNetMode == PIE_Standalone)
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	if (PlayNetMode == PIE_Standalone)
 	{
 		WindowSize.X = PlayInSettings->StandaloneWindowWidth;
 		WindowSize.Y = PlayInSettings->StandaloneWindowHeight;
 	}
 	else
 	{
-		WindowSize.X = PlayInSettings->ClientWindowWidth;
-		WindowSize.Y = PlayInSettings->ClientWindowHeight;
+		PlayInSettings->GetClientWindowSize(WindowSize);
 	}
 }
 
 /* sets the size of the window depending on the net mode */
 void SetWindowSizeForInstanceType(const FIntPoint &WindowSize, ULevelEditorPlaySettings* PlayInSettings)
 {
-	if (PlayInSettings->PlayNetMode == PIE_Standalone)
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	if (PlayNetMode == PIE_Standalone)
 	{
 		PlayInSettings->StandaloneWindowWidth = WindowSize.X;
 		PlayInSettings->StandaloneWindowHeight = WindowSize.Y;
 	}
 	else
 	{
-		PlayInSettings->ClientWindowWidth = WindowSize.X;
-		PlayInSettings->ClientWindowHeight = WindowSize.Y;
+		PlayInSettings->SetClientWindowSize(WindowSize);
 	}
 }
 
@@ -769,7 +769,8 @@ FString GenerateCmdLineForNextPieInstance(FIntPoint &WinPos, int32 &InstanceNum,
 	//	-Override GameUserSettings.ini
 	//	-Force no steam
 	//	-Allow saving of config files (since we are giving them an override INI)
-	FString CmdLine = FString::Printf(TEXT("GameUserSettingsINI=\"%s\" -MultiprocessSaveConfig %s -MultiprocessOSS "), *GameUserSettingsOverride, *PlayInSettings->AdditionalLaunchOptions);
+	const FString AdditionalLaunchOptions = [&PlayInSettings]{ FString LaunchOptions; return (PlayInSettings->GetAdditionalLaunchOptions(LaunchOptions) ? LaunchOptions : FString()); }();
+	FString CmdLine = FString::Printf(TEXT("GameUserSettingsINI=\"%s\" -MultiprocessSaveConfig %s -MultiprocessOSS "), *GameUserSettingsOverride, *AdditionalLaunchOptions);
 
 	if (bIsDedicatedServer)
 	{
@@ -850,10 +851,13 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 
 	EndPlayOnLocalPc();
 
-	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+
 	// Launch multi-player instances if necessary
 	// (note that if you have 'RunUnderOneProcess' checked and do a bPlayOnLocalPcSession (standalone) - play standalone 'wins' - multiple instances will be launched for multiplayer)
-	if (PlayInSettings->PlayNetMode != PIE_Standalone && (!PlayInSettings->RunUnderOneProcess || bPlayOnLocalPcSession) && !bPlayUsingLauncher)
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+	if (PlayNetMode != PIE_Standalone && (!CanRunUnderOneProcess || bPlayOnLocalPcSession) && !bPlayUsingLauncher)
 	{
 		int32 NumClients = 0;
 
@@ -862,11 +866,12 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		FIntPoint WinPosition((int32)PreferredWorkArea.Right, (int32)PreferredWorkArea.Top);
 
 		// We'll need to spawn a server if we're playing outside the editor or the editor wants to run as a client
-		if (bPlayOnLocalPcSession || PlayInSettings->PlayNetMode == PIE_Client)
+		if (bPlayOnLocalPcSession || PlayNetMode == PIE_Client)
 		{			
 			PlayStandaloneLocalPc(TEXT(""), &WinPosition, NumClients, true);
 			
-			if (!PlayInSettings->PlayNetDedicated)
+			const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+			if (!CanPlayNetDedicated)
 			{
 				// Listen server counts as a client
 				NumClients++;
@@ -891,7 +896,8 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		}
 
 		// Spawn number of clients
-		for (int32 i = NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
+		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+		for (int32 i = NumClients; i < PlayNumberOfClients; ++i)
 		{
 			PlayStandaloneLocalPc(TEXT("127.0.0.1"), &WinPosition, i, false);
 		}
@@ -1064,14 +1070,15 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 {
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	//const ULevelEditorPlaySettings* PlayInSettings = InPlaySettings != NULL ? InPlaySettings : GetDefault<ULevelEditorPlaySettings>();
+	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 
 	FString CmdLine;
 	if (WindowPos != NULL)	// If WindowPos == NULL, we're just launching one instance
 	{
-		CmdLine = GenerateCmdLineForNextPieInstance(*WindowPos, PIENum, bIsServer && PlayInSettings->PlayNetDedicated);
+		CmdLine = GenerateCmdLineForNextPieInstance(*WindowPos, PIENum, bIsServer && CanPlayNetDedicated);
 	}
 	
-	const FString URLParms = bIsServer && !PlayInSettings->PlayNetDedicated ? TEXT("?Listen") : FString();
+	const FString URLParms = bIsServer && !CanPlayNetDedicated ? TEXT("?Listen") : FString();
 
 	// select map to play
 	TArray<FString> SavedMapNames;
@@ -1695,7 +1702,12 @@ FString UEditorEngine::BuildPlayWorldURL(const TCHAR* MapName, bool bSpectatorMo
 	URL += AdditionalURLOptions;
 
 	// Add any additional options that are set in the Play In Settings menu
-	URL += *GetDefault<ULevelEditorPlaySettings>()->AdditionalServerGameOptions;
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	FString AdditionalServerGameOptions;
+	if(PlayInSettings->GetAdditionalServerGameOptions(AdditionalServerGameOptions))
+	{
+		URL += *AdditionalServerGameOptions;
+	}
 
 	return URL;
 }
@@ -1990,24 +2002,30 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	if (!GEditor->bAllowMultiplePIEWorlds)
 	{
-		PlayInSettings->RunUnderOneProcess = false;
+		PlayInSettings->SetRunUnderOneProcess( false );
 	}
 
-	EPlayNetMode OrigNetMode = PlayInSettings->PlayNetMode;
+	EPlayNetMode PlayNetMode( PIE_Standalone );
+	PlayInSettings->GetPlayNetMode(PlayNetMode);	// Ignore disabled state here
+	const EPlayNetMode OrigPlayNetMode( PlayNetMode );
 
-	if (PlayInSettings->RunUnderOneProcess)
+	bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+	if (CanRunUnderOneProcess)
 	{
-		if (!PlayInSettings->PlayNetDedicated && (PlayInSettings->PlayNumberOfClients == 1))
+		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+		if (!CanPlayNetDedicated && (PlayNumberOfClients == 1))
 		{
 			// Since we don't expose PlayNetMode as an option when doing RunUnderOnProcess,
 			// we take 1 player and !PlayNetdedicated and being standalone.
-			PlayInSettings->PlayNetMode = EPlayNetMode::PIE_Standalone;
+			PlayNetMode = EPlayNetMode::PIE_Standalone;
 		}
 		else
 		{
 			// We are doing multi-player under one process so make sure the NetMode is ListenServer
-			PlayInSettings->PlayNetMode = EPlayNetMode::PIE_ListenServer;
+			PlayNetMode = EPlayNetMode::PIE_ListenServer;
 		}
+		PlayInSettings->SetPlayNetMode(PlayNetMode);
 	}
 
 	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
@@ -2019,7 +2037,8 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	if (SupportsOnlinePIE())
 	{
-		bool bHasRequiredLogins = PlayInSettings->PlayNumberOfClients <= PIELogins.Num();
+		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+		bool bHasRequiredLogins = PlayNumberOfClients <= PIELogins.Num();
 
 		if (bHasRequiredLogins)
 		{
@@ -2041,10 +2060,11 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		bStartInSpectatorMode = true;
 	}
 
-	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !PlayInSettings->RunUnderOneProcess)
+	CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+	if (bInSimulateInEditor || (PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !CanRunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
-		const int32 PIEInstance = ( !PlayInSettings->RunUnderOneProcess && PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
+		const int32 PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
 		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
 
 		if (bInSimulateInEditor)
@@ -2068,7 +2088,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	PlayInSettings->MultipleInstanceLastHeight = PlayInSettings->NewWindowHeight;
 	PlayInSettings->MultipleInstanceLastWidth = PlayInSettings->NewWindowWidth;
-	PlayInSettings->PlayNetMode = OrigNetMode;
+	PlayInSettings->SetPlayNetMode(OrigPlayNetMode);
 }
 
 void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
@@ -2098,15 +2118,17 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	// Server
 	FString ServerPrefix;
 	{
-		PlayInSettings->PlayNetMode = EPlayNetMode::PIE_ListenServer;
+		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_ListenServer);
 
-		if (!PlayInSettings->PlayNetDedicated)
+		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+
+		if (!CanPlayNetDedicated)
 		{
 			ClientNum++;
 			GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
 		}
 
-		UGameInstance* const ServerGameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, PIEStartTime);
+		UGameInstance* const ServerGameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, CanPlayNetDedicated, PIEStartTime);
 		if (ServerGameInstance)
 		{
 			ServerPrefix = ServerGameInstance->GetWorldContext()->PIEPrefix;
@@ -2116,9 +2138,10 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	}
 
 	// Clients
-	for (; ClientNum < PlayInSettings->PlayNumberOfClients; ++ClientNum)
+	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+	for (; ClientNum < PlayNumberOfClients; ++ClientNum)
 	{
-		PlayInSettings->PlayNetMode = EPlayNetMode::PIE_Client;
+		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Client);
 
 		GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
 
@@ -2138,12 +2161,13 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct)
 {
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	PlayInSettings->PlayNetMode = PlayNetMode;
+	PlayInSettings->SetPlayNetMode(PlayNetMode);
 
 	// Set window position
 	GetMultipleInstancePositions(DataStruct.SettingsIndex, DataStruct.NextX, DataStruct.NextY);
 	
-	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayNetMode == EPlayNetMode::PIE_Client ? false : PlayInSettings->PlayNetDedicated, DataStruct.PIEStartTime);
+	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayNetMode == EPlayNetMode::PIE_Client ? false : CanPlayNetDedicated, DataStruct.PIEStartTime);
 	
 	// Restore window settings
 	GetMultipleInstancePositions(0, DataStruct.NextX, DataStruct.NextY);	// restore cached settings
@@ -2204,16 +2228,19 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 	int32 NextX = 0;
 	int32 NextY = 0;
 
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+
 	// Server
 	{
 		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
 		PieWorldContext.PIEInstance = PIEInstance++;
-		PieWorldContext.RunAsDedicated = PlayInSettings->PlayNetDedicated;
+		PieWorldContext.RunAsDedicated = CanPlayNetDedicated;
 		PieWorldContext.bWaitingOnOnlineSubsystem = true;
 
 		// Update login struct parameters
 		DataStruct.WorldContextHandle = PieWorldContext.ContextHandle;
-		DataStruct.NetMode = PlayInSettings->PlayNetMode;
+		DataStruct.NetMode = PlayNetMode;
 
 		// Always get the interface (it will create the subsystem regardless)
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
@@ -2223,7 +2250,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		check(IdentityInt.IsValid());
 		NumOnlinePIEInstances++;
 
-		if (!PlayInSettings->PlayNetDedicated)
+		if (!CanPlayNetDedicated)
 		{
 			DataStruct.NextX = NextX;
 			DataStruct.NextY = NextY;
@@ -2254,9 +2281,10 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 	}
 
 	// Clients
-	for (; ClientNum < PlayInSettings->PlayNumberOfClients; ++ClientNum)
+	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+	for (; ClientNum < PlayNumberOfClients; ++ClientNum)
 	{
-		PlayInSettings->PlayNetMode = EPlayNetMode::PIE_Client;
+		PlayInSettings->SetPlayNetMode(PlayNetMode);
 		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
 		PieWorldContext.PIEInstance = PIEInstance++;
 		PieWorldContext.bWaitingOnOnlineSubsystem = true;
@@ -2397,11 +2425,12 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel] ) ) );
 
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-	if (PlayInSettings->PlayNetMode == PIE_Client)
+	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+	if (PlayNetMode == PIE_Client)
 	{
 		Args.Add(TEXT("NetMode"), FText::FromString(FString::Printf(TEXT("Client %d"), PieWorldContext->PIEInstance - 1)));
 	}
-	else if (PlayInSettings->PlayNetMode == PIE_ListenServer)
+	else if (PlayNetMode == PIE_ListenServer)
 	{
 		Args.Add( TEXT("NetMode"), FText::FromString( TEXT("Server")));
 	}
@@ -2599,8 +2628,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 						}
 					};
 				
+					const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 					PieWindow->SetOnWindowClosed(FOnWindowClosed::CreateStatic(&FLocal::OnPIEWindowClosed, TWeakPtr<SViewport>(PieViewportWidget), 
-						PieWorldContext->PIEInstance - (PlayInSettings->PlayNetDedicated ? 1 : 0)));
+						PieWorldContext->PIEInstance - (CanPlayNetDedicated ? 1 : 0)));
 				}
 
 				// Create a new viewport that the viewport widget will use to render the game
@@ -3227,8 +3257,10 @@ void UEditorEngine::RemapGamepadControllerIdForPIE(class UGameViewportClient* Ga
 {
 	// Increment the controller id if we are the focused window, and RouteGamepadToSecondWindow is true (and we are running multiple clients).
 	// This cause the focused window to NOT handle the input, decrement controllerID, and pass it to the next window.
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	if (PlayInSettings->RouteGamepadToSecondWindow && PlayInSettings->PlayNumberOfClients > 1 && PlayInSettings->RunUnderOneProcess && GameViewport->GetWindow().IsValid() && GameViewport->GetWindow()->HasFocusedDescendants())
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	const bool CanRouteGamepadToSecondWindow = [&PlayInSettings]{ bool RouteGamepadToSecondWindow(false); return (PlayInSettings->GetRouteGamepadToSecondWindow(RouteGamepadToSecondWindow) && RouteGamepadToSecondWindow); }();
+	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+	if ( CanRouteGamepadToSecondWindow && CanRunUnderOneProcess && GameViewport->GetWindow().IsValid() && GameViewport->GetWindow()->HasFocusedDescendants())
 	{
 		ControllerId++;
 	}

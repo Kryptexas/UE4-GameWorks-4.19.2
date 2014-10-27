@@ -368,7 +368,7 @@ public:
 
 			DisableStandaloneSoundProperty->MarkHiddenByCustomization();
 
-			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("AdditionalOptionsDetails", "Additional Options").ToString(), true)
+			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("AdditionalStandaloneDetails", "Additional Options").ToString(), true)
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -401,11 +401,6 @@ public:
 		// multi-player options
 		IDetailCategoryBuilder& NetworkCategory = LayoutBuilder.EditCategory("MultiplayerOptions");
 		{
-			// net mode & clients
-			NetModeProperty = LayoutBuilder.GetProperty("PlayNetMode", ULevelEditorPlaySettings::StaticClass());
-			NumClientsProperty = LayoutBuilder.GetProperty("PlayNumberOfClients", ULevelEditorPlaySettings::StaticClass());
-			RunUnderOneProcessProperty = LayoutBuilder.GetProperty("RunUnderOneProcess", ULevelEditorPlaySettings::StaticClass());			
-
 			// Number of players
 			NetworkCategory.AddProperty("PlayNumberOfClients")
 				.DisplayName(TEXT("Number of Players"))
@@ -435,8 +430,7 @@ public:
 			if (GEditor && GEditor->bAllowMultiplePIEWorlds)
 			{
 				NetworkCategory.AddProperty("RunUnderOneProcess")
-					.DisplayName(TEXT("Use Single Process"))
-					.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP( this, &FLevelEditorPlaySettingsCustomization::HandleRunUnderOneProcessIsEnabled)));
+					.DisplayName(TEXT("Use Single Process"));
 			}
 			else
 			{
@@ -449,16 +443,16 @@ public:
 			// Net Mode
 			NetworkCategory.AddProperty("PlayNetMode")
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandlePlayNetModeVisibility)))
-				.DisplayName(TEXT("Editor Client Mode"));
+				.DisplayName(TEXT("Editor Multiplayer Mode"));
 
 			NetworkCategory.AddProperty("AdditionalLaunchOptions")
 				.DisplayName(TEXT("Command Line Arguments"))
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleCmdLineVisibility)));
 
-			NetworkCategory.AddCustomRow(LOCTEXT("PlayInNetworkWindowDetails", "Client Window Size").ToString(), false)
+			NetworkCategory.AddCustomRow(LOCTEXT("PlayInNetworkWindowDetails", "Multiplayer Window Size").ToString(), false)
 				.NameContent()
 				[
-					WindowHeightHandle->CreatePropertyNameWidget(LOCTEXT("ClientWindowSizeName", "Client Window Size (in pixels)").ToString())
+					WindowHeightHandle->CreatePropertyNameWidget(LOCTEXT("ClientWindowSizeName", "Multiplayer Window Size (in pixels)").ToString(), LOCTEXT("ClientWindowSizeTooltip", "Width and Height to use when spawning additional windows.").ToString())
 				]
 				.ValueContent()
 				.MaxDesiredWidth(MaxPropertyWidth)
@@ -468,6 +462,22 @@ public:
 				.IsEnabled(TAttribute<bool>(this, &FLevelEditorPlaySettingsCustomization::HandleClientWindowSizePropertyIsEnabled))
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleClientWindowSizePropertyVisibility)));
 				
+			NetworkCategory.AddCustomRow(LOCTEXT("AdditionalMultiplayerDetails", "Additional Options").ToString(), true)
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Font(LayoutBuilder.GetDetailFont())
+					.Text(LOCTEXT("PlainTextName", "Play In Editor Description"))
+					.ToolTipText(LOCTEXT("PlainTextToolTip", "A brief description of the multiplayer settings and what to expect if you play with them in the editor."))
+				]
+				.ValueContent()
+				.MaxDesiredWidth(MaxPropertyWidth)
+				[
+					SNew(STextBlock)
+					.Font(LayoutBuilder.GetDetailFont())
+					.Text(this, &FLevelEditorPlaySettingsCustomization::HandleMultiplayerOptionsDescription)
+					.WrapTextAt(MaxPropertyWidth)
+				];
 		}
 	}
 
@@ -487,143 +497,143 @@ public:
 
 private:
 
+	// Callback for getting the description of the settings
+	FString HandleMultiplayerOptionsDescription( ) const
+	{
+		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+		const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+		const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
+		FString Desc;
+		if (CanRunUnderOneProcess)
+		{
+			Desc += LOCTEXT("MultiplayerDescription_OneProcess", "The following will all run under one UE4 instance:\n").ToString();
+			if (CanPlayNetDedicated)
+			{
+				Desc += LOCTEXT("MultiplayerDescription_DedicatedServer", "A dedicated server will open in a new window. ").ToString();
+				if (PlayNumberOfClients == 1)
+				{
+					Desc += LOCTEXT("MultiplayerDescription_EditorClient", "The editor will connect as a client. ").ToString();
+				}
+				else
+				{
+					Desc += FText::Format(LOCTEXT("MultiplayerDescription_EditorAndClients", "The editor will connect as a client and {0} additional client window(s) will also connect. "), FText::AsNumber(PlayNumberOfClients-1)).ToString();
+				}
+			}
+			else
+			{
+				if (PlayNumberOfClients == 1)
+				{
+					Desc += LOCTEXT("MultiplayerDescription_EditorListenServer", "The editor will run as a listen server. ").ToString();
+				}
+				else
+				{
+					Desc += FText::Format(LOCTEXT("MultiplayerDescription_EditorListenServerAndClients", "The editor will run as a listen server and {0} additional client window(s) will also connect to it. "), FText::AsNumber(PlayNumberOfClients-1)).ToString();
+				}
+			}
+		}
+		else
+		{
+			Desc += LOCTEXT("MultiplayerDescription_MultiProcess", "The following will run with multiple UE4 instances:\n").ToString();
+			if (PlayNetMode == PIE_Standalone)
+			{
+				Desc += LOCTEXT("MultiplayerDescription_EditorOffline", "The editor will run offline. ").ToString();
+			}
+			else if (PlayNetMode == PIE_ListenServer)
+			{
+				if (PlayNumberOfClients == 1)
+				{
+					Desc += LOCTEXT("MultiplayerDescription_EditorListenServer", "The editor will run as a listen server. ").ToString();
+				}
+				else
+				{
+					Desc += FText::Format(LOCTEXT("MultiplayerDescription_EditorListenServerAndClients", "The editor will run as a listen server and {0} additional client window(s) will also connect to it. "), FText::AsNumber(PlayNumberOfClients-1)).ToString();
+				}	
+			}
+			else
+			{
+				if (CanPlayNetDedicated)
+				{
+					Desc += LOCTEXT("MultiplayerDescription_DedicatedServer", "A dedicated server will open in a new window. ").ToString();
+					if (PlayNumberOfClients == 1)
+					{
+						Desc += LOCTEXT("MultiplayerDescription_EditorClient", "The editor will connect as a client. ").ToString();
+					}
+					else
+					{
+						Desc += FText::Format(LOCTEXT("MultiplayerDescription_EditorAndClients", "The editor will connect as a client and {0} additional client window(s) will also connect. "), FText::AsNumber(PlayNumberOfClients-1)).ToString();
+					}
+				}
+				else
+				{
+					if (PlayNumberOfClients <= 2)
+					{
+						Desc += LOCTEXT("MultiplayerDescription_EditorClientAndListenServer", "A listen server will open in a new window and the editor will connect to it. ").ToString();
+					}
+					else
+					{
+						Desc += FText::Format(LOCTEXT("MultiplayerDescription_EditorClientAndListenServerClients", "A listen server will open in a new window and the editor will connect as a client and {0} additional client window(s) will also connect to it. "), FText::AsNumber(FMath::Max(0, PlayNumberOfClients-2))).ToString(); 
+					}
+				}
+			}
+		}
+		return Desc;
+	}
+
 	// Callback for checking whether the ClientWindowHeight and ClientWindowWidth properties are enabled.
 	bool HandleClientWindowSizePropertyIsEnabled( ) const
 	{
-		uint8 NetMode;
-		NetModeProperty->GetValue(NetMode);
-		
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-
-		if (NetMode == PIE_Standalone && RunUnderOneProcess)
-		{
-			return false;
-		}
-
-		int32 NumClients;
-		NumClientsProperty->GetValue(NumClients);
-
-		return (NumClients >= 2);
+		return GetDefault<ULevelEditorPlaySettings>()->IsClientWindowSizeActive();
 	}
 
-	// Callback for getting the visibility of the ClientWindowSize property.
+	// Callback for getting the visibility of the ClientWindowHeight and ClientWindowWidth properties.
 	EVisibility HandleClientWindowSizePropertyVisibility() const
 	{
-		uint8 NetMode;
-		NetModeProperty->GetValue(NetMode);
-
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-
-		if (RunUnderOneProcess)
-		{
-			return EVisibility::Hidden;
-		}
-
-		return EVisibility::Visible;
+		return GetDefault<ULevelEditorPlaySettings>()->GetClientWindowSizeVisibility();
 	}
 
 	// Callback for checking whether the PlayNetDedicated is enabled.
 	bool HandlePlayNetDedicatedPropertyIsEnabled( ) const
 	{		
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-		if (RunUnderOneProcess)
-		{
-			return true;
-		}
-
-		uint8 NetMode;
-		NetModeProperty->GetValue(NetMode);
-		return (NetMode == PIE_Client);
+		return GetDefault<ULevelEditorPlaySettings>()->IsPlayNetDedicatedActive();
 	}
 
 	// Callback for checking whether the PlayNumberOfClients is enabled.
 	bool HandlePlayNumberOfClientsIsEnabled( ) const
 	{
-		uint8 NetMode;
-		NetModeProperty->GetValue(NetMode);
-
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-
-		return (NetMode != PIE_Standalone) || RunUnderOneProcess;
+		return GetDefault<ULevelEditorPlaySettings>()->IsPlayNumberOfClientsActive();
 	}
 
-	// Callback for checking whether the PlayNumberOfClients is enabled.
+	// Callback for checking whether the AdditionalServerGameOptions is enabled.
 	bool HandleGameOptionsIsEnabled( ) const
 	{
-		uint8 NetMode;
-		NetModeProperty->GetValue(NetMode);
-
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-
-		return (NetMode != PIE_Standalone) || RunUnderOneProcess;
-	}
-
-	// Callback for checking whether the CmdLineOptions is enabled.
-	bool HandleCmdLineOptionsIsEnabled( ) const
-	{
-		uint8 NetMode;
-		NetModeProperty->GetValue(NetMode);
-
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-
-		return (NetMode != PIE_Standalone) || RunUnderOneProcess;
-	}
-
-	// Callback for getting the enabled state of the RunUnderOneProcess property.
-	bool HandleRunUnderOneProcessIsEnabled( ) const
-	{
-		return true;
+		return GetDefault<ULevelEditorPlaySettings>()->IsAdditionalServerGameOptionsActive();
 	}
 
 	// Callback for getting the enabled state of the RerouteInputToSecondWindow property.
 	bool HandleRerouteInputToSecondWindowEnabled( ) const
 	{
-		int32 NumClients;
-		NumClientsProperty->GetValue(NumClients);
-
-		return NumClients > 1;	
+		return GetDefault<ULevelEditorPlaySettings>()->IsRouteGamepadToSecondWindowActive();
 	}
 	
 	// Callback for getting the visibility of the RerouteInputToSecondWindow property.
 	EVisibility HandleRerouteInputToSecondWindowVisibility( ) const
 	{
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-		return (RunUnderOneProcess ? EVisibility::Visible : EVisibility::Hidden);
+		return GetDefault<ULevelEditorPlaySettings>()->GetRouteGamepadToSecondWindowVisibility();
 	}
 
 	// Callback for getting the visibility of the PlayNetMode property.
 	EVisibility HandlePlayNetModeVisibility( ) const
 	{
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-		return (RunUnderOneProcess ? EVisibility::Hidden : EVisibility::Visible);
+		return GetDefault<ULevelEditorPlaySettings>()->GetPlayNetModeVisibility();
 	}
 
-	// Callback for getting the visibility of the CmdLine property.
+	// Callback for getting the visibility of the AdditionalLaunchOptions property.
 	EVisibility HandleCmdLineVisibility( ) const
 	{
-		bool RunUnderOneProcess;
-		RunUnderOneProcessProperty->GetValue(RunUnderOneProcess);
-		return (RunUnderOneProcess ? EVisibility::Hidden : EVisibility::Visible);
+		return GetDefault<ULevelEditorPlaySettings>()->GetAdditionalLaunchOptionsVisibility();
 	}
-
-private:
-
-	// Holds the 'Net Mode' property.
-	TSharedPtr<IPropertyHandle> NetModeProperty;
-
-	// Holds the 'Num Clients' property.
-	TSharedPtr<IPropertyHandle> NumClientsProperty;
-
-	// Holds the 'Run under one instance' property.
-	TSharedPtr<IPropertyHandle> RunUnderOneProcessProperty;
 };
 
 

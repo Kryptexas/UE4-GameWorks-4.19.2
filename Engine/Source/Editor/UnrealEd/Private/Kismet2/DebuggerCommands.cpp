@@ -222,7 +222,7 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( PlayInCameraLocation, "Current Camera Location", "Spawn the player at the current camera location", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( PlayInDefaultPlayerStart, "Default Player Start", "Spawn the player at the map's default player start", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( PlayInNetworkSettings, "Network Settings...", "Open the settings for the 'Play In' feature", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( PlayInNetworkDedicatedServer, "Run Dedicated Server", "If enabled, a dedicated server will be launched and connected to behind the scenes.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND( PlayInNetworkDedicatedServer, "Run Dedicated Server", "If checked, a separate dedicated server will be launched. Otherwise the first player will act as a listen server that all other players connect to.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( PlayInSettings, "Advanced Settings...", "Open the settings for the 'Play In' feature", EUserInterfaceActionType::Button, FInputGesture() );
 
 	// SIE & PIE controls
@@ -543,22 +543,27 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 	MenuBuilder.EndSection();
 
 	// Basic network options
-	if ( GetDefault<ULevelEditorPlaySettings>()->RunUnderOneProcess )
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	if ( PlayInSettings->IsPlayNumberOfClientsActive() || PlayInSettings->IsPlayNetDedicatedActive() )
 	{
-		MenuBuilder.BeginSection("LevelEditorPlayInWindowNetwork", LOCTEXT("LevelEditorPlayInWindowNetworkSection", "Network Settings"));
+		MenuBuilder.BeginSection("LevelEditorPlayInWindowNetwork", LOCTEXT("LevelEditorPlayInWindowNetworkSection", "Multiplayer Options"));
+		if ( PlayInSettings->IsPlayNumberOfClientsActive() )
 		{
-			TSharedRef<SWidget> NumPlayers = SNew(SSpinBox<int32>)
+			TSharedRef<SWidget> NumPlayers = SNew(SSpinBox<int32>)	// Copy limits from PlayNumberOfClients meta data
 				.MinValue(1)
-				.MaxValue(64)
-				.ToolTipText(LOCTEXT( "NumberOfClientsToolTip", "Number of clients to spawn in the PIE session" ))
+				.MaxValue(TNumericLimits<int32>::Max())
+				.MinSliderValue(1)
+				.MaxSliderValue(64)
+				.ToolTipText(LOCTEXT( "NumberOfClientsToolTip", "The editor and listen server count as players, a dedicated server will not. Clients make up the remainder." ))
 				.Value(FInternalPlayWorldCommandCallbacks::GetNumberOfClients())
 				.OnValueCommitted_Static(&FInternalPlayWorldCommandCallbacks::SetNumberOfClients);
 			
-			MenuBuilder.AddWidget(NumPlayers, LOCTEXT( "NumberOfClientsMenuWidget", "Number of Clients" ));
+			MenuBuilder.AddWidget(NumPlayers, LOCTEXT( "NumberOfClientsMenuWidget", "Number of Players" ));
 		}
-		
-		MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().PlayInNetworkDedicatedServer );
-
+		if ( PlayInSettings->IsPlayNetDedicatedActive() )
+		{
+			MenuBuilder.AddMenuEntry( FPlayWorldCommands::Get().PlayInNetworkDedicatedServer );
+		}
 		MenuBuilder.EndSection();
 	}
 
@@ -1654,27 +1659,35 @@ bool FInternalPlayWorldCommandCallbacks::HasPlayWorld()
 
 int32 FInternalPlayWorldCommandCallbacks::GetNumberOfClients()
 {
-	return GetDefault<ULevelEditorPlaySettings>()->PlayNumberOfClients;
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	int32 PlayNumberOfClients(0);
+	PlayInSettings->GetPlayNumberOfClients(PlayNumberOfClients);	// Ignore 'state' of option (handled externally)
+	return PlayNumberOfClients;
 }
 
 
 void FInternalPlayWorldCommandCallbacks::SetNumberOfClients(int32 NumClients, ETextCommit::Type CommitInfo)
 {
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	PlayInSettings->PlayNumberOfClients = NumClients;
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	PlayInSettings->SetPlayNumberOfClients(NumClients);
 }
 
 
 void FInternalPlayWorldCommandCallbacks::OnToggleDedicatedServerPIE()
 {
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	PlayInSettings->PlayNetDedicated = !PlayInSettings->PlayNetDedicated;
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	bool PlayNetDedicated;
+	PlayInSettings->GetPlayNetDedicated(PlayNetDedicated);			// Ignore 'state' of option, as we're toggling it regardless
+	PlayInSettings->SetPlayNetDedicated(!PlayNetDedicated);
 }
 
 
 bool FInternalPlayWorldCommandCallbacks::OnIsDedicatedServerPIEEnabled()
 {
-	return GetDefault<ULevelEditorPlaySettings>()->PlayNetDedicated;
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	bool PlayNetDedicated(false);
+	PlayInSettings->GetPlayNetDedicated(PlayNetDedicated);			// Ignore 'state' of option (handled externally)
+	return PlayNetDedicated;
 }
 
 

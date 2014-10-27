@@ -69,7 +69,7 @@ enum EPlayModeType
 UENUM()
 enum EPlayNetMode
 {
-	PIE_Standalone UMETA(DisplayName="Play As Standalone"),
+	PIE_Standalone UMETA(DisplayName="Play Offline"),
 	PIE_ListenServer UMETA(DisplayName="Play As Listen Server"),
 	PIE_Client UMETA(DisplayName="Play As Client"),
 };
@@ -180,7 +180,7 @@ public:
 	UPROPERTY(config , EditAnywhere, Category=PlayInStandaloneGame, AdvancedDisplay)
 	FString AdditionalLaunchParameters;
 
-public:
+private:
 
 	/** NetMode to use for Play In Editor. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
@@ -190,15 +190,15 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool RunUnderOneProcess;
 
-	/** If checked, a separate dedicated server will be launched. Otherwise the first player window will act as a listen server that all other player windows connect to. */
+	/** If checked, a separate dedicated server will be launched. Otherwise the first player will act as a listen server that all other players connect to. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool PlayNetDedicated;
 
-	/** Number of clients that should be spawned. The editor and listen server will count as clients, a dedicated server will not. */
+	/** The editor and listen server count as players, a dedicated server will not. Clients make up the remainder. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions, meta=(ClampMin = "1", UIMin = "1", UIMax = "64"))
 	int32 PlayNumberOfClients;
 
-	/** Window width to use when spawning additional clients. */
+	/** Width to use when spawning additional windows. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	int32 ClientWindowWidth;
 
@@ -212,7 +212,7 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	bool RouteGamepadToSecondWindow;
 
-	/** Window height to use when spawning additional clients. */
+	/** Height to use when spawning additional windows. */
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	int32 ClientWindowHeight;
 
@@ -224,6 +224,42 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
 	FString AdditionalLaunchOptions;
 
+public:
+
+	// Accessors for fetching the values of multiplayer options, and returning whether the option is valid at this time
+	void SetPlayNetMode( const EPlayNetMode InPlayNetMode ) { PlayNetMode = InPlayNetMode; }
+	bool IsPlayNetModeActive() const { return true; }
+	bool GetPlayNetMode( EPlayNetMode &OutPlayNetMode ) const { OutPlayNetMode = PlayNetMode; return IsPlayNetModeActive(); }
+	EVisibility GetPlayNetModeVisibility() const { return (RunUnderOneProcess ? EVisibility::Hidden : EVisibility::Visible); }
+
+	void SetRunUnderOneProcess( const bool InRunUnderOneProcess ) { RunUnderOneProcess = InRunUnderOneProcess; }
+	bool IsRunUnderOneProcessActive() const { return true; }
+	bool GetRunUnderOneProcess( bool &OutRunUnderOneProcess ) const { OutRunUnderOneProcess = RunUnderOneProcess; return IsRunUnderOneProcessActive(); }
+	
+	void SetPlayNetDedicated( const bool InPlayNetDedicated ) { PlayNetDedicated = InPlayNetDedicated; }
+	bool IsPlayNetDedicatedActive() const { return (RunUnderOneProcess ? true : PlayNetMode == PIE_Client); }
+	bool GetPlayNetDedicated( bool &OutPlayNetDedicated ) const { OutPlayNetDedicated = PlayNetDedicated; return IsPlayNetDedicatedActive(); }
+
+	void SetPlayNumberOfClients( const int32 InPlayNumberOfClients ) { PlayNumberOfClients = InPlayNumberOfClients; }
+	bool IsPlayNumberOfClientsActive() const { return (PlayNetMode != PIE_Standalone) || RunUnderOneProcess; }
+	bool GetPlayNumberOfClients( int32 &OutPlayNumberOfClients ) const { OutPlayNumberOfClients = PlayNumberOfClients; return IsPlayNumberOfClientsActive(); }
+	
+	bool IsRouteGamepadToSecondWindowActive() const { return PlayNumberOfClients > 1; }
+	bool GetRouteGamepadToSecondWindow( bool &OutRouteGamepadToSecondWindow ) const { OutRouteGamepadToSecondWindow = RouteGamepadToSecondWindow; return IsRouteGamepadToSecondWindowActive(); }
+	EVisibility GetRouteGamepadToSecondWindowVisibility() const { return (RunUnderOneProcess ? EVisibility::Visible : EVisibility::Hidden); }
+
+	bool IsAdditionalServerGameOptionsActive() const { return (PlayNetMode != PIE_Standalone) || RunUnderOneProcess; }
+	bool GetAdditionalServerGameOptions( FString &OutAdditionalServerGameOptions ) const { OutAdditionalServerGameOptions = AdditionalServerGameOptions; return IsAdditionalServerGameOptionsActive(); }
+
+	bool IsAdditionalLaunchOptionsActive() const { return true; }
+	bool GetAdditionalLaunchOptions( FString &OutAdditionalLaunchOptions ) const { OutAdditionalLaunchOptions = AdditionalLaunchOptions; return IsAdditionalLaunchOptionsActive(); }
+	EVisibility GetAdditionalLaunchOptionsVisibility() const { return (RunUnderOneProcess ? EVisibility::Hidden : EVisibility::Visible); }
+	
+	void SetClientWindowSize( const FIntPoint InClientWindowSize ) { ClientWindowWidth = InClientWindowSize.X; ClientWindowHeight = InClientWindowSize.Y; }
+	bool IsClientWindowSizeActive() const { return ((PlayNetMode == PIE_Standalone && RunUnderOneProcess) ? false : (PlayNumberOfClients >= 2)); }
+	bool GetClientWindowSize( FIntPoint &OutClientWindowSize ) const { OutClientWindowSize = FIntPoint(ClientWindowWidth, ClientWindowHeight); return IsClientWindowSizeActive(); }
+	EVisibility GetClientWindowSizeVisibility() const { return (RunUnderOneProcess ? EVisibility::Hidden : EVisibility::Visible); }
+	
 public:
 
 	/** The last used height for multiple instance windows (in pixels). */
