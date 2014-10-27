@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
+#include "IMediaPlayer.h"
+#include "IMediaTrack.h"
+#include "MediaPlayer.h"
 #include "MediaSoundWaveCustomization.h"
 
 

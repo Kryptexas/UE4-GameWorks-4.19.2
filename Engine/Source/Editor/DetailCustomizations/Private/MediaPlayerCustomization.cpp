@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
-#include "Media.h"
+#include "IMediaModule.h"
+#include "IMediaPlayer.h"
+#include "IMediaPlayerFactory.h"
 #include "MediaPlayer.h"
 #include "MediaPlayerCustomization.h"
 #include "SFilePathPicker.h"
@@ -198,7 +200,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 /* FMediaPlayerCustomization callbacks
  *****************************************************************************/
 
-FText FMediaPlayerCustomization::HandleDurationTextBlockText( ) const
+FText FMediaPlayerCustomization::HandleDurationTextBlockText() const
 {
 	TOptional<FTimespan> Duration;
 
@@ -274,7 +276,7 @@ FText FMediaPlayerCustomization::HandleSupportedRatesTextBlockText( EMediaPlayba
 }
 
 
-FText FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText( ) const
+FText FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText() const
 {
 	TOptional<bool> SupportsScrubbing;
 
@@ -305,7 +307,7 @@ FText FMediaPlayerCustomization::HandleSupportsScrubbingTextBlockText( ) const
 }
 
 
-FText FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText( ) const
+FText FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText() const
 {
 	TOptional<bool> SupportsSeeking;
 
@@ -336,7 +338,7 @@ FText FMediaPlayerCustomization::HandleSupportsSeekingTextBlockText( ) const
 }
 
 
-FString FMediaPlayerCustomization::HandleUrlPickerFilePath( ) const
+FString FMediaPlayerCustomization::HandleUrlPickerFilePath() const
 {
 	FString Url;
 	UrlProperty->GetValue(Url);
@@ -345,7 +347,7 @@ FString FMediaPlayerCustomization::HandleUrlPickerFilePath( ) const
 }
 
 
-FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter( ) const
+FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter() const
 {
 	FString Filter = TEXT("All files (*.*)|*.*");
 
@@ -399,7 +401,7 @@ void FMediaPlayerCustomization::HandleUrlPickerPathPicked( const FString& Picked
 }
 
 
-EVisibility FMediaPlayerCustomization::HandleUrlWarningIconVisibility( ) const
+EVisibility FMediaPlayerCustomization::HandleUrlWarningIconVisibility() const
 {
 	FString Url;
 

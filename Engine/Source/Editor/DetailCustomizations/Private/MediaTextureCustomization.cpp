@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
+#include "IMediaPlayer.h"
+#include "IMediaTrack.h"
 #include "MediaPlayer.h"
 #include "MediaTextureCustomization.h"
 
@@ -49,7 +51,7 @@ void FMediaTextureCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailB
 /* FMediaTextureCustomization callbacks
  *****************************************************************************/
 
-TSharedRef<SWidget> FMediaTextureCustomization::HandleVideoTrackComboButtonMenuContent( ) const
+TSharedRef<SWidget> FMediaTextureCustomization::HandleVideoTrackComboButtonMenuContent() const
 {
 	// get assigned media player asset
 	UObject* MediaPlayerObj = nullptr;
@@ -105,7 +107,7 @@ void FMediaTextureCustomization::HandleVideoTrackComboButtonMenuEntryExecute( ui
 }
 
 
-FText FMediaTextureCustomization::HandleVideoTrackComboButtonText( ) const
+FText FMediaTextureCustomization::HandleVideoTrackComboButtonText() const
 {
 	// get assigned media player asset
 	UObject* MediaPlayerObj = nullptr;
