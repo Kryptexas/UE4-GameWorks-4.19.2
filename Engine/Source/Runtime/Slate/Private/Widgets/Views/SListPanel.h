@@ -30,6 +30,7 @@ public:
 		: _ItemWidth(0)
 		, _ItemHeight(16)
 		, _NumDesiredItems(0)
+		, _ItemAlignment(EListItemAlignment::EvenlyDistributed)
 		{
 			_Visibility = EVisibility::SelfHitTestInvisible;
 		}
@@ -37,6 +38,7 @@ public:
 		SLATE_ATTRIBUTE( float, ItemWidth )
 		SLATE_ATTRIBUTE( float, ItemHeight )
 		SLATE_ATTRIBUTE( int32, NumDesiredItems )
+		SLATE_ATTRIBUTE( EListItemAlignment, ItemAlignment )
 
 	SLATE_END_ARGS()
 	
@@ -72,6 +74,9 @@ public:
 
 	/** @return the horizontal padding applied to each tile item */
 	float GetItemPadding(const FGeometry& AllottedGeometry) const;
+
+	/** @return the horizontal padding applied to all the items on a line */
+	float GetLinePadding(const FGeometry& AllottedGeometry, const int32 LineStartIndex) const;
 	
 	/** @return the uniform item height used when arranging children. */
 	float GetItemHeight() const;
@@ -107,6 +112,9 @@ protected:
 	/** Total number of items that the tree wants to visualize */
 	TAttribute<int32> NumDesiredItems;
 	
+	/** How should be horizontally aligned? Only relevant for tile views. */
+	TAttribute<EListItemAlignment> ItemAlignment;
+
 	/**
 	 * The offset of the view area from the top of the list in item heights.
 	 * Translate to physical units based on first item in list.

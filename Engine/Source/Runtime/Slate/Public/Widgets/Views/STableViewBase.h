@@ -16,6 +16,23 @@ enum class EAllowOverscroll
 };
 
 
+/** If the list panel is arranging items horizontally, this enum dictates how the items should be aligned (basically, where any extra space is placed) */
+enum class EListItemAlignment : uint8
+{
+	/** Items are distributed evenly along the row (any extra space is added as padding between the items) */
+	EvenlyDistributed,
+
+	/** Items are left aligned on the row (any extra space is added to the right of the items) */
+	LeftAligned,
+
+	/** Items are right aligned on the row (any extra space is added to the left of the items) */
+	RightAligned,
+
+	/** Items are center aligned on the row (any extra space is halved and added to the left of the items) */
+	CenterAligned,
+};
+
+
 /**
  * Contains ListView functionality that does not depend on the type of data being observed by the ListView.
  */
@@ -26,7 +43,7 @@ class SLATE_API STableViewBase
 public:
 
 	/** Create the child widgets that comprise the list */
-	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
+	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
 
 	/** Sets the item height */
 	void SetItemHeight(TAttribute<float> Height);

@@ -9,7 +9,7 @@ namespace ListConstants
 	static const float OvershootBounceRate = 250.0f;
 }
 
-void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
+void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
 {
 	HeaderRow = InHeaderRow;
 
@@ -33,6 +33,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 				.ItemWidth( InItemWidth )
 				.ItemHeight( InItemHeight )
 				.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
+				.ItemAlignment( InItemAlignment )
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -52,6 +53,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 			.ItemWidth( InItemWidth )
 			.ItemHeight( InItemHeight )
 			.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
+			.ItemAlignment( InItemAlignment )
 		);
 
 	if (InHeaderRow.IsValid())

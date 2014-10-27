@@ -25,6 +25,7 @@ public:
 		, _ListItemsSource( static_cast<TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(128)
 		, _ItemWidth(128)
+		, _ItemAlignment(EListItemAlignment::EvenlyDistributed)
 		, _OnContextMenuOpening()
 		, _OnMouseButtonDoubleClick()
 		, _OnSelectionChanged()
@@ -44,6 +45,8 @@ public:
 		SLATE_ATTRIBUTE( float, ItemHeight )
 
 		SLATE_ATTRIBUTE( float, ItemWidth )
+
+		SLATE_ATTRIBUTE( EListItemAlignment, ItemAlignment )
 
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
 
@@ -111,7 +114,7 @@ public:
 		else
 		{
 			// Make the TableView
-			this->ConstructChildren(InArgs._ItemWidth, InArgs._ItemHeight, TSharedPtr<SHeaderRow>(), InArgs._ExternalScrollbar);
+			this->ConstructChildren(InArgs._ItemWidth, InArgs._ItemHeight, InArgs._ItemAlignment, TSharedPtr<SHeaderRow>(), InArgs._ExternalScrollbar);
 			if (this->ScrollBar.IsValid())
 			{
 				this->ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);

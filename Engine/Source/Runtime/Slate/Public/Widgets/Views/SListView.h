@@ -146,7 +146,7 @@ public:
 		else
 		{
 			// Make the TableView
-			ConstructChildren( 0, InArgs._ItemHeight, InArgs._HeaderRow, InArgs._ExternalScrollbar );
+			ConstructChildren( 0, InArgs._ItemHeight, EListItemAlignment::LeftAligned, InArgs._HeaderRow, InArgs._ExternalScrollbar );
 			if(ScrollBar.IsValid())
 			{
 				ScrollBar->SetUserVisibility(InArgs._ScrollbarVisibility);
