@@ -77,6 +77,11 @@ public:
 		];
 	}
 
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override
+	{
+		return Template->OnDoubleClicked();
+	}
+
 private:
 	TSharedPtr<FWidgetTemplate> Template;
 };

@@ -545,6 +545,39 @@ FText FHierarchyWidget::GetText() const
 	return FText::GetEmpty();
 }
 
+FText FHierarchyWidget::GetImageToolTipText() const
+{
+	UWidget* WidgetTemplate = Item.GetTemplate();
+	if ( WidgetTemplate )
+	{
+		UClass* WidgetClass = WidgetTemplate->GetClass();
+		if ( WidgetClass->IsChildOf( UUserWidget::StaticClass() ) )
+		{
+			auto& Description = Cast<UWidgetBlueprint>( WidgetClass->ClassGeneratedBy )->BlueprintDescription;
+			if ( Description.Len() > 0 )
+			{
+				return FText::FromString( Description );
+			}
+		}
+		
+		return WidgetClass->GetToolTipText();
+	}
+	
+	return FText::GetEmpty();
+}
+
+FText FHierarchyWidget::GetLabelToolTipText() const
+{
+	// If the user has provided a name, give a tooltip with the widget type for easy reference
+	UWidget* WidgetTemplate = Item.GetTemplate();
+	if ( WidgetTemplate && !WidgetTemplate->IsGeneratedName() )
+	{
+		return FText::FromString(TEXT( "[" ) + WidgetTemplate->GetClass()->GetName() + TEXT( "]" ) );
+	}
+
+	return FText::GetEmpty();
+}
+
 const FSlateBrush* FHierarchyWidget::GetImage() const
 {
 	return Item.GetTemplate()->GetEditorIcon();
@@ -726,7 +759,7 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 		.Content()
 		[
 			SNew(SHorizontalBox)
-
+			
 			// Widget icon
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -734,6 +767,7 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 				SNew(SImage)
 				.ColorAndOpacity(FLinearColor(1,1,1,0.5))
 				.Image(Model->GetImage())
+				.ToolTipText(Model->GetImageToolTipText())
 			]
 
 			// Name of the widget
@@ -745,6 +779,7 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 				SNew(SInlineEditableTextBlock)
 				.Font(this, &SHierarchyViewItem::GetItemFont)
 				.Text(this, &SHierarchyViewItem::GetItemText)
+				.ToolTipText(Model->GetLabelToolTipText())
 				.HighlightText(InArgs._HighlightText)
 				.OnVerifyTextChanged(this, &SHierarchyViewItem::OnVerifyNameTextChanged)
 				.OnTextCommitted(this, &SHierarchyViewItem::OnNameTextCommited)

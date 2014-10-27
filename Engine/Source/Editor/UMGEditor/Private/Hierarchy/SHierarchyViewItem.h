@@ -22,6 +22,12 @@ public:
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const = 0;
 
+	/** @return The tooltip for the tree item image */
+	virtual FText GetImageToolTipText() const { return FText::GetEmpty(); }
+
+	/** @return The tooltip for the tree item label */
+	virtual FText GetLabelToolTipText() const { return FText::GetEmpty(); }
+
 	virtual const FSlateBrush* GetImage() const = 0;
 
 	virtual FSlateFontInfo GetFont() const = 0;
@@ -43,7 +49,7 @@ public:
 
 	virtual void OnMouseEnter() {}
 	virtual void OnMouseLeave() {}
-	
+
 	void RefreshSelection();
 	bool ContainsSelection();
 	bool IsSelected() const;
@@ -142,6 +148,8 @@ public:
 	
 	/* @returns the widget name to use for the tree item */
 	virtual FText GetText() const override;
+	virtual FText GetImageToolTipText() const override;
+	virtual FText GetLabelToolTipText() const override;
 
 	virtual const FSlateBrush* GetImage() const override;
 

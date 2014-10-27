@@ -30,6 +30,9 @@ public:
 	/** Gets tooltip widget for this palette item. */
 	virtual TSharedRef<IToolTip> GetToolTip() const = 0;
 
+	/** The the action to perform when the template item is double clicked */
+	virtual FReply OnDoubleClicked() { return FReply::Unhandled(); }
+
 public:
 	/** The name of the widget template. */
 	FText Name;

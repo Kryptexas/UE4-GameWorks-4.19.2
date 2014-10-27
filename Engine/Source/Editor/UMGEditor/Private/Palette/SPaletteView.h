@@ -6,8 +6,7 @@
 #include "BlueprintEditor.h"
 #include "TreeFilterHandler.h"
 
-#include "WidgetTemplate.h"
-
+class FWidgetTemplate;
 class UWidgetBlueprint;
 
 /** View model for the items in the widget template list */

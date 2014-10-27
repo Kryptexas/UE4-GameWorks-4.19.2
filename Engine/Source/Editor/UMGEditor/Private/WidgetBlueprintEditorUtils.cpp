@@ -199,6 +199,18 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 
 	MenuBuilder.BeginSection("Actions");
 	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT( "EditBlueprint_Label", "Edit Blueprint..." ),
+			LOCTEXT( "EditBlueprint_Tooltip", "Open the selected widget blueprint(s) for edit." ),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateStatic( &FWidgetBlueprintEditorUtils::ExecuteOpenSelectedWidgetsForEdit, Widgets ),
+				FCanExecuteAction(),
+				FIsActionChecked(),
+				FIsActionButtonVisible::CreateStatic( &FWidgetBlueprintEditorUtils::CanOpenSelectedWidgetsForEdit, Widgets )
+				)
+			);
+
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("WidgetTree_WrapWith", "Wrap With..."),
 			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
@@ -208,6 +220,30 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 	MenuBuilder.EndSection();
 
 	MenuBuilder.PopCommandList();
+}
+
+void FWidgetBlueprintEditorUtils::ExecuteOpenSelectedWidgetsForEdit( TSet<FWidgetReference> SelectedWidgets )
+{
+	for ( auto& Widget : SelectedWidgets )
+	{
+		FAssetEditorManager::Get().OpenEditorForAsset( Widget.GetTemplate()->GetClass()->ClassGeneratedBy );
+	}
+}
+
+bool FWidgetBlueprintEditorUtils::CanOpenSelectedWidgetsForEdit( TSet<FWidgetReference> SelectedWidgets )
+{
+	bool bCanOpenAllForEdit = SelectedWidgets.Num() > 0;
+	for ( auto& Widget : SelectedWidgets )
+	{
+		auto Blueprint = Widget.GetTemplate()->GetClass()->ClassGeneratedBy;
+		if ( !Blueprint || !Blueprint->IsA( UWidgetBlueprint::StaticClass() ) )
+		{
+			bCanOpenAllForEdit = false;
+			break;
+		}
+	}
+
+	return bCanOpenAllForEdit;
 }
 
 void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)

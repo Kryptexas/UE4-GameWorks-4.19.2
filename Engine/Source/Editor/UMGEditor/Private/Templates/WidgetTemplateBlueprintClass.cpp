@@ -35,7 +35,7 @@ FText FWidgetTemplateBlueprintClass::GetCategory() const
 	}
 	else
 	{
-		//TODO UMG if the blueprint is unloaded we need to extract it from the asset metadata.
+		//If the blueprint is unloaded we need to extract it from the asset metadata.
 		auto DefaultUserWidget = UUserWidget::StaticClass()->GetDefaultObject<UUserWidget>();
 		return DefaultUserWidget->GetPaletteCategory();
 	}
@@ -62,12 +62,26 @@ const FSlateBrush* FWidgetTemplateBlueprintClass::GetIcon() const
 
 TSharedRef<IToolTip> FWidgetTemplateBlueprintClass::GetToolTip() const
 {
-	if (WidgetClass.Get())
+	FText Description;
+	if ( const FString* DescriptionStr = WidgetAssetData.TagsAndValues.Find( GET_MEMBER_NAME_CHECKED( UBlueprint, BlueprintDescription ) ) )
 	{
-		return FWidgetTemplateClass::GetToolTip();
+		if ( !DescriptionStr->IsEmpty() )
+		{
+			Description = FText::FromString( DescriptionStr->Replace( TEXT( "\\n" ), TEXT( "\n" ) ) );
+		}
+	}
+	else
+	{
+		Description = Name;
 	}
 
-	return IDocumentation::Get()->CreateToolTip(Name, nullptr, FString(TEXT("Shared/Types/")) + Name.ToString(), TEXT("Class"));
+	return IDocumentation::Get()->CreateToolTip( Description, nullptr, FString( TEXT( "Shared/Types/" ) ) + Name.ToString(), TEXT( "Class" ) );
+}
+
+FReply FWidgetTemplateBlueprintClass::OnDoubleClicked()
+{
+	FAssetEditorManager::Get().OpenEditorForAsset( WidgetAssetData.GetAsset() );
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

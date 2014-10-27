@@ -35,6 +35,9 @@ public:
 	/** Gets the tooltip widget for this palette item. */
 	virtual TSharedRef<IToolTip> GetToolTip() const override;
 
+	/** Opens the widget blueprint for edit */
+	virtual FReply OnDoubleClicked() override;
+
 protected:
 	/** The asset data for the widget blueprint */
 	FAssetData WidgetAssetData;
