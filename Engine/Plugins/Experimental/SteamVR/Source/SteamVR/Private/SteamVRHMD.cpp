@@ -559,7 +559,7 @@ void FSteamVRHMD::Startup()
 		float IdealScreenPercentage = FMath::Max(WidthPercentage, HeightPercentage);
 
 		//@todo steamvr: move out of here
-		IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+		static IConsoleVariable* CScrPercVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
 
 		if (FMath::RoundToInt(CScrPercVar->GetFloat()) != FMath::RoundToInt(IdealScreenPercentage))
 		{
