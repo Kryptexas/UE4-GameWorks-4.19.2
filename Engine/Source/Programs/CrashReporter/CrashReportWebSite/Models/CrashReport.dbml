@@ -126,4 +126,13 @@
       <Association Name="UserGroup_Buggs_UserGroup" Member="Buggs_UserGroups" ThisKey="Id" OtherKey="UserGroupId" Type="Buggs_UserGroup" />
     </Type>
   </Table>
+  <Table Name="dbo.UsersMapping" Member="UsersMappings">
+    <Type Name="UsersMapping">
+      <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="UserEmail" Type="System.String" DbType="NVarChar(128) NOT NULL" CanBeNull="false" />
+      <Column Name="MachineId" Type="System.String" DbType="NChar(32)" CanBeNull="true" />
+      <Column Name="EpicAccountId" Type="System.String" DbType="NChar(32)" CanBeNull="true" />
+      <Column Name="UserName" Type="System.String" DbType="NVarChar(64)" CanBeNull="true" />
+    </Type>
+  </Table>
 </Database>
