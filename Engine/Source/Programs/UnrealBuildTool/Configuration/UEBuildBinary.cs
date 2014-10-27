@@ -263,11 +263,9 @@ namespace UnrealBuildTool
 		/// Process all modules that aren't yet bound, creating binaries for modules that don't yet have one (if needed),
 		/// and updating modules for circular dependencies.
 		/// </summary>
-		/// <param name="Target">The target we are currently building</param>
-		/// <param name="bBuildOnlyModules">True to build only specific modules, false for all</param>
-		/// <param name="ModulesToBuild">The specific modules to build</param>
+		/// <param name="ExecutableBinary">The executable binary, which links against all unbound modules when building monolithically</param>
 		/// <returns>List of newly-created binaries (may be empty)</returns>
-		public virtual List<UEBuildBinary> ProcessUnboundModules()
+		public virtual List<UEBuildBinary> ProcessUnboundModules(UEBuildBinary ExecutableBinary)
 		{
 			return null;
 		}
@@ -419,11 +417,9 @@ namespace UnrealBuildTool
 		/// Process all modules that aren't yet bound, creating binaries for modules that don't yet have one (if needed),
 		/// and updating modules for circular dependencies.
 		/// </summary>
-		/// <param name="Target">The target we are currently building</param>
-		/// <param name="bBuildOnlyModules">True to build only specific modules, false for all</param>
-		/// <param name="ModulesToBuild">The specific modules to build</param>
+		/// <param name="ExecutableBinary">The executable binary, which links against all unbound modules when building monolithically</param>
 		/// <returns>List of newly-created binaries (may be empty)</returns>
-		public override List<UEBuildBinary> ProcessUnboundModules()
+		public override List<UEBuildBinary> ProcessUnboundModules(UEBuildBinary ExecutableBinary)
 		{
 			var Binaries = new Dictionary<string, UEBuildBinary>( StringComparer.InvariantCultureIgnoreCase );
 			if (Config.bHasModuleRules)
@@ -431,7 +427,7 @@ namespace UnrealBuildTool
 				foreach (var ModuleName in ModuleNames)
 				{
 					var Module = Target.FindOrCreateModuleByName(ModuleName);
-					Module.RecursivelyProcessUnboundModules(Target, ref Binaries, this);
+					Module.RecursivelyProcessUnboundModules(Target, ref Binaries, ExecutableBinary);
 				}
 			}
 			else
