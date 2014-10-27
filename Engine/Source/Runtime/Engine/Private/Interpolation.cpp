@@ -1098,14 +1098,14 @@ void AMatineeActor::DisableRadioFilterIfNeeded()
 void AMatineeActor::EnableCinematicMode(bool bEnable)
 {
 	// iterate through the controller list and set cinematic mode if necessary
-	bool bNeedsCinematicMode = bDisableMovementInput || bDisableLookAtInput || bHidePlayer;
+	bool bNeedsCinematicMode = bDisableMovementInput || bDisableLookAtInput || bHidePlayer || bHideHud;
 
 	if (bNeedsCinematicMode)
 	{
 		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
 			APlayerController *PC = *Iterator;
-			PC->SetCinematicMode(bEnable, bHidePlayer, false, bDisableMovementInput, bDisableLookAtInput);
+			PC->SetCinematicMode(bEnable, bHidePlayer, bHideHud, bDisableMovementInput, bDisableLookAtInput);
 		}
 	}
 }

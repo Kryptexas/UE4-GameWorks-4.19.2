@@ -139,9 +139,13 @@ class AMatineeActor : public AActor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cinematic)
 	uint32 bDisableLookAtInput:1;
 
-	/** Hide Player Pawn during play **/
+	/** Hide Player Pawn during play */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Cinematic)
 	uint32 bHidePlayer:1;
+
+	/** Hide HUD during play */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Cinematic)
+	uint32 bHideHud:1;
 
 	/** @todo UE4 matinee - shouldnt be directly editable.  Needs a nice interface in matinee */
 	UPROPERTY(replicated)
