@@ -559,8 +559,7 @@ void FStatsThreadState::ScanForAdvance(const FStatMessagesArray& Data)
 					BadFrames.Add(Frame - 1);
 				}
 			}
-			// CurrentGameFrame can be accessed by other threads.
-			FPlatformAtomics::InterlockedExchange( &CurrentGameFrame, NewGameFrame );
+			CurrentGameFrame = NewGameFrame;
 		}
 		else if (Op == EStatOperation::AdvanceFrameEventRenderThread)
 		{
