@@ -184,7 +184,7 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 	// numeric values
 	case EJsonNotation::Number:
 		{
-			float NumericValue = JsonReader->GetValueAsNumber();
+			double NumericValue = JsonReader->GetValueAsNumber();
 
 			if (Property->GetClass() == UByteProperty::StaticClass())
 			{
