@@ -11,6 +11,9 @@
 #include "HTML5JavaScriptFx.h"
 #endif 
 
+#include "unicode/locid.h"
+#include "GenericPlatformContext.h"
+#include <SDL.h>
 #include <ctime>
 
 void FHTML5Misc::PlatformInit()
