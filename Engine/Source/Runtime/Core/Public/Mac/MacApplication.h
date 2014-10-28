@@ -154,9 +154,17 @@ private:
 	EMouseButtons::Type LastPressedMouseButton;
 
 	FCriticalSection WindowsMutex;
-	TArray< TSharedRef< FMacWindow > > Windows;
+	TArray<TSharedRef<FMacWindow>> Windows;
 
-	TSharedRef< class HIDInputInterface > HIDInput;
+	struct FSavedWindowOrderInfo
+	{
+		int32 WindowNumber;
+		int32 Level;
+		FSavedWindowOrderInfo(int32 InWindowNumber, int32 InLevel) : WindowNumber(InWindowNumber), Level(InLevel) {}
+	};
+	TArray<FSavedWindowOrderInfo> SavedWindowsOrder;
+
+	TSharedRef<class HIDInputInterface> HIDInput;
 
 	FCocoaWindow* DraggedWindow;
 
