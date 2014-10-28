@@ -142,6 +142,7 @@ FEditorDelegates::FOnBlueprintContextMenuCreated		FEditorDelegates::OnBlueprintC
 FSimpleMulticastDelegate								FEditorDelegates::OnShutdownPostPackagesSaved;
 FEditorDelegates::FOnAssetsPreDelete					FEditorDelegates::OnAssetsPreDelete;
 FEditorDelegates::FOnAssetsDeleted						FEditorDelegates::OnAssetsDeleted;
+FSimpleMulticastDelegate								FEditorDelegates::OnActionAxisMappingsChanged;
 
 /*-----------------------------------------------------------------------------
 	Globals.

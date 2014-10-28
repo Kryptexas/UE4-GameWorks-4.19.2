@@ -6,6 +6,10 @@
 
 #include "EnginePrivate.h"
 
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
+
 UInputSettings::UInputSettings(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -47,6 +51,7 @@ void UInputSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 	if (MemberPropertyName == "ActionMappings" || MemberPropertyName == "AxisMappings" || MemberPropertyName == "AxisConfig")
 	{
 		ForceRebuildKeymaps();
+		FEditorDelegates::OnActionAxisMappingsChanged.Broadcast();
 	}
 }
 
