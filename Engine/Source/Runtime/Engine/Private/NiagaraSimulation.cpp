@@ -5,16 +5,13 @@
 #include "VectorVM.h"
 
 
-FNiagaraSimulation::FNiagaraSimulation() : Age(0.0f)
+FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) : Age(0.0f)
 , bIsEnabled(true)
-, SpawnRate(0)
-, RenderModuleType(RMT_None)
-, UpdateScript(nullptr)
-, SpawnScript(nullptr)
 , SpawnRemainder(0.0f)
 , CachedBounds(ForceInit)
 , EffectRenderer(nullptr)
 {
+	Props = InProps;
 }
 
 
@@ -33,14 +30,14 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 	int32 NumToSpawn = 0;
 
 	// Figure out how many we will spawn.
-	if (SpawnScript)
+	if (Props->SpawnScript)
 	{
 		NumToSpawn = CalcNumToSpawn(DeltaSeconds);
 		MaxNewParticles = Data.GetNumParticles() + NumToSpawn;
 		Data.Allocate(MaxNewParticles);
 	}
 
-	if (UpdateScript)
+	if (Props->UpdateScript)
 	{
 		// Simulate particles forward by DeltaSeconds.
 		UpdateParticles(
@@ -53,7 +50,7 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 			);
 	}
 
-	if (SpawnScript)
+	if (Props->SpawnScript)
 	{
 		SpawnAndKillParticles(NumToSpawn);
 	}
@@ -79,7 +76,7 @@ void FNiagaraSimulation::UpdateParticles(
 
 	VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = { 0 };
 	VectorRegister* OutputRegisters[VectorVM::MaxOutputRegisters] = { 0 };
-	const int32 NumAttr = UpdateScript->Attributes.Num();
+	const int32 NumAttr = Props->UpdateScript->Attributes.Num();
 
 	check(NumAttr < VectorVM::MaxInputRegisters);
 	check(NumAttr < VectorVM::MaxOutputRegisters);
@@ -93,10 +90,10 @@ void FNiagaraSimulation::UpdateParticles(
 
 	//Fill constant table with required emitter constants and internal script constants.
 	TArray<FVector4> ConstantTable;
-	UpdateScript->ConstantData.FillConstantTable(Constants, ConstantTable);
+	Props->UpdateScript->ConstantData.FillConstantTable(Constants, ConstantTable);
 
 	VectorVM::Exec(
-		UpdateScript->ByteCode.GetData(),
+		Props->UpdateScript->ByteCode.GetData(),
 		InputRegisters,
 		NumAttr,
 		OutputRegisters,
@@ -118,11 +115,11 @@ int32 FNiagaraSimulation::SpawnAndKillParticles(int32 NumToSpawn)
 	CurNumParticles = SpawnParticles(NumToSpawn);
 
 	// run the spawn graph over all new particles
-	if (SpawnScript && SpawnScript->ByteCode.Num())
+	if (Props->SpawnScript && Props->SpawnScript->ByteCode.Num())
 	{
 		VectorRegister* InputRegisters[VectorVM::MaxInputRegisters] = { 0 };
 		VectorRegister* OutputRegisters[VectorVM::MaxOutputRegisters] = { 0 };
-		const int32 NumAttr = SpawnScript->Attributes.Num();
+		const int32 NumAttr = Props->SpawnScript->Attributes.Num();
 		const int32 NumVectors = NumToSpawn;
 
 		check(NumAttr < VectorVM::MaxInputRegisters);
@@ -139,10 +136,10 @@ int32 FNiagaraSimulation::SpawnAndKillParticles(int32 NumToSpawn)
 
 		//Fill constant table with required emitter constants and internal script constants.
 		TArray<FVector4> ConstantTable;
-		SpawnScript->ConstantData.FillConstantTable(Constants, ConstantTable);
+		Props->SpawnScript->ConstantData.FillConstantTable(Constants, ConstantTable);
 
 		VectorVM::Exec(
-			SpawnScript->ByteCode.GetData(),
+			Props->SpawnScript->ByteCode.GetData(),
 			InputRegisters,
 			NumAttr,
 			OutputRegisters,
@@ -175,7 +172,7 @@ int32 FNiagaraSimulation::SpawnAndKillParticles(int32 NumToSpawn)
  */
 void FNiagaraSimulation::SetRenderModuleType(EEmitterRenderModuleType Type, ERHIFeatureLevel::Type FeatureLevel)
 {
-	if (Type != RenderModuleType)
+	if (Type != Props->RenderModuleType || EffectRenderer==nullptr)
 	{
 		UMaterial *Material = UMaterial::GetDefaultMaterial(MD_Surface);
 
@@ -184,14 +181,24 @@ void FNiagaraSimulation::SetRenderModuleType(EEmitterRenderModuleType Type, ERHI
 			Material = EffectRenderer->GetMaterial();
 			delete EffectRenderer;
 		}
+		else
+		{
+			if (Props->Material)
+			{
+				Material = Props->Material;
+			}
+		}
 
-		RenderModuleType = Type;
+		Props->RenderModuleType = Type;
 		switch (Type)
 		{
 		case RMT_Sprites: EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel);
 			break;
 		case RMT_Ribbon: EffectRenderer = new NiagaraEffectRendererRibbon(FeatureLevel);
 			break;
+		default:	EffectRenderer = new NiagaraEffectRendererSprites(FeatureLevel);
+					Props->RenderModuleType = RMT_Sprites;
+					break;
 		}
 
 		EffectRenderer->SetMaterial(Material, FeatureLevel);

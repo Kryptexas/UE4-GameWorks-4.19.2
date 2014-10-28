@@ -37,16 +37,22 @@ struct FNiagaraEmitterProperties
 {
 	GENERATED_USTRUCT_BODY()
 public:
-	UPROPERTY(EditAnywhere, Category = "Emitter data")
+	FNiagaraEmitterProperties() : RenderModuleType(RMT_Sprites)
+	{
+	}
+
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	bool bIsEnabled;
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	float SpawnRate;
-
-	UPROPERTY(EditAnywhere, Category = "Emitter data")
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	UNiagaraScript *UpdateScript;
-	UPROPERTY(EditAnywhere, Category = "Emitter data")
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	UNiagaraScript *SpawnScript;
-
-	UPROPERTY(EditAnywhere, Category = "Emitter data")
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	UMaterial *Material;
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	TEnumAsByte<EEmitterRenderModuleType> RenderModuleType;
 };
 
 
@@ -54,10 +60,11 @@ public:
 /**
 * A niagara particle simulation.
 */
-class FNiagaraSimulation
+struct FNiagaraSimulation
 {
 public:
-	explicit FNiagaraSimulation();
+	explicit FNiagaraSimulation(FNiagaraEmitterProperties *InProps);
+	FNiagaraSimulation(FNiagaraEmitterProperties &Props, ERHIFeatureLevel::Type InFeatureLeve);
 	virtual ~FNiagaraSimulation()
 	{}
 
@@ -72,30 +79,22 @@ public:
 	void SetConstants(const FNiagaraConstantMap &InMap)	{ Constants = InMap; }
 	NiagaraEffectRenderer *GetEffectRenderer()	{ return EffectRenderer;  }
 	
-	void SetUpdateScript(UNiagaraScript *InScript)	{ UpdateScript = InScript;  }
-	void SetSpawnScript(UNiagaraScript *InScript)	{ SpawnScript = InScript; }
-
 	bool IsEnabled()	{ return bIsEnabled;  }
 	void SetEnabled(bool bInEnabled)	{ bIsEnabled = bInEnabled;  }
 
-	void SetSpawnRate(float InRate)	{ SpawnRate = InRate; }
-	float GetSpawnRate()		{ return SpawnRate;  }
-
-	EEmitterRenderModuleType GetRenderModuleType()	{ return RenderModuleType; }
 	ENGINE_API void SetRenderModuleType(EEmitterRenderModuleType Type, ERHIFeatureLevel::Type FeatureLevel);
 
 	int32 GetNumParticles()	{ return Data.GetNumParticles(); }
+
+	FNiagaraEmitterProperties *GetProperties()	{ return Props; }
+	void SetProperties(FNiagaraEmitterProperties *InProps)	{ Props = InProps; }
+
 private:
+	FNiagaraEmitterProperties *Props;
+
 	float Age;
 	bool bIsEnabled;
-	/** Temporary stuff for the prototype. */
-	float SpawnRate;
-	EEmitterRenderModuleType RenderModuleType;
 
-	/** The particle update script. */
-	UNiagaraScript *UpdateScript;
-	/** The particle spawn script. */
-	UNiagaraScript *SpawnScript;
 	/** Local constant set. */
 	FNiagaraConstantMap Constants;
 	/** particle simulation data */
@@ -112,7 +111,7 @@ private:
 	/** Calc number to spawn */
 	int32 CalcNumToSpawn(float DeltaSeconds)
 	{
-		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * SpawnRate);
+		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * Props->SpawnRate);
 		int32 NumToSpawn = FMath::FloorToInt(FloatNumToSpawn);
 		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
 		return NumToSpawn;

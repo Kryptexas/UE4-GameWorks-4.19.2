@@ -26,6 +26,9 @@ ActorFactory.cpp:
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Engine/NiagaraActor.h"
+#include "Engine/NiagaraEffect.h"
+
 #include "VectorField/VectorField.h"
 
 #include "Engine/TriggerBox.h"
@@ -517,6 +520,82 @@ void UActorFactoryEmitter::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		Emitter->SetTemplate(ParticleSystem);
 	}
 }
+
+
+
+
+
+/*-----------------------------------------------------------------------------
+UActorFactoryNiagara
+-----------------------------------------------------------------------------*/
+UActorFactoryNiagara::UActorFactoryNiagara(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	DisplayName = LOCTEXT("EmitterDisplayName", "NiagaraEffect");
+	NewActorClass = ANiagaraActor::StaticClass();
+}
+
+bool UActorFactoryNiagara::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
+{
+	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UNiagaraEffect::StaticClass()))
+	{
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoEffect", "A valid Niagara effect must be specified.");
+		return false;
+	}
+
+	return true;
+}
+
+void UActorFactoryNiagara::PostSpawnActor(UObject* Asset, AActor* NewActor)
+{
+	UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
+	ANiagaraActor* NiagaraActor = CastChecked<ANiagaraActor>(NewActor);
+
+	GEditor->SetActorLabelUnique(NewActor, Effect->GetName());
+
+	// Term Component
+	NiagaraActor->GetNiagaraComponent()->UnregisterComponent();
+
+	// Change properties
+	NiagaraActor->GetNiagaraComponent()->Effect = Effect;
+
+	// if we're created by Kismet on the server during gameplay, we need to replicate the emitter
+	if (NiagaraActor->GetWorld()->HasBegunPlay() && NiagaraActor->GetWorld()->GetNetMode() != NM_Client)
+	{
+		NiagaraActor->SetReplicates(true);
+		NiagaraActor->bAlwaysRelevant = true;
+		NiagaraActor->NetUpdateFrequency = 0.1f; // could also set bNetTemporary but LD might further trigger it or something
+	}
+
+	// Init Component
+	NiagaraActor->GetNiagaraComponent()->RegisterComponent();
+}
+
+UObject* UActorFactoryNiagara::GetAssetFromActorInstance(AActor* Instance)
+{
+	check(Instance->IsA(NewActorClass));
+	ANiagaraActor* NewActor = CastChecked<ANiagaraActor>(Instance);
+	if (NewActor->GetNiagaraComponent())
+	{
+		return NewActor->GetNiagaraComponent()->Effect;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+void UActorFactoryNiagara::PostCreateBlueprint(UObject* Asset, AActor* CDO)
+{
+	if (Asset != NULL && CDO != NULL)
+	{
+		UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
+		ANiagaraActor* Actor = CastChecked<ANiagaraActor>(CDO);
+		Actor->GetNiagaraComponent()->Effect = Effect;
+	}
+}
+
+
 
 
 /*-----------------------------------------------------------------------------

@@ -51,7 +51,7 @@ public:
 
 		// Set the object found from the asset picker
 		CurUpdateScript = Cast<UNiagaraScript>(Asset);
-		Emitter->SetUpdateScript(CurUpdateScript);
+		Emitter->GetProperties()->UpdateScript = CurUpdateScript;
 	}
 
 	void OnSpawnScriptSelectedFromPicker(UObject *Asset)
@@ -61,7 +61,7 @@ public:
 
 		// Set the object found from the asset picker
 		CurSpawnScript = Cast<UNiagaraScript>(Asset);
-		Emitter->SetSpawnScript(CurSpawnScript);
+		Emitter->GetProperties()->SpawnScript = CurSpawnScript;
 	}
 
 	void OnMaterialSelected(UObject *Asset)
@@ -72,27 +72,28 @@ public:
 		ThumbnailPool->Tick(0);
 		CurMaterial = Cast<UMaterial>(Asset);
 		Emitter->GetEffectRenderer()->SetMaterial(CurMaterial, ERHIFeatureLevel::SM5);
+		Emitter->GetProperties()->Material = CurMaterial;
 	}
 
 	UObject *GetMaterial() const
 	{
-		return CurMaterial;
+		return Emitter->GetProperties()->Material;
 	}
 
 	UObject *GetUpdateScript() const
 	{
-		return CurUpdateScript;
+		return Emitter->GetProperties()->UpdateScript;
 	}
 
 	UObject *GetSpawnScript() const
 	{
-		return CurSpawnScript;
+		return Emitter->GetProperties()->SpawnScript;
 	}
 
 	void OnEmitterEnabledChanged(ESlateCheckBoxState::Type NewCheckedState)
 	{
 		const bool bNewEnabledState = (NewCheckedState == ESlateCheckBoxState::Checked);
-		Emitter->SetEnabled(bNewEnabledState);
+		Emitter->GetProperties()->bIsEnabled = bNewEnabledState;
 	}
 
 	ESlateCheckBoxState::Type IsEmitterEnabled() const
@@ -120,6 +121,7 @@ public:
 			EEmitterRenderModuleType, InType, Type,
 		{
 			InEmitter->SetRenderModuleType(InType, InEffect->GetComponent()->GetWorld()->FeatureLevel);
+			InEmitter->GetProperties()->RenderModuleType = InType;
 			InEffect->RenderModuleupdate();
 		});
 		TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
@@ -127,25 +129,27 @@ public:
 
 	void OnSpawnRateChanged(const FText &InText)
 	{
-		Emitter->SetSpawnRate(FCString::Atof(*InText.ToString()) );
+		float Rate = FCString::Atof(*InText.ToString());
+		Emitter->GetProperties()->SpawnRate = Rate;
 	}
 
 	FText GetSpawnRateText() const
 	{
 		TCHAR Txt[32];
-		FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetSpawnRate() );
+		//FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetSpawnRate() );
+		FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetProperties()->SpawnRate );
 
 		return FText::FromString(Txt);
 	}
 
 	FString GetRenderModuleText() const
 	{
-		if (Emitter->GetRenderModuleType() == RMT_None)
+		if (Emitter->GetProperties()->RenderModuleType == RMT_None)
 		{
 			return FString("None");
 		}
 
-		return *RenderModuleList[Emitter->GetRenderModuleType()-1];
+		return *RenderModuleList[Emitter->GetProperties()->RenderModuleType-1];
 	}
 
 	TSharedRef<SWidget>GenerateRenderModuleComboWidget(TSharedPtr<FString> WidgetString )

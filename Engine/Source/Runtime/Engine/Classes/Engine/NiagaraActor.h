@@ -3,8 +3,8 @@
 #pragma once
 #include "NiagaraActor.generated.h"
 
-UCLASS(notplaceable)
-class ANiagaraActor : public AActor
+UCLASS()
+class ENGINE_API ANiagaraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 

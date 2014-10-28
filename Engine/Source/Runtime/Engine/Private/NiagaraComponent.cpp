@@ -46,7 +46,10 @@ void FNiagaraSceneProxy::SetDynamicData_RenderThread(FNiagaraDynamicDataBase* Ne
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->SetDynamicData_RenderThread(NewDynamicData);
+		if (Renderer)
+		{
+			Renderer->SetDynamicData_RenderThread(NewDynamicData);
+		}
 	}
 	return;
 }
@@ -56,7 +59,10 @@ void FNiagaraSceneProxy::ReleaseRenderThreadResources()
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->ReleaseRenderThreadResources();
+		if (Renderer)
+		{
+			Renderer->ReleaseRenderThreadResources();
+		}
 	}
 	return;
 }
@@ -66,7 +72,10 @@ void FNiagaraSceneProxy::CreateRenderThreadResources()
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->CreateRenderThreadResources();
+		if (Renderer)
+		{
+			Renderer->CreateRenderThreadResources();
+		}
 	}
 	return;
 }
@@ -85,7 +94,10 @@ void FNiagaraSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber, this);
+		if (Renderer)
+		{
+			Renderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber, this);
+		}
 	}
 	return;
 }
@@ -94,7 +106,10 @@ void FNiagaraSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->DrawDynamicElements(PDI, View, this);
+		if (Renderer)
+		{
+			Renderer->DrawDynamicElements(PDI, View, this);
+		}
 	}
 	return;
 }
@@ -106,7 +121,10 @@ FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* V
 
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Relevance |= EffectRenderers[0]->GetViewRelevance(View, this);
+		if (Renderer)
+		{
+			Relevance |= Renderer->GetViewRelevance(View, this);
+		}
 	}
 	return Relevance;
 }
@@ -122,7 +140,10 @@ uint32 FNiagaraSceneProxy::GetAllocatedSize() const
 	uint32 DynamicDataSize = 0;
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		DynamicDataSize += Renderer->GetDynamicDataSize();
+		if (Renderer)
+		{
+			DynamicDataSize += Renderer->GetDynamicDataSize();
+		}
 	}
 	return FPrimitiveSceneProxy::GetAllocatedSize() + DynamicDataSize;
 }
@@ -169,7 +190,7 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 //	EmitterAge += DeltaSeconds;
 
 	if (Effect)
-	{
+	{ 
 
 		//Todo, open this up to the UI and setting via code and BPs.
 		static FName Const_Zero(TEXT("ZERO"));
@@ -201,6 +222,19 @@ void UNiagaraComponent::OnRegister()
 	if (Effect)
 	{
 		Effect->Init(this);
+
+		// initialize all render modules
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			FChangeNiagaraRenderModule,
+			UNiagaraEffect*, InEffect, this->Effect,
+			UNiagaraComponent*, InComponent, this,
+			{
+				for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->Emitters)
+				{
+					Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
+				}
+			}
+		);
 	}
 	VectorVM::Init();
 }
@@ -262,6 +296,7 @@ FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) c
 FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 {
 	FNiagaraSceneProxy *Proxy = new FNiagaraSceneProxy(this);
+	Proxy->UpdateEffectRenderers(Effect);
 	return Proxy;
 }
 
