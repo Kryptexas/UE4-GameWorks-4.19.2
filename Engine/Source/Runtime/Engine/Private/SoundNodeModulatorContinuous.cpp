@@ -5,6 +5,7 @@
 #include "SoundDefinitions.h"
 #include "DistributionHelpers.h"
 #include "Sound/SoundNodeModulatorContinuous.h"
+#include "Distributions/DistributionFloatSoundParameter.h"
 
 float FModulatorContinuousParams::GetValue(const FActiveSound& ActiveSound) const
 {

@@ -138,6 +138,8 @@
 #endif //WITH_EDITOR
 
 #include "Engine/Font.h"
+#include "Engine/Texture2DDynamic.h"
+#include "Engine/TextureRenderTargetCube.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 

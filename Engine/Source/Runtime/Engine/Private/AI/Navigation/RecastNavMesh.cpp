@@ -20,6 +20,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "AI/Navigation/NavMeshRenderingComponent.h"
 
 #if WITH_RECAST
 /// Helper for accessing navigation query from different threads
