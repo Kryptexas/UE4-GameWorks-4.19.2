@@ -130,7 +130,6 @@ void UWorld::Serialize( FArchive& Ar )
 	{
 		UObject* DummyObject;
 		Ar << DummyObject;
-		int i = 2;
 	}
 
 	if( !Ar.IsLoading() && !Ar.IsSaving() )
