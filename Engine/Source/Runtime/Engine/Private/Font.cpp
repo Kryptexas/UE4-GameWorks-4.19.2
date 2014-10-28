@@ -23,6 +23,8 @@ UFont::UFont(const FObjectInitializer& ObjectInitializer)
 
 UFont::~UFont()
 {
+	// todo: jdale - this is causing a crash when cooking due to the Slate application being null
+	/*
 	if(FontCacheType == EFontCacheType::Runtime)
 	{
 		TSharedPtr<FSlateRenderer> SlateRenderer = FSlateApplication::Get().GetRenderer();
@@ -32,6 +34,7 @@ UFont::~UFont()
 			FontCache->FlushObject(this);
 		}
 	}
+	*/
 }
 
 void UFont::Serialize( FArchive& Ar )
