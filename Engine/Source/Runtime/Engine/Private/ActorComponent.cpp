@@ -2,6 +2,8 @@
 // ActorComponent.cpp: Actor component implementation.
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
+#include "Engine/LevelStreamingPersistent.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

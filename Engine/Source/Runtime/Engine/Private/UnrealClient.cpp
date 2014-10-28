@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Components/PostProcessComponent.h"
 #include "Engine/Font.h"
 #include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"

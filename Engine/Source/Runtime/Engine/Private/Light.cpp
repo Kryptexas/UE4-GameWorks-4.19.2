@@ -2,8 +2,10 @@
 
 
 #include "EnginePrivate.h"
+#include "Engine/Light.h"
 #include "Engine/PointLight.h"
 #include "Engine/DirectionalLight.h"
+#include "Engine/GeneratedMeshAreaLight.h"
 #include "Components/ArrowComponent.h"
 #include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"

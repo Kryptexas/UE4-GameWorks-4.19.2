@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
+#include "GameFramework/EngineMessage.h"
 
 UEngineMessage::UEngineMessage(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Components/SceneCaptureComponent.h"
 #include "SceneCaptureComponentCube.generated.h"
 /**
  *	Used to capture a 'snapshot' of the scene from a 6 planes and feed it to a render target.

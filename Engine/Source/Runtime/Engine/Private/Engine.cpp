@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "EngineModule.h"
 #include "EditorSupportDelegates.h"
 #include "ComponentReregisterContext.h"

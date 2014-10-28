@@ -5,6 +5,7 @@ Level.cpp: Level-related functions
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/WorldComposition.h"

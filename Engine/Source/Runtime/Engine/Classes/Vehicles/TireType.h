@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "Engine/DataAsset.h"
 #include "TireType.generated.h"
 
 UCLASS()

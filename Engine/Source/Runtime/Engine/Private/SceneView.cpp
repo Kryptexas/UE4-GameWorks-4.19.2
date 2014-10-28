@@ -13,6 +13,7 @@
 #include "Slate/SceneViewport.h"
 #include "RendererInterface.h"
 #include "BufferVisualizationData.h"
+#include "Interfaces/Interface_PostProcessVolume.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 

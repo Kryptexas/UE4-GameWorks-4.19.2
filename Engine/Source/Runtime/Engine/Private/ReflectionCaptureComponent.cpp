@@ -5,11 +5,19 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/ReflectionCapture.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
 #include "ShaderCompiler.h"
+#include "Engine/SphereReflectionCapture.h"
+#include "Components/SphereReflectionCaptureComponent.h"
+#include "Components/DrawSphereComponent.h"
+#include "Components/BoxReflectionCaptureComponent.h"
+#include "Engine/PlaneReflectionCapture.h"
+#include "Engine/BoxReflectionCapture.h"
+#include "Components/PlaneReflectionCaptureComponent.h"
 
 /** 
  * Size of all reflection captures.

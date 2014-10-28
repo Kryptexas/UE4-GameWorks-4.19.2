@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/RendererSettings.h"
 #include "Engine/UserInterfaceSettings.h"
 
 

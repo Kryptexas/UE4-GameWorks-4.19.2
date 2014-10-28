@@ -5,8 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
+#include "Components/ExponentialHeightFogComponent.h"
 #include "Engine/ExponentialHeightFog.h"
+#include "Net/UnrealNetwork.h"
 
 UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

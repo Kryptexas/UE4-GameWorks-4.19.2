@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Atmosphere/AtmosphericFogComponent.h"
 
 // Shared by Engine class and Renderer class, need to be core?
 

@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Interfaces/Interface_PostProcessVolume.h"
 #include "MovieScene/RuntimeMovieScenePlayerInterface.h"
 
 UInterface_CollisionDataProvider::UInterface_CollisionDataProvider(const FObjectInitializer& ObjectInitializer)

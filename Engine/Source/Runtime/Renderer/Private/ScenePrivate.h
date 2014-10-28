@@ -8,6 +8,7 @@
 #define __SCENEPRIVATE_H__
 
 class SceneRenderingAllocator;
+class USceneCaptureComponent;
 
 class SceneRenderingBitArrayAllocator
 	: public TInlineAllocator<4,SceneRenderingAllocator>

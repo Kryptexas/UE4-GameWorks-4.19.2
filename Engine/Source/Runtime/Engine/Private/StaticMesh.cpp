@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/AssetUserData.h"
 #include "StaticMeshResources.h"
 #include "MeshBuild.h"
 #include "GenericOctree.h"

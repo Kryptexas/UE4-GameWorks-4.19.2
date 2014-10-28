@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
+#include "Engine/LevelStreamingBounds.h"
+#include "Engine/LevelStreamingPersistent.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/LevelBounds.h"
 #include "LevelUtils.h"

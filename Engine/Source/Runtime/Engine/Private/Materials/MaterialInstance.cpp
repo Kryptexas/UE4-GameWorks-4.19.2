@@ -7,6 +7,7 @@
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "MaterialUniformExpressions.h"
 #include "MaterialInstanceSupport.h"

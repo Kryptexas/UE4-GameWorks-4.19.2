@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/EngineMessage.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Components/TextRenderComponent.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/Font.h"
 #include "Engine/TextRenderActor.h"

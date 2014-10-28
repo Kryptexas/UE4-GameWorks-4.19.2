@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Components/WindDirectionalSourceComponent.h"
 #include "Engine/WindDirectionalSource.h"
 
 AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectInitializer)

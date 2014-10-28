@@ -6,6 +6,11 @@
 
 #include "EnginePrivate.h"
 #include "../../Renderer/Private/ScenePrivate.h"
+#include "Engine/SceneCapture.h"
+#include "Engine/SceneCapture2D.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/SceneCaptureCube.h"
+#include "Components/SceneCaptureComponentCube.h"
 
 ASceneCapture::ASceneCapture(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

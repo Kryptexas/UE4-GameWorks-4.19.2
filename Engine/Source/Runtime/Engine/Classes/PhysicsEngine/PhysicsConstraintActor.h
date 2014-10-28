@@ -4,7 +4,7 @@
 //=============================================================================
 // The Basic constraint actor class.
 //=============================================================================
-
+#include "PhysicsEngine/RigidBodyBase.h"
 #include "PhysicsConstraintActor.generated.h"
 
 UCLASS(ConversionRoot, MinimalAPI)

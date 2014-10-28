@@ -6,6 +6,7 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "Materials/MaterialExpressionDynamicParameter.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "ParticleDefinitions.h"
 #include "../DistributionHelpers.h"
 #include "Particles/Parameter/ParticleModuleParameterBase.h"

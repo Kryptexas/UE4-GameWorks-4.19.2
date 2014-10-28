@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Components/SceneCaptureComponent.h"
 #include "SceneCaptureComponent2D.generated.h"
 
 // -> will be exported to EngineDecalClasses.h

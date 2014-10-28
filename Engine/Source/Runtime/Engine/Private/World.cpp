@@ -37,6 +37,7 @@
 #include "SceneInterface.h"
 #include "Camera/CameraActor.h"
 #include "Engine/DemoNetDriver.h"
+#include "Layers/Layer.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -54,6 +55,7 @@
 #include "RendererInterface.h"
 #include "DataChannel.h"
 #include "ShaderCompiler.h"
+#include "Engine/LevelStreamingPersistent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);

@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "AnimTree.h"
 #include "Animation/AnimInstance.h"
+#include "Components/PoseableMeshComponent.h"
 
 UPoseableMeshComponent::UPoseableMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

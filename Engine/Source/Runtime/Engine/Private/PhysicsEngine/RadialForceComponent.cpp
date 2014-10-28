@@ -3,6 +3,8 @@
 #include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "PhysicsEngine/RadialForceActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT

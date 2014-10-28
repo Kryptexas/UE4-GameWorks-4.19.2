@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Components/SceneCaptureComponentCube.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
