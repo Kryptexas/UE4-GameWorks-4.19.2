@@ -36,10 +36,11 @@ namespace PackageTools
 	 */
 	void RestoreStandaloneOnReachableObjects()
 	{
-		for( FObjectIterator It ; It ; ++It )
+		TArray<UObject*> ObjectsInPackage;
+		GetObjectsWithOuter(PackageBeingUnloaded, ObjectsInPackage);
+		for ( UObject* Object : ObjectsInPackage )
 		{
-			UObject* Object = *It;
-			if ( !Object->HasAnyFlags(RF_Unreachable) && Object->GetOutermost() == PackageBeingUnloaded )
+			if ( !Object->HasAnyFlags(RF_Unreachable) )
 			{
 				if ( ObjectsThatHadFlagsCleared.Find(Object) )
 				{
@@ -334,13 +335,16 @@ namespace PackageTools
 				}
 
 				// Clear RF_Standalone flag from objects in the package to be unloaded so they get GC'd.
-				for( FObjectIterator It ; It ; ++It )
 				{
-					UObject* Object = *It;
-					if( Object->HasAnyFlags(RF_Standalone) && Object->GetOutermost() == PackageBeingUnloaded )
+					TArray<UObject*> ObjectsInPackage;
+					GetObjectsWithOuter(PackageBeingUnloaded, ObjectsInPackage);
+					for ( UObject* Object : ObjectsInPackage )
 					{
-						Object->ClearFlags(RF_Standalone);
-						ObjectsThatHadFlagsCleared.Add( Object, Object );
+						if (Object->HasAnyFlags(RF_Standalone))
+						{
+							Object->ClearFlags(RF_Standalone);
+							ObjectsThatHadFlagsCleared.Add(Object, Object);
+						}
 					}
 				}
 
@@ -375,7 +379,30 @@ namespace PackageTools
 			// Set the post reachability callback.
 			EditorPostReachabilityAnalysisCallback = NULL;
 
+			// Clear the standalone flag on metadata objects that are going to be GC'd below.
+			// This resolves the circular dependency between metadata and packages.
+			TArray<TWeakObjectPtr<UMetaData>> PackageMetaDataWithClearedStandaloneFlag;
+			for ( UPackage* PackageToUnload : PackagesToUnload )
+			{
+				UMetaData* PackageMetaData = PackageToUnload ? PackageToUnload->MetaData : nullptr;
+				if ( PackageMetaData && PackageMetaData->HasAnyFlags(RF_Standalone) )
+				{
+					PackageMetaData->ClearFlags(RF_Standalone);
+					PackageMetaDataWithClearedStandaloneFlag.Add(PackageMetaData);
+				}
+			}
+
 			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+			// Restore the standalone flag on any metadata objects that survived the GC
+			for ( const TWeakObjectPtr<UMetaData>& WeakPackageMetaData : PackageMetaDataWithClearedStandaloneFlag )
+			{
+				UMetaData* MetaData = WeakPackageMetaData.Get();
+				if ( MetaData )
+				{
+					MetaData->SetFlags(RF_Standalone);
+				}
+			}
 
 			// Update the actor browser if a script package was unloaded
 			if ( bScriptPackageWasUnloaded )
