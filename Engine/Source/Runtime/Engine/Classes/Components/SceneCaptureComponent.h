@@ -66,10 +66,10 @@ public:
 	* @param PropertyThatChanged the property that was modified
 	*/
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 	/** Called after done loading to update show flags from saved data */
 	virtual void PostLoad() override;
-#endif
 
 private:
 	/** Update the show flags from our show flags settings (ideally, you'd be able to set this more directly, but currently unable to make FEngineShowFlags a UStruct to use it as a UProperty...) */
