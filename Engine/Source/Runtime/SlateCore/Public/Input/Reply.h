@@ -13,7 +13,7 @@ class SWidget;
  * For example, a widget may handle an OnMouseDown event by asking the system to give mouse capture to a specific Widget.
  * To do this, return FReply::CaptureMouse( NewMouseCapture ).
  */
-class FReply
+class FReply : public TReplyBase<FReply>
 {
 public:
 		
@@ -21,14 +21,14 @@ public:
 	FReply& CaptureMouse( TSharedRef<SWidget> InMouseCaptor )
 	{
 		this->MouseCaptor = InMouseCaptor;
-		return *this;
+		return Me();
 	}
 
 	FReply& CaptureJoystick( TSharedRef<SWidget> InJoystickCaptor, bool bInAllJoysticks = false )
 	{
 		this->JoystickCaptor = InJoystickCaptor;
 		this->bAllJoysticks = bInAllJoysticks;
-		return *this;
+		return Me();
 	}
 
 	/**
@@ -39,7 +39,7 @@ public:
 	{
 		this->MouseCaptor = InMouseCaptor;
 		this->bUseHighPrecisionMouse = true;
-		return *this;
+		return Me();
 	}
 
 	/**
@@ -48,7 +48,7 @@ public:
 	FReply& SetMousePos( const FIntPoint& NewMousePos )
 	{
 		this->RequestedMousePos = NewMousePos;
-		return *this;
+		return Me();
 	}
 
 	/** An event should return FReply::Handled().SetKeyboardFocus( SomeWidget ) as a means of asking the system to set keyboard focus to the provided widget*/
@@ -67,7 +67,7 @@ public:
 	{
 		this->MouseLockWidget = InWidget;
 		this->bShouldReleaseMouseLock = false;
-		return *this;
+		return Me();
 	}
 
 	/** 
@@ -88,7 +88,7 @@ public:
 	{
 		this->bReleaseMouseCapture = true;
 		this->bUseHighPrecisionMouse = false;
-		return *this;		
+		return Me();
 	}
 
 	/**
@@ -98,7 +98,7 @@ public:
 	{
 		this->bReleaseJoystickCapture = true;
 		this->bAllJoysticks = bInAllJoysticks;
-		return *this;		
+		return Me();
 	}
 
 	/**
@@ -112,7 +112,7 @@ public:
 	{
 		this->DetectDragForWidget = DetectDragInMe;
 		this->DetectDragForMouseButton = MouseButton;
-		return *this;
+		return Me();
 	}
 
 	/**
@@ -125,30 +125,24 @@ public:
 	FReply& BeginDragDrop(TSharedRef<FDragDropOperation> InDragDropContent)
 	{
 		this->DragDropContent = InDragDropContent;
-		return *this;
+		return Me();
 	}
 
 	/** An event should return FReply::Handled().EndDragDrop() to request that the current drag/drop operation be terminated. */
 	FReply& EndDragDrop()
 	{
 		this->bEndDragDrop = true;
-		return *this;
+		return Me();
 	}
 
 	/** Ensures throttling for Slate UI responsiveness is not done on mouse down */
 	FReply& PreventThrottling()
 	{
 		this->bPreventThrottling = true;
-		return *this;
+		return Me();
 	}
 
 public:
-
-	/** True if this reply indicated that the event was handled */
-	bool IsEventHandled() const { return bIsHandled; }
-
-	/** The widget that ultimately handled the event */
-	const TSharedPtr<SWidget> GetHandler() const { return EventHandler; }
 
 	/** True if this reply indicated that we should release mouse capture as a result of the event being handled */
 	bool ShouldReleaseMouse() const { return bReleaseMouseCapture; }
@@ -205,9 +199,7 @@ public:
 	 */
 	static FReply Handled( )
 	{
-		FReply NewReply;
-		NewReply.bIsHandled = true;
-		return NewReply;
+		return FReply(true);
 	}
 
 	/**
@@ -215,9 +207,7 @@ public:
 	 */
 	static FReply Unhandled( )
 	{
-		FReply NewReply;
-		NewReply.bIsHandled = false;
-		return NewReply;
+		return FReply(false);
 	}
 
 private:
@@ -225,8 +215,9 @@ private:
 	/**
 	 * Hidden default constructor.
 	 */
-	FReply( )
-		: RequestedMousePos()
+	FReply( bool bIsHandled )
+		: TReplyBase<FReply>(bIsHandled)
+		, RequestedMousePos()
 		, EventHandler(nullptr)
 		, MouseCaptor(nullptr)
 		, JoystickCaptor(nullptr)
@@ -234,7 +225,6 @@ private:
 		, MouseLockWidget(nullptr)
 		, DragDropContent(nullptr)
 		, FocusChangeReason(EKeyboardFocusCause::SetDirectly)
-		, bIsHandled(false)
 		, bReleaseMouseCapture(false)
 		, bReleaseJoystickCapture(false)
 		, bAllJoysticks(false)
@@ -246,16 +236,7 @@ private:
 		
 
 private:
-
-	friend class FEventRouter;
 	friend class FSlateApplication;
-
-	/** Set the widget that handled the event; undefined if never handled. This method is to be used by SlateApplication only! */
-	FReply& SetHandler( const TSharedRef<SWidget>& InHandler )
-	{
-		this->EventHandler = InHandler;
-		return *this;
-	}
 
 private:
 
@@ -269,7 +250,6 @@ private:
 	FKey DetectDragForMouseButton;
 	TSharedPtr<FDragDropOperation> DragDropContent;
 	EKeyboardFocusCause::Type FocusChangeReason;
-	uint32 bIsHandled:1;
 	uint32 bReleaseMouseCapture:1;
 	uint32 bReleaseJoystickCapture:1;
 	uint32 bAllJoysticks:1;

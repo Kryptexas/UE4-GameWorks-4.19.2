@@ -6,44 +6,46 @@
 /**
  * A reply to the OnQueryCursor event.
  */
-class FCursorReply
+class FCursorReply : public TReplyBase<FCursorReply>
 {
 public:
 
-	/** Makes a NULL response; this response will not change the previous value. */
+	/**
+	 * Makes a NULL response meaning no prefersce.
+	 * i.e. If your widget returns this, its parent will get to decide what the cursor shoudl be.
+	 * This is the default behavior for a widget.
+	 */
 	static FCursorReply Unhandled()
 	{
 		return FCursorReply();
 	}
 		
-	/** Respond with a cursor type. */
+	/**
+	 * Respond with a specific cursor.
+	 * This cursor will be used and no other widgets will be asked.
+	 */
 	static FCursorReply Cursor( EMouseCursor::Type InCursor )
 	{
 		return FCursorReply( InCursor );
 	}
 		
-	/** @return true if this this reply is a result of the event being handled; false otherwise. */
-	bool IsEventHandled(){ return bIsHandled; }
-		
 	/** @return The requested MouseCursor when the event was handled. Undefined otherwise. */
 	EMouseCursor::Type GetCursor() { return MouseCursor; }
-		
+
 private:
 
 	/** Internal constructor - makes a NULL result. */
 	FCursorReply()
-		: bIsHandled(false)
+		: TReplyBase<FCursorReply>(false)
 		, MouseCursor( EMouseCursor::Default )
 	{ }
 		
 	/** Internal constructor - makes a non-NULL result. */
 	FCursorReply( EMouseCursor::Type InCursorType )
-		: bIsHandled(true)
+		: TReplyBase<FCursorReply>(true)
 		, MouseCursor( InCursorType )
 	{ }
-		
-	/** Does this reply have any meaning */ 
-	bool bIsHandled;
+	
 		
 	/** The value of the reply, if bHasValue is true. */
 	EMouseCursor::Type MouseCursor;

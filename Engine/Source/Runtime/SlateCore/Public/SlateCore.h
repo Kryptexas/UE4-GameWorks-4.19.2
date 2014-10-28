@@ -127,6 +127,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "SlateStyle.h"
 
 // Input
+#include "ReplyBase.h"
 #include "CursorReply.h"
 #include "Events.h"
 #include "DragAndDrop.h"

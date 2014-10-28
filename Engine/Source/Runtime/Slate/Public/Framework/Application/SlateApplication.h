@@ -27,9 +27,6 @@ extern SLATE_API const FName NAME_UnrealOS;
  */
 namespace SlateApplicationDefs
 {
-	/** How much to amplify keyboard repeat rate by */
-	static const int32 NumRepeatsPerActualRepeat = 2;
-
 	/** How many users can we support at once? */
 	static const int32 MaxUsers = 8;
 }

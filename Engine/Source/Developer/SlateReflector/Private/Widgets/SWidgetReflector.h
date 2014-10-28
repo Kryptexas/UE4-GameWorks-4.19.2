@@ -38,7 +38,7 @@ public:
 
 	// IWidgetReflector interface
 
-	virtual void OnEventProcessed( const FInputEvent& Event, const FReply& InReply ) override;
+	virtual void OnEventProcessed( const FInputEvent& Event, const FReplyBase& InReply ) override;
 
 	virtual bool IsInPickingMode( ) const override
 	{

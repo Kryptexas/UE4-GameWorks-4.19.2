@@ -10,22 +10,13 @@
 #include "NotificationManager.h"
 
 
-// @todo slate : Move TranslatePointerEvent into FEventRouter. Remove external calls to it.
-template <typename PointerEventType>
-static PointerEventType TranslatePointerEvent( const TSharedPtr<FVirtualPointerPosition>& InPosition, const PointerEventType& InEvent )
-{
-	if ( !InPosition.IsValid() )
-	{
-		return InEvent;
-	}
-	else
-	{
-		return FPointerEvent::MakeTranslatedEvent<PointerEventType>( InEvent, *InPosition );
-	}
-}
 
 class FEventRouter
 {
+
+// @todo slate : making too many event copies when translating events( i.e. Translate<EventType>::PointerEvent ).
+
+
 
 // @todo slate : Widget Reflector should log: (1) Every process reply (2) Every time the event is handled and by who.
 
@@ -36,6 +27,43 @@ class FEventRouter
 // @todo slate : Remove CALL_WIDGET_FUNCTION
 
 public:
+
+	class FDirectPolicy
+	{
+	public:
+		FDirectPolicy( const FWidgetAndPointer& InTarget, const FWidgetPath& InRoutingPath )
+		: bEventSent(false)
+		, RoutingPath(InRoutingPath)
+		, Target(InTarget)
+		{
+		}
+
+		bool ShouldKeepGoing() const
+		{
+			return !bEventSent;
+		}
+
+		void Next()
+		{
+			bEventSent = true;
+		}
+
+		FWidgetAndPointer GetWidget() const
+		{
+			return Target;
+		}
+
+		const FWidgetPath& GetRoutingPath() const
+		{
+			return RoutingPath;
+		}
+
+	private:
+		bool bEventSent;
+		const FWidgetPath& RoutingPath;
+		const FWidgetAndPointer& Target;
+	};
+
 	class FToLeafmostPolicy
 	{
 	public:
@@ -140,7 +168,7 @@ public:
 		const FWidgetPath& RoutingPath;
 	};
 
-	static void LogEvent( FSlateApplication* ThisApplication, const FInputEvent& Event, const FReply& Reply )
+	static void LogEvent( FSlateApplication* ThisApplication, const FInputEvent& Event, const FReplyBase& Reply )
 	{
 		TSharedPtr<IWidgetReflector> Reflector = ThisApplication->WidgetReflectorPtr.Pin();
 		if (Reflector.IsValid() && Reply.IsEventHandled())
@@ -150,7 +178,7 @@ public:
 	}
 
 	/**
-	 * Bubble an event along a focus path (as opposed to PointerPath)
+	 * Route an event along a focus path (as opposed to PointerPath)
 	 *
 	 * Focus paths are determined by the Keyboard Focus or Controller Focus.
 	 * Focus paths change when the user navigates focus (e.g. Tab or
@@ -159,54 +187,78 @@ public:
 	template< typename RoutingPolicyType, typename FuncType, typename EventType >
 	static FReply RouteAlongFocusPath( FSlateApplication* ThisApplication, RoutingPolicyType RoutingPolicy, EventType KeyEventCopy, const FuncType& Lambda )
 	{
-		const FWidgetPath& RoutingPath = RoutingPolicy.GetRoutingPath();
-		FReply Reply = FReply::Unhandled();
-
-		KeyEventCopy.SetEventPath(RoutingPath);
-
-		for ( ; !Reply.IsEventHandled() && RoutingPolicy.ShouldKeepGoing(); RoutingPolicy.Next() )
-		{
-			const FWidgetAndPointer& ArrangedWidget = RoutingPolicy.GetWidget();
-			Reply = Lambda( ArrangedWidget, KeyEventCopy ).SetHandler( ArrangedWidget.Widget );
-			ThisApplication->ProcessReply( RoutingPath, Reply, NULL, NULL );
-		}
-
-		LogEvent(ThisApplication, KeyEventCopy, Reply);
-		
-		return Reply;
+		return Route<FReply>(ThisApplication, RoutingPolicy, KeyEventCopy, Lambda);
 	}
 
 	/**
-	 * Bubble an event along a PointerPath (as opposed to FocusPath)
-	 *
-	 * The pointer path is determined on the fly: whatever is under
-	 * the cursor will get a shot at the event. Widgets can request
-	 * pointer capture. Wile pointer capture is active, only the
-	 * widget in question will receive pointer events associated
-	 * with that pointing device until the pointer capture is
-	 * released.
+	 * Route an event based on the Routing Policy.
 	 */
-	template< typename RoutingPolicyType,  typename FuncType >
-	static FReply RouteAlongPointerPath( FSlateApplication* ThisApplication, RoutingPolicyType RoutingPolicy, FPointerEvent PointerEventCopy, const FuncType& Lambda )
+	template< typename ReplyType, typename RoutingPolicyType, typename EventType, typename FuncType >
+	static ReplyType Route( FSlateApplication* ThisApplication, RoutingPolicyType RoutingPolicy, EventType EventCopy, const FuncType& Lambda )
 	{
+		ReplyType Reply = ReplyType::Unhandled();
 		const FWidgetPath& RoutingPath = RoutingPolicy.GetRoutingPath();
-		FReply Reply = FReply::Unhandled();
-
-		PointerEventCopy.SetEventPath( RoutingPath );
+		
+		EventCopy.SetEventPath( RoutingPath );
 
 		for ( ; !Reply.IsEventHandled() && RoutingPolicy.ShouldKeepGoing(); RoutingPolicy.Next() )
 		{
 			const FWidgetAndPointer& ArrangedWidget = RoutingPolicy.GetWidget();
-			const FPointerEvent TranslatedEvent = TranslatePointerEvent( ArrangedWidget.PointerPosition, PointerEventCopy );
+			const EventType TranslatedEvent = Translate<EventType>::PointerEvent( ArrangedWidget.PointerPosition, EventCopy );
 			Reply = Lambda( ArrangedWidget, TranslatedEvent ).SetHandler( ArrangedWidget.Widget );
-			const FWidgetPath* WidgetsUnderCursorPtr = &RoutingPath;
-			ThisApplication->ProcessReply( RoutingPath, Reply, WidgetsUnderCursorPtr, &TranslatedEvent );
+			ProcessReply(ThisApplication, RoutingPath, Reply, &RoutingPath, &TranslatedEvent);
 		}
 
-		LogEvent(ThisApplication, PointerEventCopy, Reply);
+		LogEvent(ThisApplication, EventCopy, Reply);
 
 		return Reply;
 	}
+
+	static void ProcessReply( FSlateApplication* Application, const FWidgetPath& RoutingPath, const FNoReply& Reply, const FWidgetPath* WidgetsUnderCursor, const FInputEvent* )
+	{
+	}
+
+	static void ProcessReply( FSlateApplication* Application, const FWidgetPath& RoutingPath, const FCursorReply& Reply, const FWidgetPath* WidgetsUnderCursor, const FInputEvent* )
+	{
+	}
+
+	static void ProcessReply( FSlateApplication* Application, const FWidgetPath& RoutingPath, const FReply& Reply, const FWidgetPath* WidgetsUnderCursor, const FInputEvent* PointerEvent )
+	{
+		Application->ProcessReply(RoutingPath, Reply, WidgetsUnderCursor, NULL);
+	}
+
+	static void ProcessReply( FSlateApplication* Application, const FWidgetPath& RoutingPath, const FReply& Reply, const FWidgetPath* WidgetsUnderCursor, const FPointerEvent* PointerEvent )
+	{
+		Application->ProcessReply(RoutingPath, Reply, WidgetsUnderCursor, PointerEvent);
+	}
+
+	template<typename EventType>
+	struct Translate
+	{
+		static EventType PointerEvent( const TSharedPtr<FVirtualPointerPosition>& InPosition, const EventType& InEvent )
+		{
+			// Most events do not do any coordinate translation.
+			return InEvent;
+		}
+	};
+
+	template<>
+	struct Translate<FPointerEvent>
+	{
+		static  FPointerEvent PointerEvent( const TSharedPtr<FVirtualPointerPosition>& InPosition, const FPointerEvent& InEvent )
+		{
+			// Pointer events are translated into the virtual window space. For 3D Widget Components this means
+			if ( !InPosition.IsValid() )
+			{
+				return InEvent;
+			}
+			else
+			{
+				return FPointerEvent::MakeTranslatedEvent<FPointerEvent>( InEvent, *InPosition );
+			}
+		}
+	};
+
 };
 
 
@@ -2107,18 +2159,17 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 
 		// We have entered drag and drop mode.
 		// Pretend that the mouse left all the previously hovered widgets, and a drag entered them.
-		for (int32 WidgetIndex=0; WidgetIndex < WidgetsUnderMouse->Widgets.Num(); ++WidgetIndex)
+		FEventRouter::Route<FNoReply>(this, FEventRouter::FBubblePolicy(*WidgetsUnderMouse), *InMouseEvent, [](const FArrangedWidget& SomeWidget, const FPointerEvent& PointerEvent)
 		{
-			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets[WidgetIndex];
-			SomeWidget.Widget->OnMouseLeave( TranslatePointerEvent( WidgetsUnderMouse->VirtualPointerPositions[WidgetIndex], *InMouseEvent ) );
-		}
+			SomeWidget.Widget->OnMouseLeave( PointerEvent );
+			return FNoReply();
+		});
 
-		FDragDropEvent DragDropEvent( *InMouseEvent, ReplyDragDropContent );
-		for (int32 WidgetIndex=0; WidgetIndex < WidgetsUnderMouse->Widgets.Num(); ++WidgetIndex)
+		FEventRouter::Route<FNoReply>(this, FEventRouter::FBubblePolicy(*WidgetsUnderMouse), FDragDropEvent( *InMouseEvent, ReplyDragDropContent ), [](const FArrangedWidget& SomeWidget, const FDragDropEvent& DragDropEvent )
 		{
-			const FArrangedWidget& SomeWidget = WidgetsUnderMouse->Widgets[WidgetIndex];
-			SomeWidget.Widget->OnDragEnter( SomeWidget.Geometry, TranslatePointerEvent( WidgetsUnderMouse->VirtualPointerPositions[WidgetIndex], DragDropEvent ) );
-		}
+			SomeWidget.Widget->OnDragEnter( SomeWidget.Geometry, DragDropEvent );
+			return FNoReply();
+		});
 	}
 	
 	TSharedPtr<SWidget> RequestedMouseCaptor = TheReply.GetMouseCaptor();
@@ -2299,8 +2350,6 @@ void FSlateApplication::QueryCursor()
 			// Query widgets with mouse capture for the cursor
 			if (MouseCaptor.HasCaptureForPointerIndex(CursorPointerIndex))
 			{
-				//@todo dhertzka - See if old ToWidgetPath should be replaced entirely
-				//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(CursorPointerIndex);
 				FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &CursorEvent);
 				if ( MouseCaptorPath.IsValid() )
 				{
@@ -2323,7 +2372,6 @@ void FSlateApplication::QueryCursor()
 				// Switch worlds for widgets in the current path
 				FScopedSwitchWorldHack SwitchWorld( WidgetsToQueryForCursor );
 
-				//@TODO dhertzka: This was deleted in UMG 3D 2 => investigate
 				const FVector2D CurrentCursorPosition = GetCursorPos();
 				const FVector2D LastCursorPosition = GetLastCursorPos();
 				const FPointerEvent CursorEvent(
@@ -2335,12 +2383,10 @@ void FSlateApplication::QueryCursor()
 					PlatformApplication->GetModifierKeys()
 				);
 
-				CursorResult = FCursorReply::Unhandled();
-				for( int32 WidgetIndex = WidgetsToQueryForCursor.Widgets.Num() - 1; !CursorResult.IsEventHandled() && WidgetIndex >= 0; --WidgetIndex )
+				CursorResult = FEventRouter::Route<FCursorReply>(this, FEventRouter::FBubblePolicy(WidgetsToQueryForCursor), CursorEvent, [](const FArrangedWidget& WidgetToQuery, const FPointerEvent& PointerEvent)
 				{
-					const FArrangedWidget& WidgetToQuery = WidgetsToQueryForCursor.Widgets[ WidgetIndex ];
-					CursorResult = WidgetToQuery.Widget->OnCursorQuery( WidgetToQuery.Geometry, TranslatePointerEvent( WidgetsToQueryForCursor.VirtualPointerPositions[WidgetIndex], CursorEvent ) );
-				}
+					return WidgetToQuery.Widget->OnCursorQuery( WidgetToQuery.Geometry, PointerEvent );
+				});
 
 				if (CursorResult.IsEventHandled())
 				{
@@ -3301,31 +3347,22 @@ bool FSlateApplication::ProcessKeyCharEvent( FCharacterEvent& InCharacterEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
-	const int32 EventCount = InCharacterEvent.IsRepeat() ? SlateApplicationDefs::NumRepeatsPerActualRepeat : 1;
-	for( int32 CurEventIndex = 0; CurEventIndex < EventCount; ++CurEventIndex )
-	{
-		// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while typing
+	// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while typing
 
-		// Bubble the keyboard event
-		FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
-		InCharacterEvent.SetEventPath(EventPath);
+	// Bubble the keyboard event
+	FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
 	
-		// Switch worlds for widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld( EventPath );
+	// Switch worlds for widgets in the current path
+	FScopedSwitchWorldHack SwitchWorld( EventPath );
 
-		Reply = FReply::Unhandled();
-		// Send out mouse enter events.
-		InCharacterEvent.SetEventPath( EventPath );
-		
-		Reply = FEventRouter::RouteAlongFocusPath( this, FEventRouter::FBubblePolicy(EventPath), InCharacterEvent, []( const FArrangedWidget& SomeWidgetGettingEvent, const FCharacterEvent& Event )
-		{
-			return SomeWidgetGettingEvent.Widget->IsEnabled()
-				? SomeWidgetGettingEvent.Widget->OnKeyChar( SomeWidgetGettingEvent.Geometry, Event )
-				: FReply::Unhandled();
-		});
+	Reply = FEventRouter::RouteAlongFocusPath( this, FEventRouter::FBubblePolicy(EventPath), InCharacterEvent, []( const FArrangedWidget& SomeWidgetGettingEvent, const FCharacterEvent& Event )
+	{
+		return SomeWidgetGettingEvent.Widget->IsEnabled()
+			? SomeWidgetGettingEvent.Widget->OnKeyChar( SomeWidgetGettingEvent.Geometry, Event )
+			: FReply::Unhandled();
+	});
 
-		LOG_EVENT_CONTENT( EEventLog::KeyChar, FString::Printf(TEXT("%c"), InCharacterEvent.GetCharacter()), Reply );
-	}
+	LOG_EVENT_CONTENT( EEventLog::KeyChar, FString::Printf(TEXT("%c"), InCharacterEvent.GetCharacter()), Reply );
 
 	return Reply.IsEventHandled();
 }
@@ -3352,76 +3389,71 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 	}
 	else
 	{
-		const int32 EventCount = InKeyboardEvent.IsRepeat() ? SlateApplicationDefs::NumRepeatsPerActualRepeat : 1;
-		for( int32 CurEventIndex = 0; CurEventIndex < EventCount; ++CurEventIndex )
+		LastUserInteractionTimeForThrottling = LastUserInteractionTime;
+
+		// If we are inspecting, pressing ESC exits inspection mode.
+		if ( InKeyboardEvent.GetKey() == EKeys::Escape )
 		{
-			LastUserInteractionTimeForThrottling = LastUserInteractionTime;
-
-			// If we are inspecting, pressing ESC exits inspection mode.
-			if ( InKeyboardEvent.GetKey() == EKeys::Escape )
+			TSharedPtr<IWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
+			const bool bIsWidgetReflectorPicking = WidgetReflector.IsValid() && WidgetReflector->IsInPickingMode();
+			if ( bIsWidgetReflectorPicking )
 			{
-				TSharedPtr<IWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
-				const bool bIsWidgetReflectorPicking = WidgetReflector.IsValid() && WidgetReflector->IsInPickingMode();
-				if ( bIsWidgetReflectorPicking )
-				{
-						WidgetReflector->OnWidgetPicked();
-						Reply = FReply::Handled();
+					WidgetReflector->OnWidgetPicked();
+					Reply = FReply::Handled();
 
-						return Reply.IsEventHandled();
-					}
+					return Reply.IsEventHandled();
 				}
-
-			// Bubble the keyboard event
-			FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
-			InKeyboardEvent.SetEventPath(EventPath);
-
-			// Switch worlds for widgets inOnPreviewMouseButtonDown the current path
-			FScopedSwitchWorldHack SwitchWorld( EventPath );
-
-			TSharedPtr<SWidget> WidgetToLog;
-
-			Reply = FReply::Unhandled();
-
-			// Tunnel the keyboard event
-			Reply = FEventRouter::RouteAlongFocusPath( this, FEventRouter::FTunnelPolicy(EventPath), InKeyboardEvent, []( const FArrangedWidget& CurrentWidget, const FKeyboardEvent& Event )
-			{
-				return (CurrentWidget.Widget->IsEnabled())
-					? CurrentWidget.Widget->OnPreviewKeyDown( CurrentWidget.Geometry, Event )
-					: FReply::Unhandled();
-			});
-
-			// Send out key down events.
-			if (!Reply.IsEventHandled())
-			{
-				Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InKeyboardEvent, [](const FArrangedWidget& SomeWidgetGettingEvent, const FKeyboardEvent& Event)
-				{
-					return (SomeWidgetGettingEvent.Widget->IsEnabled())
-						? SomeWidgetGettingEvent.Widget->OnKeyDown( SomeWidgetGettingEvent.Geometry, Event )
-						: FReply::Unhandled();
-				});
 			}
 
-			LOG_EVENT_CONTENT( EEventLog::KeyDown, GetKeyName(InKeyboardEvent.GetKey()).ToString(), Reply );
+		// Bubble the keyboard event
+		FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
 
-			// If the keyboard event was not processed by any widget...
-			if ( !Reply.IsEventHandled() )
+		// Switch worlds for widgets inOnPreviewMouseButtonDown the current path
+		FScopedSwitchWorldHack SwitchWorld( EventPath );
+
+		TSharedPtr<SWidget> WidgetToLog;
+
+		Reply = FReply::Unhandled();
+
+		// Tunnel the keyboard event
+		Reply = FEventRouter::RouteAlongFocusPath( this, FEventRouter::FTunnelPolicy(EventPath), InKeyboardEvent, []( const FArrangedWidget& CurrentWidget, const FKeyboardEvent& Event )
+		{
+			return (CurrentWidget.Widget->IsEnabled())
+				? CurrentWidget.Widget->OnPreviewKeyDown( CurrentWidget.Geometry, Event )
+				: FReply::Unhandled();
+		});
+
+		// Send out key down events.
+		if (!Reply.IsEventHandled())
+		{
+			Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InKeyboardEvent, [](const FArrangedWidget& SomeWidgetGettingEvent, const FKeyboardEvent& Event)
 			{
-				// If the key was Tab, interpret as an attempt to move focus.
-				if ( InKeyboardEvent.GetKey() == EKeys::Tab )
+				return (SomeWidgetGettingEvent.Widget->IsEnabled())
+					? SomeWidgetGettingEvent.Widget->OnKeyDown( SomeWidgetGettingEvent.Geometry, Event )
+					: FReply::Unhandled();
+			});
+		}
+
+		LOG_EVENT_CONTENT( EEventLog::KeyDown, GetKeyName(InKeyboardEvent.GetKey()).ToString(), Reply );
+
+		// If the keyboard event was not processed by any widget...
+		if ( !Reply.IsEventHandled() )
+		{
+			// If the key was Tab, interpret as an attempt to move focus.
+			if ( InKeyboardEvent.GetKey() == EKeys::Tab )
+			{
+				if (FocusedWidgetPath.IsValid())
 				{
-					if (FocusedWidgetPath.IsValid())
-					{
-						EFocusMoveDirection::Type MoveDirection = ( InKeyboardEvent.IsShiftDown() )
-							? EFocusMoveDirection::Previous
-							: EFocusMoveDirection::Next;
-						SetKeyboardFocus( FocusedWidgetPath.ToNextFocusedPath( MoveDirection ), EKeyboardFocusCause::Keyboard );
-					}
+					EFocusMoveDirection::Type MoveDirection = ( InKeyboardEvent.IsShiftDown() )
+						? EFocusMoveDirection::Previous
+						: EFocusMoveDirection::Next;
+					SetKeyboardFocus( FocusedWidgetPath.ToNextFocusedPath( MoveDirection ), EKeyboardFocusCause::Keyboard );
 				}
-				else if ( UnhandledKeyDownEventHandler.IsBound() )
-				{
-					// Nothing else handled this event, give external code a chance to handle it.
-					Reply = UnhandledKeyDownEventHandler.Execute( InKeyboardEvent );
-				}
+			}
+			else if ( UnhandledKeyDownEventHandler.IsBound() )
+			{
+				// Nothing else handled this event, give external code a chance to handle it.
+				Reply = UnhandledKeyDownEventHandler.Execute( InKeyboardEvent );
 			}
 		}
 	}
@@ -3443,27 +3475,22 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyboardEvent& InKeyboardEvent )
 
 	LastUserInteractionTime = this->GetCurrentTime();
 	
-	const int32 EventCount = InKeyboardEvent.IsRepeat() ? SlateApplicationDefs::NumRepeatsPerActualRepeat : 1;
-	for( int32 CurEventIndex = 0; CurEventIndex < EventCount; ++CurEventIndex )
+	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
+
+	// Bubble the keyboard event
+	FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
+
+	// Switch worlds for widgets in the current path
+	FScopedSwitchWorldHack SwitchWorld( EventPath );
+
+	Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InKeyboardEvent, [](const FArrangedWidget& SomeWidgetGettingEvent, const FKeyboardEvent& Event)
 	{
-		LastUserInteractionTimeForThrottling = LastUserInteractionTime;
+		return (SomeWidgetGettingEvent.Widget->IsEnabled())
+			? SomeWidgetGettingEvent.Widget->OnKeyUp( SomeWidgetGettingEvent.Geometry, Event )
+			: FReply::Unhandled();
+	});
 
-		// Bubble the keyboard event
-		FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
-		InKeyboardEvent.SetEventPath(EventPath);
-
-		// Switch worlds for widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld( EventPath );
-
-		Reply = FEventRouter::RouteAlongFocusPath(this, FEventRouter::FBubblePolicy(EventPath), InKeyboardEvent, [](const FArrangedWidget& SomeWidgetGettingEvent, const FKeyboardEvent& Event)
-		{
-			return (SomeWidgetGettingEvent.Widget->IsEnabled())
-				? SomeWidgetGettingEvent.Widget->OnKeyUp( SomeWidgetGettingEvent.Geometry, Event )
-				: FReply::Unhandled();
-		});
-
-		LOG_EVENT_CONTENT( EEventLog::KeyUp, GetKeyName(InKeyboardEvent.GetKey()).ToString(), Reply );
-	}
+	LOG_EVENT_CONTENT( EEventLog::KeyUp, GetKeyName(InKeyboardEvent.GetKey()).ToString(), Reply );
 
 	return Reply.IsEventHandled();
 }
@@ -3549,7 +3576,6 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 		FReply Reply = FReply::Unhandled();
 		if (MouseCaptor.HasCaptureForPointerIndex(MouseEvent.GetPointerIndex()))
 		{
-			//FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex());
 			FWidgetPath MouseCaptorPath = MouseCaptor.ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Truncate, &MouseEvent );
 			FArrangedWidget& MouseCaptorWidget = MouseCaptorPath.Widgets.Last();
 
@@ -3557,16 +3583,14 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
 			bInGame = FApp::IsGame();
 
-			MouseEvent.SetEventPath( MouseCaptorPath );
-			
-			Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, []( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
+			Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, []( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
 			{
 				return MouseCaptorWidget.Widget->OnPreviewMouseButtonDown( MouseCaptorWidget.Geometry, Event );
 			});
 			
 			if (!Reply.IsEventHandled())
 			{
-				Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent,
+				Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent,
 					[this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
 					{
 						FReply TempReply = FReply::Unhandled();
@@ -3598,14 +3622,14 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 
 			const TSharedPtr<SWidget> PreviouslyFocusedWidget = GetKeyboardFocusedWidget();
 
-			Reply = FEventRouter::RouteAlongPointerPath(this, FEventRouter::FTunnelPolicy(WidgetsUnderCursor), MouseEvent, [](const FArrangedWidget TargetWidget, const FPointerEvent& Event)
+			Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderCursor), MouseEvent, [](const FArrangedWidget TargetWidget, const FPointerEvent& Event)
 			{
 				return TargetWidget.Widget->OnPreviewMouseButtonDown(TargetWidget.Geometry, Event);
 			});
 
 			if ( !Reply.IsEventHandled() )
 			{
-				Reply = FEventRouter::RouteAlongPointerPath(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [this](const FArrangedWidget TargetWidget, const FPointerEvent& Event)
+				Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [this](const FArrangedWidget TargetWidget, const FPointerEvent& Event)
 				{
 					FReply ThisReply = FReply::Unhandled();
 					if (!ThisReply.IsEventHandled())
@@ -3710,12 +3734,11 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 	PressedMouseButtons.Add( InMouseEvent.GetEffectingButton() );
 
 	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( InMouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
-	InMouseEvent.SetEventPath(WidgetsUnderCursor);
 
 	// Switch worlds widgets in the current path
 	FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
 
-	FReply Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), InMouseEvent, [](const FArrangedWidget& TargetWidget, const FPointerEvent& Event)
+	FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), InMouseEvent, [](const FArrangedWidget& TargetWidget, const FPointerEvent& Event)
 	{
 		return TargetWidget.Widget->OnMouseButtonDoubleClick( TargetWidget.Geometry, Event );
 	} );
@@ -3775,7 +3798,7 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 			// Switch worlds widgets in the current path
 			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
 
-			FReply Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [this]( const FArrangedWidget& TargetWidget, const FPointerEvent& Event )
+			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [this]( const FArrangedWidget& TargetWidget, const FPointerEvent& Event )
 			{
 				FReply TempReply = FReply::Unhandled();
 				if (Event.IsTouchEvent())
@@ -3797,7 +3820,6 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 				MouseCaptorPath.TopLevelWindow->BringToFront(true);
 			}
 #endif
-			//ProcessReply(MouseCaptorPath, Reply, &MouseCaptorPath, &TranslatedMouseEvent);
 			LOG_EVENT( EEventLog::MouseButtonUp, Reply );
 		}
 	}
@@ -3813,7 +3835,7 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 		// Switch worlds widgets in the current path
 		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
 		
-		FReply Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
+		FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
 		{
 			FReply TempReply = FReply::Unhandled();
 			if (Event.IsTouchEvent())
@@ -3890,12 +3912,10 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 		? MouseCaptor.ToWidgetPath(InWheelEvent.GetPointerIndex())
 		: LocateWindowUnderMouse( InWheelEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
 
-	InWheelEvent.SetEventPath( EventPath );
-
 	// Switch worlds widgets in the current path
 	FScopedSwitchWorldHack SwitchWorld( EventPath );
 
-	FReply Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FBubblePolicy(EventPath), InWheelEvent, [&InGestureEvent](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
+	FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(EventPath), InWheelEvent, [&InGestureEvent](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
 	{
 		FReply TempReply = FReply::Unhandled();
 		// Gesture event gets first shot, if slate doesn't respond to it, we'll try the wheel event.
@@ -4008,14 +4028,15 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 				DragDetector = FDragDetector();
 
 				// Send an OnDragDetected to the widget that requested drag-detection.
-				MouseEvent.SetEventPath( DragDetectPath );
-
+				
 				// Switch worlds widgets in the current path
 				FScopedSwitchWorldHack SwitchWorld( DragDetectPath );
 
-				FPointerEvent TranslatedMouseEvent = TranslatePointerEvent( DetectDragForMe.PointerPosition, MouseEvent );
-				FReply Reply = DetectDragForMe.Widget->OnDragDetected(DetectDragForMe.Geometry, TranslatedMouseEvent ).SetHandler(DetectDragForMe.Widget);
-				ProcessReply( DragDetectPath, Reply, &DragDetectPath, &TranslatedMouseEvent );
+				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe,DragDetectPath), MouseEvent, []( const FArrangedWidget& DetectDragForMe, const FPointerEvent& TranslatedMouseEvent )
+				{
+					return DetectDragForMe.Widget->OnDragDetected(DetectDragForMe.Geometry, TranslatedMouseEvent );
+				});
+				
 				LOG_EVENT( EEventLog::DragDetected, Reply );
 			}
 			else
@@ -4036,9 +4057,6 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		// No Drag Detection
 		LastWidgetsUnderCursor = WidgetsUnderCursorLastEvent;
 	}
-
-	// In the case of drag leave/enter events there is no path to speak of
-	MouseEvent.SetEventPath( FWidgetPath() );
 
 	// Send out mouse leave events
 	// If we are doing a drag and drop, we will send this event instead.
@@ -4103,7 +4121,7 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 			// Switch worlds widgets in the current path
 			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
 			
-			FReply Reply = FEventRouter::RouteAlongPointerPath( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
+			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, [this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
 			{
 				FReply TempReply = FReply::Unhandled();
 				if (Event.IsTouchEvent())
@@ -4125,31 +4143,32 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
 
 		// Send out mouse enter events.
-		FDragDropEvent DragDropEvent( MouseEvent, DragDropContent );
-		DragDropEvent.SetEventPath( WidgetsUnderCursor );
-		for( int32 WidgetIndex = WidgetsUnderCursor.Widgets.Num()-1; WidgetIndex >= 0; --WidgetIndex )
+		if (IsDragDropping())
 		{
-			FArrangedWidget& SomeWidgetUnderCursor = WidgetsUnderCursor.Widgets[ WidgetIndex ];
-			if ( !LastWidgetsUnderCursor.ContainsWidget(SomeWidgetUnderCursor.Widget) )
+			FDragDropEvent DragDropEvent( MouseEvent, DragDropContent );
+			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), DragDropEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FDragDropEvent& DragDropEvent)
 			{
-				// Widget newly under cursor, so send a MouseEnter.
-				if ( IsDragDropping() )
+				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
 				{
-					// Doing a drag and drop; send a DragDropEvent
-					SomeWidgetUnderCursor.Widget->OnDragEnter( SomeWidgetUnderCursor.Geometry, TranslatePointerEvent( WidgetsUnderCursor.VirtualPointerPositions[WidgetIndex], DragDropEvent ) );
-					LOG_EVENT( EEventLog::DragEnter, SomeWidgetUnderCursor.Widget );
+					WidgetUnderCursor.Widget->OnDragEnter( WidgetUnderCursor.Geometry, DragDropEvent );
 				}
-				else
-				{
-					// Not drag dropping; send regular mouse event
-					SomeWidgetUnderCursor.Widget->OnMouseEnter( SomeWidgetUnderCursor.Geometry, TranslatePointerEvent( WidgetsUnderCursor.VirtualPointerPositions[WidgetIndex], MouseEvent ) );
-					LOG_EVENT( EEventLog::MouseEnter, SomeWidgetUnderCursor.Widget );
-				}
-			}
+				return FNoReply();
+			} );
 		}
-
+		else
+		{
+			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FPointerEvent& PointerEvent)
+			{
+				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
+				{
+					WidgetUnderCursor.Widget->OnMouseEnter( WidgetUnderCursor.Geometry, PointerEvent );
+				}
+				return FNoReply();
+			} );
+		}
+		
 		// Bubble the MouseMove event.
-		FReply Reply = FEventRouter::RouteAlongPointerPath(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
+		FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), MouseEvent, [&](const FArrangedWidget& CurWidget, const FPointerEvent& Event)
 		{
 			FReply TempReply = FReply::Unhandled();
 
@@ -4857,7 +4876,6 @@ bool FSlateApplication::ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered
 	LastUserInteractionTime = this->GetCurrentTime();
 	
 	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( DragDropEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
-	DragDropEvent.SetEventPath( WidgetsUnderCursor );
 
 	// Switch worlds for widgets in the current path
 	FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );

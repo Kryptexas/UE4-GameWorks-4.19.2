@@ -13,7 +13,7 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*Fi
 class IWidgetReflector
 {
 public:
-	virtual void OnEventProcessed( const FInputEvent& Event, const FReply& InReply ) = 0;
+	virtual void OnEventProcessed( const FInputEvent& Event, const FReplyBase& InReply ) = 0;
 
 public:
 

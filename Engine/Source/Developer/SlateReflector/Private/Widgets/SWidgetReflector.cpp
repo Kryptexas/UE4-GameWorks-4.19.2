@@ -11,7 +11,7 @@ static const int32 MaxLoggedEvents = 100;
 
 struct FLoggedEvent
 {
-	FLoggedEvent( const FInputEvent& InEvent, const FReply& InReply )
+	FLoggedEvent( const FInputEvent& InEvent, const FReplyBase& InReply )
 	: Event( InEvent )
 	, Handler( InReply.GetHandler() )
 	, EventText( InEvent.ToText() )
@@ -178,7 +178,7 @@ void SWidgetReflector::Tick( const FGeometry& AllottedGeometry, const double InC
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-void SWidgetReflector::OnEventProcessed( const FInputEvent& Event, const FReply& InReply )
+void SWidgetReflector::OnEventProcessed( const FInputEvent& Event, const FReplyBase& InReply )
 {
 	#if WITH_EVENT_LOGGING
 		if (LoggedEvents.Num() >= MaxLoggedEvents)
