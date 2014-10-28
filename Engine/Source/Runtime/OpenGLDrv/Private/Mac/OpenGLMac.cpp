@@ -1301,7 +1301,7 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 {
 	// @todo There is a bug in Apple's GL with TexStorage calls, on Nvidia and when using MTGL that can see the texture never be created, which then subsequently causes crashes
 	FPlatformOpenGLContext::VerifyCurrentContext();
-	return GMacFlushTexStorage && (IsRHIDeviceNVIDIA() || GMacUseMTGL);
+	return GMacFlushTexStorage && FPlatformMisc::IsRunningOnMavericks() && (IsRHIDeviceNVIDIA() || GMacUseMTGL);
 }
 
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)

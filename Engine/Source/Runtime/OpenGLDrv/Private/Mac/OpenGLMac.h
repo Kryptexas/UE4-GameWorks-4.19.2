@@ -23,6 +23,40 @@ struct FMacOpenGL : public FOpenGL3
 	/** Must we employ a workaround for radr://15553950, TTP# 315197 */
 	static bool MustFlushTexStorage(void);
 	
+	static FORCEINLINE void ClearBufferfi(GLenum Buffer, GLint DrawBufferIndex, GLfloat Depth, GLint Stencil)
+	{
+		if(FPlatformMisc::IsRunningOnMavericks())
+		{
+			switch (Buffer)
+			{
+				case GL_DEPTH_STENCIL:	// Clear depth and stencil separately to avoid an AMD Dx00 bug which causes depth to clear, but not stencil.
+					// Especially irritatingly this bug will not manifest when stepping though the program with GL Profiler.
+					// This was a bug found by me during dev. on Tropico 3 circa. Q4 2011 in the ATi Mac 2xx0 & 4xx0 drivers.
+					// It was never fixed & has re-emerged in the AMD Mac FirePro Dx00 drivers.
+					// Also, on NVIDIA depth must be cleared first.
+				case GL_DEPTH:	// Clear depth only
+					ClearBufferfv(GL_DEPTH, 0, &Depth);
+					
+					// If not also clearing depth break
+					if(Buffer == GL_DEPTH)
+					{
+						break;
+					}
+					// Otherwise fall through to perform a separate stencil clear.
+				case GL_STENCIL:	// Clear stencil only
+					ClearBufferiv(GL_STENCIL, 0, (const GLint*)&Stencil);
+					break;
+					
+				default:
+					break;	// impossible anyway
+			}
+		}
+		else
+		{
+			glClearBufferfi(Buffer, DrawBufferIndex, Depth, Stencil);
+		}
+	}
+
 	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint *OutResult)
 	{
 		MacGetQueryObject(QueryId, QueryMode, OutResult);
