@@ -5,6 +5,7 @@
 #include "ObjectEditorUtils.h"
 #endif
 #include "AI/Navigation/NavigationTestingActor.h"
+#include "AI/Navigation/NavTestRenderingComponent.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)
 {

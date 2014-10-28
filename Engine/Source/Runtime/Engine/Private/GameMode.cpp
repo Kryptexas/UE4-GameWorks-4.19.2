@@ -13,6 +13,7 @@
 #include "GameFramework/DefaultPawn.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/PlayerStartPIE.h"
+#include "GameFramework/EngineMessage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
