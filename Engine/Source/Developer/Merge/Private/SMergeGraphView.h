@@ -45,9 +45,12 @@ private:
 	FBlueprintMergeData Data;
 
 	TArray< TSharedPtr< struct FMergeGraphRowEntry> > DifferencesFromBase;
-	TSharedPtr<class SBorder> DiffResultsWidget;
 
-	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > DiffResultList;
+	TSharedPtr<class SBox> RemoteDiffResultsWidget;
+	TSharedPtr<class SBox> LocalDiffResultsWidget;
+
+	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > RemoteDiffResultList;
+	TWeakPtr < SListView< TSharedPtr< struct FDiffSingleResult> > > LocalDiffResultList;
 
 	TArray< TSharedPtr<struct FGraphMergeConflict> > MergeConflicts;
 	int CurrentMergeConflict;
@@ -66,7 +69,8 @@ private:
 	 * 
 	 * 	I have chosen option 1.
 	 */
-	TArray< TSharedPtr< struct FDiffSingleResult> > const* DiffResultsListData;
+	TArray< TSharedPtr< struct FDiffSingleResult> > const* RemoteDiffResultsListData;
+	TArray< TSharedPtr< struct FDiffSingleResult> > const* LocalDiffResultsListData;
 
 	bool bViewsAreLocked;
 };
