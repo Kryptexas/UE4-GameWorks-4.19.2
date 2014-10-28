@@ -403,23 +403,6 @@ private:
 
 	void SanityCheckChangeList( const uint8* RESTRICT Data, TArray< uint16 > & Changed ) const;
 
-	void DiffProperties_DynamicArray_r( 
-		FRepState *				RepState,
-		const int32				CmdIndex, 
-		const uint8* RESTRICT	StoredData, 
-		const uint8* RESTRICT	Data,
-		const bool				bSync,
-		bool &					bOutDifferent ) const;
-
-	void DiffProperties_r( 
-		FRepState *				RepState,
-		const int32				CmdStart, 
-		const int32				CmdEnd, 
-		const uint8* RESTRICT	StoredData, 
-		const uint8* RESTRICT	Data,
-		const bool				bSync,
-		bool &					bOutDifferent ) const;
-
 	uint16 AddParentProperty( UProperty * Property, int32 ArrayIndex );
 
 	int32 InitFromProperty_r( UProperty * Property, int32 Offset, int32 RelativeHandle, int32 ParentIndex );
