@@ -9,6 +9,7 @@
 #include "TileRendering.h"
 #include "RHIStaticStates.h"
 #include "Internationalization.h"
+#include "SlateBasics.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("CanvasTileTextureItem Time"),STAT_Canvas_TileTextureItemTime,STATGROUP_Canvas);
