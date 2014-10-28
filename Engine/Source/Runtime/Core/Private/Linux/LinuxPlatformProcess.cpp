@@ -37,7 +37,7 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return ENGINE_VERSION;
+	return MODULE_API_VERSION;
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()
