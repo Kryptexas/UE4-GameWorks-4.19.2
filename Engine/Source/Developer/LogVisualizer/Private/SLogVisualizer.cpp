@@ -19,7 +19,7 @@
 #	include "Editor/UnrealEd/Public/EditorViewportClient.h"
 #endif
 
-#include "VIsualLogger/VisualLoggerBinaryFileDevice.h"
+#include "VisualLogger/VisualLoggerBinaryFileDevice.h"
 #include "GameplayDebuggingComponent.h"
 #include "LogVisualizerModule.h"
 #include "SLogVisualizerReport.h"
