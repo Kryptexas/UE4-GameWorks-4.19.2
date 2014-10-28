@@ -162,8 +162,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					SNew(SHorizontalBox)
 					// Record button
 					+SHorizontalBox::Slot()
-					.AutoWidth()
 					.Padding(1)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnRecordButtonClicked)
@@ -175,11 +176,13 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					]
 					// 'Pause' toggle button
 					+SHorizontalBox::Slot()
-					.AutoWidth()
 					.Padding(1)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SCheckBox)
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+						.Type(ESlateCheckBoxType::ToggleButton)
 						.OnCheckStateChanged(this, &SLogVisualizer::OnPauseChanged)
 						.IsChecked(this, &SLogVisualizer::GetPauseState)
 						.Content()
@@ -190,8 +193,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					]
 					// 'Camera' toggle button
 					+SHorizontalBox::Slot()
-					.AutoWidth()
 					.Padding(1)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SCheckBox)
 						.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
@@ -212,8 +216,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					]
 					// 'Save' function
 					+SHorizontalBox::Slot()
-					.AutoWidth()
 					.Padding(1)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnSave)
@@ -225,8 +230,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					]
 					// 'Load' function
 					+SHorizontalBox::Slot()
-					.AutoWidth()
 					.Padding(1)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnLoad)
@@ -238,8 +244,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					]
 					// 'Remove' function
 					+SHorizontalBox::Slot()
-					.AutoWidth()
 					.Padding(1)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
 						SNew(SButton)
 						.OnClicked(this, &SLogVisualizer::OnRemove)

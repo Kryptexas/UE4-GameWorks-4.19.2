@@ -1537,14 +1537,14 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Log Visualizer
 	{
-		Set( "LogVisualizer.Pause", new IMAGE_BRUSH( "Icons/icon_pause_40x", Icon40x40 ) );
+		Set("LogVisualizer.Pause", new IMAGE_BRUSH("Icons/icon_pause_40x", Icon48x48));
 		Set( "LogVisualizer.LogBar.Background", new BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) );
 		Set( "LogVisualizer.LogBar.Selected", new BOX_BRUSH( "Common/TaskGraph_Selected", FMargin(5.f/12.f) ) );
 		Set( "LogVisualizer.LogBar.EntryDefault", new BOX_BRUSH( "Common/TaskGraph_Mono", FMargin(5.f/12.f) ) );
 		Set( "LogVisualizer.LogBar.TimeMark", new BOX_BRUSH( "Icons/LV_BarMark", FMargin(5.f/12.f) ) );
-		Set( "LogVisualizer.Record", new IMAGE_BRUSH( "Icons/LV_Record", Icon24x24 ) );
-		Set( "LogVisualizer.Stop", new IMAGE_BRUSH( "Icons/LV_Stop", Icon24x24 ) );
-		Set( "LogVisualizer.Camera", new IMAGE_BRUSH( "Icons/LV_Camera", Icon40x40 ) );
+		Set("LogVisualizer.Record", new IMAGE_BRUSH("Icons/LV_Record", Icon40x40));
+		Set("LogVisualizer.Stop", new IMAGE_BRUSH("Icons/LV_Stop", Icon40x40));
+		Set("LogVisualizer.Camera", new IMAGE_BRUSH("Icons/LV_Camera", Icon48x48));
 		Set( "LogVisualizer.Save", new IMAGE_BRUSH( "Icons/LV_Save", Icon40x40 ) );
 		Set( "LogVisualizer.Load", new IMAGE_BRUSH( "Icons/LV_Load", Icon40x40 ) );
 		Set( "LogVisualizer.Remove", new IMAGE_BRUSH( "Icons/LV_Remove", Icon40x40 ) );
