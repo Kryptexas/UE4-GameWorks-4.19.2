@@ -2103,7 +2103,7 @@ void FMaterialEditor::OnConvertObjects()
 						else if (VectorParameterExpression)
 						{
 							bNeedsRefresh = true;
-							CastChecked<UMaterialExpressionConstant4Vector>(NewExpression)->Constant = VectorParameterExpression->DefaultValue;
+							CastChecked<UMaterialExpressionConstant3Vector>(NewExpression)->Constant = VectorParameterExpression->DefaultValue;
 						}
 
 						if (bNeedsRefresh)
