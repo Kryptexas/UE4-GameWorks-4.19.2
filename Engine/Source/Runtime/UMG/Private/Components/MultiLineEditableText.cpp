@@ -14,8 +14,9 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	WidgetStyle = *Defaults._TextStyle;
 
 	bAutoWrapText = true;
-	// HACK Special font initialization hack since there are no font assets yet for slate.
-	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12);
+	
+	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 }
 
 void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
