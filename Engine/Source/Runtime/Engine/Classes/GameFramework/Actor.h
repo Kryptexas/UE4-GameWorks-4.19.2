@@ -308,6 +308,7 @@ public:
 	 * Set when actor is about to be deleted.
 	 * @see IsPendingKillPending()
 	 */
+	UPROPERTY(Transient, DuplicateTransient)
 	uint32 bPendingKillPending:1;    
 
 	/** This actor collides with the world when placing in the editor or when spawned, even if RootComponent collision is disabled */

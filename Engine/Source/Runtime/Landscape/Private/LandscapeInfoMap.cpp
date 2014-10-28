@@ -10,31 +10,24 @@ ULandscapeInfoMap::ULandscapeInfoMap(const FObjectInitializer& ObjectInitializer
 
 void ULandscapeInfoMap::PostDuplicate(bool bDuplicateForPIE)
 {
-	// After duplication the pointers are duplicated, but the objects should
-	// be duplicated.
-
 	Super::PostDuplicate(bDuplicateForPIE);
-	
-	for (auto Iterator = Map.CreateConstIterator(); Iterator; ++Iterator)
-	{
-		Map[Iterator->Key] = Cast<ULandscapeInfo>(StaticDuplicateObject(
-			Iterator->Value, Iterator->Value->GetOuter(), nullptr));
-	}
+
+	check(Map.Num() == 0);
 }
 
 void ULandscapeInfoMap::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	Ar << Map;
+	if (!Ar.IsLoading() && !Ar.IsSaving())
+	{
+		Ar << Map;
+	}
 }
 
 void ULandscapeInfoMap::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	ULandscapeInfoMap* This = CastChecked<ULandscapeInfoMap>(InThis);
 
-	for (auto ReferencedMapInfo = This->Map.CreateIterator(); ReferencedMapInfo; ++ReferencedMapInfo)
-	{
-		Collector.AddReferencedObject(ReferencedMapInfo->Value, This);
-	}
+	Collector.AddReferencedObjects(This->Map, This);
 }

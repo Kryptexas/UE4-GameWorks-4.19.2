@@ -579,7 +579,7 @@ ULandscapeInfo* ALandscapeProxy::GetLandscapeInfo(bool bSpawnNewActor /*= true*/
 			if (!LandscapeInfo && bSpawnNewActor && !HasAnyFlags(RF_BeginDestroyed))
 			{
 				LandscapeInfo = ConstructObject<ULandscapeInfo>(ULandscapeInfo::StaticClass(), OwningWorld, NAME_None, RF_Transactional | RF_Transient);
-				OwningWorld->Modify(false);
+				LandscapeInfoMap.Modify(false);
 				LandscapeInfoMap.Map.Add(LandscapeGuid, LandscapeInfo);
 			}
 
