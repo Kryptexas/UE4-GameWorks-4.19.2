@@ -392,6 +392,11 @@ float UKismetMathLibrary::Tan(float A)
 	return FMath::Tan(A);
 }	
 
+float UKismetMathLibrary::Atan(float A)
+{
+	return FMath::Atan(A);
+}
+
 float UKismetMathLibrary::Atan2(float A, float B)
 {
 	return FMath::Atan2(A, B);
@@ -420,6 +425,11 @@ float UKismetMathLibrary::DegAcos(float A)
 float UKismetMathLibrary::DegTan(float A)
 {
 	return FMath::Tan(PI/(180.f) * A);
+}
+
+float UKismetMathLibrary::DegAtan(float A)
+{
+	return (180.f)/PI * FMath::Atan(A);
 }
 
 float UKismetMathLibrary::DegAtan2(float A, float B)
@@ -711,6 +721,16 @@ float UKismetMathLibrary::VSize(FVector A)
 float UKismetMathLibrary::VSize2D(FVector2D A)
 {
 	return A.Size();
+}
+
+float UKismetMathLibrary::VSizeSquared(FVector A)
+{
+	return A.SizeSquared();
+}
+
+float UKismetMathLibrary::VSize2DSquared(FVector2D A)
+{
+	return A.SizeSquared();
 }
 
 FVector UKismetMathLibrary::Normal(FVector A)

@@ -320,6 +320,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Tan (Radians)", CompactNodeTitle = "TAN"), Category="Math|Trig")
 	static float Tan(float A);
 
+	/* Returns the inverse tan (atan) (result is in Radians)*/
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan (Radians)"), Category="Math|Trig")
+	static float Atan(float A);
+
 	/* Returns the inverse tan (atan2) of A/B (result is in Radians)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan2 (Radians)"), Category="Math|Trig")
 	static float Atan2(float A, float B);
@@ -379,6 +383,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns the tan of A (expects Degrees)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Tan (Degrees)", CompactNodeTitle = "TANd"), Category="Math|Trig")
 	static float DegTan(float A);
+
+	/* Returns the inverse tan (atan) (result is in Degrees)*/
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan (Degrees)"), Category="Math|Trig")
+	static float DegAtan(float A);
 
 	/* Returns the inverse tan (atan2) of A/B (result is in Degrees)*/
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Atan2 (Degrees)"), Category="Math|Trig")
@@ -544,6 +552,14 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** Returns the length of a 2d FVector. */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Vector2dLength"), Category="Math|Vector2D")
 	static float VSize2D(FVector2D A);
+
+	/* Returns the squared length of the FVector */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "VectorLengthSquared"), Category="Math|Vector")
+	static float VSizeSquared(FVector A);
+
+	/** Returns the squared length of a 2d FVector. */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Vector2dLengthSquared"), Category="Math|Vector2D")
+	static float VSize2DSquared(FVector2D A);
 
 	/* Returns a unit normal version of the FVector A */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Normalize"), Category="Math|Vector")
