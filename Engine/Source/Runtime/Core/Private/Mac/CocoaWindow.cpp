@@ -292,6 +292,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	SCOPED_AUTORELEASE_POOL;
 	NSSize Size = [self frame].size;
+	
+	if (TargetWindowMode != EWindowMode::Windowed)
+	{
+		FrameRect.size = [[self screen] frame].size;
+	}
+	
 	NSSize NewSize = FrameRect.size;
 	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1 || NewSize.width > 1 || NewSize.height > 1)))
 	{
