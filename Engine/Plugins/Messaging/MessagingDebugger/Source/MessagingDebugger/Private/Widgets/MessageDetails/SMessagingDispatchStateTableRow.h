@@ -53,7 +53,18 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(TimespanToReadableText(DispatchState->DispatchLatency))
+						.Text(TimespanToReadableText(DispatchState->DispatchLatency))
+				];
+		}
+		else if (ColumnName == "DispatchType")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(this, &SMessagingDispatchStateTableRow::HandleDispatchTypeText)
+						.ToolTipText(this, &SMessagingDispatchStateTableRow::HandleDispatchTypeTooltip)
 				];
 		}
 		else if (ColumnName == "HandleTime")
@@ -69,23 +80,26 @@ public:
 		}
 		else if (ColumnName == "Recipient")
 		{
-			return SNew(SBox)
+			FMessageTracerEndpointInfoPtr EndpointInfo = DispatchState->EndpointInfo;
+
+			return SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
 				.Padding(FMargin(4.0f, 0.0f))
+				[
+					SNew(SImage)
+						.Image(Style->GetBrush(EndpointInfo->Remote ? "RemoteEndpoint" : "LocalEndpoint"))
+						.ToolTipText(EndpointInfo->Remote ? LOCTEXT("RemoteEndpointTooltip", "Remote Endpoint") : LOCTEXT("LocalEndpointTooltip", "Local Endpoint"))
+				]
+
+			+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-						.Text(FText::FromName(DispatchState->EndpointInfo->Name))
-				];
-		}
-		else if (ColumnName == "Type")
-		{
-			return SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-						.Image(this, &SMessagingDispatchStateTableRow::HandleTypeImage)
-						.ToolTipText(this, &SMessagingDispatchStateTableRow::HandleTypeTooltip)
+						.Text(EndpointInfo->Name.ToString())
 				];
 		}
 
@@ -159,6 +173,41 @@ protected:
 
 private:
 
+	/** Callback for getting the dispatch type. */
+	FText HandleDispatchTypeText() const
+	{
+		switch (DispatchState->DispatchType)
+		{
+		case EMessageTracerDispatchTypes::Direct:
+			return LOCTEXT("DispatchTypeDirect", "Direct");
+
+		case EMessageTracerDispatchTypes::Pending:
+			return LOCTEXT("DispatchTypeDirect", "Pending");
+
+		case EMessageTracerDispatchTypes::TaskGraph:
+			return LOCTEXT("DispatchTypeDirect", "TaskGraph");
+
+		default:
+			return FText::GetEmpty();
+		}
+	}
+
+	/** Callback for getting the dispatch type tool tip text. */
+	FText HandleDispatchTypeTooltip() const
+	{
+		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
+		{
+			return LOCTEXT("DispatchDirectTooltip", "Dispatched directly (synchronously)");
+		}
+
+		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::TaskGraph)
+		{
+			return LOCTEXT("DispatchTaskGraphTooltip", "Dispatched with Task Graph (asynchronously)");
+		}
+
+		return LOCTEXT("DispatchPendingTooltip", "Dispatched pending");
+	}
+
 	/** Callback for getting the handling time text. */
 	FText HandleHandlingTimeText() const
 	{
@@ -195,22 +244,6 @@ private:
 		}
 
 		return Style->GetBrush("DispatchPending");
-	}
-
-	/** Callback for getting the dispatch type tool tip text. */
-	FText HandleTypeTooltip() const
-	{
-		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
-		{
-			return LOCTEXT("DispatchDirectTooltip", "Dispatched directly (synchronously)");
-		}
-
-		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::TaskGraph)
-		{
-			return LOCTEXT("DispatchTaskGraphTooltip", "Dispatched with Task Graph (asynchronously)");
-		}
-
-		return LOCTEXT("DispatchPendingTooltip", "Dispatched pending");
 	}
 
 private:

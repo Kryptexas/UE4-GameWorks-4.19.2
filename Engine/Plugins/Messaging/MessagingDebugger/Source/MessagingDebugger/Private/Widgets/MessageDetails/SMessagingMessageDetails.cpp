@@ -37,6 +37,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 				SNew(SGridPanel)
 					.FillColumn(1, 1.0f)
 
+
 				// Sender thread
 				+ SGridPanel::Slot(0, 2)
 					.Padding(0.0f, 4.0f)
@@ -88,7 +89,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
-			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
 					.BorderImage(InStyle->GetBrush("GroupBorder"))
@@ -104,13 +105,13 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 							(
 								SNew(SHeaderRow)
 
-								+ SHeaderRow::Column("Type")
-									.DefaultLabel( FText::FromString(TEXT(" ")))
-									.FixedWidth(20.0f)
-
 								+ SHeaderRow::Column("Recipient")
-									.DefaultLabel(LOCTEXT("DispatchStateListRecipientColumnHeader", "Recipient"))
-									.FillWidth(1.0f)
+									.DefaultLabel(LOCTEXT("DispatchStateListRecipientColumnHeader", "Recipient Endpoint"))
+									.FillWidth(0.75f)
+
+								+ SHeaderRow::Column("DispatchType")
+									.DefaultLabel(LOCTEXT("DispatchStateListDispatchTypeColumnHeader", "Dispatch Type"))
+									.FillWidth(0.25f)
 
 								+ SHeaderRow::Column("DispatchLatency")
 									.DefaultLabel(LOCTEXT("DispatchStateListDispatchedColumnHeader", "Dispatch Latency"))

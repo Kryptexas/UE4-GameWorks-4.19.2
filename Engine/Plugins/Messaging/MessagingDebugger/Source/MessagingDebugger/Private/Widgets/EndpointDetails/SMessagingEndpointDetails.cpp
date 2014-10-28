@@ -60,7 +60,7 @@ void SMessagingEndpointDetails::Construct( const FArguments& InArgs, const FMess
 
 		+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
-			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SBorder)
 					.BorderImage(InStyle->GetBrush("GroupBorder"))
@@ -77,7 +77,7 @@ void SMessagingEndpointDetails::Construct( const FArguments& InArgs, const FMess
 								SNew(SHeaderRow)
 
 								+ SHeaderRow::Column("Address")
-									.DefaultLabel(FText::FromString(TEXT("Endpoint Address")))
+									.DefaultLabel(FText::FromString(TEXT("Addresses")))
 									.FillWidth(1.0f)
 
 								+ SHeaderRow::Column("TimeRegistered")
