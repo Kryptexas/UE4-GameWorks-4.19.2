@@ -721,7 +721,7 @@ AInstancedFoliageActor::AInstancedFoliageActor(const FObjectInitializer& ObjectI
 {
 	USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;
-	RootComponent->Mobility = EComponentMobility::Movable;
+	RootComponent->Mobility = EComponentMobility::Static;
 	
 	SetActorEnableCollision(true);
 #if WITH_EDITORONLY_DATA
