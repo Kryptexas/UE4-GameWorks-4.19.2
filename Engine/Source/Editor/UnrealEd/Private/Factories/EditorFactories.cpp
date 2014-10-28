@@ -5074,196 +5074,60 @@ bool UTextureExporterTGA::ExportBinary( UObject* Object, const TCHAR* Type, FArc
 	UFontFactory.
 ------------------------------------------------------------------------------*/
 
-//
-//	Fast pixel-lookup.
-//
-static inline uint8 AT( const uint8* Screen, uint32 SXL, uint32 X, uint32 Y )
-{
-	return Screen[X+Y*SXL];
-}
-
-//
-// Codepage 850 -> Latin-1 mapping table:
-//
-uint8 FontRemap[256] = 
-{
-	0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-	32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
-	48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-
-	64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-	80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
-	96, 97, 98, 99,100,101,102,103,104,105,106,107,108,109,110,111,
-	112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,
-
-	000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,
-	000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,
-	032,173,184,156,207,190,124,245,034,184,166,174,170,196,169,238,
-	248,241,253,252,239,230,244,250,247,251,248,175,172,171,243,168,
-
-	183,181,182,199,142,143,146,128,212,144,210,211,222,214,215,216,
-	209,165,227,224,226,229,153,158,157,235,233,234,154,237,231,225,
-	133,160,131,196,132,134,145,135,138,130,136,137,141,161,140,139,
-	208,164,149,162,147,228,148,246,155,151,163,150,129,236,232,152,
-};
-
-//
-//	Find the border around a font glyph that starts at x,y (it's upper
-//	left hand corner).  If it finds a glyph box, it returns 0 and the
-//	glyph 's length (xl,yl).  Otherwise returns -1.
-//
-static bool ScanFontBox( const uint8* Data, int32 X, int32 Y, int32& XL, int32& YL, int32 SizeX )
-{
-	int32 FontXL = SizeX;
-
-	// Find x-length.
-	int32 NewXL = 1;
-	while ( AT(Data,FontXL,X+NewXL,Y)==255 && AT(Data,FontXL,X+NewXL,Y+1)!=255 )
-	{
-		NewXL++;
-	}
-
-	if( AT(Data,FontXL,X+NewXL,Y)!=255 )
-	{
-		return 0;
-	}
-
-	// Find y-length.
-	int32 NewYL = 1;
-	while( AT(Data,FontXL,X,Y+NewYL)==255 && AT(Data,FontXL,X+1,Y+NewYL)!=255 )
-	{
-		NewYL++;
-	}
-
-	if( AT(Data,FontXL,X,Y+NewYL)!=255 )
-	{
-		return 0;
-	}
-
-	XL = NewXL - 1;
-	YL = NewYL - 1;
-
-	return 1;
-}
-
-#define NUM_FONT_CHARS 256
-
 UFontFactory::UFontFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SupportedClass = UFont::StaticClass();
-	bEditorImport = false;
-	LODGroup = TEXTUREGROUP_UI;
+
+	bCreateNew = true;
+	bEditAfterNew = true;
 }
 
-UObject* UFontFactory::FactoryCreateBinary
-(
-	UClass*				Class,
-	UObject*			InParent,
-	FName				Name,
-	EObjectFlags		Flags,
-	UObject*			Context,
-	const TCHAR*		Type,
-	const uint8*&		Buffer,
-	const uint8*			BufferEnd,
-	FFeedbackContext*	Warn
-)
+UObject* UFontFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, UObject* InContext, FFeedbackContext* InWarn)
 {
-	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
-
-	check(Type);
-
-	check(Class==UFont::StaticClass());
-	UFont* Font = new( InParent, Name, Flags )UFont(FObjectInitializer());
-	// note RF_Public because font textures can be referenced direclty by material expressions
-	UTexture2D* Tex = CastChecked<UTexture2D>( UTextureFactory::FactoryCreateBinary( 
-		UTexture2D::StaticClass(), Font, NAME_None, RF_Public, Context, Type, Buffer, BufferEnd, Warn ) );
-
-	if( Tex != nullptr )
+	UFont* const Font = ConstructObject<UFont>(InClass, InParent, InName, InFlags);
+	if(Font)
 	{
-		Tex->LODGroup = TEXTUREGROUP_UI;  // set the LOD group otherwise this will be in the World Group
-
-		// Also, we never want to stream in font textures since that always looks awful
-		Tex->NeverStream = true;
-
-		Font->Textures.Add(Tex);
-
-		// Init.
-		uint8* TextureData = (uint8*)Tex->Source.LockMip(0);
-		int32 TexSizeX = Tex->Source.GetSizeX();
-		int32 TexSizeY = Tex->Source.GetSizeY();
-		Font->Characters.AddZeroed( NUM_FONT_CHARS );
-
-		// Scan in all fonts, starting at glyph 32.
-		uint32 i = 32;
-		int32 Y = 0;
-		do
-		{
-			int32 X = 0;
-			while( AT(TextureData,TexSizeX,X,Y)!=255 && Y<TexSizeY )
-			{
-				X++;
-				if( X >= TexSizeX )
-				{
-					X = 0;
-					if( ++Y >= TexSizeY )
-						break;
-				}
-			}
-
-			// Scan all glyphs in this row.
-			if( Y < TexSizeY )
-			{
-				int32 XL=0, YL=0, MaxYL=0;
-				while( i<(uint32)Font->Characters.Num() && ScanFontBox(TextureData,X,Y,XL,YL,TexSizeX) )
-				{
-					Font->Characters[i].StartU = X+1;
-					Font->Characters[i].StartV = Y+1;
-					Font->Characters[i].USize  = XL;
-					Font->Characters[i].VSize  = YL;
-					Font->Characters[i].TextureIndex = 0;
-					Font->Characters[i].VerticalOffset = 0;
-					X += XL + 1;
-					i++;
-					if( YL > MaxYL )
-						MaxYL = YL;
-				}
-				Y += MaxYL + 1;
-			}
-		} while( i<(uint32)Font->Characters.Num() && Y<TexSizeY );
-
-		// Cleanup font data.
-		int32 MipBytes = Tex->Source.CalcMipSize(0);
-		for( int32 j=0; j<MipBytes; j++ )
-		{
-			if( TextureData[j]==255 )
-			{
-				TextureData[j] = 0;
-			}
-		}
-		Tex->Source.UnlockMip(0);
-		Tex->PostEditChange();
-
-		// Remap old fonts.
-		TArray<FFontCharacter> Old = Font->Characters;
-		for( i=0; i<(uint32)Font->Characters.Num(); i++ )
-		{
-			Font->Characters[i] = Old[FontRemap[i]];
-		}
-
-		Font->CacheCharacterCountAndMaxCharHeight();
-
-		FEditorDelegates::OnAssetPostImport.Broadcast(this, Font);
-
-		return Font;
+		Font->FontCacheType = EFontCacheType::Runtime;
 	}
-	else 
+	return Font;
+}
+
+/*------------------------------------------------------------------------------
+	UFontFileImportFactory.
+------------------------------------------------------------------------------*/
+
+UFontFileImportFactory::UFontFileImportFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UFont::StaticClass();
+
+	bEditorImport = true;
+
+	Formats.Add(TEXT("ttf;TrueType font"));
+	Formats.Add(TEXT("otf;OpenType font"));
+}
+
+UObject* UFontFileImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, UObject* InContext, const TCHAR* InType, const uint8*& InBuffer, const uint8* InBufferEnd, FFeedbackContext* InWarn)
+{
+	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, InType);
+
+	UFont* const Font = ConstructObject<UFont>(InClass, InParent, InName, InFlags);
+	if(Font)
 	{
-		Font->MarkPendingKill();
-		FEditorDelegates::OnAssetPostImport.Broadcast( this, nullptr );
-		return nullptr;
+		Font->FontCacheType = EFontCacheType::Runtime;
+
+		FString FontFilename = GetCurrentFilename();
+
+		TArray<uint8> FontData;
+		FontData.Insert(InBuffer, InBufferEnd - InBuffer, 0);
+
+		Font->CompositeFont.DefaultTypeface.Fonts.Add(FTypefaceEntry("Default", MoveTemp(FontFilename), MoveTemp(FontData), EFontHinting::Auto));
 	}
+
+	FEditorDelegates::OnAssetPostImport.Broadcast(this, Font);
+	
+	return Font;
 }
 
 /*------------------------------------------------------------------------------

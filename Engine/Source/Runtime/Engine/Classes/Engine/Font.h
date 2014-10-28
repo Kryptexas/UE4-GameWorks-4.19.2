@@ -1,8 +1,20 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/FontImportOptions.h"
+#include "FontProviderInterface.h"
 #include "Font.generated.h"
+
+/** What kind of caching is this font using? */
+UENUM()
+enum class EFontCacheType
+{
+	/** The font is using offline caching (this is how UFont traditionally worked) */
+	Offline,
+
+	/** The font is using runtime caching (this is how Slate fonts work) */
+	Runtime,
+};
 
 /** this struct is serialized using native serialization so any changes to it require a package version bump */
 USTRUCT()
@@ -69,19 +81,26 @@ struct TStructOpsTypeTraits<FFontCharacter> : public TStructOpsTypeTraitsBase
 };
 
 /**
- * A font object, containing information about a set of glyphs.
- * The glyph bitmaps are stored in the contained textures, while
- * the font database only contains the coordinates of the individual
- * glyph.
+ * A font object, for use by Slate, UMG, and Canvas.
+ *
+ * A font can either be:
+ *   ● Runtime cached - The font contains a series of TTF files that combine to form a composite font. The glyphs are cached on demand when required at runtime.
+ *   ● Offline cached - The font contains a series of textures containing pre-baked cached glyphs and their associated texture coordinates.
  */
 UCLASS(hidecategories=Object, autoexpandcategories=Font, MinimalAPI, BlueprintType)
-class UFont : public UObject
+class UFont : public UObject, public IFontProviderInterface
 {
 	GENERATED_UCLASS_BODY()
 
+	~UFont();
+
+	/** What kind of font caching should we use? This controls which options we see */
+	UPROPERTY(EditAnywhere, Category=Font)
+	TEnumAsByte<EFontCacheType> FontCacheType;
+
 	/** List of characters in the font.  For a MultiFont, this will include all characters in all sub-fonts!  Thus,
 		the number of characters in this array isn't necessary the number of characters available in the font */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	TArray<struct FFontCharacter> Characters;
 
 	/** Textures that store this font's glyph image data */
@@ -95,27 +114,27 @@ class UFont : public UObject
 	int32 IsRemapped;
 
 	/** Font metrics. */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	float EmScale;
 
 	/** @todo document */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	float Ascent;
 
 	/** @todo document */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	float Descent;
 
 	/** @todo document */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	float Leading;
 
 	/** Default horizontal spacing between characters when rendering text with this font */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	int32 Kerning;
 
 	/** Options used when importing this font */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	struct FFontImportOptionsData ImportOptions;
 
 	/** Number of characters in the font, not including multiple instances of the same character (for multi-fonts).
@@ -130,8 +149,20 @@ class UFont : public UObject
 	TArray<int32> MaxCharHeight;
 
 	/** Scale to apply to the font. */
-	UPROPERTY(EditAnywhere, Category=Font)
+	UPROPERTY(EditAnywhere, Category=OfflineFont)
 	float ScalingFactor;
+
+	/** The default size of the font used for legacy Canvas APIs that don't specify a font size */
+	UPROPERTY(EditAnywhere, Category=RuntimeFont)
+	int32 LegacyFontSize;
+
+	/** The default font name to use for legacy Canvas APIs that don't specify a font name */
+	UPROPERTY(EditAnywhere, Category=RuntimeFont)
+	FName LegacyFontName;
+
+	/** Embedded composite font data */
+	UPROPERTY()
+	FCompositeFont CompositeFont;
 
 
 public:
@@ -141,6 +172,18 @@ public:
 	/** When IsRemapped is true, this array maps unicode values to entries in the Characters array */
 	TMap<uint16,uint16> CharRemap;
 
+	/** IFontProviderInterface */
+	virtual const FCompositeFont* GetCompositeFont() const override
+	{
+		return &CompositeFont;
+	}
+
+	/** Get the info needed to use this UFont with Slate, using the fallback data for legacy Canvas APIs */
+	FORCEINLINE FSlateFontInfo GetLegacySlateFontInfo() const
+	{
+		return FSlateFontInfo(this, LegacyFontSize, LegacyFontName);
+	}
+
 	/**
 	 * Returns the size of the object/ resource for display to artists/ LDs in the Editor.
 	 *
@@ -149,61 +192,26 @@ public:
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	// UFont interface
-	FORCEINLINE TCHAR RemapChar(TCHAR CharCode) const
-	{
-		const uint16 UCode = CharCast<UCS2CHAR>(CharCode);
-		if ( IsRemapped )
-		{
-			// currently, fonts are only remapped if they contain Unicode characters.
-			// For remapped fonts, all characters in the CharRemap map are valid, so
-			// if the characters exists in the map, it's safe to use - otherwise, return
-			// the null character (an empty square on windows)
-			const uint16* FontChar = CharRemap.Find(UCode);
-			if ( FontChar == NULL )
-				return NULLCHARACTER;
+	ENGINE_API TCHAR RemapChar(TCHAR CharCode) const;
 
-			return (TCHAR)*FontChar;
-		}
+	/**
+	 * Calculate the width and height of a single character using this font's default size and scale.
+	 *
+	 * @param	InCh					the character to size
+	 * @param	Width					the width of the character (in pixels)
+	 * @param	Height					the height of the character (in pixels)
+	 */
+	ENGINE_API void GetCharSize(TCHAR InCh, float& Width, float& Height) const;
 
-		// Otherwise, our Characters array will contains 256 members, and is
-		// a one-to-one mapping of character codes to array indexes, though
-		// not every character is a valid character.
-		if ( UCode >= NumCharacters )
-		{
-			return NULLCHARACTER;
-		}
-
-		// If the character's size is 0, it's non-printable or otherwise unsupported by
-		// the font.  Return the default null character (an empty square on windows).
-		if ( !Characters.IsValidIndex(UCode) || (Characters[UCode].VSize == 0 && UCode >= TEXT(' ')) )
-		{
-			return NULLCHARACTER;
-		}
-
-		return CharCode;
-	}
-
-	FORCEINLINE void GetCharSize(TCHAR InCh, float& Width, float& Height) const
-	{
-		Width = Height = 0.f;
-
-		const int32 Ch = (int32)RemapChar(InCh);
-		if( Ch < Characters.Num() )
-		{
-			const FFontCharacter& Char = Characters[Ch];
-			if( Char.TextureIndex < Textures.Num() && Textures[Char.TextureIndex] != NULL )
-			{
-				Width = Char.USize;
-
-				// The height of the character will always be the maximum height of any character in this
-				// font.  This ensures consistent vertical alignment of text.  For example, we don't want
-				// vertically centered text to visually shift up and down as characters are added to a string.
-				// NOTE: This also gives us consistent alignment with fonts generated by the legacy importer.
-				const int32 MultiFontIndex = Ch / NumCharacters;
-				Height = MaxCharHeight[ MultiFontIndex ];
-			}
-		}
-	}
+	/**
+	 * Gets the kerning value for a pair of characters
+	 *
+	 * @param FirstChar		The first character in the pair
+	 * @param SecondChar	The second character in the pair
+	 *
+	 * @return The kerning value
+	 */
+	ENGINE_API int8 GetCharKerning(TCHAR First, TCHAR Second) const;
 
 	/**
 	 * Calculate the width of the string using this font's default size and scale.
@@ -212,40 +220,16 @@ public:
 	 *
 	 * @return	the width (in pixels) of the specified text, or 0 if Text was NULL.
 	 */
-	FORCEINLINE int32 GetStringSize( const TCHAR *Text ) const
-	{
-		float	Width, Height, Total;
-
-		Total = 0.0f;
-		while( *Text )
-		{
-			GetCharSize( *Text++, Width, Height );
-			Total += Width;
-		}
-
-		return( FMath::CeilToInt( Total ) );
-	}
+	ENGINE_API int32 GetStringSize( const TCHAR *Text ) const;
 
 	/**
-	 * Calculate the width of the string using this font's default size and scale.
+	 * Calculate the height of the string using this font's default size and scale.
 	 *
 	 * @param	Text					the string to size
 	 *
-	 * @return	the width (in pixels) of the specified text, or 0 if Text was NULL.
+	 * @return	the height (in pixels) of the specified text, or 0 if Text was NULL.
 	 */
-	FORCEINLINE int32 GetStringHeightSize( const TCHAR *Text ) const
-	{
-		float	Width, Height, Total;
-
-		Total = 0.0f;
-		while( *Text )
-		{
-			GetCharSize( *Text++, Width, Height );
-			Total = FMath::Max( Total, Height );
-		}
-
-		return( FMath::CeilToInt( Total ) );
-	}
+	ENGINE_API int32 GetStringHeightSize( const TCHAR *Text ) const;
 
 	// Begin UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
@@ -256,7 +240,7 @@ public:
 	/**
 	 * Caches the character count and maximum character height for this font (as well as sub-fonts, in the multi-font case)
 	 */
-	virtual void CacheCharacterCountAndMaxCharHeight();
+	ENGINE_API void CacheCharacterCountAndMaxCharHeight();
 
 
 	/**
@@ -264,7 +248,7 @@ public:
 	 *
 	 *	@param	InScalingFactor		The scaling factor to set
 	 */
-	virtual void SetFontScalingFactor(float InScalingFactor)
+	FORCEINLINE void SetFontScalingFactor(float InScalingFactor)
 	{
 		ScalingFactor = InScalingFactor;
 	}
@@ -274,17 +258,15 @@ public:
 	 *
 	 *	@return	float		The scaling factor currently set
 	 */
-	virtual float GetFontScalingFactor()
+	FORCEINLINE float GetFontScalingFactor()
 	{
 		return ScalingFactor;
 	}
 
-	/** Returns the maximum height for any character in this font */
-	virtual float GetMaxCharHeight() const;
+	/** Returns the maximum height for any character in this font using this font's default size and scale. */
+	ENGINE_API float GetMaxCharHeight() const;
 	
 	/** Determines the height and width for the passed in string. */
-	virtual void GetStringHeightAndWidth( const FString& InString, int32& Height, int32& Width ) const;
+	ENGINE_API void GetStringHeightAndWidth( const FString& InString, int32& Height, int32& Width ) const;
+	ENGINE_API void GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Width ) const;
 };
-
-
-

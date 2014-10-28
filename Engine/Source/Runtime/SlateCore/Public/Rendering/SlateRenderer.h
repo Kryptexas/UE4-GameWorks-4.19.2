@@ -145,6 +145,11 @@ public:
 		return FontMeasure.ToSharedRef();
 	}
 
+	TSharedRef< class FSlateFontCache > GetFontCache() const 
+	{
+		return FontCache.ToSharedRef();
+	}
+
 	/**
 	 * Flushes all cached data from the font cache
 	 */

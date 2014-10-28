@@ -17,6 +17,9 @@ public:
 
 	/** Assigns a font texture object to the page properties control when a new page is selected */
 	virtual void SetSelectedPage(int32 PageIdx) = 0;
+
+	/** Refresh the preview viewport */
+	virtual void RefreshPreview() = 0;
 };
 
 

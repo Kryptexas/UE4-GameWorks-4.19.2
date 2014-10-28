@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Engine/EngineTypes.h"
+#include "Engine/Font.h"
 #include "SceneTypes.h"
 
 class FCanvas;
@@ -295,12 +296,13 @@ public:
 	 * @param	InText			String to draw
 	 * @param	InFont			Font to draw with
 	 */
-	FCanvasTextItem( const FVector2D& InPosition, const FText& InText, class UFont* InFont, const FLinearColor& InColor )
+	FCanvasTextItem( const FVector2D& InPosition, const FText& InText, const UFont* InFont, const FLinearColor& InColor )
 		: FCanvasItem( InPosition )
 		, Text( InText )
 		, Font( InFont )
+		, SlateFontInfo()
 		, HorizSpacingAdjust( 0.0f )
-	  	, ForcedViewportHeight( NULL )
+	  	, ForcedViewportHeight( nullptr )
 		, Depth( 1.0f )
 		, ShadowColor( FLinearColor::Black )
 		, ShadowOffset( FVector2D::ZeroVector )
@@ -315,6 +317,36 @@ public:
 		SetColor( InColor );
 		Scale.Set( 1.0f, 1.0f );
 		BlendMode = SE_BLEND_Translucent;
+	};
+
+	/** 	 
+	 * Text item
+	 *
+	 * @param	InPosition		Draw position
+	 * @param	InText			String to draw
+	 * @param	InFontInfo		Font info to draw with
+	 */
+	FCanvasTextItem( const FVector2D& InPosition, const FText& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InColor )
+		: FCanvasItem( InPosition )
+		, Text( InText )
+		, Font( Cast<const UFont>(InFontInfo.FontObject) )
+		, SlateFontInfo( InFontInfo )
+		, HorizSpacingAdjust( 0.0f )
+	  	, ForcedViewportHeight( nullptr )
+		, Depth( 1.0f )
+		, ShadowColor( FLinearColor::Black )
+		, ShadowOffset( FVector2D::ZeroVector )
+		, DrawnSize( FVector2D::ZeroVector )
+		, bCentreX( false )
+		, bCentreY( false )
+		, bOutlined( false )
+		, OutlineColor( FLinearColor::Black )
+		, bDontCorrectStereoscopic( true )
+		, TileItem( InPosition, FVector2D::ZeroVector, InColor )
+	{
+		SetColor( InColor );
+		Scale.Set( 1.0f, 1.0f );
+		BlendMode = SE_BLEND_TranslucentAlphaOnly;
 	};
 		
 	/** 
@@ -351,7 +383,10 @@ public:
 	FText Text;
 	
 	/* Font to draw text with. */
-	class UFont* Font;
+	const UFont* Font;
+
+	/** Font info to draw the text with. */
+	TOptional<FSlateFontInfo> SlateFontInfo;
 
 	/* Horizontal spacing adjustment. */
 	float HorizSpacingAdjust;
@@ -391,9 +426,13 @@ public:
 
 	/* The scale of the text */
 	FVector2D Scale;
+
 protected:
 	/* Background tile used to fixup 3d text issues. */
 	FCanvasTileItem	TileItem;
+
+	/** Get the type of font cache the UFont is using */
+	EFontCacheType GetFontCacheType() const;
 
 	/** 
 	 * Internal string draw
@@ -401,30 +440,14 @@ protected:
 	 * In a method to make it simpler to do effects like shadow, outline
 	 */
 	void DrawStringInternal( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor );
+	void DrawStringInternal_OfflineCache( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor );
+	void DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor );
 
 	/** 
-	 * These are used bye the DrawStringInternal function. 
+	 * These are used by the DrawStringInternal function. 
 	 */
-	/* String char length. */
-	int32 TextLen;
-
 	/* Used for batching. */
 	FBatchedElements* BatchedElements;
-	
-	/* Font page index. */
-	int32 PageIndex;
-	
-	/* Font scale (Read from font). */
-	float FontScale;
-	
-	/* Render X scale (based on item scale and font scale). */
-	float XScale;
-	
-	/* Render Y scale (based on item scale and font scale). */
-	float YScale;
-
-	float CharIncrement;
-
 };
 
 /* Line item. */

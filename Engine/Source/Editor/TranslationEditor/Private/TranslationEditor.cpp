@@ -27,6 +27,20 @@ DEFINE_LOG_CATEGORY_STATIC(LocalizationExport, Log, All);
 
 #define LOCTEXT_NAMESPACE "TranslationEditor"
 
+namespace TranslationEditorUtils
+{
+
+/** Get the filename used by the given font info */
+FString GetFontFilename(const FSlateFontInfo& InFontInfo)
+{
+	const FCompositeFont* const ResolvedCompositeFont = InFontInfo.GetCompositeFont();
+	return (ResolvedCompositeFont && ResolvedCompositeFont->DefaultTypeface.Fonts.Num() > 0)
+		? ResolvedCompositeFont->DefaultTypeface.Fonts[0].Font.FontFilename
+		: "";
+}
+
+} // namespace TranslationEditorUtils
+
 const FName FTranslationEditor::UntranslatedTabId( TEXT( "TranslationEditor_Untranslated" ) );
 const FName FTranslationEditor::ReviewTabId( TEXT( "TranslationEditor_Review" ) );
 const FName FTranslationEditor::CompletedTabId( TEXT( "TranslationEditor_Completed" ) );
@@ -757,7 +771,7 @@ void FTranslationEditor::MapActions()
 void FTranslationEditor::ChangeSourceFont()
 {
 	// Use path from current font
-	FString DefaultFile(SourceFont.FontName.ToString());
+	FString DefaultFile = TranslationEditorUtils::GetFontFilename(SourceFont);
 
 	FString NewFontFilename;
 	bool bOpened = OpenFontPicker(DefaultFile, NewFontFilename);
@@ -772,7 +786,7 @@ void FTranslationEditor::ChangeSourceFont()
 void FTranslationEditor::ChangeTranslationTargetFont()
 {
 	// Use path from current font
-	FString DefaultFile(TranslationTargetFont.FontName.ToString());
+	FString DefaultFile = TranslationEditorUtils::GetFontFilename(TranslationTargetFont);
 
 	FString NewFontFilename;
 	bool bOpened = OpenFontPicker(DefaultFile, NewFontFilename);

@@ -628,6 +628,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_BP_MATH_VECTOR_EQUALITY_USES_EPSILON,
 	// Static lighting support was re-added to foliage, and mobility was returned to static
 	VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT,
+	// Added composite fonts to Slate font info
+	VER_UE4_SLATE_COMPOSITE_FONTS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

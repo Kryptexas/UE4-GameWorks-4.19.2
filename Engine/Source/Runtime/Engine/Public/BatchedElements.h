@@ -309,6 +309,8 @@ private:
 	static FGlobalBoundShaderState HitTestingBoundShaderState;
 	/** bound shader state for color masked elements */
 	static FGlobalBoundShaderState ColorChannelMaskShaderState;
+	/** bound shader state for alpha only fonts */
+	static FGlobalBoundShaderState AlphaOnlyShaderState;
 
 	/**
 	 * Sets the appropriate vertex and pixel shader.

@@ -844,6 +844,6 @@ private:
 * @param YL - out height
 * @param Text - string of text to be measured
 */
-extern ENGINE_API void StringSize( UFont* Font, int32& XL, int32& YL, const TCHAR* Text );
+extern ENGINE_API void StringSize( const UFont* Font, int32& XL, int32& YL, const TCHAR* Text );
 
 

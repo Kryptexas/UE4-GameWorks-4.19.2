@@ -12,9 +12,12 @@ public:
 	virtual bool HasActions(const TArray<UObject*>& InObjects) const override { return true; }
 	virtual void GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder) override;
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
-	virtual uint32 GetCategories() override { return EAssetTypeCategories::MaterialsAndTextures; }
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::UI; }
 
 private:
+	/** Can we execute a reimport for the selected objects? */
+	bool CanExecuteReimport(const TArray<TWeakObjectPtr<UFont>> Objects) const;
+
 	/** Handler for when Reimport is selected */
 	void ExecuteReimport(const TArray<TWeakObjectPtr<UFont>> Objects) const;
 };

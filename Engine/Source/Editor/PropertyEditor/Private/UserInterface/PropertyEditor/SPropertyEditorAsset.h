@@ -18,6 +18,8 @@ public:
 		, _ClassFont( FEditorStyle::GetFontStyle("PropertyEditor.AssetClass.Font") ) 
 		, _AllowClear(true)
 		, _DisplayThumbnail(false)
+		, _DisplayUseSelected(true)
+		, _DisplayBrowse(true)
 		, _ThumbnailPool(NULL)
 		, _ThumbnailSize( FIntPoint(64, 64) )
 		, _ObjectPath()
@@ -29,6 +31,8 @@ public:
 		SLATE_ATTRIBUTE( FSlateFontInfo, ClassFont )
 		SLATE_ARGUMENT( bool, AllowClear )
 		SLATE_ARGUMENT( bool, DisplayThumbnail )
+		SLATE_ARGUMENT( bool, DisplayUseSelected )
+		SLATE_ARGUMENT( bool, DisplayBrowse )
 		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
 		SLATE_ARGUMENT( FIntPoint, ThumbnailSize )
 		SLATE_ATTRIBUTE( FString, ObjectPath )
@@ -251,6 +255,9 @@ private:
 
 	/** The class of the object we are editing */
 	UClass* ObjectClass;
+
+	/** Classes that can be used with this property */
+	TArray<const UClass*> CustomClassFilters;
 
 	/** A list of the factories we can use to create new assets */
 	TArray<UFactory*> NewAssetFactories;

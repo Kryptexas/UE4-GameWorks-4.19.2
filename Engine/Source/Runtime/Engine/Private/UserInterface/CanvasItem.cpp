@@ -8,7 +8,6 @@
 #include "CanvasItem.h"
 #include "TileRendering.h"
 #include "RHIStaticStates.h"
-#include "EnginePrivate.h"
 #include "Internationalization.h"
 
 
@@ -774,9 +773,6 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 		return;
 	}
 
-	XScale = Scale.X;
-	YScale = Scale.Y;
-
 	bool bHasShadow = ShadowOffset.Size() != 0.0f;
 	if( ( FontRenderInfo.bEnableShadow == true ) && ( bHasShadow == false ) )
 	{
@@ -800,10 +796,12 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 		{
 			bHasShadow = false;
 		}
-	}	
-
-	CharIncrement = ( (float)Font->Kerning + HorizSpacingAdjust ) * Scale.X;
-	DrawnSize.Y = Font->GetMaxCharHeight() * Scale.Y;
+	}
+	if (GetFontCacheType() == EFontCacheType::Runtime)
+	{
+		// The runtime font cache uses an alpha-only texture, so we have to force this blend mode so we use the correct shader
+		BlendMode = SE_BLEND_TranslucentAlphaOnly;
+	}
 
 	FVector2D DrawPos( Position.X , Position.Y );
 
@@ -843,7 +841,6 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 	
 	FLinearColor DrawColor;
 	BatchedElements = NULL;
-	TextLen = Text.ToString().Len();
 	if( bOutlined )
 	{
 		DrawColor = OutlineColor;
@@ -865,21 +862,52 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 	DrawColor = Color;
 	DrawColor.A *= InCanvas->AlphaModulate;	
 	DrawStringInternal( InCanvas, DrawPos, DrawColor );
-	
-	return;
 }
 
-void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& InColour )
+EFontCacheType FCanvasTextItem::GetFontCacheType() const
 {
-	DrawnSize = FVector2D(EForceInit::ForceInitToZero);
+	return Font->FontCacheType;
+}
+
+void FCanvasTextItem::DrawStringInternal( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& InColor )
+{
+	switch(GetFontCacheType())
+	{
+	case EFontCacheType::Offline:
+		DrawStringInternal_OfflineCache(InCanvas, DrawPos, InColor);
+		break;
+
+	case EFontCacheType::Runtime:
+		DrawStringInternal_RuntimeCache(InCanvas, DrawPos, InColor);
+		break;
+
+	default:
+		break;
+	}
+}
+
+void FCanvasTextItem::DrawStringInternal_OfflineCache( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& InColor )
+{
+	DrawnSize = FVector2D::ZeroVector;
+
+	// Nothing to do if no text
+	const FString& TextString = Text.ToString();
+	if( TextString.Len() == 0 )
+	{
+		return;
+	}
+
 	FVector2D CurrentPos = FVector2D(EForceInit::ForceInitToZero);
 	FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
 	FTexture* LastTexture = NULL;
-	UTexture2D* Tex = NULL;
+	UTexture* Tex = NULL;
 	FVector2D InvTextureSize(1.0f,1.0f);
-	const TArray< TCHAR >& Chars = Text.ToString().GetCharArray();
+
+	const float CharIncrement = ( (float)Font->Kerning + HorizSpacingAdjust ) * Scale.X;
+
+	const TArray< TCHAR >& Chars = TextString.GetCharArray();
 	// Draw all characters in string.
-	for( int32 i=0; i < TextLen; i++ )
+	for( int32 i=0; i < TextString.Len(); i++ )
 	{
 		int32 Ch = (int32)Font->RemapChar(Chars[i]);
 
@@ -889,22 +917,22 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 			continue;
 		}
 
-		FFontCharacter& Char = Font->Characters[Ch];
+		const FFontCharacter& Char = Font->Characters[Ch];
 
 		if (DrawnSize.Y == 0)
 		{
 			// We have a valid character so initialize vertical DrawnSize
-			DrawnSize.Y = Font->GetMaxCharHeight() * YScale;
+			DrawnSize.Y = Font->GetMaxCharHeight() * Scale.Y;
 		}
 
 		if (FChar::IsLinebreak(Chars[i]))
 		{
 			// Set current character offset to the beginning of next line.
 			CurrentPos.X = 0.0f;
-			CurrentPos.Y += Font->GetMaxCharHeight() * YScale;
+			CurrentPos.Y += Font->GetMaxCharHeight() * Scale.Y;
 
 			// Increase the vertical DrawnSize
-			DrawnSize.Y += Font->GetMaxCharHeight() * YScale;
+			DrawnSize.Y += Font->GetMaxCharHeight() * Scale.Y;
 
 			// Don't draw newline character
 			continue;
@@ -924,16 +952,15 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 				//BatchedElements->AddReserveTriangles(TextLen*2,Tex->Resource,BlendMode);
 				//BatchedElements->AddReserveVertices(TextLen*4);
 
-				FIntPoint ImportedTextureSize = Tex->GetImportedSize();
-				InvTextureSize.X = 1.0f / (float)ImportedTextureSize.X;
-				InvTextureSize.Y = 1.0f / (float)ImportedTextureSize.Y;
+				InvTextureSize.X = 1.0f / Tex->GetSurfaceWidth();
+				InvTextureSize.Y = 1.0f / Tex->GetSurfaceHeight();
 			}
 			LastTexture = Tex->Resource;
 
 			const float X		= CurrentPos.X + DrawPos.X;
-			const float Y		= CurrentPos.Y + DrawPos.Y + Char.VerticalOffset * YScale;
-			float SizeX			= Char.USize * XScale;
-			const float SizeY	= Char.VSize * YScale;
+			const float Y		= CurrentPos.Y + DrawPos.Y + Char.VerticalOffset * Scale.Y;
+			float SizeX			= Char.USize * Scale.X;
+			const float SizeY	= Char.VSize * Scale.Y;
 			const float U		= Char.StartU * InvTextureSize.X;
 			const float V		= Char.StartV * InvTextureSize.Y;
 			const float SizeU	= Char.USize * InvTextureSize.X;
@@ -948,22 +975,22 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 			int32 V00 = BatchedElements->AddVertex(
 				FVector4( Left, Top, 0.f, Depth ),
 				FVector2D( U, V ),
-				InColour,
+				InColor,
 				HitProxyId );
 			int32 V10 = BatchedElements->AddVertex(
 				FVector4( Right, Top, 0.0f, Depth ),
 				FVector2D( U + SizeU, V ),			
-				InColour,
+				InColor,
 				HitProxyId );
 			int32 V01 = BatchedElements->AddVertex(
 				FVector4( Left, Bottom, 0.0f, Depth ),
 				FVector2D( U, V + SizeV ),	
-				InColour,
+				InColor,
 				HitProxyId);
 			int32 V11 = BatchedElements->AddVertex(
 				FVector4( Right, Bottom, 0.0f, Depth ),
 				FVector2D( U + SizeU, V + SizeV ),
-				InColour,
+				InColor,
 				HitProxyId);
 
 			BatchedElements->AddTriangle(V00, V10, V11, Tex->Resource, BlendMode, FontRenderInfo.GlowInfo);
@@ -986,7 +1013,159 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 		}
 	}
 }
-/* Draw the item. */
+
+void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& InColor )
+{
+	DrawnSize = FVector2D::ZeroVector;
+
+	// Nothing to do if no text
+	const FString& TextString = Text.ToString();
+	if( TextString.Len() == 0 )
+	{
+		return;
+	}
+
+	TSharedRef<FSlateFontCache> FontCache = FSlateApplication::Get().GetRenderer()->GetFontCache();
+	
+	const float FontScale = 1.0f;
+	const FSlateFontInfo LegacyFontInfo = (SlateFontInfo.IsSet()) ? SlateFontInfo.GetValue() : Font->GetLegacySlateFontInfo();
+	FCharacterList& CharacterList = FontCache->GetCharacterList( LegacyFontInfo, FontScale );
+
+	const float MaxHeight = CharacterList.GetMaxHeight();
+
+	FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
+
+	uint32 FontTextureIndex = 0;
+	FTextureResource* FontTexture = nullptr;
+
+	float InvTextureSizeX = 0;
+	float InvTextureSizeY = 0;
+
+	float LineX = 0;
+
+	TCHAR PreviousChar = 0;
+
+	int32 Kerning = 0;
+
+	FVector2D TopLeft(0,0);
+
+	const float PosX = TopLeft.X;
+	float PosY = TopLeft.Y;
+
+	const float ScaledHorizSpacingAdjust = HorizSpacingAdjust * Scale.X;
+
+	LineX = PosX;
+	
+	for( int32 CharIndex = 0; CharIndex < TextString.Len(); ++CharIndex )
+	{
+		const TCHAR CurrentChar = TextString[ CharIndex ];
+
+		if (DrawnSize.Y == 0)
+		{
+			// We have a valid character so initialize vertical DrawnSize
+			DrawnSize.Y = MaxHeight;
+		}
+
+		const bool IsNewline = (CurrentChar == '\n');
+
+		if (IsNewline)
+		{
+			// Move down: we are drawing the next line.
+			PosY += MaxHeight;
+			// Carriage return 
+			LineX = PosX;
+			// Increase the vertical DrawnSize
+			DrawnSize.Y += MaxHeight;
+		}
+		else
+		{
+			const FCharacterEntry& Entry = CharacterList[ CurrentChar ];
+
+			if( FontTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
+			{
+				// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
+				FontTextureIndex = Entry.TextureIndex;
+				FontTexture = FontCache->GetEngineTextureResource( FontTextureIndex );
+				check(FontTexture);
+
+				FBatchedElementParameters* BatchedElementParameters = nullptr;
+				BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+				check(BatchedElements);
+
+				InvTextureSizeX = 1.0f/FontTexture->GetSizeX();
+				InvTextureSizeY = 1.0f/FontTexture->GetSizeY();
+			}
+
+			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
+
+			if( !bIsWhitespace && CharIndex > 0 )
+			{
+				Kerning = CharacterList.GetKerning( PreviousChar, CurrentChar );
+			}
+			else
+			{
+				Kerning = 0;
+			}
+
+			LineX += Kerning;
+			PreviousChar = CurrentChar;
+
+			if( !bIsWhitespace )
+			{
+				const float X = LineX + Entry.HorizontalOffset + DrawPos.X;
+				// Note PosX,PosY is the upper left corner of the bounding box representing the string.  This computes the Y position of the baseline where text will sit
+
+				const float Y = PosY - Entry.VerticalOffset + MaxHeight + Entry.GlobalDescender + DrawPos.Y;
+				const float U = Entry.StartU * InvTextureSizeX;
+				const float V = Entry.StartV * InvTextureSizeY;
+				const float SizeX = Entry.USize;
+				const float SizeY = Entry.VSize;
+				const float SizeU = Entry.USize * InvTextureSizeX;
+				const float SizeV = Entry.VSize * InvTextureSizeY;
+
+				float Left, Top, Right, Bottom;
+				Left = X * Depth;
+				Top = Y * Depth;
+				Right = (X + SizeX) * Depth;
+				Bottom = (Y + SizeY) * Depth;
+
+				int32 V00 = BatchedElements->AddVertex(
+					FVector4( Left, Top, 0.f, Depth ),
+					FVector2D( U, V ),
+					InColor,
+					HitProxyId );
+				int32 V10 = BatchedElements->AddVertex(
+					FVector4( Right, Top, 0.0f, Depth ),
+					FVector2D( U + SizeU, V ),			
+					InColor,
+					HitProxyId );
+				int32 V01 = BatchedElements->AddVertex(
+					FVector4( Left, Bottom, 0.0f, Depth ),
+					FVector2D( U, V + SizeV ),	
+					InColor,
+					HitProxyId);
+				int32 V11 = BatchedElements->AddVertex(
+					FVector4( Right, Bottom, 0.0f, Depth ),
+					FVector2D( U + SizeU, V + SizeV ),
+					InColor,
+					HitProxyId);
+
+				BatchedElements->AddTriangle(V00, V10, V11, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+				BatchedElements->AddTriangle(V00, V11, V01, FontTexture, BlendMode, FontRenderInfo.GlowInfo);
+			}
+
+			LineX += Entry.XAdvance;
+			LineX += ScaledHorizSpacingAdjust;
+
+			// Increase the Horizontal DrawnSize
+			if (LineX > DrawnSize.X)
+			{
+				DrawnSize.X = LineX;
+			}
+		}
+	}
+}
+
 void FCanvasLineItem::Draw( class FCanvas* InCanvas )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_LineItemTime);

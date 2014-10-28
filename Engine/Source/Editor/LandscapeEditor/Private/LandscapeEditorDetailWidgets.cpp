@@ -151,7 +151,7 @@ void SToolSelector::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FNa
 	const FString MetaTag = FString::Printf(TEXT("LandscapeToolButton.%s"), Label.IsSet() == true ? *Label.Get().ToString() : TEXT("NoLabel"));
 
 	static FTextBlockStyle LabelStyle = FTextBlockStyle(FEditorStyle::GetWidgetStyle< FTextBlockStyle >(FEditorStyle::Join(StyleName, ".Label"))).SetShadowOffset(FVector2D::UnitVector);
-	static FTextBlockStyle SmallTextStyle = FTextBlockStyle(LabelStyle).SetFont(LabelStyle.Font.FontName, LabelStyle.Font.Size - 1).SetColorAndOpacity(FSlateColor::UseSubduedForeground());
+	static FTextBlockStyle SmallTextStyle = FTextBlockStyle(LabelStyle).SetFontSize(LabelStyle.Font.Size - 1).SetColorAndOpacity(FSlateColor::UseSubduedForeground());
 
 	// Create the content for our button
 	TSharedRef< SWidget > ButtonContent =

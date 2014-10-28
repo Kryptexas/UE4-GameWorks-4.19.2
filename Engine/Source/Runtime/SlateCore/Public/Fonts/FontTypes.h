@@ -20,7 +20,10 @@ struct SLATECORE_API FSlateFontKey
 
 	friend inline uint32 GetTypeHash( const FSlateFontKey& Key )
 	{
-		return GetTypeHash(Key.FontInfo) + FCrc::MemCrc32( &Key.Scale, sizeof(float) );
+		uint32 Hash = 0;
+		Hash = HashCombine(Hash, GetTypeHash(Key.FontInfo));
+		Hash = HashCombine(Hash, GetTypeHash(Key.Scale));
+		return Hash;
 	}
 };
 
@@ -70,9 +73,14 @@ public:
 	virtual ~FSlateFontAtlas();
 
 	/**
-	 * Returns the texture resource used by slate
+	 * Returns the texture resource used by Slate
 	 */
-	virtual class FSlateShaderResource* GetTexture() = 0;
+	virtual class FSlateShaderResource* GetSlateTexture() = 0;
+
+	/**
+	 * Returns the texture resource used the Engine
+	 */
+	virtual class FTextureResource* GetEngineTexture() = 0;
 	
 	/**
 	 * Releases rendering resources of this cache

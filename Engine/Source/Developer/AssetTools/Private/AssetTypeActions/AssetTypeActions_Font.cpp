@@ -13,7 +13,10 @@ void FAssetTypeActions_Font::GetActions(const TArray<UObject*>& InObjects, FMenu
 		LOCTEXT("ReimportFontLabel", "Reimport"),
 		LOCTEXT("ReimportFontTooltip", "Reimport the selected font(s)."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
-		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_Font::ExecuteReimport, Fonts))
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_Font::ExecuteReimport, Fonts),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_Font::CanExecuteReimport, Fonts)
+			)
 		);
 }
 
@@ -32,6 +35,24 @@ void FAssetTypeActions_Font::OpenAssetEditor( const TArray<UObject*>& InObjects,
 	}
 }
 
+bool FAssetTypeActions_Font::CanExecuteReimport(const TArray<TWeakObjectPtr<UFont>> Objects) const
+{
+	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		auto Object = (*ObjIt).Get();
+		if (Object)
+		{
+			// We allow a reimport if any of the fonts are using an offline cache
+			if (Object->FontCacheType == EFontCacheType::Offline)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void FAssetTypeActions_Font::ExecuteReimport(const TArray<TWeakObjectPtr<UFont>> Objects) const
 {
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
@@ -39,8 +60,12 @@ void FAssetTypeActions_Font::ExecuteReimport(const TArray<TWeakObjectPtr<UFont>>
 		auto Object = (*ObjIt).Get();
 		if (Object)
 		{
-			// Fonts fail to reimport if they ask for a new file if missing
-			FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/false);
+			// Skip fonts that aren't using an offline cache, as they can't be reimported
+			if (Object->FontCacheType != EFontCacheType::Offline)
+			{
+				// Fonts fail to reimport if they ask for a new file if missing
+				FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/false);
+			}
 		}
 	}
 }

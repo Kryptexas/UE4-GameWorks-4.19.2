@@ -71,6 +71,18 @@ private:
 };
 
 /**
+ * Simple pixel shader that just reads from an alpha-only texture
+ */
+class FSimpleElementAlphaOnlyPS : public FSimpleElementPS
+{
+	DECLARE_SHADER_TYPE(FSimpleElementAlphaOnlyPS, Global);
+public:
+
+	FSimpleElementAlphaOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer);
+	FSimpleElementAlphaOnlyPS() {}
+};
+
+/**
  * A pixel shader for rendering a texture on a simple element.
  */
 class FSimpleElementGammaBasePS : public FSimpleElementPS

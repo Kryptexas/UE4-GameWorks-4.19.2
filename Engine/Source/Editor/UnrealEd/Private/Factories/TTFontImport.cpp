@@ -42,6 +42,7 @@ UTrueTypeFontFactory::UTrueTypeFontFactory(const FObjectInitializer& ObjectIniti
 	bCreateNew = true;
 	bEditAfterNew = true;
 	AutoPriority = -1;
+	LODGroup = TEXTUREGROUP_UI;
 }
 
 void UTrueTypeFontFactory::PostInitProperties()

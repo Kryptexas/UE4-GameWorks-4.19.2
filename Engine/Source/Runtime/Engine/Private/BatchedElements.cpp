@@ -309,6 +309,7 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 	case SE_BLEND_Translucent:
 	case SE_BLEND_TranslucentDistanceField:
 	case SE_BLEND_TranslucentDistanceFieldShadowed:
+	case SE_BLEND_TranslucentAlphaOnly:
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		break;
 	case SE_BLEND_Additive:
@@ -344,6 +345,7 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 	case SE_BLEND_Translucent:
 	case SE_BLEND_TranslucentDistanceField:
 	case SE_BLEND_TranslucentDistanceFieldShadowed:
+	case SE_BLEND_TranslucentAlphaOnly:
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
 		break;
 	case SE_BLEND_Additive:
@@ -362,6 +364,7 @@ FGlobalBoundShaderState FBatchedElements::MaskedBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::DistanceFieldBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::HitTestingBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::ColorChannelMaskShaderState;
+FGlobalBoundShaderState FBatchedElements::AlphaOnlyShaderState;
 
 /** Global alpha ref test value for rendering masked batched elements */
 float GBatchedElementAlphaRefVal = 128.f;
@@ -545,6 +548,17 @@ void FBatchedElements::PrepareShaders(
 				    BlendMode
 				    );
 		    }
+			else if(BlendMode == SE_BLEND_TranslucentAlphaOnly)
+			{
+				SetBlendState(RHICmdList, BlendMode);
+
+				TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					*VertexShader, *AlphaOnlyPixelShader);
+
+				AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
+				AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+			}
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
 				TShaderMapRef<FSimpleElementColorChannelMaskPS> ColorChannelMaskPixelShader(GetGlobalShaderMap(FeatureLevel));

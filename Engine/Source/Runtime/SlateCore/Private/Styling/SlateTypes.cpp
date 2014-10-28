@@ -334,7 +334,7 @@ FSearchBoxStyle::FSearchBoxStyle()
 FSearchBoxStyle& FSearchBoxStyle::SetTextBoxStyle( const FEditableTextBoxStyle& InTextBoxStyle )
 { 
 	TextBoxStyle = InTextBoxStyle;
-	if (ActiveFontInfo.FontName.IsNone())
+	if (!ActiveFontInfo.HasValidFont())
 	{
 		ActiveFontInfo = TextBoxStyle.Font;
 	}

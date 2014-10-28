@@ -65,7 +65,8 @@ public:
 
 	/** FSlateFontAtlas interface */
 	virtual void ConditionalUpdateTexture();
-	virtual class FSlateShaderResource* GetTexture() { return FontTexture; }
+	virtual class FSlateShaderResource* GetSlateTexture() override { return FontTexture; }
+	virtual class FTextureResource* GetEngineTexture() override { return nullptr; }
 private:
 	/** Texture used for rendering */
 	FSlateD3DTexture* FontTexture;

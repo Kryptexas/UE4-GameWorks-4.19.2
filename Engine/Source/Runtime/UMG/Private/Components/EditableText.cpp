@@ -38,16 +38,9 @@ void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-	
 	MyEditableText = SNew(SEditableText)
 	.Style(&WidgetStyle)
-	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.Font(Font)
 	.MinDesiredWidth(MinimumDesiredWidth)
 	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)

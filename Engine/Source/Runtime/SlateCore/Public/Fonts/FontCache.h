@@ -7,7 +7,7 @@ class FFreeTypeInterface;
 
 
 /** Information for rendering one character */
-struct FCharacterEntry
+struct SLATECORE_API FCharacterEntry
 {
 	/** Start X location of the character in the texture */
 	float StartU;
@@ -46,7 +46,7 @@ struct FCharacterEntry
 	}
 };
 
-struct FKerningPair
+struct SLATECORE_API FKerningPair
 {
 	TCHAR First;
 	TCHAR Second;
@@ -73,7 +73,7 @@ class FSlateFontCache;
 /**
  * A Kerning table for a single font key
  */
-class FKerningTable
+class SLATECORE_API FKerningTable
 {
 public:
 	FKerningTable( const FSlateFontKey& InFont, const FSlateFontCache& InFontCache );
@@ -112,7 +112,7 @@ private:
  * Every character indexed by TCHAR could potentially cost a lot of memory of a lot of empty entries are created
  * because characters being used are far apart
  */
-class FCharacterList
+class SLATECORE_API FCharacterList
 {
 public:
 	FCharacterList( const FSlateFontKey& InFontKey, const FSlateFontCache& InFontCache );
@@ -166,6 +166,9 @@ public:
 		}
 	}
 
+	/** Check to see if our cached data is potentially stale for our font */
+	bool IsStale() const;
+
 	/**
 	 * Gets a kerning value for a pair of characters
 	 *
@@ -209,6 +212,8 @@ private:
 	FSlateFontKey FontKey;
 	/** Reference to the font cache for accessing new unseen characters */
 	const class FSlateFontCache& FontCache;
+	/** The history revision of the cached composite font */
+	int32 CompositeFontHistoryRevision;
 	/** Number of directly indexed entries */
 	int32 MaxDirectIndexedEntries;
 	/** The global max height for any character in this font */
@@ -253,6 +258,11 @@ public:
 	 */
 	bool AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry ) const;
 
+	/**
+	 * Flush the given object out of the cache
+	 */
+	void FlushObject( const UObject* const InObject );
+
 	/** 
 	 * Flush the cache if needed
 	 */
@@ -274,22 +284,33 @@ public:
 	 * @param Index	The index of the texture 
 	 * @return Handle to the texture resource
 	 */
-	FSlateShaderResource* GetTextureResource( uint32 Index ) { return FontAtlases[Index]->GetTexture(); }
+	class FSlateShaderResource* GetSlateTextureResource( uint32 Index ) { return FontAtlases[Index]->GetSlateTexture(); }
+	class FTextureResource* GetEngineTextureResource( uint32 Index ) { return FontAtlases[Index]->GetEngineTexture(); }
 
 	/**
 	 * Calculates the kerning amount for a pair of characters
 	 *
-	 * @param First		The first character in the pair
-	 * @param Second	The second character in the pair
-	 * @oaran FontKey	The font to get kerning from
+	 * @param First			The first character in the pair
+	 * @param Second		The second character in the pair
+	 * @param InFontInfo	Information about the font that used to draw the string with the first and second characters
 	 * @return The kerning amount, 0 if no kerning
 	 */
-	int8 GetKerning( TCHAR First, TCHAR Second, const FSlateFontKey& FontKey ) const;
+	int8 GetKerning( TCHAR First, TCHAR Second, const FSlateFontInfo& InFontInfo, float Scale ) const;
 
 	/**
-	 * @return Whether or not a font has kerning information
+	 * @return Whether or not the font has kerning information (this checks both the default font as well as any sub-fonts)
 	 */
 	bool HasKerning( const FSlateFontInfo& InFontInfo ) const;
+
+	/**
+	 * @return Whether or not the typeface has kerning information
+	 */
+	bool HasKerning( const FTypeface& InTypeface ) const;
+
+	/**
+	 * @return Whether or not the font has kerning information
+	 */
+	bool HasKerning( const FFontData& InFontData ) const;
 
 	/**
 	 * Returns the height of the largest character in the font. 
@@ -310,6 +331,15 @@ public:
 	 * @return The offset from the bottom of the max character height to the baseline.
 	 */
 	uint16 GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const;
+
+	/**
+	 * Returns the font attributes for the specified font.
+	 *
+	 * @param InFontData	The font to get attributes for 
+	 * 
+	 * @return The font attributes for the specified font.
+	 */
+	const TSet<FName>& GetFontAttributes( const FFontData& InFontData ) const;
 
 	/**
 	 * Clears all cached data from the cache

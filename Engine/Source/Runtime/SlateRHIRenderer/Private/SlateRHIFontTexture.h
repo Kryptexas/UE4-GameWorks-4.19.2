@@ -8,7 +8,7 @@
  * ensure all characters in the font texture exist if the rendering resource has to be recreated 
  * between caching new characters
  */
-class FSlateFontTextureRHI : public FSlateTexture2DRHIRef
+class FSlateFontTextureRHI : public TSlateTexture<FTexture2DRHIRef>, public FSlateUpdatableTexture, public FTextureResource
 {
 public:
 	/** Constructor.  Initializes the texture
@@ -18,10 +18,29 @@ public:
 	 */
 	FSlateFontTextureRHI( uint32 InWidth, uint32 InHeight );
 
+	/** FSlateShaderResource interface */
+	virtual uint32 GetWidth() const override { return Width; }
+	virtual uint32 GetHeight() const override { return Height; }
+
+	/** FSlateUpdatableTexture interface */
+	virtual FSlateShaderResource* GetSlateResource() override { return this; }
+	virtual FRenderResource* GetRenderResource() override { return this; }
+	virtual void ResizeTexture( uint32 InWidth, uint32 InHeight ) override;
+	virtual void UpdateTexture( const TArray<uint8>& InBytes ) override;
+
+	/** FTextureResource interface */
+	virtual uint32 GetSizeX() const override { return Width; }
+	virtual uint32 GetSizeY() const override { return Height; }
+	virtual FString GetFriendlyName() const override { return TEXT("FSlateFontTextureRHI"); }
+
 	/** FRenderResource interface */
 	virtual void InitDynamicRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 private:
+	/** Width of this texture */
+	uint32 Width;
+	/** Height of this texture */
+	uint32 Height;
 	/** Temporary data stored between Release and InitDynamicRHI */
 	TArray<uint8> TempData;
 };
@@ -38,10 +57,10 @@ public:
 	/**
 	 * FSlateFontAtlas interface 
 	 */
-	virtual class FSlateShaderResource* GetTexture()  override { return FontTexture; }
+	virtual class FSlateShaderResource* GetSlateTexture() override { return FontTexture.Get(); }
+	virtual class FTextureResource* GetEngineTexture() override { return FontTexture.Get(); }
 	virtual void ConditionalUpdateTexture()  override;
 	virtual void ReleaseResources() override;
 private:
-	FSlateTexture2DRHIRef* FontTexture;
-
+	TUniquePtr<FSlateFontTextureRHI> FontTexture;
 };

@@ -5,6 +5,7 @@
 #include "Toolkits/IToolkitHost.h"
 #include "SColorPicker.h"
 #include "SFontEditorViewport.h"
+#include "SCompositeFontEditor.h"
 #include "FontEditor.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MainFrame.h"
@@ -19,7 +20,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogFontEditor, Log, All);
 
 FString FFontEditor::LastPath;
 
-const FName FFontEditor::ViewportTabId( TEXT( "FontEditor_FontViewport" ) );
+const FName FFontEditor::TexturePagesViewportTabId( TEXT( "FontEditor_TexturePagesViewport" ) );
+const FName FFontEditor::CompositeFontEditorTabId( TEXT( "FontEditor_CompositeFontEditor" ) );
 const FName FFontEditor::PreviewTabId( TEXT( "FontEditor_FontPreview" ) );
 const FName FFontEditor::PropertiesTabId( TEXT( "FontEditor_FontProperties" ) );
 const FName FFontEditor::PagePropertiesTabId( TEXT( "FontEditor_FontPageProperties" ) );
@@ -77,10 +79,17 @@ void FFontEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabMa
 
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
 
-	TabManager->RegisterTabSpawner( ViewportTabId,		FOnSpawnTab::CreateSP(this, &FFontEditor::SpawnTab_Viewport) )
-		.SetDisplayName( LOCTEXT("ViewportTab", "Viewport") )
+	TabManager->RegisterTabSpawner( TexturePagesViewportTabId, FOnSpawnTab::CreateSP(this, &FFontEditor::SpawnTab_TexturePagesViewport) )
+		.SetDisplayName( LOCTEXT("TexturePagesViewportTab", "Texture Pages") )
 		.SetGroup(WorkspaceMenuCategoryRef)
-		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"))
+		.SetMenuType( TAttribute<ETabSpawnerMenuType::Type>::Create(TAttribute<ETabSpawnerMenuType::Type>::FGetter::CreateSP(this, &FFontEditor::GetTabSpawnerMenuType, TexturePagesViewportTabId)) );
+
+	TabManager->RegisterTabSpawner( CompositeFontEditorTabId, FOnSpawnTab::CreateSP(this, &FFontEditor::SpawnTab_CompositeFontEditor) )
+		.SetDisplayName( LOCTEXT("CompositeFontEditorTab", "Composite Font") )
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "FontEditor.Tabs.PageProperties"))
+		.SetMenuType( TAttribute<ETabSpawnerMenuType::Type>::Create(TAttribute<ETabSpawnerMenuType::Type>::FGetter::CreateSP(this, &FFontEditor::GetTabSpawnerMenuType, CompositeFontEditorTabId)) );
 
 	TabManager->RegisterTabSpawner( PreviewTabId,		FOnSpawnTab::CreateSP(this, &FFontEditor::SpawnTab_Preview) )
 		.SetDisplayName( LOCTEXT("PreviewTab", "Preview") )
@@ -95,14 +104,16 @@ void FFontEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabMa
 	TabManager->RegisterTabSpawner( PagePropertiesTabId,FOnSpawnTab::CreateSP(this, &FFontEditor::SpawnTab_PageProperties) )
 		.SetDisplayName( LOCTEXT("PagePropertiesTab", "Page Details") )
 		.SetGroup(WorkspaceMenuCategoryRef)
-		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "FontEditor.Tabs.PageProperties"));
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "FontEditor.Tabs.PageProperties"))
+		.SetMenuType( TAttribute<ETabSpawnerMenuType::Type>::Create(TAttribute<ETabSpawnerMenuType::Type>::FGetter::CreateSP(this, &FFontEditor::GetTabSpawnerMenuType, PagePropertiesTabId)) );
 }
 
 void FFontEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
 	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
 
-	TabManager->UnregisterTabSpawner( ViewportTabId );	
+	TabManager->UnregisterTabSpawner( TexturePagesViewportTabId );
+	TabManager->UnregisterTabSpawner( CompositeFontEditorTabId );
 	TabManager->UnregisterTabSpawner( PreviewTabId );	
 	TabManager->UnregisterTabSpawner( PropertiesTabId );
 	TabManager->UnregisterTabSpawner( PagePropertiesTabId );
@@ -154,7 +165,7 @@ void FFontEditor::InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr
 
 	CreateInternalWidgets();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_FontEditor_Layout_v2")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_FontEditor_Layout_v3")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation( Orient_Vertical )
@@ -172,7 +183,8 @@ void FFontEditor::InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr
 				->Split
 				(
 					FTabManager::NewStack() ->SetSizeCoefficient(0.85f)
-					->AddTab( ViewportTabId, ETabState::OpenedTab ) ->SetHideTabWell( true )
+					->AddTab( TexturePagesViewportTabId, ETabState::OpenedTab )
+					->AddTab( CompositeFontEditorTabId, ETabState::OpenedTab )
 				)
 				->Split
 				(
@@ -207,11 +219,14 @@ void FFontEditor::InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
 
+	UpdateLayout();
+
 	// @todo toolkit world centric editing
 	/*if(IsWorldCentricAssetEditor())
 	{
 		SpawnToolkitTab(GetToolbarTabId(), FString(), EToolkitTabSpot::ToolBar);
-		SpawnToolkitTab(ViewportTabId, FString(), EToolkitTabSpot::Viewport);
+		SpawnToolkitTab(TexturePagesViewportTabId, FString(), EToolkitTabSpot::Viewport);
+		SpawnToolkitTab(CompositeFontEditorTabId, FString(), EToolkitTabSpot::Viewport);
 		SpawnToolkitTab(PreviewTabId, FString(), EToolkitTabSpot::Viewport);
 		SpawnToolkitTab(PropertiesTabId, FString(), EToolkitTabSpot::Details);
 		SpawnToolkitTab(PagePropertiesTabId, FString(), EToolkitTabSpot::Details);
@@ -253,14 +268,29 @@ FLinearColor FFontEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
-TSharedRef<SDockTab> FFontEditor::SpawnTab_Viewport( const FSpawnTabArgs& Args )
+TSharedRef<SDockTab> FFontEditor::SpawnTab_TexturePagesViewport( const FSpawnTabArgs& Args )
 {
-	check( Args.GetTabId().TabType == ViewportTabId );
+	check( Args.GetTabId().TabType == TexturePagesViewportTabId );
 
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
-		.Label(LOCTEXT("FontViewportTitle", "Viewport"))
+		.Label(LOCTEXT("TexturePagesViewportTitle", "Texture Pages"))
 		[
 			FontViewport.ToSharedRef()
+		];
+
+	AddToSpawnedToolPanels( Args.GetTabId().TabType, SpawnedTab );
+
+	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> FFontEditor::SpawnTab_CompositeFontEditor( const FSpawnTabArgs& Args )
+{
+	check( Args.GetTabId().TabType == CompositeFontEditorTabId );
+
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Label(LOCTEXT("CompositeFontEditorTitle", "Composite Font"))
+		[
+			CompositeFontEditor.ToSharedRef()
 		];
 
 	AddToSpawnedToolPanels( Args.GetTabId().TabType, SpawnedTab );
@@ -344,19 +374,133 @@ void FFontEditor::OnPreviewTextChanged(const FText& Text)
 
 void FFontEditor::PostUndo(bool bSuccess)
 {
+	// Make sure we're using the correct layout, as the undo/redo may have changed the font cache type property
+	UpdateLayout();
+
+	CompositeFontEditor->Refresh();
 	FontPreviewWidget->RefreshViewport();
 }
 
 void FFontEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged)
 {
-	FontViewport->RefreshViewport();
+	static const FName FontCacheTypePropertyName("FontCacheType");
+	static const FName CompositeFontPropertyName("CompositeFont");
+
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == FontCacheTypePropertyName)
+	{
+		// Show a warning message, as what we're about to do will destroy any existing data in this font object
+		const EAppReturnType::Type DlgResult = OpenMsgDlgInt(
+			EAppMsgType::YesNo, 
+			LOCTEXT("ChangeCacheTypeWarningMsg", "Changing the cache type will cause this font to be reinitialized (discarding any existing data).\n\nAre you sure you want to proceed?"), 
+			LOCTEXT("ChangeCacheTypeWarningTitle", "Really change the font cache type?")
+			);
+
+		bool bSuccessfullyChangedCacheType = false;
+		if(DlgResult == EAppReturnType::Yes)
+		{
+			bSuccessfullyChangedCacheType = RecreateFontObject(Font->FontCacheType);
+		}
+
+		if(bSuccessfullyChangedCacheType)
+		{
+			CompositeFontEditor->Refresh();
+
+			// If we changed the font cache type, then we need to update the UI to hide the invalid tabs and spawn the new ones
+			UpdateLayout();
+		}
+		else
+		{
+			// Restore the old font cache type
+			switch(Font->FontCacheType)
+			{
+			case EFontCacheType::Offline:
+				Font->FontCacheType = EFontCacheType::Runtime;
+				break;
+
+			case EFontCacheType::Runtime:
+				Font->FontCacheType = EFontCacheType::Offline;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	// If we changed a property of the composite font, we need to refresh the composite font editor
+	if(PropertyThatChanged && PropertyThatChanged->GetHead()->GetValue()->GetFName() == CompositeFontPropertyName)
+	{
+		CompositeFontEditor->Refresh();
+	}
+
+	if(Font->FontCacheType == EFontCacheType::Offline)
+	{
+		FontViewport->RefreshViewport();
+	}
+
 	FontPreviewWidget->RefreshViewport();
+}
+
+void FFontEditor::UpdateLayout()
+{
+	if(CurrentEditorLayout.IsSet() && CurrentEditorLayout.GetValue() == Font->FontCacheType)
+	{
+		return;
+	}
+
+	auto CloseTab = [this](const FName& TabName)
+	{
+		TWeakPtr<SDockTab>* const FoundExistingTab = SpawnedToolPanels.Find(TabName);
+		if(FoundExistingTab)
+		{
+			TSharedPtr<SDockTab> ExistingTab = FoundExistingTab->Pin();
+			if(ExistingTab.IsValid())
+			{
+				ExistingTab->RequestCloseTab();
+			}
+		}
+	};
+
+	switch(Font->FontCacheType)
+	{
+	case EFontCacheType::Offline:
+		TabManager->InvokeTab(TexturePagesViewportTabId);
+		TabManager->InvokeTab(PagePropertiesTabId);
+		CloseTab(CompositeFontEditorTabId);
+		break;
+
+	case EFontCacheType::Runtime:
+		TabManager->InvokeTab(CompositeFontEditorTabId);
+		CloseTab(TexturePagesViewportTabId);
+		CloseTab(PagePropertiesTabId);
+		break;
+
+	default:
+		break;
+	}
+
+	CurrentEditorLayout = Font->FontCacheType;
+}
+
+ETabSpawnerMenuType::Type FFontEditor::GetTabSpawnerMenuType( FName InTabName ) const
+{
+	if( (Font->FontCacheType == EFontCacheType::Offline && (InTabName == CompositeFontEditorTabId)) ||
+		(Font->FontCacheType == EFontCacheType::Runtime && (InTabName == TexturePagesViewportTabId || InTabName == PagePropertiesTabId)))
+	{
+		return ETabSpawnerMenuType::Hidden;
+	}
+
+	return ETabSpawnerMenuType::Enabled;
 }
 
 void FFontEditor::CreateInternalWidgets()
 {
 	FontViewport = 
 	SNew(SFontEditorViewport)
+	.FontEditor(SharedThis(this));
+
+	CompositeFontEditor = 
+	SNew(SCompositeFontEditor)
 	.FontEditor(SharedThis(this));
 
 	FontPreview =
@@ -440,7 +584,8 @@ void FFontEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.UpdateAll,
-		FExecuteAction::CreateSP(this, &FFontEditor::OnUpdateAll));
+		FExecuteAction::CreateSP(this, &FFontEditor::OnUpdateAll),
+		FCanExecuteAction::CreateSP(this, &FFontEditor::OnUpdateAllEnabled));
 
 	ToolkitCommands->MapAction(
 		Commands.ExportPage,
@@ -449,7 +594,8 @@ void FFontEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.ExportAllPages,
-		FExecuteAction::CreateSP(this, &FFontEditor::OnExportAll));
+		FExecuteAction::CreateSP(this, &FFontEditor::OnExportAll),
+		FCanExecuteAction::CreateSP(this, &FFontEditor::OnExportAllEnabled));
 
 	ToolkitCommands->MapAction(
 		Commands.FontBackgroundColor,
@@ -518,7 +664,7 @@ void FFontEditor::OnUpdate()
 
 bool FFontEditor::OnUpdateEnabled() const
 {
-	return FontViewport->GetCurrentSelectedPage() != INDEX_NONE;
+	return Font->FontCacheType == EFontCacheType::Offline && FontViewport->GetCurrentSelectedPage() != INDEX_NONE;
 }
 
 void FFontEditor::OnUpdateAll()
@@ -578,6 +724,11 @@ void FFontEditor::OnUpdateAll()
 	FontPreviewWidget->RefreshViewport();
 }
 
+bool FFontEditor::OnUpdateAllEnabled() const
+{
+	return Font->FontCacheType == EFontCacheType::Offline;
+}
+
 void FFontEditor::OnExport()
 {
 	int32 CurrentSelectedPage = FontViewport->GetCurrentSelectedPage();
@@ -621,7 +772,7 @@ void FFontEditor::OnExport()
 
 bool FFontEditor::OnExportEnabled() const
 {
-	return FontViewport->GetCurrentSelectedPage() != INDEX_NONE;
+	return Font->FontCacheType == EFontCacheType::Offline && FontViewport->GetCurrentSelectedPage() != INDEX_NONE;
 }
 
 void FFontEditor::OnExportAll()
@@ -662,6 +813,11 @@ void FFontEditor::OnExportAll()
 		}
 	}
 	}
+}
+
+bool FFontEditor::OnExportAllEnabled() const
+{
+	return Font->FontCacheType == EFontCacheType::Offline;
 }
 
 void FFontEditor::OnBackgroundColor()
@@ -798,9 +954,53 @@ void FFontEditor::OnObjectReimported(UObject* InObject)
 	}
 }
 
+bool FFontEditor::RecreateFontObject(const EFontCacheType NewCacheType)
+{
+	bool bSuccess = false;
+
+	UFactory* FontFactoryPtr = nullptr;
+
+	switch(NewCacheType)
+	{
+	case EFontCacheType::Offline:
+		// UTrueTypeFontFactory will create a new font object using a texture generated from a user-selection font
+		FontFactoryPtr = ConstructObject<UTrueTypeFontFactory>(UTrueTypeFontFactory::StaticClass());
+		break;
+
+	case EFontCacheType::Runtime:
+		// UFontFactory will create an empty font ready to add new font files to
+		FontFactoryPtr = ConstructObject<UFontFactory>(UFontFactory::StaticClass());
+		break;
+
+	default:
+		break;
+	}
+
+	if(FontFactoryPtr && FontFactoryPtr->ConfigureProperties())
+	{
+		bSuccess = UFactory::StaticImportObject(Font->GetClass(), Font->GetOuter(), *Font->GetName(), RF_Public|RF_Standalone, TEXT(""), nullptr, FontFactoryPtr) != nullptr;
+	}
+
+	if(bSuccess)
+	{
+		Font->PostEditChange();
+		GEditor->BroadcastObjectReimported(Font);
+	}
+
+	// Let listeners know whether the reimport was successful or not
+	FReimportManager::Instance()->OnPostReimport().Broadcast(Font, bSuccess);
+
+	return bSuccess;
+}
+
 bool FFontEditor::ShouldPromptForNewFilesOnReload(const UObject& EditingObject) const
 {
 	return false;
+}
+
+void FFontEditor::RefreshPreview()
+{
+	FontPreviewWidget->RefreshViewport();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -33,17 +33,10 @@ void UMultiLineEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-	
 	MyEditableTextBlock = SNew(SMultiLineEditableTextBox)
 		.Style(&WidgetStyle)
 		.TextStyle(&TextStyle)
-		.Font(FSlateFontInfo(FontPath, Font.Size))
+		.Font(Font)
 		.Justification(Justification)
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)

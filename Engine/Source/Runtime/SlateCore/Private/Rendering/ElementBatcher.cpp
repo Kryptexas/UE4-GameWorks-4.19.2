@@ -560,7 +560,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 				// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
 				FontTextureIndex = Entry.TextureIndex;
 
-				FontTexture = FontCache.GetTextureResource( FontTextureIndex );
+				FontTexture = FontCache.GetSlateTextureResource( FontTextureIndex );
 				ElementBatch = &FindBatchForElement( Layer, FShaderParams(), FontTexture, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
 
 				BatchVertices = &BatchVertexArrays[ElementBatch->VertexArrayIndex];

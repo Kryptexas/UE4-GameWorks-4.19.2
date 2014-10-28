@@ -5,15 +5,15 @@
 //=============================================================================
 
 #pragma once
-#include "FontFactory.generated.h"
+#include "FontFileImportFactory.generated.h"
 
 UCLASS()
-class UNREALED_API UFontFactory : public UFactory
+class UNREALED_API UFontFileImportFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
 	// Begin UFactory Interface
-	virtual UObject* FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
+	virtual UObject* FactoryCreateBinary(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn) override;
 	// Begin UFactory Interface	
 };
 

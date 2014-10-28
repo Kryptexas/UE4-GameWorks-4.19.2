@@ -58,6 +58,8 @@ public:
 	SLATE_BEGIN_ARGS( SObjectPropertyEntryBox )
 		: _AllowedClass( UObject::StaticClass() )
 		, _AllowClear( true )
+		, _DisplayUseSelected( true )
+		, _DisplayBrowse( true )
 	{}
 		/** The path to the object */
 		SLATE_ATTRIBUTE( FString, ObjectPath )
@@ -77,6 +79,10 @@ public:
 		SLATE_EVENT(FOnShouldFilterAsset, OnShouldFilterAsset)
 		/** Whether the asset can be 'None' */
 		SLATE_ARGUMENT(bool, AllowClear)
+		/** Whether to show the 'Use Selected' button */
+		SLATE_ARGUMENT(bool, DisplayUseSelected)
+		/** Whether to show the 'Browse' button */
+		SLATE_ARGUMENT(bool, DisplayBrowse)
 	SLATE_END_ARGS()
 
 	PROPERTYEDITOR_API void Construct( const FArguments& InArgs );

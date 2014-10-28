@@ -70,19 +70,12 @@ void UTextBlock::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-
 	TAttribute<FText> TextBinding = OPTIONAL_BINDING(FText, Text);
 	TAttribute<FSlateColor> ColorAndOpacityBinding = OPTIONAL_BINDING(FSlateColor, ColorAndOpacity);
 	TAttribute<FLinearColor> ShadowColorAndOpacityBinding = OPTIONAL_BINDING(FLinearColor, ShadowColorAndOpacity);
 
 	MyTextBlock->SetText(TextBinding);
-	MyTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
+	MyTextBlock->SetFont(Font);
 	MyTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
 	MyTextBlock->SetShadowOffset(ShadowOffset);
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);

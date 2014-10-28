@@ -27,16 +27,9 @@ void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-	
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
 	.TextStyle(&WidgetStyle)
-	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.Font(Font)
 	.Justification(Justification)
 	.WrapTextAt( WrapTextAt )
 	.AutoWrapText( bAutoWrapText )

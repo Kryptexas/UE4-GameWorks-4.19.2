@@ -633,6 +633,12 @@ void FCanvas::Flush_GameThread(bool bForce)
 		return;
 	}
 
+	// Update the font cache with new text before elements are drawn
+	{
+		TSharedRef<FSlateFontCache> FontCache = FSlateApplication::Get().GetRenderer()->GetFontCache();
+		FontCache->UpdateCache();
+	}
+
 	// FCanvasSortElement compare class
 	struct FCompareFCanvasSortElement
 	{
@@ -894,7 +900,7 @@ int32 FCanvas::DrawShadowedText( float StartX,float StartY,const FText& Text,cla
 }
 
 
-ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
+ENGINE_API void StringSize(const UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
 {
 	// this functionality has been moved to a static function in UIString
 	FTextSizingParameters Parameters(Font,1.f,1.f);
@@ -911,7 +917,7 @@ ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
  * @param	DefaultCharHeight	[out] will be set to the height of the typical character
  * @param	pDefaultChar		if specified, pointer to a single character to use for calculating the default character size
  */
-static void GetDefaultCharSize( UFont* DrawFont, float& DefaultCharWidth, float& DefaultCharHeight, const TCHAR* pDefaultChar=NULL )
+static void GetDefaultCharSize( const UFont* DrawFont, float& DefaultCharWidth, float& DefaultCharHeight, const TCHAR* pDefaultChar=NULL )
 {
 	TCHAR DefaultChar = pDefaultChar != NULL ? *pDefaultChar : TEXT('0');
 	DrawFont->GetCharSize(DefaultChar, DefaultCharWidth, DefaultCharHeight);
@@ -941,10 +947,10 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 		const float ScaleX = Parameters.Scaling.X;
 		const float ScaleY = Parameters.Scaling.Y;
 
-
-		const float CharIncrement = ( (float)Parameters.DrawFont->Kerning + Parameters.SpacingAdjust.X ) * ScaleX;
+		const float DefaultCharIncrement = Parameters.SpacingAdjust.X * ScaleX;
 		const float DefaultScaledHeight = DefaultCharHeight * ScaleY + Parameters.SpacingAdjust.Y * ScaleY;
 		const TCHAR* pCurrentPos;
+		const TCHAR* pPrevPos = nullptr;
 		for ( pCurrentPos = pText; *pCurrentPos && pCurrentPos < pText + TextLength; ++pCurrentPos )
 		{
 			float CharWidth, CharHeight;
@@ -956,6 +962,13 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 			{
 				CharHeight = DefaultCharHeight;
 			}
+
+			float CharSpacing = DefaultCharIncrement;
+			if ( pPrevPos )
+			{
+				CharSpacing += Parameters.DrawFont->GetCharKerning( *pPrevPos, Ch );
+			}
+
 			CharWidth *= ScaleX;
 			CharHeight *= ScaleY;
 
@@ -965,7 +978,7 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 				// if we have another character, append the character spacing
 				if ( *pNextPos )
 				{
-					CharWidth += CharIncrement;
+					CharWidth += CharSpacing;
 				}
 			}
 
@@ -996,11 +1009,12 @@ void UCanvas::MeasureStringInternal( FTextSizingParameters& Parameters, const TC
 					}
 				}
 			}
+
+			pPrevPos = pCurrentPos;
 		}
 
 		OutLastCharacterIndex = pCurrentPos - pText;
 	}
-
 }
 
 void UCanvas::CanvasStringSize( FTextSizingParameters& Parameters, const TCHAR* const pText )
@@ -1356,7 +1370,7 @@ void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float XL, float YL, flo
 }
 
 
-void UCanvas::ClippedStrLen( UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text )
+void UCanvas::ClippedStrLen( const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Text )
 {
 	XL = 0;
 	YL = 0;
@@ -1370,7 +1384,7 @@ void UCanvas::ClippedStrLen( UFont* Font, float ScaleX, float ScaleY, int32& XL,
 	}
 }
 
-void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ... ) 
+void VARARGS UCanvas::WrappedStrLenf( const UFont* Font, float ScaleX, float ScaleY, int32& XL, int32& YL, const TCHAR* Fmt, ... ) 
 {
 	TCHAR Text[4096];
 	GET_VARARGS( Text, ARRAY_COUNT(Text), ARRAY_COUNT(Text)-1, Fmt, Fmt );
@@ -1379,7 +1393,7 @@ void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, i
 	WrappedPrint( false, 0.0f, 0.0f, XL, YL, Font, ScaleX, ScaleY, false, false, Text, Info ); 
 }
 
-float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+float UCanvas::DrawText(const UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	ensure(InFont);
 	int32		XL		= 0;
@@ -1399,12 +1413,12 @@ float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, fl
 	return (float)YL;
 }
 
-float UCanvas::DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+float UCanvas::DrawText(const UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	return DrawText(InFont, FText::FromString(InText), X, Y, XScale, YScale, RenderInfo);
 }
 
-int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) 
+int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, const UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) 
 {
 	if (ClipX < 0 || ClipY < 0)
 	{
@@ -1476,7 +1490,7 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 	return WrappedStrings.Num();
 }
 
-void UCanvas::StrLen( UFont* InFont, const FString& InText, float& XL, float& YL)
+void UCanvas::StrLen( const UFont* InFont, const FString& InText, float& XL, float& YL)
 {
 	if (InFont == NULL)
 	{
@@ -1492,7 +1506,7 @@ void UCanvas::StrLen( UFont* InFont, const FString& InText, float& XL, float& YL
 	}
 }
 
-void UCanvas::TextSize(UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX, float ScaleY)
+void UCanvas::TextSize(const UFont* InFont, const FString& InText, float& XL, float& YL, float ScaleX, float ScaleY)
 {
 	int32 XLi, YLi;
 

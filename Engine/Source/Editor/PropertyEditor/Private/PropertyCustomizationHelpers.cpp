@@ -356,6 +356,8 @@ void SObjectPropertyEntryBox::Construct( const FArguments& InArgs )
 				.DisplayThumbnail(bDisplayThumbnail)
 				.OnShouldFilterAsset(InArgs._OnShouldFilterAsset)
 				.AllowClear(InArgs._AllowClear)
+				.DisplayUseSelected(InArgs._DisplayUseSelected)
+				.DisplayBrowse(InArgs._DisplayBrowse)
 				.PropertyHandle(PropertyHandle)
 				.ThumbnailSize(ThumbnailSize)
 		]

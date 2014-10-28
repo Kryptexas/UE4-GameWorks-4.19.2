@@ -171,6 +171,8 @@ enum ESimpleElementBlendMode
 	SE_BLEND_AlphaComposite,
 	// Like SE_BLEND_Translucent, but modifies destination alpha
 	SE_BLEND_AlphaBlend,
+	// Like SE_BLEND_Translucent, but reads from an alpha-only texture
+	SE_BLEND_TranslucentAlphaOnly,
 
 	SE_BLEND_RGBA_MASK_START,
 	SE_BLEND_RGBA_MASK_END = SE_BLEND_RGBA_MASK_START + 31, //Using 5bit bit-field for red, green, blue, alpha and desaturation

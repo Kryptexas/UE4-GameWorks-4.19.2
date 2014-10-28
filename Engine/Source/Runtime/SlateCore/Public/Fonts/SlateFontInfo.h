@@ -1,23 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Templates/TypeHash.h"
-#include "SlateFontInfo.generated.h"
 
-UENUM()
-enum class EFontHinting : uint8
-{
-	/** Use the default hinting specified in the font */
-	Default,
-	/** Force the use of an automatic hinting algorithm */
-	Auto,
-	/** Force the use of an automatic light hinting algorithm, optimized for non-monochrome displays */
-	AutoLight,
-	/** Force the use of an automatic hinting algorithm optimized for monochrome displays */
-	Monochrome,
-	/** Do not use hinting */
-	None,
-};
+#include "Templates/TypeHash.h"
+#include "CompositeFont.h"
+#include "SlateFontInfo.generated.h"
 
 /**
  * A representation of a font in Slate.
@@ -27,17 +14,30 @@ struct SLATECORE_API FSlateFontInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The name of the font */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules)
-	FName FontName;
+	/** The font object (valid when used from UMG or a Slate widget style asset) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(AllowedClasses="Font", DisplayName="Font Family"))
+	const UObject* FontObject;
+
+	/** The composite font data to use (valid when used with a Slate style set in C++) */
+	TSharedPtr<const FCompositeFont> CompositeFont;
+
+	/** The name of the font to use from the default typeface (None will use the first entry) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(DisplayName="Font"))
+	FName TypefaceFontName;
 
 	/** The size of the font */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules)
 	int32 Size;
 
+private:
+
+	/** The name of the font */
+	UPROPERTY()
+	FName FontName_DEPRECATED;
+
 	/** The hinting algorithm to use with the font */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules)
-	EFontHinting Hinting;
+	UPROPERTY()
+	EFontHinting Hinting_DEPRECATED;
 
 public:
 
@@ -45,7 +45,25 @@ public:
 	FSlateFontInfo();
 
 	/**
-	 * Creates and initializes a new instance with the specified font name and size.
+	 * Creates and initializes a new instance with the specified font, size, and emphasis.
+	 *
+	 * @param InCompositeFont The font instance to use.
+	 * @param InSize The size of the font.
+	 * @param InTypefaceFontName The name of the font to use from the default typeface (None will use the first entry)
+	 */
+	FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName = NAME_None );
+
+	/**
+	 * Creates and initializes a new instance with the specified font, size, and emphasis.
+	 *
+	 * @param InFontObject The font instance to use.
+	 * @param InSize The size of the font.
+	 * @param InFamilyFontName The name of the font to use from the default typeface (None will use the first entry)
+	 */
+	FSlateFontInfo( const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName = NAME_None );
+
+	/**
+	 * DEPRECATED - Creates and initializes a new instance with the specified font name and size.
 	 *
 	 * @param InFontName The name of the font.
 	 * @param InSize The size of the font.
@@ -54,7 +72,7 @@ public:
 	FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontHinting InHinting = EFontHinting::Default );
 
 	/**
-	 * Creates and initializes a new instance with the specified font name and size.
+	 * DEPRECATED - Creates and initializes a new instance with the specified font name and size.
 	 *
 	 * @param InFontName The name of the font.
 	 * @param InSize The size of the font.
@@ -63,7 +81,7 @@ public:
 	FSlateFontInfo( const FName& InFontName, uint16 InSize, EFontHinting InHinting = EFontHinting::Default );
 
 	/**
-	 * Creates and initializes a new instance with the specified font name and size.
+	 * DEPRECATED - Creates and initializes a new instance with the specified font name and size.
 	 *
 	 * @param InFontName The name of the font.
 	 * @param InSize The size of the font.
@@ -72,7 +90,7 @@ public:
 	FSlateFontInfo( const ANSICHAR* InFontName, uint16 InSize, EFontHinting InHinting = EFontHinting::Default );
 
 	/**
-	 * Creates and initializes a new instance with the specified font name and size.
+	 * DEPRECATED - Creates and initializes a new instance with the specified font name and size.
 	 *
 	 * @param InFontName The name of the font.
 	 * @param InSize The size of the font.
@@ -90,7 +108,10 @@ public:
 	 */
 	bool operator==( const FSlateFontInfo& Other ) const 
 	{
-		return FontName == Other.FontName && Size == Other.Size && Hinting == Other.Hinting;
+		return FontObject == Other.FontObject
+			&& CompositeFont == Other.CompositeFont 
+			&& TypefaceFontName == Other.TypefaceFontName
+			&& Size == Other.Size;
 	}
 
 	/**
@@ -106,6 +127,16 @@ public:
 	}
 
 	/**
+	 * Check to see whether this font info has a valid composite font pointer set (either directly or via a UFont)
+	 */
+	bool HasValidFont() const;
+
+	/**
+	 * Get the composite font pointer associated with this font info (either directly or via a UFont)
+	 */
+	const FCompositeFont* GetCompositeFont() const;
+
+	/**
 	 * Calculates a type hash value for a font info.
 	 *
 	 * Type hashes are used in certain collection types, such as TMap.
@@ -116,8 +147,32 @@ public:
 	friend inline uint32 GetTypeHash( const FSlateFontInfo& FontInfo )
 	{
 		uint32 Hash = 0;
-		Hash = HashCombine(Hash, GetTypeHash(FontInfo.FontName));
-		Hash = HashCombine(Hash, FontInfo.Size);
-		return HashCombine(Hash, uint32(FontInfo.Hinting));
+		Hash = HashCombine(Hash, GetTypeHash(FontInfo.FontObject));
+		Hash = HashCombine(Hash, GetTypeHash(FontInfo.CompositeFont));
+		Hash = HashCombine(Hash, GetTypeHash(FontInfo.TypefaceFontName));
+		Hash = HashCombine(Hash, GetTypeHash(FontInfo.Size));
+		return Hash;
 	}
+
+	/**
+	 * Used to upgrade legacy font into so that it uses composite fonts
+	 */
+	void PostSerialize(const FArchive& Ar);
+
+private:
+
+	/**
+	 * Used to upgrade legacy font into so that it uses composite fonts
+	 */
+	void UpgradeLegacyFontInfo();
+};
+
+template<>
+struct TStructOpsTypeTraits<FSlateFontInfo>
+	: public TStructOpsTypeTraitsBase
+{
+	enum 
+	{
+		WithPostSerialize = true,
+	};
 };

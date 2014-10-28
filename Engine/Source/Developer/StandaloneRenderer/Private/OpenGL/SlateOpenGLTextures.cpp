@@ -66,14 +66,14 @@ void FSlateOpenGLTexture::UpdateTexture(const TArray<uint8>& Bytes)
 
 FSlateFontTextureOpenGL::FSlateFontTextureOpenGL( uint32 Width, uint32 Height )
 	: FSlateFontAtlas( Width, Height ) 
-	, Texture(NULL)
+	, FontTexture(nullptr)
 {
 
 }
 
 FSlateFontTextureOpenGL::~FSlateFontTextureOpenGL()
 {
-	delete Texture;
+	delete FontTexture;
 }
 
 void FSlateFontTextureOpenGL::CreateFontTexture()
@@ -93,8 +93,8 @@ void FSlateFontTextureOpenGL::CreateFontTexture()
 	glTexImage2D( GL_TEXTURE_2D, 0, Format, AtlasWidth, AtlasHeight, 0, Format, GL_UNSIGNED_BYTE, NULL );
 
 	// Create a new slate texture for use in rendering
-	Texture = new FSlateOpenGLTexture( AtlasWidth, AtlasHeight );
-	Texture->Init( TextureID );
+	FontTexture = new FSlateOpenGLTexture( AtlasWidth, AtlasHeight );
+	FontTexture->Init( TextureID );
 
 
 }
@@ -102,12 +102,12 @@ void FSlateFontTextureOpenGL::CreateFontTexture()
 void FSlateFontTextureOpenGL::ConditionalUpdateTexture()
 {
 	// The texture may not be valid when calling this as OpenGL must wait until after the first viewport has been created to create a texture
-	if( bNeedsUpdate && Texture )
+	if( bNeedsUpdate && FontTexture )
 	{
 		check(AtlasData.Num()>0);
 
 		// Completely the texture data each time characters are added
-		glBindTexture(GL_TEXTURE_2D, Texture->GetTypedResource() );
+		glBindTexture(GL_TEXTURE_2D, FontTexture->GetTypedResource() );
 		GLint Format = GL_ALPHA;
 #if PLATFORM_MAC // Make this texture use a DMA'd client storage backing store on OS X, where these extensions always exist
 				 // This avoids a problem on Intel & Nvidia cards that makes characters disappear as well as making the texture updates

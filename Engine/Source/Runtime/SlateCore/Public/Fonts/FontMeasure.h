@@ -2,6 +2,7 @@
 #pragma once
 
 typedef class FLRUStringCache FMeasureCache;
+struct FSlateFontMeasureCache;
 
 class SLATECORE_API FSlateFontMeasure 
 {
@@ -222,10 +223,15 @@ private:
 	 */
 	FVector2D MeasureStringInternal( const FString& Text, int32 StartIndex, int32 EndIndex, const FSlateFontInfo& InFontInfo, bool IncludeKerningWithPrecedingChar, float FontScale, int32 StopAfterHorizontalOffset, ELastCharacterIndexFormat CharIndexFormat, int32& OutLastCharacterIndex ) const;
 
+	/**
+	 * Check to see if there's an existing cached measurement, or failing that, add a new entry so that we can cache a new measurement
+	 */
+	FMeasureCache* FindOrAddMeasureCache( const FSlateFontInfo& InFontInfo, const float InFontScale ) const;
+
 private:
 
 	/** Mapping Font keys to cached data */
-	mutable TMap< FSlateFontKey, TSharedPtr< FMeasureCache > > FontToMeasureCache;
+	mutable TMap< FSlateFontKey, TSharedPtr< FSlateFontMeasureCache > > FontToMeasureCache;
 
 	TSharedRef<class FSlateFontCache> FontCache;
 };

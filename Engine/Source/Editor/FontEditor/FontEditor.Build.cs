@@ -12,6 +12,7 @@ public class FontEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"DesktopPlatform",
+				"DesktopWidgets",
 				"Engine",
                 "InputCore",
 				"Slate",

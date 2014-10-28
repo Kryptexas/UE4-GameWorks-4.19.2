@@ -41,16 +41,9 @@ void UEditableTextBox::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 {
-	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
-
-	if ( !FPaths::FileExists(FontPath) )
-	{
-		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-	}
-
 	MyEditableTextBlock = SNew(SEditableTextBox)
 		.Style(&WidgetStyle)
-		.Font(FSlateFontInfo(FontPath, Font.Size))
+		.Font(Font)
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)
 		.ReadOnlyForegroundColor(ReadOnlyForegroundColor)
