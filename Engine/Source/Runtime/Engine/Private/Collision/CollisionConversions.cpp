@@ -350,7 +350,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 	// Other info
 	OutResult.Location = SafeLocationToFitShape;
 	OutResult.ImpactPoint = (PHit.flags & PxHitFlag::ePOSITION) ? P2UVector(PHit.position) : StartLoc;
-	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceDir;
+	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceDir.SafeNormal();
 	OutResult.ImpactNormal = OutResult.Normal;
 
 	OutResult.TraceStart = StartLoc;
