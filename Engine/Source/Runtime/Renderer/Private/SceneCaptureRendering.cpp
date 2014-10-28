@@ -166,13 +166,9 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 		Resource,
 		this,
-		FEngineShowFlags(ESFIM_Game))
+		SceneCaptureComponent->ShowFlags)
 		.SetResolveScene(!bCaptureSceneColour));
 
-	// Disable features that are not desired when capturing the scene
-	ViewFamily.EngineShowFlags.MotionBlur = 0; // motion blur doesn't work correctly with scene captures.
-	ViewFamily.EngineShowFlags.SeparateTranslucency = 0;
-	ViewFamily.EngineShowFlags.HMDDistortion = 0;
 	FSceneViewInitOptions ViewInitOptions;
 	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, CaptureSize.X, CaptureSize.Y));
 	ViewInitOptions.ViewFamily = &ViewFamily;

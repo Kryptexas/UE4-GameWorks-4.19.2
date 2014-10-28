@@ -2,7 +2,20 @@
 
 
 #pragma once
+#include "Runtime/Engine/Public/ShowFlags.h"
 #include "SceneCaptureComponent.generated.h"
+
+USTRUCT()
+struct FEngineShowFlagsSetting
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
+	FString ShowFlagName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
+	bool Enabled;
+};
 
 	// -> will be exported to EngineDecalClasses.h
 UCLASS(hidecategories=(abstract, Collision, Object, Physics, SceneComponent, Mobility), MinimalAPI)
@@ -22,6 +35,14 @@ class USceneCaptureComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SceneCapture, meta=(UIMin = "100", UIMax = "10000"))
 	float MaxViewDistanceOverride;
 
+	/** ShowFlags for the SceneCapture's ViewFamily, to control rendering settings for this view. Hidden but accessible through details customization */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category=SceneComponent)
+	TArray<struct FEngineShowFlagsSetting> ShowFlagSettings;
+
+	// TODO: Make this a UStruct to set directly?
+	/** Settings stored here read from the strings and int values in the ShowFlagSettings array */
+	FEngineShowFlags ShowFlags;
+
 public:
 
 	/** Adds the component to our list of hidden components. */
@@ -34,8 +55,25 @@ public:
 
 	/** Returns the view state, if any, and allocates one if needed. This function can return NULL, e.g. when bCaptureEveryFrame is false. */
 	ENGINE_API FSceneViewStateInterface* GetViewState();
-	
+
+	/** Return a boolean for whether this flag exists in the ShowFlagSettings array, and a pointer to the flag if it does exist  */
+	ENGINE_API bool GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut);
+
+#if WITH_EDITOR
+	/**
+	* Called when a property on this object has been modified externally
+	*
+	* @param PropertyThatChanged the property that was modified
+	*/
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	/** Called after done loading to update show flags from saved data */
+	virtual void PostLoad() override;
+#endif
+
 private:
+	/** Update the show flags from our show flags settings (ideally, you'd be able to set this more directly, but currently unable to make FEngineShowFlags a UStruct to use it as a UProperty...) */
+	void UpdateShowFlags();
 
 	/**
 	 * The view state holds persistent scene rendering state and enables occlusion culling in scene captures.

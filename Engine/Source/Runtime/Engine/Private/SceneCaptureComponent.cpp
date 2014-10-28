@@ -144,10 +144,23 @@ void ASceneCaptureCube::PostEditMove(bool bFinished)
 #endif
 // -----------------------------------------------
 USceneCaptureComponent::USceneCaptureComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer), ShowFlags(FEngineShowFlags(ESFIM_Game))
 {
 	bCaptureEveryFrame = true;
 	MaxViewDistanceOverride = -1;
+
+	// Disable features that are not desired when capturing the scene
+	ShowFlags.MotionBlur = 0; // motion blur doesn't work correctly with scene captures.
+	ShowFlags.SeparateTranslucency = 0;
+	ShowFlags.HMDDistortion = 0;
+}
+
+void USceneCaptureComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// Make sure any loaded saved flag settings are reflected in our FEngineShowFlags
+	UpdateShowFlags();
 }
 
 
@@ -186,6 +199,49 @@ FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
 		ViewStateInterface = NULL;
 	}
 	return ViewStateInterface;
+}
+
+void USceneCaptureComponent::UpdateShowFlags()
+{
+	for (FEngineShowFlagsSetting ShowFlagSetting : ShowFlagSettings)
+	{
+		int32 SettingIndex = ShowFlags.FindIndexByName(*(ShowFlagSetting.ShowFlagName));
+		if (SettingIndex != INDEX_NONE)
+		{ 
+			ShowFlags.SetSingleFlag(SettingIndex, ShowFlagSetting.Enabled);
+		}
+	}
+}
+
+#if WITH_EDITOR
+void USceneCaptureComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+
+	// If our ShowFlagSetting UStruct changed, (or if PostEditChange was called without specifying a property) update the actual show flags
+	if (MemberPropertyName.IsEqual("ShowFlagSettings") || MemberPropertyName.IsNone())
+	{
+		UpdateShowFlags();
+	}
+}
+#endif
+
+bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShowFlagsSetting** ShowFlagSettingOut)
+{
+	bool HasSetting = false;
+	for (int32 ShowFlagSettingsIndex = 0; ShowFlagSettingsIndex < ShowFlagSettings.Num(); ++ShowFlagSettingsIndex)
+	{
+		if (ShowFlagSettings[ShowFlagSettingsIndex].ShowFlagName.Equals(FlagName))
+		{
+			HasSetting = true;
+			*ShowFlagSettingOut = &(ShowFlagSettings[ShowFlagSettingsIndex]);
+			break;
+		}
+	}	
+	return HasSetting;
 }
 
 // -----------------------------------------------
