@@ -1039,15 +1039,17 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				
 				for ( const auto& Obj : ObjectsInPackage )
 				{
-					if ( Timer.IsTimeUp() && IsRealtimeMode() )
+					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
+					if ( Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false )
 					{
+						UE_LOG(LogCookOnTheFly, Display, TEXT("Object %s isn't cached yet"), *Obj->GetFullName());
 						bIsAllDataCached = false;
 						break;
 					}
 
-					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
-					if ( Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false )
+					if ( Timer.IsTimeUp() && IsRealtimeMode() )
 					{
+						UE_LOG(LogCookOnTheFly, Display, TEXT("Object %s took too long to cache"), *Obj->GetFullName());
 						bIsAllDataCached = false;
 						break;
 					}
@@ -1056,7 +1058,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if ( bIsAllDataCached == false )
 				{
 					break;
-			}
+				}
 			}
 		}
 
@@ -1361,7 +1363,7 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 		/*FString PackageFilename(GetPackageFilename(Package));
 		FPaths::MakeStandardFilename(PackageFilename);*/
 		FString PackageFilename = GetCachedStandardPackageFilename(Package);
-		UE_LOG(LogCookOnTheFly, Display, TEXT("Modification detected to package %s"), *PackageFilename);
+		// UE_LOG(LogCookOnTheFly, Display, TEXT("Modification detected to package %s"), *PackageFilename);
 		const FName PackageFFileName = FName(*PackageFilename);
 
 		if ( CurrentCookMode == ECookMode::CookByTheBookFromTheEditor )
@@ -1758,14 +1760,31 @@ FString UCookOnTheFlyServer::GetOutputDirectoryOverride( const FString &OutputDi
 	return OutputDirectory;
 }
 
-bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString> &IniVersionStrings ) const
+template<class T>
+void GetVersionFormatNumbersForIniVersionStrings( TArray<FString>& IniVersionStrings, const FString& FormatName, const TArray<T> &FormatArray )
+{
+	for ( const auto& Format : FormatArray )
+	{
+		TArray<FName> SupportedFormats;
+		Format->GetSupportedFormats(SupportedFormats);
+		for ( const auto& SupportedFormat : SupportedFormats )
+		{
+			int32 VersionNumber = Format->GetVersion(SupportedFormat);
+			FString IniVersionString = FString::Printf( TEXT("%s:%s:VersionNumber%d"), *FormatName, *SupportedFormat.ToString(), VersionNumber);
+			IniVersionStrings.Emplace( IniVersionString );
+		}
+	}
+}
+
+bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings ) const
 {
 	// there is a list of important ini settings in the Editor config 
 	TArray<FString> IniVersionedParams;
 	GConfig->GetArray( TEXT("CookSettings"), TEXT("VersionedIniParams"), IniVersionedParams, GEditorIni );
 
-	/*const FString EditorIni = FPaths::GameDir() / GEditorIni;
-	const FString SandboxEditorIni = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*EditorIni);*/
+
+	// used to store temporary platform specific ini files
+	TMap<FString,FConfigFile*> PlatformIniFiles;
 
 	// if the old one doesn't contain all the settings in the new one then we fail this check
 	for ( const auto& IniVersioned : IniVersionedParams )
@@ -1784,11 +1803,18 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 		const FString& Section = IniVersionedArray[1];
 		const FString& Key = IniVersionedArray[2];
 
-		const FString& IniFilename = FPaths::GeneratedConfigDir() / TargetPlatform->IniPlatformName() / Filename + TEXT(".ini");
+		// const FString& IniFilename = FPaths::GeneratedConfigDir() / TargetPlatform->IniPlatformName() / Filename + TEXT(".ini");
+		FConfigFile *PlatformIniFile = PlatformIniFiles.FindRef( Filename );
+		if ( PlatformIniFile == NULL )
+		{
+			PlatformIniFile = new FConfigFile();
+			FConfigCacheIni::LoadLocalIniFile( *PlatformIniFile, *Filename, true, *TargetPlatform->IniPlatformName() );
+			PlatformIniFiles.Add( Filename, PlatformIniFile );
+		}
 
 		// get the value of the entry
 		FString Value;
-		if ( !GConfig->GetString(*Section, *Key, Value, IniFilename) )
+		if ( !PlatformIniFile->GetString(*Section, *Key, Value) )
 		{
 			UE_LOG(LogCookOnTheFly, Warning, TEXT("Unable to find entry in CookSettings, VersionedIniParams %s, assume default is being used"), *IniVersioned);
 			continue;
@@ -1799,6 +1825,13 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 		IniVersionStrings.Emplace( MoveTemp(CurrentVersionString) );
 	}
 
+	// clean up our temporary platform ini files
+	for ( const auto& PlatformIniFile : PlatformIniFiles )
+	{
+		delete PlatformIniFile.Value;
+	}
+	PlatformIniFiles.Empty();
+
 
 	const FTextureLODSettings& LodSettings = TargetPlatform->GetTextureLODSettings();
 
@@ -1808,12 +1841,62 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 	for ( int I = 0; I < TextureGroup::TEXTUREGROUP_MAX; ++I )
 	{
 		const TextureMipGenSettings& MipGenSettings = LodSettings.GetTextureMipGenSettings((TextureGroup)(I));
+		FString MipGenVersionString = FString::Printf( TEXT("TextureLODGroupMipGenSettings:%s:%s"), *TextureGroupEnum->GetEnumName( I ), *TextureMipGenSettingsEnum->GetEnumName((int32)(MipGenSettings)) );
+		IniVersionStrings.Emplace( MoveTemp( MipGenVersionString ) );
 
-		FString VersionString = FString::Printf( TEXT("TextureLODGroup:%s:%s"), *TextureGroupEnum->GetEnumName( I ), *TextureMipGenSettingsEnum->GetEnumName((int32)(MipGenSettings)) );
+		const int32 MinMipCount = LodSettings.GetMinLODMipCount((TextureGroup)(I));
+		FString MinMipVersionString = FString::Printf( TEXT("TextureLODGroupMinMipCount:%s:%d"), *TextureGroupEnum->GetEnumName( I ), MinMipCount);
+		IniVersionStrings.Emplace( MoveTemp( MinMipVersionString ) );
 
-		IniVersionStrings.Emplace( MoveTemp( VersionString ) );
+		const int32 MaxMipCount = LodSettings.GetMaxLODMipCount((TextureGroup)(I));
+		FString MaxMipVersionString = FString::Printf( TEXT("TextureLODGroupMaxMipCount:%s:%d"), *TextureGroupEnum->GetEnumName( I ), MaxMipCount);
+		IniVersionStrings.Emplace( MoveTemp( MaxMipVersionString ) );
 	}
-	
+
+	// save off the ddc version numbers also
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	check(TPM);
+
+	GetVersionFormatNumbersForIniVersionStrings( IniVersionStrings, TEXT("AudioFormat"), TPM->GetAudioFormats() );
+	GetVersionFormatNumbersForIniVersionStrings( IniVersionStrings, TEXT("TextureFormat"), TPM->GetTextureFormats() );
+	GetVersionFormatNumbersForIniVersionStrings( IniVersionStrings, TEXT("ShaderFormat"), TPM->GetShaderFormats() );
+	/*
+	for ( const auto& AudioFormat : TPM->GetAudioFormats() )
+	{
+		TArray<FName> SupportedFormats;
+		AudioFormat.GetSupportedFormats(SupportedFormats);
+		for ( const auto& SupportedFormat : SupportedFormats )
+		{
+			int32 VersionNumber = AudioFormat.GetVersion(SupportedFormat);
+			FString AudioString = FString::Printf( TEXT("AudioFormat:%s:VersionNumber%d"), SupportedFormat.ToString(), VersionNumber);
+			IniVersionStrings.Emplace( AudioString );
+		}
+	}
+
+	for ( const auto& TextureFormat : TPM->GetTextureFormats() )
+	{
+		TArray<FName> SupportedFormats;
+		TextureFormat.GetSupportedFormats(SupportedFormats);
+		for ( const auto& SupportedFormat : SupportedFormats )
+		{
+			int32 VersionNumber = AudioFormat.GetVersion(SupportedFormat);
+			FString AudioString = FString::Printf( TEXT("AudioFormat:%s:VersionNumber%d"), SupportedFormat.ToString(), VersionNumber);
+			IniVersionStrings.Emplace( AudioString );
+		}
+	}
+
+	for ( const auto& AudioFormat : TPM->GetAudioFormats() )
+	{
+		TArray<FName> SupportedFormats;
+		AudioFormat.GetSupportedFormats(SupportedFormats);
+		for ( const auto& SupportedFormat : SupportedFormats )
+		{
+			int32 VersionNumber = AudioFormat.GetVersion(SupportedFormat);
+			FString AudioString = FString::Printf( TEXT("AudioFormat:%s:VersionNumber%d"), SupportedFormat.ToString(), VersionNumber);
+			IniVersionStrings.Emplace( AudioString );
+		}
+	}
+	*/
 
 
 	return true;

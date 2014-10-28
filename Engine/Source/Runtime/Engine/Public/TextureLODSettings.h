@@ -74,6 +74,9 @@ struct FTextureLODSettings
 	 */
 	ENGINE_API int32 GetNumStreamedMips( int32 InLODGroup ) const;
 
+	ENGINE_API int32 GetMinLODMipCount( int32 InLODGroup ) const;
+	ENGINE_API int32 GetMaxLODMipCount( int32 InLODGroup ) const;
+
 	/**
 	 * Returns the filter state that should be used for the passed in texture, taking
 	 * into account other system settings.

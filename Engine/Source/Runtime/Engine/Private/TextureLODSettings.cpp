@@ -262,6 +262,48 @@ int32 FTextureLODSettings::GetTextureLODGroupLODBias( int32 InLODGroup ) const
 	return Retval;
 }
 
+
+
+/**
+ * Returns the LODGroup setting for number of streaming mip-levels.
+ * -1 means that all mip-levels are allowed to stream.
+ *
+ * @param	InLODGroup		The LOD Group ID 
+ * @return	Number of streaming mip-levels for textures in the specified LODGroup
+ */
+int32 FTextureLODSettings::GetMinLODMipCount( int32 InLODGroup ) const
+{
+	int32 Retval = 0;
+
+	const FTextureLODGroup& LODGroup = TextureLODGroups[InLODGroup]; 
+
+	Retval = LODGroup.MinLODMipCount;
+
+	return Retval;
+}
+
+
+
+
+/**
+ * Returns the LODGroup setting for number of streaming mip-levels.
+ * -1 means that all mip-levels are allowed to stream.
+ *
+ * @param	InLODGroup		The LOD Group ID 
+ * @return	Number of streaming mip-levels for textures in the specified LODGroup
+ */
+int32 FTextureLODSettings::GetMaxLODMipCount( int32 InLODGroup ) const
+{
+	int32 Retval = 0;
+
+	const FTextureLODGroup& LODGroup = TextureLODGroups[InLODGroup]; 
+
+	Retval = LODGroup.MaxLODMipCount;
+
+	return Retval;
+}
+
+
 /**
  * Returns the LODGroup setting for number of streaming mip-levels.
  * -1 means that all mip-levels are allowed to stream.
