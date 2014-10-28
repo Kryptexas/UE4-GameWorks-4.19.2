@@ -206,6 +206,8 @@ public:
 
 	void RefreshMarqueeSelectedNodes(const FGeometry& PanelGeo);
 
+	void OnNotifyObjectChanged(UObject* EditorBaseObj, bool bRebuild);
+
 private:
 	TSharedPtr<SBorder> PanelArea;
 	class UAnimSequenceBase* Sequence;

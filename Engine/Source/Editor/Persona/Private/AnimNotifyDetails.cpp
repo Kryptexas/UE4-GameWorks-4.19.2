@@ -10,6 +10,7 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailsView.h"
 #include "AssetSearchBoxUtilPersona.h"
+#include "STextComboBox.h"
 
 TSharedRef<IDetailCustomization> FAnimNotifyDetails::MakeInstance()
 {
@@ -18,129 +19,166 @@ TSharedRef<IDetailCustomization> FAnimNotifyDetails::MakeInstance()
 
 void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	const UClass* DetailObjectClass = DetailBuilder.GetDetailsView().GetBaseClass();
-	if (DetailObjectClass)
+	const UClass* DetailObjectClass = nullptr;
+	const UClass* BaseClass = DetailBuilder.GetDetailsView().GetBaseClass();
+	TArray<TWeakObjectPtr<UObject>> SelectedObjects;
+	TArray<UClass*> NotifyClasses;
+	DetailBuilder.GetObjectsBeingCustomized(SelectedObjects);
+
+	check(SelectedObjects.Num() > 0);
+	UEditorNotifyObject* EditorObject = Cast<UEditorNotifyObject>(SelectedObjects[0].Get());
+	check(EditorObject);
+	UpdateSlotNames(EditorObject->AnimObject);
+
+	// Hide notify objects that aren't set
+	UObject* NotifyPtr = nullptr;
+	FString NotifyClassName;
+	TSharedRef<IPropertyHandle> NotifyPropHandle = DetailBuilder.GetProperty(TEXT("Event.Notify"));
+	NotifyPropHandle->GetValue(NotifyPtr);
+
+	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(TEXT("AnimNotify"), TEXT(""), ECategoryPriority::TypeSpecific);
+
+	// Check existence of notify, get rid of the property if not set
+	if(!NotifyPtr)
 	{
-		if (DetailObjectClass->GetName().Find(TEXT("AnimNotify_PlayParticleEffect")) != INDEX_NONE)
+		DetailBuilder.HideProperty(TEXT("Event.Notify"));
+
+		NotifyPropHandle = DetailBuilder.GetProperty(TEXT("Event.NotifyStateClass"));
+		NotifyPropHandle->GetValue(NotifyPtr);
+
+		// Check existence of notify state, get rid of the property if not set
+		if(!NotifyPtr)
 		{
-			AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("SocketName"), TEXT("AnimNotify"));
+			DetailBuilder.HideProperty(TEXT("Event.NotifyStateClass"));
+			DetailBuilder.HideProperty(TEXT("Event.EndLink"));
 		}
-		else if (DetailObjectClass->GetName().Find(TEXT("AnimNotify_PlaySound")) != INDEX_NONE)
+		else
 		{
-			AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("AttachName"), TEXT("AnimNotify"));
-		}
-		else if (DetailObjectClass->GetName().Find(TEXT("AnimNotifyState_Trail")) != INDEX_NONE)
-		{
-			AddPropertyDefault(DetailBuilder, DetailObjectClass, TEXT("PSTemplate"), TEXT("Trail"));	
-			AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("FirstSocketName"), TEXT("Trail"));
-			AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("SecondSocketName"), TEXT("Trail"));
-			AddPropertyDefault(DetailBuilder, DetailObjectClass, TEXT("WidthScaleMode"), TEXT("Trail"));
-			AddCurveNameProperty(DetailBuilder, DetailObjectClass, TEXT("WidthScaleCurve"), TEXT("Trail"));
-		}
-		else if (DetailObjectClass->GetName().Find(TEXT("AnimNotifyState_TimedParticleEffect")) != INDEX_NONE)
-		{
-			AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("SocketName"), TEXT("ParticleSystem"));
+			DetailObjectClass = NotifyPtr->GetClass();
+
+			// Get rid of the class selector in the details panel. It's not necessary for notifies
+			ClearInstancedSelectionDropDown(AnimNotifyCategory, NotifyPropHandle);
 		}
 	}
-}
-
-void FAnimNotifyDetails::AddPropertyDefault(IDetailLayoutBuilder& DetailBuilder, const UClass* PropertyClass, const TCHAR* PropertyName, const TCHAR* CategoryName)
-{
-	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(CategoryName, TEXT(""), ECategoryPriority::TypeSpecific);
-	TSharedPtr<IPropertyHandle> Property = DetailBuilder.GetProperty(FName(PropertyName), PropertyClass);
-	if (Property.IsValid())
+	else
 	{
-		AnimNotifyCategory.AddProperty(Property);
+		DetailObjectClass = NotifyPtr->GetClass();
+		// Get rid of the class selector in the details panel. It's not necessary for notifies
+		ClearInstancedSelectionDropDown(AnimNotifyCategory, NotifyPropHandle);
+
+		// No state present, hide the entry
+		DetailBuilder.HideProperty(TEXT("Event.NotifyStateClass"));
 	}
-}
 
-void FAnimNotifyDetails::AddBoneNameProperty(IDetailLayoutBuilder& DetailBuilder, const UClass* PropertyClass, const TCHAR* PropertyName, const TCHAR* CategoryName)
-{
-	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(CategoryName, TEXT(""), ECategoryPriority::TypeSpecific);
-	int32 PropIndex = NameProperties.Num();
-	TSharedPtr<IPropertyHandle> BoneNameProperty = DetailBuilder.GetProperty(FName(PropertyName), PropertyClass);
-
-	if (BoneNameProperty.IsValid() && BoneNameProperty->GetProperty())
+	TSharedRef<IPropertyHandle> TopHandle = DetailBuilder.GetProperty(TEXT("Event"));
+	if(Cast<UAnimMontage>(EditorObject->AnimObject))
 	{
-		NameProperties.Add(BoneNameProperty);
-		// get all the possible suggestions for the bones and sockets.
-		const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
-		if (SelectedObjects.Num() == 1)
+		CustomizeLinkProperties(DetailBuilder, TopHandle, EditorObject);
+	}
+	else
+	{
+		// No montage, hide link properties
+		HideLinkProperties(DetailBuilder, TopHandle);
+	}
+
+	// Customizations do not run for instanced properties, so we have to resolve the properties and then
+	// customize them here instead.
+	if(NotifyPropHandle->IsValidHandle())
+	{
+		uint32 NumChildren = 0;
+		NotifyPropHandle->GetNumChildren(NumChildren);
+		if(NumChildren > 0)
 		{
-			TWeakObjectPtr<UObject> SelectedObject = SelectedObjects[0];
-			const UObject* OuterObject = SelectedObject->GetOuter();
-			if (const UAnimationAsset* AnimAsset = Cast<const UAnimationAsset>(OuterObject))
+			TSharedPtr<IPropertyHandle> BaseHandle = NotifyPropHandle->GetChildHandle(0);
+			DetailBuilder.HideProperty(NotifyPropHandle);
+
+			BaseHandle->GetNumChildren(NumChildren);
+			DetailBuilder.HideProperty(BaseHandle);
+
+			for(uint32 ChildIdx = 0 ; ChildIdx < NumChildren ; ++ChildIdx)
 			{
-				if (const USkeleton* Skeleton = AnimAsset->GetSkeleton())
+				TSharedPtr<IPropertyHandle> NotifyProperty = BaseHandle->GetChildHandle(ChildIdx);
+
+				if(!CustomizeProperty(AnimNotifyCategory, NotifyPtr, NotifyProperty))
 				{
-					AnimNotifyCategory.AddProperty(BoneNameProperty.ToSharedRef())
-						.CustomWidget()
-						.NameContent()
-						[
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.Padding(FMargin(2, 1, 0, 1))
-							[
-								SNew(STextBlock)
-								.Text(BoneNameProperty->GetPropertyDisplayName())
-								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							]
-						]
-					.ValueContent()
-						[
-							SNew(SAssetSearchBoxForBones, Skeleton, BoneNameProperty)
-							.IncludeSocketsForSuggestions(true)
-							.MustMatchPossibleSuggestions(true)
-							.HintText(NSLOCTEXT("AnimNotifyDetails", "Hint Text", "Bone Name..."))
-							.OnTextCommitted(this, &FAnimNotifyDetails::OnSearchBoxCommitted, PropIndex)
-						];
+					AnimNotifyCategory.AddProperty(NotifyProperty);
 				}
 			}
 		}
 	}
 }
 
-void FAnimNotifyDetails::AddCurveNameProperty(IDetailLayoutBuilder& DetailBuilder, const UClass* PropertyClass, const TCHAR* PropertyName, const TCHAR* CategoryName)
+void FAnimNotifyDetails::AddBoneNameProperty(IDetailCategoryBuilder& CategoryBuilder, UObject* Notify,  TSharedPtr<IPropertyHandle> Property)
 {
-	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(CategoryName, TEXT(""), ECategoryPriority::TypeSpecific);
 	int32 PropIndex = NameProperties.Num();
-	TSharedPtr<IPropertyHandle> CurveNameProperty = DetailBuilder.GetProperty(FName(PropertyName), PropertyClass);
 
-	if (CurveNameProperty.IsValid() && CurveNameProperty->GetProperty())
+	if(Notify && Property->IsValidHandle())
 	{
-		NameProperties.Add(CurveNameProperty);
-		// get all the possible suggestions for the curves.
-		const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
-		if (SelectedObjects.Num() == 1)
+		NameProperties.Add(Property);
+		// get all the possible suggestions for the bones and sockets.
+		if(const UAnimationAsset* AnimAsset = Cast<const UAnimationAsset>(Notify->GetOuter()))
 		{
-			TWeakObjectPtr<UObject> SelectedObject = SelectedObjects[0];
-			const UObject* OuterObject = SelectedObject->GetOuter();
-			if (const UAnimationAsset* AnimAsset = Cast<const UAnimationAsset>(OuterObject))
+			if(const USkeleton* Skeleton = AnimAsset->GetSkeleton())
 			{
-				if (const USkeleton* Skeleton = AnimAsset->GetSkeleton())
-				{
-					AnimNotifyCategory.AddProperty(CurveNameProperty.ToSharedRef())
-						.CustomWidget()
-						.NameContent()
+				CategoryBuilder.AddProperty(Property.ToSharedRef())
+					.CustomWidget()
+					.NameContent()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.Padding(FMargin(2, 1, 0, 1))
 						[
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.Padding(FMargin(2, 1, 0, 1))
-							[
-								SNew(STextBlock)
-								.Text(CurveNameProperty->GetPropertyDisplayName())
-								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							]
+							SNew(STextBlock)
+							.Text(Property->GetPropertyDisplayName())
+							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						]
-					.ValueContent()
+					]
+				.ValueContent()
+					[
+						SNew(SAssetSearchBoxForBones, Skeleton, Property)
+						.IncludeSocketsForSuggestions(true)
+						.MustMatchPossibleSuggestions(true)
+						.HintText(NSLOCTEXT("AnimNotifyDetails", "Hint Text", "Bone Name..."))
+						.OnTextCommitted(this, &FAnimNotifyDetails::OnSearchBoxCommitted, PropIndex)
+					];
+			}
+		}
+	}
+}
+
+void FAnimNotifyDetails::AddCurveNameProperty(IDetailCategoryBuilder& CategoryBuilder, UObject* Notify, TSharedPtr<IPropertyHandle> Property)
+{
+	int32 PropIndex = NameProperties.Num();
+	
+	if(Notify && Property->IsValidHandle())
+	{
+		NameProperties.Add(Property);
+
+		if(const UAnimationAsset* AnimAsset = Cast<const UAnimationAsset>(Notify->GetOuter()))
+		{
+			if(const USkeleton* Skeleton = AnimAsset->GetSkeleton())
+			{
+				CategoryBuilder.AddProperty(Property.ToSharedRef())
+					.CustomWidget()
+					.NameContent()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.Padding(FMargin(2, 1, 0, 1))
 						[
-							SNew(SAssetSearchBoxForCurves, Skeleton, CurveNameProperty)
-							.IncludeSocketsForSuggestions(true)
-							.MustMatchPossibleSuggestions(true)
-							.HintText(NSLOCTEXT("AnimNotifyDetails", "Curve Name Hint Text", "Curve Name..."))
-							.OnTextCommitted(this, &FAnimNotifyDetails::OnSearchBoxCommitted, PropIndex)
-						];
-				}
+							SNew(STextBlock)
+							.Text(Property->GetPropertyDisplayName())
+							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						]
+					]
+				.ValueContent()
+					[
+						SNew(SAssetSearchBoxForCurves, Skeleton, Property)
+						.IncludeSocketsForSuggestions(true)
+						.MustMatchPossibleSuggestions(true)
+						.HintText(NSLOCTEXT("AnimNotifyDetails", "Curve Name Hint Text", "Curve Name..."))
+						.OnTextCommitted(this, &FAnimNotifyDetails::OnSearchBoxCommitted, PropIndex)
+					];
 			}
 		}
 	}
@@ -149,4 +187,153 @@ void FAnimNotifyDetails::AddCurveNameProperty(IDetailLayoutBuilder& DetailBuilde
 void FAnimNotifyDetails::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo, int32 PropertyIndex )
 {
 	NameProperties[PropertyIndex]->SetValue( InSearchText.ToString() );
+}
+
+void FAnimNotifyDetails::ClearInstancedSelectionDropDown(IDetailCategoryBuilder& CategoryBuilder, TSharedRef<IPropertyHandle> PropHandle, bool bShowChildren /*= true*/)
+{
+	IDetailPropertyRow& PropRow = CategoryBuilder.AddProperty(PropHandle);
+	
+	PropRow
+	.OverrideResetToDefault(false, FSimpleDelegate())
+	.CustomWidget(bShowChildren)
+	.NameContent()
+	[
+		PropHandle->CreatePropertyNameWidget(TEXT(""), TEXT(""), false)
+	]
+	.ValueContent()
+	[
+		SNullWidget::NullWidget
+	];
+}
+
+void FAnimNotifyDetails::CustomizeLinkProperties(IDetailLayoutBuilder& Builder, TSharedRef<IPropertyHandle> NotifyProperty, UEditorNotifyObject* EditorObject)
+{
+	uint32 NumChildProperties = 0;
+	NotifyProperty->GetNumChildren(NumChildProperties);
+
+	if(NumChildProperties > 0)
+	{
+		IDetailCategoryBuilder& LinkCategory = Builder.EditCategory(TEXT("AnimLink"));
+		for(uint32 ChildIdx = 0 ; ChildIdx < NumChildProperties ; ++ChildIdx)
+		{
+			TSharedPtr<IPropertyHandle> ChildHandle = NotifyProperty->GetChildHandle(ChildIdx);
+			FString OuterFieldType = ChildHandle->GetProperty()->GetOuterUField()->GetName();
+
+			if(ChildHandle->GetProperty()->GetName() == GET_MEMBER_NAME_CHECKED(FAnimNotifyEvent, EndLink).ToString()
+			   || OuterFieldType == FString(TEXT("AnimLinkableElement")))
+			{
+				// If we get a slot index property replace it with a dropdown showing the names of the 
+				// slots, as the indices are hidden from the user.
+				if(ChildHandle->GetProperty()->GetName() == TEXT("SlotIndex"))
+				{
+					int32 SlotIdx = INDEX_NONE;
+					ChildHandle->GetValue(SlotIdx);
+
+					LinkCategory.AddProperty(ChildHandle)
+						.CustomWidget()
+						.NameContent()
+						[
+							ChildHandle->CreatePropertyNameWidget(NSLOCTEXT("NotifyDetails", "SlotIndexName", "Slot").ToString())
+						]
+						.ValueContent()
+						[
+							SNew(STextComboBox)
+							.OptionsSource(&SlotNameItems)
+							.OnSelectionChanged(this, &FAnimNotifyDetails::OnSlotSelected, ChildHandle)
+							.OnComboBoxOpening(this, &FAnimNotifyDetails::UpdateSlotNames, EditorObject->AnimObject)
+							.InitiallySelectedItem(SlotNameItems[SlotIdx])
+						];
+				}
+				else
+				{
+					LinkCategory.AddProperty(ChildHandle);
+				}
+			}
+		}
+	}
+}
+
+void FAnimNotifyDetails::HideLinkProperties(IDetailLayoutBuilder& Builder, TSharedRef<IPropertyHandle> NotifyProperty)
+{
+	uint32 NumChildProperties = 0;
+	NotifyProperty->GetNumChildren(NumChildProperties);
+
+	if(NumChildProperties > 0)
+	{
+		for(uint32 ChildIdx = 0 ; ChildIdx < NumChildProperties ; ++ChildIdx)
+		{
+			TSharedPtr<IPropertyHandle> ChildHandle = NotifyProperty->GetChildHandle(ChildIdx);
+			FString OuterFieldType = ChildHandle->GetProperty()->GetOuterUField()->GetName();
+			if(ChildHandle->GetProperty()->GetName() == GET_MEMBER_NAME_CHECKED(FAnimNotifyEvent, EndLink).ToString()
+			   || OuterFieldType == FString(TEXT("AnimLinkableElement")))
+			{
+				Builder.HideProperty(ChildHandle);
+			}
+		}
+	}
+}
+
+bool FAnimNotifyDetails::CustomizeProperty(IDetailCategoryBuilder& CategoryBuilder, UObject* Notify, TSharedPtr<IPropertyHandle> Property)
+{
+	if(Notify && Notify->GetClass() && Property->IsValidHandle())
+	{
+		FString ClassName = Notify->GetClass()->GetName();
+		FString PropertyName = Property->GetProperty()->GetName();
+
+		if(ClassName.Find(TEXT("AnimNotify_PlayParticleEffect")) != INDEX_NONE && PropertyName == TEXT("SocketName"))
+		{
+			AddBoneNameProperty(CategoryBuilder, Notify, Property);
+			return true;
+		}
+		else if(ClassName.Find(TEXT("AnimNotifyState_TimedParticleEffect")) != INDEX_NONE && PropertyName == TEXT("SocketName"))
+		{
+			AddBoneNameProperty(CategoryBuilder, Notify, Property);
+			return true;
+		}
+		else if(ClassName.Find(TEXT("AnimNotify_PlaySound")) != INDEX_NONE && PropertyName == TEXT("AttachName"))
+		{
+			AddBoneNameProperty(CategoryBuilder, Notify, Property);
+			return true;
+		}
+		else if (ClassName.Find(TEXT("AnimNotifyState_Trail")) != INDEX_NONE)
+		{
+			if(PropertyName == TEXT("FirstSocketName") || PropertyName == TEXT("SecondSocketName"))
+			{
+				AddBoneNameProperty(CategoryBuilder, Notify, Property);
+				return true;
+			}
+			else if(PropertyName == TEXT("WidthScaleCurve"))
+			{
+				AddCurveNameProperty(CategoryBuilder, Notify, Property);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void FAnimNotifyDetails::UpdateSlotNames(UAnimSequenceBase* AnimObject)
+{
+	if(UAnimMontage* MontageObj = Cast<UAnimMontage>(AnimObject))
+	{
+		for(FSlotAnimationTrack& Slot : MontageObj->SlotAnimTracks)
+		{
+			if(!SlotNameItems.ContainsByPredicate([&Slot](TSharedPtr<FString>& Item){return Slot.SlotName.ToString() == *Item;}))
+			{
+				SlotNameItems.Add(MakeShareable(new FString(*Slot.SlotName.ToString()))); 
+			}
+		}
+	}
+}
+
+void FAnimNotifyDetails::OnSlotSelected(TSharedPtr<FString> SlotName, ESelectInfo::Type SelectInfo, TSharedPtr<IPropertyHandle> Property)
+{
+	if(SelectInfo != ESelectInfo::Direct && Property->IsValidHandle())
+	{
+		int32 NewIndex = SlotNameItems.Find(SlotName);
+		if(NewIndex != INDEX_NONE)
+		{
+			Property->SetValue(NewIndex);
+		}
+	}
 }

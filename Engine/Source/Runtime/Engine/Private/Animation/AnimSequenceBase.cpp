@@ -58,12 +58,29 @@ void FAnimNotifyEvent::RefreshEndTriggerOffset( EAnimEventTriggerOffsets::Type P
 
 float FAnimNotifyEvent::GetTriggerTime() const
 {
-	return DisplayTime + TriggerTimeOffset;
+	return GetTime() + TriggerTimeOffset;
 }
 
 float FAnimNotifyEvent::GetEndTriggerTime() const
 {
-	return GetTriggerTime() + Duration + EndTriggerTimeOffset;
+	return GetTriggerTime() + GetDuration() + EndTriggerTimeOffset;
+}
+
+float FAnimNotifyEvent::GetDuration() const
+{
+	return NotifyStateClass ? EndLink.GetTime() - GetTime() : 0.0f;
+}
+
+void FAnimNotifyEvent::SetDuration(float NewDuration)
+{
+	Duration = NewDuration;
+	EndLink.SetTime(GetTime() + Duration);
+}
+
+void FAnimNotifyEvent::SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame /*= EAnimLinkMethod::Absolute*/)
+{
+	FAnimLinkableElement::SetTime(NewTime, ReferenceFrame);
+	SetDuration(Duration);
 }
 
 /////////////////////////////////////////////////////
@@ -522,9 +539,9 @@ void UAnimSequenceBase::ClampNotifiesAtEndOfSequence()
 	const float NotifyClampTime = SequenceLength - 0.01f; //Slight offset so that notify is still draggable
 	for(int i = 0; i < Notifies.Num(); ++ i)
 	{
-		if(Notifies[i].DisplayTime >= SequenceLength)
+		if(Notifies[i].GetTime() >= SequenceLength)
 		{
-			Notifies[i].DisplayTime = NotifyClampTime;
+			Notifies[i].SetTime(NotifyClampTime);
 			Notifies[i].TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetBefore);
 		}
 	}

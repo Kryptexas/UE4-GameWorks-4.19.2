@@ -1654,12 +1654,12 @@ float UAbilitySystemComponent::GetCurrentMontageSectionLength() const
 			// If we have another section after us, then take delta between both start times.
 			if (CurrentSectionID < (CompositeSections.Num() - 1))
 			{
-				return (CompositeSections[CurrentSectionID + 1].StartTime - CompositeSections[CurrentSectionID].StartTime);
+				return (CompositeSections[CurrentSectionID + 1].GetTime() - CompositeSections[CurrentSectionID].GetTime());
 			}
 			// Otherwise we are the last section, so take delta with Montage total time.
 			else
 			{
-				return (CurrentAnimMontage->SequenceLength - CompositeSections[CurrentSectionID].StartTime);
+				return (CurrentAnimMontage->SequenceLength - CompositeSections[CurrentSectionID].GetTime());
 			}
 		}
 

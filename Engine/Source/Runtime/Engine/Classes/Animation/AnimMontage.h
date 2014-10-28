@@ -11,13 +11,15 @@
 #include "Animation/AnimInstance.h"
 #include "AnimMontage.generated.h"
 
+class UAnimMontage;
+
 /**
  * Section data for each track. Reference of data will be stored in the child class for the way they want
  * AnimComposite vs AnimMontage have different requirement for the actual data reference
  * This only contains composite section information. (vertical sequences)
  */
 USTRUCT()
-struct FCompositeSection
+struct FCompositeSection : public FAnimLinkableElement
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -30,17 +32,17 @@ struct FCompositeSection
 	float StarTime_DEPRECATED;
 
 	/** Start Time **/
-	UPROPERTY(EditAnywhere, Category=Section)
-	float StartTime;
+	UPROPERTY()
+	float StartTime_DEPRECATED;
 
 	/** Should this animation loop. */
-	UPROPERTY(EditAnywhere, Category=Section)
+	UPROPERTY()
 	FName NextSectionName;
 
 	FCompositeSection()
-		: SectionName(NAME_None)
+		: FAnimLinkableElement()
+		, SectionName(NAME_None)
 		, StarTime_DEPRECATED(0.f)
-		, StartTime(0.f)
 		, NextSectionName(NAME_None)
 	{
 	}
@@ -74,22 +76,22 @@ struct FSlotAnimationTrack
  * Use notifies if possible
  */
 USTRUCT()
-struct FBranchingPoint
+struct FBranchingPoint : public FAnimLinkableElement
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BranchingPoint)
 	FName EventName;
 
-	UPROPERTY(EditAnywhere, Category=BranchingPoint)
-	float DisplayTime;
+	UPROPERTY()
+	float DisplayTime_DEPRECATED;
 
 	/** An offset from the DisplayTime to the actual time we will trigger the notify, as we cannot always trigger it exactly at the time the user wants */
 	UPROPERTY()
 	float TriggerTimeOffset;
 
 	/** Returns the time this branching point should be triggered */
-	float GetTriggerTime() const { return DisplayTime + TriggerTimeOffset; }
+	float GetTriggerTime() const { return GetTime() + TriggerTimeOffset; }
 
 	/** Updates trigger offset based on a combination of predicted offset and current offset */
 	ENGINE_API void RefreshTriggerOffset(EAnimEventTriggerOffsets::Type PredictedOffsetType);
@@ -330,6 +332,16 @@ public:
 
 	/** Calculates what (if any) offset should be applied to the trigger time of a branch point given its display time */
 	ENGINE_API EAnimEventTriggerOffsets::Type CalculateOffsetForBranchingPoint(float BranchingPointDisplayTime) const;
+
+	/** Update all linkable elements contained in the montage */
+	ENGINE_API void UpdateLinkableElements();
+
+	/** Update linkable elements that rely on a specific segment. This will update linkable elements for the segment specified
+	 *	and elements linked to segments after the segment specified
+	 *	@param SlotIdx The slot that the segment is contained in
+	 *	@param SegmentIdx The index of the segment within the specified slot
+	 */
+	ENGINE_API void UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx);
 #endif
 
 	/** Find First BranchingPoint between ]StartTrackPos,EndTrackPos] 
@@ -429,6 +441,8 @@ private:
 	void SortAnimCompositeSectionByPos();
 
 #endif	//WITH_EDITOR
+
+private:
 
 	/** Sort CompositeSections in the order of StartPos */
 	void SortAnimBranchingPointByTime();

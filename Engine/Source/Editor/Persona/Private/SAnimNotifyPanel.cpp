@@ -47,6 +47,7 @@ public:
 		, _OnNodeDragStarted()
 		, _OnUpdatePanel()
 		, _PanTrackRequest()
+		, _OnDeselectAllNotifies()
 		, _ViewInputMin()
 		, _ViewInputMax()
 		, _MarkerBars()
@@ -57,6 +58,7 @@ public:
 	SLATE_EVENT( FOnNotifyNodeDragStarted, OnNodeDragStarted )
 	SLATE_EVENT( FOnUpdatePanel, OnUpdatePanel )
 	SLATE_EVENT( FPanTrackRequest, PanTrackRequest )
+	SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies)
 	SLATE_ATTRIBUTE( float, ViewInputMin )
 	SLATE_ATTRIBUTE( float, ViewInputMax )
 	SLATE_ATTRIBUTE( TArray<FTrackMarkerBar>, MarkerBars)
@@ -178,6 +180,9 @@ private:
 	/** Marker bars for snapping to when dragging the markers in a state notify node */
 	TAttribute<TArray<FTrackMarkerBar>> MarkerBars;
 
+	/** Delegate to deselect notifies and clear the details panel */
+	FDeselectAllNotifies OnDeselectAllNotifies;
+
 	friend class SAnimNotifyTrack;
 };
 
@@ -265,9 +270,11 @@ public:
 	// Adds our current selection to the provided set
 	void AppendSelectionToSet(FGraphPanelSelectionSet& SelectionSet);
 	// Adds our current selection to the provided array
-	void AppendSelectionToArray(TArray<const FAnimNotifyEvent*>& Selection) const;
+	void AppendSelectionToArray(TArray<FAnimNotifyEvent*>& Selection) const;
 	// Gets the currently selected SAnimNotifyNode instances
 	void AppendSelectedNodeWidgetsToArray(TArray<TSharedPtr<SAnimNotifyNode>>& NodeArray) const;
+	// Gets the indices of the selected notifies
+	TArray<int32> GetSelectedNotifyIndices() const {return SelectedNotifyIndices;}
 
 	/**
 	* Deselects all currently selected notify nodes
@@ -634,7 +641,7 @@ public:
 			// Always clamp the Y to the current track
 			SelectionBeginPosition.Y = SelectionPositionClampInfo->TrackPos;
 
-			if(CurrentNode.IsValid() && CurrentEvent->Duration > 0)
+			if(CurrentNode.IsValid() && CurrentEvent->GetDuration() > 0)
 			{
 				// If we didn't snap the beginning of the node, attempt to snap the end
 				if(SnapX == -1.0f)
@@ -660,7 +667,8 @@ public:
 						if(SnapMovement == 0.0f)
 						{
 							SnapMovement = SnapX - TrackNodeEndPos.X;
-							SnapTime = TrackScaleInfo.LocalXToInput(SnapX) - CurrentEvent->Duration;
+							SnapTime = TrackScaleInfo.LocalXToInput(SnapX) - CurrentEvent->GetDuration();
+							CurrentNode->SetLastSnappedTime(SnapTime);
 							SnappedNode = CurrentNode;
 						}
 					}
@@ -806,24 +814,28 @@ public:
 		float BeginTime = MAX_flt;
 		for(TSharedPtr<SAnimNotifyNode> Node : NotifyNodes)
 		{
-			if(Node->NotifyEvent->DisplayTime < BeginTime)
+			float NotifyTime = Node->NotifyEvent->GetTime();
+
+			if(NotifyTime < BeginTime)
 			{
-				BeginTime = Node->NotifyEvent->DisplayTime;
+				BeginTime = NotifyTime;
 			}
 		}
 
 		// Initialise node data
 		for(TSharedPtr<SAnimNotifyNode> Node : NotifyNodes)
 		{
+			float NotifyTime = Node->NotifyEvent->GetTime();
+
 			Node->ClearLastSnappedTime();
-			Operation->NodeTimeOffsets.Add(Node->NotifyEvent->DisplayTime - BeginTime);
-			Operation->NodeTimes.Add(Node->NotifyEvent->DisplayTime);
+			Operation->NodeTimeOffsets.Add(NotifyTime - BeginTime);
+			Operation->NodeTimes.Add(NotifyTime);
 			Operation->NodeXOffsets.Add(Node->GetNotifyPositionOffset().X);
 
 			// Calculate the time length of the selection. Because it is possible to have states
 			// with arbitrary durations we need to search all of the nodes and find the furthest
 			// possible point
-			Operation->SelectionTimeLength = FMath::Max(Operation->SelectionTimeLength, Node->NotifyEvent->DisplayTime + Node->NotifyEvent->Duration - BeginTime);
+			Operation->SelectionTimeLength = FMath::Max(Operation->SelectionTimeLength, NotifyTime + Node->NotifyEvent->GetDuration() - BeginTime);
 		}
 
 		Operation->Construct();
@@ -901,7 +913,7 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 	CurrentDragHandle = ENotifyStateHandleHit::None;
 	bDrawTooltipToRight = true;
 	bSelected = false;
-
+	
 	// Cache notify name for blueprint / Native notifies.
 	if(NotifyEvent->Notify)
 	{
@@ -914,6 +926,7 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 
 	OnNodeDragStarted = InArgs._OnNodeDragStarted;
 	PanTrackRequest = InArgs._PanTrackRequest;
+	OnDeselectAllNotifies = InArgs._OnDeselectAllNotifies;
 
 	ViewInputMin = InArgs._ViewInputMin;
 	ViewInputMax = InArgs._ViewInputMax;
@@ -977,14 +990,14 @@ FText SAnimNotifyNode::GetNotifyText() const
 
 FText SAnimNotifyNode::GetNodeTooltip() const
 {
-	const float Time = NotifyEvent->DisplayTime;
+	const float Time = NotifyEvent->GetTime();
 	const float Percentage = Time / Sequence->SequenceLength;
 	const FText Frame = FText::AsNumber( (int32)(Percentage * Sequence->GetNumberOfFrames()) );
 	const FText Seconds = FText::AsNumber( Time );
 
-	if (NotifyEvent->Duration > 0.0f)
+	if (NotifyEvent->GetDuration() > 0.0f)
 	{
-		const FText Duration = FText::AsNumber( NotifyEvent->Duration );
+		const FText Duration = FText::AsNumber( NotifyEvent->GetDuration() );
 		return FText::Format( LOCTEXT("NodeToolTipLong", "@ {0} sec (frame {1}) for {2} sec"), Seconds, Frame, Duration );
 	}
 
@@ -1067,8 +1080,8 @@ void SAnimNotifyNode::UpdateSizeAndPosition(const FGeometry& AllottedGeometry)
 	// Cache the geometry information, the alloted geometry is the same size as the track.
 	CachedAllotedGeometrySize = AllottedGeometry.Size;
 
-	NotifyTimePositionX = ScaleInfo.InputToLocalX(NotifyEvent->DisplayTime);
-	NotifyDurationSizeX = ScaleInfo.PixelsPerInput * NotifyEvent->Duration;
+	NotifyTimePositionX = ScaleInfo.InputToLocalX(NotifyEvent->GetTime());
+	NotifyDurationSizeX = ScaleInfo.PixelsPerInput * NotifyEvent->GetDuration();
 
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	TextSize = FontMeasureService->Measure( GetNotifyText(), Font );
@@ -1156,7 +1169,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		// Render offsets if necessary
 		if(NotifyEvent->EndTriggerTimeOffset != 0.f) //Do we have an offset to render?
 		{
-			float EndTime = NotifyEvent->DisplayTime + NotifyEvent->Duration;
+			float EndTime = NotifyEvent->GetTime() + NotifyEvent->GetDuration();
 			if(EndTime != Sequence->SequenceLength) //Don't render offset when we are at the end of the sequence, doesnt help the user
 			{
 				// ScrubHandle
@@ -1234,7 +1247,8 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 	if(NotifyEvent->TriggerTimeOffset != 0.f) //Do we have an offset to render?
 	{
-		if(NotifyEvent->DisplayTime != 0.f && NotifyEvent->DisplayTime != Sequence->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesnt help the user
+		float NotifyTime = NotifyEvent->GetTime();
+		if(NotifyTime != 0.f && NotifyTime != Sequence->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesnt help the user
 		{
 			float HandleCentre = NotifyScrubHandleCentre;
 			float &Offset = NotifyEvent->TriggerTimeOffset;
@@ -1260,12 +1274,12 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 	if(CurrentDragHandle == ENotifyStateHandleHit::Start)
 	{
 		// Check track bounds
-		float OldDisplayTime = NotifyEvent->DisplayTime;
+		float OldDisplayTime = NotifyEvent->GetTime();
 
 		if(MouseEvent.GetScreenSpacePosition().X >= TrackScreenSpaceXPosition && MouseEvent.GetScreenSpacePosition().X <= TrackScreenSpaceXPosition + CachedAllotedGeometrySize.X)
 		{
 			float NewDisplayTime = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X);
-			float NewDuration = NotifyEvent->Duration + OldDisplayTime - NewDisplayTime;
+			float NewDuration = NotifyEvent->GetDuration() + OldDisplayTime - NewDisplayTime;
 
 			// Check to make sure the duration is not less than the minimum allowed
 			if(NewDuration < MinimumStateDuration)
@@ -1273,10 +1287,10 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 				NewDisplayTime -= MinimumStateDuration - NewDuration;
 			}
 
-			NotifyEvent->DisplayTime = NewDisplayTime;
-			NotifyEvent->Duration += OldDisplayTime - NotifyEvent->DisplayTime;
+			NotifyEvent->SetTime(NewDisplayTime);
+			NotifyEvent->SetDuration(NotifyEvent->GetDuration() + OldDisplayTime - NotifyEvent->GetTime());
 		}
-		else if(NotifyEvent->Duration > MinimumStateDuration)
+		else if(NotifyEvent->GetDuration() > MinimumStateDuration)
 		{
 			float Overflow = HandleOverflowPan(MouseEvent.GetScreenSpacePosition(), TrackScreenSpaceXPosition);
 
@@ -1284,21 +1298,21 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 			ScaleInfo.ViewMinInput = ViewInputMin.Get();
 			ScaleInfo.ViewMaxInput = ViewInputMax.Get();
 
-			NotifyEvent->DisplayTime = ScaleInfo.LocalXToInput(Overflow < 0.0f ? 0.0f : CachedAllotedGeometrySize.X);
-			NotifyEvent->Duration += OldDisplayTime - NotifyEvent->DisplayTime;
+			NotifyEvent->SetTime(ScaleInfo.LocalXToInput(Overflow < 0.0f ? 0.0f : CachedAllotedGeometrySize.X));
+			NotifyEvent->SetDuration(NotifyEvent->GetDuration() + OldDisplayTime - NotifyEvent->GetTime());
 
 			// Adjust incase we went under the minimum
-			if(NotifyEvent->Duration < MinimumStateDuration)
+			if(NotifyEvent->GetDuration() < MinimumStateDuration)
 			{
-				float EndTimeBefore = NotifyEvent->DisplayTime + NotifyEvent->Duration;
-				NotifyEvent->DisplayTime += NotifyEvent->Duration - MinimumStateDuration;
-				NotifyEvent->Duration = MinimumStateDuration;
-				float EndTimeAfter = NotifyEvent->DisplayTime + NotifyEvent->Duration;
+				float EndTimeBefore = NotifyEvent->GetTime() + NotifyEvent->GetDuration();
+				NotifyEvent->SetTime(NotifyEvent->GetTime() + NotifyEvent->GetDuration() - MinimumStateDuration);
+				NotifyEvent->SetDuration(MinimumStateDuration);
+				float EndTimeAfter = NotifyEvent->GetTime() + NotifyEvent->GetDuration();
 			}
 		}
 
 		// Now we know where the marker should be, look for possible snaps on montage marker bars
-		float NodePositionX = ScaleInfo.InputToLocalX(NotifyEvent->DisplayTime);
+		float NodePositionX = ScaleInfo.InputToLocalX(NotifyEvent->GetTime());
 		float MarkerSnap = GetScrubHandleSnapPosition(NodePositionX, ENotifyStateHandleHit::Start);
 		if(MarkerSnap != -1.0f)
 		{
@@ -1308,9 +1322,9 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 			NodePositionX = MarkerSnap;
 
 			// Adjust our start marker
-			OldDisplayTime = NotifyEvent->DisplayTime;
-			NotifyEvent->DisplayTime = ScaleInfo.LocalXToInput(NodePositionX);
-			NotifyEvent->Duration += OldDisplayTime - NotifyEvent->DisplayTime;
+			OldDisplayTime = NotifyEvent->GetTime();
+			NotifyEvent->SetTime(ScaleInfo.LocalXToInput(NodePositionX));
+			NotifyEvent->SetDuration(NotifyEvent->GetDuration() + OldDisplayTime - NotifyEvent->GetTime());
 		}
 		else
 		{
@@ -1321,11 +1335,11 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 	{
 		if(MouseEvent.GetScreenSpacePosition().X >= TrackScreenSpaceXPosition && MouseEvent.GetScreenSpacePosition().X <= TrackScreenSpaceXPosition + CachedAllotedGeometrySize.X)
 		{
-			float NewDuration = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X) - NotifyEvent->DisplayTime;
+			float NewDuration = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X) - NotifyEvent->GetTime();
 
-			NotifyEvent->Duration = FMath::Max(NewDuration, MinimumStateDuration);
+			NotifyEvent->SetDuration(FMath::Max(NewDuration, MinimumStateDuration));
 		}
-		else if(NotifyEvent->Duration > MinimumStateDuration)
+		else if(NotifyEvent->GetDuration() > MinimumStateDuration)
 		{
 			float Overflow = HandleOverflowPan(MouseEvent.GetScreenSpacePosition(), TrackScreenSpaceXPosition);
 
@@ -1333,11 +1347,11 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 			ScaleInfo.ViewMinInput = ViewInputMin.Get();
 			ScaleInfo.ViewMaxInput = ViewInputMax.Get();
 
-			NotifyEvent->Duration = FMath::Max(ScaleInfo.LocalXToInput(Overflow > 0.0f ? CachedAllotedGeometrySize.X : 0.0f) - NotifyEvent->DisplayTime, MinimumStateDuration);
+			NotifyEvent->SetDuration(FMath::Max(ScaleInfo.LocalXToInput(Overflow > 0.0f ? CachedAllotedGeometrySize.X : 0.0f) - NotifyEvent->GetTime(), MinimumStateDuration));
 		}
 
 		// Now we know where the scrub handle should be, look for possible snaps on montage marker bars
-		float NodePositionX = ScaleInfo.InputToLocalX(NotifyEvent->DisplayTime + NotifyEvent->Duration);
+		float NodePositionX = ScaleInfo.InputToLocalX(NotifyEvent->GetTime() + NotifyEvent->GetDuration());
 		float MarkerSnap = GetScrubHandleSnapPosition(NodePositionX, ENotifyStateHandleHit::End);
 		if(MarkerSnap != -1.0f)
 		{
@@ -1347,7 +1361,7 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 			NodePositionX = MarkerSnap;
 
 			// Adjust our end marker
-			NotifyEvent->Duration = ScaleInfo.LocalXToInput(NodePositionX) - NotifyEvent->DisplayTime;
+			NotifyEvent->SetDuration(ScaleInfo.LocalXToInput(NodePositionX) - NotifyEvent->GetTime());
 		}
 		else
 		{
@@ -1366,6 +1380,7 @@ FReply SAnimNotifyNode::OnMouseButtonUp( const FGeometry& MyGeometry, const FPoi
 	{
 		// Clear the drag marker and give the mouse back
 		CurrentDragHandle = ENotifyStateHandleHit::None;
+		OnDeselectAllNotifies.ExecuteIfBound();
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 
@@ -1835,10 +1850,20 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 	Sequence->Modify();
 
 	// Insert a new notify record and spawn the new notify object
-	int32 NewNotifyIndex = Sequence->Notifies.AddZeroed();
+	int32 NewNotifyIndex = Sequence->Notifies.Add(FAnimNotifyEvent());
 	FAnimNotifyEvent& NewEvent = Sequence->Notifies[NewNotifyIndex];
 	NewEvent.NotifyName = FName(*NewNotifyName);
-	NewEvent.DisplayTime = NewTime;
+
+	UAnimMontage* SequenceAsMontage = Cast<UAnimMontage>(Sequence);
+	if(SequenceAsMontage)
+	{
+		NewEvent.LinkMontage(SequenceAsMontage, NewTime);
+	}
+	else
+	{
+		NewEvent.LinkSequence(Sequence, NewTime);
+	}
+
 	NewEvent.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewTime));
 	NewEvent.TrackIndex = TrackIndex;
 
@@ -1851,8 +1876,16 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 		// Set default duration to 1 frame for AnimNotifyState.
 		if( NewEvent.NotifyStateClass )
 		{
-			NewEvent.Duration = 1 / 30.f;
 			NewEvent.NotifyName = FName(*NewEvent.NotifyStateClass->GetNotifyName());
+			NewEvent.SetDuration(1 / 30.f);
+			if(SequenceAsMontage)
+			{
+				NewEvent.EndLink.LinkMontage(SequenceAsMontage, NewEvent.EndLink.GetTime());
+			}
+			else
+			{
+				NewEvent.EndLink.LinkSequence(Sequence, NewEvent.EndLink.GetTime());
+			}
 		}
 		else
 		{
@@ -2060,7 +2093,7 @@ TSharedPtr<SWidget> SAnimNotifyTrack::SummonContextMenu(const FGeometry& MyGeome
 				NewAction.CanExecuteAction.BindRaw(
 					this, &SAnimNotifyTrack::IsSingleNodeSelected);
 
-				FText SetAnimStateDurationText = FText::Format( LOCTEXT("SetAnimStateDuration", "Set AnimNotifyState duration ({0})"), FText::AsNumber( AnimNotifies[NotifyIndex]->Duration ) );
+				FText SetAnimStateDurationText = FText::Format( LOCTEXT("SetAnimStateDuration", "Set AnimNotifyState duration ({0})"), FText::AsNumber( AnimNotifies[NotifyIndex]->GetDuration() ) );
 				MenuBuilder.AddMenuEntry(SetAnimStateDurationText, LOCTEXT("SetAnimStateDuration_ToolTip", "The duration of this AnimNotifyState"), FSlateIcon(), NewAction);
 			}
 
@@ -2273,19 +2306,19 @@ void SAnimNotifyTrack::OnPasteNotify(float TimeToPasteAt, ENotifyPasteMultipleMo
 
 				if (TimeToPasteAt >= 0.f)
 				{
-					Shift = TimeToPasteAt - (NewNotify.DisplayTime * ScaleMultiplier);
-					NewNotify.DisplayTime = TimeToPasteAt;
+					Shift = TimeToPasteAt - (NewNotify.GetTime() * ScaleMultiplier);
+					NewNotify.SetTime(TimeToPasteAt);
 
 					// Don't want to paste subsequent nodes at this position
 					TimeToPasteAt = -1.0f;
 				}
 				else
 				{
-					NewNotify.DisplayTime = (NewNotify.DisplayTime * ScaleMultiplier) + Shift;
+					NewNotify.SetTime((NewNotify.GetTime() * ScaleMultiplier) + Shift);
 					// Clamp into the bounds of the sequence
-					NewNotify.DisplayTime = FMath::Clamp(NewNotify.DisplayTime, 0.0f, Sequence->SequenceLength);
+					NewNotify.SetTime(FMath::Clamp(NewNotify.GetTime(), 0.0f, Sequence->SequenceLength));
 				}
-				NewNotify.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.DisplayTime));
+				NewNotify.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime()));
 				NewNotify.TrackIndex = TrackIndex;
 
 				// Get anim notify ptr of the new notify event array element (This ptr is the same as the source anim notify ptr)
@@ -2312,9 +2345,9 @@ void SAnimNotifyTrack::OnPasteNotify(float TimeToPasteAt, ENotifyPasteMultipleMo
 						NewNotify.NotifyStateClass = NewAnimNotifyStatePtr;
 					}
 
-					if ((NewNotify.DisplayTime + NewNotify.Duration) > Sequence->SequenceLength)
+					if ((NewNotify.GetTime() + NewNotify.GetDuration()) > Sequence->SequenceLength)
 					{
-						NewNotify.Duration = Sequence->SequenceLength - NewNotify.DisplayTime;
+						NewNotify.SetDuration(Sequence->SequenceLength - NewNotify.GetTime());
 					}
 				}
 			}
@@ -2404,7 +2437,7 @@ void SAnimNotifyTrack::OnSetDurationNotifyClicked(int32 NotifyIndex)
 {
 	if (AnimNotifies.IsValidIndex(NotifyIndex))
 	{
-		FString DefaultText = FString::Printf(TEXT("%f"), AnimNotifies[NotifyIndex]->Duration);
+		FString DefaultText = FString::Printf(TEXT("%f"), AnimNotifies[NotifyIndex]->GetDuration());
 
 		// Show dialog to enter weight
 		TSharedRef<STextEntryPopup> TextEntry =
@@ -2431,9 +2464,9 @@ void SAnimNotifyTrack::SetDuration(const FText& DurationText, ETextCommit::Type 
 		if ( AnimNotifies.IsValidIndex(NotifyIndex) )
 		{
 			float NewDuration = FMath::Max(FCString::Atof( *DurationText.ToString() ), SAnimNotifyNode::MinimumStateDuration);
-			float MaxDuration = Sequence->SequenceLength - AnimNotifies[NotifyIndex]->DisplayTime;
+			float MaxDuration = Sequence->SequenceLength - AnimNotifies[NotifyIndex]->GetTime();
 			NewDuration = FMath::Min(NewDuration, MaxDuration);
-			AnimNotifies[NotifyIndex]->Duration = NewDuration;
+			AnimNotifies[NotifyIndex]->SetDuration(NewDuration);
 
 			// If we have a delegate bound to refresh the offsets, call it.
 			// This is used by the montage editor to keep the offsets up to date.
@@ -2507,6 +2540,7 @@ void SAnimNotifyTrack::Update()
 				.ViewInputMin(ViewInputMin)
 				.ViewInputMax(ViewInputMax)
 				.MarkerBars(MarkerBars)
+				.OnDeselectAllNotifies(OnDeselectAllNotifies)
 			];
 
 			NotifyNodes.Add(AnimNotifyNode);
@@ -2540,7 +2574,7 @@ FReply SAnimNotifyTrack::OnNotifyNodeDragStarted( TSharedRef<SAnimNotifyNode> No
 	{
 		FAnimNotifyEvent* First = AnimNotifies[A];
 		FAnimNotifyEvent* Second = AnimNotifies[B];
-		return First->DisplayTime < Second->DisplayTime;
+		return First->GetTime() < Second->GetTime();
 	});
 
 	// If we're dragging one of the direction markers we don't need to call any further as we don't want the drag drop op
@@ -2614,20 +2648,24 @@ void SAnimNotifyTrack::HandleNodeDrop(TSharedPtr<SAnimNotifyNode> Node, float Of
 	float LocalX = GetCachedGeometry().AbsoluteToLocal(Node->GetScreenPosition() + Offset).X;
 	float Time = GetCachedScaleInfo().LocalXToInput(LocalX);
 	FAnimNotifyEvent* DroppedEvent = Node->NotifyEvent;
+	float EventDuration = DroppedEvent->GetDuration();
+
+	UAnimMontage* MontageObj = Cast<UAnimMontage>(Sequence);
 
 	if(Node->GetLastSnappedTime() != -1.0f)
 	{
-		DroppedEvent->DisplayTime = Node->GetLastSnappedTime();
+		DroppedEvent->LinkMontage(MontageObj, Node->GetLastSnappedTime(), DroppedEvent->GetSlotIndex());
 	}
 	else
 	{
-		DroppedEvent->DisplayTime = Time;
+		DroppedEvent->LinkMontage(MontageObj, Time, DroppedEvent->GetSlotIndex());
 	}
-	DroppedEvent->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->DisplayTime));
+	DroppedEvent->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->GetTime()));
 
-	if(DroppedEvent->Duration > 0.0f)
+	if(EventDuration > 0.0f)
 	{
-		DroppedEvent->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->DisplayTime + DroppedEvent->Duration));
+		DroppedEvent->EndLink.LinkMontage(MontageObj, DroppedEvent->GetTime() + EventDuration, DroppedEvent->GetSlotIndex());
+		DroppedEvent->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->EndLink.GetTime()/*DroppedEvent->GetTime()+ DroppedEvent->GetDuration()*/));
 	}
 	else
 	{
@@ -2675,7 +2713,7 @@ void SAnimNotifyTrack::AppendSelectionToSet(FGraphPanelSelectionSet& SelectionSe
 	}
 }
 
-void SAnimNotifyTrack::AppendSelectionToArray(TArray<const FAnimNotifyEvent*>& Selection) const
+void SAnimNotifyTrack::AppendSelectionToArray(TArray<FAnimNotifyEvent*>& Selection) const
 {
 	for(int32 Idx : SelectedNotifyIndices)
 	{
@@ -2703,12 +2741,12 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 
 		if(PasteTime != -1.0f)
 		{
-			NewNotify.DisplayTime = PasteTime;
+			NewNotify.SetTime(PasteTime);
 		}
 
 		// Make sure the notify is within the track area
-		NewNotify.DisplayTime = FMath::Clamp(NewNotify.DisplayTime, 0.0f, Sequence->SequenceLength);
-		NewNotify.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.DisplayTime));
+		NewNotify.SetTime(FMath::Clamp(NewNotify.GetTime(), 0.0f, Sequence->SequenceLength));
+		NewNotify.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime()));
 		NewNotify.TrackIndex = TrackIndex;
 
 		if(NewNotify.Notify)
@@ -2724,8 +2762,8 @@ void SAnimNotifyTrack::PasteSingleNotify(FString& NotifyString, float PasteTime)
 			NewNotify.NotifyStateClass = NewNotifyStateObject;
 
 			// Clamp duration into the sequence
-			NewNotify.Duration = FMath::Clamp(NewNotify.Duration, 1 / 30.0f, Sequence->SequenceLength - NewNotify.DisplayTime);
-			NewNotify.EndTriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.DisplayTime + NewNotify.Duration));
+			NewNotify.SetDuration(FMath::Clamp(NewNotify.GetDuration(), 1 / 30.0f, Sequence->SequenceLength - NewNotify.GetTime()));
+			NewNotify.EndTriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewNotify.GetTime() + NewNotify.GetDuration()));
 		}
 	}
 	else
@@ -3278,9 +3316,21 @@ void SAnimNotifyPanel::OnTrackSelectionChanged()
 {
 	// Need to collect selection info from all tracks
 	FGraphPanelSelectionSet SelectionSet;
-	for(TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
+	TArray<UEditorNotifyObject*> NotifyObjects;
+
+	TArray<FAnimNotifyEvent*> Events;
+	for(int32 TrackIdx = 0 ; TrackIdx < NotifyAnimTracks.Num() ; ++TrackIdx)
 	{
-		Track->AppendSelectionToSet(SelectionSet);
+		TSharedPtr<SAnimNotifyTrack> Track = NotifyAnimTracks[TrackIdx];
+		TArray<int32> TrackIndices = Track->GetSelectedNotifyIndices();
+		for(int32 Idx : TrackIndices)
+		{
+			FString ObjName = MakeUniqueObjectName(GetTransientPackage(), UEditorNotifyObject::StaticClass()).ToString();
+			UEditorNotifyObject* NewNotifyObject = Cast<UEditorNotifyObject>(StaticConstructObject(UEditorNotifyObject::StaticClass(), GetTransientPackage(), FName(*ObjName), RF_Public|RF_Standalone|RF_Transient));
+			NewNotifyObject->InitFromAnim(Sequence, FOnAnimObjectChange::CreateSP(this, &SAnimNotifyPanel::OnNotifyObjectChanged));
+			NewNotifyObject->InitialiseNotify(NotifyAnimTracks.Num() - TrackIdx - 1, Idx);
+			SelectionSet.Add(NewNotifyObject);
+		}
 	}
 
 	OnSelectionChanged.ExecuteIfBound(SelectionSet);
@@ -3299,7 +3349,7 @@ void SAnimNotifyPanel::DeselectAllNotifies()
 void SAnimNotifyPanel::CopySelectedNotifiesToClipboard() const
 {
 	// Grab the selected events
-	TArray<const FAnimNotifyEvent*> SelectedNotifies;
+	TArray<FAnimNotifyEvent*> SelectedNotifies;
 	for(TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
 	{
 		Track->AppendSelectionToArray(SelectedNotifies);
@@ -3314,7 +3364,7 @@ void SAnimNotifyPanel::CopySelectedNotifiesToClipboard() const
 		// Sort by track
 		SelectedNotifies.Sort([](const FAnimNotifyEvent& A, const FAnimNotifyEvent& B)
 		{
-			return (A.TrackIndex > B.TrackIndex) || (A.TrackIndex == B.TrackIndex && A.DisplayTime < B.DisplayTime);
+			return (A.TrackIndex > B.TrackIndex) || (A.TrackIndex == B.TrackIndex && A.GetTime() < B.GetTime());
 		});
 
 		// Need to find how many tracks this selection spans and the minimum time to use as the beginning of the selection
@@ -3325,7 +3375,7 @@ void SAnimNotifyPanel::CopySelectedNotifiesToClipboard() const
 		{
 			MinTrack = FMath::Min(MinTrack, Event->TrackIndex);
 			MaxTrack = FMath::Max(MaxTrack, Event->TrackIndex);
-			MinTime = FMath::Min(MinTime, Event->DisplayTime);
+			MinTime = FMath::Min(MinTime, Event->GetTime());
 		}
 
 		int32 TrackSpan = MaxTrack - MinTrack + 1;
@@ -3662,6 +3712,11 @@ void SAnimNotifyPanel::OnGetNotifyBlueprintData(TArray<FAssetData>& OutNotifyDat
 			}
 		}
 	}
+}
+
+void SAnimNotifyPanel::OnNotifyObjectChanged(UObject* EditorBaseObj, bool bRebuild)
+{
+
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -943,14 +943,41 @@ void FPersona::OnPostImport(UFactory* InFactory, UObject* InObject)
 
 void FPersona::ConditionalRefreshEditor(UObject* InObject)
 {
+	bool bInterestingAsset = true;
 	// Ignore if this is regarding a different object
 	if(InObject != TargetSkeleton && InObject != TargetSkeleton->GetPreviewMesh() && InObject != GetAnimationAssetBeingEdited())
 	{
-		return;
+		bInterestingAsset = false;
 	}
 
-	RefreshViewport();
-	ReinitMode();
+	// Check that we aren't a montage that uses an incoming animation
+	if(UAnimMontage* Montage = Cast<UAnimMontage>(GetAnimationAssetBeingEdited()))
+	{
+		for(FSlotAnimationTrack& Slot : Montage->SlotAnimTracks)
+		{
+			if(bInterestingAsset)
+			{
+				break;
+			}
+
+			for(FAnimSegment& Segment : Slot.AnimTrack.AnimSegments)
+			{
+				if(Segment.AnimReference == InObject)
+				{
+					bInterestingAsset = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if(bInterestingAsset)
+	{
+		RefreshViewport();
+		ReinitMode();
+		
+		OnPersonaRefresh.Broadcast();
+	}
 }
 
 /** Called when graph editor focus is changed */

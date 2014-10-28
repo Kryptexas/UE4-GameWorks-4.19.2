@@ -11,6 +11,7 @@
 #include "SmartName.h"
 #include "Skeleton.h"
 #include "Curves/CurveBase.h"
+#include "AnimLinkableElement.h"
 #include "AnimSequenceBase.generated.h"
 
 #define DEFAULT_SAMPLERATE			30.f
@@ -33,13 +34,13 @@ ENGINE_API float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type Offs
  * which has its Notify method called and passed to the animation.
  */
 USTRUCT()
-struct FAnimNotifyEvent
+struct FAnimNotifyEvent : public FAnimLinkableElement
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** The user requested time for this notify */
 	UPROPERTY()
-	float DisplayTime;
+	float DisplayTime_DEPRECATED;
 
 	/** An offset from the DisplayTime to the actual time we will trigger the notify, as we cannot always trigger it exactly at the time the user wants */
 	UPROPERTY()
@@ -52,17 +53,21 @@ struct FAnimNotifyEvent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotifyEvent)
 	float TriggerWeightThreshold;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotifyEvent)
+	UPROPERTY()
 	FName NotifyName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotifyEvent)
+	UPROPERTY(EditAnywhere, Instanced, BlueprintReadWrite, Category=AnimNotifyEvent)
 	class UAnimNotify * Notify;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimNotifyEvent)
+	UPROPERTY(EditAnywhere, Instanced, BlueprintReadWrite, Category=AnimNotifyEvent)
 	class UAnimNotifyState * NotifyStateClass;
 
 	UPROPERTY()
 	float Duration;
+
+	/** Linkable element to use for the end handle representing a notify state duration */
+	UPROPERTY()
+	FAnimLinkableElement EndLink;
 
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
@@ -76,7 +81,7 @@ struct FAnimNotifyEvent
 #endif // WITH_EDITORONLY_DATA
 
 	FAnimNotifyEvent()
-		: DisplayTime(0)
+		: DisplayTime_DEPRECATED(0)
 		, TriggerTimeOffset(0)
 		, EndTriggerTimeOffset(0)
 		, TriggerWeightThreshold(ZERO_ANIMWEIGHT_THRESH)
@@ -103,6 +108,10 @@ struct FAnimNotifyEvent
 	/** Returns the actual end time for a state notify. In some cases this may be different from DisplayTime + Duration */
 	ENGINE_API float GetEndTriggerTime() const;
 
+	ENGINE_API float GetDuration() const;
+
+	ENGINE_API void SetDuration(float NewDuration);
+
 	/** Returns true if this is blueprint derived notifies **/
 	bool IsBlueprintNotify() const
 	{
@@ -117,6 +126,8 @@ struct FAnimNotifyEvent
 			(!IsBlueprintNotify() && NotifyName == Other.NotifyName)
 			);
 	}
+
+	ENGINE_API virtual void SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame = EAnimLinkMethod::Absolute) override;
 };
 
 /**

@@ -112,7 +112,7 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 	float EndTime;
 	if ( CompositeSections.IsValidIndex(FirstIndex) )
 	{
-		StartTime = CompositeSections[FirstIndex].StartTime;
+		StartTime = CompositeSections[FirstIndex].GetTime();
 	}
 	else // if first index isn't valid, set to be 0.f, so it starts from reset
 	{
@@ -121,7 +121,7 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 
 	if ( CompositeSections.IsValidIndex(SecondIndex) )
 	{
-		EndTime = CompositeSections[SecondIndex].StartTime;
+		EndTime = CompositeSections[SecondIndex].GetTime();
 	}
 	else // if end index isn't valid, set to be BIG_NUMBER
 	{
@@ -135,7 +135,7 @@ bool UAnimMontage::IsWithinPos(int32 FirstIndex, int32 SecondIndex, float Curren
 
 float UAnimMontage::CalculatePos(FCompositeSection &Section, float PosWithinCompositeSection) const
 {
-	float Offset = Section.StartTime;
+	float Offset = Section.GetTime();
 	Offset += PosWithinCompositeSection;
 	// @todo anim
 	return Offset;
@@ -164,7 +164,7 @@ int32 UAnimMontage::GetAnimCompositeSectionIndexFromPos(float CurrentTime, float
 		// if within
 		if (IsWithinPos(I, I+1, CurrentTime))
 		{
-			PosWithinCompositeSection = CurrentTime - CompositeSections[I].StartTime;
+			PosWithinCompositeSection = CurrentTime - CompositeSections[I].GetTime();
 			return I;
 		}
 	}
@@ -179,7 +179,7 @@ float UAnimMontage::GetSectionTimeLeftFromPos(float Position)
 	{
 		if( IsValidSectionIndex(SectionID+1) )
 		{
-			return (GetAnimCompositeSection(SectionID+1).StartTime - Position);
+			return (GetAnimCompositeSection(SectionID+1).GetTime() - Position);
 		}
 		else
 		{
@@ -243,12 +243,12 @@ void UAnimMontage::GetSectionStartAndEndTime(int32 SectionIndex, float& OutStart
 	OutEndTime = SequenceLength;
 	if ( IsValidSectionIndex(SectionIndex) )
 	{
-		OutStartTime = GetAnimCompositeSection(SectionIndex).StartTime;		
+		OutStartTime = GetAnimCompositeSection(SectionIndex).GetTime();		
 	}
 
 	if ( IsValidSectionIndex(SectionIndex + 1))
 	{
-		OutEndTime = GetAnimCompositeSection(SectionIndex + 1).StartTime;		
+		OutEndTime = GetAnimCompositeSection(SectionIndex + 1).GetTime();		
 	}
 }
 
@@ -258,12 +258,12 @@ float UAnimMontage::GetSectionLength(int32 SectionIndex) const
 	float EndTime = SequenceLength;
 	if ( IsValidSectionIndex(SectionIndex) )
 	{
-		StartTime = GetAnimCompositeSection(SectionIndex).StartTime;		
+		StartTime = GetAnimCompositeSection(SectionIndex).GetTime();		
 	}
 
 	if ( IsValidSectionIndex(SectionIndex + 1))
 	{
-		EndTime = GetAnimCompositeSection(SectionIndex + 1).StartTime;		
+		EndTime = GetAnimCompositeSection(SectionIndex + 1).GetTime();		
 	}
 
 	return EndTime - StartTime;
@@ -293,7 +293,7 @@ int32 UAnimMontage::AddAnimCompositeSection(FName InSectionName, float StartTime
 		return INDEX_NONE;
 	}
 
-	NewSection.StartTime = StartTime;
+	NewSection.LinkMontage(this, StartTime);
 
 	// we'd like to sort them in the order of time
 	int32 NewSectionIndex = CompositeSections.Add(NewSection);
@@ -329,7 +329,7 @@ void UAnimMontage::SortAnimCompositeSectionByPos()
 	{
 		FORCEINLINE bool operator()( const FCompositeSection &A, const FCompositeSection &B ) const
 		{
-			return A.StartTime < B.StartTime;
+			return A.GetTime() < B.GetTime();
 		}
 	};
 	CompositeSections.Sort( FCompareFCompositeSection() );
@@ -359,15 +359,40 @@ void UAnimMontage::PostLoad()
 				Segment.AnimEndOffset_DEPRECATED = 0.f;
 			}
 		}
+		Track.ValidateSegmentTimes();
 			}
 
-	for ( auto CompositeIter = CompositeSections.CreateIterator(); CompositeIter; ++CompositeIter )
+	int32 Ver = GetLinker()->UE4Ver();
+
+	for (auto& Composite : CompositeSections)
 	{
-		FCompositeSection & Composite = (*CompositeIter);
-		if (Composite.StarTime_DEPRECATED!=0.f)
+		if (Composite.StarTime_DEPRECATED != 0.0f)
 		{
-			Composite.StartTime = Composite.StarTime_DEPRECATED;
-			Composite.StarTime_DEPRECATED = 0.f;
+			Composite.SetTime(Composite.StarTime_DEPRECATED);
+			Composite.StarTime_DEPRECATED = 0.0f;
+		}
+
+		if(Composite.StartTime_DEPRECATED != 0.0f)
+		{
+			Composite.Clear();
+			Composite.LinkMontage(this, Composite.StartTime_DEPRECATED);
+		}
+		else
+	{
+			Composite.LinkMontage(this, Composite.GetTime());
+		}
+	}
+
+	for(auto& BranchingPoint : BranchingPoints)
+	{
+		if(BranchingPoint.DisplayTime_DEPRECATED != 0.0f)
+		{
+			BranchingPoint.Clear();
+			BranchingPoint.LinkMontage(this, BranchingPoint.DisplayTime_DEPRECATED);
+		}
+		else
+		{
+			BranchingPoint.LinkMontage(this, BranchingPoint.GetTime());
 		}
 	}
 
@@ -412,20 +437,20 @@ void UAnimMontage::PostLoad()
 
 	// verify if skeleton matches, otherwise clear it, this can happen if anim sequence has been modified when this hasn't been loaded. 
 	{
-		USkeleton* MySkeleton = GetSkeleton();
-		for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
+	USkeleton* MySkeleton = GetSkeleton();
+	for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
+	{
+		if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
 		{
-			if ( SlotAnimTracks[I].AnimTrack.AnimSegments.Num() > 0 )
+			UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
+			if ( Sequence && Sequence->GetSkeleton() != MySkeleton )
 			{
-				UAnimSequence * Sequence = Cast<UAnimSequence>(SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference);
-				if ( Sequence && Sequence->GetSkeleton() != MySkeleton )
-				{
-					SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = 0;
-					MarkPackageDirty();
-					break;
-				}
+				SlotAnimTracks[I].AnimTrack.AnimSegments[0].AnimReference = 0;
+				MarkPackageDirty();
+				break;
 			}
 		}
+	}
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -439,6 +464,24 @@ void UAnimMontage::PostLoad()
 				FName SlotName = SlotAnimTracks[SlotIndex].SlotName;
 				MySkeleton->RegisterSlotNode(SlotName);
 			}
+		}
+	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		if(Notify.DisplayTime_DEPRECATED != 0.0f)
+		{
+			Notify.Clear();
+			Notify.LinkMontage(this, Notify.DisplayTime_DEPRECATED);
+		}
+		else
+		{
+			Notify.LinkMontage(this, Notify.GetTime());
+		}
+
+		if(Notify.Duration != 0.0f)
+		{
+			Notify.EndLink.LinkMontage(this, Notify.GetTime() + Notify.Duration);
 		}
 	}
 }
@@ -537,7 +580,7 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetFromSections(float T
 {
 	for(auto Iter = CompositeSections.CreateConstIterator(); Iter; ++Iter)
 	{
-		float SectionTime = Iter->StartTime;
+		float SectionTime = Iter->GetTime();
 		if(SectionTime == Time)
 		{
 			return EAnimEventTriggerOffsets::OffsetBefore;
@@ -567,7 +610,7 @@ EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetForNotify(float Noti
 		{
 			for(auto Iter = BranchingPoints.CreateConstIterator(); Iter; ++Iter)
 			{
-				float BranchTime = Iter->DisplayTime;
+				float BranchTime = Iter->GetTime();
 				if(BranchTime == NotifyDisplayTime)
 				{
 					return EAnimEventTriggerOffsets::OffsetBefore;
@@ -1009,7 +1052,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 			float StoppingPosInSection = CurrentSectionLength;
 
 			// Also look for a branching point. If we have one, stop there first to handle it.
-			const float CurrentSectionEndPos = CurrentSection.StartTime + CurrentSectionLength;
+			const float CurrentSectionEndPos = CurrentSection.GetTime() + CurrentSectionLength;
 
 			// Update position within current section.
 			// Note that we explicitly disallow looping there, we handle it ourselves to simplify code by not having to handle time wrapping around in multiple places.
@@ -1023,7 +1066,7 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 			DesiredDeltaMove -= ActualDeltaMove;
 
 			float PrevPosition = Position;
-			InOutPosition = FMath::Clamp<float>(InOutPosition + ActualDeltaPos, CurrentSection.StartTime, CurrentSectionEndPos);
+			InOutPosition = FMath::Clamp<float>(InOutPosition + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
 
 			if( FMath::Abs(ActualDeltaMove) > 0.f )
 			{
@@ -1110,12 +1153,12 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					float StoppingPosInSection = CurrentSectionLength;
 
 					// Also look for a branching point. If we have one, stop there first to handle it.
-					const float CurrentSectionEndPos = CurrentSection.StartTime + CurrentSectionLength;
-					const FBranchingPoint* NextBranchingPoint = Montage->FindFirstBranchingPoint(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.StartTime, CurrentSectionEndPos));
+					const float CurrentSectionEndPos = CurrentSection.GetTime() + CurrentSectionLength;
+					const FBranchingPoint* NextBranchingPoint = Montage->FindFirstBranchingPoint(Position, FMath::Clamp(Position + DesiredDeltaMove, CurrentSection.GetTime(), CurrentSectionEndPos));
 					if( NextBranchingPoint )
 					{
 						// get the first one to see if it's less than AnimEnd
-						StoppingPosInSection = NextBranchingPoint->GetTriggerTime() - CurrentSection.StartTime;
+						StoppingPosInSection = NextBranchingPoint->GetTriggerTime() - CurrentSection.GetTime();
 					}
 
 					// Update position within current section.
@@ -1130,7 +1173,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					DesiredDeltaMove -= ActualDeltaMove;
 
 					float PrevPosition = Position;
-					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.StartTime, CurrentSectionEndPos);
+					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
 
 					if( FMath::Abs(ActualDeltaMove) > 0.f )
 					{
@@ -1300,4 +1343,71 @@ void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSeq
 		Track.AnimTrack.ReplaceReferredAnimations(ReplacementMap);
 	}
 }
+
+ENGINE_API void UAnimMontage::UpdateLinkableElements()
+{
+	// Update all linkable elements
+	for(FCompositeSection& Section : CompositeSections)
+	{
+		Section.Update();
+	}
+
+	for(FBranchingPoint& BranchPoint : BranchingPoints)
+	{
+		BranchPoint.Update();
+
+		// Refresh branching point trigger offsets
+		BranchPoint.RefreshTriggerOffset(CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
+	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		Notify.Update();
+		Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
+
+		Notify.EndLink.Update();
+		Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
+	}
+}
+
+ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 SegmentIdx)
+{
+	FAnimSegment* UpdatedSegment = &SlotAnimTracks[SlotIdx].AnimTrack.AnimSegments[SegmentIdx];
+
+	for(FCompositeSection& Section : CompositeSections)
+	{
+		if(Section.GetSlotIndex() == SlotIdx && Section.GetSegmentIndex() == SegmentIdx)
+		{
+			// Update the link
+			Section.Update();
+		}
+	}
+
+	for(FBranchingPoint& BranchPoint : BranchingPoints)
+	{
+		if(BranchPoint.GetSlotIndex() == SlotIdx && BranchPoint.GetSegmentIndex() == SegmentIdx)
+		{
+			BranchPoint.Update();
+
+			// Refresh branching point trigger offsets
+			BranchPoint.RefreshTriggerOffset(CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
+		}
+	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		if(Notify.GetSlotIndex() == SlotIdx && Notify.GetSegmentIndex() == SegmentIdx)
+		{
+			Notify.Update();
+			Notify.RefreshTriggerOffset(CalculateOffsetForNotify(Notify.GetTime()));
+		}
+
+		if(Notify.EndLink.GetSlotIndex() == SlotIdx && Notify.EndLink.GetSegmentIndex() == SegmentIdx)
+		{
+			Notify.EndLink.Update();
+			Notify.RefreshEndTriggerOffset(CalculateOffsetForNotify(Notify.EndLink.GetTime()));
+		}
+	}
+}
+
 #endif

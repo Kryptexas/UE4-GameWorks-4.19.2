@@ -37,7 +37,12 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 		.Persona(InArgs._Persona)
 		);
 
-	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SMontageEditor::PostUndo ) );	
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+	if(SharedPersona.IsValid())
+	{
+		SharedPersona->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SMontageEditor::PostUndo ) );
+		SharedPersona->RegisterOnPersonaRefresh(FPersona::FOnPersonaRefresh::CreateSP(this, &SMontageEditor::RebuildMontagePanel));
+	}
 
 	EditorPanels->AddSlot()
 	.AutoHeight()
@@ -110,9 +115,11 @@ void SMontageEditor::Construct(const FArguments& InArgs)
 
 SMontageEditor::~SMontageEditor()
 {
-	if (PersonaPtr.IsValid())
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+	if (SharedPersona.IsValid())
 	{
-		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
+		SharedPersona->UnregisterOnPostUndo(this);
+		SharedPersona->UnregisterOnPersonaRefresh(this);
 	}
 }
 
@@ -166,13 +173,13 @@ void SMontageEditor::RefreshNotifyTriggerOffsets()
 		FAnimNotifyEvent& Notify = (*Iter);
 
 		// Offset for the beginning of a notify
-		EAnimEventTriggerOffsets::Type PredictedOffset = MontageObj->CalculateOffsetForNotify(Notify.DisplayTime);
+		EAnimEventTriggerOffsets::Type PredictedOffset = MontageObj->CalculateOffsetForNotify(Notify.GetTime());
 		Notify.RefreshTriggerOffset(PredictedOffset);
 
 		// Offset for the end of a notify state if necessary
-		if(Notify.Duration > 0.0f)
+		if(Notify.GetDuration() > 0.0f)
 		{
-			PredictedOffset = MontageObj->CalculateOffsetForNotify(Notify.DisplayTime + Notify.Duration);
+			PredictedOffset = MontageObj->CalculateOffsetForNotify(Notify.GetTime() + Notify.GetDuration());
 			Notify.RefreshEndTriggerOffset(PredictedOffset);
 		}
 		else
@@ -185,7 +192,7 @@ void SMontageEditor::RefreshNotifyTriggerOffsets()
 	{
 		FBranchingPoint& BranchPoint = (*Iter);
 
-		EAnimEventTriggerOffsets::Type PredictedOffset = MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.DisplayTime);
+		EAnimEventTriggerOffsets::Type PredictedOffset = MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.GetTime());
 		BranchPoint.RefreshTriggerOffset(PredictedOffset);
 	}
 }
@@ -194,7 +201,7 @@ bool SMontageEditor::GetSectionTime( int32 SectionIndex, float &OutTime ) const
 {
 	if (MontageObj != NULL && MontageObj->CompositeSections.IsValidIndex(SectionIndex))
 	{
-		OutTime = MontageObj->CompositeSections[SectionIndex].StartTime;
+		OutTime = MontageObj->CompositeSections[SectionIndex].GetTime();
 		return true;
 	}
 
@@ -221,7 +228,7 @@ TArray<float> SMontageEditor::GetSectionStartTimes() const
 	{
 		for( int32 I=0; I < MontageObj->CompositeSections.Num(); I++)
 		{
-			Times.Add(MontageObj->CompositeSections[I].StartTime);
+			Times.Add(MontageObj->CompositeSections[I].GetTime());
 		}
 	}
 	return Times;
@@ -235,14 +242,14 @@ TArray<FTrackMarkerBar> SMontageEditor::GetMarkerBarInformation() const
 		for( int32 I=0; I < MontageObj->CompositeSections.Num(); I++)
 		{
 			FTrackMarkerBar Bar;
-			Bar.Time = MontageObj->CompositeSections[I].StartTime;
+			Bar.Time = MontageObj->CompositeSections[I].GetTime();
 			Bar.DrawColour = FLinearColor(0.f,1.f,0.f);
 			MarkerBars.Add(Bar);
 		}
 		for( int32 I = 0; I < MontageObj->BranchingPoints.Num(); ++I )
 		{
 			FTrackMarkerBar Bar;
-			Bar.Time = MontageObj->BranchingPoints[I].DisplayTime;
+			Bar.Time = MontageObj->BranchingPoints[I].GetTime();
 			Bar.DrawColour = FLinearColor(0.8f,0.f,0.8f);
 			MarkerBars.Add(Bar);
 		}
@@ -278,7 +285,8 @@ void SMontageEditor::OnEditSectionTime( int32 SectionIndex, float NewTime)
 		}
 		bDragging = true;
 
-		MontageObj->CompositeSections[SectionIndex].StartTime = NewTime;
+		MontageObj->CompositeSections[SectionIndex].SetTime(NewTime);
+		MontageObj->CompositeSections[SectionIndex].LinkMontage(MontageObj, NewTime);
 	}
 }
 void SMontageEditor::OnEditSectionTimeFinish( int32 SectionIndex )
@@ -349,6 +357,8 @@ void SMontageEditor::CollapseMontage()
 		MontageObj->SlotAnimTracks[i].AnimTrack.CollapseAnimSegments();
 	}
 
+	MontageObj->UpdateLinkableElements();
+
 	RecalculateSequenceLength();
 }
 
@@ -361,6 +371,8 @@ void SMontageEditor::SortAndUpdateMontage()
 	}
 	
 	SortAnimSegments();
+
+	MontageObj->UpdateLinkableElements();
 
 	RecalculateSequenceLength();
 
@@ -424,7 +436,7 @@ void SMontageEditor::SortSections()
 	{
 		bool operator()( const FCompositeSection &A, const FCompositeSection &B ) const
 		{
-			return A.StartTime < B.StartTime;
+			return A.GetTime() < B.GetTime();
 		}
 	};
 	if (MontageObj != NULL)
@@ -441,16 +453,16 @@ void SMontageEditor::EnsureStartingSection()
 	if(MontageObj->CompositeSections.Num() <= 0)
 	{
 		FCompositeSection NewSection;
-		NewSection.StartTime = 0.f;
+		NewSection.SetTime(0.0f);
 		NewSection.SectionName = FName(TEXT("Default"));
 		MontageObj->CompositeSections.Add(NewSection);
 		MontageObj->MarkPackageDirty();
 	}
 
 	check(MontageObj->CompositeSections.Num() > 0);
-	if(MontageObj->CompositeSections[0].StartTime > 0.f)
+	if(MontageObj->CompositeSections[0].GetTime() > 0.0f)
 	{
-		MontageObj->CompositeSections[0].StartTime = 0.f;
+		MontageObj->CompositeSections[0].SetTime(0.0f);
 		MontageObj->MarkPackageDirty();
 	}
 }
@@ -475,30 +487,33 @@ bool SMontageEditor::ClampToEndTime(float NewEndTime)
 
 		for(int32 i=0; i < MontageObj->CompositeSections.Num(); i++)
 		{
-			if(MontageObj->CompositeSections[i].StartTime > NewEndTime)
+			if(MontageObj->CompositeSections[i].GetTime() > NewEndTime)
 			{
-				MontageObj->CompositeSections[i].StartTime *= ratio;
+				float CurrentTime = MontageObj->CompositeSections[i].GetTime();
+				MontageObj->CompositeSections[i].SetTime(CurrentTime * ratio);
 			}
 		}
 
 		for(int32 i=0; i < MontageObj->BranchingPoints.Num(); i++)
 		{
 			FBranchingPoint& BranchPoint = MontageObj->BranchingPoints[i];
-			if(BranchPoint.DisplayTime > NewEndTime)
+			float BranchingPointTime = BranchPoint.GetTime();
+			if(BranchingPointTime > NewEndTime)
 			{
-				BranchPoint.DisplayTime *= ratio;
-				BranchPoint.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.DisplayTime));
+				BranchPoint.SetTime(BranchingPointTime * ratio);
+				BranchPoint.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
 			}
 		}
 
 		for(int32 i=0; i < MontageObj->Notifies.Num(); i++)
 		{
 			FAnimNotifyEvent& Notify = MontageObj->Notifies[i];
+			float NotifyTime = Notify.GetTime();
 
-			if(Notify.DisplayTime >= NewEndTime)
+			if(NotifyTime >= NewEndTime)
 			{
-				Notify.DisplayTime *= ratio;
-				Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForNotify(Notify.DisplayTime));
+				Notify.SetTime(NotifyTime * ratio);
+				Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForNotify(Notify.GetTime()));
 			}
 		}
 	}
@@ -548,7 +563,7 @@ float SMontageEditor::GetBranchPointStartPos(int32 BranchPointIndex) const
 {
 	if (ValidBranch(BranchPointIndex))
 	{
-		return MontageObj->BranchingPoints[BranchPointIndex].DisplayTime;
+		return MontageObj->BranchingPoints[BranchPointIndex].GetTime();
 	}
 	return 0.f;
 }
@@ -573,7 +588,7 @@ void SMontageEditor::SetBranchPointStartPos(float NewStartPos, int32 BranchPoint
 
 		FBranchingPoint& BranchPoint = MontageObj->BranchingPoints[BranchPointIndex];
 
-		float OriginalPosition = BranchPoint.DisplayTime;
+		float OriginalPosition = BranchPoint.GetTime();
 		float TempPosition = NewStartPos;
 		int32 MovementDirection = 1;
 
@@ -588,7 +603,7 @@ void SMontageEditor::SetBranchPointStartPos(float NewStartPos, int32 BranchPoint
 				continue;
 			}
 
-			float BranchTime = MontageObj->BranchingPoints[BranchIndex].DisplayTime;
+			float BranchTime = MontageObj->BranchingPoints[BranchIndex].GetTime();
 			float LowerBound = BranchTime - MinimumBranchPointSeperation;
 			float UpperBound = BranchTime + MinimumBranchPointSeperation;
 
@@ -634,8 +649,13 @@ void SMontageEditor::SetBranchPointStartPos(float NewStartPos, int32 BranchPoint
 			NewStartPos = OriginalPosition;
 		}
 
-		BranchPoint.DisplayTime = NewStartPos;
-		BranchPoint.RefreshTriggerOffset(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.DisplayTime));
+		BranchPoint.LinkMontage(MontageObj, NewStartPos, BranchPoint.GetSlotIndex());
+		BranchPoint.RefreshTriggerOffset(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.GetTime()));
+
+		if(AnimMontagePanel.IsValid())
+		{
+			AnimMontagePanel->ShowBranchPointInDetailsView(BranchPointIndex);
+		}
 	}
 }
 
@@ -659,8 +679,8 @@ void SMontageEditor::AddBranchPoint(float StartTime, FString EventName)
 		MontageObj->Modify();
 
 		FBranchingPoint NewBranch;
-		NewBranch.DisplayTime=StartTime;
-		NewBranch.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForBranchingPoint(NewBranch.DisplayTime));
+		NewBranch.LinkMontage(MontageObj, StartTime);
+		NewBranch.TriggerTimeOffset = GetTriggerTimeOffsetForType(MontageObj->CalculateOffsetForBranchingPoint(NewBranch.GetTime()));
 		NewBranch.EventName=FName(*EventName);
 		MontageObj->BranchingPoints.Add(NewBranch);
 		MontageObj->MarkPackageDirty();

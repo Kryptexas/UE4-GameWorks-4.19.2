@@ -429,6 +429,24 @@ void UAnimSequence::PostLoad()
  			}
  		}
 	}
+
+	for(FAnimNotifyEvent& Notify : Notifies)
+	{
+		if(Notify.DisplayTime_DEPRECATED != 0.0f)
+		{
+			Notify.Clear();
+			Notify.LinkSequence(this, Notify.DisplayTime_DEPRECATED);
+		}
+		else
+		{
+			Notify.LinkSequence(this, Notify.GetTime());
+		}
+
+		if(Notify.Duration != 0.0f)
+		{
+			Notify.EndLink.LinkSequence(this, Notify.GetTime() + Notify.Duration);
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -1537,7 +1555,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		{
 			// If a notify is found which occurs off the end of the destination sequence, prompt the user to continue.
 			const FAnimNotifyEvent& SrcNotifyEvent = SourceAnimSeq->Notifies[NotifyIndex];
-			if( SrcNotifyEvent.DisplayTime > DestAnimSeq->SequenceLength )
+			if( SrcNotifyEvent.GetTime() > DestAnimSeq->SequenceLength )
 			{
 				const bool bProceed = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "SomeNotifiesWillNotBeCopiedQ", "Some notifies will not be copied because the destination sequence is not long enough.  Proceed?") );
 				if( !bProceed )
@@ -1574,7 +1592,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		const FAnimNotifyEvent& SrcNotifyEvent = SourceAnimSeq->Notifies[NotifyIndex];
 
 		// Skip notifies which occur at times later than the destination sequence is long.
-		if( SrcNotifyEvent.DisplayTime > DestAnimSeq->SequenceLength )
+		if( SrcNotifyEvent.GetTime() > DestAnimSeq->SequenceLength )
 		{
 			continue;
 		}
@@ -1583,7 +1601,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		// to insert the new notify.
 		int32 NewNotifyIndex = 0;
 		while( NewNotifyIndex < DestAnimSeq->Notifies.Num()
-			&& DestAnimSeq->Notifies[NewNotifyIndex].DisplayTime <= SrcNotifyEvent.DisplayTime )
+			&& DestAnimSeq->Notifies[NewNotifyIndex].GetTime() <= SrcNotifyEvent.GetTime() )
 		{
 			++NewNotifyIndex;
 		}
@@ -1596,10 +1614,10 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 
 		// Copy time and comment.
 		FAnimNotifyEvent& Notify = DestAnimSeq->Notifies[NewNotifyIndex];
-		Notify.DisplayTime = SrcNotifyEvent.DisplayTime;
-		Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType( DestAnimSeq->CalculateOffsetForNotify(Notify.DisplayTime));
+		Notify.SetTime(SrcNotifyEvent.GetTime());
+		Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType( DestAnimSeq->CalculateOffsetForNotify(Notify.GetTime()));
 		Notify.NotifyName = SrcNotifyEvent.NotifyName;
-		Notify.Duration = SrcNotifyEvent.Duration;
+		Notify.SetDuration(SrcNotifyEvent.GetDuration());
 
 		// Copy the notify itself, and point the new one at it.
 		if( SrcNotifyEvent.Notify )

@@ -713,7 +713,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 			const FAnimNotifyEvent& NotifyState = ActiveAnimNotifyState[NotifyIndex];
 
-			FString NotifyEntry = FString::Printf(TEXT("%i) %s Class: %s Dur:%.3f"), NotifyIndex, *NotifyState.NotifyName.ToString(), *NotifyState.NotifyStateClass->GetName(), NotifyState.Duration);
+			FString NotifyEntry = FString::Printf(TEXT("%i) %s Class: %s Dur:%.3f"), NotifyIndex, *NotifyState.NotifyName.ToString(), *NotifyState.NotifyStateClass->GetName(), NotifyState.GetDuration());
 			Canvas->DrawText(RenderFont, NotifyEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 		}
@@ -1164,7 +1164,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	for (int32 Index = 0; Index < NotifyStateBeginEvent.Num(); Index++)
 	{
 		const FAnimNotifyEvent* AnimNotifyEvent = NotifyStateBeginEvent[Index];
-		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->NotifyStateClass->GetOuter()), AnimNotifyEvent->Duration);
+		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->NotifyStateClass->GetOuter()), AnimNotifyEvent->GetDuration());
 	}
 
 	// Switch our arrays.
@@ -1645,7 +1645,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 		
 	FCompositeSection NewSection;
 	NewSection.SectionName = TEXT("Default");
-	NewSection.StartTime = 0.f;
+	NewSection.SetTime(0.0f);
 
 	// add new section
 	NewMontage->CompositeSections.Add(NewSection);

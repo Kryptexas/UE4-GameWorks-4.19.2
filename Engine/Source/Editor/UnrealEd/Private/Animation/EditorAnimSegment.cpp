@@ -5,6 +5,8 @@
 =============================================================================*/ 
 
 #include "UnrealEd.h"
+#include "UnrealType.h"
+#include "List.h"
 
 
 
@@ -38,6 +40,15 @@ bool UEditorAnimSegment::ApplyChangesToMontage()
 			if (AnimSegment.AnimReference && AnimSegment.AnimReference->GetSkeleton() == Montage->GetSkeleton())
 			{
 				Montage->SlotAnimTracks[AnimSlotIndex].AnimTrack.AnimSegments[AnimSegmentIndex] = AnimSegment;
+				Montage->UpdateLinkableElements(AnimSlotIndex, AnimSegmentIndex);
+
+				// Need to update linkable elements for segments further along.
+				int32 NumSegments = Montage->SlotAnimTracks[AnimSlotIndex].AnimTrack.AnimSegments.Num();
+				for(int32 SegmentIdx = AnimSegmentIndex + 1 ; SegmentIdx < NumSegments ; ++SegmentIdx)
+				{
+					Montage->UpdateLinkableElements(AnimSlotIndex, SegmentIdx);
+				}
+
 				return true;
 			}
 			else

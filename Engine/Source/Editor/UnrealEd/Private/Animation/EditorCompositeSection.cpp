@@ -32,6 +32,7 @@ bool UEditorCompositeSection::ApplyChangesToMontage()
 	{
 		if(Montage->CompositeSections.IsValidIndex(SectionIndex))
 		{
+			CompositeSection.OnChanged(CompositeSection.GetTime());
 			Montage->CompositeSections[SectionIndex] = CompositeSection;
 			return true;
 		}

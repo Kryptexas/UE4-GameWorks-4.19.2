@@ -58,8 +58,7 @@ void FPersonaModule::StartupModule()
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout( "SkeletalMeshSocket", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshSocketDetails::MakeInstance ) );
-		PropertyModule.RegisterCustomClassLayout( "AnimNotify", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimNotifyDetails::MakeInstance ) );
-		PropertyModule.RegisterCustomClassLayout( "AnimNotifyState", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimNotifyDetails::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout( "EditorNotifyObject", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimNotifyDetails::MakeInstance));
 		PropertyModule.RegisterCustomClassLayout( "AnimGraphNode_Base", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
 		PropertyModule.RegisterCustomClassLayout( "AnimInstance", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimInstanceDetails::MakeInstance));
 
@@ -78,8 +77,7 @@ void FPersonaModule::ShutdownModule()
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterCustomClassLayout("SkeletalMeshSocket");
-		PropertyModule.UnregisterCustomClassLayout("AnimNotify");
-		PropertyModule.UnregisterCustomClassLayout("AnimNotifyState");
+		PropertyModule.UnregisterCustomClassLayout("EditorNotifyObject");
 		PropertyModule.UnregisterCustomClassLayout("AnimGraphNode_Base");
 
 		PropertyModule.UnregisterCustomPropertyTypeLayout("InputScaleBias");

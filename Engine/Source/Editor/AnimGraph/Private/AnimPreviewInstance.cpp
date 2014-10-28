@@ -259,7 +259,7 @@ void UAnimPreviewInstance::MontagePreview_StepForward()
 					SetPosition(StoppedAt, false);
 				}
 				int32 LastPreviewSectionIdx = MontagePreview_FindLastSection(MontagePreviewStartSectionIdx);
-				if (FMath::Abs(CurrentTime - (Montage->CompositeSections[LastPreviewSectionIdx].StartTime + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
+				if (FMath::Abs(CurrentTime - (Montage->CompositeSections[LastPreviewSectionIdx].GetTime() + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
 				{
 					// we're at the end, jump right to the end
 					Montage_JumpToSectionsEnd(Montage->GetSectionName(LastPreviewSectionIdx));
@@ -302,12 +302,12 @@ void UAnimPreviewInstance::MontagePreview_StepBackward()
 					SetPosition(StoppedAt, false);
 				}
 				int32 LastPreviewSectionIdx = MontagePreview_FindLastSection(MontagePreviewStartSectionIdx);
-				if (FMath::Abs(CurrentTime - (Montage->CompositeSections[LastPreviewSectionIdx].StartTime + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
+				if (FMath::Abs(CurrentTime - (Montage->CompositeSections[LastPreviewSectionIdx].GetTime() + Montage->GetSectionLength(LastPreviewSectionIdx))) <= MontagePreview_CalculateStepLength())
 				{
 					// special case as we could stop at the end of our last section which is also beginning of following section - we don't want to get stuck there, but be inside of our starting section
 					Montage_JumpToSection(Montage->GetSectionName(LastPreviewSectionIdx));
 				}
-				else if (FMath::Abs(CurrentTime - Montage->CompositeSections[MontagePreviewStartSectionIdx].StartTime) <= MontagePreview_CalculateStepLength())
+				else if (FMath::Abs(CurrentTime - Montage->CompositeSections[MontagePreviewStartSectionIdx].GetTime()) <= MontagePreview_CalculateStepLength())
 				{
 					// we're at the end of playing backward, jump right to the end
 					Montage_JumpToSectionsEnd(Montage->GetSectionName(MontagePreviewStartSectionIdx));

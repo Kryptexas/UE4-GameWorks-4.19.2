@@ -447,18 +447,19 @@ void SAnimationScrubPanel::OnCropAnimSequence( bool bFromStart, float CurrentTim
 				//Adjust anim notify time based on current time and bFromStart flag. 
 				for( int32 i=0; i<AnimSequence->Notifies.Num(); i++ )
 				{
-					float& NotifyTime = AnimSequence->Notifies[i].DisplayTime;
+					FAnimNotifyEvent& Notify = AnimSequence->Notifies[i];
+					float NotifyTime = Notify.GetTime();
 					if( bFromStart )
 					{
 						//Cropping from start to current time
 						if( NotifyTime <= CurrentTime )
 						{
-							NotifyTime = 0.0f;
-							AnimSequence->Notifies[i].TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetAfter);
+							Notify.SetTime(0.0f);
+							Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetAfter);
 						}
 						else
 						{
-							NotifyTime -= CurrentTime;
+							Notify.SetTime(NotifyTime - CurrentTime);
 						}
 					}
 					else
@@ -466,8 +467,8 @@ void SAnimationScrubPanel::OnCropAnimSequence( bool bFromStart, float CurrentTim
 						//Cropping from current time to the end.
 						if( NotifyTime >= CurrentTime )
 						{
-							NotifyTime = CurrentTime;
-							AnimSequence->Notifies[i].TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetBefore);
+							Notify.SetTime(CurrentTime);
+							Notify.TriggerTimeOffset = GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::OffsetBefore);
 						}
 					}
 				}

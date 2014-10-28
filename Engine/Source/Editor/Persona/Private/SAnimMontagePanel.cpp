@@ -262,7 +262,8 @@ int32 SMontageBranchingPointNode::OnPaint(const FPaintArgs& Args, const FGeometr
 
 	if(BranchingPoint->TriggerTimeOffset != 0.f) //Do we have an offset to render?
 	{
-		if(BranchingPoint->DisplayTime != 0.f && BranchingPoint->DisplayTime != Montage->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesn't help the user
+		float BranchingPointTime = BranchingPoint->GetTime();
+		if(BranchingPointTime != 0.f && BranchingPointTime != Montage->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesn't help the user
 		{
 			// ScrubHandle
 			FVector2D MarkerPosition = TextPos;
@@ -638,6 +639,17 @@ void SAnimMontagePanel::SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float
 	}
 	MenuBuilder.EndSection();
 
+	MenuBuilder.BeginSection("AnimMontageElementBulkActions", LOCTEXT("BulkLinkActions", "Bulk Link Actions"));
+	{
+		MenuBuilder.AddSubMenu(LOCTEXT("SetElementLink_SubMenu", "Set Elements to..."), LOCTEXT("SetElementLink_TooTip", "Sets all montage elements (Branching Points, Sections, Notifies) to a chosen link type."), FNewMenuDelegate::CreateSP(this, &SAnimMontagePanel::FillElementSubMenuForTimes));
+
+		if(Montage->SlotAnimTracks.Num() > 1)
+		{
+			MenuBuilder.AddSubMenu(LOCTEXT("SetToSlotMenu", "Link all Elements to Slot..."), LOCTEXT("SetToSlotMenuToolTip", "Link all elements to a selected slot"), FNewMenuDelegate::CreateSP(this, &SAnimMontagePanel::FillSlotSubMenu));
+		}
+	}
+	MenuBuilder.EndSection();
+
 	LastContextHeading.Empty();
 }
 
@@ -653,6 +665,22 @@ void SAnimMontagePanel::SummonBranchNodeContextMenu( FMenuBuilder& MenuBuilder, 
 	MenuBuilder.EndSection();
 
 	LastContextHeading = "Branch Point";
+}
+
+void SAnimMontagePanel::FillElementSubMenuForTimes(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(LOCTEXT("SubLinkAbs", "Absolute"), LOCTEXT("SubLinkAbs", "Set all elements to absolute link"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToLinkMode, EAnimLinkMethod::Absolute)));
+	MenuBuilder.AddMenuEntry(LOCTEXT("SubLinkRel", "Relative"), LOCTEXT("SubLinkRel", "Set all elements to relative link"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToLinkMode, EAnimLinkMethod::Relative)));
+	MenuBuilder.AddMenuEntry(LOCTEXT("SubLinkPro", "Proportional"), LOCTEXT("SubLinkPro", "Set all elements to proportional link"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToLinkMode, EAnimLinkMethod::Proportional)));
+}
+
+void SAnimMontagePanel::FillSlotSubMenu(FMenuBuilder& Menubuilder)
+{
+	for(int32 SlotIdx = 0 ; SlotIdx < Montage->SlotAnimTracks.Num() ; ++SlotIdx)
+	{
+		FSlotAnimationTrack& Slot = Montage->SlotAnimTracks[SlotIdx];
+		Menubuilder.AddMenuEntry(FText::Format(LOCTEXT("SubSlotMenuNameEntry", "{SlotName}"), FText::FromString(Slot.SlotName.ToString())), LOCTEXT("SubSlotEntry", "Set to link to this slot"), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SAnimMontagePanel::OnSetElementsToSlot, SlotIdx)));
+	}
 }
 
 /** Slots */
@@ -950,6 +978,75 @@ void SAnimMontagePanel::UpdateSlotGroupWarningVisibility()
 	{
 		StatusBarTextBlock->SetText(FText::Format(LOCTEXT("AnimMontagePanel_StatusBarText", "Montage Group: '{0}'"), FText::FromName(MontageGroupName)));
 		StatusBarTextBlock->SetToolTipText(LOCTEXT("AnimMontagePanel_StatusBarToolTipText", "The Montage Group is set by the first slot's group."));
+	}
+}
+
+void SAnimMontagePanel::OnSetElementsToLinkMode(EAnimLinkMethod::Type NewLinkMethod)
+{
+	TArray<FAnimLinkableElement*> Elements;
+	CollectLinkableElements(Elements);
+
+	for(FAnimLinkableElement* Element : Elements)
+	{
+		Element->ChangeLinkMethod(NewLinkMethod);
+	}
+
+	// Handle notify state links
+	for(FAnimNotifyEvent& Notify : Montage->Notifies)
+	{
+		if(Notify.GetDuration() > 0.0f)
+		{
+			// Always keep link methods in sync between notifies and duration links
+			if(Notify.GetLinkMethod() != Notify.EndLink.GetLinkMethod())
+			{
+				Notify.EndLink.ChangeLinkMethod(Notify.GetLinkMethod());
+			}
+		}
+	}
+}
+
+void SAnimMontagePanel::OnSetElementsToSlot(int32 SlotIndex)
+{
+	TArray<FAnimLinkableElement*> Elements;
+	CollectLinkableElements(Elements);
+
+	for(FAnimLinkableElement* Element : Elements)
+	{
+		Element->ChangeSlotIndex(SlotIndex);
+	}
+
+	// Handle notify state links
+	for(FAnimNotifyEvent& Notify : Montage->Notifies)
+	{
+		if(Notify.GetDuration() > 0.0f)
+		{
+			// Always keep link methods in sync between notifies and duration links
+			if(Notify.GetSlotIndex() != Notify.EndLink.GetSlotIndex())
+			{
+				Notify.EndLink.ChangeSlotIndex(Notify.GetSlotIndex());
+			}
+		}
+	}
+}
+
+void SAnimMontagePanel::CollectLinkableElements(TArray<FAnimLinkableElement*> &Elements)
+{
+	for(auto& Composite : Montage->CompositeSections)
+	{
+		FAnimLinkableElement* Element = &Composite;
+		Elements.Add(Element);
+	}
+
+	for(auto& BranchingPoint : Montage->BranchingPoints)
+	{
+		FAnimLinkableElement* Element = &BranchingPoint;
+		Elements.Add(Element);
+	}
+
+	for(auto& Notify : Montage->Notifies)
+	{
+		FAnimLinkableElement* Element = &Notify;
+		Elements.Add(Element);
 	}
 }
 

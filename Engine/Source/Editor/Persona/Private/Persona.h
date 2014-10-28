@@ -316,7 +316,24 @@ private:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
 	// Called when generic delete happens
 	DECLARE_MULTICAST_DELEGATE( FOnGenericDelete );
+	// Called when Persona refreshes
+	DECLARE_MULTICAST_DELEGATE( FOnPersonaRefreshMulticaster );
 public:
+
+	// Persona refreshed
+	typedef FOnPersonaRefreshMulticaster::FDelegate FOnPersonaRefresh;
+
+	/** Registers a delegate to be called when Persona is Refreshed */
+	void RegisterOnPersonaRefresh(const FOnPersonaRefresh& Delegate)
+	{
+		OnPersonaRefresh.Add(Delegate);
+	}
+
+	/** Unregisters refresh delegate */
+	void UnregisterOnPersonaRefresh(SWidget* Widget)
+	{
+		OnPersonaRefresh.RemoveAll(Widget);
+	}
 
 	// anim changed 
 	typedef FOnAnimChangedMulticaster::FDelegate FOnAnimChanged;
@@ -502,6 +519,9 @@ protected:
 	void RedoAction();
 
 protected:
+
+	/** Called when persona is refreshed through an external action (reimport etc) */
+	FOnPersonaRefreshMulticaster OnPersonaRefresh;
 
 	/** Delegate called after an undo operation for child widgets to refresh */
 	FOnPostUndoMulticaster OnPostUndo;	

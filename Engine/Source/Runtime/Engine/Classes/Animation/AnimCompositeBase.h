@@ -168,7 +168,15 @@ struct FAnimTrack
 	 */
 	void GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionExtractionStep> & RootMotionExtractionSteps, const float StartTrackPosition, const float EndTrackPosition) const;
 
-	
+	/** Ensure segment times are correctly formed (no gaps and no extra time at the end of the anim reference) */
+	void ValidateSegmentTimes();
+
+	/** Gets the index of the segment at the given absolute montage time. */	
+	int32 GetSegmentIndexAtTime(float InTime);
+
+	/** Get the segment at the given absolute montage time */
+	FAnimSegment* GetSegmentAtTime(float InTime);
+
 #if WITH_EDITOR
 	bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) const;
 	void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap);

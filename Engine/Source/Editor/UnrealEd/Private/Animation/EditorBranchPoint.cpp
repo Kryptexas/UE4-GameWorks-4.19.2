@@ -33,6 +33,7 @@ bool UEditorBranchPoint::ApplyChangesToMontage()
 	{
 		if(Montage->BranchingPoints.IsValidIndex(BranchIndex))
 		{
+			BranchingPoint.OnChanged(BranchingPoint.GetTime());
 			Montage->BranchingPoints[BranchIndex] = BranchingPoint;
 			return true;
 		}
