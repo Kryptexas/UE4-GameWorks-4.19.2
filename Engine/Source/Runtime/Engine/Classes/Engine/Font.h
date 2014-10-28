@@ -3,6 +3,7 @@
 #pragma once
 #include "Engine/FontImportOptions.h"
 #include "FontProviderInterface.h"
+#include "SlateFontInfo.h"
 #include "Font.generated.h"
 
 /** What kind of caching is this font using? */
