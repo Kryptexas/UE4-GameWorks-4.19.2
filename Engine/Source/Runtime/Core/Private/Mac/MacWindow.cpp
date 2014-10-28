@@ -107,24 +107,29 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 			{
 				NSInteger Level = [NSApp isActive] ? NSModalPanelWindowLevel : NSNormalWindowLevel;
 				[WindowHandle setLevel: Level];
+				printf("modal - level %d\n", (int32)Level);
 			}
 			else if (Definition->IsRegularWindow)
 			{
 				if (InParent.IsValid())
 				{
+					printf("regular with parent - NSFloatingWindowLevel\n");
 					[WindowHandle setLevel: NSFloatingWindowLevel];
 				}
 				else
 				{
+					printf("regular without parent - NSNormalWindowLevel\n");
 					[WindowHandle setLevel: NSNormalWindowLevel];
 				}
 			}
 			else if (!Definition->SupportsMaximize && !Definition->SupportsMinimize)
 			{
+				printf("no maximize, no minimize - NSFloatingWindowLevel\n");
 				[WindowHandle setLevel: NSFloatingWindowLevel];
 			}
 			else
 			{
+				printf("other - NSModalPanelWindowLevel, setHidesOnDeactivate\n");
 				[WindowHandle setLevel: NSModalPanelWindowLevel];
 				[WindowHandle setHidesOnDeactivate: YES];
 			}
@@ -261,7 +266,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 			if ( !NSEqualRects(WindowHandle.PreFullScreenRect, NewRect) )
 			{
 				WindowHandle.PreFullScreenRect = NewRect;
-				FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], WindowHandle, EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
+				FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 			}
 		}
 		

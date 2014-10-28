@@ -60,7 +60,7 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
-	void ProcessNSEvent(NSEvent* const Event, FVector2D const MousePosition);
+	void ProcessNSEvent(NSEvent* const Event);
 
 	void OnWindowDraggingFinished();
 

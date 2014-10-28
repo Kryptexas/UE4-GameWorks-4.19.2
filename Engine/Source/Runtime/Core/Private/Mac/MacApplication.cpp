@@ -74,7 +74,7 @@ NSEvent* FMacApplication::HandleNSEvent(NSEvent* Event)
 			if ([Event type] == NSLeftMouseUp)
 			{
 				NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
-				FMacEvent::SendToGameRunLoop(Notification, [Event window], EMacEventSendMethod::Async);
+				FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async);
 			}
 		}
 	}
@@ -340,14 +340,14 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 	if(AppKitEvent)
 	{
 		// Process a standard NSEvent as we always did
-		MacApplication->ProcessNSEvent(AppKitEvent, Event->GetMousePosition());
+		MacApplication->ProcessNSEvent(AppKitEvent);
 	}
 	else if(Notification)
 	{
 		// Notifications need to mapped to the right handler function, that's no longer handled in the
 		// call location.
 		NSString* const NotificationName = [Notification name];
-		FCocoaWindow* CocoaWindow = Event->GetWindow();
+		FCocoaWindow* CocoaWindow = [[Notification object] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[Notification object] : nullptr;
 		if (CocoaWindow)
 		{
 			if(NotificationName == NSWindowDidResizeNotification)
@@ -386,7 +386,19 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 			{
 				MacApplication->OnWindowRedrawContents( CocoaWindow );
 			}
-			else if(NotificationName == NSDraggingExited)
+			else if(NotificationName == NSWindowDraggingFinished)
+			{
+				MacApplication->OnWindowDraggingFinished();
+			}
+			else
+			{
+				check(false);
+			}
+		}
+		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
+		{
+			CocoaWindow = (FCocoaWindow*)[(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
+			if(NotificationName == NSDraggingExited)
 			{
 				MacApplication->OnDragOut( CocoaWindow );
 			}
@@ -401,10 +413,6 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 			else if(NotificationName == NSPerformDragOperation)
 			{
 				MacApplication->OnDragDrop( CocoaWindow );
-			}
-			else if(NotificationName == NSWindowDraggingFinished)
-			{
-				MacApplication->OnWindowDraggingFinished();
 			}
 			else
 			{
@@ -497,7 +505,7 @@ void FMacApplication::HandleModifierChange(NSUInteger NewModifierFlags, NSUInteg
 	}
 }
 
-void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const MousePosition)
+void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -507,7 +515,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 	if (CurrentModifierFlags != [Event modifierFlags])
 	{
 		NSUInteger ModifierFlags = [Event modifierFlags];
-		
+
 		HandleModifierChange(ModifierFlags, (1<<4), 7, MMK_RightCommand);
 		HandleModifierChange(ModifierFlags, (1<<3), 6, MMK_LeftCommand);
 		HandleModifierChange(ModifierFlags, (1<<1), 0, MMK_LeftShift);
@@ -517,7 +525,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 		HandleModifierChange(ModifierFlags, (1<<2), 1, MMK_RightShift);
 		HandleModifierChange(ModifierFlags, (1<<6), 5, MMK_RightAlt);
 		HandleModifierChange(ModifierFlags, (1<<13), 3, MMK_RightControl);
-		
+
 		CurrentModifierFlags = ModifierFlags;
 	}
 
@@ -596,6 +604,14 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 			}
 			else
 			{
+				NSPoint CursorPos = [Event locationInWindow];
+				if ([Event window])
+				{
+					CursorPos.x += [Event window].frame.origin.x;
+					CursorPos.y += [Event window].frame.origin.y;
+				}
+				CursorPos.y--; // The y coordinate in the point returned by locationInWindow starts from a base of 1
+				const FVector2D MousePosition = FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y));
 				FVector2D CurrentPosition = MousePosition * MacCursor->GetMouseScaling();
 				if (MacCursor->UpdateCursorClipping(CurrentPosition))
 				{
@@ -608,7 +624,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 				MessageHandler->OnMouseMove();
 			}
 
-			if (!DraggedWindow && !GetCapture())
+			if (CurrentEventWindow.IsValid() && !DraggedWindow && !GetCapture())
 			{
 				MessageHandler->OnCursorSet();
 			}
@@ -685,7 +701,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 
 			MessageHandler->OnMouseUp(Button);
 
-			if (!DraggedWindow && !GetCapture())
+			if (CurrentEventWindow.IsValid() && !DraggedWindow && !GetCapture())
 			{
 				MessageHandler->OnCursorSet();
 			}
@@ -716,7 +732,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 				MessageHandler->OnMouseWheel(DeltaY);
 			}
 
-			if (!DraggedWindow && !GetCapture())
+			if (CurrentEventWindow.IsValid() && !DraggedWindow && !GetCapture())
 			{
 				MessageHandler->OnCursorSet();
 			}
@@ -774,7 +790,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 					const uint32 KeyCode = [Event keyCode];
 					const bool IsPrintable = IsPrintableKey(Character);
 
-					bHandled = MessageHandler->OnKeyDown(KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat);
+					bHandled = MessageHandler->OnKeyDown(KeyCode, TranslateCharCode(CharCode, KeyCode), IsRepeat);
 
 					// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
 					bool bCmdKeyPressed = [Event modifierFlags] & 0x18;
@@ -809,9 +825,9 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event, FVector2D const Mouse
 				const TCHAR Character = ConvertChar([Characters characterAtIndex:0]);
 				const TCHAR CharCode = [[Event charactersIgnoringModifiers] characterAtIndex:0];
 				const uint32 KeyCode = [Event keyCode];
-				const bool IsPrintable = IsPrintableKey( Character );
+				const bool IsPrintable = IsPrintableKey(Character);
 
-				bHandled = MessageHandler->OnKeyUp(KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat);
+				bHandled = MessageHandler->OnKeyUp(KeyCode, TranslateCharCode(CharCode, KeyCode), IsRepeat);
 			}
 			if (!bHandled)
 			{
@@ -886,6 +902,7 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 				CursorPos.x += [Event window].frame.origin.x;
 				CursorPos.y += [Event window].frame.origin.y;
 			}
+			CursorPos.y--; // The y coordinate in the point returned by locationInWindow starts from a base of 1
 			TSharedPtr<FMacWindow> WindowUnderCursor = LocateWindowUnderCursor(CursorPos);
 			if (WindowUnderCursor.IsValid())
 			{
