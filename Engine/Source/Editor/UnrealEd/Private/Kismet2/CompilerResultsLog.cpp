@@ -293,41 +293,48 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 
 void FCompilerResultsLog::AnnotateNode(class UEdGraphNode* Node, TSharedRef<FTokenizedMessage> LogLine)
 {
-	if ((Node != NULL) && bAnnotateMentionedNodes)
+	if (Node != nullptr)
 	{
-		// Determine if this message is the first or more important than the previous one (only showing one error/warning per node for now)
-		bool bUpdateMessage = true;
-		if (Node->bHasCompilerMessage)
+		LogLine->SetMessageLink(FUObjectToken::Create(Node));
+
+		if (bAnnotateMentionedNodes)
 		{
-			// Already has a message, see if we meet or trump the severity
-			bUpdateMessage = LogLine->GetSeverity() <= Node->ErrorType;
-		}
-		else
-		{
-			Node->ErrorMsg.Empty();
-		}
-		
-		// Update the message
-		if (bUpdateMessage)
-		{
-			Node->ErrorType = (int32)LogLine->GetSeverity();
-			Node->bHasCompilerMessage = true;
-			
-			FText FullMessage = LogLine->ToText();
-			
-			if (Node->ErrorMsg.IsEmpty())
+			// Determine if this message is the first or more important than the previous one (only showing one error/warning per node for now)
+			bool bUpdateMessage = true;
+			if (Node->bHasCompilerMessage)
 			{
-				Node->ErrorMsg = FullMessage.ToString();
+				// Already has a message, see if we meet or trump the severity
+				bUpdateMessage = LogLine->GetSeverity() <= Node->ErrorType;
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("PreviousMessage"), FText::FromString( Node->ErrorMsg ) );
-				Args.Add( TEXT("NewMessage"), FullMessage );
-				Node->ErrorMsg = FText::Format( LOCTEXT("AggregateMessagesFormatter", "{PreviousMessage}\n{NewMessage}"), Args ).ToString();
+				Node->ErrorMsg.Empty();
+			}
+
+			// Update the message
+			if (bUpdateMessage)
+			{
+				Node->ErrorType = (int32)LogLine->GetSeverity();
+				Node->bHasCompilerMessage = true;
+
+				FText FullMessage = LogLine->ToText();
+
+				if (Node->ErrorMsg.IsEmpty())
+				{
+					Node->ErrorMsg = FullMessage.ToString();
+				}
+				else
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("PreviousMessage"), FText::FromString(Node->ErrorMsg));
+					Args.Add(TEXT("NewMessage"), FullMessage);
+					Node->ErrorMsg = FText::Format(LOCTEXT("AggregateMessagesFormatter", "{PreviousMessage}\n{NewMessage}"), Args).ToString();
+				}
+
+				AnnotatedNodes.Add(Node);
 			}
 		}
-	}
+	}	
 }
 
 TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDump(const FString& LogDump)

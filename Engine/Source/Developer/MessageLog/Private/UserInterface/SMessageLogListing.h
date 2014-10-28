@@ -27,6 +27,8 @@ public:
 
 	/** Used to execute the 'on clicked token' delegate */
 	void BroadcastMessageTokenClicked( TSharedPtr< class FTokenizedMessage > Message, const TSharedRef<class IMessageToken>& Token );
+	/** Used to execute a message's featured action (a token associated with the entire message) */
+	void BroadcastMessageDoubleClicked(TSharedPtr< class FTokenizedMessage > Message);
 
 	/** Gets a list of the selected messages */
 	const TArray< TSharedRef< class FTokenizedMessage > > GetSelectedMessages() const;

@@ -231,8 +231,18 @@ namespace BlueprintEditorImpl
 	 * 
 	 * @param  Blueprint	The blueprint to search through.
 	 * @param  Severity		Defines the severity of the error/warning to search for.
+	 * @return The first node found with the specified error.
 	 */
 	static UEdGraphNode* FindNodeWithError(UBlueprint* Blueprint, EMessageSeverity::Type Severity = EMessageSeverity::Error);
+
+	/**
+	 * Searches through an error log, looking for the most severe error'ing node.
+	 * 
+	 * @param  ErrorLog		The error log you want to search through.
+	 * @param  Severity		Defines the severity of the error/warning to search for.
+	 * @return The first node found with the specified error.
+	 */
+	static UEdGraphNode* FindNodeWithError(FCompilerResultsLog const& ErrorLog, EMessageSeverity::Type Severity = EMessageSeverity::Error);
 }
 
 static bool BlueprintEditorImpl::GraphHasUserPlacedNodes(UEdGraph const* InGraph)
@@ -339,6 +349,30 @@ static UEdGraphNode* BlueprintEditorImpl::FindNodeWithError(UBlueprint* Blueprin
 	}
 	return ChoiceNode;
 }
+
+static UEdGraphNode* BlueprintEditorImpl::FindNodeWithError(FCompilerResultsLog const& ErrorLog, EMessageSeverity::Type Severity/* = EMessageSeverity::Error*/)
+{
+	UEdGraphNode* ChoiceNode = nullptr;
+	for (TWeakObjectPtr<UEdGraphNode> NodePtr : ErrorLog.AnnotatedNodes)
+	{
+		UEdGraphNode* Node = NodePtr.Get();
+		if ((Node != nullptr) && (Node->ErrorType <= Severity))
+		{
+			if ((ChoiceNode == nullptr) || (Node->ErrorType < ChoiceNode->ErrorType))
+			{
+				ChoiceNode = Node;
+				if (ChoiceNode->ErrorType == 0)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	return ChoiceNode;
+}
+
+
 
 bool FBlueprintEditor::IsASubGraph( const UEdGraph* GraphPtr )
 {
@@ -2618,7 +2652,7 @@ void FBlueprintEditor::Compile()
 		UBlueprintEditorSettings const* BpEditorSettings = GetDefault<UBlueprintEditorSettings>();
 		if ((LogResults.NumErrors > 0) && BpEditorSettings->bJumpToNodeErrors)
 		{
-			if (UEdGraphNode* NodeWithError = BlueprintEditorImpl::FindNodeWithError(BlueprintObj))
+			if (UEdGraphNode* NodeWithError = BlueprintEditorImpl::FindNodeWithError(LogResults))
 			{
 				JumpToNode(NodeWithError, /*bRequestRename =*/false);
 			}

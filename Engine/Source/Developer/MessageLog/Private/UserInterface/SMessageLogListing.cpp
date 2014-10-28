@@ -183,6 +183,17 @@ void SMessageLogListing::BroadcastMessageTokenClicked( TSharedPtr<FTokenizedMess
 	MessageLogListingViewModel->ExecuteToken(Token);
 }
 
+void SMessageLogListing::BroadcastMessageDoubleClicked(TSharedPtr< class FTokenizedMessage > Message)
+{
+	if (Message->GetMessageTokens().Num() > 0)
+	{
+		TSharedPtr<IMessageToken> MessageLink = Message->GetMessageLink();
+		if (MessageLink.IsValid())
+		{
+			MessageLogListingViewModel->ExecuteToken(MessageLink->AsShared());
+		}
+	}	
+}
 
 const TArray< TSharedRef<FTokenizedMessage> > SMessageLogListing::GetSelectedMessages() const
 {
@@ -240,7 +251,8 @@ TSharedRef<ITableRow> SMessageLogListing::MakeMessageLogListItemWidget( TSharedR
 	return
 		SNew(SMessageLogMessageListRow, OwnerTable)
 		.Message(Message)
-		.OnTokenClicked( this, &SMessageLogListing::BroadcastMessageTokenClicked );
+		.OnTokenClicked( this, &SMessageLogListing::BroadcastMessageTokenClicked )
+		.OnMessageDoubleClicked( this, &SMessageLogListing::BroadcastMessageDoubleClicked );
 }
 
 

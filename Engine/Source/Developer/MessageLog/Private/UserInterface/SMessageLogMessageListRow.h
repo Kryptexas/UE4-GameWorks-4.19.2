@@ -18,15 +18,18 @@ class MESSAGELOG_API SMessageLogMessageListRow
 public:
 
 	DECLARE_DELEGATE_TwoParams( FOnTokenClicked, TSharedPtr<FTokenizedMessage>, const TSharedRef<class IMessageToken>& );
+	DECLARE_DELEGATE_OneParam( FOnMessageClicked, TSharedPtr<FTokenizedMessage> );
 
 public:
 
 	SLATE_BEGIN_ARGS(SMessageLogMessageListRow)
 		: _Message()
 		, _OnTokenClicked()
+		, _OnMessageDoubleClicked()
 	{ }
 		SLATE_ATTRIBUTE(TSharedPtr<FTokenizedMessage>, Message)
 		SLATE_EVENT(FOnTokenClicked, OnTokenClicked)
+		SLATE_EVENT(FOnMessageClicked, OnMessageDoubleClicked)
 	SLATE_END_ARGS()
 
 	/**
@@ -40,6 +43,18 @@ public:
 
 	/** @return Widget for this log listing item*/
 	virtual TSharedRef<SWidget> GenerateWidget();
+
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override
+	{
+		FReply HandledReply = STableRow<TSharedPtr<FTokenizedMessage>>::OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
+
+		if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			OnMessageDoubleClicked.ExecuteIfBound(Message);
+			HandledReply = FReply::Handled();
+		}
+		return HandledReply;
+	}
 
 protected:
 
@@ -86,6 +101,9 @@ protected:
 
 	/** Delegate to execute when the token is clicked. */
 	FOnTokenClicked OnTokenClicked;
+
+	/** Delegate to execute when the message is double-clicked. */
+	FOnMessageClicked OnMessageDoubleClicked;
 };
 
 

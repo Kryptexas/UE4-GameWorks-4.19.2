@@ -21,6 +21,7 @@ TSharedRef<SWidget> SMessageLogMessageListRow::CreateHyperlink(const TSharedRef<
 void SMessageLogMessageListRow::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView)
 {
 	this->OnTokenClicked = InArgs._OnTokenClicked;
+	this->OnMessageDoubleClicked = InArgs._OnMessageDoubleClicked;
 
 	Message = InArgs._Message.Get();
 

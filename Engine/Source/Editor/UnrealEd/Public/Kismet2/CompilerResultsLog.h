@@ -92,6 +92,9 @@ public:
 	// Minimum event time (ms) for inclusion into the final summary log
 	int EventDisplayThresholdMs;
 
+	/** Tracks nodes that produced errors/warnings */
+	TSet< TWeakObjectPtr<UEdGraphNode> > AnnotatedNodes;
+
 protected:
 	// Maps from transient object created during compiling to original 'source code' object
 	FBacktrackMap SourceBacktrackMap;
