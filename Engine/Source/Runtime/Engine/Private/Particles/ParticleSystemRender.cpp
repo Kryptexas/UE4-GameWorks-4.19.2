@@ -2534,9 +2534,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 		}
 		else
 		{
-			FRotator OtherRot = FRotator::MakeFromEuler(PayloadData->InitRotation+PayloadData->CurContinuousRotation);
-			FRotationMatrix RotMat(OtherRot);
-			OutTransformMat = (OrientMat*kScaleMat) * RotMat * kTransMat;
+			OutTransformMat = (OrientMat*kScaleMat) * kRotMat * kTransMat;
 		}
 	}
 	else if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
