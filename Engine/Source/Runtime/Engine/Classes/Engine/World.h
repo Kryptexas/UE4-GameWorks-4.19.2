@@ -496,10 +496,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class ULevel*								PersistentLevel;
 
-	/** Reference to last save game info used for serialization. The only time this is non NULL is during UEngine::SaveGame(..) */
-	UPROPERTY(Transient)
-	class UDEPRECATED_SaveGameSummary*			SaveGameSummary_DEPRECATED;
-
 	/** The NAME_GameNetDriver game connection(s) for client/server communication */
 	UPROPERTY(Transient)
 	class UNetDriver*							NetDriver;

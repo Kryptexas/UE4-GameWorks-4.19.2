@@ -630,6 +630,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FOLIAGE_STATIC_LIGHTING_SUPPORT,
 	// Added composite fonts to Slate font info
 	VER_UE4_SLATE_COMPOSITE_FONTS,
+	// Remove UDEPRECATED_SaveGameSummary, required for UWorld::Serialize
+	VER_UE4_REMOVE_SAVEGAMESUMMARY,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

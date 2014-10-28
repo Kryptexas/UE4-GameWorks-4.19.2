@@ -277,7 +277,6 @@
 #include "Sound/ReverbEffect.h"
 #include "MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "GameFramework/SaveGame.h"
-#include "Engine/SaveGameSummary.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/Selection.h"
 #include "Engine/SimpleConstructionScript.h"

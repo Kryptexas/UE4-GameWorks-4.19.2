@@ -9,7 +9,6 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
-#include "Engine/SaveGameSummary.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/Console.h"
 #include "Engine/WorldComposition.h"
@@ -126,8 +125,13 @@ void UWorld::Serialize( FArchive& Ar )
 	Ar << EditorViews[1];
 	Ar << EditorViews[2];
 	Ar << EditorViews[3];
-	Ar << SaveGameSummary_DEPRECATED;
 
+	if (Ar.UE4Ver() < VER_UE4_REMOVE_SAVEGAMESUMMARY)
+	{
+		UObject* DummyObject;
+		Ar << DummyObject;
+		int i = 2;
+	}
 
 	if( !Ar.IsLoading() && !Ar.IsSaving() )
 	{
@@ -182,12 +186,11 @@ void UWorld::Serialize( FArchive& Ar )
 
 void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {	
-	UWorld* This = CastChecked<UWorld>(InThis);
 #if WITH_EDITOR
+	UWorld* This = CastChecked<UWorld>(InThis);
 	if( GIsEditor )
 	{
 		Collector.AddReferencedObject( This->PersistentLevel, This );
-		Collector.AddReferencedObject( This->SaveGameSummary_DEPRECATED, This );
 
 		for( int32 Index = 0; Index < This->Levels.Num(); Index++ )
 		{
@@ -222,7 +225,7 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	}
 #endif
 
-	Super::AddReferencedObjects( This, Collector );
+	Super::AddReferencedObjects( InThis, Collector );
 }
 
 #if WITH_EDITOR
