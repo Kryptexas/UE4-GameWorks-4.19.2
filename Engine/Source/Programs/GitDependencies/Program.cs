@@ -207,6 +207,13 @@ namespace GitDependencies
 				}
 			}
 
+			// Read the new manifest
+			DependencyManifest NewTargetManifest = ReadXmlObject<DependencyManifest>(ManifestPath);
+			if(NewTargetManifest == null)
+			{
+				return false;
+			}
+
 			// Find all the existing files in the working directory from previous runs. Use the working manifest to cache hashes for them based on timestamp, but recalculate them as needed.
 			Dictionary<string, WorkingFile> CurrentFileLookup = new Dictionary<string, WorkingFile>();
 			foreach(WorkingFile CurrentFile in CurrentManifest.Files)
@@ -223,13 +230,6 @@ namespace GitDependencies
 					}
 					CurrentFileLookup.Add(CurrentFile.Name, CurrentFile);
 				}
-			}
-
-			// Read the new manifest
-			DependencyManifest NewTargetManifest = ReadXmlObject<DependencyManifest>(ManifestPath);
-			if(NewTargetManifest == null)
-			{
-				return false;
 			}
 
 			// Create a list of files which need to be updated
