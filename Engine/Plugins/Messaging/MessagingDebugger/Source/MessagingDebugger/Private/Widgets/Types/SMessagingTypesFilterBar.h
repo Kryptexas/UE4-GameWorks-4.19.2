@@ -21,15 +21,6 @@ public:
 public:
 
 	/**
-	 * Default constructor.
-	 */
-	SMessagingTypesFilterBar( )
-		: Filter(NULL)
-	{ }
-
-public:
-
-	/**
 	 * Construct this widget
 	 *
 	 * @param InArgs The declaration data for this widget.
@@ -39,7 +30,7 @@ public:
 
 private:
 
-	// Handles changing the filter string text box text.
+	/** Handles changing the filter string text box text. */
 	void HandleFilterStringTextChanged( const FText& NewText )
 	{
 		Filter->SetFilterString(NewText.ToString());
@@ -47,6 +38,6 @@ private:
 
 private:
 
-	// Holds the filter model.
+	/** Holds the filter model. */
 	FMessagingDebuggerTypeFilterPtr Filter;
 };

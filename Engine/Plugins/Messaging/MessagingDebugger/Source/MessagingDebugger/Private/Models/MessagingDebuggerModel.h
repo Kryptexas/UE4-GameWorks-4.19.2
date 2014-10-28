@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of FMessagingDebuggerModel. */
-typedef TSharedPtr<class FMessagingDebuggerModel> FMessagingDebuggerModelPtr;
-
-/** Type definition for shared references to instances of FMessagingDebuggerTypeFilter. */
-typedef TSharedRef<class FMessagingDebuggerModel> FMessagingDebuggerModelRef;
-
-
 /**
  * Implements a view model for the messaging debugger.
  */
@@ -20,7 +13,7 @@ public:
 	/**
 	 * Clears all visibility filters (to show all messages).
 	 */
-	void ClearVisibilities( )
+	void ClearVisibilities()
 	{
 		InvisibleEndpoints.Empty();
 		InvisibleTypes.Empty();
@@ -33,7 +26,7 @@ public:
 	 *
 	 * @return The selected endpoint.
 	 */
-	FMessageTracerEndpointInfoPtr GetSelectedEndpoint( ) const
+	FMessageTracerEndpointInfoPtr GetSelectedEndpoint() const
 	{
 		return SelectedEndpoint;
 	}
@@ -43,7 +36,7 @@ public:
 	 *
 	 * @return The selected message.
 	 */
-	FMessageTracerMessageInfoPtr GetSelectedMessage( ) const
+	FMessageTracerMessageInfoPtr GetSelectedMessage() const
 	{
 		return SelectedMessage;
 	}
@@ -176,7 +169,7 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT(FMessagingDebuggerModel, FOnMessageVisibilityChanged);
-	FOnMessageVisibilityChanged& OnMessageVisibilityChanged( )
+	FOnMessageVisibilityChanged& OnMessageVisibilityChanged()
 	{
 		return MessageVisibilityChangedEvent;
 	}
@@ -187,7 +180,7 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT(FMessagingDebuggerModel, FOnSelectedEndpointChanged);
-	FOnSelectedEndpointChanged& OnSelectedEndpointChanged( )
+	FOnSelectedEndpointChanged& OnSelectedEndpointChanged()
 	{
 		return SelectedEndpointChangedEvent;
 	}
@@ -198,33 +191,40 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT(FMessagingDebuggerModel, FOnSelectedMessageChanged);
-	FOnSelectedMessageChanged& OnSelectedMessageChanged( )
+	FOnSelectedMessageChanged& OnSelectedMessageChanged()
 	{
 		return SelectedMessageChangedEvent;
 	}
 
 private:
 
-	// Holds the collection of invisible message endpoints.
+	/** Holds the collection of invisible message endpoints. */
 	TArray<FMessageTracerEndpointInfoPtr> InvisibleEndpoints;
 
-	// Holds the collection of invisible message types.
+	/** Holds the collection of invisible message types. */
 	TArray<FMessageTracerTypeInfoPtr> InvisibleTypes;
 
-	// Holds a pointer to the sole endpoint that is currently selected in the endpoint list.
+	/** Holds a pointer to the sole endpoint that is currently selected in the endpoint list. */
 	FMessageTracerEndpointInfoPtr SelectedEndpoint;
 
-	// Holds a pointer to the message that is currently selected in the message history.
+	/** Holds a pointer to the message that is currently selected in the message history. */
 	FMessageTracerMessageInfoPtr SelectedMessage;
 
 private:
 
-	// Holds an event delegate that is invoked when the visibility of messages has changed.
+	/** Holds an event delegate that is invoked when the visibility of messages has changed. */
 	FOnMessageVisibilityChanged MessageVisibilityChangedEvent;
 
-	// Holds an event delegate that is invoked when the selected endpoint has changed.
+	/** Holds an event delegate that is invoked when the selected endpoint has changed. */
 	FOnSelectedEndpointChanged SelectedEndpointChangedEvent;
 
-	// Holds an event delegate that is invoked when the selected message has changed.
+	/** Holds an event delegate that is invoked when the selected message has changed. */
 	FOnSelectedMessageChanged SelectedMessageChangedEvent;
 };
+
+
+/** Type definition for shared pointers to instances of FMessagingDebuggerModel. */
+typedef TSharedPtr<FMessagingDebuggerModel> FMessagingDebuggerModelPtr;
+
+/** Type definition for shared references to instances of FMessagingDebuggerTypeFilter. */
+typedef TSharedRef<FMessagingDebuggerModel> FMessagingDebuggerModelRef;

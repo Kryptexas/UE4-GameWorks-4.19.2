@@ -99,20 +99,20 @@ public:
 
 private:
 
-	// Gets the text for the Messages column.
-	FString HandleMessagesText( ) const
+	/** Gets the text for the Messages column. */
+	FString HandleMessagesText() const
 	{
 		return FString::Printf(TEXT("%i"), TypeInfo->Messages.Num());
 	}
 
-	// Handles changing the checked state of the visibility check box.
+	/** Handles changing the checked state of the visibility check box. */
 	void HandleVisibilityCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckState )
 	{
 		Model->SetTypeVisibility(TypeInfo.ToSharedRef(), (CheckState == ESlateCheckBoxState::Checked));
 	}
 
-	// Gets the image for the visibility check box.
-	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked( ) const
+	/** Gets the image for the visibility check box. */
+	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked() const
 	{
 		if (Model->IsTypeVisible(TypeInfo.ToSharedRef()))
 		{
@@ -124,16 +124,16 @@ private:
 
 private:
 
-	// Holds the highlight string for the message.
+	/** Holds the highlight string for the message. */
 	TAttribute<FText> HighlightText;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 
-	// Holds message type's debug information.
+	/** Holds message type's debug information. */
 	FMessageTracerTypeInfoPtr TypeInfo;
 };
 

@@ -159,8 +159,8 @@ protected:
 
 private:
 
-	// Callback for getting the handling time text.
-	FText HandleHandlingTimeText( ) const
+	/** Callback for getting the handling time text. */
+	FText HandleHandlingTimeText() const
 	{
 		if (DispatchState->TimeHandled > 0.0)
 		{
@@ -170,8 +170,8 @@ private:
 		return LOCTEXT("NotHandledYetText", "Not handled yet");
 	}
 
-	// Callback for getting the color of a time span text.
-	FSlateColor HandleHandlingTimeColorAndOpacity( ) const
+	/** Callback for getting the color of a time span text. */
+	FSlateColor HandleHandlingTimeColorAndOpacity() const
 	{
 		if (DispatchState->TimeHandled == 0.0)
 		{
@@ -181,8 +181,8 @@ private:
 		return FSlateColor::UseForeground();
 	}
 
-	// Callback for getting the dispatch type image.
-	const FSlateBrush* HandleTypeImage( ) const
+	/** Callback for getting the dispatch type image. */
+	const FSlateBrush* HandleTypeImage() const
 	{
 		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
 		{
@@ -197,8 +197,8 @@ private:
 		return Style->GetBrush("DispatchPending");
 	}
 
-	// Callback for getting the dispatch type tool tip text.
-	FText HandleTypeTooltip( ) const
+	/** Callback for getting the dispatch type tool tip text. */
+	FText HandleTypeTooltip() const
 	{
 		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
 		{
@@ -215,13 +215,13 @@ private:
 
 private:
 
-	// Holds the message dispatch state.
+	/** Holds the message dispatch state. */
 	FMessageTracerDispatchStatePtr DispatchState;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

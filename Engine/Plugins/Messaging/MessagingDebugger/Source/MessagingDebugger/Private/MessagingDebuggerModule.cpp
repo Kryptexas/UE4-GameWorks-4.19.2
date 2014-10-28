@@ -22,7 +22,7 @@ public:
 
 	// IModuleInterface interface
 	
-	virtual void StartupModule( ) override
+	virtual void StartupModule() override
 	{
 		Style = MakeShareable(new FMessagingDebuggerStyle());
 
@@ -35,7 +35,7 @@ public:
 		FGlobalTabmanager::Get()->RegisterTabSpawner(MessagingDebuggerTabName, FOnSpawnTab::CreateRaw(this, &FMessagingDebuggerModule::SpawnMessagingDebuggerTab));
 	}
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(MessagingDebuggerTabName);
 
@@ -48,8 +48,7 @@ private:
 	/**
 	 * Creates a new messaging debugger tab.
 	 *
-	 * @param SpawnTabArgs - The arguments for the tab to spawn.
-	 *
+	 * @param SpawnTabArgs The arguments for the tab to spawn.
 	 * @return The spawned tab.
 	 */
 	TSharedRef<SDockTab> SpawnMessagingDebuggerTab( const FSpawnTabArgs& SpawnTabArgs )
@@ -77,7 +76,7 @@ private:
 
 private:
 
-	// Holds the plug-ins style set.
+	/** Holds the plug-ins style set. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

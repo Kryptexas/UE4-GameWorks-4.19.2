@@ -1,11 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
-
 #include "SMessagingTypesFilterBar.h"
 #include "SSearchBox.h"
 
+
 #define LOCTEXT_NAMESPACE "SMessagingTypesFilterBar"
+
+
+/* SMessagingTypesFilterBar interface
+*****************************************************************************/
 
 void SMessagingTypesFilterBar::Construct(const FArguments& InArgs, FMessagingDebuggerTypeFilterRef InFilter)
 {

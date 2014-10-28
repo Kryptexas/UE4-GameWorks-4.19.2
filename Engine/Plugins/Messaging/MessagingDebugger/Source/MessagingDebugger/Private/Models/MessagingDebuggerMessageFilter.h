@@ -3,13 +3,6 @@
 #pragma once
 
 
-/** Type definition for shared pointers to instances of FMessagingDebuggerMessageFilter. */
-typedef TSharedPtr<class FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterPtr;
-
-/** Type definition for shared references to instances of FMessagingDebuggerMessageFilter. */
-typedef TSharedRef<class FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterRef;
-
-
 /**
  * Implements a filter for the message history list.
  */
@@ -43,13 +36,20 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT(FMessagingDebuggerMessageFilter, FOnMessagingMessageFilterChanged);
-	FOnMessagingMessageFilterChanged& OnChanged( )
+	FOnMessagingMessageFilterChanged& OnChanged()
 	{
 		return ChangedEvent;
 	}
 
 private:
 
-	// Holds an event delegate that is invoked when the filter settings changed.
+	/** Holds an event delegate that is invoked when the filter settings changed. */
 	FOnMessagingMessageFilterChanged ChangedEvent;
 };
+
+
+/** Type definition for shared pointers to instances of FMessagingDebuggerMessageFilter. */
+typedef TSharedPtr<FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterPtr;
+
+/** Type definition for shared references to instances of FMessagingDebuggerMessageFilter. */
+typedef TSharedRef<FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterRef;

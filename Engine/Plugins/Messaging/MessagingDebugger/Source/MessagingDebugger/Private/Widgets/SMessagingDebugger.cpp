@@ -25,7 +25,7 @@ static const FName ToolbarTabId("Toolbar");
 /* SMessagingDebugger constructors
  *****************************************************************************/
 
-SMessagingDebugger::SMessagingDebugger( )
+SMessagingDebugger::SMessagingDebugger()
 	: CommandList(MakeShareable(new FUICommandList))
 	, MessageTracer(NULL)
 	, Model(MakeShareable(new FMessagingDebuggerModel()))
@@ -251,85 +251,85 @@ bool SMessagingDebugger::HandleBreakDebuggerCommandCanExecute() const
 }
 
 
-void SMessagingDebugger::HandleBreakDebuggerCommandExecute( )
+void SMessagingDebugger::HandleBreakDebuggerCommandExecute()
 {
 	MessageTracer->Break();
 }
 
 
-bool SMessagingDebugger::HandleClearHistoryCommandCanExecute( ) const
+bool SMessagingDebugger::HandleClearHistoryCommandCanExecute() const
 {
 	return MessageTracer->HasMessages();
 }
 
 
-void SMessagingDebugger::HandleClearHistoryCommandExecute( )
+void SMessagingDebugger::HandleClearHistoryCommandExecute()
 {
 	MessageTracer->Reset();
 }
 
 
-bool SMessagingDebugger::HandleContinueDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleContinueDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleContinueDebuggerCommandExecute( )
+void SMessagingDebugger::HandleContinueDebuggerCommandExecute()
 {
 	MessageTracer->Continue();
 }
 
 
-bool SMessagingDebugger::HandleContinueDebuggerCommandIsVisible( ) const
+bool SMessagingDebugger::HandleContinueDebuggerCommandIsVisible() const
 {
 	return MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleMajorTabPersistVisualState( )
+void SMessagingDebugger::HandleMajorTabPersistVisualState()
 {
 	// save any settings here
 }
 
 
-bool SMessagingDebugger::HandleStartDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleStartDebuggerCommandCanExecute() const
 {
 	return !MessageTracer->IsRunning();
 }
 
 
-void SMessagingDebugger::HandleStartDebuggerCommandExecute( )
+void SMessagingDebugger::HandleStartDebuggerCommandExecute()
 {
 	MessageTracer->Start();
 }
 
 
-bool SMessagingDebugger::HandleStartDebuggerCommandIsVisible( ) const
+bool SMessagingDebugger::HandleStartDebuggerCommandIsVisible() const
 {
 	return !MessageTracer->IsBreaking();
 }
 
 
-bool SMessagingDebugger::HandleStepDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleStepDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsBreaking();
 }
 
 
-void SMessagingDebugger::HandleStepDebuggerCommandExecute( )
+void SMessagingDebugger::HandleStepDebuggerCommandExecute()
 {
 	MessageTracer->Step();
 }
 
 
-bool SMessagingDebugger::HandleStopDebuggerCommandCanExecute( ) const
+bool SMessagingDebugger::HandleStopDebuggerCommandCanExecute() const
 {
 	return MessageTracer->IsRunning();
 }
 
 
-void SMessagingDebugger::HandleStopDebuggerCommandExecute( )
+void SMessagingDebugger::HandleStopDebuggerCommandExecute()
 {
 	MessageTracer->Stop();
 }

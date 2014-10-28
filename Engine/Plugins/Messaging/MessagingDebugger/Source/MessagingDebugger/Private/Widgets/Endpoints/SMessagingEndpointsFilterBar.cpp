@@ -1,10 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-#include "MessagingDebuggerPrivatePCH.h"
 
+#include "MessagingDebuggerPrivatePCH.h"
 #include "SMessagingEndpointsFilterBar.h"
 #include "SSearchBox.h"
 
+
 #define LOCTEXT_NAMESPACE "SMessagingEndpointsFilterBar"
+
+
+/* SMessagingEndpointsFilterBar interface
+*****************************************************************************/
 
 void SMessagingEndpointsFilterBar::Construct(const FArguments& InArgs, FMessagingDebuggerEndpointFilterRef InFilter)
 {
@@ -25,5 +30,6 @@ void SMessagingEndpointsFilterBar::Construct(const FArguments& InArgs, FMessagin
 			]
 		];
 }
+
 
 #undef LOCTEXT_NAMESPACE

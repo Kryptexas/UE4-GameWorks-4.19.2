@@ -4,17 +4,6 @@
 
 
 /**
- * Type definition for shared pointers to instances of FMessagingDebuggerTypeFilter.
- */
-typedef TSharedPtr<class FMessagingDebuggerTypeFilter> FMessagingDebuggerTypeFilterPtr;
-
-/**
- * Type definition for shared references to instances of FMessagingDebuggerTypeFilter.
- */
-typedef TSharedRef<class FMessagingDebuggerTypeFilter> FMessagingDebuggerTypeFilterRef;
-
-
-/**
  * Implements a filter for the message endpoints list.
  */
 class FMessagingDebuggerTypeFilter
@@ -72,18 +61,25 @@ public:
 	 * @return The event delegate.
 	 */
 	DECLARE_EVENT(FMessagingDebuggerTypeFilter, FOnMessagingEndpointFilterChanged);
-	FOnMessagingEndpointFilterChanged& OnChanged( )
+	FOnMessagingEndpointFilterChanged& OnChanged()
 	{
 		return ChangedEvent;
 	}
 
 private:
 
-	// Holds the filter string used to filter message types by their names.
+	/** Holds the filter string used to filter message types by their names. */
 	FString FilterString;
 
 private:
 
-	// Holds an event delegate that is invoked when the filter settings changed.
+	/** Holds an event delegate that is invoked when the filter settings changed. */
 	FOnMessagingEndpointFilterChanged ChangedEvent;
 };
+
+
+/** Type definition for shared pointers to instances of FMessagingDebuggerTypeFilter. */
+typedef TSharedPtr<class FMessagingDebuggerTypeFilter> FMessagingDebuggerTypeFilterPtr;
+
+/** Type definition for shared references to instances of FMessagingDebuggerTypeFilter. */
+typedef TSharedRef<class FMessagingDebuggerTypeFilter> FMessagingDebuggerTypeFilterRef;

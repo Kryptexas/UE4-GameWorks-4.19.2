@@ -287,8 +287,8 @@ protected:
 
 private:
 
-	// Callback for getting the text color of the DispatchLatency column.
-	FSlateColor HandleDispatchLatencyColorAndOpacity( ) const
+	/** Callback for getting the text color of the DispatchLatency column. */
+	FSlateColor HandleDispatchLatencyColorAndOpacity() const
 	{
 		if (MaxDispatchLatency >= 0.01)
 		{
@@ -308,13 +308,13 @@ private:
 		return FSlateColor::UseForeground();
 	}
 
-	// Callback for getting the text in the DispatchLatency column.
-	FText HandleDispatchLatencyText( ) const
+	/** Callback for getting the text in the DispatchLatency column. */
+	FText HandleDispatchLatencyText() const
 	{
 		return TimespanToReadableText(MaxDispatchLatency);
 	}
 
-	const FSlateBrush* HandleFlagImage( ) const
+	const FSlateBrush* HandleFlagImage() const
 	{
 		if ((MessageInfo->TimeRouted > 0.0) && (MessageInfo->DispatchStates.Num() == 0))
 		{
@@ -324,14 +324,14 @@ private:
 		return NULL;
 	}
 
-	// Callback for getting the text in the HandlingTime column.
-	FText HandleHandlingTimeText( ) const
+	/** Callback for getting the text in the HandlingTime column. */
+	FText HandleHandlingTimeText() const
 	{
 		return TimespanToReadableText(MaxHandlingTime);
 	}
 
-	// Callback for getting the text in the Recipients column.
-	FText HandleRecipientsText( ) const
+	/** Callback for getting the text in the Recipients column. */
+	FText HandleRecipientsText() const
 	{
 		int32 LocalRecipients = 0;
 		int32 RemoteRecipients = 0;
@@ -356,8 +356,8 @@ private:
 		return FText::Format(LOCTEXT("RecipientsTextFormat", "{0} / {1}"), FText::AsNumber(LocalRecipients), FText::AsNumber(RemoteRecipients));
 	}
 
-	// Callback for getting the text color of the RouteLatency column.
-	FSlateColor HandleRouteLatencyColorAndOpacity( ) const
+	/** Callback for getting the text color of the RouteLatency column. */
+	FSlateColor HandleRouteLatencyColorAndOpacity() const
 	{
 		double RouteLatency = MessageInfo->TimeRouted - MessageInfo->TimeSent;
 
@@ -384,8 +384,8 @@ private:
 		return FSlateColor::UseForeground();
 	}
 
-	// Callback for getting the text in the RouteLatency column.
-	FText HandleRouteLatencyText( ) const
+	/** Callback for getting the text in the RouteLatency column. */
+	FText HandleRouteLatencyText() const
 	{
 		if (MessageInfo->TimeRouted > 0.0)
 		{
@@ -395,14 +395,14 @@ private:
 		return LOCTEXT("RouteLatencyPending", "Pending");
 	}
 
-	// Callback for getting the text in the Sender column.
-	FText HandleSenderText( ) const
+	/** Callback for getting the text in the Sender column. */
+	FText HandleSenderText() const
 	{
 		return FText::FromString(MessageInfo->SenderInfo->Name.ToString());
 	}
 
-	// Callback for getting the text color of various columns.
-	FSlateColor HandleTextColorAndOpacity( ) const
+	/** Callback for getting the text color of various columns. */
+	FSlateColor HandleTextColorAndOpacity() const
 	{
 		if (MessageInfo->TimeRouted == 0.0)
 		{
@@ -414,19 +414,19 @@ private:
 
 private:
 
-	// Holds the highlight string for the message.
+	/** Holds the highlight string for the message. */
 	TAttribute<FText> HighlightText;
 
-	// Holds message's debug information.
+	/** Holds message's debug information. */
 	FMessageTracerMessageInfoPtr MessageInfo;
 
-	// Holds the maximum dispatch latency.
+	/** Holds the maximum dispatch latency. */
 	double MaxDispatchLatency;
 
-	// Holds the maximum time that was needed to handle the message.
+	/** Holds the maximum time that was needed to handle the message. */
 	double MaxHandlingTime;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

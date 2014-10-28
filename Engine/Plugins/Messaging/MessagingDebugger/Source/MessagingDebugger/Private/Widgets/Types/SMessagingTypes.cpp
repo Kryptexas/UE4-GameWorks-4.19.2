@@ -10,7 +10,7 @@
 /* SMessagingTypes structors
  *****************************************************************************/
 
-SMessagingTypes::~SMessagingTypes( )
+SMessagingTypes::~SMessagingTypes()
 {
 	if (Model.IsValid())
 	{
@@ -137,7 +137,7 @@ void SMessagingTypes::AddType( const FMessageTracerTypeInfoRef& TypeInfo )
 }
 
 
-void SMessagingTypes::ReloadTypes( )
+void SMessagingTypes::ReloadTypes()
 {
 	TypeList.Reset();
 	
@@ -158,13 +158,13 @@ void SMessagingTypes::ReloadTypes( )
 /* SMessagingTypes callbacks
  *****************************************************************************/
 
-void SMessagingTypes::HandleFilterChanged( )
+void SMessagingTypes::HandleFilterChanged()
 {
 	ReloadTypes();
 }
 
 
-void SMessagingTypes::HandleModelSelectedMessageChanged( )
+void SMessagingTypes::HandleModelSelectedMessageChanged()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -175,7 +175,7 @@ void SMessagingTypes::HandleModelSelectedMessageChanged( )
 }
 
 
-void SMessagingTypes::HandleTracerMessagesReset( )
+void SMessagingTypes::HandleTracerMessagesReset()
 {
 	ReloadTypes();
 }
@@ -196,7 +196,7 @@ TSharedRef<ITableRow> SMessagingTypes::HandleTypeListGenerateRow( FMessageTracer
 }
 
 
-FText SMessagingTypes::HandleTypeListGetHighlightText( ) const
+FText SMessagingTypes::HandleTypeListGetHighlightText() const
 {
 	return FText::GetEmpty();
 	//return FilterBar->GetFilterText();

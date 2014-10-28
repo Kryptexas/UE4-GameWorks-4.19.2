@@ -35,7 +35,7 @@ public:
 
 private:
 
-	// Holds the filter model.
+	/** Holds the filter model. */
 	FMessagingDebuggerMessageFilterPtr Filter;
 
 };

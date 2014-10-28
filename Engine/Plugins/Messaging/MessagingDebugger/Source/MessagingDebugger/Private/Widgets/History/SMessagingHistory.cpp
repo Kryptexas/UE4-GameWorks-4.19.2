@@ -10,7 +10,7 @@
 /* SMessagingHistory structors
  *****************************************************************************/
 
-SMessagingHistory::~SMessagingHistory( )
+SMessagingHistory::~SMessagingHistory()
 {
 	if (Model.IsValid())
 	{
@@ -199,7 +199,7 @@ void SMessagingHistory::AddMessage( const FMessageTracerMessageInfoRef& MessageI
 }
 
 
-void SMessagingHistory::ReloadMessages( )
+void SMessagingHistory::ReloadMessages()
 {
 	MessageList.Reset();
 	TotalMessages = 0;
@@ -221,7 +221,7 @@ void SMessagingHistory::ReloadMessages( )
 /* SMessagingHistory callbacks
  *****************************************************************************/
 
-void SMessagingHistory::HandleFilterChanged( )
+void SMessagingHistory::HandleFilterChanged()
 {
 	ReloadMessages();
 }
@@ -236,7 +236,7 @@ TSharedRef<ITableRow> SMessagingHistory::HandleMessageListGenerateRow( FMessageT
 }
 
 
-FText SMessagingHistory::HandleMessageListGetHighlightText( ) const
+FText SMessagingHistory::HandleMessageListGetHighlightText() const
 {
 	return FText::GetEmpty();
 	//return FilterBar->GetFilterText();
@@ -268,19 +268,19 @@ void SMessagingHistory::HandleMessageListSelectionChanged( FMessageTracerMessage
 }
 
 
-void SMessagingHistory::HandleModelMessageVisibilityChanged( )
+void SMessagingHistory::HandleModelMessageVisibilityChanged()
 {
 	ReloadMessages();
 }
 
 
-void SMessagingHistory::HandleShowHiddenHyperlinkNavigate( )
+void SMessagingHistory::HandleShowHiddenHyperlinkNavigate()
 {
 	Model->ClearVisibilities();
 }
 
 
-EVisibility SMessagingHistory::HandleShowHiddenHyperlinkVisibility( ) const
+EVisibility SMessagingHistory::HandleShowHiddenHyperlinkVisibility() const
 {
 	if (TotalMessages > MessageList.Num())
 	{
@@ -343,7 +343,7 @@ void SMessagingHistory::HandleTracerMessageAdded( FMessageTracerMessageInfoRef M
 }
 
 
-void SMessagingHistory::HandleTracerMessagesReset( )
+void SMessagingHistory::HandleTracerMessagesReset()
 {
 	ReloadMessages();
 }

@@ -110,7 +110,7 @@ void SMessagingEndpointDetails::Tick( const FGeometry& AllottedGeometry, const d
 /* SMessagingMessageDetails implementation
  *****************************************************************************/
 
-void SMessagingEndpointDetails::RefreshAddressInfo( )
+void SMessagingEndpointDetails::RefreshAddressInfo()
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 
@@ -138,7 +138,7 @@ TSharedRef<ITableRow> SMessagingEndpointDetails::HandleAddressListGenerateRow( F
 }
 
 
-FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText( ) const
+FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText() const
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 
@@ -151,7 +151,7 @@ FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText( ) 
 }
 
 
-FString SMessagingEndpointDetails::HandleEndpointDetailsSentMessagesText( ) const
+FString SMessagingEndpointDetails::HandleEndpointDetailsSentMessagesText() const
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 

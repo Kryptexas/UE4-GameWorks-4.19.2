@@ -26,6 +26,6 @@ public:
 
 private:
 
-	// Holds the graph editor widget.
+	/** Holds the graph editor widget. */
 	//TSharedPtr<SGraphEditor> GraphEditor;
 };

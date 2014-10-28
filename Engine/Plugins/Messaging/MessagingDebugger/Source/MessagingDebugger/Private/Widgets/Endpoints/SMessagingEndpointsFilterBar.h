@@ -26,7 +26,7 @@ public:
 
 private:
 
-	// Handles changing the filter string text box text.
+	/** Handles changing the filter string text box text. */
 	void HandleFilterStringTextChanged( const FText& NewText )
 	{
 		Filter->SetFilterString(NewText.ToString());
@@ -34,6 +34,6 @@ private:
 
 private:
 
-	// Holds a pointer to the filter model.
+	/** Holds a pointer to the filter model. */
 	FMessagingDebuggerEndpointFilterPtr Filter;
 };

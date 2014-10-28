@@ -18,7 +18,7 @@ public:
 public:
 
 	/** Destructor. */
-	~SMessagingMessageData( );
+	~SMessagingMessageData();
 
 public:
 
@@ -40,13 +40,13 @@ public:
 private:
 
 	/** Handles checking whether the details view is enabled. */
-	bool HandleDetailsViewEnabled( ) const;
+	bool HandleDetailsViewEnabled() const;
 
 	/** Handles determining the visibility of the details view. */
-	EVisibility HandleDetailsViewVisibility( ) const;
+	EVisibility HandleDetailsViewVisibility() const;
 
 	/** Callback for handling message selection changes. */
-	void HandleModelSelectedMessageChanged( );
+	void HandleModelSelectedMessageChanged();
 
 private:
 

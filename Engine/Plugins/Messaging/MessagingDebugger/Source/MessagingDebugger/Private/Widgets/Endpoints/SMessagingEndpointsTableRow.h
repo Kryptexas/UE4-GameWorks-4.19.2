@@ -112,26 +112,26 @@ public:
 
 private:
 
-	// Gets the text for the Messages column.
-	FString HandleMessagesText( ) const
+	/** Gets the text for the Messages column. */
+	FString HandleMessagesText() const
 	{
 		return FString::Printf(TEXT("%i"), EndpointInfo->ReceivedMessages.Num() + EndpointInfo->SentMessages.Num());
 	}
 
-	// Gets the tooltip text for the Messages column.
-	FString HandleMessagesTooltipText( ) const
+	/** Gets the tooltip text for the Messages column. */
+	FString HandleMessagesTooltipText() const
 	{
 		return FString::Printf(TEXT("In: %i\nOut: %i"), EndpointInfo->ReceivedMessages.Num(), EndpointInfo->SentMessages.Num());
 	}
 
-	// Handles changing the checked state of the visibility check box.
+	/** Handles changing the checked state of the visibility check box. */
 	void HandleVisibilityCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckState )
 	{
 		Model->SetEndpointVisibility(EndpointInfo.ToSharedRef(), (CheckState == ESlateCheckBoxState::Checked));
 	}
 
-	// Gets the image for the visibility check box.
-	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked( ) const
+	/** Gets the image for the visibility check box. */
+	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked() const
 	{
 		if (Model->IsEndpointVisible(EndpointInfo.ToSharedRef()))
 		{
@@ -143,16 +143,16 @@ private:
 
 private:
 
-	// Holds the endpoint's debug information.
+	/** Holds the endpoint's debug information. */
 	FMessageTracerEndpointInfoPtr EndpointInfo;
 
-	// Holds the highlight string for the message.
+	/** Holds the highlight string for the message. */
 	TAttribute<FText> HighlightText;
 
-	// Holds a pointer to the view model.
+	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
-	// Holds the widget's visual style.
+	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

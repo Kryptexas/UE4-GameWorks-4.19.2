@@ -12,7 +12,7 @@
 /* SMessagingMessageData structors
  *****************************************************************************/
 
-SMessagingMessageData::~SMessagingMessageData( )
+SMessagingMessageData::~SMessagingMessageData()
 {
 	if (Model.IsValid())
 	{
@@ -69,13 +69,13 @@ void SMessagingMessageData::NotifyPostChange( const FPropertyChangedEvent& Prope
 /* SMessagingMessageData callbacks
  *****************************************************************************/
 
-bool SMessagingMessageData::HandleDetailsViewEnabled( ) const
+bool SMessagingMessageData::HandleDetailsViewEnabled() const
 {
 	return true;
 }
 
 
-EVisibility SMessagingMessageData::HandleDetailsViewVisibility( ) const
+EVisibility SMessagingMessageData::HandleDetailsViewVisibility() const
 {
 	if (Model->GetSelectedMessage().IsValid())
 	{
@@ -86,7 +86,7 @@ EVisibility SMessagingMessageData::HandleDetailsViewVisibility( ) const
 }
 
 
-void SMessagingMessageData::HandleModelSelectedMessageChanged( )
+void SMessagingMessageData::HandleModelSelectedMessageChanged()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 

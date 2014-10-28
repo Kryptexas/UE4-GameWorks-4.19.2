@@ -129,7 +129,7 @@ void SMessagingEndpoints::Tick( const FGeometry& AllottedGeometry, const double 
 /* SMessagingEndpoints implementation
  *****************************************************************************/
 
-void SMessagingEndpoints::ReloadEndpointList( )
+void SMessagingEndpoints::ReloadEndpointList()
 {
 	EndpointList.Reset();
 
@@ -163,7 +163,7 @@ TSharedRef<ITableRow> SMessagingEndpoints::HandleEndpointListGenerateRow( FMessa
 }
 
 
-FText SMessagingEndpoints::HandleEndpointListGetHighlightText( ) const
+FText SMessagingEndpoints::HandleEndpointListGetHighlightText() const
 {
 	return FText::GetEmpty();
 	//return FilterBar->GetFilterText();
@@ -183,13 +183,13 @@ void SMessagingEndpoints::HandleEndpointListSelectionChanged( FMessageTracerEndp
 }
 
 
-void SMessagingEndpoints::HandleFilterChanged( )
+void SMessagingEndpoints::HandleFilterChanged()
 {
 	ReloadEndpointList();
 }
 
 
-void SMessagingEndpoints::HandleModelSelectedMessageChanged( )
+void SMessagingEndpoints::HandleModelSelectedMessageChanged()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 

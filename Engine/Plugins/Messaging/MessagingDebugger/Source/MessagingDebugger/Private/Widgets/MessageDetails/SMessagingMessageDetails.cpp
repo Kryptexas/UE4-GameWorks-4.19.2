@@ -9,7 +9,7 @@
 /* SMessagingMessageDetails structors
  *****************************************************************************/
 
-SMessagingMessageDetails::~SMessagingMessageDetails( )
+SMessagingMessageDetails::~SMessagingMessageDetails()
 {
 	if (Model.IsValid())
 	{
@@ -167,7 +167,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 /* SMessagingMessageDetails implementation
  *****************************************************************************/
 
-void SMessagingMessageDetails::RefreshDetails( )
+void SMessagingMessageDetails::RefreshDetails()
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -195,7 +195,7 @@ TSharedRef<ITableRow> SMessagingMessageDetails::HandleDispatchStateListGenerateR
 }
 
 
-FText SMessagingMessageDetails::HandleExpirationText( ) const
+FText SMessagingMessageDetails::HandleExpirationText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -215,7 +215,7 @@ FText SMessagingMessageDetails::HandleExpirationText( ) const
 }
 
 
-FText SMessagingMessageDetails::HandleMessageTypeText( ) const
+FText SMessagingMessageDetails::HandleMessageTypeText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -228,13 +228,13 @@ FText SMessagingMessageDetails::HandleMessageTypeText( ) const
 }
 
 
-void SMessagingMessageDetails::HandleModelSelectedMessageChanged( )
+void SMessagingMessageDetails::HandleModelSelectedMessageChanged()
 {
 	RefreshDetails();	
 }
 
 
-FText SMessagingMessageDetails::HandleSenderText( ) const
+FText SMessagingMessageDetails::HandleSenderText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -247,7 +247,7 @@ FText SMessagingMessageDetails::HandleSenderText( ) const
 }
 
 
-FText SMessagingMessageDetails::HandleSenderThreadText( ) const
+FText SMessagingMessageDetails::HandleSenderThreadText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -278,7 +278,7 @@ FText SMessagingMessageDetails::HandleSenderThreadText( ) const
 }
 
 
-FText SMessagingMessageDetails::HandleTimestampText( ) const
+FText SMessagingMessageDetails::HandleTimestampText() const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 

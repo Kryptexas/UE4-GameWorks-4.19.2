@@ -19,7 +19,7 @@ class FMessagingDebuggerStyle
 public:
 
 	/** Default constructor. */
-	 FMessagingDebuggerStyle( )
+	 FMessagingDebuggerStyle()
 		 : FSlateStyleSet("MessagingDebuggerStyle")
 	 {
 		const FVector2D Icon16x16(16.0f, 16.0f);
@@ -95,7 +95,7 @@ public:
 	 }
 
 	 /** Destructor. */
-	 ~FMessagingDebuggerStyle( )
+	 ~FMessagingDebuggerStyle()
 	 {
 		FSlateStyleRegistry::UnRegisterSlateStyle(*this);
 	 }
