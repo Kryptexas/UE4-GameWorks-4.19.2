@@ -18,6 +18,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bUseLegacyMenuingSystem(false)
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
+	, bJumpToNodeErrors(false)
 	// Developer Settings
 	, bShowActionMenuItemSignatures(false)
 	// Perf Settings

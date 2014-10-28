@@ -483,9 +483,9 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 			((Settings->SaveOnCompile == SoC_SuccessOnly) && (BlueprintObj->Status == BS_UpToDate)) )
 		{
 			bool const bIsLevelPackage = (UWorld::FindWorldInPackage(BlueprintPackage) != nullptr);
-			// we don't want to save the entire level (especially is this 
+			// we don't want to save the entire level (especially if this 
 			// compile was already kicked off as a result of a level save, as it
-			// could cause a recursive save)... let the "bSaveOnCompile" setting 
+			// could cause a recursive save)... let the "SaveOnCompile" setting 
 			// only save blueprint assets
 			if (!bIsLevelPackage)
 			{

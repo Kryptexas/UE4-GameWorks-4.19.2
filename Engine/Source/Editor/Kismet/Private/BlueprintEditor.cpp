@@ -214,6 +214,25 @@ namespace BlueprintEditorImpl
 	 * @return False if the option isn't set, or if the save-on-compile is disabled for the blueprint being edited (otherwise true). 
 	 */
 	static bool IsSaveOnCompileOptionSet(TWeakPtr<FBlueprintEditor> Editor, ESaveOnCompile Option);
+
+	/**  Flips the value of the editor's "JumpToNodeErrors" setting. */
+	static void ToggleJumpToErrorNodeSetting();
+
+	/**
+	 * Utility function that will check to see if the "Jump to Error Nodes" 
+	 * setting is enabled.
+	 * 
+	 * @return True if UBlueprintEditorSettings::bJumpToNodeErrors is set, otherwise false.
+	 */
+	static bool IsJumpToErrorNodeOptionSet();
+
+	/**
+	 * Searches through a blueprint, looking for the most severe error'ing node.
+	 * 
+	 * @param  Blueprint	The blueprint to search through.
+	 * @param  Severity		Defines the severity of the error/warning to search for.
+	 */
+	static UEdGraphNode* FindNodeWithError(UBlueprint* Blueprint, EMessageSeverity::Type Severity = EMessageSeverity::Error);
 }
 
 static bool BlueprintEditorImpl::GraphHasUserPlacedNodes(UEdGraph const* InGraph)
@@ -280,6 +299,45 @@ static bool BlueprintEditorImpl::IsSaveOnCompileOptionSet(TWeakPtr<FBlueprintEdi
 	}
 
 	return (CurrentSetting == Option);
+}
+
+static void BlueprintEditorImpl::ToggleJumpToErrorNodeSetting()
+{
+	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+	Settings->bJumpToNodeErrors = !Settings->bJumpToNodeErrors;
+	Settings->SaveConfig();
+}
+
+static bool BlueprintEditorImpl::IsJumpToErrorNodeOptionSet()
+{
+	const UBlueprintEditorSettings* Settings = GetDefault<UBlueprintEditorSettings>();
+	return Settings->bJumpToNodeErrors;
+}
+
+static UEdGraphNode* BlueprintEditorImpl::FindNodeWithError(UBlueprint* Blueprint, EMessageSeverity::Type Severity/* = EMessageSeverity::Error*/)
+{
+	TArray<UEdGraph*> Graphs;
+	Blueprint->GetAllGraphs(Graphs);
+
+	UEdGraphNode* ChoiceNode = nullptr;
+	for (UEdGraph* Graph : Graphs)
+	{
+		for (UEdGraphNode* Node : Graph->Nodes)
+		{
+			if (Node->bHasCompilerMessage && !Node->ErrorMsg.IsEmpty() && (Node->ErrorType <= Severity))
+			{
+				if ((ChoiceNode == nullptr) || (ChoiceNode->ErrorType > Node->ErrorType))
+				{
+					ChoiceNode = Node;
+					if (ChoiceNode->ErrorType == 0)
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+	return ChoiceNode;
 }
 
 bool FBlueprintEditor::IsASubGraph( const UEdGraph* GraphPtr )
@@ -1662,6 +1720,19 @@ void FBlueprintEditor::SetupViewForBlueprintEditingMode()
 	// Make sure the inspector is always on top
 	//@TODO: This is necessary right now because of a bug in restoring layouts not remembering which tab is on top (to get it right initially), but do we want this behavior always?
 	TabManager->InvokeTab(FBlueprintEditorTabs::DetailsID);
+
+	UBlueprint* Blueprint = GetBlueprintObj();
+	if ((Blueprint != nullptr) && (Blueprint->Status == EBlueprintStatus::BS_Error))
+	{
+		UBlueprintEditorSettings const* BpEditorSettings = GetDefault<UBlueprintEditorSettings>();
+		if (BpEditorSettings->bJumpToNodeErrors)
+		{
+			if (UEdGraphNode* NodeWithError = BlueprintEditorImpl::FindNodeWithError(Blueprint))
+			{
+				JumpToNode(NodeWithError, /*bRequestRename =*/false);
+			}
+		}
+	}
 }
 
 FBlueprintEditor::~FBlueprintEditor()
@@ -1855,6 +1926,13 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FExecuteAction::CreateStatic(&BlueprintEditorImpl::SetSaveOnCompileSetting, (ESaveOnCompile)SoC_Always),
 		FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSaveOnCompileEnabled),
 		FIsActionChecked::CreateStatic(&BlueprintEditorImpl::IsSaveOnCompileOptionSet, WeakThisPtr, (ESaveOnCompile)SoC_Always)
+	);
+
+	ToolkitCommands->MapAction(
+		FFullBlueprintEditorCommands::Get().JumpToErrorNode,
+		FExecuteAction::CreateStatic(&BlueprintEditorImpl::ToggleJumpToErrorNodeSetting),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&BlueprintEditorImpl::IsJumpToErrorNodeOptionSet)
 	);
 	
 	ToolkitCommands->MapAction(
@@ -2536,6 +2614,15 @@ void FBlueprintEditor::Compile()
 
 		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !BlueprintObj->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
+
+		UBlueprintEditorSettings const* BpEditorSettings = GetDefault<UBlueprintEditorSettings>();
+		if ((LogResults.NumErrors > 0) && BpEditorSettings->bJumpToNodeErrors)
+		{
+			if (UEdGraphNode* NodeWithError = BlueprintEditorImpl::FindNodeWithError(BlueprintObj))
+			{
+				JumpToNode(NodeWithError, /*bRequestRename =*/false);
+			}
+		}
 
 		// send record when player clicks compile and send the result
 		// this will make sure how the users activity is
@@ -6353,19 +6440,20 @@ void FBlueprintEditor::RestoreEditedObjectState()
 {
 	check(IsEditingSingleBlueprint());	
 
-	if (GetBlueprintObj()->LastEditedDocuments.Num() == 0)
+	UBlueprint* Blueprint = GetBlueprintObj();
+	if (Blueprint->LastEditedDocuments.Num() == 0)
 	{
-		if(FBlueprintEditorUtils::SupportsConstructionScript(GetBlueprintObj()))
+		if (FBlueprintEditorUtils::SupportsConstructionScript(Blueprint))
 		{
-			GetBlueprintObj()->LastEditedDocuments.Add(FBlueprintEditorUtils::FindUserConstructionScript(GetBlueprintObj()));
+			Blueprint->LastEditedDocuments.Add(FBlueprintEditorUtils::FindUserConstructionScript(Blueprint));
 		}
 
-		GetBlueprintObj()->LastEditedDocuments.Add(FBlueprintEditorUtils::FindEventGraph(GetBlueprintObj()));
+		Blueprint->LastEditedDocuments.Add(FBlueprintEditorUtils::FindEventGraph(Blueprint));
 	}
 
-	for (int32 i = 0; i < GetBlueprintObj()->LastEditedDocuments.Num(); i++)
+	for (int32 i = 0; i < Blueprint->LastEditedDocuments.Num(); i++)
 	{
-		if (UObject* Obj = GetBlueprintObj()->LastEditedDocuments[i].EditedObject)
+		if (UObject* Obj = Blueprint->LastEditedDocuments[i].EditedObject)
 		{
 			if(UEdGraph* Graph = Cast<UEdGraph>(Obj))
 			{
@@ -6397,7 +6485,7 @@ void FBlueprintEditor::RestoreEditedObjectState()
 				TSharedPtr<SDockTab> TabWithGraph = LocalStruct::OpenGraphTree(this, Graph);
 
 				TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
-				GraphEditor->SetViewLocation(GetBlueprintObj()->LastEditedDocuments[i].SavedViewOffset, GetBlueprintObj()->LastEditedDocuments[i].SavedZoomAmount);
+				GraphEditor->SetViewLocation(Blueprint->LastEditedDocuments[i].SavedViewOffset, Blueprint->LastEditedDocuments[i].SavedZoomAmount);
 			}
 			else
 			{

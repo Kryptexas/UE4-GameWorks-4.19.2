@@ -57,6 +57,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Compiler)
 	TEnumAsByte<ESaveOnCompile> SaveOnCompile;
 
+	/** When enabled, if a blueprint has compiler errors, then the graph will jump and focus on the first node generating an error */
+	UPROPERTY(EditAnywhere, config, Category=Compiler)
+	bool bJumpToNodeErrors;
+
 // Developer Settings
 public:
 	/** If enabled, tooltips on action menu items will show the associated action's signature id (can be used to setup custom favorites menus).*/

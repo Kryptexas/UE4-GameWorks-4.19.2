@@ -55,7 +55,7 @@ void FBlueprintEditorCommands::RegisterCommands()
 	UI_COMMAND( AddNewDelegate, "Event Dispatcher", "Add a new event dispatcher", EUserInterfaceActionType::Button, FInputGesture() );
 
 	// Development commands
-	UI_COMMAND( SaveIntermediateBuildProducts, "Save Intermediate Build Products", "Should the compiler save intermediate build products for debugging.", EUserInterfaceActionType::Check, FInputGesture() );
+	UI_COMMAND( SaveIntermediateBuildProducts, "Save Intermediate Build Products", "Should the compiler save intermediate build products for debugging.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 
 	UI_COMMAND( RecompileGraphEditor, "Recompile Graph Editor", "Recompiles and reloads C++ code for the graph editor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RecompileKismetCompiler, "Recompile Blueprint Compiler", "Recompiles and reloads C++ code for the blueprint compiler", EUserInterfaceActionType::Button, FInputGesture() );

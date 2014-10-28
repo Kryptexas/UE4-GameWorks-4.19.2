@@ -563,6 +563,8 @@ void FFullBlueprintEditorCommands::RegisterCommands()
 	UI_COMMAND(SwitchToBlueprintDefaultsMode, "Defaults", "Switches to Blueprint Defaults Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToComponentsMode, "Components", "Switches to Components Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(EditGlobalOptions, "Blueprint Props", "Edit Blueprint Options", EUserInterfaceActionType::Button, FInputGesture());
+
+	UI_COMMAND(JumpToErrorNode, "Jump to Error Node", "When enabled, then the Blueprint will snap focus to nodes producing an error during compilation", EUserInterfaceActionType::ToggleButton, FInputGesture());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -572,6 +574,7 @@ namespace BlueprintEditorToolbarImpl
 {
 	static TSharedRef<SWidget> GenerateCompileOptionsWidget(TSharedRef<FUICommandList> CommandList);
 	static void MakeSaveOnCompileSubMenu(FMenuBuilder& InMenuBuilder);
+	static void MakeCompileDeveloperSubMenu(FMenuBuilder& InMenuBuilder);
 };
 
 static TSharedRef<SWidget> BlueprintEditorToolbarImpl::GenerateCompileOptionsWidget(TSharedRef<FUICommandList> CommandList)
@@ -583,8 +586,15 @@ static TSharedRef<SWidget> BlueprintEditorToolbarImpl::GenerateCompileOptionsWid
 	// @TODO: disable the menu and change up the tooltip when all sub items are disabled
 	MenuBuilder.AddSubMenu(
 		LOCTEXT("SaveOnCompileSubMenu", "Save on Compile"),
-		LOCTEXT("SaveOnCompileSubMenu_ToolTip", "Determines how the Blueprint is saved whenever you compile it"),
+		LOCTEXT("SaveOnCompileSubMenu_ToolTip", "Determines how the Blueprint is saved whenever you compile it."),
 		FNewMenuDelegate::CreateStatic(&BlueprintEditorToolbarImpl::MakeSaveOnCompileSubMenu));
+
+	MenuBuilder.AddMenuEntry(Commands.JumpToErrorNode);
+
+	MenuBuilder.AddSubMenu(
+		LOCTEXT("DevCompileSubMenu", "Developer"),
+		LOCTEXT("DevCompileSubMenu_ToolTip", "Advanced settings that aid in devlopment/debugging of the Blueprint system as a whole."),
+		FNewMenuDelegate::CreateStatic(&BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu));
 
 	return MenuBuilder.MakeWidget();
 }
@@ -596,6 +606,13 @@ static void BlueprintEditorToolbarImpl::MakeSaveOnCompileSubMenu(FMenuBuilder& I
 	InMenuBuilder.AddMenuEntry(Commands.SaveOnCompile_SuccessOnly);
 	InMenuBuilder.AddMenuEntry(Commands.SaveOnCompile_Always);
 }
+
+static void BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu(FMenuBuilder& InMenuBuilder)
+{
+	const FBlueprintEditorCommands& EditorCommands = FBlueprintEditorCommands::Get();
+	InMenuBuilder.AddMenuEntry(EditorCommands.SaveIntermediateBuildProducts);
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintEditorToolbar
