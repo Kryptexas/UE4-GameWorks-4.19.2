@@ -628,12 +628,6 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 		int32 NumSyncShapes = 0;
 		TArray<PxShape*> AllShapes = GetAllShapes(NumSyncShapes);
 
-		// Is the target a static actor
-		const bool bDestStatic = PActor->isRigidStatic() != NULL;
-
-		// Only perform scene queries in the synchronous scene for static shapes
-		const int32 SceneQueryShapeNumMax = bDestStatic ? NumSyncShapes : AllShapes.Num();
-
 		PxScene* AsyncScene = (RigidActorAsync != NULL) ? RigidActorAsync->getScene() : NULL;
 		SCENE_LOCK_WRITE(AsyncScene);
 
@@ -701,7 +695,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 					PShape->setQueryFilterData(PComplexQueryData);
 
 					// on dynamic objects and objects which don't use complex as simple, tri mesh not used for sim
-					if (!bSimCollision || !bDestStatic || !bUseComplexAsSimple)
+					if (!bSimCollision || !bUseComplexAsSimple)
 					{
 						PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
 					}
