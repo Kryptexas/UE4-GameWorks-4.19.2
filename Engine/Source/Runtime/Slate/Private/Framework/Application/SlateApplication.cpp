@@ -242,25 +242,24 @@ public:
 		}
 	};
 
-	template<>
-	struct Translate<FPointerEvent>
-	{
-		static  FPointerEvent PointerEvent( const TSharedPtr<FVirtualPointerPosition>& InPosition, const FPointerEvent& InEvent )
-		{
-			// Pointer events are translated into the virtual window space. For 3D Widget Components this means
-			if ( !InPosition.IsValid() )
-			{
-				return InEvent;
-			}
-			else
-			{
-				return FPointerEvent::MakeTranslatedEvent<FPointerEvent>( InEvent, *InPosition );
-			}
-		}
-	};
-
 };
 
+template<>
+struct FEventRouter::Translate<FPointerEvent>
+{
+	static  FPointerEvent PointerEvent( const TSharedPtr<FVirtualPointerPosition>& InPosition, const FPointerEvent& InEvent )
+	{
+		// Pointer events are translated into the virtual window space. For 3D Widget Components this means
+		if ( !InPosition.IsValid() )
+		{
+			return InEvent;
+		}
+		else
+		{
+			return FPointerEvent::MakeTranslatedEvent<FPointerEvent>( InEvent, *InPosition );
+		}
+	}
+};
 
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
