@@ -134,7 +134,20 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 		CategoriesWidth.AddZeroed(Categories.Num());
 		float TotalWidth = 0.0f, MaxHeight = 0.0f;
 
-		FString HeaderDesc(TEXT("Tap ['] to close, use Numpad to toggle categories"));
+		FString ActivationKeyDisplayName = TEXT("'");
+		FString ActivationKeyName = TEXT("Apostrophe");
+
+		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+		UGameplayDebuggingControllerComponent*  GDC = GetDebuggingReplicator()->FindComponentByClass<UGameplayDebuggingControllerComponent>();
+		if (GDC)
+		{
+			ActivationKeyDisplayName = GDC->GetActivationKey().Key.GetDisplayName().ToString();
+			ActivationKeyName = GDC->GetActivationKey().Key.GetFName().ToString();
+		}
+
+		const FString KeyDesc = ActivationKeyName != ActivationKeyDisplayName ? FString::Printf(TEXT("(%s key)"), *ActivationKeyName) : TEXT("");
+		const FString HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Numpad to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
+
 		float HeaderWidth = 0.0f;
 		CalulateStringSize(DefaultContext, DefaultContext.Font, HeaderDesc, HeaderWidth, MaxHeight);
 

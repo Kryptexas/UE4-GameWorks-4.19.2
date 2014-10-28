@@ -29,6 +29,7 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 	bWaitingForOwnersComponent = false;
 
 	ControlKeyPressedTime = 0;
+	ActivationKey = FInputChord(EKeys::Apostrophe, false, false, false, false);
 }
 
 void UGameplayDebuggingControllerComponent::OnRegister()
@@ -126,7 +127,6 @@ void UGameplayDebuggingControllerComponent::BindActivationKeys()
 	if (PlayerOwner.IsValid() && PlayerOwner->InputComponent && PlayerOwner->PlayerInput)
 	{
 		// find current activation key used for 'EnableGDT' binding
-		FInputChord ActivationKey(EKeys::Apostrophe, false, false, false, false);
 		for (uint32 BindIndex = 0; BindIndex < (uint32)PlayerOwner->PlayerInput->DebugExecBindings.Num(); BindIndex++)
 		{
 			if (PlayerOwner->PlayerInput->DebugExecBindings[BindIndex].Command == TEXT("EnableGDT"))
