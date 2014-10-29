@@ -455,10 +455,6 @@ void AHUD::DrawDebugTextList()
 	}
 }
 
-/**
- * Add debug text for a specific actor to be displayed via DrawDebugTextList().  If the debug text is invalid then it will
- * attempt to remove any previous entries via RemoveDebugText().
- */
 void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 AActor* SrcActor,
 										 float Duration,
@@ -473,7 +469,7 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 )
 {
 	// set a default color
-	if (TextColor == FColor::Black)
+	if (TextColor == FLinearColor::Transparent)
 	{
 		TextColor = FColor::White;
 	}
@@ -965,48 +961,5 @@ bool AHUD::IsCanvasValid_WarnIfNot() const
 	return bIsValid;
 }
 
-/////////////////
-
-FHUDHitBox::FHUDHitBox( FVector2D InCoords, FVector2D InSize, const FName& InName, bool bInConsumesInput, int32 InPriority )
-	: Coords(InCoords)
-	, Size(InSize)
-	, Name(InName)
-	, bConsumesInput(bInConsumesInput)
-	, Priority(InPriority)
-{
-}
-
-bool FHUDHitBox::Contains( FVector2D InCoords ) const
-{
-	bool bResult = false;
-	if( ( InCoords.X >= Coords.X ) && (InCoords.X <= ( Coords.X + Size.X ) ) )
-	{
-		if( ( InCoords.Y >= Coords.Y ) && (InCoords.Y <= ( Coords.Y + Size.Y ) ) )
-		{
-			bResult = true;
-		}
-	}
-	return bResult;
-}
-
-void FHUDHitBox::Draw( FCanvas* InCanvas, const FLinearColor& InColor ) const
-{
-	FCanvasBoxItem	BoxItem( Coords, Size );
-	BoxItem.SetColor( InColor );
-	InCanvas->DrawItem( BoxItem );
-	FCanvasTextItem	TextItem( Coords, FText::FromName( Name ), GEngine->GetSmallFont(), InColor );
-	InCanvas->DrawItem( TextItem );
-}
-
-void FSimpleReticle::Draw( UCanvas* InCanvas, FLinearColor InColor )
-{
-	FVector2D CanvasCenter( InCanvas->OrgX + ((InCanvas->ClipX - InCanvas->OrgX) / 2.0f), InCanvas->OrgX + ((InCanvas->ClipY - InCanvas->OrgY) / 2.0f) );
-	FCanvasLineItem LineItem( CanvasCenter, FVector2D(0.0f, 0.0f) );
-	LineItem.SetColor( InColor );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter - HorizontalOffsetMin, CanvasCenter - HorizontalOffsetMax );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter + HorizontalOffsetMin, CanvasCenter + HorizontalOffsetMax );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter - VerticalOffsetMin, CanvasCenter - VerticalOffsetMax );
-	LineItem.Draw( InCanvas->Canvas, CanvasCenter + VerticalOffsetMin, CanvasCenter + VerticalOffsetMax );
-}
 
 #undef LOCTEXT_NAMESPACE
