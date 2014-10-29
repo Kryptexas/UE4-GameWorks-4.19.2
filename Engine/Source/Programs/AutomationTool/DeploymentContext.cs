@@ -306,6 +306,8 @@ public class DeploymentContext //: ProjectParams
 	public int StageFiles(StagedFileType FileType, string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null, bool bAllowNone = false, bool bRemap = true, string NewName = null)
 	{
 		int FilesAdded = 0;
+		// make sure any ..'s are removed
+		Utils.CollapseRelativeDirectories(ref InPath);
 
 		if (CommandUtils.DirectoryExists(InPath))
 		{
