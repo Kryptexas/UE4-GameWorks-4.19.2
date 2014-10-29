@@ -173,6 +173,9 @@ private:
 	/** Handler for when "Refresh source control" is selected */
 	void ExecuteSCCRefresh();
 
+	/** Handler for when "Merge" is selected */
+	void ExecuteSCCMerge();
+
 	/** Handler for when "Checkout from source control" is selected */
 	void ExecuteSCCCheckOut();
 
@@ -229,6 +232,9 @@ private:
 
 	/** Handler to check to see if "Refresh source control" can be executed */
 	bool CanExecuteSCCRefresh() const;
+
+	/** Handler to check to see if "Merge" can be executed */
+	bool CanExecuteSCCMerge() const;
 
 	/** Handler to check to see if "Checkout from source control" can be executed */
 	bool CanExecuteSCCCheckOut() const;
@@ -311,6 +317,7 @@ private:
 
 	/** Cached CanExecute vars */
 	bool bAtLeastOneNonRedirectorSelected;
+	bool bCanExecuteSCCMerge;
 	bool bCanExecuteSCCCheckOut;
 	bool bCanExecuteSCCOpenForAdd;
 	bool bCanExecuteSCCCheckIn;

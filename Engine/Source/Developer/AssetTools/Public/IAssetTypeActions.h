@@ -77,6 +77,12 @@ public:
 	/** Returns true if this class can be used as a filter in the content browser */
 	virtual bool CanFilter() = 0;
 
+	/** Returns true if this class can be merged (either manually or automatically) */
+	virtual bool CanMerge() const = 0;
+
+	/** Begins a merge operation for InObjects */
+	virtual void Merge( UObject* InObject ) = 0;
+
 	/** Returns the categories that this asset type. The return value is one or more flags from EAssetTypeCategories.  */
 	virtual uint32 GetCategories() = 0;
 

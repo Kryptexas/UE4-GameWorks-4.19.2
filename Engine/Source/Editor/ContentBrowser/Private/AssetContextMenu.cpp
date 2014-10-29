@@ -39,6 +39,7 @@
 FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
 	: AssetView(InAssetView)
 	, bAtLeastOneNonRedirectorSelected(false)
+	, bCanExecuteSCCMerge(false)
 	, bCanExecuteSCCCheckOut(false)
 	, bCanExecuteSCCOpenForAdd(false)
 	, bCanExecuteSCCCheckIn(false)
@@ -629,103 +630,116 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 
 void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 {
+	if( CanExecuteSCCMerge() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCMerge", "Merge"),
+			LOCTEXT("SCCMergeTooltip", "Opens the blueprint editor with the merge tool open."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteSCCMerge),
+				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteSCCMerge)
+			)
+		);
+	}
+
 	if( CanExecuteSCCSync() )
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCSync", "Sync"),
-				LOCTEXT("SCCSyncTooltip", "Updates the item to the latest version in source control."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCSync ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCSync )
-					)
-				);
-		}
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCSync", "Sync"),
+			LOCTEXT("SCCSyncTooltip", "Updates the item to the latest version in source control."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCSync ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCSync )
+			)
+		);
+	}
 
-		if ( CanExecuteSCCCheckOut() )
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCCheckOut", "Check Out"),
-				LOCTEXT("SCCCheckOutTooltip", "Checks out the selected asset from source control."),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.CheckOut"),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCCheckOut ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCCheckOut )
-					)
-				);
-		}
+	if ( CanExecuteSCCCheckOut() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCCheckOut", "Check Out"),
+			LOCTEXT("SCCCheckOutTooltip", "Checks out the selected asset from source control."),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.CheckOut"),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCCheckOut ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCCheckOut )
+			)
+		);
+	}
 
-		if ( CanExecuteSCCOpenForAdd() )
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCOpenForAdd", "Mark For Add"),
-				LOCTEXT("SCCOpenForAddTooltip", "Adds the selected asset to source control."),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Add"),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCOpenForAdd ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCOpenForAdd )
-					)
-				);
-		}
+	if ( CanExecuteSCCOpenForAdd() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCOpenForAdd", "Mark For Add"),
+			LOCTEXT("SCCOpenForAddTooltip", "Adds the selected asset to source control."),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Add"),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCOpenForAdd ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCOpenForAdd )
+			)
+		);
+	}
 
-		if ( CanExecuteSCCCheckIn() )
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCCheckIn", "Check In"),
-				LOCTEXT("SCCCheckInTooltip", "Checks in the selected asset to source control."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCCheckIn ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCCheckIn )
-					)
-				);
-		}
+	if ( CanExecuteSCCCheckIn() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCCheckIn", "Check In"),
+			LOCTEXT("SCCCheckInTooltip", "Checks in the selected asset to source control."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCCheckIn ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCCheckIn )
+			)
+		);
+	}
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SCCRefresh", "Refresh"),
+		LOCTEXT("SCCRefreshTooltip", "Updates the source control status of the asset."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Refresh"),
+		FUIAction(
+			FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCRefresh ),
+			FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCRefresh )
+			)
+		);
+
+	if( CanExecuteSCCHistory() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCHistory", "History"),
+			LOCTEXT("SCCHistoryTooltip", "Displays the source control revision history of the selected asset."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCHistory ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCHistory )
+			)
+		);
 
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SCCRefresh", "Refresh"),
-			LOCTEXT("SCCRefreshTooltip", "Updates the source control status of the asset."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Refresh"),
+			LOCTEXT("SCCDiffAgainstDepot", "Diff Against Depot"),
+			LOCTEXT("SCCDiffAgainstDepotTooltip", "Look at differences between your version of the asset and that in source control."),
+			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCRefresh ),
-				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCRefresh )
-				)
-			);
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCDiffAgainstDepot ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCDiffAgainstDepot )
+			)
+		);	
+	}
 
-		if( CanExecuteSCCHistory() )
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCHistory", "History"),
-				LOCTEXT("SCCHistoryTooltip", "Displays the source control revision history of the selected asset."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCHistory ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCHistory )
-					)
-				);
-
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCDiffAgainstDepot", "Diff Against Depot"),
-				LOCTEXT("SCCDiffAgainstDepotTooltip", "Look at differences between your version of the asset and that in source control."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCDiffAgainstDepot ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCDiffAgainstDepot )
-					)
-				);	
-		}
-
-		if( CanExecuteSCCRevert() )
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SCCRevert", "Revert"),
-				LOCTEXT("SCCRevertTooltip", "Reverts the asset to the state it was before it was checked out."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCRevert ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCRevert )
-					)
-				);
-		}
+	if( CanExecuteSCCRevert() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SCCRevert", "Revert"),
+			LOCTEXT("SCCRevertTooltip", "Reverts the asset to the state it was before it was checked out."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCRevert ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCRevert )
+			)
+		);
+	}
 }
 
 bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
@@ -1374,6 +1388,29 @@ void FAssetContextMenu::ExecuteSCCRefresh()
 	ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FUpdateStatus>(), SourceControlHelpers::PackageFilenames(PackageNames), EConcurrency::Asynchronous);
 }
 
+void FAssetContextMenu::ExecuteSCCMerge()
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num(); AssetIdx++)
+	{
+		// Get the actual asset (will load it)
+		const FAssetData& AssetData = SelectedAssets[AssetIdx];
+
+		UObject* CurrentObject = AssetData.GetAsset();
+		if (CurrentObject)
+		{
+			const FString PackagePath = AssetData.PackageName.ToString();
+			const FString PackageName = AssetData.AssetName.ToString();
+			auto AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass( CurrentObject->GetClass() ).Pin();
+			if( AssetTypeActions.IsValid() )
+			{
+				AssetTypeActions->Merge(CurrentObject);
+			}
+		}
+	}
+}
+
 void FAssetContextMenu::ExecuteSCCCheckOut()
 {
 	TArray<UPackage*> PackagesToCheckOut;
@@ -1605,6 +1642,37 @@ bool FAssetContextMenu::CanExecuteSCCRefresh() const
 	return ISourceControlModule::Get().IsEnabled();
 }
 
+bool FAssetContextMenu::CanExecuteSCCMerge() const
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+	bool bCanExecuteMerge = false;
+	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bCanExecuteMerge, GEditorIni);
+	if( bCanExecuteMerge )
+	{
+		bCanExecuteMerge = bCanExecuteSCCMerge;
+		for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num() && bCanExecuteMerge; AssetIdx++)
+		{
+			// Get the actual asset (will load it)
+			const FAssetData& AssetData = SelectedAssets[AssetIdx];
+			UObject* CurrentObject = AssetData.GetAsset();
+			if (CurrentObject)
+			{
+				auto AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(CurrentObject->GetClass()).Pin();
+				if (AssetTypeActions.IsValid())
+				{
+					bCanExecuteMerge = AssetTypeActions->CanMerge();
+				}
+			}
+			else
+			{
+				bCanExecuteMerge = false;
+			}
+		}
+	}
+	return bCanExecuteMerge;
+}
+
 bool FAssetContextMenu::CanExecuteSCCCheckOut() const
 {
 	return bCanExecuteSCCCheckOut;
@@ -1725,6 +1793,7 @@ bool FAssetContextMenu::CanClearCustomThumbnails() const
 void FAssetContextMenu::CacheCanExecuteVars()
 {
 	bAtLeastOneNonRedirectorSelected = false;
+	bCanExecuteSCCMerge = false;
 	bCanExecuteSCCCheckOut = false;
 	bCanExecuteSCCOpenForAdd = false;
 	bCanExecuteSCCCheckIn = false;
@@ -1752,6 +1821,11 @@ void FAssetContextMenu::CacheCanExecuteVars()
 			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(AssetData.PackageName.ToString()), EStateCacheUsage::Use);
 			if(SourceControlState.IsValid())
 			{
+				if (SourceControlState->IsConflicted() )
+				{
+					bCanExecuteSCCMerge = true;
+				}
+
 				if ( SourceControlState->CanCheckout() )
 				{
 					bCanExecuteSCCCheckOut = true;
@@ -1780,6 +1854,7 @@ void FAssetContextMenu::CacheCanExecuteVars()
 		}
 
 		if ( bAtLeastOneNonRedirectorSelected
+			&& bCanExecuteSCCMerge
 			&& bCanExecuteSCCCheckOut
 			&& bCanExecuteSCCOpenForAdd
 			&& bCanExecuteSCCCheckIn

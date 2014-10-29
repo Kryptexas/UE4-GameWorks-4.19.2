@@ -5,6 +5,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintEditorModule.h"
+#include "BlueprintEditor.h"
 #include "AssetRegistryModule.h"
 #include "SBlueprintDiff.h"
 #include "ISourceControlModule.h"
@@ -77,6 +78,25 @@ void FAssetTypeActions_Blueprint::OpenAssetEditor( const TArray<UObject*>& InObj
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("FailedToLoadBlueprint", "Blueprint could not be loaded because it derives from an invalid class.  Check to make sure the parent class for this blueprint hasn't been removed!"));
 		}
+	}
+}
+
+bool FAssetTypeActions_Blueprint::CanMerge() const
+{
+	return true;
+}
+
+void FAssetTypeActions_Blueprint::Merge(UObject* InObject)
+{
+	UBlueprint* AsBlueprint = CastChecked<UBlueprint>(InObject);
+	// Kludge to get the merge panel in the blueprint editor to show up:
+	bool Success = FAssetEditorManager::Get().OpenEditorForAsset(InObject);
+	if( Success )
+	{
+		FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>( "Kismet" );
+
+		FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(AsBlueprint, false));
+		BlueprintEditor->CreateMergeToolTab();
 	}
 }
 

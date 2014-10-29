@@ -46,6 +46,16 @@ public:
 		return true;
 	}
 
+	virtual bool CanMerge() const override
+	{
+		return false;
+	}
+
+	virtual void Merge(UObject* InObject) override
+	{
+		check(false); // no generic merge operation exists yet, did you override CanMerge but not Merge?
+	}
+
 	virtual bool ShouldForceWorldCentric() override
 	{
 		return false;
