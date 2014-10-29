@@ -1453,8 +1453,7 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 						NewElementData.MaterialId = Material->GetLightingGuid();
 						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
 						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						// Mesh area lights currently disabled
-						NewElementData.bUseEmissiveForStaticLighting = false;
+						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;;
 						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
 						NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
 						NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
@@ -1524,7 +1523,7 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 			FLightmassPrimitiveSettings& LMSetting = LandscapeComp->GetLandscapeProxy()->LightmassSettings;
 			NewElementData.bUseTwoSidedLighting = LMSetting.bUseTwoSidedLighting;
 			NewElementData.bShadowIndirectOnly = LMSetting.bShadowIndirectOnly;
-			NewElementData.bUseEmissiveForStaticLighting = false;
+			NewElementData.bUseEmissiveForStaticLighting = LMSetting.bUseEmissiveForStaticLighting;
 			// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
 			NewElementData.EmissiveLightFalloffExponent = LMSetting.EmissiveLightFalloffExponent;
 			NewElementData.EmissiveLightExplicitInfluenceRadius = LMSetting.EmissiveLightExplicitInfluenceRadius;
@@ -1628,7 +1627,7 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 			TempData.MaterialId = Material->GetLightingGuid();
 			TempData.bUseTwoSidedLighting = PrimitiveSettings.bUseTwoSidedLighting;
 			TempData.bShadowIndirectOnly = PrimitiveSettings.bShadowIndirectOnly;
-			TempData.bUseEmissiveForStaticLighting = false;
+			TempData.bUseEmissiveForStaticLighting = PrimitiveSettings.bUseEmissiveForStaticLighting;
 			TempData.EmissiveLightFalloffExponent = PrimitiveSettings.EmissiveLightFalloffExponent;
 			TempData.EmissiveLightExplicitInfluenceRadius = PrimitiveSettings.EmissiveLightExplicitInfluenceRadius;
 			TempData.EmissiveBoost = PrimitiveSettings.EmissiveBoost * LevelSettings.EmissiveBoost;
@@ -2270,8 +2269,8 @@ FLightmassProcessor::FLightmassProcessor(const FStaticLightingSystem& InSystem, 
 	Messages.Add( TEXT("LightmassError_BuildSelectedNothingSelected"), LOCTEXT("LightmassError_BuildSelectedNothingSelected", "Building selected actors and BSP only, but no actors or BSP selected!") );
 	Messages.Add( TEXT("LightmassError_ObjectWrappedUVs"), LOCTEXT("LightmassError_ObjectWrappedUVs", "Object has wrapping UVs.") );
 	Messages.Add( TEXT("LightmassError_ObjectOverlappedUVs"), LOCTEXT("LightmassError_ObjectOverlappedUVs", "Object has overlapping UVs.") );
-	Messages.Add( TEXT("LightmassError_EmissiveMeshHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshHighPolyCount", "Object has bUseEmissiveForStaticLighting=true, but a large number of polygons (more than 3000) and will result in a long lighting build.") );
-	Messages.Add( TEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount", "Object did not create emissive lights even though it had bUseEmissiveForStaticLighting=true due to excessive polycount (more than 5000).") );
+	Messages.Add( TEXT("LightmassError_EmissiveMeshHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshHighPolyCount", "Object has a large number of polygons (more than 3000) and will result in a long lighting build.") );
+	Messages.Add( TEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount"), LOCTEXT("LightmassError_EmissiveMeshExtremelyHighPolyCount", "Object did not create emissive lights due to excessive polycount (more than 5000).") );
 	Messages.Add( TEXT("LightmassError_BadLightMapCoordinateIndex"), LOCTEXT("LightmassError_BadLightMapCoordinateIndex", "StaticMesh has invalid LightMapCoordinateIndex.") );
 	Messages.Add( TEXT("LightmassError_ObjectMultipleDominantLights"), LOCTEXT("LightmassError_ObjectMultipleDominantLights", "Object has multiple dominant lights.") );
 }

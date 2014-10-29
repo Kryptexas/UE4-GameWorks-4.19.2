@@ -903,7 +903,7 @@ struct FMaterialElementData
 	FMaterialElementData() :
 		  bUseTwoSidedLighting(false)
 		, bShadowIndirectOnly(false)
-		, bUseEmissiveForStaticLighting(false)
+		, bUseEmissiveForStaticLighting(true)
 	    , EmissiveLightFalloffExponent(2.0f)
 		, EmissiveLightExplicitInfluenceRadius(0.0f)
 		, EmissiveBoost(1.0f)

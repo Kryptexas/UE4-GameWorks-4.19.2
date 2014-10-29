@@ -14,6 +14,9 @@ namespace Lightmass
  */
 TMap<FStaticLightingMesh*, int32> FStaticLightingMesh::MeshToIndexMap;
 
+// Currently disabled due to lack of robustness
+bool bAllowMeshAreaLights = false;
+
 /** Evaluates the mesh's Bidirectional Reflectance Distribution Function. */
 FLinearColor FStaticLightingMesh::EvaluateBRDF(
 	const FStaticLightingVertex& Vertex, 
@@ -113,7 +116,7 @@ void FStaticLightingMesh::Import( FLightmassImporter& Importer )
 		CurrentMaterialElement.MaterialId = TempData.MaterialId;
 		CurrentMaterialElement.bUseTwoSidedLighting = TempData.bUseTwoSidedLighting;
 		CurrentMaterialElement.bShadowIndirectOnly = TempData.bShadowIndirectOnly;
-		CurrentMaterialElement.bUseEmissiveForStaticLighting = false;
+		CurrentMaterialElement.bUseEmissiveForStaticLighting = TempData.bUseEmissiveForStaticLighting;
 		// Validating data here instead of in Unreal since EmissiveLightFalloffExponent is used in so many different object types
 		CurrentMaterialElement.EmissiveLightFalloffExponent = FMath::Max(TempData.EmissiveLightFalloffExponent, 0.0f);
 		CurrentMaterialElement.EmissiveLightExplicitInfluenceRadius = FMath::Max(TempData.EmissiveLightExplicitInfluenceRadius, 0.0f);
@@ -164,7 +167,8 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 	bool bAnyElementsUseEmissiveForLighting = false;
 	for (int32 MaterialIndex = 0; MaterialIndex < MaterialElements.Num(); MaterialIndex++)
 	{
-		if (MaterialElements[MaterialIndex].bUseEmissiveForStaticLighting &&
+		if (bAllowMeshAreaLights && 
+			MaterialElements[MaterialIndex].bUseEmissiveForStaticLighting &&
 			MaterialElements[MaterialIndex].Material->EmissiveSize > 0)
 		{
 			bAnyElementsUseEmissiveForLighting = true;
@@ -240,7 +244,8 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 	for (int32 MaterialIndex = 0; MaterialIndex < MaterialElements.Num(); MaterialIndex++)
 	{
 		const FMaterial& CurrentMaterial = *MaterialElements[MaterialIndex].Material;
-		if (MaterialElements[MaterialIndex].bUseEmissiveForStaticLighting &&
+		if (bAllowMeshAreaLights &&
+			MaterialElements[MaterialIndex].bUseEmissiveForStaticLighting &&
 			CurrentMaterial.EmissiveSize > 0)
 		{
 			// Operate on each layer independently

@@ -1080,15 +1080,15 @@ struct FLightmassPrimitiveSettings
 	GENERATED_USTRUCT_BODY()
 
 	/** If true, this object will be lit as if it receives light from both sides of its polygons. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bUseTwoSidedLighting:1;
 
 	/** If true, this object will only shadow indirect lighting.  					*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bShadowIndirectOnly:1;
 
 	/** If true, allow using the emissive for static lighting.						*/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bUseEmissiveForStaticLighting:1;
 
 	/** Direct lighting falloff exponent for mesh area lights created from emissive areas on this primitive. */
@@ -1119,7 +1119,7 @@ struct FLightmassPrimitiveSettings
 	{
 		bUseTwoSidedLighting = false;
 		bShadowIndirectOnly = false;
-		bUseEmissiveForStaticLighting = false;
+		bUseEmissiveForStaticLighting = true;
 		EmissiveLightFalloffExponent = 8.0f;
 		EmissiveLightExplicitInfluenceRadius = 0.0f;
 		EmissiveBoost = 1.0f;

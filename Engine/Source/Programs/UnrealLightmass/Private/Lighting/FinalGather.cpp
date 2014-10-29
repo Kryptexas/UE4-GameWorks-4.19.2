@@ -262,9 +262,13 @@ FLinearColor FStaticLightingSystem::CalculateExitantRadiance(
 			}
 		}
 
-		//@todo - cache emissive on surfaces like direct lighting?
-		const FLinearColor EmissiveLighting = HitMesh->EvaluateEmissive(Vertex.TextureCoordinates[0], ElementIndex);
-		AccumulatedRadiance += EmissiveLighting;
+		FLinearColor Emissive = FLinearColor::Black;
+		if (HitMesh->IsEmissive(ElementIndex))
+		{
+			Emissive = HitMesh->EvaluateEmissive(Vertex.TextureCoordinates[0], ElementIndex);
+		}
+
+		AccumulatedRadiance += Emissive;
 	}
 
 	// So we can compare it against FLinearColor::Black easily

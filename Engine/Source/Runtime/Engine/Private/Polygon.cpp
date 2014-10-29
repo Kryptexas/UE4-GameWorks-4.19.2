@@ -47,7 +47,6 @@ FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings)
 		float SpecularBoost;
 		Ar << SpecularBoost;
 	}
-	Settings.bUseEmissiveForStaticLighting = false;
 
 	return Ar;
 }
