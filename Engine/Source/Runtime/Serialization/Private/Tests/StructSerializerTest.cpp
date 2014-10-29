@@ -50,6 +50,7 @@ namespace StructSerializerTest
 		Test.TestEqual<TSubclassOf<class UObject>>(TEXT("Objects.Class must be the same before and after de-/serialization"), TestStruct.Objects.Class, TestStruct2.Objects.Class);
 		Test.TestEqual<UObject*>(TEXT("Objects.ObjectPtr must be the same before and after de-/serialization"), TestStruct.Objects.ObjectPtr, TestStruct2.Objects.ObjectPtr);
 
+		Test.TestEqual<FGuid>(TEXT("Builtins.Guid must be the same before and after de-/serialization"), TestStruct.Builtins.Guid, TestStruct2.Builtins.Guid);
 		Test.TestEqual<FName>(TEXT("Builtins.Name must be the same before and after de-/serialization"), TestStruct.Builtins.Name, TestStruct2.Builtins.Name);
 		Test.TestEqual<FString>(TEXT("Builtins.String must be the same before and after de-/serialization"), TestStruct.Builtins.String, TestStruct2.Builtins.String);
 		Test.TestEqual<FRotator>(TEXT("Builtins.Rotator must be the same before and after de-/serialization"), TestStruct.Builtins.Rotator, TestStruct2.Builtins.Rotator);
@@ -86,6 +87,10 @@ bool FJsonStructSerializerTest::RunTest( const FString& Parameters )
 		FJsonStructDeserializerBackend DeserializerBackend(Reader);
 
 		StructSerializerTest::TestSerialization(*this, SerializerBackend, DeserializerBackend);
+
+		// uncomment this to look at the serialized data
+		//uint8* Data = Buffer.GetData();
+		//GLog->Logf(TEXT("%s"), (TCHAR*)Data);
 	}
 
 	return true;

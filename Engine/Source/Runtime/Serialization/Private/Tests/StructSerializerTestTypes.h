@@ -43,14 +43,14 @@ struct FStructSerializerNumericTestStruct
 
 	/** Default constructor. */
 	FStructSerializerNumericTestStruct()
-		: Int8(-8)
-		, Int16(-16)
-		, Int32(-32)
-		, Int64(-64)
-		, UInt8(8)
-		, UInt16(16)
-		, UInt32(32)
-		, UInt64(64)
+		: Int8(-127)
+		, Int16(-32767)
+		, Int32(-2147483647)
+		, Int64(-92233720368547/*75807*/)
+		, UInt8(255)
+		, UInt16(65535)
+		, UInt32(4294967295)
+		, UInt64(18446744073709/*551615*/)
 		, Float(4.125)
 		, Double(1.03125)
 	{ }
@@ -122,6 +122,9 @@ struct FStructSerializerBuiltinTestStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+	FGuid Guid;
+
+	UPROPERTY()
 	FName Name;
 
 	UPROPERTY()
@@ -135,7 +138,8 @@ struct FStructSerializerBuiltinTestStruct
 
 	/** Default constructor. */
 	FStructSerializerBuiltinTestStruct()
-		: String("Hello World!")
+		: Guid(FGuid::NewGuid())
+		, String("Hello World!")
 		, Rotator(4096, 8192, 16384)
 		, Vector(1.0f, 2.0f, 3.0f)
 	{ }
