@@ -6,9 +6,9 @@
 /* FInputChord interface
  *****************************************************************************/
 
-FInputChord::RelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
+FInputChord::ERelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
 {
-	RelationshipType Relationship = None;
+	ERelationshipType Relationship = None;
 
 	if (Key == OtherChord.Key)
 	{
