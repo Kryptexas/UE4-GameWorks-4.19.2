@@ -854,6 +854,10 @@ namespace UnrealBuildTool
                 {
                     // static library passed in, pass it along but make path absolute, because FixDependencies script may be executed in a different directory
                     string AbsoluteAdditionalLibrary = Path.GetFullPath(AdditionalLibrary);
+					if (AbsoluteAdditionalLibrary.Contains(" "))
+					{
+						AbsoluteAdditionalLibrary = string.Format("\"{0}\"", AbsoluteAdditionalLibrary);
+					}
                     LinkAction.CommandArguments += (" " + AbsoluteAdditionalLibrary);
                     LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
                 }
