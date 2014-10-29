@@ -3520,11 +3520,11 @@ FKey TranslateMouseButtonToKey( const EMouseButtons::Type Button )
 	return Key;
 }
 
-void FSlateApplication::SetGameIsFakingTouchEvents(const bool bIsFaking)
+void FSlateApplication::SetGameIsFakingTouchEvents(const bool bIsFaking, FVector2D* CursorLocation)
 {
 	if (bIsFakingTouched && !bIsFaking && bIsGameFakingTouch && !bIsFakingTouch)
 	{
-		OnTouchEnded(PlatformApplication->Cursor->GetPosition(), 0, 0);
+		OnTouchEnded((CursorLocation ? *CursorLocation : PlatformApplication->Cursor->GetPosition()), 0, 0);
 	}
 	bIsGameFakingTouch = bIsFaking;
 }

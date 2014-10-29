@@ -425,10 +425,8 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 	{
 		FIntPoint LastViewportCursorPos;
 		Viewport->GetMousePos(LastViewportCursorPos, false);
-		const FVector2D CurrentCursorPos = FSlateApplication::Get().GetCursorPos();
-		FSlateApplication::Get().SetCursorPos(FVector2D(LastViewportCursorPos.X,LastViewportCursorPos.Y));
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
-		FSlateApplication::Get().SetCursorPos(CurrentCursorPos);
+		FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
+		FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
 	}
 }
 
