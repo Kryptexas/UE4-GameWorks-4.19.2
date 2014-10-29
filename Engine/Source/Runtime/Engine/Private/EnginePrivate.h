@@ -183,6 +183,7 @@
 #include "GameFramework/TouchInterface.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Engine/World.h"
+#include "ActiveSound.h"
 
 #include "SystemSettings.h"					// Scalability options.
 #include "SceneManagement.h"				// Scene management.
