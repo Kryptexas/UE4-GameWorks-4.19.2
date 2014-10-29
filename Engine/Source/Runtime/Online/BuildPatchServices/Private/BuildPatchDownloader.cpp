@@ -88,7 +88,14 @@ uint32 FBuildPatchDownloader::Run()
 				if( bSuccess )
 				{
 					// Uncompress if needed
-					bSuccess = !bIsChunkData || FBuildPatchUtils::UncompressChunkFile( InFlightJob.DataArray );
+					if (bIsChunkData)
+					{
+						bSuccess = FBuildPatchUtils::UncompressChunkFile(InFlightJob.DataArray);
+					}
+					else
+					{
+						bSuccess = FBuildPatchUtils::UncompressFileDataFile(InFlightJob.DataArray);
+					}
 					if( !bSuccess )
 					{
 						FBuildPatchAnalytics::RecordChunkDownloadError( InFlightJob.DownloadUrl, FPlatformMisc::GetLastError(), TEXT( "Uncompress Fail" ) );
@@ -188,29 +195,7 @@ uint32 FBuildPatchDownloader::Run()
 		SetIdle( false );
 
 		// Make the filename and download url
-		FString DownloadUrl;
-		// Support older manifests
-		if( InstallManifest->GetManifestVersion() < EBuildPatchAppManifestVersion::DataFileRenames )
-		{
-			DownloadUrl = FBuildPatchUtils::GetDataTypeOldFilename( DataType, FBuildPatchServicesModule::GetCloudDirectory(), NextGuid );
-		}
-		else if( bIsChunkData )
-		{
-			uint64 ChunkHash;
-			const bool bFound = InstallManifest->GetChunkHash( NextGuid, ChunkHash );
-			// Should be impossible to not exist
-			check( bFound );
-			DownloadUrl = FBuildPatchUtils::GetChunkNewFilename( InstallManifest->GetManifestVersion(), FBuildPatchServicesModule::GetCloudDirectory(), NextGuid, ChunkHash );
-		}
-		else
-		{
-			FSHAHashData FileHash;
-			const bool bFound = InstallManifest->GetFileDataHash( NextGuid, FileHash );
-			// Should be impossible to not exist
-			check( bFound );
-			DownloadUrl = FBuildPatchUtils::GetFileNewFilename( InstallManifest->GetManifestVersion(), FBuildPatchServicesModule::GetCloudDirectory(), NextGuid, FileHash );
-		}
-
+		FString DownloadUrl = FBuildPatchUtils::GetDataFilename(InstallManifest, FBuildPatchServicesModule::GetCloudDirectory(), NextGuid);
 		const bool bIsHTTPRequest = DownloadUrl.Contains( TEXT( "http" ), ESearchCase::IgnoreCase );
 
 		// Start the download

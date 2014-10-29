@@ -8,6 +8,9 @@
 
 #define LOCTEXT_NAMESPACE "BuildPatchManifest"
 
+// Remove this when we are to enable creating compressed file data and related manifests
+#define ENABLE_NOCHUNKS_COMPRESSION 0
+
 // The manifest header magic codeword, for quick checking that the opened file is probably a manifest file.
 #define MANIFEST_HEADER_MAGIC		0x44BEC00C
 
@@ -54,7 +57,11 @@ bool BufferIsJsonManifest(const TArray<uint8>& DataInput)
 *****************************************************************************/
 const EBuildPatchAppManifestVersion::Type EBuildPatchAppManifestVersion::GetLatestVersion()
 {
+#if ENABLE_NOCHUNKS_COMPRESSION
 	return static_cast<EBuildPatchAppManifestVersion::Type>(LatestPlusOne - 1);
+#else
+	return EBuildPatchAppManifestVersion::StoredAsCompressedUClass;
+#endif
 }
 
 const EBuildPatchAppManifestVersion::Type EBuildPatchAppManifestVersion::GetLatestJsonVersion()
@@ -76,8 +83,10 @@ const FString& EBuildPatchAppManifestVersion::GetFileSubdir(const EBuildPatchApp
 {
 	static const FString FilesV1 = TEXT("Files");
 	static const FString FilesV2 = TEXT("FilesV2");
+	static const FString FilesV3 = TEXT("FilesV3");
 	return ManifestVersion < DataFileRenames ? FilesV1
-		: FilesV2;
+		: ManifestVersion <= StoredAsCompressedUClass ? FilesV2
+		: FilesV3;
 }
 
 /* FManifestFileHeader - The header for a compressed/encoded manifest file
@@ -381,9 +390,9 @@ private:
 *****************************************************************************/
 UBuildPatchManifest::UBuildPatchManifest(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, ManifestFileVersion(EBuildPatchAppManifestVersion::GetLatestVersion())
+	, ManifestFileVersion(EBuildPatchAppManifestVersion::Invalid)
 	, bIsFileData(false)
-	, AppID(0)
+	, AppID(INDEX_NONE)
 	, AppName(TEXT(""))
 	, BuildVersion(TEXT(""))
 	, LaunchExe(TEXT(""))
@@ -399,7 +408,7 @@ UBuildPatchManifest::UBuildPatchManifest(const FObjectInitializer& ObjectInitial
 
 void UBuildPatchManifest::Clear()
 {
-	ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestVersion();
+	ManifestFileVersion = EBuildPatchAppManifestVersion::Invalid;
 	bIsFileData = false;
 	AppID = INDEX_NONE;
 	AppName.Empty();
@@ -458,6 +467,7 @@ const int64 FBuildPatchCustomField::AsInteger() const
 FBuildPatchAppManifest::FBuildPatchAppManifest()
 	: TotalBuildSize(INDEX_NONE)
 	, TotalDownloadSize(INDEX_NONE)
+	, bNeedsResaving(false)
 {
 	Data = NewObject<UBuildPatchManifest>();
 }
@@ -465,6 +475,7 @@ FBuildPatchAppManifest::FBuildPatchAppManifest()
 FBuildPatchAppManifest::FBuildPatchAppManifest(const uint32& InAppID, const FString& AppName)
 	: TotalBuildSize(INDEX_NONE)
 	, TotalDownloadSize(INDEX_NONE)
+	, bNeedsResaving(false)
 {
 	Data = NewObject<UBuildPatchManifest>();
 	Data->AppID = InAppID;
@@ -484,7 +495,6 @@ bool FBuildPatchAppManifest::SaveToFile(const FString& Filename, bool bUseBinary
 	{
 		if (bUseBinary)
 		{
-			Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestVersion();
 			FManifestWriter ManifestData;
 			Serialize(ManifestData);
 			ManifestData.Finalize();
@@ -521,7 +531,6 @@ bool FBuildPatchAppManifest::SaveToFile(const FString& Filename, bool bUseBinary
 		}
 		else
 		{
-			Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestJsonVersion();
 			FString JSONOutput;
 			SerializeToJSON(JSONOutput);
 			FTCHARToUTF8 JsonUTF8(*JSONOutput);
@@ -616,6 +625,14 @@ bool FBuildPatchAppManifest::Serialize(FArchive& Ar)
 
 	if (Ar.IsLoading())
 	{
+		// If we didn't load the version number, we know it was skipped when saving therefore must be
+		// the first UObject version
+		if (Data->ManifestFileVersion == static_cast<uint8>(EBuildPatchAppManifestVersion::Invalid))
+		{
+			Data->ManifestFileVersion = EBuildPatchAppManifestVersion::StoredAsCompressedUClass;
+		}
+
+		// Setup internal lookups
 		InitLookups();
 	}
 
@@ -632,6 +649,7 @@ void FBuildPatchAppManifest::DestroyData()
 	CustomFieldLookup.Empty();
 	TotalBuildSize = INDEX_NONE;
 	TotalDownloadSize = INDEX_NONE;
+	bNeedsResaving = false;
 }
 
 void FBuildPatchAppManifest::InitLookups()
@@ -679,9 +697,7 @@ void FBuildPatchAppManifest::SerializeToJSON(FString& JSONOutput)
 	Writer->WriteObjectStart();
 	{
 		// Write general data
-		int32 ManifestVersion = (int32)Data->ManifestFileVersion;
-		int32 JsonVersion = (int32)EBuildPatchAppManifestVersion::GetLatestJsonVersion();
-		Writer->WriteValue(TEXT("ManifestFileVersion"), ToStringBlob(FMath::Min(ManifestVersion, JsonVersion)));
+		Writer->WriteValue(TEXT("ManifestFileVersion"), ToStringBlob(static_cast<int32>(Data->ManifestFileVersion)));
 		Writer->WriteValue(TEXT("bIsFileData"), Data->bIsFileData);
 		Writer->WriteValue(TEXT("AppID"), ToStringBlob(Data->AppID));
 		Writer->WriteValue(TEXT("AppNameString"), Data->AppName);
@@ -1038,6 +1054,9 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 		}
 	}
 
+	// Mark as should be re-saved, client that stores manifests should start using binary
+	bNeedsResaving = true;
+
 	// Make sure we don't have any half loaded data
 	if( !bSuccess )
 	{
@@ -1049,7 +1068,7 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 
 const EBuildPatchAppManifestVersion::Type FBuildPatchAppManifest::GetManifestVersion() const
 {
-	return Data->ManifestFileVersion;
+	return static_cast<EBuildPatchAppManifestVersion::Type>(Data->ManifestFileVersion);
 }
 
 void FBuildPatchAppManifest::GetChunksRequiredForFiles(const TArray<FString>& FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique) const
@@ -1171,19 +1190,34 @@ const bool FBuildPatchAppManifest::GetChunkHash(const FGuid& ChunkGuid, uint64& 
 	return false;
 }
 
-const bool FBuildPatchAppManifest::GetFileDataHash(const FGuid& FileGuid, FSHAHashData& OutHash) const
+const bool FBuildPatchAppManifest::GetFileHash(const FGuid& FileGuid, FSHAHashData& OutHash) const
 {
-	// File data hash is the same as the hash for the file it holds, so we can grab it from there
-	for (const auto& FileManifest : Data->FileManifestList)
+	const FString* const * FoundFilename = FileNameLookup.Find(FileGuid);
+	if (FoundFilename)
 	{
-		for (const auto& FileDataPart : FileManifest.FileChunkParts)
-		{
-			if (FileDataPart.Guid == FileGuid)
-			{
-				FMemory::Memcpy(OutHash.Hash, FileManifest.FileHash.Hash, FSHA1::DigestSize);
-				return true;
-			}
-		}
+		return GetFileHash(**FoundFilename, OutHash);
+	}
+	return false;
+}
+
+const bool FBuildPatchAppManifest::GetFileHash(const FString& Filename, FSHAHashData& OutHash) const
+{
+	const FFileManifestData* const * FoundFileManifest = FileManifestLookup.Find(Filename);
+	if (FoundFileManifest)
+	{
+		FMemory::Memcpy(OutHash.Hash, (*FoundFileManifest)->FileHash.Hash, FSHA1::DigestSize);
+		return true;
+	}
+	return false;
+}
+
+const bool FBuildPatchAppManifest::GetFilePartHash(const FGuid& FilePartGuid, uint64& OutHash) const
+{
+	const FChunkInfoData* const * FilePartInfo = ChunkInfoLookup.Find(FilePartGuid);
+	if (FilePartInfo)
+	{
+		OutHash = (*FilePartInfo)->Hash;
+		return true;
 	}
 	return false;
 }
@@ -1473,7 +1507,8 @@ void FBuildPatchAppManifest::GetRemovableFiles(const TCHAR* InstallPath, TArray<
 
 bool FBuildPatchAppManifest::NeedsResaving() const
 {
-	return Data->ManifestFileVersion < EBuildPatchAppManifestVersion::GetLatestVersion();
+	// The bool is marked during file load if we load an old version that should be upgraded
+	return bNeedsResaving;
 }
 
 void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TArray< FString >& OutDatedFiles)

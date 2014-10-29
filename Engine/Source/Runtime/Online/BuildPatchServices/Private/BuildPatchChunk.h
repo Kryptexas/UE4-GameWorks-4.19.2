@@ -26,6 +26,8 @@ struct FSHAHashData
 	FString ToString() const;
 };
 
+static_assert(FSHA1::DigestSize == 20, "If this changes a lot of stuff here will break!");
+
 /**
  * Constant values and typedefs
  */

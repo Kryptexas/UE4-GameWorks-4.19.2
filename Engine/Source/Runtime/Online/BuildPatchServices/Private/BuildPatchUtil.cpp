@@ -20,6 +20,12 @@ const FString FBuildPatchUtils::GetFileNewFilename(const EBuildPatchAppManifestV
 	return FPaths::Combine( *RootDirectory, *FString::Printf( TEXT("%s/%02d/%s_%s.file"), *EBuildPatchAppManifestVersion::GetFileSubdir( ManifestVersion ), FCrc::MemCrc32( &FileGUID, sizeof( FGuid ) ) % 100, *FileHash.ToString(), *FileGUID.ToString() ) );
 }
 
+const FString FBuildPatchUtils::GetFileNewFilename(const EBuildPatchAppManifestVersion::Type ManifestVersion, const FString& RootDirectory, const FGuid& FileGUID, const uint64& FileHash)
+{
+	check( FileGUID.IsValid() );
+	return FPaths::Combine( *RootDirectory, *FString::Printf( TEXT("%s/%02d/%016llX_%s.file"), *EBuildPatchAppManifestVersion::GetFileSubdir( ManifestVersion ), FCrc::MemCrc32( &FileGUID, sizeof( FGuid ) ) % 100, FileHash, *FileGUID.ToString() ) );
+}
+
 void FBuildPatchUtils::GetChunkDetailFromNewFilename( const FString& ChunkNewFilename, FGuid& ChunkGUID, uint64& ChunkHash )
 {
 	const FString ChunkFilename = FPaths::GetBaseFilename( ChunkNewFilename );
@@ -74,6 +80,42 @@ const FString FBuildPatchUtils::GetDataTypeOldFilename( const FBuildPatchData::T
 	check( false );
 	return TEXT( "" );
 }
+
+const FString FBuildPatchUtils::GetDataFilename(const FBuildPatchAppManifestRef& Manifest, const FString& RootDirectory, const FGuid& DataGUID)
+{
+	const FBuildPatchData::Type DataType = Manifest->IsFileDataManifest() ? FBuildPatchData::FileData : FBuildPatchData::ChunkData;
+	if (Manifest->GetManifestVersion() < EBuildPatchAppManifestVersion::DataFileRenames)
+	{
+		return FBuildPatchUtils::GetDataTypeOldFilename(DataType, RootDirectory, DataGUID);
+	}
+	else if (!Manifest->IsFileDataManifest())
+	{
+		uint64 ChunkHash;
+		const bool bFound = Manifest->GetChunkHash(DataGUID, ChunkHash);
+		// Should be impossible to not exist
+		check(bFound);
+		return FBuildPatchUtils::GetChunkNewFilename(Manifest->GetManifestVersion(), RootDirectory, DataGUID, ChunkHash);
+	}
+	else if (Manifest->GetManifestVersion() <= EBuildPatchAppManifestVersion::StoredAsCompressedUClass)
+	{
+		FSHAHashData FileHash;
+		const bool bFound = Manifest->GetFileHash(DataGUID, FileHash);
+		// Should be impossible to not exist
+		check(bFound);
+		return FBuildPatchUtils::GetFileNewFilename(Manifest->GetManifestVersion(), RootDirectory, DataGUID, FileHash);
+	}
+	else
+	{
+		uint64 FileHash;
+		const bool bFound = Manifest->GetFilePartHash(DataGUID, FileHash);
+		// Should be impossible to not exist
+		check(bFound);
+		return FBuildPatchUtils::GetFileNewFilename(Manifest->GetManifestVersion(), RootDirectory, DataGUID, FileHash);
+	}
+	return TEXT("");
+}
+
+
 
 bool FBuildPatchUtils::GetGUIDFromFilename( const FString& DataFilename, FGuid& DataGUID )
 {
@@ -188,6 +230,7 @@ bool FBuildPatchUtils::VerifyChunkFile( FArchive& ChunkFileData, bool bQuickChec
 			// Hashes for checking data
 			FSHA1 SHAHasher;
 			FSHAHashData SHAHash;
+			uint64 CycPoly64Hash = 0;
 			// Load the data to check
 			uint8* FileReadBuffer = new uint8[ FileBufferSize ];
 			int64 DataOffset = 0;
@@ -202,16 +245,7 @@ bool FBuildPatchUtils::VerifyChunkFile( FArchive& ChunkFileData, bool bQuickChec
 					switch ( Header.HashType )
 					{
 					case FChunkHeader::HASH_ROLLING:
-						bSuccess = bSuccess && ( ReadLen == FBuildPatchData::ChunkDataSize );
-						if ( !bSuccess )
-						{
-							GLog->Logf( TEXT( "BuildPatchServices: ERROR: VerifyChunkFile invalid chunk size %d" ), ReadLen );
-						}
-						bSuccess = bSuccess && Header.RollingHash == FRollingHash< FBuildPatchData::ChunkDataSize >::GetHashForDataSet( FileReadBuffer );
-						if ( !bSuccess )
-						{
-							GLog->Logf( TEXT( "BuildPatchServices: ERROR: VerifyChunkFile chunk hashcheck failed" ) );
-						}
+						CycPoly64Hash = FCycPoly64Hash::GetHashForDataSet(FileReadBuffer, ReadLen, CycPoly64Hash);
 						break;
 					case  FChunkHeader::HASH_SHA1:
 						SHAHasher.Update( FileReadBuffer, ReadLen );
@@ -228,16 +262,17 @@ bool FBuildPatchUtils::VerifyChunkFile( FArchive& ChunkFileData, bool bQuickChec
 					switch ( Header.HashType )
 					{
 					case FChunkHeader::HASH_ROLLING:
-						// Already checked
+						bSuccess = Header.RollingHash == CycPoly64Hash;
 						break;
 					case  FChunkHeader::HASH_SHA1:
 						SHAHasher.Final();
 						SHAHasher.GetHash( SHAHash.Hash );
 						bSuccess = SHAHash == Header.SHAHash;
-						if ( !bSuccess )
-						{
-							GLog->Logf( TEXT( "BuildPatchServices: ERROR: VerifyChunkFile file hashcheck failed" ) );
-						}
+						break;
+					}
+					if (!bSuccess)
+					{
+						GLog->Logf(TEXT("BuildPatchServices: ERROR: VerifyChunkFile file hashcheck failed"));
 					}
 				}
 				break;
@@ -300,3 +335,56 @@ bool FBuildPatchUtils::UncompressChunkFile( TArray< uint8 >& ChunkFileArray )
 	}
 	return false;
 }
+
+bool FBuildPatchUtils::UncompressFileDataFile(TArray< uint8 >& DataFileArray, FChunkHeader* OutHeader/* = nullptr*/)
+{
+	FChunkHeader Header;
+	if (OutHeader == nullptr)
+	{
+		OutHeader = &Header;
+	}
+	FMemoryReader FileArrayReader(DataFileArray);
+	// Read the header
+	FileArrayReader << *OutHeader;
+	// Check header
+	const bool bValidHeader = OutHeader->IsValidMagic();
+	const bool bSupportedFormat = !(OutHeader->StoredAs & FChunkHeader::STORED_ENCRYPTED);
+	if (bValidHeader && bSupportedFormat)
+	{
+		bool bSuccess = true;
+		// Uncompress if we need to
+		if (OutHeader->StoredAs == FChunkHeader::STORED_COMPRESSED)
+		{
+			// Load the compressed data
+			const int32 CompressedSize = DataFileArray.Num() - OutHeader->HeaderSize;
+			TArray< uint8 > CompressedData;
+			TArray< uint8 > UncompressedData;
+			CompressedData.Empty(CompressedSize);
+			CompressedData.AddUninitialized(CompressedSize);
+			UncompressedData.Empty(OutHeader->DataSize);
+			UncompressedData.AddUninitialized(OutHeader->DataSize);
+			FileArrayReader.Serialize(CompressedData.GetData(), CompressedSize);
+			FileArrayReader.Close();
+			// Uncompress
+			bSuccess = FCompression::UncompressMemory(
+				static_cast<ECompressionFlags>(COMPRESS_ZLIB | COMPRESS_BiasMemory),
+				UncompressedData.GetData(),
+				UncompressedData.Num(),
+				CompressedData.GetData(),
+				CompressedData.Num());
+			// If successful, write back over the original array
+			if (bSuccess)
+			{
+				DataFileArray.Empty();
+				FMemoryWriter FileArrayWriter(DataFileArray);
+				OutHeader->StoredAs = FChunkHeader::STORED_RAW;
+				FileArrayWriter << *OutHeader;
+				FileArrayWriter.Serialize(UncompressedData.GetData(), UncompressedData.Num());
+				FileArrayWriter.Close();
+			}
+		}
+		return bSuccess;
+	}
+	return false;
+}
+

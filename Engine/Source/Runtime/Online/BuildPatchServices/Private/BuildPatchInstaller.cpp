@@ -280,7 +280,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	const uint32 NumRequiredChunks = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumRequiredChunks();
 	const uint32 NumChunksToDownload = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumChunksToDownload();
 	const uint32 NumChunksToConstruct = bIsFileData ? 0 : FBuildPatchChunkCache::Get().GetStatNumChunksToRecycle();
-	TotalInitialDownloadSize = bIsFileData ? NewBuildManifest->GetFileSize(FilesToConstruct) : FBuildPatchChunkCache::Get().GetStatTotalChunkDownloadSize();
 
 	// Save stats
 	{
@@ -330,6 +329,11 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		TArray< FGuid > RequiredFileData;
 		NewBuildManifest->GetChunksRequiredForFiles(FilesToConstruct, RequiredFileData);
 		FBuildPatchDownloader::Get().AddChunksToDownload(RequiredFileData);
+		TotalInitialDownloadSize = NewBuildManifest->GetDataSize(RequiredFileData);
+	}
+	else
+	{
+		TotalInitialDownloadSize = FBuildPatchChunkCache::Get().GetStatTotalChunkDownloadSize();
 	}
 
 	// Wait for the file constructor to complete

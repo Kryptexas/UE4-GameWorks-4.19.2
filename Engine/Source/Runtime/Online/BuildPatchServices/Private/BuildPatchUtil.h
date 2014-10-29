@@ -30,6 +30,7 @@ struct FBuildPatchUtils
 	 * @return	The file chunk path
 	 */
 	static const FString GetFileNewFilename(const EBuildPatchAppManifestVersion::Type ManifestVersion, const FString& RootDirectory, const FGuid& FileGUID, const FSHAHashData& FileHash);
+	static const FString GetFileNewFilename(const EBuildPatchAppManifestVersion::Type ManifestVersion, const FString& RootDirectory, const FGuid& FileGUID, const uint64& FilePartHash);
 
 	/**
 	 * Gets the chunk GUID and Hash, from the filename, which is the new format.
@@ -73,6 +74,15 @@ struct FBuildPatchUtils
 	static const FString GetDataTypeOldFilename(const FBuildPatchData::Type DataType, const FString& RootDirectory, const FGuid& Guid);
 
 	/**
+	 * Gets the filename for any data part. Wraps the choice between all of the above
+	 * @param Manifest			The manifest referencing this data
+	 * @param RootDirectory		The root directory
+	 * @param DataGUID			The data Guid
+	 * @return	the data part path
+	 */
+	static const FString GetDataFilename(const FBuildPatchAppManifestRef& Manifest, const FString& RootDirectory, const FGuid& DataGUID);
+
+	/**
 	 * Gets the GUID for a data file according to it's filename (new or old)
 	 * @param DataFilename		IN		The data filename, or URL
 	 * @param DataGUID			OUT		Receives the GUID of the data
@@ -86,6 +96,14 @@ struct FBuildPatchUtils
 	 * @return		true if no errors occurred and the data is not corrupted
 	 */
 	static bool UncompressChunkFile(TArray<uint8>& ChunkFileArray);
+
+	/**
+	 * Helper function to uncompress file part data. Can be called without knowing if needed and process will be just skipped.
+	 * @param DataFileArray	IN OUT		The data array, should contain full file - header plus data. Will be overwritten with uncompressed data version.
+	 * @param OutHeader		OUT			Optional ptr to a header to receive the header from the file if you need it anyway
+	 * @return		true if no errors occurred and the data is not corrupted
+	 */
+	static bool UncompressFileDataFile(TArray< uint8 >& DataFileArray, FChunkHeader* OutHeader = nullptr);
 
 	/**
 	 * Checks a file against SHA1 hashes. The function takes two so that it can return no match, match with Hash1, or match with Hash2, that way we can check the file for being the same as an old manifest or new manifest

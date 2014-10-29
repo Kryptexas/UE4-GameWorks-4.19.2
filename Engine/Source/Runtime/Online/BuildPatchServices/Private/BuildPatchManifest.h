@@ -21,7 +21,6 @@ typedef TSharedRef< class FBuildPatchAppManifest, ESPMode::ThreadSafe > FBuildPa
 /**
  * An enum type to describe supported features of a certain manifest
  */
-UENUM()
 namespace EBuildPatchAppManifestVersion
 {
 	enum Type
@@ -46,9 +45,16 @@ namespace EBuildPatchAppManifestVersion
 		StoresChunkFileSizes,
 		// Manifest is now stored using UObject serialization and compressed
 		StoredAsCompressedUClass,
+		// Added support for file data to be split into max individual part size, files now go to FilesV3
+		FileSplittingSupport,
+		// Added support for file data compression, (files still FilesV3)
+		FileCompressionSupport,
 
-		// Always last, signifies the latest version plus 1 to allow initialization simplicity
-		LatestPlusOne
+
+		// Always after the latest version, signifies the latest version plus 1 to allow initialization simplicity
+		LatestPlusOne,
+		// This is for UObject default, so that we always serialize it
+		Invalid = -1
 	};
 }
 
@@ -198,7 +204,7 @@ class UBuildPatchManifest : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	TEnumAsByte<EBuildPatchAppManifestVersion::Type> ManifestFileVersion;
+	uint8 ManifestFileVersion;
 
 	UPROPERTY()
 	bool bIsFileData;
@@ -488,7 +494,23 @@ public:
 	 * @param OutHash		OUT		Receives the hash value if found
 	 * @return	true if we had the hash for this file
 	 */
-	const bool GetFileDataHash(const FGuid& FileGuid, FSHAHashData& OutHash) const;
+	const bool GetFileHash(const FGuid& FileGuid, FSHAHashData& OutHash) const; // DEPRECATE ME
+
+	/**
+	 * Gets the file hash for a given file
+	 * @param Filename		IN		The filename in the build
+	 * @param OutHash		OUT		Receives the hash value if found
+	 * @return	true if we had the hash for this file
+	 */
+	const bool GetFileHash(const FString& Filename, FSHAHashData& OutHash) const;
+
+	/**
+	 * Gets the file hash for given file data. Valid for non-chunked manifest
+	 * @param FileGuid		IN		The guid of the file data to get hash for
+	 * @param OutHash		OUT		Receives the hash value if found
+	 * @return	true if we had the hash for this file
+	 */
+	const bool GetFilePartHash(const FGuid& FilePartGuid, uint64& OutHash) const;
 
 	/**
 	 * Populates an array of chunks that should be producible from this local build, given the list of chunks needed. Also checks source files exist and match size.
@@ -558,22 +580,19 @@ private:
 
 private:
 
-	/**
-	 * Holds the actual manifest data. Some other variables point to the memory held by this object
-	 */
+	/** Holds the actual manifest data. Some other variables point to the memory held by this object */
 	UBuildPatchManifest* Data;
 
-	/**
-	 * Some lookups to optimize data access
-	 */
+	/** Some lookups to optimize data access */
 	TMap<FGuid, FString*> FileNameLookup;
 	TMap<FString, FFileManifestData*> FileManifestLookup;
 	TMap<FGuid, FChunkInfoData*> ChunkInfoLookup;
 	TMap<FString, FCustomFieldData*> CustomFieldLookup;
 
-	/**
-	 * Holds the total build size in bytes
-	 */
+	/** Holds the total build size in bytes */
 	int64 TotalBuildSize;
 	int64 TotalDownloadSize;
+
+	/** Flag marked true if we loaded from disk as an old manifest version that should be updated */
+	bool bNeedsResaving;
 };

@@ -516,95 +516,81 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 bool FBuildPatchFileConstructor::InsertFileData(const FChunkPartData& ChunkPart, FArchive& DestinationFile, FSHA1& HashState)
 {
 	bool bSuccess = false;
+	bool bLogged = false;
 
 	// Wait for the file data to be available
 	while( IsFileDataAvailable( ChunkPart.Guid ) == false )
 	{
 		FPlatformProcess::Sleep( 0.1f );
 	}
-	FString Filename = GetFileDataFilename( ChunkPart.Guid );
 
 	// Read the file
-	FArchive* FileReader = IFileManager::Get().CreateFileReader( *Filename );
-	bSuccess = FileReader != NULL;
-	if( bSuccess )
+	TArray<uint8> FileData;
+	FChunkHeader Header;
+	const FString DataFilename = GetFileDataFilename(ChunkPart.Guid);
+	bSuccess = FFileHelper::LoadFileToArray(FileData, *DataFilename);
+	if (!bSuccess && !bLogged)
 	{
-		const int64 FileSize = FileReader->TotalSize();
-		// Read the header
-		FChunkHeader Header;
-		*FileReader << Header;
-		// Check header magic
-		if ( !Header.IsValidMagic() )
-		{
-			bSuccess = false;
-			FBuildPatchAnalytics::RecordConstructionError( Filename, INDEX_NONE, TEXT( "File Data Magic Fail" ) );
-			GLog->Logf( TEXT( "BuildPatchFileConstructor: ERROR: InsertFileData: magic failed for %s" ), *FPaths::GetCleanFilename( Filename ) );
-		}
-		// Check we have the right kind of hash; file data must have SHA1
-		if ( bSuccess && ( Header.HashType != FChunkHeader::HASH_SHA1 ) )
-		{
-			bSuccess = false;
-			FBuildPatchAnalytics::RecordConstructionError( Filename, INDEX_NONE, TEXT( "File Data Incorrect Hash" ) );
-			GLog->Logf( TEXT( "BuildPatchFileConstructor: ERROR: InsertFileData: incorrect hashtype info for %s" ), *FPaths::GetCleanFilename( Filename ) );
-		}
-		// Check GUID matches if provided
-		if ( bSuccess && ChunkPart.Guid.IsValid() && ( ChunkPart.Guid != Header.Guid ) )
-		{
-			bSuccess = false;
-			FBuildPatchAnalytics::RecordConstructionError( Filename, INDEX_NONE, TEXT( "File Data Mismatch GUID" ) );
-			GLog->Logf( TEXT( "BuildPatchFileConstructor: ERROR: InsertFileData: mismatch guid for %s" ), *FPaths::GetCleanFilename( Filename ) );
-		}
-		// Continue if all was fine
-		if( bSuccess )
-		{
-			// Load the data to check
-			uint8* FileReadBuffer = new uint8[ FileBufferSize ];
-			int64 DataRead = 0;
-			switch ( Header.StoredAs )
-			{
-			case FChunkHeader::STORED_RAW:
-				{
-					// Check we are able to get the chunk part
-					const int64 StartOfPartPos = Header.HeaderSize + ChunkPart.Offset;
-					const int64 EndOfPartPos = StartOfPartPos + ChunkPart.Size;
-					bSuccess = EndOfPartPos <= FileSize;
-					if ( !bSuccess )
-					{
-						FBuildPatchAnalytics::RecordConstructionError( Filename, INDEX_NONE, TEXT( "File Data Part OOB" ) );
-						GLog->Logf( TEXT( "BuildPatchFileConstructor: ERROR: InsertFileData: part out of bounds for %s" ), *FPaths::GetCleanFilename( Filename ) );
-					}
-					else
-					{
-						// Seek to and copy the part across
-						FileReader->Seek( StartOfPartPos );
-						while( DataRead < ChunkPart.Size )
-						{
-							const int64 SizeLeft = ChunkPart.Size - DataRead;
-							const int64 ReadLen = FMath::Min< int64 >( FileBufferSize, SizeLeft );
-							FileReader->Serialize( FileReadBuffer, ReadLen );
-							HashState.Update( FileReadBuffer, ReadLen );
-							DestinationFile.Serialize( FileReadBuffer, ReadLen );
-							DataRead += ReadLen;
-						}
-					}
-				}
-				break;
-			default:
-				check( false ); // @TODO LSwift: Implement other storage methods!
-				bSuccess = false;
-				break;
-			}
-			delete[] FileReadBuffer;
-		}
+		bLogged = true;
+		FBuildPatchAnalytics::RecordConstructionError(DataFilename, FPlatformMisc::GetLastError(), TEXT("File Data Missing"));
+		GLog->Logf(TEXT("BuildPatchFileConstructor: ERROR: InsertFileData could not open data file %s"), *DataFilename);
+	}
+	// Decompress data
+	bSuccess = bSuccess && FBuildPatchUtils::UncompressFileDataFile(FileData, &Header);
+	if (!bSuccess && !bLogged)
+	{
+		bLogged = true;
+		FBuildPatchAnalytics::RecordConstructionError(DataFilename, INDEX_NONE, TEXT("File Data Uncompress Fail"));
+		GLog->Logf(TEXT("BuildPatchFileConstructor: ERROR: InsertFileData: could not uncompress %s"), *FPaths::GetCleanFilename(DataFilename));
+	}
+	// Verify integrity
+	bSuccess = bSuccess && FBuildPatchUtils::VerifyChunkFile(FileData);
+	if (!bSuccess && !bLogged)
+	{
+		bLogged = true;
+		FBuildPatchAnalytics::RecordConstructionError(DataFilename, INDEX_NONE, TEXT("File Data Verify Fail"));
+		GLog->Logf(TEXT("BuildPatchFileConstructor: ERROR: InsertFileData: verification failed for %s"), *FPaths::GetCleanFilename(DataFilename));
+	}
+	// Check correct GUID
+	bSuccess = bSuccess && (!ChunkPart.Guid.IsValid() || (ChunkPart.Guid == Header.Guid));
+	if (!bSuccess && !bLogged)
+	{
+		bLogged = true;
+		FBuildPatchAnalytics::RecordConstructionError(DataFilename, INDEX_NONE, TEXT("File Data GUID Mismatch"));
+		GLog->Logf(TEXT("BuildPatchFileConstructor: ERROR: InsertFileData: mismatch GUID for %s"), *FPaths::GetCleanFilename(DataFilename));
+	}
 
-		FileReader->Close();
-		delete FileReader;
-	}
-	else
+	// Continue if all was fine
+	if (bSuccess)
 	{
-		FBuildPatchAnalytics::RecordConstructionError( Filename, FPlatformMisc::GetLastError(), TEXT( "Missing File Data" ) );
-		GLog->Logf( TEXT( "BuildPatchFileConstructor: ERROR: InsertFileData could not open data file %s" ), *Filename );
+		switch (Header.StoredAs)
+		{
+			case FChunkHeader::STORED_RAW:
+			{
+				// Check we are able to get the chunk part
+				const int64 StartOfPartPos = Header.HeaderSize + ChunkPart.Offset;
+				const int64 EndOfPartPos = StartOfPartPos + ChunkPart.Size;
+				bSuccess = EndOfPartPos <= FileData.Num();
+				if (bSuccess)
+				{
+					HashState.Update(FileData.GetData() + StartOfPartPos, ChunkPart.Size);
+					DestinationFile.Serialize(FileData.GetData() + StartOfPartPos, ChunkPart.Size);
+				}
+				else
+				{
+					FBuildPatchAnalytics::RecordConstructionError(DataFilename, INDEX_NONE, TEXT("File Data Part OOB"));
+					GLog->Logf(TEXT("BuildPatchFileConstructor: ERROR: InsertFileData: part out of bounds for %s"), *FPaths::GetCleanFilename(DataFilename));
+				}
+			}
+			break;
+		default:
+			FBuildPatchAnalytics::RecordConstructionError(DataFilename, INDEX_NONE, TEXT("File Data Unknown Storage"));
+			GLog->Logf(TEXT("BuildPatchFileConstructor: ERROR: InsertFileData: incorrect storage method %d %s"), Header.StoredAs, *FPaths::GetCleanFilename(DataFilename));
+			bSuccess = false;
+			break;
+		}
 	}
+
 	return bSuccess;
 }
 
