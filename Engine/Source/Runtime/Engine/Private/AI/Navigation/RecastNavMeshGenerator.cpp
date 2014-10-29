@@ -2963,11 +2963,18 @@ void FRecastNavMeshGenerator::CancelBuild()
 
 void FRecastNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 {
+	bool bRequestDrawingUpdate = false;
+
 #if	WITH_EDITOR
 	// Remove expired tiles
 	{
 		const double Timestamp = FPlatformTime::Seconds();
+		const int32 NumPreRemove = RecentlyBuiltTiles.Num();
+		
 		RecentlyBuiltTiles.RemoveAllSwap([&](const FTileTimestamp& Tile) { return (Timestamp - Tile.Timestamp) > 0.5; });
+
+		const int32 NumPostRemove = RecentlyBuiltTiles.Num();
+		bRequestDrawingUpdate = (NumPreRemove != NumPostRemove);
 	}
 #endif//WITH_EDITOR
 
@@ -2982,7 +2989,7 @@ void FRecastNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 	{
 		// Invalidate active paths that go through regenerated tiles
 		DestNavMesh->InvalidateAffectedPaths(UpdatedTileIndices);
-		DestNavMesh->RequestDrawingUpdate();
+		bRequestDrawingUpdate = true;
 
 #if	WITH_EDITOR
 		// Store completed tiles with timestamps to have ability to distinguish during debug draw
@@ -2996,6 +3003,11 @@ void FRecastNavMeshGenerator::TickAsyncBuild(float DeltaSeconds)
 			RecentlyBuiltTiles.Add(TileTimestamp);
 		}
 #endif//WITH_EDITOR
+	}
+
+	if (bRequestDrawingUpdate)
+	{
+		DestNavMesh->RequestDrawingUpdate();
 	}
 }
 

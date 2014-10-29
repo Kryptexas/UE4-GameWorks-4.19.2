@@ -439,15 +439,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			DebugMeshData.ClusterColor = NavMeshRenderColor_RecastTileBeingRebuilt;
 			CurrentData->MeshBuilders.Add(DebugMeshData);
 
-			// if we got here it means there's something being built, or is fresh so we better redraw in some time
-			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
-				STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw,
-				STATGROUP_TaskGraphTasks);
-
-			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateUObject(NavMesh, &ARecastNavMesh::MarkComponentsRenderStateDirty),
-				GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw), NULL, ENamedThreads::GameThread
-			);
+			// updates should be requested by FRecastNavMeshGenerator::TickAsyncBuild after tiles were refreshed
 		}
 
 		if (NavMesh->bDrawClusters)
