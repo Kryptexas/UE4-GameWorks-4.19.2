@@ -4,6 +4,7 @@
 #include "Sound/DialogueWave.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundNodeDialoguePlayer.h"
+#include "Components/AudioComponent.h"
 
 USoundNodeDialoguePlayer::USoundNodeDialoguePlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
