@@ -702,7 +702,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionContext& Context)
 {
 	ensure(Context.IsEventGraph() || !Context.EventGraphLocals.Num());
-	ensure(!Context.IsEventGraph() || !Context.Locals.Num());
+	ensure(!Context.IsEventGraph() || !Context.Locals.Num() || !UsePersistentUberGraphFrame());
 
 	const bool bPersistentUberGraphFrame = UsePersistentUberGraphFrame() && Context.bIsUbergraph;
 	// Local stack frame (or maybe class for the ubergraph)
@@ -2296,7 +2296,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	ChildStubGraph->SetFlags(RF_Transient);
 	MessageLog.NotifyIntermediateObjectCreation(ChildStubGraph, SrcEventNode);
 
-	FKismetFunctionContext& StubContext = *new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
+	FKismetFunctionContext& StubContext = *new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration());
 	StubContext.SourceGraph = ChildStubGraph;
 
 	// A stub graph has no visual representation and is thus not suited to be debugged via the debugger
@@ -2644,7 +2644,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 
 		// Do some cursory validation (pin types match, inputs to outputs, pins never point to their parent node, etc...)
 		{
-			UbergraphContext = new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
+			UbergraphContext = new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration());
 			UbergraphContext->SourceGraph = ConsolidatedEventGraph;
 			UbergraphContext->MarkAsEventGraph();
 			UbergraphContext->MarkAsInternalOrCppUseOnly();
@@ -2978,7 +2978,7 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
 	// When compiling only the skeleton class, we want the UFunction to be generated and processed so it contains all the local variables, this is unsafe to do during any other compilation mode
 	if (ValidateGraphIsWellFormed(FunctionGraph) || CompileOptions.CompileType == EKismetCompileType::SkeletonOnly)
 	{
-		FKismetFunctionContext& Context = *new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
+		FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration());
 		Context.SourceGraph = FunctionGraph;
 
 		if(FBlueprintEditorUtils::IsDelegateSignatureGraph(SourceGraph))
@@ -3074,7 +3074,7 @@ void FKismetCompilerContext::CreateFunctionList()
 
 FKismetFunctionContext* FKismetCompilerContext::CreateFunctionContext()
 {
-	return new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
+	return new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration());
 }
 
 /** Compile a blueprint into a class and a set of functions */
@@ -3477,15 +3477,28 @@ void FKismetCompilerContext::Compile()
 		}
 
 		// Generate code thru the backend(s)
-		if (bDisplayCpp && bIsFullCompile)
+		if ((bDisplayCpp && bIsFullCompile) || CompileOptions.DoesRequireCppCodeGeneration())
 		{
-			FKismetCppBackend Backend_CPP(Schema, *this);
+			TUniquePtr<IKismetCppBackend> Backend_CPP(IKismetCppBackend::Create(Schema, *this));
 
 			// The C++ backend is currently only for debugging, so it's only run if the output will be visible
-			Backend_CPP.GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile);
+			Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile);
 		
-			UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *Backend_CPP.Header);
-			UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *Backend_CPP.Body);
+			if (CompileOptions.OutHeaderSourceCode.IsValid())
+			{
+				*CompileOptions.OutHeaderSourceCode = Backend_CPP->GetHeader();
+			}
+
+			if (CompileOptions.OutCppSourceCode.IsValid())
+			{
+				*CompileOptions.OutCppSourceCode = Backend_CPP->GetBody();
+			}
+
+			if (bDisplayCpp)
+			{
+				UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *Backend_CPP->GetHeader());
+				UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *Backend_CPP->GetBody());
+			}
 		}
 
 		// Always run the VM backend, it's needed for more than just debug printing
@@ -3666,7 +3679,7 @@ void FKismetCompilerContext::SetCanEverTickForActor()
 
 bool FKismetCompilerContext::UsePersistentUberGraphFrame() const
 {
-	return UBlueprintGeneratedClass::UsePersistentUberGraphFrame();
+	return UBlueprintGeneratedClass::UsePersistentUberGraphFrame() && !CompileOptions.DoesRequireCppCodeGeneration();
 }
 
 #undef LOCTEXT_NAMESPACE

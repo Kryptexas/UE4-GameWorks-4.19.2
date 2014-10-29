@@ -553,6 +553,36 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	}
 }
 
+/** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
+void FKismetEditorUtilities::GenerateCppCode(UBlueprint* InBlueprintObj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource)
+{
+	check(InBlueprintObj);
+	check(InBlueprintObj->GetOutermost() != GetTransientPackage());
+	checkf(InBlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *InBlueprintObj->GetName());
+	check(OutHeaderSource.IsValid());
+	check(OutCppSource.IsValid());
+
+	//TGuardValue<bool> DuplicatingReadOnly(InBlueprintObj->bDuplicatingReadOnly, true);
+	{
+		auto BlueprintObj = DuplicateObject<UBlueprint>(InBlueprintObj, GetTransientPackage(), *InBlueprintObj->GetName());
+		{
+			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
+
+			TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
+			FCompilerResultsLog Results;
+
+			FKismetCompilerOptions CompileOptions;
+			CompileOptions.CompileType = EKismetCompileType::Cpp;
+			CompileOptions.OutCppSourceCode = OutCppSource;
+			CompileOptions.OutHeaderSourceCode = OutHeaderSource;
+			Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
+		}
+		BlueprintObj->RemoveGeneratedClasses();
+		BlueprintObj->ClearFlags(RF_Standalone);
+		BlueprintObj->MarkPendingKill();
+	}
+}
+
 /** Tries to make sure that a blueprint is conformed to its native parent, in case any native class flags have changed */
 void FKismetEditorUtilities::ConformBlueprintFlagsAndComponents(UBlueprint* BlueprintObj)
 {

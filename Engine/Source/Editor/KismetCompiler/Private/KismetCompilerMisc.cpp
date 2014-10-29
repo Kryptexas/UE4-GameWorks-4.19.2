@@ -977,7 +977,7 @@ KISMETCOMPILER_API FString FNetNameMapping::MakeBaseName<UEdGraphNode>(const UEd
 //////////////////////////////////////////////////////////////////////////
 // FKismetFunctionContext
 
-FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint)
+FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog, UEdGraphSchema_K2* InSchema, UBlueprintGeneratedClass* InNewClass, UBlueprint* InBlueprint, bool bInGeneratingCpp)
 	: Blueprint(InBlueprint)
 	, SourceGraph(NULL)
 	, EntryPoint(NULL)
@@ -994,6 +994,7 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bIsSimpleStubGraphWithNoParams(false)
 	, NetFlags(0)
 	, SourceEventFromStubGraph(NULL)
+	, bGeneratingCpp(bInGeneratingCpp)
 {
 	NetNameMap = new FNetNameMapping();
 	bAllocatedNetNameMap = true;
@@ -1190,8 +1191,9 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 
 	const bool bRegularBlueprint = Blueprint && (Blueprint->GetClass() == UBlueprint::StaticClass());
 	static FBoolConfigValueHelper UseLocalGraphVariables(TEXT("Kismet"), TEXT("bUseLocalGraphVariables"), GEngineIni);
+	const bool bUseLocalGraphVariables = UseLocalGraphVariables || bGeneratingCpp;
 	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
-	if (bSharedTerm && bRegularBlueprint && UseLocalGraphVariables && OutputPin)
+	if (bSharedTerm && bRegularBlueprint && bUseLocalGraphVariables && OutputPin)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChooseTerminalScope);
 

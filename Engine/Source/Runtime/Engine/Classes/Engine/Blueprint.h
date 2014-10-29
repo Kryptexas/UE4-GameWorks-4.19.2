@@ -55,6 +55,7 @@ namespace EKismetCompileType
 		Full,
 		StubAfterFailure, 
 		BytecodeOnly,
+		Cpp,
 	};
 };
 
@@ -70,9 +71,19 @@ public:
 	/** Whether or not this compile is for a duplicated blueprint */
 	bool bIsDuplicationInstigated;
 
+	TSharedPtr<FString> OutHeaderSourceCode;
+	TSharedPtr<FString> OutCppSourceCode;
+
+	bool DoesRequireCppCodeGeneration() const
+	{
+		return (CompileType == EKismetCompileType::Cpp);
+	}
+
 	bool DoesRequireBytecodeGeneration() const
 	{
-		return (CompileType == EKismetCompileType::Full) || (CompileType == EKismetCompileType::BytecodeOnly);
+		return (CompileType == EKismetCompileType::Full) 
+			|| (CompileType == EKismetCompileType::BytecodeOnly) 
+			|| (CompileType == EKismetCompileType::Cpp);
 	}
 
 	/** Whether or not this compile type should operate on the generated class of the blueprint, as opposed to just the skeleton */

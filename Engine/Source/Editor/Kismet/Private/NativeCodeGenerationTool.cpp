@@ -8,18 +8,20 @@
 
 struct FGeneratedCodeData
 {
-	FGeneratedCodeData(UBlueprint& Blueprint)
+	FGeneratedCodeData(UBlueprint& Blueprint) : HeaderSource(new FString()), CppSource(new FString())
 	{
 		FName GeneratedClassName, SkeletonClassName;
 		Blueprint.GetBlueprintClassNames(GeneratedClassName, SkeletonClassName);
 		ClassName = GeneratedClassName.ToString();
 
 		GatherUserDefinedDependencies(Blueprint);
+		
+		FKismetEditorUtilities::GenerateCppCode(&Blueprint, HeaderSource, CppSource);
 	}
 
 	FString TypeDependencies;
-	FString HeaderSource;
-	FString CppSource;
+	TSharedPtr<FString> HeaderSource;
+	TSharedPtr<FString> CppSource;
 	FString ErrorString;
 	FString ClassName;
 
@@ -90,12 +92,12 @@ struct FGeneratedCodeData
 
 	bool Save(const FString& HeaderDirPath, const FString& CppDirPath)
 	{
-		const bool bHeaderSaved = FFileHelper::SaveStringToFile(HeaderSource, *FPaths::Combine(*HeaderDirPath, *HeaderFileName()));
+		const bool bHeaderSaved = FFileHelper::SaveStringToFile(*HeaderSource, *FPaths::Combine(*HeaderDirPath, *HeaderFileName()));
 		if (!bHeaderSaved)
 		{
 			ErrorString += LOCTEXT("HeaderNotSaved", "Header file wasn't saved. Check log for details.\n").ToString();
 		}
-		const bool bCppSaved = FFileHelper::SaveStringToFile(CppSource, *FPaths::Combine(*CppDirPath, *SourceFileName()));
+		const bool bCppSaved = FFileHelper::SaveStringToFile(*CppSource, *FPaths::Combine(*CppDirPath, *SourceFileName()));
 		if (!bCppSaved)
 		{
 			ErrorString += LOCTEXT("CppNotSaved", "Cpp file wasn't saved. Check log for details.\n").ToString();
@@ -119,6 +121,8 @@ public:
 	FString Directory;
 	FText Message;
 
+	TSharedPtr<SEditableTextBox> EditableTextBox;
+
 	FString GetFilePath() const
 	{
 		return FPaths::Combine(*Directory, *File);
@@ -132,6 +136,10 @@ public:
 	FReply BrowseHeaderDirectory()
 	{
 		PromptUserForDirectory(Directory, Message.ToString(), Directory);
+
+		//workaround for UI problem
+		EditableTextBox->SetText(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSimpleDirectoryPicker::GetFilePathText)));
+
 		return FReply::Handled();
 	}
 
@@ -149,7 +157,7 @@ public:
 			.FillWidth(1.0f)
 			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 			[
-				SNew(SEditableTextBox)
+				SAssignNew(EditableTextBox, SEditableTextBox)
 				.Text(this, &SSimpleDirectoryPicker::GetFilePathText)
 				.IsReadOnly(true)
 			]
