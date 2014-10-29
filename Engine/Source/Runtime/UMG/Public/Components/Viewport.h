@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Camera/CameraTypes.h"
-
+#include "ContentWidget.h"
 #include "Viewport.generated.h"
 
 class FPreviewScene;

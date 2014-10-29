@@ -6,6 +6,7 @@
 #include "PropertyTag.h"
 #include "Blueprint/WidgetBlueprintGeneratedClass.h"
 #include "WidgetBlueprint.h"
+#include "WidgetBlueprintCompiler.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

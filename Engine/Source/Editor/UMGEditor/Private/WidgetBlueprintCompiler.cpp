@@ -11,6 +11,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "WidgetBlueprint.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "NamedSlot.h"
 
 FOnWidgetBlueprintCompiled FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled = FOnWidgetBlueprintCompiled();
 

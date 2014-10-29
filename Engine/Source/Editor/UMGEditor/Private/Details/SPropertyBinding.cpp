@@ -4,6 +4,10 @@
 #include "DetailLayoutBuilder.h"
 #include "PropertyHandle.h"
 #include "SPropertyBinding.h"
+#include "WidgetBlueprintApplicationModes.h"
+#include "WidgetGraphSchema.h"
+#include "BlueprintEditorUtils.h"
+#include "ScopedTransaction.h"
 
 
 #define LOCTEXT_NAMESPACE "UMG"

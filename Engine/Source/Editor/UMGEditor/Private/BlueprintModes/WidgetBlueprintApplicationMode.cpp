@@ -9,6 +9,7 @@
 
 #include "WidgetBlueprintEditor.h"
 #include "WidgetBlueprintApplicationMode.h"
+#include "WidgetBlueprintApplicationModes.h"
 
 /////////////////////////////////////////////////////
 // FWidgetBlueprintApplicationMode
