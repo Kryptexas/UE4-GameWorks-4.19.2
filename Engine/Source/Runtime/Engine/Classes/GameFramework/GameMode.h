@@ -34,24 +34,30 @@ struct FGameClassShortName
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Abbreviation that can be used as an alias for the class name */
 	UPROPERTY()
 	FString ShortName;
 
+	/** The class name to use when the alias is specified in a URL */
 	UPROPERTY()
 	FString GameClassName;
 };
 
-//=============================================================================
-// The GameMode defines the game being played. It governs the game rules, scoring, what actors
-// are allowed to exist in this game type, and who may enter the game.
-// A GameMode actor is instantiated when the level is initialized for gameplay in
-// C++ UGameEngine::LoadMap().  The class of this GameMode actor is determined by
-// (in order) either the URL ?game=xxx, or the
-// DefaultGameMode entry in the game's .ini file (in the /Script/Engine.Engine section).
-// The GameMode used can be overridden in the GameMode function GetGameModeClass(), called
-// on the game class picked by the above process.
-//
-//=============================================================================
+/**
+ * The GameMode defines the game being played. It governs the game rules, scoring, what actors
+ * are allowed to exist in this game type, and who may enter the game.
+ *
+ * It is only instanced on the server and will never exist on the client. 
+ *
+ * A GameMode actor is instantiated when the level is initialized for gameplay in
+ * C++ UGameEngine::LoadMap().  
+ * 
+ * The class of this GameMode actor is determined by (in order) either the URL ?game=xxx, 
+ * the GameMode Override value set in the World Settings, or the DefaultGameMode entry set 
+ * in the game's Project Settings.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/GameMode/index.html
+ */
 UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable, hidecategories=(Info, Rendering, MovementReplication, Replication, Actor))
 class ENGINE_API AGameMode : public AInfo
 {

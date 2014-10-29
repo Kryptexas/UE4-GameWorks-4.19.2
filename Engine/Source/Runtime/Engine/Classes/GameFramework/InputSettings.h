@@ -5,13 +5,18 @@
 #include "InputSettings.generated.h"
 
 
+/**
+ * Project wide settings for input handling
+ * 
+ * @see https://docs.unrealengine.com/latest/INT/Gameplay/Input/index.html
+ */
 UCLASS(config=Input, defaultconfig)
 class ENGINE_API UInputSettings
 	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** List of Axis to be defined in ini file. These are put into AxisProperties for game use. */
+	/** Properties of Axis controls */
 	UPROPERTY(config, EditAnywhere, EditFixedSize, Category="Bindings", meta=(ToolTip="List of Axis Properties"), AdvancedDisplay)
 	TArray<struct FInputAxisConfigEntry> AxisConfig;
 
@@ -31,7 +36,7 @@ class ENGINE_API UInputSettings
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay, meta=(editcondition="bEnableFOVScaling"))
 	float FOVScale;
 
-	/** If a key is pressed twice in this amount of time, it's considered a "double click" */
+	/** If a key is pressed twice in this amount of time it is considered a "double click" */
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
 	float DoubleClickTime;
 
@@ -71,16 +76,28 @@ class ENGINE_API UInputSettings
 	virtual void PostInitProperties() override;
 	// End of UObject interface
 
+	/** Programmatically add an action mapping to the project defaults */
 	void AddActionMapping(const FInputActionKeyMapping& KeyMapping);
+
+	/** Programmatically remove an action mapping to the project defaults */
 	void RemoveActionMapping(const FInputActionKeyMapping& KeyMapping);
 
+	/** Programmatically add an axis mapping to the project defaults */
 	void AddAxisMapping(const FInputAxisKeyMapping& KeyMapping);
+
+	/** Programmatically remove an axis mapping to the project defaults */
 	void RemoveAxisMapping(const FInputAxisKeyMapping& KeyMapping);
 
+	/** Flush the current mapping values to the config file */
 	void SaveKeyMappings();
 
+	/** Populate a list of all defined action names */
 	void GetActionNames(TArray<FName>& ActionNames) const;
+
+	/** Populate a list of all defined axis names */
 	void GetAxisNames(TArray<FName>& AxisNames) const;
+
 private:
+	/** When changes are made to the default mappings, push those changes out to PlayerInput key maps */
 	void ForceRebuildKeymaps();
 };
