@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #pragma once
+
 #include "RenderUtils.h"
+#include "SceneManagement.h"
 
 class FPrimitiveDrawInterface;
 class FMaterialRenderProxy;
