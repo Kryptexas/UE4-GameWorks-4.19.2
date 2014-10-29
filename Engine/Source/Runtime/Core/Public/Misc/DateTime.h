@@ -639,19 +639,19 @@ public:
 	static CORE_API FDateTime UtcNow();
 
 	/**
-	* Validates the given components of a date and time value.
-	*
-	* The allow ranges for the components are:
-	*		Year: 1 - 9999
-	*		Month: 1 - 12
-	*		Day: 1 - DaysInMonth(Month)
-	*		Hour: 0 - 23
-	*		Minute: 0 - 59
-	*		Second: 0 - 59
-	*		Millisecond: 0 - 999
-	*
-	* @return true if the components are valid, false otherwise.
-	*/
+	 * Validates the given components of a date and time value.
+	 *
+	 * The allow ranges for the components are:
+	 *		Year: 1 - 9999
+	 *		Month: 1 - 12
+	 *		Day: 1 - DaysInMonth(Month)
+	 *		Hour: 0 - 23
+	 *		Minute: 0 - 59
+	 *		Second: 0 - 59
+	 *		Millisecond: 0 - 999
+	 *
+	 * @return true if the components are valid, false otherwise.
+	 */
 	static CORE_API bool Validate( int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond );
 
 public:
