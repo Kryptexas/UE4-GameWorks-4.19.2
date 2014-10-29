@@ -388,7 +388,7 @@ bool UWorld::IsPaused()
 	return ( (Info->Pauser != NULL && TimeSeconds >= PauseDelay) ||
 				(bRequestedBlockOnAsyncLoading && GetNetMode() == NM_Client) ||
 				(GEngine->ShouldCommitPendingMapChange(this)) ||
-				(IsPlayInEditor() && bDebugPauseExecution && !bDebugStepExecution) );
+				(IsPlayInEditor() && bDebugPauseExecution) );
 }
 
 
@@ -1261,8 +1261,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	}
 
 	// Finish up.
-	bDebugStepExecution = false; // If debugging, clean out step check
-
 	if(bDebugFrameStepExecution)
 	{
 		bDebugPauseExecution = true;

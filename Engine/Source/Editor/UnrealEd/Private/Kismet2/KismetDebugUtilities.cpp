@@ -395,7 +395,6 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 	{
 		// Pause the simulation
 		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
-		GUnrealEd->PlayWorld->bDebugStepExecution = false;
 		GUnrealEd->PlayWorld->bDebugFrameStepExecution = false;
 	}
 	else

@@ -961,9 +961,6 @@ public:
 	// Kismet debugging flags - they can be only editor only, but they're uint32, so it doens't make much difference
 	uint32 bDebugPauseExecution:1;
 
-	/** @todo document */
-	uint32 bDebugStepExecution:1;
-
 	/** Indicates this scene always allows audio playback. */
 	uint32 bAllowAudioPlayback:1;
 
