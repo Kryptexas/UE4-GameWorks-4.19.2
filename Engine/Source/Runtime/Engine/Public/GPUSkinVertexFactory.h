@@ -641,16 +641,12 @@ public:
 
 		void UpdateClothUniformBuffer(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals);
 
-		void ReleaseClothUniformBuffer()
-		{
-			APEXClothUniformBuffer.SafeRelease();
-		}
-
-
 		void UpdateClothSimulData(const TArray<FVector4>& InSimulPositions, const TArray<FVector4>& InSimulNormals, ERHIFeatureLevel::Type FeatureLevel);
 
 		void ReleaseClothSimulData()
 		{
+			APEXClothUniformBuffer.SafeRelease();
+
 			if(IsValidRef(ClothSimulPositionBuffer))
 			{
 				ClothSimulDataBufferPool.ReleasePooledResource(ClothSimulPositionBuffer);

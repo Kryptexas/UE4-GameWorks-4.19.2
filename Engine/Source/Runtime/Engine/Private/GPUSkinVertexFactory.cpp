@@ -331,7 +331,7 @@ template <bool bExtraBoneInfluencesT>
 void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ReleaseDynamicRHI()
 {
 	Super::ReleaseDynamicRHI();
-	ClothShaderData.ReleaseClothUniformBuffer();
+	ClothShaderData.ReleaseClothSimulData();
 }
 
 /*-----------------------------------------------------------------------------
