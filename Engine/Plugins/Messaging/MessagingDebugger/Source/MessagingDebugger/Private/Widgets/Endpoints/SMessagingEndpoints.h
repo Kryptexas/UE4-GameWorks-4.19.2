@@ -62,7 +62,7 @@ private:
 private:
 
 	/** Holds the filter bar. */
-	/**TSharedPtr<SMessagingEndpointsFilterBar> FilterBar;
+	//TSharedPtr<SMessagingEndpointsFilterBar> FilterBar;
 
 	/** Holds the filtered list of historic messages. */
 	TArray<FMessageTracerEndpointInfoPtr> EndpointList;
