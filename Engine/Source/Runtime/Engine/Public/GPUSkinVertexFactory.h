@@ -243,7 +243,7 @@ public:
 			INC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
 			const int32 TileBufferSize = ComputeMemorySize();
 			FRHIResourceCreateInfo CreateInfo;
-			BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Volatile | BUF_ShaderResource, CreateInfo );
+			BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, BUF_Dynamic | BUF_ShaderResource, CreateInfo );
 			BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
 		}
 	}
