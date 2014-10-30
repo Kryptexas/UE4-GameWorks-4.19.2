@@ -13,7 +13,9 @@ public class IOSPlatformEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"InputCore",
+				"DesktopPlatform",
 				"Engine",
+				"MainFrame",
 				"Slate",
 				"SlateCore",
 				"EditorStyle",
@@ -21,6 +23,7 @@ public class IOSPlatformEditor : ModuleRules
 				"SharedSettingsWidgets",
 				"SourceControl",
 				"IOSRuntimeSettings",
+				"TargetPlatform",
 			}
 		);
 

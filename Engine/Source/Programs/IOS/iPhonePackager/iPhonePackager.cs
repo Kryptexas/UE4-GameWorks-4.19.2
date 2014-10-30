@@ -224,6 +224,12 @@ namespace iPhonePackager
 							case "-cookonthefly":
 								Config.bCookOnTheFly = true;
 								break;
+							case "-provision":
+								Config.bProvision = true;
+								break;
+							case "-certificate":
+								Config.bCert = true;
+								break;
 						}
 
 						// get the stage dir path
@@ -560,6 +566,7 @@ namespace iPhonePackager
 					Log(" ... RepackageFromStage GameName");
 					Log(" ... Devices");
 					Log(" ... Validate");
+					Log(" ... Install");
 					Log("");
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
@@ -701,6 +708,18 @@ namespace iPhonePackager
 						if (CheckArguments())
 						{
 							CompileTime.PackageIPAOnMac();
+						}
+						break;
+
+					case "install":
+						GameName = "";
+						if (Config.bProvision)
+						{
+							ToolsHub.TryInstallingMobileProvision();
+						}
+						if (Config.bCert)
+						{
+							ToolsHub.TryInstallingCertificate_PromptForKey();
 						}
 						break;
 

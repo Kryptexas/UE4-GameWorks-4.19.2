@@ -287,6 +287,16 @@ namespace iPhonePackager
 		public static bool bCookOnTheFly = false;
 
 		/// <summary>
+		/// Whether the install should be performed on a provision
+		/// </summary>
+		public static bool bProvision = false;
+
+		/// <summary>
+		/// Whether the install should be performed on a certificate
+		/// </summary>
+		public static bool bCert = false;
+
+		/// <summary>
 		/// An override server Mac name
 		/// </summary>
 		public static string OverrideMacName = null;
