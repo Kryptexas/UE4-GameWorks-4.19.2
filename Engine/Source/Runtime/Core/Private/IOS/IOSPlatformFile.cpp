@@ -546,10 +546,6 @@ IFileHandle* FIOSPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bo
 	{
 		Flags |= O_APPEND;
 	}
-	else
-	{
-		Flags |= O_TRUNC;
-	}
 	if (bAllowRead)
 	{
 		Flags |= O_RDWR;

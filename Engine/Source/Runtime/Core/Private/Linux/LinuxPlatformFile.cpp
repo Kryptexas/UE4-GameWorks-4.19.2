@@ -266,10 +266,9 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 	// create directories if needed.
 	if (!CreateDirectoriesFromPath(Filename))
 	{
-		return NULL;
+		return nullptr;
 	}
 
-	// Caveat: cannot specify O_TRUNC in flags, as this will corrupt the file which may be "locked" by other process. We will ftruncate() it once we "lock" it
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), Flags, S_IRUSR | S_IWUSR);
 	if (Handle != -1)
 	{
@@ -284,19 +283,6 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 				return nullptr;
 			}
 			// all the other locking errors are ignored.
-		}
-
-		// truncate the file now that we locked it
-		if (!bAppend)
-		{
-			if (ftruncate(Handle, 0) != 0)
-			{
-				int ErrNo = errno;
-				UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "ftruncate() failed for '%s': errno=%d (%s)" ),
-															Filename, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
-				close(Handle);
-				return nullptr;
-			}
 		}
 
 		FFileHandleLinux* FileHandleLinux = new FFileHandleLinux(Handle);
