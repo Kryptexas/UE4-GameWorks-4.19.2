@@ -10,6 +10,8 @@
 #define LOCTEXT_NAMESPACE "MovementComponent"
 DEFINE_LOG_CATEGORY_STATIC(LogMovement, Log, All);
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 //----------------------------------------------------------------------//
 // UMovementComponent
 //----------------------------------------------------------------------//
@@ -24,6 +26,9 @@ UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializ
 	bUpdateOnlyIfRendered = false;
 	bAutoUpdateTickRegistration = true;
 	bAutoRegisterUpdatedComponent = true;
+
+	PlaneConstraintNormal = FVector::ZeroVector;
+	PlaneConstraintAxisSetting = EPlaneConstraintAxisSetting::Custom;
 	bConstrainToPlane = false;
 	bSnapToPlaneAtStart = false;
 
@@ -101,6 +106,11 @@ void UMovementComponent::OnRegister()
 		}
 	}
 
+	if (PlaneConstraintAxisSetting != EPlaneConstraintAxisSetting::Custom)
+	{
+		SetPlaneConstraintAxisSetting(PlaneConstraintAxisSetting);
+	}
+
 	PlaneConstraintNormal = PlaneConstraintNormal.SafeNormal();
 	SetUpdatedComponent(NewUpdatedComponent);
 }
@@ -128,6 +138,53 @@ void UMovementComponent::UpdateTickRegistration()
 		SetComponentTickEnabled(bHasUpdatedComponent && bAutoActivate);
 	}
 }
+
+
+void UMovementComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	if (PlaneConstraintAxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
+	{
+		// Make sure to use the most up-to-date project setting in case it has changed.
+		PlaneConstraintNormal = GetPlaneConstraintNormalFromAxisSetting(PlaneConstraintAxisSetting);
+	}
+}
+
+
+#if WITH_EDITOR
+void UMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	if (PropertyThatChanged)
+	{
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UMovementComponent, PlaneConstraintAxisSetting))
+		{
+			PlaneConstraintNormal = GetPlaneConstraintNormalFromAxisSetting(PlaneConstraintAxisSetting);
+		}
+		else if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UMovementComponent, PlaneConstraintNormal))
+		{
+			PlaneConstraintAxisSetting = EPlaneConstraintAxisSetting::Custom;
+		}
+	}
+}
+
+void UMovementComponent::PhysicsLockedAxisSettingChanged()
+{
+	
+	for (TObjectIterator<UMovementComponent> Iter; Iter; ++Iter)
+	{
+		UMovementComponent* MovementComponent = *Iter;
+		if (MovementComponent->PlaneConstraintAxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
+		{
+			MovementComponent->PlaneConstraintNormal = MovementComponent->GetPlaneConstraintNormalFromAxisSetting(MovementComponent->PlaneConstraintAxisSetting);
+		}
+	}
+}
+
+#endif // WITH_EDITOR
 
 
 void UMovementComponent::PhysicsVolumeChanged(APhysicsVolume* NewVolume)
@@ -240,9 +297,46 @@ bool UMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
 	return (Velocity.SizeSquared() > MaxSpeedSquared * OverVelocityPercent);
 }
 
+
+FVector UMovementComponent::GetPlaneConstraintNormalFromAxisSetting(EPlaneConstraintAxisSetting AxisSetting) const
+{
+	if (AxisSetting == EPlaneConstraintAxisSetting::UseGlobalPhysicsSetting)
+	{
+		ESettingsLockedAxis::Type GlobalSetting = UPhysicsSettings::Get()->LockedAxis;
+		switch (GlobalSetting)
+		{
+		case ESettingsLockedAxis::None:	return FVector::ZeroVector;
+		case ESettingsLockedAxis::X:	return FVector(1.f, 0.f, 0.f);
+		case ESettingsLockedAxis::Y:	return FVector(0.f, 1.f, 0.f);
+		case ESettingsLockedAxis::Z:	return FVector(0.f, 0.f, 1.f);
+		default:
+			checkf(false, TEXT("GetPlaneConstraintNormalFromAxisSetting: Unknown global axis setting %d for %s"), int32(GlobalSetting), *GetNameSafe(GetOwner()));
+			return FVector::ZeroVector;
+		}
+	}
+
+	switch(AxisSetting)
+	{
+	case EPlaneConstraintAxisSetting::Custom:	return PlaneConstraintNormal;
+	case EPlaneConstraintAxisSetting::X:		return FVector(1.f, 0.f, 0.f);
+	case EPlaneConstraintAxisSetting::Y:		return FVector(0.f, 1.f, 0.f);
+	case EPlaneConstraintAxisSetting::Z:		return FVector(0.f, 0.f, 1.f);
+	default:
+		checkf(false, TEXT("GetPlaneConstraintNormalFromAxisSetting: Unknown axis %d for %s"), int32(AxisSetting), *GetNameSafe(GetOwner()));
+		return FVector::ZeroVector;
+	}
+}
+
+void UMovementComponent::SetPlaneConstraintAxisSetting(EPlaneConstraintAxisSetting NewAxisSetting)
+{
+	PlaneConstraintAxisSetting = NewAxisSetting;
+	PlaneConstraintNormal = GetPlaneConstraintNormalFromAxisSetting(PlaneConstraintAxisSetting);
+}
+
 void UMovementComponent::SetPlaneConstraintNormal(FVector PlaneNormal)
 {
 	PlaneConstraintNormal = PlaneNormal.SafeNormal();
+	PlaneConstraintAxisSetting = EPlaneConstraintAxisSetting::Custom;
 }
 
 void UMovementComponent::SetPlaneConstraintFromVectors(FVector Forward, FVector Up)

@@ -638,6 +638,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SLATE_BULK_FONT_DATA,
 	// Add new friction behavior in ProjectileMovementComponent.
 	VER_UE4_ADD_PROJECTILE_FRICTION_BEHAVIOR,
+	// Add axis settings enum to MovementComponent.
+	VER_UE4_MOVEMENTCOMPONENT_AXIS_SETTINGS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
