@@ -1185,6 +1185,12 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 						bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
 						SourceRect = GetHighResScreenshotConfig().CaptureRegion;
 					}
+
+					if (!FPaths::GetExtension(ScreenShotName).IsEmpty())
+					{
+						ScreenShotName = FPaths::GetBaseFilename(ScreenShotName, false);
+						ScreenShotName += TEXT(".bmp");
+					}
 					FFileHelper::CreateBitmap(*ScreenShotName, InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 				}
 			}
