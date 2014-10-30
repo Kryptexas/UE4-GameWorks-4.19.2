@@ -333,15 +333,11 @@ public:
 
 	const TNavStatArray<FBox>& GetInclusionBounds() const { return InclusionBounds; }
 	
-	/** Whether specified box in inside or intersects with nav bounds  */
-	bool IntercestsInclusionBounds(const FBox& Box) const;
-
 	/** Total navigable area box, sum of all navigation volumes bounding boxes */
 	FBox GetTotalBounds() const { return TotalNavBounds; }
 
 	const FRecastNavMeshCachedData& GetAdditionalCachedData() const { return AdditionalCachedData; }
 
-	TArray<uint32> AddTile(const FRecastTileGenerator& TileGenerator);
 	bool HasDirtyTiles() const;
 
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
@@ -380,6 +376,9 @@ private:
 	
 	/** Processes pending tile generattion tasks */
 	TArray<uint32> ProcessTileTasks(const int32 NumTasksToSubmit);
+
+	/** Adds generated tiles to NavMesh, replacing old ones */
+	TArray<uint32> AddGeneratedTiles(const FRecastTileGenerator& TileGenerator);
 
 	/** Removes all tiles at specified grid location */
 	TArray<uint32> RemoveTileLayers(const int32 TileX, const int32 TileY);

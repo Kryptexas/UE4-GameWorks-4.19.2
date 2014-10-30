@@ -52,7 +52,7 @@ DEFINE_STAT(STAT_Navigation_QueriesTimeSync);
 DEFINE_STAT(STAT_Navigation_RequestingAsyncPathfinding);
 DEFINE_STAT(STAT_Navigation_PathfindingSync);
 DEFINE_STAT(STAT_Navigation_PathfindingAsync);
-DEFINE_STAT(STAT_Navigation_AddTile);
+DEFINE_STAT(STAT_Navigation_AddGeneratedTiles);
 DEFINE_STAT(STAT_Navigation_TileNavAreaSorting);
 DEFINE_STAT(STAT_Navigation_TileGeometryExportToObjAsync);
 DEFINE_STAT(STAT_Navigation_TileVoxelFilteringAsync);
@@ -410,6 +410,23 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 				}
 			}
 		}
+
+		// All navigation actors are registered
+		// Add NavMesh parts from all sub-levels that were streamed in prior NavMesh registration
+		if (World->IsGameWorld())
+		{
+			const auto& Levels = World->GetLevels();
+			for (ULevel* Level : Levels)
+			{
+				if (!Level->IsPersistentLevel() && Level->bIsVisible)
+				{
+					for (ANavigationData* NavData : NavDataSet)
+					{
+						NavData->OnStreamingLevelAdded(Level);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -438,6 +455,8 @@ void UNavigationSystem::SetCrowdManager(UCrowdManager* NewCrowdManager)
 
 void UNavigationSystem::Tick(float DeltaSeconds)
 {
+	const bool bIsGame = (GetWorld() && GetWorld()->IsGameWorld());
+	
 	// Register any pending nav areas
 	if (PendingNavAreaRegistration.Num() > 0)
 	{
@@ -467,13 +486,13 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 		}
 		INC_FLOAT_STAT_BY(STAT_Navigation_CumulativeBuildTime,(float)ThisTime*1000);
 	}
-
+		
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickMarkDirty);
 
 		DirtyAreasUpdateTime += DeltaSeconds;
 		const float DirtyAreasUpdateDeltaTime = 1.0f / DirtyAreasUpdateFreq;
-		const bool bCanRebuildNow = (DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime) || (GetWorld() && !GetWorld()->IsGameWorld());
+		const bool bCanRebuildNow = (DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime) || !bIsGame;
 
 		if (DirtyAreas.Num() > 0 && bCanRebuildNow)
 		{
@@ -492,7 +511,7 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	}
 
 	// Tick navigation mesh async builders
-	if (!bAsyncBuildPaused)
+	if (!bAsyncBuildPaused && (bNavigationAutoUpdateEnabled || bIsGame))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickAsyncBuild);
 		for (ANavigationData* NavData : NavDataSet)
@@ -1737,6 +1756,17 @@ void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystem::EMo
 			NavSys = CreateNavigationSystem(World);
 		}
 
+		// Remove old chunk data from all levels
+		// In case navigation system will be created chunks will be regenerated anyway
+		if (Mode == FNavigationSystem::EditorMode)
+		{
+			const auto& Levels = World->GetLevels();
+			for (ULevel* Level : Levels)
+			{
+				Level->NavDataChunks.Empty();
+			}
+		}
+
 		if (NavSys)
 		{
 			NavSys->OnWorldInitDone(Mode);
@@ -1909,6 +1939,12 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 
 	const FBox BBox = GeneratedData.Bounds.GetBox();
 	const bool bValidBBox = BBox.IsValid && !BBox.GetSize().IsNearlyZero();
+
+	if (BBox.GetExtent().X > 400000)
+	{
+		volatile int32 i = 0;
+	}
+
 	if (bValidBBox && !GeneratedData.IsEmpty())
 	{
 		const int32 DirtyFlag = DirtyElement.FlagsOverride ? DirtyElement.FlagsOverride : GeneratedData.Data.GetDirtyFlag();
@@ -2303,17 +2339,13 @@ void UNavigationSystem::InitializeLevelCollisions()
 	UWorld* World = GetWorld();
 	if (!bInitialLevelsAdded && UNavigationSystem::GetCurrent(World) == this)
 	{
-		if (World->PersistentLevel)
+		// Process all visible levels
+		const auto& Levels = World->GetLevels();
+		for (ULevel* Level : Levels)
 		{
-			OnLevelAddedToWorld(World->PersistentLevel, World);
-		}
-
-		for (int32 Idx = 0; Idx < World->StreamingLevels.Num(); Idx++)
-		{
-			ULevelStreaming* StreamingInfo = World->StreamingLevels[Idx];
-			if (StreamingInfo && StreamingInfo->GetLoadedLevel())
+			if (Level->bIsVisible)
 			{
-				OnLevelAddedToWorld(StreamingInfo->GetLoadedLevel(), World);
+				AddLevelCollisionToOctree(Level);
 			}
 		}
 
@@ -2365,6 +2397,7 @@ void UNavigationSystem::OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolum
 	FNavigationBoundsUpdateRequest UpdateRequest;
 	UpdateRequest.NavBounds.UniqueID	= NavVolume->GetUniqueID();
 	UpdateRequest.NavBounds.AreaBox		= NavVolume->GetComponentsBoundingBox(true);
+	UpdateRequest.NavBounds.PackageName	= NavVolume->GetOutermost()->GetFName();
 	UpdateRequest.UpdateRequest			= FNavigationBoundsUpdateRequest::Updated;
 	AddNavigationBoundsUpdateRequest(UpdateRequest);
 }
@@ -2379,6 +2412,7 @@ void UNavigationSystem::OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume)
 	FNavigationBoundsUpdateRequest UpdateRequest;
 	UpdateRequest.NavBounds.UniqueID	= NavVolume->GetUniqueID();
 	UpdateRequest.NavBounds.AreaBox		= NavVolume->GetComponentsBoundingBox(true);
+	UpdateRequest.NavBounds.PackageName	= NavVolume->GetOutermost()->GetFName();
 	UpdateRequest.UpdateRequest	= FNavigationBoundsUpdateRequest::Added;
 	AddNavigationBoundsUpdateRequest(UpdateRequest);
 }
@@ -2393,6 +2427,7 @@ void UNavigationSystem::OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolum
 	FNavigationBoundsUpdateRequest UpdateRequest;
 	UpdateRequest.NavBounds.UniqueID	= NavVolume->GetUniqueID();
 	UpdateRequest.NavBounds.AreaBox		= NavVolume->GetComponentsBoundingBox(true);
+	UpdateRequest.NavBounds.PackageName	= NavVolume->GetOutermost()->GetFName();
 	UpdateRequest.UpdateRequest	= FNavigationBoundsUpdateRequest::Removed;
 	AddNavigationBoundsUpdateRequest(UpdateRequest);
 }
@@ -2480,7 +2515,7 @@ void UNavigationSystem::PerformNavigationBoundsUpdate(const TArray<FNavigationBo
 	}
 
 #if WITH_RECAST
-	if (IsNavigationBuildingLocked() == false)
+	if (!IsNavigationBuildingLocked())
 	{
 		if (UpdatedAreas.Num())
 		{
@@ -2509,8 +2544,9 @@ void UNavigationSystem::GatherNavigationBounds()
 		if (V != nullptr && !V->IsPendingKill())
 		{
 			FNavigationBounds NavBounds;
-			NavBounds.UniqueID	= V->GetUniqueID();
-			NavBounds.AreaBox	= V->GetComponentsBoundingBox(true);
+			NavBounds.UniqueID		= V->GetUniqueID();
+			NavBounds.AreaBox		= V->GetComponentsBoundingBox(true);
+			NavBounds.PackageName	= V->GetOutermost()->GetFName();
 			RegisteredNavBounds.Add(NavBounds);
 		}
 	}
@@ -2535,8 +2571,17 @@ void UNavigationSystem::Build()
 	// make sure freshly created navigation instances are registered before we try to build them
 	ProcessRegistrationCandidates();
 
-	// and now iterate through all registered and just build them
+	// and now iterate through all registered and just start building them
 	RebuildAll();
+
+	// Block until build is finished
+	for (ANavigationData* NavData : NavDataSet)
+	{
+		if (NavData)
+		{
+			NavData->EnsureBuildCompletion();
+		}
+	}
 
 	UE_LOG(LogNavigation, Display, TEXT("UNavigationSystem::Build total execution time: %.5f"), float(FPlatformTime::Seconds() - BuildStartTime));
 }
@@ -2693,7 +2738,10 @@ void UNavigationSystem::NavigationBuildingUnlock(bool bForce)
 		bNavigationBuildingLocked = false;
 		bInitialBuildingLockActive = false;
 		
-		RebuildAll();
+		if (bNavigationAutoUpdateEnabled)
+		{
+			RebuildAll();
+		}
 	}
 	else if (bInitialBuildingLockActive == true)
 	{
@@ -2710,6 +2758,18 @@ void UNavigationSystem::RebuildAll()
 	
 	GatherNavigationBounds();
 
+	// make sure that octree is up to date
+	for (TSet<FNavigationDirtyElement>::TIterator It(PendingOctreeUpdates); It; ++It)
+	{
+		AddElementToNavOctree(*It);
+	}
+	PendingOctreeUpdates.Empty(32);
+
+	// discard all pending dirty areas, we are going to rebuild navmesh anyway 
+	DirtyAreas.Reset();
+	PendingNavBoundsUpdates.Reset();
+	
+	// 
 	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
 		ANavigationData* NavData = NavDataSet[NavDataIndex];
@@ -2780,6 +2840,14 @@ void UNavigationSystem::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 	if (InWorld == GetWorld())
 	{
 		AddLevelCollisionToOctree(InLevel);
+
+		if (!InLevel->IsPersistentLevel())
+		{
+			for (ANavigationData* NavData : NavDataSet)
+			{
+				NavData->OnStreamingLevelAdded(InLevel);
+			}
+		}
 	}
 }
 
@@ -2788,6 +2856,14 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 	if (InWorld == GetWorld())
 	{
 		RemoveLevelCollisionFromOctree(InLevel);
+
+		if (!InLevel->IsPersistentLevel())
+		{
+			for (ANavigationData* NavData : NavDataSet)
+			{
+				NavData->OnStreamingLevelRemoved(InLevel);
+			}
+		}
 	}
 }
 

@@ -7,6 +7,7 @@
 #include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/RecastNavMeshDataChunk.h"
 #include "VisualLogger/VisualLogger.h"
 
 #if WITH_EDITOR
@@ -43,6 +44,21 @@ FNavMeshTileData::FNavData::~FNavData()
 #else
 	delete RawNavData;
 #endif
+}
+
+uint8* FNavMeshTileData::Release()
+{
+	uint8* RawData = nullptr;
+
+	if (NavData.IsValid()) 
+	{ 
+		RawData = NavData->RawNavData;
+		NavData->RawNavData = nullptr; 
+	} 
+ 
+	DataSize = 0; 
+	LayerIndex = 0; 
+	return RawData;
 }
 
 float ARecastNavMesh::DrawDistanceSq = 0.0f;
@@ -607,14 +623,6 @@ void ARecastNavMesh::SerializeRecastNavMesh(FArchive& Ar, FPImplRecastNavMesh*& 
 		}
 	}
 	
-	if (Ar.IsSaving())
-	{
-		if (NavDataGenerator)
-		{
-			NavDataGenerator->EnsureBuildCompletion();
-		}
-	}
-
 	if (RecastNavMeshImpl)
 	{
 		RecastNavMeshImpl->Serialize(Ar);
@@ -1218,6 +1226,77 @@ void ARecastNavMesh::InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles)
 	}
 }
 
+URecastNavMeshDataChunk* ARecastNavMesh::GetNavigationDataChunk(ULevel* InLevel) const
+{
+	FName ThisName = GetFName();
+	int32 ChunkIndex = InLevel->NavDataChunks.IndexOfByPredicate([&](UNavigationDataChunk* Chunk) 
+	{
+		return Chunk->NavigationDataName == ThisName;
+	});
+	
+	URecastNavMeshDataChunk* RcNavDataChunk = nullptr;
+	if (ChunkIndex != INDEX_NONE)
+	{
+		RcNavDataChunk = Cast<URecastNavMeshDataChunk>(InLevel->NavDataChunks[ChunkIndex]);
+	}
+		
+	return RcNavDataChunk;
+}
+
+void ARecastNavMesh::OnNavMeshGenerationFinished()
+{
+#if WITH_EDITOR
+	UWorld* World = GetWorld();
+	// For static navmeshes create navigation data holders in each streaming level
+	// so parts of navmesh can be streamed in/out with those levels
+	if (!World->IsGameWorld())
+	{
+		const auto& Levels = World->GetLevels();
+		for (auto Level : Levels)
+		{
+			if (Level->IsPersistentLevel())
+			{
+				continue;
+			}
+			
+			URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(Level);
+				
+			if (!bRebuildAtRuntime)
+			{
+				// We use nav volumes that belongs to this streaming level to find tiles we want to save
+				TArray<int32> LevelTiles;
+				TArray<FBox> LevelNavBounds = GetNavigableBoundsInLevel(Level->GetOutermost()->GetFName());
+				RecastNavMeshImpl->GetNavMeshTilesIn(LevelNavBounds, LevelTiles);
+				
+				if (LevelTiles.Num())
+				{
+					// Create new chunk only if we have something to save in it			
+					if (NavDataChunk == nullptr)
+					{
+						NavDataChunk = NewObject<URecastNavMeshDataChunk>(Level);
+						NavDataChunk->NavigationDataName = GetFName();
+						Level->NavDataChunks.Add(NavDataChunk);
+					}
+					
+					NavDataChunk->GatherTiles(RecastNavMeshImpl->DetourNavMesh, LevelTiles);
+					NavDataChunk->MarkPackageDirty();
+					continue;
+				}
+			}
+			
+			// stale data that is left in the level
+			if (NavDataChunk)
+			{
+				// clear it
+				NavDataChunk->ReleaseTiles();
+				NavDataChunk->MarkPackageDirty();
+				Level->NavDataChunks.Remove(NavDataChunk);
+			}
+		}
+	}
+#endif// WITH_EDITOR
+}
+
 #if !UE_BUILD_SHIPPING
 uint32 ARecastNavMesh::LogMemUsed() const 
 {
@@ -1266,6 +1345,44 @@ void ARecastNavMesh::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 
 	Super::ApplyWorldOffset(InOffset, bWorldShift);
 	RequestDrawingUpdate();
+}
+
+void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMesh_OnStreamingLevelAdded);
+	
+	if (!bRebuildAtRuntime && GetWorld()->IsGameWorld())
+	{
+		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
+		if (NavDataChunk)
+		{
+			TArray<uint32> AttachedIndices = NavDataChunk->AttachTiles(RecastNavMeshImpl->DetourNavMesh);
+			if (AttachedIndices.Num() > 0)
+			{
+				InvalidateAffectedPaths(AttachedIndices);
+				RequestDrawingUpdate();
+			}
+		}
+	}
+}
+
+void ARecastNavMesh::OnStreamingLevelRemoved(ULevel* InLevel)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMesh_OnStreamingLevelRemoved);
+	
+	if (!bRebuildAtRuntime && GetWorld()->IsGameWorld())
+	{
+		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
+		if (NavDataChunk)
+		{
+			TArray<uint32> DetachedIndices = NavDataChunk->DetachTiles(RecastNavMeshImpl->DetourNavMesh);
+			if (DetachedIndices.Num() > 0)
+			{
+				InvalidateAffectedPaths(DetachedIndices);
+				RequestDrawingUpdate();
+			}
+		}
+	}
 }
 
 bool ARecastNavMesh::AdjustLocationWithFilter(const FVector& StartLoc, FVector& OutAdjustedLocation, const FNavigationQueryFilter& Filter, const UObject* QueryOwner) const

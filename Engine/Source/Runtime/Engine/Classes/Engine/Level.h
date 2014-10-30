@@ -6,6 +6,7 @@
 
 class ALevelBounds;
 class UTexture2D;
+class UNavigationDataChunk;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -291,7 +292,11 @@ public:
 	class ANavigationObjectBase *NavListStart;
 	UPROPERTY()
 	class ANavigationObjectBase	*NavListEnd;
-
+	
+	/** Navigation related data that can be stored per level */
+	UPROPERTY()
+	TArray<UNavigationDataChunk*> NavDataChunks;
+	
 	/** Total number of KB used for lightmap textures in the level. */
 	UPROPERTY(VisibleAnywhere, Category=Level)
 	float LightmapTotalSize;

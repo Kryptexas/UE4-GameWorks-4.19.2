@@ -88,6 +88,7 @@ struct FNavigationBounds
 {
 	uint32	UniqueID;
 	FBox	AreaBox;	
+	FName	PackageName;
 
 	bool operator==(const FNavigationBounds& Other) const 
 	{ 

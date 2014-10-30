@@ -2926,7 +2926,7 @@ bool FRecastNavMeshGenerator::RebuildAll()
 	}
 	else
 	{
-		// There are no navigation bounds to build, probably navmesh was resided and we just need to update debug draw
+		// There are no navigation bounds to build, probably navmesh was resized and we just need to update debug draw
 		DestNavMesh->RequestDrawingUpdate();
 	}
 
@@ -2935,6 +2935,8 @@ bool FRecastNavMeshGenerator::RebuildAll()
 
 void FRecastNavMeshGenerator::EnsureBuildCompletion()
 {
+	const bool bHasTasks = GetNumRemaningBuildTasks() > 0;
+	
 	do 
 	{
 		ProcessTileTasks(16);
@@ -2945,7 +2947,13 @@ void FRecastNavMeshGenerator::EnsureBuildCompletion()
 			Element.AsyncTask->EnsureCompletion();
 		}
 	}
-	while (PendingDirtyTiles.Num() || RunningDirtyTiles.Num());
+	while (GetNumRemaningBuildTasks() > 0);
+
+	// Update navmesh drawing only if we had something to build
+	if (bHasTasks)
+	{
+		DestNavMesh->RequestDrawingUpdate();
+	}
 }
 
 void FRecastNavMeshGenerator::CancelBuild()
@@ -3047,19 +3055,6 @@ void FRecastNavMeshGenerator::OnAreaAdded(const UClass* AreaClass, int32 AreaID)
 	AdditionalCachedData.OnAreaAdded(AreaClass, AreaID);
 }
 
-bool FRecastNavMeshGenerator::IntercestsInclusionBounds(const FBox& Box) const
-{
-	for (const FBox& NavBox : InclusionBounds)
-	{
-		if (NavBox.Intersect(Box))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, const int32 TileY)
 {
 	TArray<uint32> ResultTileIndices;
@@ -3081,8 +3076,7 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 			UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
 				*DestNavMesh->GetName(), TileX, TileY, LayerIndex, TileRef, NumActiveTiles);
 
-			uint8* RawNavData = NULL;
-			DetourMesh->removeTile(TileRef, &RawNavData, NULL);
+			DetourMesh->removeTile(TileRef, nullptr, nullptr);
 
 			ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(TileRef));
 		}
@@ -3094,9 +3088,9 @@ TArray<uint32> FRecastNavMeshGenerator::RemoveTileLayers(const int32 TileX, cons
 	return ResultTileIndices;
 }
 
-TArray<uint32> FRecastNavMeshGenerator::AddTile(const FRecastTileGenerator& TileGenerator)
+TArray<uint32> FRecastNavMeshGenerator::AddGeneratedTiles(const FRecastTileGenerator& TileGenerator)
 {
-	SCOPE_CYCLE_COUNTER(STAT_Navigation_AddTile);
+	SCOPE_CYCLE_COUNTER(STAT_Navigation_AddGeneratedTiles);
 	
 	TArray<uint32> ResultTileIndices;
 	const int32 TileX = TileGenerator.GetTileX();
@@ -3132,14 +3126,7 @@ TArray<uint32> FRecastNavMeshGenerator::AddTile(const FRecastTileGenerator& Tile
 				UE_LOG(LogNavigation, Log, TEXT("%s> Tile (%d,%d:%d), removing TileRef: 0x%X (active:%d)"),
 					*DestNavMesh->GetName(), TileX, TileY, LayerIndex, OldTileRef, NumActiveTiles);
 
-				// this call will fill OldRawNavData with address of previously added data
-				// if OldRawNavData is NULL it means either this tile was empty, or the memory
-				// allocated has been owned by navmesh itself (i.e. has been serialized-in along
-				// with the level)
-				uint8* OldRawNavData = nullptr;
-				DetourMesh->removeTile(OldTileRef, &OldRawNavData, nullptr);
-				// data should always be owned by navmesh itself
-				check(OldRawNavData == nullptr);
+				DetourMesh->removeTile(OldTileRef, nullptr, nullptr);
 			
 				ResultTileIndices.AddUnique(DetourMesh->decodePolyIdTile(OldTileRef));
 			}
@@ -3171,7 +3158,7 @@ TArray<uint32> FRecastNavMeshGenerator::AddTile(const FRecastTileGenerator& Tile
 						*DestNavMesh->GetName(), TileX, TileY, LayerIndex, ResultTileRef, NumActiveTiles);
 				
 					// NavMesh took the ownership of generated data, so we don't need to deallocate it
-					TileLayers[i].Release();
+					uint8* ReleasedData = TileLayers[i].Release();
 				}
 			}
 		}
@@ -3182,6 +3169,8 @@ TArray<uint32> FRecastNavMeshGenerator::AddTile(const FRecastTileGenerator& Tile
 
 void FRecastNavMeshGenerator::DiscardCurrentBuildingTasks()
 {
+	PendingDirtyTiles.Empty();
+	
 	for (FRunningTileElement& Element : RunningDirtyTiles)
 	{
 		if (Element.AsyncTask)
@@ -3221,6 +3210,19 @@ TArray<FNavMeshTileData> FRecastNavMeshGenerator::GetIntermediateLayersData(FInt
 	}
 }
 
+static bool IntercestBounds(const FBox& TestBox, const TNavStatArray<FBox>& Bounds)
+{
+	for (const FBox& Box : Bounds)
+	{
+		if (Box.Intersect(TestBox))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>& DirtyAreas)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_MarkDirtyTiles);
@@ -3237,7 +3239,7 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 	{
 		const FBox AdjustedAreaBounds = GrowBoundingBox(DirtyArea.Bounds, DirtyArea.HasFlag(ENavigationDirtyFlag::UseAgentHeight));
 		if (!DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds) && 
-			!IntercestsInclusionBounds(AdjustedAreaBounds))
+			!IntercestBounds(AdjustedAreaBounds, InclusionBounds))
 		{
 			// Skip whole area
 			continue;
@@ -3255,7 +3257,7 @@ void FRecastNavMeshGenerator::MarkDirtyTiles(const TArray<FNavigationDirtyArea>&
 			{
 				const FBox TileBox = CalculateTileBounds(x, y, NavMeshOrigin, TotalNavBounds, TileSizeInWorldUnits);
 				if (!DirtyArea.HasFlag(ENavigationDirtyFlag::NavigationBounds) && 
-					!IntercestsInclusionBounds(TileBox))
+					!IntercestBounds(TileBox, InclusionBounds))
 				{
 					// Skip this tile
 					continue;
@@ -3384,6 +3386,7 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_ProcessTileTasks);
 	
 	TArray<uint32> UpdatedTiles;
+	const bool bHasTasksAtStart = GetNumRemaningBuildTasks() > 0;
 	
 	int32 NumSubmittedTasks = 0;
 	// Submit pending tile elements
@@ -3446,7 +3449,7 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 			if (!Element.bShouldDiscard)
 			{
 				const FRecastTileGenerator& TileGenerator = Element.AsyncTask->GetTask();
-				TArray<uint32> UpdatedTileIndices = AddTile(TileGenerator);
+				TArray<uint32> UpdatedTileIndices = AddGeneratedTiles(TileGenerator);
 				UpdatedTiles.Append(UpdatedTileIndices);
 			
 				// Store intermediate layers data, so it can be reused later
@@ -3470,6 +3473,13 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 		}
 	}
 
+	// Notify owner in case all tasks has been completed
+	const bool bHasTasksAtEnd = GetNumRemaningBuildTasks() > 0;
+	if (bHasTasksAtStart && !bHasTasksAtEnd)
+	{
+		DestNavMesh->OnNavMeshGenerationFinished();
+	}
+	
 	return UpdatedTiles;
 }
 

@@ -366,6 +366,22 @@ void ANavigationData::RebuildAll()
 	}
 }
 
+void ANavigationData::EnsureBuildCompletion()
+{
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->EnsureBuildCompletion();
+	}
+}
+
+void ANavigationData::CancelBuild()
+{
+	if (NavDataGenerator)
+	{
+		NavDataGenerator->CancelBuild();
+	}
+}
+
 void ANavigationData::OnNavigationBoundsChanged()
 {
 	// Create generator if it wasn't yet
@@ -394,6 +410,41 @@ void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& Dirt
 	{
 		NavDataGenerator->RebuildDirtyAreas(DirtyAreas);
 	}
+}
+
+TArray<FBox> ANavigationData::GetNavigableBounds() const
+{
+	TArray<FBox> Result;
+	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+	
+	const auto& NavigationBounds = NavSys->GetNavigationBounds();
+	Result.Reserve(NavigationBounds.Num());
+
+	for (const auto& Bounds : NavigationBounds)
+	{
+		Result.Add(Bounds.AreaBox);
+	}
+	
+	return Result;
+}
+	
+TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(const FName& InLevelPackageName) const
+{
+	TArray<FBox> Result;
+	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
+	
+	const auto& NavigationBounds = NavSys->GetNavigationBounds();
+	Result.Reserve(NavigationBounds.Num());
+
+	for (const auto& Bounds : NavigationBounds)
+	{
+		if (Bounds.PackageName == InLevelPackageName)
+		{
+			Result.Add(Bounds.AreaBox);
+		}
+	}
+	
+	return Result;
 }
 
 void ANavigationData::DrawDebugPath(FNavigationPath* Path, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const

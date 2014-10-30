@@ -88,6 +88,9 @@ public:
 	/** Retrieves all tile indices at matching XY coordinates */
 	void GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const;
 
+	/** Retrieves list of tiles that intersect specified bounds */
+	void GetNavMeshTilesIn(const TArray<FBox>& InclusionBounds, TArray<int32>& Indices) const;
+
 	/** Retrieves number of tiles in this navmesh */
 	FORCEINLINE int32 GetNavMeshTilesCount() const { return DetourNavMesh->getMaxTiles(); }
 

@@ -259,6 +259,7 @@ EnginePrivate.h: Unreal engine private header file.
 #include "AI/Navigation/NavAreas/NavArea.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavigationGraphNode.h"
+#include "AI/Navigation/NavigationDataChunk.h"
 #include "Engine/NavigationObjectBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "Engine/PlayerStartPIE.h"

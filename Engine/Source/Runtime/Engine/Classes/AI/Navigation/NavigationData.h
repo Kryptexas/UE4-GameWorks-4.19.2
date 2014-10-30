@@ -412,6 +412,8 @@ class ENGINE_API ANavigationData : public AActor
 	virtual bool NeedsRebuild() const { return false; }
 	virtual bool SupportsRuntimeGeneration() const;
 	virtual void OnNavigationBoundsChanged();
+	virtual void OnStreamingLevelAdded(ULevel* InLevel) {};
+	virtual void OnStreamingLevelRemoved(ULevel* InLevel) {};
 	
 	//----------------------------------------------------------------------//
 	// Generation & data access                                                      
@@ -429,9 +431,21 @@ protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
 
 public:
+	/** Creates new generator in case navigation supports it */
 	virtual void ConstructGenerator();
+	
+	/** Triggers rebuild in case navigation supports it */
 	virtual void RebuildAll();
+
+	/** Blocks until navigation build is complete  */
+	virtual void EnsureBuildCompletion();
+
+	/** Cancels current build  */
+	virtual void CancelBuild();
+
+	/** Ticks navigation build  */
 	virtual void TickAsyncBuild(float DeltaSeconds);
+	
 	/** Retrieves navmesh's generator */
 	FNavDataGenerator* GetGenerator() { return NavDataGenerator.Get(); }
 	const FNavDataGenerator* GetGenerator() const { return NavDataGenerator.Get(); }
@@ -493,6 +507,12 @@ protected:
 public:
 	/** Returns bounding box for the navmesh. */
 	virtual FBox GetBounds() const PURE_VIRTUAL(ANavigationData::GetBounds,return FBox(););
+	
+	/** Returns list of navigable bounds. */
+	TArray<FBox> GetNavigableBounds() const;
+	
+	/** Returns list of navigable bounds that belongs to specific level */
+	TArray<FBox> GetNavigableBoundsInLevel(const FName& InLevelPackageName) const;
 	
 	//----------------------------------------------------------------------//
 	// Debug                                                                

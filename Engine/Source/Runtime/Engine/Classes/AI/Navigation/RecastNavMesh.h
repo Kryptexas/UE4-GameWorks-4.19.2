@@ -37,6 +37,7 @@ class FRecastQueryFilter;
 class INavLinkCustomInterface;
 class UNavArea;
 class UNavigationSystem;
+class URecastNavMeshDataChunk;
 struct FAreaNavModifier;
 
 UENUM()
@@ -369,7 +370,8 @@ struct FNavMeshTileData
 	}
 
 	FORCEINLINE bool IsValid() const { return NavData.IsValid() && GetData() != nullptr && DataSize > 0; }
-	FORCEINLINE void Release() { if (NavData.IsValid()) { NavData->RawNavData = nullptr; } DataSize = 0; LayerIndex = 0; }
+
+	uint8* Release();
 };
 
 DECLARE_MULTICAST_DELEGATE(FOnNavMeshUpdate);
@@ -657,6 +659,9 @@ public:
 	virtual FBox GetBounds() const override { return GetNavMeshBounds(); }
 	/** Called on world origin changes **/
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+
+	virtual void OnStreamingLevelAdded(ULevel* InLevel) override;
+	virtual void OnStreamingLevelRemoved(ULevel* InLevel) override;
 	// End ANavigationData Interface
 
 protected:
@@ -697,6 +702,9 @@ public:
 
 	/** Invalidates active paths that go through changed tiles  */
 	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
+
+	/** Event from generator that navmesh build has finished */
+	void OnNavMeshGenerationFinished();
 
 	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
@@ -867,6 +875,9 @@ private:
 	// @todo docuement
 	void UpdateNavVersion();
 	void UpdateNavObject();
+
+	/** @return Navmesh data chunk that belongs to this actor */
+	URecastNavMeshDataChunk* GetNavigationDataChunk(ULevel* InLevel) const;
 
 protected:
 	// retrieves RecastNavMeshImpl

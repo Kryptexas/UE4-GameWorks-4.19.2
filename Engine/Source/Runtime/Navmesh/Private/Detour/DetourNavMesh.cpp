@@ -1965,9 +1965,12 @@ dtStatus dtNavMesh::removeTile(dtTileRef ref, unsigned char** data, int* dataSiz
 		for (int j = 0; j < nneis; ++j)
 			unconnectExtLinks(neis[j], tile);
 	}
-		
+
+	// Whether caller wants to own tile data
+	bool callerOwnsData = (data && dataSize);
+
 	// Reset tile.
-	if (tile->flags & DT_TILE_FREE_DATA)
+	if ((tile->flags & DT_TILE_FREE_DATA) && !callerOwnsData)
 	{
 		// Owns data
 		dtFree(tile->data);

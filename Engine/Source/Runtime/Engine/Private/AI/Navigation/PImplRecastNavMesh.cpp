@@ -293,18 +293,33 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	}
 
 	int32 NumTiles = 0;
+	TArray<int32> TilesToSave;
 
 	if (Ar.IsSaving())
 	{
-		dtNavMesh const* ConstNavMesh = DetourNavMesh;
-		for (int i = 0; i < ConstNavMesh->getMaxTiles(); ++i)
+		TilesToSave.Reserve(DetourNavMesh->getMaxTiles());
+
+		if (!NavMeshOwner->bRebuildAtRuntime && !IsRunningCommandlet())
 		{
-			const dtMeshTile* Tile = ConstNavMesh->getTile(i);
-			if (Tile != NULL && Tile->header != NULL && Tile->dataSize > 0)
+			// For static navmeshes we save only tiles that belongs to this level
+			FName LevelPackageName = NavMeshOwner->GetOutermost()->GetFName();
+			GetNavMeshTilesIn(NavMeshOwner->GetNavigableBoundsInLevel(LevelPackageName), TilesToSave);
+		}
+		else
+		{
+			// Otherwise all valid tiles
+			dtNavMesh const* ConstNavMesh = DetourNavMesh;
+			for (int i = 0; i < ConstNavMesh->getMaxTiles(); ++i)
 			{
-				++NumTiles;
+				const dtMeshTile* Tile = ConstNavMesh->getTile(i);
+				if (Tile != NULL && Tile->header != NULL && Tile->dataSize > 0)
+				{
+					TilesToSave.Add(i);
+				}
 			}
 		}
+		
+		NumTiles = TilesToSave.Num();
 	}
 
 	Ar << NumTiles;
@@ -385,18 +400,15 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	else if (Ar.IsSaving())
 	{
 		dtNavMesh const* ConstNavMesh = DetourNavMesh;
-		for (int i = 0; i < ConstNavMesh->getMaxTiles(); ++i)
+		for (int TileIndex : TilesToSave)
 		{
-			const dtMeshTile* Tile = ConstNavMesh->getTile(i);
-			if (Tile != NULL && Tile->header != NULL && Tile->dataSize > 0)
-			{
-				dtTileRef TileRef = ConstNavMesh->getTileRef(Tile);
-				int32 TileDataSize = Tile->dataSize;
-				Ar << TileRef << TileDataSize;
+			const dtMeshTile* Tile = ConstNavMesh->getTile(TileIndex);
+			dtTileRef TileRef = ConstNavMesh->getTileRef(Tile);
+			int32 TileDataSize = Tile->dataSize;
+			Ar << TileRef << TileDataSize;
 
-				unsigned char* TileData = Tile->data;
-				SerializeRecastMeshTile(Ar, TileData, TileDataSize);
-			}
+			unsigned char* TileData = Tile->data;
+			SerializeRecastMeshTile(Ar, TileData, TileDataSize);
 		}
 	}
 }
@@ -2242,6 +2254,54 @@ void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int
 			{
 				const int32 TileIndex = (int32)ConstRecastNavMesh->decodePolyIdTile(TileRef);
 				Indices.Add(TileIndex);
+			}
+		}
+	}
+}
+
+void FPImplRecastNavMesh::GetNavMeshTilesIn(const TArray<FBox>& InclusionBounds, TArray<int32>& Indices) const
+{
+	if (DetourNavMesh)
+	{
+		const float* NavMeshOrigin = DetourNavMesh->getParams()->orig;
+		const float TileSize = DetourNavMesh->getParams()->tileWidth;
+
+		TSet<FIntPoint>	TileCoords;	
+		for (const FBox& Bounds : InclusionBounds)
+		{
+			const FBox RcBounds = Unreal2RecastBox(Bounds);
+			const int32 XMin = FMath::FloorToInt((RcBounds.Min.X - NavMeshOrigin[0]) / TileSize);
+			const int32 XMax = FMath::FloorToInt((RcBounds.Max.X - NavMeshOrigin[0]) / TileSize);
+			const int32 YMin = FMath::FloorToInt((RcBounds.Min.Z - NavMeshOrigin[2]) / TileSize);
+			const int32 YMax = FMath::FloorToInt((RcBounds.Max.Z - NavMeshOrigin[2]) / TileSize);
+
+			for (int32 y = YMin; y <= YMax; ++y)
+			{
+				for (int32 x = XMin; x <= XMax; ++x)
+				{
+					TileCoords.Add(FIntPoint(x, y));
+				}
+			}
+		}
+
+		// We guess that each tile has 3 layers in average
+		Indices.Reserve(TileCoords.Num()*3);
+
+		for (FIntPoint TileCoord : TileCoords)
+		{
+			int32 MaxTiles = DetourNavMesh->getTileCountAt(TileCoord.X, TileCoord.Y);
+			TArray<const dtMeshTile*> Tiles;
+			Tiles.AddZeroed(MaxTiles);
+
+			const int32 NumTiles = DetourNavMesh->getTilesAt(TileCoord.X, TileCoord.Y, Tiles.GetData(), MaxTiles);
+			for (int32 i = 0; i < NumTiles; ++i)
+			{
+				dtTileRef TileRef = DetourNavMesh->getTileRef(Tiles[i]);
+				if (TileRef)
+				{
+					const int32 TileIndex = (int32)DetourNavMesh->decodePolyIdTile(TileRef);
+					Indices.Add(TileIndex);
+				}
 			}
 		}
 	}
