@@ -38,6 +38,7 @@ class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInt
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool CanEverRemoveExecutionPin() const override { return false; }
+	virtual bool CanUserEditPinAdvancedViewFlag() const override { return true; }
 	// End of UK2Node interface
 
 	// UK2Node_Switch Interface

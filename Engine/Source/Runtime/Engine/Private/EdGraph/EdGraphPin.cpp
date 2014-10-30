@@ -159,7 +159,8 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 
 	// In K2 schemas the wildcard pins need to have their type copied before we get to pin splitting
 	// TODO: Better less hacky way of this?
-	if (PinType.PinCategory == TEXT("wildcard"))
+	static const FString WildCardText(TEXT("wildcard"));
+	if (PinType.PinCategory == WildCardText)
 	{
 		PinType = SourcePin.PinType;
 	}
@@ -197,8 +198,13 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 	}
 
 #if WITH_EDITORONLY_DATA
-	// Copy advanced visibility property, since it can be changed by user
-	bAdvancedView = SourcePin.bAdvancedView;
+	// Copy advanced visibility property, if it can be changed by user.
+	// Otherwise we don't want to copy this, or we'd be ignoring new metadata that tries to hide old pins.
+	UEdGraphNode* OuterNode = Cast<UEdGraphNode>(GetOuter());
+	if (OuterNode != nullptr && OuterNode->CanUserEditPinAdvancedViewFlag())
+	{
+		bAdvancedView = SourcePin.bAdvancedView;
+	}
 #endif // WITH_EDITORONLY_DATA
 }
 
