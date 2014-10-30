@@ -119,7 +119,7 @@ PX_INLINE bool PxTriangleMeshGeometry::isValid() const
 		return false;
 	if (!scale.scale.isFinite() || !scale.rotation.isUnit())
 		return false;
-	if (scale.scale.x <= 0.0f || scale.scale.y <= 0.0f || scale.scale.z <= 0.0f)
+	if (!scale.isValidForMesh())
 		return false;
 	if (!triangleMesh)
 		return false;

@@ -1004,6 +1004,25 @@ bool buildExplicitHierarchicalMeshFromRenderMeshAsset(physx::IExplicitHierarchic
 bool buildExplicitHierarchicalMeshFromDestructibleAsset(physx::IExplicitHierarchicalMesh& iHMesh, const physx::NxDestructibleAsset& destructibleAsset, physx::PxU32 maxRootDepth = PX_MAX_U32);
 
 /**
+Partitions (and possibly re-orders) the mesh array if the triangles form disjoint islands.
+mesh: pointer to array of NxExplicitRenderTriangles which make up the mesh
+meshTriangleCount: the size of the meshTriangles array
+meshPartition: user-allocated array for mesh partition, will be filled with the end elements of contiguous subsets of meshTriangles.
+meshPartitionMaxCount: size of user-allocated meshPartitionArray
+padding: distance (as a fraction of the mesh size) to consider vertices touching
+
+Returns the number of partitions.  The value may be larger than meshPartitionMaxCount.  In that case, the partitions beyond meshPartitionMaxCount are not recorded.
+*/
+physx::PxU32 partitionMeshByIslands
+(
+	physx::NxExplicitRenderTriangle* mesh,
+	physx::PxU32 meshTriangleCount,
+	physx::PxU32* meshPartition,
+	physx::PxU32 meshPartitionMaxCount,
+	physx::PxF32 padding = 0.0001f
+);
+
+/**
 	Splits the mesh in chunk[0], forming a hierarchy of fractured meshes in chunks[1...]
 
 	hMesh: the mesh to split

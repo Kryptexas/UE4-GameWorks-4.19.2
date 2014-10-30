@@ -66,6 +66,8 @@ public:
 	\param[out] vertexIndices Returned vertex indices for given triangle
 	\param[out] adjacencyIndices Returned 3 triangle adjacency internal face indices (0xFFFFFFFF if no adjacency). The mesh must be cooked with cooking param buildTriangleAdjacencies enabled.
 
+	\note This function will flip the triangle normal whenever triGeom.scale.flipsNormal() is true.
+
 	@see PxTriangle PxTriangleFlags PxTriangleID findOverlapTriangleMesh()
 	*/
 	PX_PHYSX_COMMON_API static void getTriangle(const PxTriangleMeshGeometry& triGeom, const PxTransform& transform, PxTriangleID triangleIndex, PxTriangle& triangle, PxU32* vertexIndices=NULL, PxU32* adjacencyIndices=NULL);
@@ -82,6 +84,8 @@ public:
 	\param[out] triangle Triangle points in world space.
 	\param[out] vertexIndices Returned vertex indices for given triangle
 	\param[out] adjacencyIndices Returned 3 triangle adjacency triangle indices (0xFFFFFFFF if no adjacency).
+
+	\note This function will flip the triangle normal whenever triGeom.scale.flipsNormal() is true.
 
 	@see PxTriangle PxTriangleFlags PxTriangleID findOverlapHeightField()
 	*/

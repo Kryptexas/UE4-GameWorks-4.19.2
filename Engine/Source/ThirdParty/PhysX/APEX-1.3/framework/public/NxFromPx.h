@@ -306,9 +306,9 @@ PX_INLINE void PxBounds3boundsOfOBB(physx::PxBounds3& b, const physx::PxMat33Leg
 	physx::PxF32 dimy = halfDims[1];
 	physx::PxF32 dimz = halfDims[2];
 
-	physx::PxF32 x = abs(orientation(0, 0) * dimx) + abs(orientation(0, 1) * dimy) + abs(orientation(0, 2) * dimz);
-	physx::PxF32 y = abs(orientation(1, 0) * dimx) + abs(orientation(1, 1) * dimy) + abs(orientation(1, 2) * dimz);
-	physx::PxF32 z = abs(orientation(2, 0) * dimx) + abs(orientation(2, 1) * dimy) + abs(orientation(2, 2) * dimz);
+	physx::PxF32 x = PxAbs(orientation(0, 0) * dimx) + PxAbs(orientation(0, 1) * dimy) + PxAbs(orientation(0, 2) * dimz);
+	physx::PxF32 y = PxAbs(orientation(1, 0) * dimx) + PxAbs(orientation(1, 1) * dimy) + PxAbs(orientation(1, 2) * dimz);
+	physx::PxF32 z = PxAbs(orientation(2, 0) * dimx) + PxAbs(orientation(2, 1) * dimy) + PxAbs(orientation(2, 2) * dimz);
 
 	physx::PxVec3 minimum(-x + translation[0], -y + translation[1], -z + translation[2]);
 	physx::PxVec3 maximum(x + translation[0], y + translation[1], z + translation[2]);
@@ -334,9 +334,9 @@ PX_INLINE void PxBounds3boundsOfOBB(physx::PxBounds3& b, const physx::PxMat44& t
 	physx::PxF32 dimy = halfDims[1];
 	physx::PxF32 dimz = halfDims[2];
 
-	physx::PxF32 x = abs(tm(0, 0) * dimx) + abs(tm(0, 1) * dimy) + abs(tm(0, 2) * dimz);
-	physx::PxF32 y = abs(tm(1, 0) * dimx) + abs(tm(1, 1) * dimy) + abs(tm(1, 2) * dimz);
-	physx::PxF32 z = abs(tm(2, 0) * dimx) + abs(tm(2, 1) * dimy) + abs(tm(2, 2) * dimz);
+	physx::PxF32 x = PxAbs(tm(0, 0) * dimx) + PxAbs(tm(0, 1) * dimy) + PxAbs(tm(0, 2) * dimz);
+	physx::PxF32 y = PxAbs(tm(1, 0) * dimx) + PxAbs(tm(1, 1) * dimy) + PxAbs(tm(1, 2) * dimz);
+	physx::PxF32 z = PxAbs(tm(2, 0) * dimx) + PxAbs(tm(2, 1) * dimy) + PxAbs(tm(2, 2) * dimz);
 
 	physx::PxVec3 minimum(-x + center[0], -y + center[1], -z + center[2]);
 	physx::PxVec3 maximum(x + center[0], y + center[1], z + center[2]);

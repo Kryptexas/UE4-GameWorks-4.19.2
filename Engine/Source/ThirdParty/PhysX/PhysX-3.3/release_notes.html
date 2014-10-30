@@ -75,6 +75,7 @@
 		<li>Added:</li>
 		<ul>
 			<li>The friction model can now be changed after scene instantiation with PxScene::setFrictionType.  The friction model can also be queried with PxScene::getFrictionType.</li>
+			<li>Negative mesh scale is now supported for PxTriangleMeshGeometry. Negative scale corresponds to reflection and scale along the corresponding axis. In addition to reflection PhysX will flip the triangle normals.</li>
 		</ul>
 		<li>Changed:</li>
 		<ul>
@@ -188,6 +189,7 @@
 		<ul>
 			<li>The doxy comment describing the default setting for PxVehicleWheelsSimData::setWheelShapeMapping was incorrect.  This now correctly documents the default mapping as PxVehicleWheelsSimData::setWheelShapeMapping(i,i).</li>
 			<li>Suspensions raycasts that start inside geometry are ignored for all geometry types.  Prior to this release this was true for all geometry types except for heightfields and triangle meshes.  This inconsistency has now been fixed so that all geometry types obey the rule that suspension raycasts starting inside geometry are neglected.</li>
+			<li>Suspension force calculation now applies an extra force perpendicular to the spring travel direction.  This force is calculated to satisfy the constraint that the sprung mass only has motion along the spring travel direction.  This change mostly affects vehicles with suspension travel directions that are not vertical.</li> 
 		</ul>
 	</ul>
 
