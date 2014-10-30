@@ -13,6 +13,8 @@
 #include "UProjectInfo.h"
 #include "EngineVersion.h"
 
+#include "ModuleManager.h"
+
 #if WITH_EDITOR
 	#include "EditorStyle.h"
 	#include "AutomationController.h"
@@ -651,40 +653,6 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 	return (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer);
 }
 #endif
-
-/**
- * Loads array of module names that needs to be auto-loaded.
- *
- * @param OutModules Output array to fill with module names.
- */
-void GetAutoStartupModuleList(TArray<FString>& OutModules)
-{
-	// UBT generated function for listing all auto-startup module
-	// this binary is loading. If the list is finished then this function
-	// returns nullptr.
-	extern const ANSICHAR* EnumAutoStartupModuleName(int Index);
-
-	const ANSICHAR* NamePtr = nullptr;
-	int32 Index = 0;
-	while ((NamePtr = EnumAutoStartupModuleName(Index++)) != nullptr)
-	{
-		OutModules.Add(FString(NamePtr));
-	}
-}
-
-/**
- * Calls for each auto-startup module its StartupModule function.
- */
-void InitializeAutoStartupModules()
-{
-	TArray<FString> Modules;
-	GetAutoStartupModuleList(Modules);
-
-	for (auto ModuleName : Modules)
-	{
-		FModuleManager::LoadModuleChecked<IModuleInterface>(*ModuleName);
-	}
-}
 
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
@@ -1407,9 +1375,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	MarkObjectsToDisregardForGC(); 
 	GUObjectArray.CloseDisregardForGC();
 
-#if WITH_ENGINE
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
-#endif
 
 	SlowTask.EnterProgressFrame(50);
 
@@ -1521,7 +1487,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			// Execute the commandlet.
 			double CommandletExecutionStartTime = FPlatformTime::Seconds();
 
-			InitializeAutoStartupModules();
+			FModuleManager::Get().InitializeAutoStartupModules();
 
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
@@ -1689,6 +1655,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 
 #else // WITH_ENGINE
+	FModuleManager::Get().InitializeAutoStartupModules();
 	EndInitTextLocalization();
 	FPlatformMisc::PlatformPostInit();
 #endif // WITH_ENGINE
@@ -1950,7 +1917,7 @@ int32 FEngineLoop::Init()
 		return 1;
 	}
 
-	InitializeAutoStartupModules();
+	FModuleManager::Get().InitializeAutoStartupModules();
 
 	GetMoviePlayer()->WaitForMovieToFinish();
 

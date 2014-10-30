@@ -931,6 +931,16 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/**
+		 * Adds additional source cpp files for this module.
+		 *
+		 * @param Files Files to add.
+		 */
+		public void AddAdditionalCPPFiles(IEnumerable<FileItem> Files)
+		{
+			SourceFilesToBuild.CPPFiles.AddRange(Files);
+		}
+
 		/** A list of the absolute paths of source files to be built in this module. */
 		public readonly SourceFilesClass SourceFilesToBuild = new SourceFilesClass();
 

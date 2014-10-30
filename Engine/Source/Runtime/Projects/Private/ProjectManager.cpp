@@ -93,6 +93,12 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 		}
 	}
 
+	if (LoadingPhase == ELoadingPhase::PreDefault && (!CurrentProject.IsValid() || CurrentProject->Modules.Num() == 0))
+	{
+		// If this is not a code-project load default game project module.
+		FModuleManager::Get().LoadModuleChecked("UE4Game");
+	}
+
 	return bSuccess;
 }
 

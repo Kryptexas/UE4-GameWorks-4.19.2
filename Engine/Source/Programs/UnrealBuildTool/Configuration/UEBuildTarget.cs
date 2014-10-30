@@ -1827,6 +1827,16 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Tests if the module provided is a game module.
+		/// </summary>
+		/// <param name="Module">Module to check.</param>
+		/// <returns>True if provided module is a game module. False otherwise.</returns>
+		private static bool IsGameModule(UEBuildModule Module)
+		{
+			return Module.Type == UEBuildModuleType.Game || (Module.Type == UEBuildModuleType.Runtime && Module.Name == "UE4Game");
+		}
+
+		/// <summary>
 		/// Creates a getter module that outputs auto-startup module list.
 		/// </summary>
 		private void CreateAutoStartupModuleListGetter()
@@ -1834,25 +1844,31 @@ namespace UnrealBuildTool
 			var AutoStartupModuleArray = GetAutoStartupModuleList().ToArray();
 
 			var ModuleName = "AutoStartupModuleListGetter";
-			var ModuleDir = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, ModuleName);
+
+			UEBuildModuleCPP Module = null;
+
+			if (TargetType != TargetRules.TargetType.Program)
+			{
+				Module = ExtraModuleNames.Select(Name => GetModuleByName(Name)).Where(
+					InnerModule => IsGameModule(InnerModule)
+				).First() as UEBuildModuleCPP;
+			}
+			else
+			{
+				Module = GetModuleByName(AppName) as UEBuildModuleCPP;
+			}
+
+			var ModuleDir = Path.Combine(Module.Target.ProjectIntermediateDirectory, ModuleName);
 
 			if (!Directory.Exists(ModuleDir))
 			{
 				Directory.CreateDirectory(ModuleDir);
 			}
 
-			string SourceFilename = Path.Combine(ModuleDir, ModuleName + ".cpp");
-			string HeaderFilename = Path.Combine(ModuleDir, ModuleName + ".h");
-
-			if (!File.Exists(HeaderFilename))
-			{
-				File.WriteAllText(HeaderFilename, "");
-			}
+			string SourceFilename = Path.Combine(ModuleDir, ModuleName + ".generated.cpp");
 
 			var SourceLines = new List<string>();
 
-			SourceLines.Add(string.Format("#include \"{0}\"", ModuleName + ".h"));
-			SourceLines.Add("");
 			SourceLines.Add("const char* EnumAutoStartupModuleName(int Index)");
 			SourceLines.Add("{");
 
@@ -1877,11 +1893,7 @@ namespace UnrealBuildTool
 				File.WriteAllLines(SourceFilename, SourceLines);
 			}
 
-			BindArtificialModuleToBinary(
-				CreateArtificialModule(
-					ModuleName, ModuleDir,
-					new FileItem[] { FileItem.GetItemByPath(SourceFilename) }, new string[] { }
-				), AppBinaries[0]);
+			(Module as UEBuildModuleCPP).AddAdditionalCPPFiles(new FileItem[] { FileItem.GetItemByPath(SourceFilename) });
 		}
 
 		/// <summary>
@@ -2246,28 +2258,36 @@ namespace UnrealBuildTool
 			// Add extra modules that will either link into the main binary (monolithic), or be linked into separate DLL files (modular)
 			foreach (var ModuleName in ExtraModuleNames)
 			{
-				if (ShouldCompileMonolithic())
-				{
-					// Add this module to the executable's list of included modules
-					var ExecutableBinary = AppBinaries[0];
-					ExecutableBinary.AddModule(ModuleName);
-				}
-				else
-				{
-					// Create a DLL binary for this module
-					string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, null, AppName);
-					UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
-																						InOutputFilePaths: OutputFilePaths,
-																						InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName) ? ProjectIntermediateDirectory : EngineIntermediateDirectory,
-																						bInAllowExports: true,
-																						InModuleNames: new List<string> { ModuleName } );
-
-					// Tell the target about this new binary
-					AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
-				}
+				AddExtraModule(ModuleName);
 			}
 		}
 
+		/// <summary>
+		/// Adds extra module to the target.
+		/// </summary>
+		/// <param name="ModuleName">Name of the module.</param>
+		protected void AddExtraModule(string ModuleName)
+		{
+			if (ShouldCompileMonolithic())
+			{
+				// Add this module to the executable's list of included modules
+				var ExecutableBinary = AppBinaries[0];
+				ExecutableBinary.AddModule(ModuleName);
+			}
+			else
+			{
+				// Create a DLL binary for this module
+				string[] OutputFilePaths = MakeBinaryPaths(ModuleName, GetAppName() + "-" + ModuleName, UEBuildBinaryType.DynamicLinkLibrary, TargetType, null, AppName);
+				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.DynamicLinkLibrary,
+																					InOutputFilePaths: OutputFilePaths,
+																					InIntermediateDirectory: RulesCompiler.IsGameModule(ModuleName) ? ProjectIntermediateDirectory : EngineIntermediateDirectory,
+																					bInAllowExports: true,
+																					InModuleNames: new List<string> { ModuleName });
+
+				// Tell the target about this new binary
+				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
+			}
+		}
 
 		/**
 		 * @return true if debug information is created, false otherwise.
