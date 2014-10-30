@@ -374,7 +374,7 @@ void FD3D11BufferedGPUTiming::PlatformStaticInitialize(void* UserData)
 		if(D3DResult == S_OK)
 		{
 			GTimingFrequency = FreqQueryData.Frequency;
-//			checkSlow(!FreqQueryData.Disjoint);
+			checkSlow(!FreqQueryData.Disjoint);
 		}
 	}
 
