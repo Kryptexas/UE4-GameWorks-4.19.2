@@ -290,8 +290,14 @@ public:
 	uint32 bCastVolumetricTranslucentShadow:1;
 
 	/** 
+	 * When enabled, the component will only cast a shadow on itself and not other components in the world.  This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow"))
+	uint32 bSelfShadowOnly:1;
+
+	/** 
 	 * Whether this component should create a per-object shadow that gives higher effective shadow resolution. 
-	 * Useful for cinematic character shadowing.
+	 * Useful for cinematic character shadowing. Assumed to be enabled if bSelfShadowOnly is enabled.
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow"))
 	uint32 bCastInsetShadow:1;

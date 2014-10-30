@@ -393,6 +393,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 	bReflectiveShadowmap(false),
 	bTranslucentShadow(bInTranslucentShadow),
 	bPreShadow(bInPreShadow),
+	bSelfShadowOnly(InParentSceneInfo->Proxy->CastsSelfShadowOnly()),
 	bRayTracedDistanceFieldShadow(false)
 {
 	const FMatrix WorldToLightScaled = Initializer.WorldToLight * FScaleMatrix(Initializer.Scales);
@@ -517,6 +518,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 ,	bReflectiveShadowmap(bInReflectiveShadowMap) 
 ,	bTranslucentShadow(false)
 ,	bPreShadow(false)
+,	bSelfShadowOnly(false)
 ,	bRayTracedDistanceFieldShadow(Initializer.bRayTracedDistanceFieldShadow)
 ,	bValidTransform(true)
 {	
@@ -1284,12 +1286,12 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 					LightSceneInfo,
 					PrimitiveSceneInfo,
 					ShadowInitializer,
-					false,
+					false,					// no preshadow
 					SizeX,
 					MaxShadowResolutionY,
 					MaxScreenPercent,
 					ResolutionFadeAlphas,
-					false
+					false					// no tranlucent shadow
 					);
 				VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
 
@@ -1322,12 +1324,12 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 					LightSceneInfo,
 					PrimitiveSceneInfo,
 					ShadowInitializer,
-					false,
+					false,					// no preshadow
 					SizeX,
 					MaxShadowResolutionY,
 					MaxScreenPercent,
 					ResolutionFadeAlphas,
-					true
+					true					// tranlucent shadow
 					);
 				VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
 

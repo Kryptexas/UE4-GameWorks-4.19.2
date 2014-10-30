@@ -544,6 +544,11 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 			return Mobility == EComponentMobility::Movable;
 		}
 
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow))
+		{
+			return !bSelfShadowOnly;
+		}
+
 		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow))
 		{
 			// Look for any lit materials

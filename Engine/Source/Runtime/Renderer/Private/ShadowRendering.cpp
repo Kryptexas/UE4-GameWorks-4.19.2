@@ -1868,7 +1868,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	bool bDepthBoundsTestEnabled = false;
 
 	// If this is a preshadow, mask the projection by the receiver primitives.
-	if (bPreShadow)
+	if (bPreShadow || bSelfShadowOnly)
 	{
 		SCOPED_DRAW_EVENTF(RHICmdList, EventMaskSubjects, TEXT("Stencil Mask Subjects"));
 
@@ -1885,9 +1885,13 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
 		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
 
-		for (int32 PrimitiveIndex = 0; PrimitiveIndex < ReceiverPrimitives.Num(); PrimitiveIndex++)
+		// bPreShadow: only receive shadow on specific objects
+		// bSelfShadowOnly: only cast shadow on itself
+		const PrimitiveArrayType& MaskPrimitives = bSelfShadowOnly ? SubjectPrimitives : ReceiverPrimitives;
+
+		for (int32 PrimitiveIndex = 0, PrimitiveCount = MaskPrimitives.Num(); PrimitiveIndex < PrimitiveCount; PrimitiveIndex++)
 		{
-			const FPrimitiveSceneInfo* ReceiverPrimitiveSceneInfo = ReceiverPrimitives[PrimitiveIndex];
+			const FPrimitiveSceneInfo* ReceiverPrimitiveSceneInfo = MaskPrimitives[PrimitiveIndex];
 
 			if (View->PrimitiveVisibilityMap[ReceiverPrimitiveSceneInfo->GetIndex()])
 			{

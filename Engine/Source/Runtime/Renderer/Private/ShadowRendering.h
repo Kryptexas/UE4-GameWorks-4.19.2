@@ -608,6 +608,9 @@ public:
 	/** Whether the shadow is a preshadow or not.  A preshadow is a per object shadow that handles the static environment casting on a dynamic receiver. */
 	uint32 bPreShadow : 1;
 
+	/** To not cast a shadow on the ground outside the object and having higher quality (useful for first person weapon). */
+	uint32 bSelfShadowOnly : 1;
+
 	/** Whether the shadow is a directional light cascade that should be computed by ray tracing mesh distance fields. */
 	uint32 bRayTracedDistanceFieldShadow : 1;
 
@@ -643,7 +646,10 @@ private:
 
 public:
 
-	/** Initialization constructor for a per-object shadow. e.g. translucent particle system */
+	/**
+	 * Initialization constructor for a per-object shadow. e.g. translucent particle system
+	 * @param InParentSceneInfo must not be 0
+	 */
 	FProjectedShadowInfo(
 		FLightSceneInfo* InLightSceneInfo,
 		const FPrimitiveSceneInfo* InParentSceneInfo,
