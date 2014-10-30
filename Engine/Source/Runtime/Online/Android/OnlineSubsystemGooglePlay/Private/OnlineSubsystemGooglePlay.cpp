@@ -20,6 +20,7 @@ FOnlineSubsystemGooglePlay::FOnlineSubsystemGooglePlay()
 	: IdentityInterface(nullptr)
 	, LeaderboardsInterface(nullptr)
 	, AchievementsInterface(nullptr)
+	, StoreInterface(nullptr)
 	, CurrentLoginTask(nullptr)
 {
 
@@ -114,8 +115,12 @@ bool FOnlineSubsystemGooglePlay::Init()
 	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
 	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay(this));
-	StoreInterface = MakeShareable(new FOnlineStoreGooglePlay());
 
+	if (IsInAppPurchasingEnabled())
+	{
+		StoreInterface = MakeShareable(new FOnlineStoreGooglePlay(this));
+	}
+	/*
 	extern struct android_app* GNativeAndroidApp;
 	check(GNativeAndroidApp != nullptr);
 	AndroidInitialization::android_main(GNativeAndroidApp);
@@ -139,7 +144,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 			OnAuthActionFinished(Op, Status);
 		})
 		.Create(PlatformConfiguration).release() );
-
+*/
 	return true;
 }
 
@@ -166,6 +171,7 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 	}
 
 	// Destruct the interfaces
+	DESTRUCT_INTERFACE(StoreInterface);
 	DESTRUCT_INTERFACE(ExternalUIInterface);
 	DESTRUCT_INTERFACE(AchievementsInterface);
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
@@ -196,6 +202,13 @@ bool FOnlineSubsystemGooglePlay::IsEnabled(void)
 	bool bEnabled = true;
 	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
 	return bEnabled;
+}
+
+bool FOnlineSubsystemGooglePlay::IsInAppPurchasingEnabled()
+{
+	bool bEnabledIAP = false;
+	GConfig->GetBool(TEXT("OnlineSubsystemGooglePlay.Store"), TEXT("bSupportsInAppPurchasing"), bEnabledIAP, GEngineIni);
+	return bEnabledIAP;
 }
 
 void FOnlineSubsystemGooglePlay::QueueAsyncTask(FOnlineAsyncTask* AsyncTask)

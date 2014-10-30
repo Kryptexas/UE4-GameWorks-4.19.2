@@ -121,6 +121,10 @@ jmethodID JDef_GameActivity::AndroidThunkJava_ForceQuit;
 jmethodID JDef_GameActivity::AndroidThunkJava_GetFontDirectory;
 jmethodID JDef_GameActivity::AndroidThunkJava_IsMusicActive;
 jmethodID JDef_GameActivity::AndroidThunkJava_InitHMDs;
+jmethodID JDef_GameActivity::AndroidThunkJava_IapSetupService;
+jmethodID JDef_GameActivity::AndroidThunkJava_IapQueryInAppPurchases;
+jmethodID JDef_GameActivity::AndroidThunkJava_IapBeginPurchase;
+jmethodID JDef_GameActivity::AndroidThunkJava_IapIsAllowedToMakePurchases;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -334,6 +338,107 @@ bool AndroidThunkCpp_IsMusicActive()
 	return active;
 }
 
+void AndroidThunkCpp_Iap_SetupIapService(const FString& InProductKey)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		if (GJavaGlobalThis)
+		{
+			jstring ProductKey = Env->NewStringUTF(TCHAR_TO_UTF8(*InProductKey));
+			Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IapSetupService, ProductKey);
+			Env->DeleteLocalRef(ProductKey);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - JNI is invalid");
+		}
+	}
+}
+
+bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs, const TArray<bool>& bConsumable)
+{
+	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_QueryInAppPurchases");
+	bool bResult = false;
+
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		if (GJavaGlobalThis)
+		{
+			static jclass StringClass = Env->FindClass("java/lang/String");
+
+			// Populate some java types with the provided product information
+			jobjectArray ProductIDArray = (jobjectArray)Env->NewObjectArray(ProductIDs.Num(), StringClass, NULL);
+			jbooleanArray ConsumeArray = (jbooleanArray)Env->NewBooleanArray(ProductIDs.Num());
+
+			jboolean* ConsumeArrayValues = Env->GetBooleanArrayElements(ConsumeArray, 0);
+			for (uint32 Param = 0; Param < ProductIDs.Num(); Param++)
+			{
+				jstring StringValue = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductIDs[Param]));
+				Env->SetObjectArrayElement(ProductIDArray, Param, StringValue);
+				Env->DeleteLocalRef(StringValue);
+
+				ConsumeArrayValues[Param] = bConsumable[Param];
+			}
+			Env->ReleaseBooleanArrayElements(ConsumeArray, ConsumeArrayValues, 0);
+
+			// Execute the java code for this operation
+			bResult = (bool)Env->CallBooleanMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IapQueryInAppPurchases, ProductIDArray, ConsumeArray);
+
+			// clean up references
+			Env->DeleteLocalRef(ProductIDArray);
+			Env->DeleteLocalRef(ConsumeArray);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - JNI is invalid");
+		}
+	}
+
+	return bResult;
+}
+
+bool AndroidThunkCpp_Iap_BeginPurchase(const FString& ProductID, const bool bConsumable)
+{
+	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_BeginPurchase");
+	bool bResult = false;
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		if (GJavaGlobalThis)
+		{
+			jstring ProductIdJava = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductID));
+			bResult = (bool)Env->CallBooleanMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IapBeginPurchase, ProductIdJava, bConsumable);
+			Env->DeleteLocalRef(ProductIdJava);
+
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("JDef_GameActivity::AndroidThunkJava_IapBeginPurchase - '%s'"), bResult ? TEXT("true") : TEXT("false"));
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - JNI is invalid");
+		}
+	}
+
+	return bResult;
+}
+
+bool AndroidThunkCpp_Iap_IsAllowedToMakePurchases()
+{
+	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_IsAllowedToMakePurchases");
+	bool bResult = false;
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		if (GJavaGlobalThis)
+		{
+			bResult = (bool)Env->CallBooleanMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IapIsAllowedToMakePurchases);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - JNI is invalid");
+		}
+	}
+	return bResult;
+}
+
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -402,6 +507,19 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 
 	JDef_GameActivity::AndroidThunkJava_InitHMDs = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_InitHMDs", "()V");
 	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_InitHMDs);
+
+	// In app purchase functionality
+	JDef_GameActivity::AndroidThunkJava_IapSetupService = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IapSetupService", "(Ljava/lang/String;)V");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_IapSetupService);
+
+	JDef_GameActivity::AndroidThunkJava_IapQueryInAppPurchases = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IapQueryInAppPurchases", "([Ljava/lang/String;[Z)Z");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_IapQueryInAppPurchases);
+
+	JDef_GameActivity::AndroidThunkJava_IapBeginPurchase = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IapBeginPurchase", "(Ljava/lang/String;Z)Z");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_IapBeginPurchase);
+
+	JDef_GameActivity::AndroidThunkJava_IapIsAllowedToMakePurchases = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_IapIsAllowedToMakePurchases", "()Z");
+	CHECK_JNI_RESULT(JDef_GameActivity::AndroidThunkJava_IapIsAllowedToMakePurchases);
 
 	// hook signals
 #if UE_BUILD_DEBUG

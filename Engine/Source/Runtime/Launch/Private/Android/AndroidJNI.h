@@ -38,6 +38,12 @@ public:
 	static jmethodID AndroidThunkJava_GetFontDirectory;
 
 	static jmethodID AndroidThunkJava_IsMusicActive;
+
+	// In app purchase functionality
+	static jmethodID AndroidThunkJava_IapSetupService;
+	static jmethodID AndroidThunkJava_IapQueryInAppPurchases;
+	static jmethodID AndroidThunkJava_IapBeginPurchase;
+	static jmethodID AndroidThunkJava_IapIsAllowedToMakePurchases;
 };
 
 // Returns the java environment

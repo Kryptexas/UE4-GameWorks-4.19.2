@@ -58,6 +58,10 @@ import com.google.android.gms.plus.Plus;
 import java.net.URL;
 import java.net.HttpURLConnection;
 
+import com.epicgames.ue4.GooglePlayStoreHelper;
+import com.epicgames.ue4.GooglePlayLicensing;
+
+
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
 import com.epicgames.ue4.JavaBuildSettings;
@@ -120,6 +124,8 @@ public class GameActivity extends NativeActivity
 
 	/** Unique ID to identify Google Play Services error dialog */
 	private static final int PLAY_SERVICES_DIALOG_ID = 1;
+
+	private StoreHelper IapStoreHelper;
 
 	@Override
 	public void onStart()
@@ -378,6 +384,9 @@ public class GameActivity extends NativeActivity
 			}
 		});
 		virtualKeyboardAlert = builder.create();
+
+		GooglePlayLicensing.GoogleLicensing = new GooglePlayLicensing();
+		GooglePlayLicensing.GoogleLicensing.Init(this, Log);
 
 		// Now okay for event handler to be set up on native side
 		nativeResumeMainInit();
@@ -774,6 +783,77 @@ public class GameActivity extends NativeActivity
 	{
 		AudioManager audioManager = (AudioManager)this.getSystemService(Context.AUDIO_SERVICE);
 		return audioManager.isMusicActive();
+	}
+	
+	// In app purchase functionality
+	public void AndroidThunkJava_IapSetupService(String InProductKey)
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapSetupService");
+		IapStoreHelper = new GooglePlayStoreHelper(InProductKey, this, Log);
+		if( IapStoreHelper == null )
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+	}
+	
+
+	private String[] CachedQueryProductIDs;
+	private boolean[] CachedQueryConsumables;
+	public boolean AndroidThunkJava_IapQueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable)
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapQueryInAppPurchases");
+		CachedQueryProductIDs = ProductIDs;
+		CachedQueryConsumables = bConsumable;
+
+		boolean bTriggeredQuery = false;
+		if( IapStoreHelper != null )
+		{
+			bTriggeredQuery = true;
+
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					IapStoreHelper.QueryInAppPurchases(CachedQueryProductIDs, CachedQueryConsumables);
+				}
+			});
+		}
+		else
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+		return bTriggeredQuery;
+	}
+	
+	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId, boolean bConsumable)
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapBeginPurchase");
+		boolean bTriggeredPurchase = false;
+		if( IapStoreHelper != null )
+		{
+			bTriggeredPurchase = IapStoreHelper.BeginPurchase(ProductId, bConsumable);
+		}
+		else
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+		return bTriggeredPurchase;
+	}
+
+	public boolean AndroidThunkJava_IapIsAllowedToMakePurchases()
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapIsAllowedToMakePurchases");
+		boolean bIsAllowedToMakePurchase = false;
+		if( IapStoreHelper != null )
+		{
+			bIsAllowedToMakePurchase = IapStoreHelper.IsAllowedToMakePurchases();
+		}
+		else
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+		return bIsAllowedToMakePurchase;
 	}
 
 	public native boolean nativeIsShippingBuild();

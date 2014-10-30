@@ -66,3 +66,16 @@
 -keep public class com.google.ads.** {
    public *;
 }
+
+# Google Play Billing Services for In-App Purchases
+-keep class com.android.vending.billing.** {
+	*;
+}
+
+-keep class epicgames.ue4.StoreHelper.** {
+	public *;
+}
+
+-keep class epicgames.ue4.GooglePlayStoreHelper.** {
+	public *;
+}
