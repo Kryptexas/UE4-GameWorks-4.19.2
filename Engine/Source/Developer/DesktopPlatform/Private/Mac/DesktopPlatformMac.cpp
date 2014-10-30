@@ -64,12 +64,14 @@ private:
 	NSTextField*	TextField;
 	NSSavePanel*	DialogPanel;
 	NSMutableArray*	AllowedFileTypes;
+	int32			SelectedExtension;
 }
 
 - (id)initWithFrame:(NSRect)frameRect dialogPanel:(NSSavePanel*) panel;
 - (void)PopUpButtonAction: (id) sender;
 - (void)AddAllowedFileTypes: (NSArray*) array;
 - (void)SetExtensionsAtIndex: (int32) index;
+- (int32)SelectedExtension;
 
 @end
 
@@ -135,6 +137,7 @@ private:
 - (void)SetExtensionsAtIndex: (int32) index
 {
 	check( [AllowedFileTypes count] >= index * 2 );
+	SelectedExtension = index;
 
 	NSString* ExtsToParse = [AllowedFileTypes objectAtIndex:index * 2 + 1];
 	if( [ExtsToParse compare:@"*.*"] == NSOrderedSame )
@@ -154,6 +157,10 @@ private:
 
 		[DialogPanel setAllowedFileTypes: Extensions];
 	}
+}
+
+- (int32)SelectedExtension {
+    return SelectedExtension;
 }
 
 @end
@@ -225,17 +232,19 @@ private:
 
 bool FDesktopPlatformMac::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
-	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames);
+	int32 DummyIdx = 0;
+	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, DummyIdx);
 }
 
 bool FDesktopPlatformMac::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
-	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames);
+	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, OutFilterIndex);
 }
 
 bool FDesktopPlatformMac::SaveFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
-	return FileDialogShared(true, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames);
+	int32 DummyIdx = 0;
+	return FileDialogShared(true, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, DummyIdx);
 }
 
 bool FDesktopPlatformMac::OpenDirectoryDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, FString& OutFolderName)
@@ -424,7 +433,7 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 	return false;
 }
 
-bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
+bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
 	MacApplication->SetCapture( NULL );
 
@@ -503,6 +512,7 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 						FPlatformString::CFStringToTCHAR((CFStringRef)[FileURL path], FilePath);
 						new(OutFilenames) FString(FilePath);
 					}
+					OutFilterIndex = [AccessoryView SelectedExtension];
 				}
 
 				// Make sure all filenames gathered have their paths normalized

@@ -975,7 +975,7 @@ bool FTextureEditorToolkit::HandleRedChannelActionIsChecked( ) const
 
 bool FTextureEditorToolkit::HandleReimportActionCanExecute( ) const
 {
-	if (Texture->IsA<ULightMapTexture2D>() || Texture->IsA<UShadowMapTexture2D>())
+	if (Texture->IsA<ULightMapTexture2D>() || Texture->IsA<UShadowMapTexture2D>() || Texture->IsA<UTexture2DDynamic>())
 	{
 		return false;
 	}
