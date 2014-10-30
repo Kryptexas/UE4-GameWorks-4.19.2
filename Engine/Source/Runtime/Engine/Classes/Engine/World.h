@@ -456,20 +456,30 @@ struct ENGINE_API FActorSpawnParameters
 	EObjectFlags ObjectFlags;		
 };
 
+/**
+ *  This encapsulate World's async trace functionality. This contains two buffers of trace data buffer and alternates it for each tick. 
+ *  
+ *	You can use async trace using following APIs : AsyncLineTrace, AsyncSweep, AsyncOverlap
+ *	When you use those APIs, it will be saved to AsyncTraceData
+ *	FWorldAsyncTraceState contains two buffers to rotate each frame as you might need the result in the next frame
+ *	However, if you do not get the result by next frame, the result will be discarded. 
+ *	Use Delegate if you would like to get the result right away when available. 
+ */
 struct ENGINE_API FWorldAsyncTraceState
 {
 	FWorldAsyncTraceState();
 
+	/** Get the Buffer for input Frame */
 	FORCEINLINE AsyncTraceData& GetBufferForFrame        (int32 Frame) { return DataBuffer[ Frame             % 2]; }
+	/** Get the Buffer for Current Frame */
 	FORCEINLINE AsyncTraceData& GetBufferForCurrentFrame ()            { return DataBuffer[ CurrentFrame      % 2]; }
+	/** Get the Buffer for Previous Frame */
 	FORCEINLINE AsyncTraceData& GetBufferForPreviousFrame()            { return DataBuffer[(CurrentFrame + 1) % 2]; }
 
-	/** Async Trace Data Buffer **/
+	/** Async Trace Data Buffer Array. For now we only saves 2 frames. **/
 	AsyncTraceData DataBuffer[2];
 
-	/** Used as counter for Buffer swap for DataBuffer
-	 *	Right now it's only 2, but it can change
-	 */
+	/** Used as counter for Buffer swap for DataBuffer. Right now it's only 2, but it can change. */
 	int32 CurrentFrame;
 
 	/** Next available index for each pool - used as ID for each trace query **/
