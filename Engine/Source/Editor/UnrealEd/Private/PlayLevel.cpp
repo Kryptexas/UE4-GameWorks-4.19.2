@@ -642,6 +642,14 @@ void UEditorEngine::RequestPlaySession(const FString& DeviceId, const FString& D
 	bIsPlayWorldQueued = true;
 }
 
+void UEditorEngine::CancelRequestPlaySession()
+{
+	bIsPlayWorldQueued = false;
+	bPlayOnLocalPcSession = false;
+	bPlayUsingLauncher = false;
+	bPlayUsingMobilePreview = false;
+}
+
 void UEditorEngine::PlaySessionPaused()
 {
 	FEditorDelegates::PausePIE.Broadcast(bIsSimulatingInEditor);
@@ -1389,6 +1397,12 @@ void UEditorEngine::PlayUsingLauncher()
 		else
 		{
 			SaveWorldForPlay(MapNames);
+
+			if (MapNames.Num() == 0)
+			{
+				GEditor->CancelRequestPlaySession();
+				return;
+		}
 		}
 	
 		FString InitialMapName;

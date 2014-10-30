@@ -1541,6 +1541,11 @@ public:
 	void RequestPlaySession( const FString& DeviceId, const FString& DeviceName );
 
 	/**
+	 * Cancel request to start a play session
+	 */
+	void CancelRequestPlaySession();
+
+	/**
 	 * Makes a request to start a play from a Slate editor session
 	 */
 	void RequestToggleBetweenPIEandSIE() { bIsToggleBetweenPIEandSIEQueued = true; }
