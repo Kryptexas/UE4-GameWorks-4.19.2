@@ -66,5 +66,5 @@ public:
 	// End AActor interface
 
 	/** Returns CameraComponent subobject **/
-	ENGINE_API class UCameraComponent* GetCameraComponent() const;
+	class UCameraComponent* GetCameraComponent() const;
 };
