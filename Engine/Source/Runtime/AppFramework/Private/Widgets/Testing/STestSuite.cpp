@@ -1744,7 +1744,7 @@ public:
 			];
 		
 		TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-		uint16 Baseline = FontMeasure->GetBaseline( FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>( "RichText.Text" ).Font );
+		int16 Baseline = FontMeasure->GetBaseline( FTestStyle::Get().GetWidgetStyle<FTextBlockStyle>( "RichText.Text" ).Font );
 
 		return FSlateWidgetRun::FWidgetRunInfo( Widget, Baseline - 3 );
 	}

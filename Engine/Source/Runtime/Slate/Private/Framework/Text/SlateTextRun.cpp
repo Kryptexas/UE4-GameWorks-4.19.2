@@ -29,22 +29,27 @@ void FSlateTextRun::SetTextRange( const FTextRange& Value )
 int16 FSlateTextRun::GetBaseLine( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetBaseline( Style.Font, Scale ) - FMath::Max(0.0f, Style.ShadowOffset.Y);
+
+	const int16 BaseLine = FontMeasure->GetBaseline( Style.Font, Scale );
+	const int16 BaseLineAdjustment = FMath::Min(0.0f, Style.ShadowOffset.Y * Scale);
+	UE_LOG(LogSlate, Display, TEXT("Baseline: %d. Baseline Adjustment: %d. Shadow Offset: {%f, %f}\n"), BaseLine, BaseLineAdjustment, Style.ShadowOffset.X, Style.ShadowOffset.Y);
+
+	return FontMeasure->GetBaseline( Style.Font, Scale ) - FMath::Min(0.0f, Style.ShadowOffset.Y * Scale);
 }
 
 int16 FSlateTextRun::GetMaxHeight( float Scale ) const 
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetMaxCharacterHeight( Style.Font, Scale ) + FMath::Abs(Style.ShadowOffset.Y);
+	return FontMeasure->GetMaxCharacterHeight( Style.Font, Scale ) + FMath::Abs(Style.ShadowOffset.Y * Scale);
 }
 
 FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale ) const 
 {
-	const FVector2D ShadowOffsetToApply((EndIndex == Range.EndIndex) ? FMath::Abs(Style.ShadowOffset.X) : 0.0f, FMath::Abs(Style.ShadowOffset.Y));
+	const FVector2D ShadowOffsetToApply((EndIndex == Range.EndIndex) ? FMath::Abs(Style.ShadowOffset.X * Scale) : 0.0f, FMath::Abs(Style.ShadowOffset.Y * Scale));
 
 	if ( EndIndex - BeginIndex == 0 )
 	{
-		return FVector2D( ShadowOffsetToApply.X, GetMaxHeight( Scale ) );
+		return FVector2D( ShadowOffsetToApply.X * Scale, GetMaxHeight( Scale ) );
 	}
 
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
@@ -82,12 +87,12 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 
 	// A negative shadow offset should be applied as a positive offset to the text to avoid clipping issues
 	const FVector2D DrawShadowOffset(
-		(Style.ShadowOffset.X > 0.0f) ? Style.ShadowOffset.X : 0.0f, 
-		(Style.ShadowOffset.Y > 0.0f) ? Style.ShadowOffset.Y : 0.0f
+		(Style.ShadowOffset.X > 0.0f) ? Style.ShadowOffset.X * AllottedGeometry.Scale : 0.0f, 
+		(Style.ShadowOffset.Y > 0.0f) ? Style.ShadowOffset.Y * AllottedGeometry.Scale : 0.0f
 		);
 	const FVector2D DrawTextOffset(
-		(Style.ShadowOffset.X < 0.0f) ? -Style.ShadowOffset.X : 0.0f, 
-		(Style.ShadowOffset.Y < 0.0f) ? -Style.ShadowOffset.Y : 0.0f
+		(Style.ShadowOffset.X < 0.0f) ? -Style.ShadowOffset.X * AllottedGeometry.Scale : 0.0f, 
+		(Style.ShadowOffset.Y < 0.0f) ? -Style.ShadowOffset.Y * AllottedGeometry.Scale : 0.0f
 		);
 
 	// Draw the optional shadow

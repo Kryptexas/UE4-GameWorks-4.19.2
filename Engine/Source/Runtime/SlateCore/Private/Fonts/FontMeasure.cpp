@@ -313,12 +313,10 @@ int8 FSlateFontMeasure::GetKerning(const FSlateFontInfo& InFontInfo, float FontS
 	return CharacterList.GetKerning( PreviousCharacter, CurrentCharacter );
 }
 
-uint16 FSlateFontMeasure::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const
+int16 FSlateFontMeasure::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const
 {
 	FCharacterList& CharacterList = FontCache->GetCharacterList( InFontInfo, FontScale );
-
-	const uint16 Baseline = CharacterList.GetBaseline();
-	return Baseline;
+	return CharacterList.GetBaseline();
 }
 
 void FSlateFontMeasure::FlushCache()

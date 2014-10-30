@@ -1081,7 +1081,7 @@ uint16 FSlateFontCache::GetMaxCharacterHeight( const FSlateFontInfo& InFontInfo,
 	return NewRenderData.MaxHeight;
 }
 
-uint16 FSlateFontCache::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const
+int16 FSlateFontCache::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const
 {
 	FCharacterRenderData NewRenderData;
 

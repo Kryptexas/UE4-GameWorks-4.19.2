@@ -187,7 +187,7 @@ public:
 	 * 
 	 * @return The offset from the bottom of the max character height to the baseline.
 	 */
-	uint16 GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale = 1.0f ) const;
+	int16 GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale = 1.0f ) const;
 
 	void FlushCache();
 

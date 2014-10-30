@@ -219,7 +219,7 @@ private:
 	/** The global max height for any character in this font */
 	mutable uint16 MaxHeight;
 	/** The offset from the bottom of the max character height to the baseline. */
-	mutable uint16 Baseline;
+	mutable int16 Baseline;
 };
 
 /**
@@ -330,7 +330,7 @@ public:
 	 * 
 	 * @return The offset from the bottom of the max character height to the baseline.
 	 */
-	uint16 GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const;
+	int16 GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const;
 
 	/**
 	 * Returns the font attributes for the specified font.
