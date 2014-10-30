@@ -477,7 +477,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRH
 {
 	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
 
-	for (int32 MeshBatchIndex = FirstIndex; MeshBatchIndex < LastIndex; MeshBatchIndex++)
+	for (int32 MeshBatchIndex = FirstIndex; MeshBatchIndex <= LastIndex; MeshBatchIndex++)
 	{
 		const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
