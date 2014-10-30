@@ -19,8 +19,7 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 private:
-	void OnModifierTypeChanged(TSharedRef<IPropertyHandle> StructPropertyHandle);
-	void OnEffectTypeChanged(TSharedRef<IPropertyHandle> StructPropertyHandle);
+	
 	void OnModifierOpChanged(TSharedRef<IPropertyHandle> StructPropertyHandle);
 
 	EVisibility GetPropertyVisibility(FName PropName) const;

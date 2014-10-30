@@ -32,6 +32,9 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 	TArray<UProperty*> PropertiesToAdd;
 
+
+	
+/*
 	const bool bIsExtensionAttribute = (StructPropertyHandle->GetProperty()->GetOuter() == FExtensionAttributeModifierInfo::StaticStruct());
 	if (bIsExtensionAttribute)
 	{
@@ -86,6 +89,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 		}
 	}
 	else
+*/
 	{
 		// Gather all UAttriubute classes
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)

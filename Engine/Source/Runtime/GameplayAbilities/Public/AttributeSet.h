@@ -59,7 +59,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 
 	FString GetName() const
 	{
-		return Attribute->GetName();
+		return *GetNameSafe(Attribute);
 	}
 
 private:

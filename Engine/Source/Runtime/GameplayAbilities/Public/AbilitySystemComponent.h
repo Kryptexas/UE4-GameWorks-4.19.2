@@ -59,6 +59,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	virtual ~UAbilitySystemComponent();
 
 	virtual void InitializeComponent() override;
+	virtual void UninitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	/** Checks to see if we should be active (ticking). Called after something changes that would cause us to tick or not tick. */
@@ -169,8 +170,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// --------------------------------------------
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec& GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FPredictionKey PredictionKey=FPredictionKey());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec& GameplayEffect, FPredictionKey PredictionKey = FPredictionKey());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
@@ -199,10 +200,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	float GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, const FGameplayTag& InTag) const;
-
-	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
+
+
+	// New Stuff ---------------------------------- (Remove this comment!)
+
+
+	/**
+	 * Populate the specified capture spec with the data necessary to capture an attribute from the component
+	 * 
+	 * @param OutCaptureSpec	[OUT] Capture spec to populate with captured data
+	 */
+	void CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec);
+
+	// Delegates (these need to be at the UObject level so we can safetly bind, rather than binding to raw at the ActiveGameplayEffect/Container level which is unsafe if the AbilitySystemComponent were killed).
+
+	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
+
+	void OnOngoingTagRequirementChange(FActiveGameplayEffectHandle ActiveHandle);
 
 	// --------------------------------------------
 	// Tags
@@ -215,8 +230,27 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
 
+	/** 	 
+	 *  Allows GameCode to add loose gameplaytags which are not backed by a GameplayEffect. 
+	 *
+	 *	Tags added this way are not replicated! 
+	 *	
+	 *	It is up to the calling GameCode to make sure these tags are added on a;; clients/server where necessary
+	 */
+
+	void AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count=1);
+
+	void AddLooseGameplayTags(const FGameplayTagContainer& GameplayTag, int32 Count = 1);
+
+	void RemoveLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count = 1);
+
+	void RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTag, int32 Count = 1);
+
 	/** Allow events to be registered for specific gameplay tags being added or removed */
 	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);
+
+	/** Returns multicast delegate that is invoked whenever a tag is added or removed (but not if just count is increased. Only for 'new' and 'removed' events) */
+	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayTagEvent();
 
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
 
@@ -226,16 +260,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	
 	FOnActiveGameplayEffectRemoved* OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle);
 
-	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(), FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level = UGameplayEffect::INVALID_LEVEL, FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(), FPredictionKey PredictionKey = FPredictionKey());
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, FGameplayEffectContextHandle EffectContext);
 	
-	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext, FPredictionKey PredictionKey = FPredictionKey());
 
 	int32 GetNumActiveGameplayEffect() const;
-
-	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
 
 	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute);
 
@@ -255,23 +287,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Removes all active effects that match given query */
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query);
 
-	void OnRestackGameplayEffects();
-
-	// --------------------------------------------
-	// Temp / Debug
-	// --------------------------------------------
-
-	void TEMP_ApplyActiveGameplayEffects();
+	void OnRestackGameplayEffects();	
 	
 	void PrintAllGameplayEffects() const;
-
-	void PushGlobalCurveOveride(UCurveTable *OverrideTable)
-	{
-		if (OverrideTable)
-		{
-			GlobalCurveDataOverride.Overrides.Push(OverrideTable);
-		}
-	}
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -632,27 +650,17 @@ public:
 
 private:
 
-	bool HasNetworkAuthorityToApplyGameplayEffect(const FModifierQualifier QualifierContext) const;
+	bool HasNetworkAuthorityToApplyGameplayEffect(FPredictionKey PredictionKey) const;
 
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 
-	void ExecuteGameplayEffect(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	void ExecuteGameplayEffect(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey);
 
 	void CheckDurationExpired(FActiveGameplayEffectHandle Handle);
-
-	bool AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, const FGameplayEffectContextHandle& EffectContext) const;
 
 	bool IsOwnerActorAuthoritative() const;
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
-
-	const FGlobalCurveDataOverride* GetCurveDataOverride() const
-	{
-		// only return data if we have overrides. NULL if we don't.
-		return (GlobalCurveDataOverride.Overrides.Num() > 0 ? &GlobalCurveDataOverride : NULL);
-	}
-
-	FGlobalCurveDataOverride	GlobalCurveDataOverride;	
 
 	// --------------------------------------------
 	

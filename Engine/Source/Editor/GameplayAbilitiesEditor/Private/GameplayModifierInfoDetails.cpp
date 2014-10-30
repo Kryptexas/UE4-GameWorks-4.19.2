@@ -40,16 +40,6 @@ void FGameplayModifierInfoCustomization::CustomizeChildren(TSharedRef<IPropertyH
 		{
 			const FName PropName = ChildHandle->GetProperty()->GetFName();
 
-			if ( PropName == GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, ModifierType) )
-			{
-				ChildHandle->SetOnPropertyValueChanged( FSimpleDelegate::CreateSP(this, &FGameplayModifierInfoCustomization::OnModifierTypeChanged, StructPropertyHandle) );
-			}
-
-			if ( PropName == GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, EffectType) )
-			{
-				ChildHandle->SetOnPropertyValueChanged( FSimpleDelegate::CreateSP(this, &FGameplayModifierInfoCustomization::OnEffectTypeChanged, StructPropertyHandle) );
-			}
-
 			if ( PropName == GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, ModifierOp) )
 			{
 				ChildHandle->SetOnPropertyValueChanged( FSimpleDelegate::CreateSP(this, &FGameplayModifierInfoCustomization::OnModifierOpChanged, StructPropertyHandle) );
@@ -59,16 +49,6 @@ void FGameplayModifierInfoCustomization::CustomizeChildren(TSharedRef<IPropertyH
 				.Visibility( TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayModifierInfoCustomization::GetPropertyVisibility, PropName)) );
 		}
 	}
-}
-
-void FGameplayModifierInfoCustomization::OnModifierTypeChanged(TSharedRef<IPropertyHandle> StructPropertyHandle)
-{
-	UpdateHiddenProperties(StructPropertyHandle);
-}
-
-void FGameplayModifierInfoCustomization::OnEffectTypeChanged(TSharedRef<IPropertyHandle> StructPropertyHandle)
-{
-	UpdateHiddenProperties(StructPropertyHandle);
 }
 
 void FGameplayModifierInfoCustomization::OnModifierOpChanged(TSharedRef<IPropertyHandle> StructPropertyHandle)
@@ -113,64 +93,7 @@ EVisibility FGameplayModifierInfoCustomization::GetPropertyVisibility(FName Prop
 
 void FGameplayModifierInfoCustomization::UpdateHiddenProperties(const TSharedRef<IPropertyHandle>& StructPropertyHandle)
 {
-	HiddenProperties.Empty();
 
-	TArray<const void*> StructPtrs;
-	StructPropertyHandle->AccessRawData(StructPtrs);
-	if ( StructPtrs.Num() > 0 )
-	{
-		const FGameplayModifierInfo& FirstModifier = *reinterpret_cast<const FGameplayModifierInfo*>(StructPtrs[0]);
-		EGameplayMod::Type CommonModType = FirstModifier.ModifierType;
-		EGameplayModEffect::Type CommonModEffect = FirstModifier.EffectType;
-		EGameplayModOp::Type CommonModOp = FirstModifier.ModifierOp;
-		bool bAllSameModType = true;
-		bool bAllSameModEffect = true;
-		bool bAllSameModOp = true;
-
-		for ( const void* Ptr : StructPtrs )
-		{
-			const FGameplayModifierInfo& Modifier = *reinterpret_cast<const FGameplayModifierInfo*>(Ptr);
-
-			if ( Modifier.ModifierType != CommonModType )
-			{
-				bAllSameModType = false;
-			}
-
-			if ( Modifier.EffectType != CommonModEffect )
-			{
-				bAllSameModEffect = false;
-			}
-
-			if ( Modifier.ModifierOp != CommonModOp )
-			{
-				bAllSameModOp = false;
-			}
-		}
-		
-		if ( bAllSameModType && CommonModType == EGameplayMod::Attribute )
-		{
-			HiddenProperties.Add(GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, EffectType));
-			HiddenProperties.Add(GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, TargetEffect));
-		}
-
-		if ( bAllSameModEffect && CommonModEffect != EGameplayModEffect::LinkedGameplayEffect )
-		{
-			HiddenProperties.Add(GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, TargetEffect));
-		}
-
-		if ( bAllSameModOp )
-		{
-			if ( CommonModOp == EGameplayModOp::Callback )
-			{
-				HiddenProperties.Add(GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, Magnitude));
-				HiddenProperties.Add(GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, LevelInfo));
-			}
-			else
-			{
-				HiddenProperties.Add(GET_MEMBER_NAME_CHECKED(FGameplayModifierInfo, Callbacks));
-			}
-		}
-	}
 }
 
 

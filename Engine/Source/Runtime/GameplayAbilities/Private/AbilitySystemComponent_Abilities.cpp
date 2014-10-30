@@ -42,6 +42,19 @@ void UAbilitySystemComponent::InitializeComponent()
 	}
 }
 
+void UAbilitySystemComponent::UninitializeComponent()
+{
+	Super::UninitializeComponent();
+	
+	for (UAttributeSet* Set : SpawnedAttributes)
+	{
+		if (Set)
+		{
+			Set->MarkPendingKill();
+		}
+	}
+}
+
 void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TickAbilityTasks);

@@ -147,12 +147,6 @@ FString EGameplayModOpToString(int32 Type)
 	return e->GetEnum(Type).ToString();
 }
 
-FString EGameplayModToString(int32 Type)
-{
-	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayMod"));
-	return e->GetEnum(Type).ToString();
-}
-
 FString EGameplayModEffectToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEffect"));
@@ -232,21 +226,20 @@ bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagCo
 	return false;
 }
 
-void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTag& Tag, int32 CountDelta)
+void FGameplayTagCountContainer::UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta)
 {
-	// Update count of Tag
-	int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
-
-	bool WasZero = Count == 0;
-	Count = FMath::Max(Count + CountDelta, 0);
-		
-	// If we went from 0->1 or 1->0
-	if (WasZero || Count == 0)
+	if (TagContainerType == EGameplayTagMatchType::Explicit)
 	{
-		FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
-		if (Delegate)
+		// Update count of BaseTag
+		UpdateTagMap_Internal(Tag, CountDelta);
+	}
+	else if (TagContainerType == EGameplayTagMatchType::IncludeParentTags)
+	{
+		// Update count of BaseTag and all of its parent tags
+		FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+		for (auto ParentTagIt = TagAndParentsContainer.CreateConstIterator(); ParentTagIt; ++ParentTagIt)
 		{
-			Delegate->Broadcast(Tag, Count);
+			UpdateTagMap_Internal(*ParentTagIt, CountDelta);
 		}
 	}
 }
@@ -256,22 +249,63 @@ void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTagContainer& Conta
 	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
 	{
 		const FGameplayTag& BaseTag = *TagIt;
-		if (TagContainerType == EGameplayTagMatchType::Explicit)
+		UpdateTagMap(BaseTag, CountDelta);
+	}
+}
+
+void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
+{
+	// Update count of Tag
+	int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
+
+	bool WasZero = Count == 0;
+	Count = FMath::Max(Count + CountDelta, 0);
+
+	// If we went from 0->1 or 1->0
+	if (WasZero || Count == 0)
+	{
+		OnAnyTagChangeDelegate.Broadcast(Tag, Count);
+
+		FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
+		if (Delegate)
 		{
-			// Update count of BaseTag
-			UpdateTagMap(BaseTag, CountDelta);
-		}
-		else if (TagContainerType == EGameplayTagMatchType::IncludeParentTags)
-		{
-			// Update count of BaseTag and all of its parent tags
-			FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
-			for (auto ParentTagIt = TagAndParentsContainer.CreateConstIterator(); ParentTagIt; ++ParentTagIt)
-			{
-				UpdateTagMap(*ParentTagIt, CountDelta);
-			}
+			Delegate->Broadcast(Tag, Count);
 		}
 	}
 }
 
+bool FGameplayTagRequirements::RequirementsMet(FGameplayTagContainer Container) const
+{
+	bool HasRequired = Container.MatchesAll(RequireTags, true);
+	bool HasIgnored = Container.MatchesAny(IgnoreTags, false);
 
+	return HasRequired && !HasIgnored;
+}
 
+void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
+{
+	ABILITY_LOG_SCOPE(TEXT("ActiveGameplayEffects. Num: %d"), GameplayEffects.Num());
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		Effect.PrintAll();
+	}
+}
+
+void FActiveGameplayEffect::PrintAll() const
+{
+	ABILITY_LOG(Log, TEXT("Handle: %s"), *Handle.ToString());
+	ABILITY_LOG(Log, TEXT("StartWorldTime: %.2f"), StartWorldTime);
+	Spec.PrintAll();
+}
+
+void FGameplayEffectSpec::PrintAll() const
+{
+	ABILITY_LOG_SCOPE(TEXT("GameplayEffectSpec"));
+	ABILITY_LOG(Log, TEXT("Def: %s"), *Def->GetName());
+
+	ABILITY_LOG(Log, TEXT("Duration: %.2f"), GetDuration());
+
+	ABILITY_LOG(Log, TEXT("Period: %.2f"), GetPeriod());
+
+	ABILITY_LOG(Log, TEXT("Modifiers:"));
+}

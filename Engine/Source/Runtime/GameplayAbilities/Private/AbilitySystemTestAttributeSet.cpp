@@ -25,6 +25,7 @@ UAbilitySystemTestAttributeSet::UAbilitySystemTestAttributeSet(const FObjectInit
 
 bool UAbilitySystemTestAttributeSet::PreGameplayEffectExecute(struct FGameplayEffectModCallbackData &Data)
 {
+#if 0
 	static UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
 	static UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
@@ -80,6 +81,8 @@ bool UAbilitySystemTestAttributeSet::PreGameplayEffectExecute(struct FGameplayEf
 		// At this point, the Magnitude of the applied damage may have been modified by us. We still do the translation to Health in UAbilitySystemTestAttributeSet::PostAttributeModify.
 	}
 
+#endif
+
 	return true;
 }
 
@@ -94,7 +97,7 @@ void UAbilitySystemTestAttributeSet::PostGameplayEffectExecute(const struct FGam
 	if (DamageProperty == ModifiedProperty)
 	{
 		// Anytime Damage is applied with 'Damage.Fire' tag, there is a chance to apply a burning DOT
-		if (Data.EvaluatedData.Tags.HasTag( IGameplayTagsModule::RequestGameplayTag(FName(TEXT("FireDamage"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		if (Data.EvaluatedData.SourceTags.HasTag( IGameplayTagsModule::RequestGameplayTag(FName(TEXT("FireDamage"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 		{
 			// Logic to rand() a burning DOT, if successful, apply DOT GameplayEffect to the target
 		}

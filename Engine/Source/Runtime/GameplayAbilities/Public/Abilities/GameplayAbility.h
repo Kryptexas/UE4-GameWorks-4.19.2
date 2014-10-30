@@ -243,7 +243,13 @@ protected:
 	/**
 	 * The main function that defines what an ability does.
 	 *  -Child classes will want to override this
-	 *  -This function must call CommitAbility()
+	 *  -This function graph should call CommitAbility
+	 *  -This function graph should call EndAbility
+	 *  
+	 *  Latent/async actions are ok in this graph. Note that Commit and EndAbility calling requirements speak to the K2_ActivateAbility graph. 
+	 *  In C++, the call to K2_ActivateAbility() may return without CommitAbility or EndAbility having been called. But it is expected that this
+	 *  will only occur when latent/async actions are pending. When K2_ActivateAbility logically finishes, then we will expect Commit/End to have been called.
+	 *  
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ActivateAbility")
 	virtual void K2_ActivateAbility();	

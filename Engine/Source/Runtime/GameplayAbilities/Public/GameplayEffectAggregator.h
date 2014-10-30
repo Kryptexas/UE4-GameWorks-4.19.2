@@ -2,8 +2,6 @@
 
 #pragma once
 
-#if GE_REFACTOR
-
 #include "GameplayEffectTypes.h"
 
 // #include "GameplayEffectAggregator.generated.h"
@@ -31,23 +29,34 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 {
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAggregatorDirty, FAggregator*);
 
-	FAggregator(float InBaseValue=0.f) : BaseValue(InBaseValue) { }
+	FAggregator(float InBaseValue=0.f) : CallbacksDisabled(false), BaseValue(InBaseValue) { }
 
 	void SetBaseValue(float NewBaseValue);
-	void ExecModOnBaseValue(const struct FModifierSpec& Mod);
-
-	static float StaticExecModOnBaseValue(float BaseValue, const struct FModifierSpec& Mod);
+	
+	void ExecModOnBaseValue(TEnumAsByte<EGameplayModOp::Type> ModifierOp, float EvaluatedMagnitude);
+	static float StaticExecModOnBaseValue(float BaseValue, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float EvaluatedMagnitude);
 
 	void AddMod(float EvaluatedData, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements*	SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, FActiveGameplayEffectHandle ActiveHandle = FActiveGameplayEffectHandle());
 	void RemoveMod(FActiveGameplayEffectHandle ActiveHandle);
 
-	FOnAggregatorDirty OnDirty;
+	void DisableCallbacks();
+	void EnabledCallbacks();
 
+	/** Evaluates the Aggregator with the internal base value and given parameters */
 	float Evaluate(const FAggregatorEvaluateParameters& Parameters) const;
+
+	/** Evaluates the Aggregator with an arbitrary base value */
+	float EvaluateWithBase(float InlineBaseValue, const FAggregatorEvaluateParameters& Parameters) const;
 
 	void TakeSnapshotOf(const FAggregator& AggToSnapshot);
 
+	FOnAggregatorDirty OnDirty;
+
 private:
+
+	void BroadcastOnDirty();
+
+	bool CallbacksDisabled;
 
 	float	BaseValue;
 	TArray<FAggregatorMod>	Mods[EGameplayModOp::Max];
@@ -69,5 +78,3 @@ struct GAMEPLAYABILITIES_API FAggregatorRef
 
 	void TakeSnapshotOf(const FAggregatorRef& RefToSnapshot);
 };
-
-#endif

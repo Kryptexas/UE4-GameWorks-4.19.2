@@ -7,16 +7,12 @@
 #include "AbilitySystemBlueprintLibrary.h"
 
 
-TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FModifierQualifier Qualifier)
+TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FPredictionKey PredictionKey)
 {
 	// Clone the effect context per target to avoid modifying original context
 	FGameplayEffectContextHandle EffectContext = InEffectContext.Duplicate();
 	
-	FGameplayEffectSpec	SpecToApply(GameplayEffect,					// The UGameplayEffect data asset
-		EffectContext,		// The actor who instigated this
-		Level,							// FIXME: Leveling
-		NULL							// FIXME: CurveData override... should we just remove this?
-		);
+	FGameplayEffectSpec	SpecToApply(GameplayEffect, EffectContext, Level);
 	
 	AddTargetDataToContext(EffectContext);
 
@@ -31,7 +27,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 			UAbilitySystemComponent* TargetComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor.Get());
 			if (TargetComponent && EffectContext.GetInstigatorAbilitySystemComponent())
 			{
-				AppliedHandles.Add(EffectContext.GetInstigatorAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent, Qualifier));
+				AppliedHandles.Add(EffectContext.GetInstigatorAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(SpecToApply, TargetComponent, PredictionKey));
 			}
 		}
 	}

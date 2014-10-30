@@ -39,10 +39,8 @@ void UGameplayEffectExtension_LifestealTest::PostGameplayEffectExecute(const FGa
 			LocalHealthRestore = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("LifestealHealthRestore"))));
 			LocalHealthRestore->Modifiers.SetNum(1);
 			LocalHealthRestore->Modifiers[0].Magnitude.SetValue(HealthToRestore);
-			LocalHealthRestore->Modifiers[0].ModifierType = EGameplayMod::Attribute;
 			LocalHealthRestore->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
 			LocalHealthRestore->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-			LocalHealthRestore->Modifiers[0].OwnedTags.AddTag(GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("Lifesteal"))));
 			LocalHealthRestore->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
 			LocalHealthRestore->Period.Value = UGameplayEffect::NO_PERIOD;
 		}

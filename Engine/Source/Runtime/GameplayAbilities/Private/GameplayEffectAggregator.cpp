@@ -3,9 +3,6 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectAggregator.h"
 
-#if GE_REFACTOR
-#pragma optimize( "", off )
-
 bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) const
 {
 	bool SourceMet = (!SourceTagReqs || SourceTagReqs->RequirementsMet(Parameters.SourceTags));
@@ -15,6 +12,11 @@ bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) 
 }
 
 float FAggregator::Evaluate(const FAggregatorEvaluateParameters& Parameters) const
+{
+	return EvaluateWithBase(BaseValue, Parameters);
+}
+
+float FAggregator::EvaluateWithBase(float InlineBaseValue, const FAggregatorEvaluateParameters& Parameters) const
 {
 	for (const FAggregatorMod& Mod : Mods[EGameplayModOp::Override])
 	{
@@ -34,20 +36,18 @@ float FAggregator::Evaluate(const FAggregatorEvaluateParameters& Parameters) con
 		Division = 1.f;
 	}
 
-	return ((BaseValue + Additive) * Multiplicitive) / Division;
+	return ((InlineBaseValue + Additive) * Multiplicitive) / Division;
 }
 
 void FAggregator::SetBaseValue(float NewBaseValue)
 {
 	BaseValue = NewBaseValue;
-	OnDirty.Broadcast(this);
+	BroadcastOnDirty();
 }
 
-float FAggregator::StaticExecModOnBaseValue(float BaseValue, const struct FModifierSpec& Mod)
+float FAggregator::StaticExecModOnBaseValue(float BaseValue, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float EvaluatedMagnitude)
 {
-	float EvaluatedMagnitude = Mod.Info.Magnitude.GetValueChecked(); // fixme ?
-
-	switch (Mod.Info.ModifierOp)
+	switch (ModifierOp)
 	{
 	case EGameplayModOp::Override:
 	{
@@ -77,10 +77,10 @@ float FAggregator::StaticExecModOnBaseValue(float BaseValue, const struct FModif
 	return BaseValue;
 }
 
-void FAggregator::ExecModOnBaseValue(const struct FModifierSpec& Mod)
+void FAggregator::ExecModOnBaseValue(TEnumAsByte<EGameplayModOp::Type> ModifierOp, float EvaluatedMagnitude)
 {
-	BaseValue = StaticExecModOnBaseValue(BaseValue, Mod);
-	OnDirty.Broadcast(this);
+	BaseValue = StaticExecModOnBaseValue(BaseValue, ModifierOp, EvaluatedMagnitude);
+	BroadcastOnDirty();
 }
 
 float FAggregator::SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const FAggregatorEvaluateParameters& Parameters) const
@@ -98,22 +98,19 @@ float FAggregator::SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const
 	return Sum;
 }
 
-void FAggregator::AddMod(const FGameplayTagRequirements* SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, float EvaluatedMagnitude, FActiveGameplayEffectHandle ActiveHandle)
+void FAggregator::AddMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements* SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, FActiveGameplayEffectHandle ActiveHandle)
 {
-	check(Data);
-	check(Data->Modifiers.IsValidIndex(ModIdx));
-
-	TArray<FAggregatorMod> &ModList = Mods[Data->Modifiers[ModIdx].ModifierOp];
+	TArray<FAggregatorMod> &ModList = Mods[ModifierOp];
 
 	int32 NewIdx = ModList.AddUninitialized();
 	FAggregatorMod& NewMod = ModList[NewIdx];
 
-	NewMod.Data = Data;
-	NewMod.ModIdx = ModIdx;
+	NewMod.SourceTagReqs = SourceTagReqs;
+	NewMod.TargetTagReqs = TargetTagReqs;
 	NewMod.EvaluatedMagnitude = EvaluatedMagnitude;
 	NewMod.ActiveHandle = ActiveHandle;
 
-	OnDirty.Broadcast(this );
+	BroadcastOnDirty();
 }
 
 void FAggregator::RemoveMod(FActiveGameplayEffectHandle ActiveHandle)
@@ -126,7 +123,7 @@ void FAggregator::RemoveMod(FActiveGameplayEffectHandle ActiveHandle)
 		RemoveModsWithActiveHandle(Mods[EGameplayModOp::Override], ActiveHandle);
 	}
 
-	OnDirty.Broadcast(this);
+	BroadcastOnDirty();
 }
 
 void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle)
@@ -151,6 +148,25 @@ void FAggregator::TakeSnapshotOf(const FAggregator& AggToSnapshot)
 	}
 }
 
+void FAggregator::BroadcastOnDirty()
+{
+	if (!CallbacksDisabled)
+	{
+		OnDirty.Broadcast(this);
+	}
+
+}
+
+void FAggregator::DisableCallbacks()
+{
+	CallbacksDisabled= true;
+}
+
+void FAggregator::EnabledCallbacks()
+{
+	CallbacksDisabled = false;
+}
+
 void FAggregatorRef::TakeSnapshotOf(const FAggregatorRef& RefToSnapshot)
 {
 	if (RefToSnapshot.Data.IsValid())
@@ -165,4 +181,3 @@ void FAggregatorRef::TakeSnapshotOf(const FAggregatorRef& RefToSnapshot)
 		Data.Reset();
 	}
 }
-#endif

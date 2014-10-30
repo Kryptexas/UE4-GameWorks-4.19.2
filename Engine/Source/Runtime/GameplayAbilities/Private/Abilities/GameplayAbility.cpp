@@ -740,7 +740,7 @@ FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToOwner(const F
 {
 	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority || ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
 	{
-		return ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(GameplayEffect, 1.f, GetEffectContext(ActorInfo), FModifierQualifier().PredictionKey(ActivationInfo.GetPredictionKeyForNewAction()));
+		return ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(GameplayEffect, 1.f, GetEffectContext(ActorInfo), ActivationInfo.GetPredictionKeyForNewAction());
 	}
 
 	// We cannot apply GameplayEffects in this context. Return an empty handle.
@@ -771,7 +771,7 @@ FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToTarget(const 
 	{
 		for (auto Data : Target.Data)
 		{
-			TArray<FActiveGameplayEffectHandle> EffectHandles = Data->ApplyGameplayEffect(GameplayEffect, GetEffectContext(ActorInfo), (float)GameplayEffectLevel, FModifierQualifier().PredictionKey(ActivationInfo.GetPredictionKeyForNewAction()));
+			TArray<FActiveGameplayEffectHandle> EffectHandles = Data->ApplyGameplayEffect(GameplayEffect, GetEffectContext(ActorInfo), (float)GameplayEffectLevel, ActivationInfo.GetPredictionKeyForNewAction());
 			if (EffectHandles.Num() > 0)
 			{
 				EffectHandle = EffectHandles[0];

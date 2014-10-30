@@ -16,6 +16,7 @@
 #endif
 
 class UAbilitySystemComponent;
+class UGameplayEffect;
 
 struct FGameplayEffectSpec;
 struct FGameplayEffectModCallbackData;
@@ -46,66 +47,6 @@ namespace EGameplayModOp
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-/**
- * Tells us what thing a GameplayModifier modifies.
- */
-UENUM(BlueprintType)
-namespace EGameplayMod
-{
-	enum Type
-	{
-		Attribute = 0,		// Modifies this Attributes
-		OutgoingGE,			// Modifies Outgoing Gameplay Effects (that modify this Attribute)
-		IncomingGE,			// Modifies Incoming Gameplay Effects (that modify this Attribute)
-		ActiveGE,			// Modifies currently active Gameplay Effects
-
-		// This must always be at the end
-		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-/**
- * Tells us what thing a GameplayEffect provides immunity to. This must mirror the values in EGameplayMod
- */
-UENUM(BlueprintType)
-namespace EGameplayImmunity
-{
-	enum Type
-	{
-		None = 0,			// Does not provide immunity
-		OutgoingGE,			// Provides immunity to outgoing GEs
-		IncomingGE,			// Provides immunity to incoming GEs
-		ActiveGE,			// Provides immunity from currently active GEs
-
-		// This must always be at the end
-		Max					UMETA(DisplayName="Invalid")
-	};
-}
-
-static_assert((int32)EGameplayMod::OutgoingGE == (int32)EGameplayImmunity::OutgoingGE, "EGameplayMod::OutgoingGE and EGameplayImmunity::OutgoingGE must match. Did you forget to modify one of them?");
-static_assert((int32)EGameplayMod::IncomingGE == (int32)EGameplayImmunity::IncomingGE, "EGameplayMod::IncomingGE and EGameplayImmunity::IncomingGE must match. Did you forget to modify one of them?");
-static_assert((int32)EGameplayMod::ActiveGE == (int32)EGameplayImmunity::ActiveGE, "EGameplayMod::ActiveGE and EGameplayImmunity::ActiveGE must match. Did you forget to modify one of them?");
-static_assert((int32)EGameplayMod::Max == (int32)EGameplayImmunity::Max, "EGameplayMod and EGameplayImmunity must cover the same cases. Did you forget to modify one of them?");
-
-/**
- * Tells us what a GameplayEffect modifies when being applied to another GameplayEffect
- */
-UENUM(BlueprintType)
-namespace EGameplayModEffect
-{
-	enum Type
-	{
-		Magnitude			= 0x01,		// Modifies magnitude of a GameplayEffect (Always default for Attribute mod)
-		Duration			= 0x02,		// Modifies duration of a GameplayEffect
-		ChanceApplyTarget	= 0x04,		// Modifies chance to apply GameplayEffect to target
-		ChanceExecuteEffect	= 0x08,		// Modifies chance to execute GameplayEffect on GameplayEffect
-		LinkedGameplayEffect= 0x10,		// Adds a linked GameplayEffect to a GameplayEffect
-
-		// This must always be at the end
-		All					= 0xFF		UMETA(DisplayName="Invalid")
 	};
 }
 
@@ -574,122 +515,6 @@ struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTyp
 	};
 };
 
-
-// -----------------------------------------------------------
-
-/** 
- * Qualification context for applying modifiers.
- *	For example a Modifier may be setup in data to only apply to OutgoingGE mods.
- *	The FModifierQualifier is the data structure to hold the 'what type of modifier are we applying' data.
- *
- *  This should ideally only hold data that is outside of FGameplayEffectSpec or FGameplayModifierSpec.
- *	For example, specs know what they can and can't modify. We don't need to duplicate that there. 
- *  FModifierQualifier is meant to hold the data that comes from the calling context that is not intrinsic 
- *  to the existing data structures.
- *
- *	This class uses an optional initialization idiom such that you can do things like:
- *		FModifierQualifier().Handle(InHandle).(InType).etc...
- */
-USTRUCT(BlueprintType)
-struct FModifierQualifier
-{
-	GENERATED_USTRUCT_BODY()
-
-	FModifierQualifier()
-		: MyType(EGameplayMod::Max)
-	{
-	}
-
-	// ----------------------------------
-
-	FModifierQualifier& Type(EGameplayMod::Type InType)
-	{
-		MyType = InType;
-		return *this;
-	}
-
-	EGameplayMod::Type Type() const
-	{
-		return MyType;
-	}
-
-	// ----------------------------------
-	// PredictionKey is used by networking/replication to specify that a GameplayEffect has been predictively created/added.
-	
-	FModifierQualifier& PredictionKey(FPredictionKey InPredictionKey)
-	{
-		MyPredictionKey = InPredictionKey;
-		return *this;
-	}
-
-	FPredictionKey PredictionKey() const
-	{
-		return MyPredictionKey;
-	}
-
-	// ----------------------------------
-	// IgnoreHandle - ignore this handle completely. For example when executing an active gameplay effect, we never
-	// want to apply it to itself (either as IncomingGE or activeGE). It is ignored in all contexts.
-	//
-
-	FModifierQualifier& IgnoreHandle(FActiveGameplayEffectHandle InHandle)
-	{
-		MyIgnoreHandle = InHandle;
-		return *this;
-	}
-
-	FActiveGameplayEffectHandle IgnoreHandle() const
-	{
-		return MyIgnoreHandle;
-	}
-
-	// ----------------------------------
-	// ExclusiveTarget - sometimes we need to only apply a modifier to a specific active gameplay effect.
-	// We may only be able to use the handle if there are multiple instances of the same gameplay effect.
-	// This only applies in the context of applying/executing to a target. 'We only modify this active effect'.
-	// ExclusiveTarget is not checked in the context of applying outgoing/incoming GE modifiers to the spec.
-	//
-
-	FModifierQualifier& ExclusiveTarget(FActiveGameplayEffectHandle InHandle)
-	{
-		MyExclusiveTargetHandle = InHandle;
-		return *this;
-	}
-
-	FActiveGameplayEffectHandle ExclusiveTarget() const
-	{
-		return MyExclusiveTargetHandle;
-	}
-
-	// ----------------------------------
-
-	bool TestTarget(FActiveGameplayEffectHandle InHandle) const
-	{
-		if (MyIgnoreHandle.IsValid() && MyIgnoreHandle == InHandle)
-		{
-			return false;
-		}
-
-		if (MyExclusiveTargetHandle.IsValid() && MyExclusiveTargetHandle != InHandle)
-		{
-			return false;
-		}
-
-		return true;
-	}
-
-	FString ToString() const
-	{
-		return EGameplayModToString(MyType);
-	}
-
-private:
-	EGameplayMod::Type	MyType;
-	FActiveGameplayEffectHandle MyIgnoreHandle;		// Do not modify this handle
-	FActiveGameplayEffectHandle MyExclusiveTargetHandle;	// Only modify this handle
-	FPredictionKey MyPredictionKey;
-};
-
 // -----------------------------------------------------------
 
 
@@ -736,6 +561,10 @@ DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);
 
+DECLARE_DELEGATE_RetVal(FGameplayTagContainer, FGetGameplayTags);
+
+DECLARE_DELEGATE_RetVal_OneParam(FOnGameplayEffectTagCountChanged&, FRegisterGameplayTagChangeDelegate, FGameplayTag);
+
 // -----------------------------------------------------------
 
 /** 
@@ -761,5 +590,34 @@ struct FGameplayTagCountContainer
 	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
 	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
 
+	/** This is called when any tag is added new or removed completely (going too or from 0 count). Not called for other count increases (e.g, going from 2-3 count) */
+	FOnGameplayEffectTagCountChanged	OnAnyTagChangeDelegate;
+
 	EGameplayTagMatchType::Type TagContainerType;
+
+private:
+
+	// Fixme: This may not be adding tag parents correctly. The TagContainer version of this function properly adds parent tags
+	void UpdateTagMap_Internal(const struct FGameplayTag& Tag, int32 CountDelta);
+};
+
+// -----------------------------------------------------------
+
+/** Encapsulate require and ignore tags */
+USTRUCT(BlueprintType)
+struct FGameplayTagRequirements
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** All of these tags must be present */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	FGameplayTagContainer RequireTags;
+
+	/** None of these tags may be present */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	FGameplayTagContainer IgnoreTags;
+
+	bool	RequirementsMet(FGameplayTagContainer Container) const;
+
+	static FGetGameplayTags	SnapshotTags(FGetGameplayTags TagDelegate);
 };

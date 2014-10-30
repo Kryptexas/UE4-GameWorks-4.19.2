@@ -3,26 +3,13 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayModCalculation.h"
 
-FGameplayModCalculationSpecHandle FGameplayModCalculationSpecHandle::GenerateNewHandle()
-{
-	static int32 GHandleID = 0;
-	FGameplayModCalculationSpecHandle NewHandle(GHandleID++);
-
-	return NewHandle;
-}
-
 UGameplayModCalculation::UGameplayModCalculation(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
 
-FGameplayModCalculationSpecHandle UGameplayModCalculation::GetContextForSource(const FGameplayEffectSpec& Spec)
+float UGameplayModCalculation::CalculateMagnitude_Implementation(const FGameplayEffectSpec& Spec) const
 {
-	return FGameplayModCalculationSpecHandle::GenerateNewHandle();
-}
-
-FGameplayModCalculationSpecHandle UGameplayModCalculation::GetContextForTarget(const FGameplayEffectSpec& Spec)
-{
-	return FGameplayModCalculationSpecHandle::GenerateNewHandle();
+	return 0.f;
 }

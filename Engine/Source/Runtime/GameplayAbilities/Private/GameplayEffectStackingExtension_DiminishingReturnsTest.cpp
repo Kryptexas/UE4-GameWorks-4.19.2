@@ -22,6 +22,9 @@ UGameplayEffectStackingExtension_DiminishingReturnsTest::UGameplayEffectStacking
 
 void UGameplayEffectStackingExtension_DiminishingReturnsTest::CalculateStack(TArray<FActiveGameplayEffect*>& CustomGameplayEffects, FActiveGameplayEffectsContainer& Container, FActiveGameplayEffect& CurrentEffect)
 {
+#if 0
+	// GE_REMOVE this stuff should just go?
+
 	// look up the correct value in the curve table
 	UCurveTable* CurveTable = GetCurveTable();
 	float Multiplier = 1.f;
@@ -41,7 +44,7 @@ void UGameplayEffectStackingExtension_DiminishingReturnsTest::CalculateStack(TAr
 			// remove any stacking information that was already applied to the current modifier
 			for (int32 Idx = 0; Idx < Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].Num(); ++Idx)
 			{
-				FAggregatorRef& Agg = Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive][Idx];
+				FAggregatorRefOld& Agg = Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive][Idx];
 				if (Agg.Get()->BaseData.Tags.HasTag(IGameplayTagsModule::RequestGameplayTag("Stack.DiminishingReturns"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].RemoveAtSwap(Idx);
@@ -62,4 +65,5 @@ void UGameplayEffectStackingExtension_DiminishingReturnsTest::CalculateStack(TAr
 			ModSpec.ApplyModTo(Mod, true);
 		}
 	}
+#endif
 }

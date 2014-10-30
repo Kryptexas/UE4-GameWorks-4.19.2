@@ -129,11 +129,6 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 	const int32 ModifierCount = GameplayEffect ? GameplayEffect->Modifiers.Num() : 0;
 	for (int32 Idx = 0; Idx < ModifierCount; ++Idx)
 	{
-		if (GameplayEffect->Modifiers[Idx].ModifierType != EGameplayMod::Attribute)
-		{
-			continue;
-		}
-
 		RightNodeBox->AddSlot()
 			.FillHeight(0.3f)
 			[

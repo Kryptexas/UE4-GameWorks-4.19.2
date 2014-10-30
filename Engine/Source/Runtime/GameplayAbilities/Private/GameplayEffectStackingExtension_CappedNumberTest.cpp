@@ -15,6 +15,9 @@ UGameplayEffectStackingExtension_CappedNumberTest::UGameplayEffectStackingExtens
 
 void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FActiveGameplayEffect*>& CustomGameplayEffects, FActiveGameplayEffectsContainer& Container, FActiveGameplayEffect& CurrentEffect)
 {
+#if 0
+	// GE_REMOVE - this stuff should just go?
+
 	// this effect shouldn't be in the array so be sure to count it as well
 	int32 EffectiveCount = FMath::Min(CustomGameplayEffects.Num() + 1, MaxNumInStack);
 	
@@ -51,7 +54,7 @@ void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FA
 			// remove any stacking information that was already applied to the current modifier
 			for (int32 Idx = 0; Idx < Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].Num(); ++Idx)
 			{
-				FAggregatorRef& Agg = Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive][Idx];
+				FAggregatorRefOld& Agg = Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive][Idx];
 				if (Agg.Get()->BaseData.Tags.HasTag(IGameplayTagsModule::RequestGameplayTag("Stack.CappedNumber"), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 				{
 					Mod.Aggregator.Get()->Mods[EGameplayModOp::Multiplicitive].RemoveAtSwap(Idx);
@@ -72,4 +75,5 @@ void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FA
 			ModSpec.ApplyModTo(Mod, true);
 		}
 	}
+#endif
 }
