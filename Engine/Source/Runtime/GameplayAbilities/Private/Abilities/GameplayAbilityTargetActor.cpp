@@ -98,6 +98,14 @@ bool AGameplayAbilityTargetActor::IsNetRelevantFor(class APlayerController* Real
 		return false;
 	}
 
+	const FGameplayAbilityActorInfo* ActorInfo = (OwningAbility ? OwningAbility->GetCurrentActorInfo() : NULL);
+	AActor* Avatar = (ActorInfo ? ActorInfo->AvatarActor.Get() : NULL);
+
+	if (Avatar)
+	{
+		return Avatar->IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
+	}
+
 	return Super::IsNetRelevantFor(RealViewer, Viewer, SrcLocation);
 }
 

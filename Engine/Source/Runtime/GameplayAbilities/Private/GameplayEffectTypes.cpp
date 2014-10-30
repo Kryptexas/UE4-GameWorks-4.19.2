@@ -25,8 +25,13 @@ void FGameplayEffectContext::AddInstigator(class AActor *InInstigator, class AAc
 	}
 }
 
-void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult)
+void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bReset)
 {
+	if (bReset && HitResult.IsValid())
+	{
+		HitResult.Reset();
+	}
+
 	check(!HitResult.IsValid());
 	HitResult = TSharedPtr<FHitResult>(new FHitResult(InHitResult));
 }

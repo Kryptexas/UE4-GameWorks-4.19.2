@@ -214,7 +214,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		return InstigatorAbilitySystemComponent;
 	}
 
-	virtual void AddHitResult(const FHitResult InHitResult);
+	virtual void AddHitResult(const FHitResult InHitResult, bool bReset = false);
 
 	virtual const FHitResult* GetHitResult() const
 	{
@@ -415,11 +415,11 @@ struct FGameplayEffectContextHandle
 		return false;
 	}
 
-	void AddHitResult(const FHitResult InHitResult)
+	void AddHitResult(const FHitResult InHitResult, bool bReset = false)
 	{
 		if (IsValid())
 		{
-			Data->AddHitResult(InHitResult);
+			Data->AddHitResult(InHitResult, bReset);
 		}
 	}
 
