@@ -11,7 +11,7 @@ FWmfMediaByteStream::FWmfMediaByteStream( const TSharedRef<TArray<uint8>>& InBuf
 	: AsyncReadInProgress(false)
 	, Buffer(InBuffer)
 	, Position(0)
-	, RefCount(1)
+	, RefCount(0)
 { }
 
 

@@ -18,7 +18,7 @@ public:
 
 	/** Default constructor. */
 	FWmfMediaSampler()
-		: RefCount(1)
+		: RefCount(0)
 	{ }
 
 	/** Virtual destructor. */

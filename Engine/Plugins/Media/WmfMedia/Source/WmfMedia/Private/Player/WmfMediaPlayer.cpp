@@ -80,6 +80,12 @@ void FWmfMediaPlayer::Close()
 	MediaSession->SetState(EMediaStates::Closed);
 	MediaSession.Reset();
 
+	if (MediaSource != NULL)
+	{
+		MediaSource->Shutdown();
+		MediaSource = NULL;
+	}
+
 	Tracks.Reset();
 
 	Duration = 0;
@@ -407,9 +413,9 @@ bool FWmfMediaPlayer::InitializeMediaSession( IUnknown* SourceObject, const FStr
 	UE_LOG(LogWmfMedia, Verbose, TEXT("Initializing media session for %s"), *SourceUrl);
 
 	// create presentation descriptor
-	TComPtr<IMFMediaSource> MediaSource;
+	TComPtr<IMFMediaSource> MediaSourceObject;
 
-	if (FAILED(SourceObject->QueryInterface(IID_PPV_ARGS(&MediaSource))))
+	if (FAILED(SourceObject->QueryInterface(IID_PPV_ARGS(&MediaSourceObject))))
 	{
 		UE_LOG(LogWmfMedia, Error, TEXT("Failed to query media source"));
 
@@ -418,7 +424,7 @@ bool FWmfMediaPlayer::InitializeMediaSession( IUnknown* SourceObject, const FStr
 
 	TComPtr<IMFPresentationDescriptor> PresentationDescriptor;
 	
-	if (FAILED(MediaSource->CreatePresentationDescriptor(&PresentationDescriptor)))
+	if (FAILED(MediaSourceObject->CreatePresentationDescriptor(&PresentationDescriptor)))
 	{
 		UE_LOG(LogWmfMedia, Error, TEXT("Failed to create presentation descriptor"));
 
@@ -446,7 +452,7 @@ bool FWmfMediaPlayer::InitializeMediaSession( IUnknown* SourceObject, const FStr
 
 	for (uint32 StreamIndex = 0; StreamIndex < StreamCount; ++StreamIndex)
 	{
-		AddStreamToTopology(StreamIndex, Topology, PresentationDescriptor, MediaSource);
+		AddStreamToTopology(StreamIndex, Topology, PresentationDescriptor, MediaSourceObject);
 	}
 
 	UE_LOG(LogWmfMedia, Verbose, TEXT("Added a total of %i tracks"), Tracks.Num());
@@ -456,6 +462,7 @@ bool FWmfMediaPlayer::InitializeMediaSession( IUnknown* SourceObject, const FStr
 	Duration = FTimespan(PresentationDuration);
 
 	// create session
+	MediaSource = MediaSourceObject;
 	MediaSession = new FWmfMediaSession(Duration, Topology);
 	MediaUrl = SourceUrl;
 

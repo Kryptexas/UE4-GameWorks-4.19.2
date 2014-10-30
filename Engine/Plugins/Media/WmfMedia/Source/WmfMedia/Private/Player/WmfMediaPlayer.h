@@ -95,6 +95,9 @@ private:
 	/** Holds the asynchronous callback object for the media stream. */
 	TComPtr<FWmfMediaSession> MediaSession;
 
+	/** Holds a pointer to the media source object. */
+	TComPtr<IMFMediaSource> MediaSource;
+
 	/** The URL of the currently opened media. */
 	FString MediaUrl;
 

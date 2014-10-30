@@ -27,7 +27,7 @@ public:
 		: BytesRead(0)
 		, ReadBuffer(InReadBuffer)
 		, ReadBufferSize(InReadBufferSize)
-		, RefCount(1)
+		, RefCount(0)
 	{ }
 
 	/** Virtual destructor. */

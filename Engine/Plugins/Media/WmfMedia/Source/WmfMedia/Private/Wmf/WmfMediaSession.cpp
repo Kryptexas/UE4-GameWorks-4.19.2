@@ -14,7 +14,7 @@ FWmfMediaSession::FWmfMediaSession( const FTimespan& InDuration, const TComPtr<I
 	, Duration(InDuration)
 	, LastError(S_OK)
 	, Looping(false)
-	, RefCount(1)
+	, RefCount(0)
 	, RequestedPosition(FTimespan::MinValue())
 	, RequestedRate(0.0f)
 	, StateChangePending(false)
@@ -274,6 +274,7 @@ STDMETHODIMP FWmfMediaSession::Invoke( IMFAsyncResult* AsyncResult )
 					UpdateState(EMediaStates::Stopped);
 				}
 
+				// request the next event
 				if (FAILED(MediaSession->BeginGetEvent(this, NULL)))
 				{
 					Capabilities = 0;
@@ -305,6 +306,11 @@ STDMETHODIMP_(ULONG) FWmfMediaSession::Release()
 	
 	if (CurrentRefCount == 0)
 	{
+		if (MediaSession != NULL)
+		{
+			MediaSession->Shutdown();
+		}
+
 		delete this;
 	}
 
