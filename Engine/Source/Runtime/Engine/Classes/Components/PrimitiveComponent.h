@@ -1426,6 +1426,7 @@ public:
 	 * Changes the value of CullDistance.
 	 * @param NewCullDistance - The value to assign to CullDistance.
 	 */
+	UFUNCTION(BlueprintCallable, Category="LOD", meta=(FriendlyName="Set Max Draw Distance"))
 	void SetCullDistance(float NewCullDistance);
 	
 	/**
