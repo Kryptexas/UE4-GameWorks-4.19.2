@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "Core.h"
+#include "UnrealString.h"
+#include "Array.h"
 
 /**
  * Whether to compile in support for database connectivity and SQL execution.
@@ -250,7 +253,7 @@ public:
 	 */
 	virtual bool Execute( const TCHAR* CommandString, FDataBaseRecordSet*& RecordSet )
 	{
-		RecordSet = NULL;
+		RecordSet = nullptr;
 		return false;
 	}
 
@@ -259,7 +262,7 @@ public:
 	 *
 	 * @return	instance of platform specific database connection object
 	 */
-	CORE_API static FDataBaseConnection* CreateObject();
+	DATABASESUPPORT_API static FDataBaseConnection* CreateObject();
 };
 
 // since this relies on FSocket we have to make sure networking is enabled

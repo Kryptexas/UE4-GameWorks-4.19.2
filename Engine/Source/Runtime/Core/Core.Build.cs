@@ -153,12 +153,6 @@ public class Core : ModuleRules
             PrivateDependencyModuleNames.Add("HTML5JS");
         }
 
-
-		if ((UEBuildConfiguration.bIncludeADO == true) || (UEBuildConfiguration.bCompileAgainstEngine == true))
-		{
-			AddThirdPartyPrivateStaticDependencies(Target, "ADO");
-		}
-
         if ( UEBuildConfiguration.bCompileICU == true ) 
         {
 			AddThirdPartyPrivateStaticDependencies(Target, "ICU");

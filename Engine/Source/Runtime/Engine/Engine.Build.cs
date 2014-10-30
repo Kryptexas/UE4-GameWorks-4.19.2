@@ -9,7 +9,7 @@ public class Engine : ModuleRules
 	{
 		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
 
-		PublicIncludePathModuleNames.AddRange( new string[] { "Renderer" } );
+		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer" });
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -24,7 +24,7 @@ public class Engine : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"CrashTracker",
-				"OnlineSubsystem", 
+				"OnlineSubsystem",
 				"TargetPlatform",
 				"ImageWrapper",
 				"HeadMountedDisplay",
@@ -38,22 +38,23 @@ public class Engine : ModuleRules
 		}
 
 		PublicDependencyModuleNames.AddRange(
-			new string[] { 
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"Json",
 				"Slate",
 				"InputCore",
 				"Messaging",
-				"RenderCore", 
+				"RenderCore",
 				"RHI",
 				"ShaderCore",
 				"AssetRegistry", // Here until FAssetData is moved to engine
 				"EngineMessages",
 				"EngineSettings",
-				"SynthBenchmark",                
+				"SynthBenchmark",
                 "AIModule",
 				"VectorVM",
+				"DatabaseSupport",
 			}
 		);
 

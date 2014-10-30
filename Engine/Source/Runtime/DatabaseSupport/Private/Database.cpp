@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 // Precompiled header include. Can't add anything above this line.
-#include "CorePrivatePCH.h"
-#include "Database.h"
+#include "DatabaseSupportPrivatePCH.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDataBase, Log, All);
 #if USE_REMOTE_INTEGRATION
