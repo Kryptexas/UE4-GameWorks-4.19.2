@@ -41,7 +41,7 @@ bool SGraphEditorImpl::SupportsKeyboardFocus() const
 	return true;
 }
 
-FReply SGraphEditorImpl::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SGraphEditorImpl::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	OnFocused.ExecuteIfBound(SharedThis(this));
 	return FReply::Handled();
@@ -57,15 +57,15 @@ FReply SGraphEditorImpl::OnMouseButtonDown( const FGeometry& MyGeometry, const F
 	{
 		OnNavigateHistoryForward.ExecuteIfBound();
 	}
-	return FReply::Handled().SetKeyboardFocus( SharedThis(this), EKeyboardFocusCause::Mouse );
+	return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse);
 }
 
-FReply SGraphEditorImpl::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SGraphEditorImpl::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	int32 NumNodes = GetCurrentGraph()->Nodes.Num();
-	if (Commands->ProcessCommandBindings( InKeyboardEvent ) )
+	if (Commands->ProcessCommandBindings( InKeyEvent ) )
 	{
-		bool bPasteOperation = InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetKey() == EKeys::V;
+		bool bPasteOperation = InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::V;
 
 		if(	!bPasteOperation && GetCurrentGraph()->Nodes.Num() > NumNodes )
 		{
@@ -75,7 +75,7 @@ FReply SGraphEditorImpl::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 	}
 	else
 	{
-		return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 }
 

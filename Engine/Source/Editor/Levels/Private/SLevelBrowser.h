@@ -64,7 +64,7 @@ protected:
 	}
 
 	/** Overridden from SWidget: Called when a key is pressed down */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		return FReply::Unhandled();
 	}

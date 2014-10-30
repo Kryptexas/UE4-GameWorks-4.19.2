@@ -240,10 +240,10 @@ public:
 		CreateCommandList();
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		FReply Reply = FReply::Unhandled();
-		if( CommandList->ProcessCommandBindings( InKeyboardEvent ) )
+		if( CommandList->ProcessCommandBindings( InKeyEvent ) )
 		{
 			Reply = FReply::Handled();
 		}

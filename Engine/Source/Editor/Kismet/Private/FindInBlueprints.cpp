@@ -1202,7 +1202,7 @@ void SFindInBlueprints::FocusForUse(bool bSetFindWithinBlueprint, FString NewSea
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchTextField.ToSharedRef(), FilterTextBoxWidgetPath );
 
 	// Set keyboard focus directly
-	FSlateApplication::Get().SetKeyboardFocus( FilterTextBoxWidgetPath, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( FilterTextBoxWidgetPath, EFocusCause::SetDirectly );
 
 	// Set the filter mode
 	bIsInFindWithinBlueprintMode = bSetFindWithinBlueprint;

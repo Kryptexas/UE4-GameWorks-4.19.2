@@ -40,7 +40,7 @@ UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)
+void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController*const& Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)
 {
 	if (Target != nullptr)
 	{
@@ -55,7 +55,7 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWi
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController*const& Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
 {
 	if (Target != nullptr)
 	{
@@ -71,7 +71,7 @@ void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, 
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* Target)
+void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController*const& Target)
 {
 	if (Target != nullptr)
 	{
@@ -82,7 +82,7 @@ void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* Target)
 
 void UWidgetBlueprintLibrary::SetFocusToGameViewport()
 {
-	FSlateApplication::Get().SetFocusToGameViewport();
+	FSlateApplication::Get().SetAllUserFocusToGameViewport();
 }
 
 void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint)
@@ -176,25 +176,35 @@ FEventReply UWidgetBlueprintLibrary::ReleaseMouseCapture(UPARAM(ref) FEventReply
 	return Reply;
 }
 
-FEventReply UWidgetBlueprintLibrary::CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks/* = false*/)
+FEventReply UWidgetBlueprintLibrary::SetUserFocus(UPARAM(ref) FEventReply& Reply, UWidget* FocusWidget, bool bInAllUsers/* = false*/)
 {
-	if ( CapturingWidget )
+	if (FocusWidget)
 	{
-		TSharedPtr<SWidget> CapturingSlateWidget = CapturingWidget->GetCachedWidget();
-		if ( CapturingSlateWidget.IsValid() )
+		TSharedPtr<SWidget> CapturingSlateWidget = FocusWidget->GetCachedWidget();
+		if (CapturingSlateWidget.IsValid())
 		{
-			Reply.NativeReply = Reply.NativeReply.CaptureJoystick(CapturingSlateWidget.ToSharedRef(), bInAllJoysticks);
+			Reply.NativeReply = Reply.NativeReply.SetUserFocus(CapturingSlateWidget.ToSharedRef(), EFocusCause::SetDirectly, bInAllUsers);
 		}
 	}
 
 	return Reply;
 }
 
-FEventReply UWidgetBlueprintLibrary::ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks /*= false*/)
+FEventReply UWidgetBlueprintLibrary::CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks/* = false*/)
 {
-	Reply.NativeReply = Reply.NativeReply.ReleaseJoystickCapture(bInAllJoysticks);
+	return SetUserFocus(Reply, CapturingWidget, bInAllJoysticks);
+}
+
+FEventReply UWidgetBlueprintLibrary::ClearUserFocus(UPARAM(ref) FEventReply& Reply, bool bInAllUsers /*= false*/)
+{
+	Reply.NativeReply = Reply.NativeReply.ClearUserFocus(bInAllUsers);
 
 	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks /*= false*/)
+{
+	return ClearUserFocus(Reply, bInAllJoysticks);
 }
 
 FEventReply UWidgetBlueprintLibrary::SetMousePosition(UPARAM(ref) FEventReply& Reply, FVector2D NewMousePosition)

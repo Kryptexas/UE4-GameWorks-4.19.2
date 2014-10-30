@@ -275,7 +275,7 @@ public:
 	void OnSelectionChanged(FSharedDiffOnGraph Item, ESelectInfo::Type SelectionType);
 
 	/** Called when user presses key within the diff view */
-	void KeyWasPressed(const FKeyboardEvent& InKeyboardEvent);
+	void KeyWasPressed(const FKeyEvent& InKeyEvent);
 
 private:
 
@@ -608,11 +608,11 @@ void FListItemGraphToDiff::OnGraphChanged( const FEdGraphEditAction& Action )
 	Diff->OnGraphChanged(this);
 }
 
-void FListItemGraphToDiff::KeyWasPressed( const FKeyboardEvent& InKeyboardEvent )
+void FListItemGraphToDiff::KeyWasPressed( const FKeyEvent& InKeyEvent )
 {
 	if ( KeyCommands.IsValid() )
 	{
-		KeyCommands->ProcessCommandBindings(InKeyboardEvent);
+		KeyCommands->ProcessCommandBindings(InKeyEvent);
 	}
 }
 
@@ -1333,13 +1333,13 @@ void SBlueprintDiff::SetCurrentMode(FName NewMode)
 	}
 }
 
-FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) 
+FReply SBlueprintDiff::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
 {
 	TArray< FGraphToDiff>  Selected = GraphsToDiff->GetSelectedItems();
 	for(auto It(Selected.CreateIterator());It;++It)
 	{
 		FGraphToDiff& Diff = *It;
-		Diff->KeyWasPressed(InKeyboardEvent);
+		Diff->KeyWasPressed(InKeyEvent);
 	}
 	return FReply::Handled();
 }

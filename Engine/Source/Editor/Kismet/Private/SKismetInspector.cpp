@@ -300,7 +300,7 @@ void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObj
 		// if this occurs we need need to immediately clear keyboard focus
 		if ( FSlateApplication::Get().HasFocusedDescendants(AsShared()) )
 		{
-			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 		}
 		bIsReentrant = false;
 	}

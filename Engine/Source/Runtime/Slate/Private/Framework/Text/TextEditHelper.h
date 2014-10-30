@@ -65,7 +65,7 @@ public:
 	static FReply OnKeyChar( const FCharacterEvent& InCharacterEvent, const TSharedRef< class ITextEditorWidget >& TextEditor );
 
 	/** Someone pressed a key, translate the input event into a call to a ITextEditorWidget action */
-	static FReply OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
+	static FReply OnKeyDown( const FKeyEvent& InKeyEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
 
 	static FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent, const TSharedRef< ITextEditorWidget >& TextEditor );
 

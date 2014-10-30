@@ -492,15 +492,15 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildForceDeleteWidget()
 	];
 }
 
-FReply SDeleteAssetsDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SDeleteAssetsDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if( InKeyboardEvent.GetKey() == EKeys::Escape )
+	if( InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		ParentWindow.Get()->RequestDestroyWindow();
 		return FReply::Handled();
 	}
 
-	if ( ReferencerCommands->ProcessCommandBindings(InKeyboardEvent) )
+	if ( ReferencerCommands->ProcessCommandBindings(InKeyEvent) )
 	{
 		return FReply::Handled();
 	}

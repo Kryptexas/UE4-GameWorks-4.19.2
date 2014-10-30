@@ -2036,7 +2036,7 @@ public:
 		// Set focus to the editable text, so the user doesn't have to click initially to type
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( EditableText.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 	}
 
 	void InlineEditableTextCommited(const FText& NewText, ETextCommit::Type CommitType )
@@ -2867,7 +2867,7 @@ protected:
 		const FRunInfo RunInfo = TextStyles.CreateRunInfo(ActiveFontFamily, FontSize, FontStyle, FontColor);
 		const FTextBlockStyle TextBlockStyle = TextStyles.CreateTextBlockStyle(ActiveFontFamily, FontSize, FontStyle, FontColor);
 		RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
-		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EFocusCause::SetDirectly);
 	}
 
 	void HandleHyperlinkComboOpened()

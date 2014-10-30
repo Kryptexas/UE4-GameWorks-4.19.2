@@ -359,13 +359,13 @@ void SSuperSearchBox::Query_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHt
 }
 
 
-FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
 	if(SuggestionBox->IsOpen() && Suggestions.Num())
 	{
-		if(KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+		if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 		{
-			if(KeyboardEvent.GetKey() == EKeys::Up)
+			if(KeyEvent.GetKey() == EKeys::Up)
 			{
 				//if we're at the top swing around
 				if(SelectedSuggestion == 1)
@@ -386,7 +386,7 @@ FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 				}
 			}
 
-			if(KeyboardEvent.GetKey() == EKeys::Down)
+			if(KeyEvent.GetKey() == EKeys::Down)
 			{
 				if(SelectedSuggestion < Suggestions.Num() - 1)
 				{
@@ -478,10 +478,10 @@ void SSuperSearchBox::UpdateSuggestions()
 	MarkActiveSuggestion();
 
 	// Force the textbox back into focus.
-	FSlateApplication::Get().SetKeyboardFocus(InputText.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(InputText.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
-void SSuperSearchBox::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SSuperSearchBox::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 //	SuggestionBox->SetIsOpen(false);
 }

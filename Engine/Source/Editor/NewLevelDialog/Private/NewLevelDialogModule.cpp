@@ -259,14 +259,14 @@ private:
 		}
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		if( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return OnCancelClicked();
 		}
 
-		return SCompoundWidget::OnKeyDown( MyGeometry, InKeyboardEvent );
+		return SCompoundWidget::OnKeyDown( MyGeometry, InKeyEvent );
 	}
 
 	/** Pointer to the parent window, so we know to destroy it when done */

@@ -1071,7 +1071,7 @@ FReply SCurveEditor::OnMouseButtonDown( const FGeometry& InMyGeometry, const FPo
 		// Set keyboard focus to this so that selected text box doesn't try to apply to newly selected keys
 		if(!HasKeyboardFocus())
 		{
-			FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EFocusCause::SetDirectly);
 		}
 
 		// Always capture mouse if we left or right click on the widget
@@ -1212,16 +1212,16 @@ FReply SCurveEditor::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEv
 	return FReply::Handled();
 }
 
-FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.GetKey() == EKeys::Platform_Delete && SelectedKeys.Num() != 0)
+	if (InKeyEvent.GetKey() == EKeys::Platform_Delete && SelectedKeys.Num() != 0)
 	{
 		DeleteSelectedKeys();
 		return FReply::Handled();
 	}
 	else
 	{
-		if( Commands->ProcessCommandBindings( InKeyboardEvent ) )
+		if( Commands->ProcessCommandBindings( InKeyEvent ) )
 		{
 			return FReply::Handled();
 		}

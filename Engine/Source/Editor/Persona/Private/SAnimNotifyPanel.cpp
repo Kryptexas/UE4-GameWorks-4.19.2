@@ -1940,7 +1940,7 @@ FReply SAnimNotifyTrack::OnMouseButtonUp( const FGeometry& MyGeometry, const FPo
 		WidgetToFocus = SummonContextMenu(MyGeometry, MouseEvent);
 
 		return (WidgetToFocus.IsValid())
-			? FReply::Handled().ReleaseMouseCapture().SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly )
+			? FReply::Handled().ReleaseMouseCapture().SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly)
 			: FReply::Handled().ReleaseMouseCapture();
 	}
 	else if ( bLeftMouseButton )
@@ -3514,9 +3514,9 @@ void SAnimNotifyPanel::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimNotifyPanel::OnDeletePressed));
 }
 
-FReply SAnimNotifyPanel::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SAnimNotifyPanel::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	if(UICommandList->ProcessCommandBindings(InKeyboardEvent))
+	if(UICommandList->ProcessCommandBindings(InKeyEvent))
 	{
 		return FReply::Handled();
 	}
@@ -3631,7 +3631,7 @@ FReply SAnimNotifyPanel::OnDragDetected(const FGeometry& MyGeometry, const FPoin
 	return FReply::Handled().CaptureMouse(SharedThis(this));
 }
 
-void SAnimNotifyPanel::OnKeyboardFocusLost(const FKeyboardFocusEvent& InKeyboardFocusEvent)
+void SAnimNotifyPanel::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 	if(Marquee.bActive)
 	{

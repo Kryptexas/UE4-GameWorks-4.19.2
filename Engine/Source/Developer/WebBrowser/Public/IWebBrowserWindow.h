@@ -4,7 +4,7 @@
 
 // Forward Declarations
 struct FGeometry;
-struct FKeyboardEvent;
+struct FKeyEvent;
 struct FCharacterEvent;
 struct FPointerEvent;
 class FSlateShaderResource;
@@ -49,16 +49,16 @@ public:
 	/**
 	 * Notify the browser that a key has been pressed
 	 *
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 */
-	virtual void OnKeyDown(const FKeyboardEvent& InKeyboardEvent) = 0;
+	virtual void OnKeyDown(const FKeyEvent& InKeyEvent) = 0;
 
 	/**
 	 * Notify the browser that a key has been released
 	 *
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 */
-	virtual void OnKeyUp(const FKeyboardEvent& InKeyboardEvent) = 0;
+	virtual void OnKeyUp(const FKeyEvent& InKeyEvent) = 0;
 
 	/**
 	 * Notify the browser of a character event

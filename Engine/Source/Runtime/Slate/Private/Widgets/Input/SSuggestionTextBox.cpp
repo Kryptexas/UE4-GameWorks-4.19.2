@@ -100,7 +100,7 @@ void SSuggestionTextBox::FocusTextBox( )
 	FWidgetPath TextBoxPath;
 
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked(TextBox.ToSharedRef(), TextBoxPath);
-	FSlateApplication::Get().SetKeyboardFocus(TextBoxPath, EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(TextBoxPath, EFocusCause::SetDirectly);
 }
 
 
@@ -181,19 +181,19 @@ void SSuggestionTextBox::SetSuggestions( TArray<FString>& SuggestionStrings, boo
 /* SWidget overrides
  *****************************************************************************/
 
-void SSuggestionTextBox::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SSuggestionTextBox::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	//	MenuAnchor->SetIsOpen(false);
 }
 
 
-FReply SSuggestionTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SSuggestionTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
 	const FString& InputTextStr = TextBox->GetText().ToString();
 
 	if (MenuAnchor->IsOpen())
 	{
-		if (KeyboardEvent.GetKey() == EKeys::Up)
+		if (KeyEvent.GetKey() == EKeys::Up)
 		{
 			// backward navigate the list of suggestions
 			if (SelectedSuggestion < 0)
@@ -209,7 +209,7 @@ FReply SSuggestionTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboa
 
 			return FReply::Handled();
 		}
-		else if(KeyboardEvent.GetKey() == EKeys::Down)
+		else if(KeyEvent.GetKey() == EKeys::Down)
 		{
 			// forward navigate the list of suggestions
 			if (SelectedSuggestion < Suggestions.Num() - 1)
@@ -225,7 +225,7 @@ FReply SSuggestionTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboa
 
 			return FReply::Handled();
 		}
-		else if (KeyboardEvent.GetKey() == EKeys::Tab)
+		else if (KeyEvent.GetKey() == EKeys::Tab)
 		{
 			// auto-complete the highlighted suggestion
 			if (Suggestions.Num())
@@ -248,7 +248,7 @@ FReply SSuggestionTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboa
 	}
 	else
 	{
-		if ((KeyboardEvent.GetKey() == EKeys::Up) || (KeyboardEvent.GetKey() == EKeys::Down))
+		if ((KeyEvent.GetKey() == EKeys::Up) || (KeyEvent.GetKey() == EKeys::Down))
 		{
 			// show the input history
 			if (OnShowingHistory.IsBound())
@@ -261,7 +261,7 @@ FReply SSuggestionTextBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboa
 				{
 					SetSuggestions(HistoryStrings, true);
 
-					if (KeyboardEvent.GetKey() == EKeys::Up)
+					if (KeyEvent.GetKey() == EKeys::Up)
 					{
 						SelectedSuggestion = HistoryStrings.Num() - 1;
 					}

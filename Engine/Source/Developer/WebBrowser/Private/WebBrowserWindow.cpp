@@ -86,37 +86,37 @@ FString FWebBrowserWindow::GetTitle() const
 	return Title;
 }
 
-void FWebBrowserWindow::OnKeyDown(const FKeyboardEvent& InKeyboardEvent)
+void FWebBrowserWindow::OnKeyDown(const FKeyEvent& InKeyEvent)
 {
 	if (IsValid())
 	{
 		CefKeyEvent KeyEvent;
-		KeyEvent.windows_key_code = InKeyboardEvent.GetKeyCode();
+		KeyEvent.windows_key_code = InKeyEvent.GetKeyCode();
 		// TODO: Figure out whether this is a system key if we come across problems
 		/*KeyEvent.is_system_key = message == WM_SYSCHAR ||
 			message == WM_SYSKEYDOWN ||
 			message == WM_SYSKEYUP;*/
 
 		KeyEvent.type = KEYEVENT_RAWKEYDOWN;
-		KeyEvent.modifiers = GetCefKeyboardModifiers(InKeyboardEvent);
+		KeyEvent.modifiers = GetCefKeyboardModifiers(InKeyEvent);
 
 		InternalCefBrowser->GetHost()->SendKeyEvent(KeyEvent);
 	}
 }
 
-void FWebBrowserWindow::OnKeyUp(const FKeyboardEvent& InKeyboardEvent)
+void FWebBrowserWindow::OnKeyUp(const FKeyEvent& InKeyEvent)
 {
 	if (IsValid())
 	{
 		CefKeyEvent KeyEvent;
-		KeyEvent.windows_key_code = InKeyboardEvent.GetKeyCode();
+		KeyEvent.windows_key_code = InKeyEvent.GetKeyCode();
 		// TODO: Figure out whether this is a system key if we come across problems
 		/*KeyEvent.is_system_key = message == WM_SYSCHAR ||
 			message == WM_SYSKEYDOWN ||
 			message == WM_SYSKEYUP;*/
 
 		KeyEvent.type = KEYEVENT_KEYUP;
-		KeyEvent.modifiers = GetCefKeyboardModifiers(InKeyboardEvent);
+		KeyEvent.modifiers = GetCefKeyboardModifiers(InKeyEvent);
 
 		InternalCefBrowser->GetHost()->SendKeyEvent(KeyEvent);
 	}
@@ -377,11 +377,11 @@ void FWebBrowserWindow::OnCursorChange(CefCursorHandle Cursor)
 	//::SetCursor( Cursor );
 }
 
-int32 FWebBrowserWindow::GetCefKeyboardModifiers(const FKeyboardEvent& KeyboardEvent)
+int32 FWebBrowserWindow::GetCefKeyboardModifiers(const FKeyEvent& KeyEvent)
 {
-	int32 Modifiers = GetCefInputModifiers(KeyboardEvent);
+	int32 Modifiers = GetCefInputModifiers(KeyEvent);
 
-	const FKey Key = KeyboardEvent.GetKey();
+	const FKey Key = KeyEvent.GetKey();
 	if (Key == EKeys::LeftAlt ||
 		Key == EKeys::LeftCommand ||
 		Key == EKeys::LeftControl ||

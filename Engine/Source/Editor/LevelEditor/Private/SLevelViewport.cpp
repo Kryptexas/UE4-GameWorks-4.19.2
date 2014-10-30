@@ -381,14 +381,14 @@ float SLevelViewport::GetGameViewportDPIScale() const
 	return 1.0f;
 }
 
-FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
 	if( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
 	{
 		// Only process commands for pie when a play world is active
-		FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings( InKeyboardEvent );
+		FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings( InKeyEvent );
 
 		// Always handle commands in pie so they arent bubbled to editor only widgets
 		Reply = FReply::Handled();
@@ -396,7 +396,7 @@ FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 	
 	if( !IsPlayInEditorViewportActive() )
 	{
-		Reply = SEditorViewport::OnKeyDown(MyGeometry,InKeyboardEvent);
+		Reply = SEditorViewport::OnKeyDown(MyGeometry,InKeyEvent);
 
 
 		// If we are in immersive mode and the event was not handled, we will check to see if the the 
@@ -408,7 +408,7 @@ FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 			TSharedPtr<SLevelEditor> ParentLevelEditorSharedPtr = ParentLevelEditor.Pin();
 			if( ParentLevelEditorSharedPtr.IsValid() )
 			{
-				Reply = ParentLevelEditorSharedPtr->OnKeyDownInViewport( MyGeometry, InKeyboardEvent );
+				Reply = ParentLevelEditorSharedPtr->OnKeyDownInViewport( MyGeometry, InKeyEvent );
 			}
 		}
 	}
@@ -3224,7 +3224,7 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, 
 
 	// Remove keyboard focus to send a focus lost message to the widget to clean up any saved state from the viewport interface thats about to be swapped out
 	// Focus will be set when the game viewport is registered
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
 
 	ActiveViewport = MakeShareable( new FSceneViewport( PlayClient, ViewportWidget ) );
 	ActiveViewport->SetPlayInEditorViewport( true );

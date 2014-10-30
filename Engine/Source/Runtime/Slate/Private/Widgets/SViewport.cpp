@@ -191,40 +191,43 @@ FReply SViewport::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const F
 }
 
 
-FReply SViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnKeyDown(MyGeometry, KeyboardEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnKeyDown(MyGeometry, KeyEvent) : FReply::Unhandled();
 }
 
  
-FReply SViewport::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SViewport::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnKeyUp(MyGeometry, KeyboardEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnKeyUp(MyGeometry, KeyEvent) : FReply::Unhandled();
 }
 
+FReply SViewport::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent )
+{
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnAnalogValueChanged(MyGeometry, InAnalogInputEvent) : FReply::Unhandled();
+}
 
 FReply SViewport::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& CharacterEvent )
 {
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnKeyChar(MyGeometry, CharacterEvent) : FReply::Unhandled();
 }
 
-
-FReply SViewport::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SViewport::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	if (WidgetToFocusOnActivate.IsValid())
 	{
-		return FReply::Handled().SetKeyboardFocus(WidgetToFocusOnActivate.Pin().ToSharedRef(), InKeyboardFocusEvent.GetCause());
+		return FReply::Handled().SetUserFocus(WidgetToFocusOnActivate.Pin().ToSharedRef(), InFocusEvent.GetCause());
 	}
 
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnKeyboardFocusReceived(InKeyboardFocusEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnFocusReceived(InFocusEvent) : FReply::Unhandled();
 }
 
 
-void SViewport::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	if (ViewportInterface.IsValid())
 	{
-		ViewportInterface.Pin()->OnKeyboardFocusLost(InKeyboardFocusEvent);
+		ViewportInterface.Pin()->OnFocusLost(InFocusEvent);
 	}
 }
 
@@ -255,39 +258,21 @@ void SViewport::OnWindowClosed( const TSharedRef<SWindow>& WindowBeingClosed )
 }
 
 
-FReply SViewport::OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
+FReply SViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnControllerButtonPressed(MyGeometry, ControllerEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnTouchStarted(MyGeometry, InTouchEvent) : FReply::Unhandled();
 }
 
 
-FReply SViewport::OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
+FReply SViewport::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnControllerButtonReleased(MyGeometry, ControllerEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnTouchMoved(MyGeometry, InTouchEvent) : FReply::Unhandled();
 }
 
 
-FReply SViewport::OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
+FReply SViewport::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnControllerAnalogValueChanged(MyGeometry, ControllerEvent) : FReply::Unhandled();
-}
-
-
-FReply SViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
-{
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnTouchStarted(MyGeometry, TouchEvent) : FReply::Unhandled();
-}
-
-
-FReply SViewport::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
-{
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnTouchMoved(MyGeometry, TouchEvent) : FReply::Unhandled();
-}
-
-
-FReply SViewport::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
-{
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnTouchEnded(MyGeometry, TouchEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnTouchEnded(MyGeometry, InTouchEvent) : FReply::Unhandled();
 }
 
 
@@ -297,9 +282,9 @@ FReply SViewport::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEve
 }
 
 
-FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent )
+FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 {
-	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMotionDetected(MyGeometry, MotionEvent) : FReply::Unhandled();
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMotionDetected(MyGeometry, InMotionEvent) : FReply::Unhandled();
 }
 
 void SViewport::OnFinishedPointerInput()
@@ -328,4 +313,9 @@ TSharedPtr<FVirtualPointerPosition> SViewport::TranslateMouseCoordinateFor3DChil
 	}
 
 	return nullptr;
+}
+
+FNavigationReply SViewport::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnNavigation(MyGeometry, InNavigationEvent) : FNavigationReply::Stop();
 }

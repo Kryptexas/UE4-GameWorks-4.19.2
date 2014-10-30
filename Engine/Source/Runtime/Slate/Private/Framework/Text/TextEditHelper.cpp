@@ -92,58 +92,58 @@ FReply FTextEditHelper::OnKeyChar( const FCharacterEvent& InCharacterEvent, cons
 	return Reply;
 }
 
-FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const TSharedRef< ITextEditorWidget >& TextEditor )
+FReply FTextEditHelper::OnKeyDown( const FKeyEvent& InKeyEvent, const TSharedRef< ITextEditorWidget >& TextEditor )
 {
-	const FKey Key = InKeyboardEvent.GetKey();
+	const FKey Key = InKeyEvent.GetKey();
 
 	if( Key == EKeys::Left )
 	{
 		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
 			// Ctrl moves a whole word instead of one character.	
-			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
+			InKeyEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move left
 			FIntPoint( -1, 0 ),
 			// Shift selects text.	
-			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
+			InKeyEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
 		));
 	}
 	else if( Key == EKeys::Right )
 	{
 		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
 			// Ctrl moves a whole word instead of one character.	
-			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
+			InKeyEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move right
 			FIntPoint( +1, 0 ),
 			// Shift selects text.	
-			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
+			InKeyEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
 		));
 	}
 	else if ( Key == EKeys::Up )
 	{
 		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
-			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
+			InKeyEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move up
 			FIntPoint( 0, -1 ),
 			// Shift selects text.	
-			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
+			InKeyEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
 		));
 	}
 	else if ( Key == EKeys::Down )
 	{
 		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
-			InKeyboardEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
+			InKeyEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
 			// Move down
 			FIntPoint( 0, +1 ),
 			// Shift selects text.	
-			InKeyboardEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
+			InKeyEvent.IsShiftDown() ? ECursorAction::SelectText : ECursorAction::MoveCursor
 		));
 	}
 	else if( Key == EKeys::Home )
 	{
 		// Go to the beginning of the document; select text if Shift is down.
 		TextEditor->JumpTo(
-			(InKeyboardEvent.IsControlDown() ) ? ETextLocation::BeginningOfDocument : ETextLocation::BeginningOfLine,
-			(InKeyboardEvent.IsShiftDown()) ? ECursorAction::SelectText : ECursorAction::MoveCursor );
+			(InKeyEvent.IsControlDown() ) ? ETextLocation::BeginningOfDocument : ETextLocation::BeginningOfLine,
+			(InKeyEvent.IsShiftDown()) ? ECursorAction::SelectText : ECursorAction::MoveCursor );
 
 		return FReply::Handled();
 	}
@@ -151,8 +151,8 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 	{
 		// Go to the end of the document; select text if Shift is down.
 		TextEditor->JumpTo(
-			(InKeyboardEvent.IsControlDown() ) ? ETextLocation::EndOfDocument : ETextLocation::EndOfLine,
-			(InKeyboardEvent.IsShiftDown()) ? ECursorAction::SelectText : ECursorAction::MoveCursor );
+			(InKeyEvent.IsControlDown() ) ? ETextLocation::EndOfDocument : ETextLocation::EndOfLine,
+			(InKeyEvent.IsShiftDown()) ? ECursorAction::SelectText : ECursorAction::MoveCursor );
 
 		return FReply::Handled();
 	}
@@ -168,7 +168,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 	{
 		// @Todo: Slate keybindings support more than one set of keys. 
 		// Delete to next word boundary (Ctrl+Delete)
-		if (InKeyboardEvent.IsControlDown() && !InKeyboardEvent.IsAltDown() && !InKeyboardEvent.IsShiftDown())
+		if (InKeyEvent.IsControlDown() && !InKeyEvent.IsAltDown() && !InKeyEvent.IsShiftDown())
 		{
 			TextEditor->MoveCursor( FMoveCursor::Cardinal(
 				ECursorMoveGranularity::Word, 
@@ -193,7 +193,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 	// @Todo: Slate keybindings support more than one set of keys. 
 	//Alternate key for cut (Shift+Delete)
-	else if( Key == EKeys::Delete && InKeyboardEvent.IsShiftDown() && TextEditor->CanExecuteCut() )
+	else if( Key == EKeys::Delete && InKeyEvent.IsShiftDown() && TextEditor->CanExecuteCut() )
 	{
 		// Cut text to clipboard
 		TextEditor->CutSelectedTextToClipboard();
@@ -203,7 +203,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 	// @Todo: Slate keybindings support more than one set of keys. 
 	// Alternate key for copy (Ctrl+Insert) 
-	else if( Key == EKeys::Insert && InKeyboardEvent.IsControlDown() && TextEditor->CanExecuteCopy() ) 
+	else if( Key == EKeys::Insert && InKeyEvent.IsControlDown() && TextEditor->CanExecuteCopy() ) 
 	{
 		// Copy text to clipboard
 		TextEditor->CopySelectedTextToClipboard();
@@ -214,7 +214,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 	// @Todo: Slate keybindings support more than one set of keys. 
 	// Alternate key for paste (Shift+Insert) 
-	else if( Key == EKeys::Insert && InKeyboardEvent.IsShiftDown() && TextEditor->CanExecutePaste() )
+	else if( Key == EKeys::Insert && InKeyEvent.IsShiftDown() && TextEditor->CanExecutePaste() )
 	{
 		// Paste text from clipboard
 		TextEditor->PasteTextFromClipboard();
@@ -224,7 +224,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 	// @Todo: Slate keybindings support more than one set of keys. 
 	//Alternate key for undo (Alt+Backspace)
-	else if( Key == EKeys::BackSpace && InKeyboardEvent.IsAltDown() && !InKeyboardEvent.IsShiftDown() && TextEditor->CanExecuteUndo() )
+	else if( Key == EKeys::BackSpace && InKeyEvent.IsAltDown() && !InKeyEvent.IsShiftDown() && TextEditor->CanExecuteUndo() )
 	{
 		// Undo
 		TextEditor->Undo();
@@ -234,7 +234,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 	// @Todo: Slate keybindings support more than one set of keys. 
 	// Delete to previous word boundary (Ctrl+Backspace)
-	else if( Key == EKeys::BackSpace && InKeyboardEvent.IsControlDown() && !InKeyboardEvent.IsAltDown() && !InKeyboardEvent.IsShiftDown() && !TextEditor->GetIsReadOnly() )
+	else if( Key == EKeys::BackSpace && InKeyEvent.IsControlDown() && !InKeyEvent.IsAltDown() && !InKeyEvent.IsShiftDown() && !TextEditor->GetIsReadOnly() )
 	{
 		FScopedTextTransaction TextTransaction(TextEditor);
 
@@ -251,16 +251,16 @@ FReply FTextEditHelper::OnKeyDown( const FKeyboardEvent& InKeyboardEvent, const 
 
 
 	// Ctrl+Y (or Ctrl+Shift+Z, or Alt+Shift+Backspace) to redo
-	else if( !TextEditor->GetIsReadOnly() && ( ( Key == EKeys::Y && InKeyboardEvent.IsControlDown() ) ||
-		( Key == EKeys::Z && InKeyboardEvent.IsControlDown() && InKeyboardEvent.IsShiftDown() ) ||
-		( Key == EKeys::BackSpace && InKeyboardEvent.IsAltDown() && InKeyboardEvent.IsShiftDown() ) ) )
+	else if( !TextEditor->GetIsReadOnly() && ( ( Key == EKeys::Y && InKeyEvent.IsControlDown() ) ||
+		( Key == EKeys::Z && InKeyEvent.IsControlDown() && InKeyEvent.IsShiftDown() ) ||
+		( Key == EKeys::BackSpace && InKeyEvent.IsAltDown() && InKeyEvent.IsShiftDown() ) ) )
 	{
 		// Redo
 		TextEditor->Redo();
 		
 		return FReply::Handled();
 	}
-	else if( !InKeyboardEvent.IsAltDown() && !InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetKey() != EKeys::Tab && InKeyboardEvent.GetCharacter() != 0 )
+	else if( !InKeyEvent.IsAltDown() && !InKeyEvent.IsControlDown() && InKeyEvent.GetKey() != EKeys::Tab && InKeyEvent.GetCharacter() != 0 )
 	{
 		// Shift and a character was pressed or a single character was pressed.  We will type something in an upcoming OnKeyChar event.  
 		// Absorb this event so it is not bubbled and handled by other widgets that could have something bound to the key press.
@@ -328,7 +328,7 @@ FReply FTextEditHelper::OnMouseButtonDown( const FGeometry& MyGeometry, const FP
 			// Right clicking to summon context menu, but we'll do that on mouse-up.
 			Reply = FReply::Handled();
 			Reply.CaptureMouse( TextEditor->GetWidget() );
-			Reply.SetKeyboardFocus( TextEditor->GetWidget(), EKeyboardFocusCause::Mouse );
+			Reply.SetUserFocus(TextEditor->GetWidget(), EFocusCause::Mouse);
 		}
 	}
 

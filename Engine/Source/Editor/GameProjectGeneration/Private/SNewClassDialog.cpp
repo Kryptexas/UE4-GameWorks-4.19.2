@@ -894,7 +894,7 @@ void SNewClassDialog::OnNamePageEntered()
 	UpdateInputValidity();
 
 	// Steal keyboard focus to accelerate name entering
-	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EFocusCause::SetDirectly);
 }
 
 FString SNewClassDialog::GetNameClassTitle() const

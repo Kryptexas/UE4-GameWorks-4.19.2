@@ -119,7 +119,7 @@ protected:
 	bool HasPrevDiff() const;
 
 	/* Need to process keys for shortcuts to buttons */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 
 	typedef TSharedPtr<struct FListItemGraphToDiff>	FGraphToDiff;

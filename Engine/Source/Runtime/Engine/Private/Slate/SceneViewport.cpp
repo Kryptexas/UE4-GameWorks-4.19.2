@@ -105,18 +105,18 @@ void FSceneViewport::ShowCursor( bool bVisible )
 	}
 }
 
-bool FSceneViewport::CaptureJoystickInput(bool Capture)
+bool FSceneViewport::SetUserFocus(bool bFocus)
 {
-	if( Capture )
+	if (bFocus)
 	{
-		CurrentReplyState.CaptureJoystick( ViewportWidget.Pin().ToSharedRef(), true );
+		CurrentReplyState.SetUserFocus(ViewportWidget.Pin().ToSharedRef(), EFocusCause::SetDirectly, true);
 	}
 	else
 	{
-		CurrentReplyState.ReleaseJoystickCapture(true);
+		CurrentReplyState.ClearUserFocus(true);
 	}
 
-	return Capture;
+	return bFocus;
 }
 
 bool FSceneViewport::KeyState( FKey Key ) const
@@ -371,8 +371,8 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 		{
 			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
 
-			// Mouse down should focus viewport for keyboard input
-			CurrentReplyState.SetKeyboardFocus(ViewportWidgetRef, EKeyboardFocusCause::Mouse);
+			// Mouse down should focus viewport for user input
+			CurrentReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
 			
 			UWorld* World = ViewportClient->GetWorld();
 			if (World && World->IsGameWorld() && World->GetFirstPlayerController())
@@ -551,67 +551,6 @@ FReply FSceneViewport::OnMouseButtonDoubleClick( const FGeometry& InGeometry, co
 	return CurrentReplyState;
 }
 
-FReply FSceneViewport::OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	// Start a new reply state
-	CurrentReplyState = FReply::Handled(); 
-
-	KeyStateMap.Add( ControllerEvent.GetEffectingButton(), true );
-
-	if( ViewportClient )
-	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-
-		if( !ViewportClient->InputKey( this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.IsRepeat() ? IE_Repeat : IE_Pressed, 1.0f, true ) )
-		{
-			CurrentReplyState = FReply::Unhandled(); 
-		}
-	}
-	return CurrentReplyState;
-}
-
-FReply FSceneViewport::OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	// Start a new reply state
-	CurrentReplyState = FReply::Handled(); 
-
-	KeyStateMap.Add( ControllerEvent.GetEffectingButton(), false );
-
-	if( ViewportClient )
-	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-
-		if( !ViewportClient->InputKey( this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), IE_Released, 1.0f, true ) )
-		{
-			CurrentReplyState = FReply::Unhandled(); 
-		}
-	}
-	return CurrentReplyState;
-}
-
-FReply FSceneViewport::OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	// Start a new reply state
-	CurrentReplyState = FReply::Handled(); 
-
-	KeyStateMap.Add( ControllerEvent.GetEffectingButton(), true );
-
-	if( ViewportClient )
-	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-
-		if (!ViewportClient->InputAxis(this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.GetEffectingButton() == EKeys::Gamepad_RightY ? -ControllerEvent.GetAnalogValue() : ControllerEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
-		{
-			CurrentReplyState = FReply::Unhandled(); 
-		}
-	}
-
-	return CurrentReplyState;
-}
-
 FReply FSceneViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
 {
 	// Start a new reply state
@@ -732,12 +671,12 @@ void FSceneViewport::OnFinishedPointerInput()
 	ProcessAccumulatedPointerInput();
 }
 
-FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	FKey Key = InKeyboardEvent.GetKey();
+	FKey Key = InKeyEvent.GetKey();
 	KeyStateMap.Add( Key, true );
 
 	//@todo Slate Viewports: FWindowsViewport checks for Alt+Enter or F11 and toggles fullscreen.  Unknown if fullscreen via this method will be needed for slate viewports. 
@@ -746,7 +685,7 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputKey( this, 0, Key, InKeyboardEvent.IsRepeat() ? IE_Repeat : IE_Pressed ) )
+		if( !ViewportClient->InputKey( this, 0, Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed ) )
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -754,12 +693,12 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 	return CurrentReplyState;
 }
 
-FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
-	FKey Key = InKeyboardEvent.GetKey();
+	FKey Key = InKeyEvent.GetKey();
 	KeyStateMap.Add( Key, false );
 	
 	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
@@ -768,6 +707,27 @@ FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyboardEven
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
 		if( !ViewportClient->InputKey(this, 0, Key, IE_Released) )
+		{
+			CurrentReplyState = FReply::Unhandled();
+		}
+	}
+
+	return CurrentReplyState;
+}
+
+FReply FSceneViewport::OnAnalogValueChanged(const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	// Start a new reply state
+	CurrentReplyState = FReply::Handled();
+
+	KeyStateMap.Add(InAnalogInputEvent.GetKey(), true);
+
+	if (ViewportClient)
+	{
+		// Switch to the viewport clients world before processing input
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+		if (!ViewportClient->InputAxis(this, InAnalogInputEvent.GetUserIndex(), InAnalogInputEvent.GetKey(), InAnalogInputEvent.GetKey() == EKeys::Gamepad_RightY ? -InAnalogInputEvent.GetAnalogValue() : InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -794,23 +754,22 @@ FReply FSceneViewport::OnKeyChar( const FGeometry& InGeometry, const FCharacterE
 	return CurrentReplyState;
 }
 
-FReply FSceneViewport::OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 {
 	CurrentReplyState = FReply::Handled(); 
 
-	if( ViewportClient )
+	if (ViewportClient != nullptr)
 	{
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-		ViewportClient->ReceivedFocus( this );
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+		ViewportClient->ReceivedFocus(this);
 
-		if( ( FApp::IsGame() && !GIsEditor ) || bIsPlayInEditorViewport )
+		if ((FApp::IsGame() && !GIsEditor) || bIsPlayInEditorViewport)
 		{
-			if( IsForegroundWindow() )
+			if (IsForegroundWindow())
 			{
-				const bool bIsCursorForcedVisible =
-					( ViewportClient != NULL && ViewportClient->GetCursor( this, GetMouseX(), GetMouseY() ) != EMouseCursor::None );
+				const bool bIsCursorForcedVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
 
-				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
+				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
 
 				// capturing the mouse interferes with slate UI (like the virtual joysticks)
 				if (FPlatformProperties::SupportsWindowedMode() && bPlayInEditorCapture && !bIsCursorForcedVisible && !FSlateApplication::Get().IsFakingTouchEvents())
@@ -818,18 +777,13 @@ FReply FSceneViewport::OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKey
 					// Only require the user to click in the window the first time - after that return focus to the game so long as it was the last focused widget.
 					// Means that tabbing in/out will return the mouse control to where it was & the in-game console won't leave the mouse under editor control.
 					bPlayInEditorGetsMouseControl = true;
-					CurrentReplyState.UseHighPrecisionMouseMovement( ViewportWidget.Pin().ToSharedRef() );
-					CurrentReplyState.LockMouseToWidget( ViewportWidget.Pin().ToSharedRef() );
-				}
-				else if(!bPlayInEditorCapture)
-				{
-					FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
-					FSlateApplication::Get().ResetToDefaultInputSettings();
+					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidget.Pin().ToSharedRef());
+					CurrentReplyState.LockMouseToWidget(ViewportWidget.Pin().ToSharedRef());
 				}
 			}
 			else
 			{
-				FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::Cleared );
+				CurrentReplyState.ClearUserFocus(true);
 			}
 		}
 	}
@@ -837,10 +791,10 @@ FReply FSceneViewport::OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKey
 	return CurrentReplyState;
 }
 
-void FSceneViewport::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	KeyStateMap.Empty();
-	if( ViewportClient )
+	if (ViewportClient != nullptr)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->LostFocus( this );
@@ -848,11 +802,11 @@ void FSceneViewport::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardF
 		TSharedPtr<SWidget> ViewportWidgetPin = ViewportWidget.Pin();
 		if( ViewportWidgetPin.IsValid() )
 		{
-			for( int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex )
+			for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
 			{
-				if( FSlateApplication::Get().GetJoystickCaptor(UserIndex) == ViewportWidgetPin )
+				if (FSlateApplication::Get().GetUserFocusedWidget(UserIndex) == ViewportWidgetPin)
 				{
-					FSlateApplication::Get().ReleaseJoystickCapture( UserIndex );
+					FSlateApplication::Get().ClearUserFocus(UserIndex);
 				}
 			}
 		}

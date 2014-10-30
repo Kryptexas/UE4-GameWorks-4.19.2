@@ -621,13 +621,13 @@ bool SDetailsViewBase::SupportsKeyboardFocus() const
 	return DetailsViewArgs.bSearchInitialKeyFocus && SearchBox->SupportsKeyboardFocus() && GetFilterBoxVisibility() == EVisibility::Visible;
 }
 
-FReply SDetailsViewBase::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
+FReply SDetailsViewBase::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	FReply Reply = FReply::Handled();
 
-	if (InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared)
+	if (InFocusEvent.GetCause() != EFocusCause::Cleared)
 	{
-		Reply.SetKeyboardFocus(SearchBox.ToSharedRef(), InKeyboardFocusEvent.GetCause());
+		Reply.SetUserFocus(SearchBox.ToSharedRef(), InFocusEvent.GetCause());
 	}
 
 	return Reply;

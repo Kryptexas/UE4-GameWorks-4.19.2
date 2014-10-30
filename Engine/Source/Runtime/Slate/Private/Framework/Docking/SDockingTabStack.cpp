@@ -376,7 +376,7 @@ FReply SDockingTabStack::OnDrop( const FGeometry& MyGeometry, const FDragDropEve
 	return FReply::Unhandled();
 }
 
-void SDockingTabStack::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
+void SDockingTabStack::OnFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
 {
 	
 	const TSharedPtr<SDockTab> ForegroundTab = TabWell->GetForegroundTab();

@@ -77,7 +77,7 @@ class FMainFrameActionCallbacks
 
 public:
 	/** Global handler for unhandled key-down events in the editor. */
-	static FReply OnUnhandledKeyDownEvent(const FKeyboardEvent& InKeyboardEvent);
+	static FReply OnUnhandledKeyDownEvent(const FKeyEvent& InKeyEvent);
 
 	/**
 	 * The default can execute action for all commands unless they override it

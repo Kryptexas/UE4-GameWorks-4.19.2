@@ -289,17 +289,17 @@ EVisibility SClassPickerDialog::GetSelectButtonVisibility() const
 }
 
 /** Overridden from SWidget: Called when a key is pressed down - capturing copy */
-FReply SClassPickerDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SClassPickerDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	WeakParentWindow.Pin().Get()->SetWidgetToFocusOnActivate(ClassViewer);
 
-	if (InKeyboardEvent.GetKey() == EKeys::Escape)
+	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		return OnClassPickerCanceled();
 	}
 	else
 	{
-		return ClassViewer->OnKeyDown(MyGeometry, InKeyboardEvent);
+		return ClassViewer->OnKeyDown(MyGeometry, InKeyEvent);
 	}
 	return FReply::Handled();
 }

@@ -364,9 +364,9 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 			EControllerButtons::Type YAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogY : EControllerButtons::RightAnalogY;
 
 	//		UE_LOG(LogTemp, Log, TEXT("Joysticking %f,%f"), NormalizedOffset.X, -NormalizedOffset.Y);
-			FSlateApplication::Get().SetJoystickCaptorToGameViewport();
-			FSlateApplication::Get().OnControllerAnalog(Control.MainInputKey, 0, NormalizedOffset.X);
-			FSlateApplication::Get().OnControllerAnalog(Control.AltInputKey, 0, -NormalizedOffset.Y);
+			FSlateApplication::Get().SetAllUserFocusToGameViewport();
+			FSlateApplication::Get().OnControllerAnalog(XAxis, 0, NormalizedOffset.X);
+			FSlateApplication::Get().OnControllerAnalog(YAxis, 0, -NormalizedOffset.Y);
 		}
 
 		// is this active?

@@ -348,17 +348,17 @@ void SSessionConsole::SendCommand( const FString& CommandString )
 /* SWidget implementation
  *****************************************************************************/
 
-FReply SSessionConsole::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SSessionConsole::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.IsControlDown())
+	if (InKeyEvent.IsControlDown())
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::C)
+		if (InKeyEvent.GetKey() == EKeys::C)
 		{
 			CopyLog();
 
 			return FReply::Handled();
 		}
-		else if (InKeyboardEvent.GetKey() == EKeys::S)
+		else if (InKeyEvent.GetKey() == EKeys::S)
 		{
 			SaveLog();
 

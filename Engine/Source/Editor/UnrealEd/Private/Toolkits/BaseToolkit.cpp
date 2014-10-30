@@ -72,9 +72,9 @@ FName FBaseToolkit::GetToolkitContextFName() const
 }
 
 
-bool FBaseToolkit::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const
+bool FBaseToolkit::ProcessCommandBindings( const FKeyEvent& InKeyEvent ) const
 {
-	if( ToolkitCommands->ProcessCommandBindings( InKeyboardEvent ) )
+	if( ToolkitCommands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return true;
 	}

@@ -267,7 +267,7 @@ FReply SPaperEditorViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const 
 
 		this->bIsPanning = false;
 		return (WidgetToFocus.IsValid())
-			? ReplyState.ReleaseMouseCapture().SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly )
+			? ReplyState.ReleaseMouseCapture().SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly)
 			: ReplyState.ReleaseMouseCapture();
 	}
 	else if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)

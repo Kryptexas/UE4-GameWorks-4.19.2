@@ -1243,8 +1243,6 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
-	InViewport->CaptureJoystickInput(true);
-
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
@@ -2400,7 +2398,7 @@ bool UGameViewportClient::HandlePrevViewModeCommand( const TCHAR* Cmd, FOutputDe
 #if WITH_EDITOR
 bool UGameViewportClient::HandleShowMouseCursorCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 	FSlateApplication::Get().ResetToDefaultInputSettings();
 	return true;
 }

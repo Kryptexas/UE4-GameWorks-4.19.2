@@ -865,19 +865,19 @@ void FComponentTransformDetails::ExtendZScaleContextMenu( FMenuBuilder& MenuBuil
 
 void FComponentTransformDetails::OnXScaleMirrored()
 {
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 	ScaleObject( 1.0f, 0, true, LOCTEXT( "MirrorActorScaleX", "Mirror actor scale X" ) );
 }
 
 void FComponentTransformDetails::OnYScaleMirrored()
 {
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 	ScaleObject(1.0f, 1, true, LOCTEXT("MirrorActorScaleY", "Mirror actor scale Y"));
 }
 
 void FComponentTransformDetails::OnZScaleMirrored()
 {
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 	ScaleObject(1.0f, 2, true, LOCTEXT("MirrorActorScaleZ", "Mirror actor scale Z"));
 }
 

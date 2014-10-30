@@ -1148,7 +1148,7 @@ bool ULocalPlayer::HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 	{
 		if (ViewportClient && ViewportClient->Viewport)
 		{
-			ViewportClient->Viewport->CaptureJoystickInput(true);
+			ViewportClient->Viewport->SetUserFocus(true);
 			ViewportClient->Viewport->CaptureMouse(true);
 		}
 	}

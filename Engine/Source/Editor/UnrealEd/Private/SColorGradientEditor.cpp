@@ -426,9 +426,9 @@ FReply SColorGradientEditor::OnMouseButtonUp( const FGeometry& MyGeometry, const
 	return FReply::Unhandled();
 }
 
-FReply SColorGradientEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SColorGradientEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( IsEditingEnabled.Get() == true && InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+	if ( IsEditingEnabled.Get() == true && InKeyEvent.GetKey() == EKeys::Platform_Delete )
 	{
 		DeleteStop( SelectedStop );
 		return FReply::Handled();

@@ -466,6 +466,18 @@ void UWidget::SynchronizeProperties()
 	{
 		SafeWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
 	}
+
+	if (Navigation != nullptr)
+	{
+		TSharedPtr<FNavigationMetaData> MetaData = SafeWidget->GetMetaData<FNavigationMetaData>();
+		if (!MetaData.IsValid())
+		{
+			MetaData = MakeShareable(new FNavigationMetaData());
+			SafeWidget->AddMetadata(MetaData.ToSharedRef());
+		}
+
+		Navigation->UpdateMetaData(MetaData.ToSharedRef());
+	}
 }
 
 bool UWidget::IsDesignTime() const

@@ -543,7 +543,7 @@ private:
 	void SetPreviewComponentSocketFilter() const;
 
 	/** Override OnKeyDown */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 	/** Function to delete all the selected sockets/assets */
 	void OnDeleteSelectedRows();

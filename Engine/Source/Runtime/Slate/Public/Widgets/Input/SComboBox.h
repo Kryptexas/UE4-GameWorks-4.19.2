@@ -244,9 +244,9 @@ protected:
 		return FReply::Unhandled();
 	}
 
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		const FKey Key = InKeyboardEvent.GetKey();
+		const FKey Key = InKeyEvent.GetKey();
 
 		if(Key == EKeys::Up)
 		{
@@ -271,7 +271,7 @@ protected:
 			return FReply::Handled();
 		}
 
-		return SComboButton::OnKeyDown( MyGeometry, InKeyboardEvent );
+		return SComboButton::OnKeyDown( MyGeometry, InKeyEvent );
 	}
 
 	virtual bool SupportsKeyboardFocus() const override

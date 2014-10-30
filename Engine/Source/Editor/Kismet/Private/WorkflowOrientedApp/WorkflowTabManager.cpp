@@ -143,7 +143,7 @@ void FTabInfo::JumpToNearestValidHistoryData()
 			History[CurrentHistoryIndex]->RestoreHistory();
 			History[CurrentHistoryIndex]->GetFactory().Pin()->OnTabActivated(Tab.Pin());
 			FGlobalTabmanager::Get()->SetActiveTab(nullptr);
-			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
 		}
 	}
 }

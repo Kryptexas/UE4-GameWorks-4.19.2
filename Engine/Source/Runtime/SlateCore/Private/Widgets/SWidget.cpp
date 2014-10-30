@@ -61,16 +61,29 @@ void SWidget::Construct(
 }
 
 
-FReply SWidget::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	return FReply::Unhandled();
 }
 
-void SWidget::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InFocusEvent)
+{
+	return FReply::Unhandled();
+}
+
+void SWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 }
 
-void SWidget::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath )
+void SWidget::OnKeyboardFocusLost(const FKeyboardFocusEvent& InFocusEvent)
+{
+}
+
+void SWidget::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
+{
+}
+
+void SWidget::OnKeyboardFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath)
 {
 }
 
@@ -80,19 +93,53 @@ FReply SWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& I
 }
 
 
-FReply SWidget::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SWidget::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
+{
+	if (SupportsKeyboardFocus())
+	{
+		// It's the left stick return a navigation request of the correct direction
+		if (InKeyEvent.GetKey() == EKeys::Right || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Right || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Right)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Right);
+		}
+		else if (InKeyEvent.GetKey() == EKeys::Left || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Left || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Left)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Left);
+		}
+		else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Up || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Up)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Up);
+		}
+		else if (InKeyEvent.GetKey() == EKeys::Down || InKeyEvent.GetKey() == EKeys::Gamepad_DPad_Down || InKeyEvent.GetKey() == EKeys::Gamepad_LeftStick_Down)
+		{
+			return FReply::Handled().SetNavigation(EUINavigation::Down);
+		}
+		// If the key was Tab, interpret as an attempt to move focus.
+		else if (InKeyEvent.GetKey() == EKeys::Tab)
+		{
+			EUINavigation MoveDirection = (InKeyEvent.IsShiftDown())
+				? EUINavigation::Previous
+				: EUINavigation::Next;
+			return FReply::Handled().SetNavigation(MoveDirection);
+		}
+	}
+	return FReply::Unhandled();
+}
+
+
+FReply SWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SWidget::OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent )
 {
 	return FReply::Unhandled();
 }
@@ -213,37 +260,52 @@ FReply SWidget::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent
 }
 
 
-FReply SWidget::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
+FReply SWidget::OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
+FReply SWidget::OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent )
+FReply SWidget::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
 {
 	return FReply::Unhandled();
 }
 
 
-FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent )
+FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 {
 	return FReply::Unhandled();
 }
+
 
 void SWidget::OnFinishedPointerInput()
 {
 
 }
 
+
 void SWidget::OnFinishedKeyInput()
 {
 
+}
+
+
+FNavigationReply SWidget::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	EUINavigation Type = InNavigationEvent.GetNavigationType();
+	TSharedPtr<FNavigationMetaData> MetaData = GetMetaData<FNavigationMetaData>();
+	if (MetaData.IsValid())
+	{
+		TSharedPtr<SWidget> Widget = MetaData->GetFocusRecipient(Type).Pin();
+		return FNavigationReply(MetaData->GetBoundaryRule(Type), Widget, MetaData->GetFocusDelegate(Type));
+	}
+	return FNavigationReply::Escape();
 }
 
 
@@ -343,7 +405,6 @@ void SWidget::OnMouseCaptureLost()
 {
 	
 }
-
 
 bool SWidget::FindChildGeometries( const FGeometry& MyGeometry, const TSet< TSharedRef<SWidget> >& WidgetsToFind, TMap<TSharedRef<SWidget>, FArrangedWidget>& OutResult ) const
 {

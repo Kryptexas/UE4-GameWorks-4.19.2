@@ -810,7 +810,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 
 		if (WidgetToFocus.IsValid())
 		{
-			ReplyState.SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+			ReplyState.SetUserFocus(WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly);
 		}
 	}
 	else if ( bIsLeftMouseButtonEffecting )
@@ -914,23 +914,23 @@ FCursorReply SNodePanel::OnCursorQuery( const FGeometry& MyGeometry, const FPoin
 		FCursorReply::Cursor( EMouseCursor::Default );
 }
 
-FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if( IsEditable.Get() )
 	{
-		LastKeyGestureDetected.Key = InKeyboardEvent.GetKey();
-		LastKeyGestureDetected.bAlt = InKeyboardEvent.IsAltDown();
-		LastKeyGestureDetected.bCtrl = InKeyboardEvent.IsControlDown();
-		LastKeyGestureDetected.bShift = InKeyboardEvent.IsShiftDown();
-		LastKeyGestureDetected.bCmd = InKeyboardEvent.IsCommandDown();
+		LastKeyGestureDetected.Key = InKeyEvent.GetKey();
+		LastKeyGestureDetected.bAlt = InKeyEvent.IsAltDown();
+		LastKeyGestureDetected.bCtrl = InKeyEvent.IsControlDown();
+		LastKeyGestureDetected.bShift = InKeyEvent.IsShiftDown();
+		LastKeyGestureDetected.bCmd = InKeyEvent.IsCommandDown();
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(LastKeyGestureDetected.Key == InKeyboardEvent.GetKey())
+	if(LastKeyGestureDetected.Key == InKeyEvent.GetKey())
 	{
 		LastKeyGestureDetected.Key = EKeys::Invalid;
 		LastKeyGestureDetected.bAlt = false;
@@ -942,7 +942,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& I
 	return FReply::Unhandled();
 }
 
-void SNodePanel::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SNodePanel::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	LastKeyGestureDetected.Key = EKeys::Invalid;
 	LastKeyGestureDetected.bAlt = false;

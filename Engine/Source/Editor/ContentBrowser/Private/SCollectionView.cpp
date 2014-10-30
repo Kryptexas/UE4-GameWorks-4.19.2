@@ -308,9 +308,9 @@ void SCollectionView::Tick( const FGeometry& AllottedGeometry, const double InCu
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-FReply SCollectionView::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SCollectionView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if( Commands->ProcessCommandBindings( InKeyboardEvent ) )
+	if( Commands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

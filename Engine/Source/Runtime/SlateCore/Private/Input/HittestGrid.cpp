@@ -225,6 +225,241 @@ void FHittestGrid::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> Custo
 	}
 }
 
+bool FHittestGrid::IsDecendantOf(const TSharedRef<SWidget> Parent, const FCachedWidget& Child)
+{
+	TSharedPtr<SWidget> ChildWidget = Child.WidgetPtr.Pin();
+
+	if (!ChildWidget.IsValid() || ChildWidget == Parent)
+	{
+		return false;
+	}
+
+	int32 CurWidgetIndex = Child.ParentIndex;
+	while (CurWidgetIndex != INDEX_NONE)
+	{
+		const FCachedWidget& CurCachedWidget = (*WidgetsCachedThisFrame)[CurWidgetIndex];
+		CurWidgetIndex = CurCachedWidget.ParentIndex;
+
+		if (Parent == CurCachedWidget.WidgetPtr.Pin())
+		{
+			return true;
+		}
+	}
+		
+	return false;
+}
+
+template<typename TCompareFunc, typename TSourceSideFunc, typename TDestSideFunc>
+TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, const FSlateRect SweptRect, int32 AxisIndex, int32 Increment, const EUINavigation Direction, const FNavigationReply& NavigationReply, TCompareFunc CompareFunc, TSourceSideFunc SourceSideFunc, TDestSideFunc DestSideFunc)
+{
+	FIntPoint CurrentCellPoint = GetCellCoordinate(WidgetRect.GetCenter());
+
+	int32 StartingIndex = CurrentCellPoint[AxisIndex];
+
+	float CurrentSourceSide = SourceSideFunc(WidgetRect);
+
+	int32 StrideAxis, StrideAxisMin, StrideAxisMax;
+	if (AxisIndex == 0)
+	{
+		StrideAxis = 1;
+		StrideAxisMin = FMath::Min(FMath::Max(FMath::FloorToInt(SweptRect.Top / CellSize.Y), 0), NumCells.Y - 1);
+		StrideAxisMax = FMath::Min(FMath::Max(FMath::FloorToInt(SweptRect.Bottom / CellSize.Y), 0), NumCells.Y - 1);
+	}
+	else
+	{
+		StrideAxis = 0;
+		StrideAxisMin = FMath::Min(FMath::Max(FMath::FloorToInt(SweptRect.Left / CellSize.X), 0), NumCells.X - 1);
+		StrideAxisMax = FMath::Min(FMath::Max(FMath::FloorToInt(SweptRect.Right / CellSize.X), 0), NumCells.X - 1);
+	}
+
+	bool bWrapped = false;
+	while (CurrentCellPoint[AxisIndex] >= 0 && CurrentCellPoint[AxisIndex] < NumCells[AxisIndex])
+	{
+		FIntPoint StrideCellPoint = CurrentCellPoint;
+		int32 CurrentCellProcessed = CurrentCellPoint[AxisIndex];
+		
+		// Increment before the search as a wrap case will change our current cell.
+		CurrentCellPoint[AxisIndex] += Increment;
+		
+		FSlateRect BestWidgetRect;
+		TSharedPtr<SWidget> BestWidget = TSharedPtr<SWidget>();
+		
+		for (StrideCellPoint[StrideAxis] = StrideAxisMin; StrideCellPoint[StrideAxis] <= StrideAxisMax; ++StrideCellPoint[StrideAxis])
+		{
+			FHittestGrid::FCell& Cell = FHittestGrid::CellAt(StrideCellPoint.X, StrideCellPoint.Y);
+			const TArray<int32>& IndexesInCell = Cell.CachedWidgetIndexes;
+
+			for (int32 i = IndexesInCell.Num() - 1; i >= 0; --i)
+			{
+				int32 CurrentIndex = IndexesInCell[i];
+				check(CurrentIndex < WidgetsCachedThisFrame->Num());
+
+				const FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[CurrentIndex];
+				FSlateRect TestCandidateRect = TestCandidate.ClippingRect;
+
+				if (CompareFunc(DestSideFunc(TestCandidateRect), CurrentSourceSide) && FSlateRect::DoRectanglesIntersect(SweptRect, TestCandidateRect))
+				{
+					// If this found widget isn't closer then the previously found widget then keep looking.
+					if (BestWidget.IsValid() && !CompareFunc(DestSideFunc(BestWidgetRect), DestSideFunc(TestCandidateRect)))
+					{
+						continue;
+					}
+
+					// If we have a non escape boundary condition and this widget isn't a descendant of our boundary condition widget then it's invalid so we keep looking.
+					if (NavigationReply.GetBoundaryRule() != EUINavigationRule::Escape 
+						&& NavigationReply.GetHandler().IsValid() 
+						&& !IsDecendantOf(NavigationReply.GetHandler().ToSharedRef(), TestCandidate))
+					{
+						continue;
+					}
+
+					TSharedPtr<SWidget> Widget = TestCandidate.WidgetPtr.Pin();
+					if (Widget.IsValid() && Widget->IsEnabled() && Widget->SupportsKeyboardFocus())
+					{
+						BestWidgetRect = TestCandidateRect;
+						BestWidget = Widget;
+					}
+				}
+			}
+		}
+
+		if (BestWidget.IsValid())
+		{
+			// Check for the need to apply our rule
+			if (CompareFunc(DestSideFunc(BestWidgetRect), SourceSideFunc(SweptRect)))
+			{
+				switch (NavigationReply.GetBoundaryRule())
+				{
+				case EUINavigationRule::Explicit:
+					return NavigationReply.GetFocusRecipient();
+				case EUINavigationRule::Custom:
+					{
+						const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
+						if (FocusDelegate.IsBound())
+						{
+							return FocusDelegate.Execute(Direction);
+						}
+						return TSharedPtr<SWidget>();
+					}
+				case EUINavigationRule::Stop:
+					return TSharedPtr<SWidget>();
+				case EUINavigationRule::Wrap:
+					CurrentSourceSide = DestSideFunc(SweptRect);
+					FVector2D SampleSpot = WidgetRect.GetCenter();
+					SampleSpot[AxisIndex] = CurrentSourceSide;
+					CurrentCellPoint = GetCellCoordinate(SampleSpot);
+					bWrapped = true;
+					break;
+				}
+			}
+
+			return BestWidget;
+		}
+
+		// break if we have looped back to where we started.
+		if (bWrapped && StartingIndex == CurrentCellProcessed) { break; }
+
+		// If were going to fail our bounds check and our rule is to wrap then wrap our position
+		if (!(CurrentCellPoint[AxisIndex] >= 0 && CurrentCellPoint[AxisIndex] < NumCells[AxisIndex]) && NavigationReply.GetBoundaryRule() == EUINavigationRule::Wrap)
+		{
+			CurrentSourceSide = DestSideFunc(SweptRect);
+			FVector2D SampleSpot = WidgetRect.GetCenter();
+			SampleSpot[AxisIndex] = CurrentSourceSide;
+			CurrentCellPoint = GetCellCoordinate(SampleSpot);
+			bWrapped = true;
+		}
+	}
+
+	return TSharedPtr<SWidget>();
+}
+
+TSharedPtr<SWidget> FHittestGrid::FindNextFocusableWidget(const FArrangedWidget& StartingWidget, const EUINavigation Direction, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget)
+{
+	FSlateRect WidgetRect = 
+		TransformRect(
+			Concatenate(
+				Inverse(StartingWidget.Geometry.GetAccumulatedLayoutTransform()),
+				StartingWidget.Geometry.GetAccumulatedRenderTransform()
+			),
+			FSlateRotatedRect(StartingWidget.Geometry.GetClippingRect())
+		)
+		.ToBoundingRect()
+		.OffsetBy(-GridOrigin);
+
+	FSlateRect BoundingRuleRect = 
+		TransformRect(
+			Concatenate(
+				Inverse(RuleWidget.Geometry.GetAccumulatedLayoutTransform()),
+				RuleWidget.Geometry.GetAccumulatedRenderTransform()
+			),
+			FSlateRotatedRect(RuleWidget.Geometry.GetClippingRect())
+		)
+		.ToBoundingRect()
+		.OffsetBy(-GridOrigin);
+
+	FSlateRect SweptWidgetRect = WidgetRect;
+
+	TSharedPtr<SWidget> Widget = TSharedPtr<SWidget>();
+
+	switch (Direction)
+	{
+	case EUINavigation::Left:
+		SweptWidgetRect.Left = BoundingRuleRect.Left;
+		SweptWidgetRect.Right = BoundingRuleRect.Right;
+		SweptWidgetRect.Top += 0.5f;
+		SweptWidgetRect.Bottom -= 0.5f;
+		Widget = FindFocusableWidget(WidgetRect, SweptWidgetRect, 0, -1, Direction, NavigationReply,
+			[](float A, float B) { return A - 0.1f < B; }, // Compare function
+			[](FSlateRect SourceRect) { return SourceRect.Left; }, // Source side function
+			[](FSlateRect DestRect) { return DestRect.Right; }); // Dest side function
+		break;
+	case EUINavigation::Right:
+		SweptWidgetRect.Left = BoundingRuleRect.Left;
+		SweptWidgetRect.Right = BoundingRuleRect.Right;
+		SweptWidgetRect.Top += 0.5f;
+		SweptWidgetRect.Bottom -= 0.5f;
+		Widget = FindFocusableWidget(WidgetRect, SweptWidgetRect, 0, 1, Direction, NavigationReply,
+			[](float A, float B) { return A + 0.1f > B; }, // Compare function
+			[](FSlateRect SourceRect) { return SourceRect.Right; }, // Source side function
+			[](FSlateRect DestRect) { return DestRect.Left; }); // Dest side function
+		break;
+	case EUINavigation::Up:
+		SweptWidgetRect.Top = BoundingRuleRect.Top;
+		SweptWidgetRect.Bottom = BoundingRuleRect.Bottom;
+		SweptWidgetRect.Left += 0.5f;
+		SweptWidgetRect.Right -= 0.5f;
+		Widget = FindFocusableWidget(WidgetRect, SweptWidgetRect, 1, -1, Direction, NavigationReply,
+			[](float A, float B) { return A - 0.1f < B; }, // Compare function
+			[](FSlateRect SourceRect) { return SourceRect.Top; }, // Source side function
+			[](FSlateRect DestRect) { return DestRect.Bottom; }); // Dest side function
+		break;
+	case EUINavigation::Down:
+		SweptWidgetRect.Top = BoundingRuleRect.Top;
+		SweptWidgetRect.Bottom = BoundingRuleRect.Bottom;
+		SweptWidgetRect.Left += 0.5f;
+		SweptWidgetRect.Right -= 0.5f;
+		Widget = FindFocusableWidget(WidgetRect, SweptWidgetRect, 1, 1, Direction, NavigationReply,
+			[](float A, float B) { return A + 0.1f > B; }, // Compare function
+			[](FSlateRect SourceRect) { return SourceRect.Bottom; }, // Source side function
+			[](FSlateRect DestRect) { return DestRect.Top; }); // Dest side function
+		break;
+
+	default:
+		break;
+	}
+
+	return Widget;
+}
+
+
+
+FIntPoint FHittestGrid::GetCellCoordinate(FVector2D Position)
+{
+	return FIntPoint(
+		FMath::Min(FMath::Max(FMath::FloorToInt(Position.X / CellSize.X), 0), NumCells.X - 1),
+		FMath::Min(FMath::Max(FMath::FloorToInt(Position.Y / CellSize.Y), 0), NumCells.Y - 1));
+}
+
 FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y )
 {
 	check( (Y*NumCells.X + X) < Cells.Num() );

@@ -929,7 +929,7 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 	}
 
 	// Capture mouse for the drag handle and general mouse actions
-	return FReply::Handled().PreventThrottling().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::Mouse).CaptureMouse(AsShared());
+	return FReply::Handled().PreventThrottling().SetUserFocus(AsShared(), EFocusCause::Mouse).CaptureMouse(AsShared());
 }
 
 FReply SDesignerView::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -1036,16 +1036,16 @@ void SDesignerView::OnMouseLeave(const FPointerEvent& MouseEvent)
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
-FReply SDesignerView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SDesignerView::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
 
-	if ( BlueprintEditor.Pin()->DesignerCommandList->ProcessCommandBindings(InKeyboardEvent) )
+	if ( BlueprintEditor.Pin()->DesignerCommandList->ProcessCommandBindings(InKeyEvent) )
 	{
 		return FReply::Handled();
 	}
 
-	if ( CommandList->ProcessCommandBindings(InKeyboardEvent) )
+	if ( CommandList->ProcessCommandBindings(InKeyEvent) )
 	{
 		return FReply::Handled();
 	}

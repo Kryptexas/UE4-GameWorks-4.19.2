@@ -60,7 +60,7 @@ void STextEntryPopup::FocusDefaultWidget()
 	// Focus the text widget
 	FWidgetPath FocusMe;
 	FSlateApplication::Get().GeneratePathToWidgetChecked( WidgetWithDefaultFocus.ToSharedRef(), FocusMe );
-	FSlateApplication::Get().SetKeyboardFocus( FocusMe, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( FocusMe, EFocusCause::SetDirectly );
 }
 
 void STextEntryPopup::SetError( const FText& InError )

@@ -181,7 +181,7 @@ protected:
 
 public:
 	// SWidget interface
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) override;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& KeyEvent) override;
 	// End of SWidget interface
 
 	/** Get filter text box widget */

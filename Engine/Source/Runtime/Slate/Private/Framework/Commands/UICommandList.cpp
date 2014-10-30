@@ -130,9 +130,9 @@ bool FUICommandList::IsChecked( const TSharedRef< const FUICommandInfo > InUICom
 }
 
 
-bool FUICommandList::ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const 
+bool FUICommandList::ProcessCommandBindings( const FKeyEvent& InKeyEvent ) const 
 {
-	return ConditionalProcessCommandBindings( InKeyboardEvent.GetKey(), InKeyboardEvent.IsControlDown(), InKeyboardEvent.IsAltDown(), InKeyboardEvent.IsShiftDown(), InKeyboardEvent.IsCommandDown(), InKeyboardEvent.IsRepeat() );
+	return ConditionalProcessCommandBindings( InKeyEvent.GetKey(), InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown(), InKeyEvent.IsRepeat() );
 }
 
 

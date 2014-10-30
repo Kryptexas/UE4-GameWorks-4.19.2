@@ -49,7 +49,7 @@ public:
 	}
 
 	// SWidget interface
-	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	// End of SWidget interface
 
 protected:
@@ -73,9 +73,9 @@ protected:
 	}
 };
 
-FReply SGlobalOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SGlobalOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (InKeyboardEvent.GetKey() == EKeys::Escape)
+	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		FSlateApplication::Get().DismissAllMenus();
 		return FReply::Handled();

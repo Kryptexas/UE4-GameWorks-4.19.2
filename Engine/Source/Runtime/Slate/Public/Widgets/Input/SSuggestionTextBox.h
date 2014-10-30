@@ -183,8 +183,8 @@ protected:
 
 	// SWidget overrides
 
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent ) override;
+	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
 	virtual bool SupportsKeyboardFocus( ) const override;
 
 private:

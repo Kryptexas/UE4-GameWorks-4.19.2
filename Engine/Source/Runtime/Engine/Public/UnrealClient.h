@@ -277,7 +277,7 @@ public:
 	 */
 	virtual bool IsCursorVisible() const { return true; }
 
-	virtual bool CaptureJoystickInput(bool Capture) = 0;
+	virtual bool SetUserFocus(bool bFocus) = 0;
 	virtual bool KeyState(FKey Key) const = 0;
 	virtual int32 GetMouseX() const = 0;
 	virtual int32 GetMouseY() const = 0;
@@ -937,7 +937,7 @@ public:
 	virtual void*	GetWindow() { return 0; }
 	virtual void	MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) {}
 	virtual void	Destroy() {}
-	virtual bool	CaptureJoystickInput(bool Capture) { return false; }
+	virtual bool SetUserFocus(bool bFocus) { return false; }
 	virtual bool	KeyState(FKey Key) const { return false; }
 	virtual int32	GetMouseX() const { return 0; }
 	virtual int32	GetMouseY() const { return 0; }

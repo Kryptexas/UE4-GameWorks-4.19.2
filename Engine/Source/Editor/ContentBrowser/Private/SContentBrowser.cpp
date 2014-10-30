@@ -805,12 +805,12 @@ bool SContentBrowser::IsLocked() const
 void SContentBrowser::SetKeyboardFocusOnSearch() const
 {
 	// Focus on the search box
-	FSlateApplication::Get().SetKeyboardFocus( SearchBoxPtr, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( SearchBoxPtr, EFocusCause::SetDirectly );
 }
 
-FReply SContentBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SContentBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if( Commands->ProcessCommandBindings( InKeyboardEvent ) )
+	if( Commands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

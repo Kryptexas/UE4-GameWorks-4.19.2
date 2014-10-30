@@ -355,11 +355,11 @@ namespace EditorBuildPromotionTestUtils
 		TSharedPtr<SWidget> FocusWidget = FindFirstWidgetByClass(EditorWindow, WidgetTypeToFocus);
 		if (FocusWidget.IsValid())
 		{
-			FSlateApplication::Get().SetKeyboardFocus(FocusWidget.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(FocusWidget.ToSharedRef(), EFocusCause::SetDirectly);
 
 			//Send the command
 			FModifierKeysState ModifierKeys(InGesture.bShift, false, InGesture.bCtrl, false, InGesture.bAlt, false, InGesture.bCmd, false, false);
-			FKeyboardEvent KeyEvent(InGesture.Key, ModifierKeys, false, 0, 0);
+			FKeyEvent KeyEvent(InGesture.Key, ModifierKeys, 0/*UserIndex*/, false, 0, 0);
 			FSlateApplication::Get().ProcessKeyDownEvent(KeyEvent);
 			FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
 		}
@@ -4368,7 +4368,7 @@ bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
 	FSlateApplication::Get().ProcessWindowActivatedEvent(FWindowActivateEvent(FWindowActivateEvent::EA_Activate, AllWindows[0]));
 
 	//Send the PIE event
-	FKeyboardEvent PIEKeyEvent(EKeys::L, FModifierKeysState(false, false, true, false, false, false, false, false, false), false, 0x4C, 0x4C);
+	FKeyEvent PIEKeyEvent(EKeys::L, FModifierKeysState(false, false, true, false, false, false, false, false, false), false, 0/*UserIndex*/, 0x4C, 0x4C);
 	FSlateApplication::Get().ProcessKeyDownEvent(PIEKeyEvent);
 	FSlateApplication::Get().ProcessKeyUpEvent(PIEKeyEvent);
 

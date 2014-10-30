@@ -248,7 +248,7 @@ int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& A
 	return LayerId + TextLayer;
 }
 
-FReply SVirtualKeyboardEntry::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SVirtualKeyboardEntry::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// The user wants to edit text. Make a copy of the observed text for the user to edit.
 	EditedText = Text.Get();
@@ -263,20 +263,20 @@ FReply SVirtualKeyboardEntry::OnKeyboardFocusReceived( const FGeometry& MyGeomet
 /**
  * Called when this widget loses the keyboard focus.  This event does not bubble.
  *
- * @param  InKeyboardFocusEvent  KeyboardFocusEvent
+ * @param  InFocusEvent  FocusEvent
  */
-void SVirtualKeyboardEntry::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SVirtualKeyboardEntry::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// See if user explicitly tabbed away or moved focus
 	ETextCommit::Type TextAction;
-	switch ( InKeyboardFocusEvent.GetCause() )
+	switch ( InFocusEvent.GetCause() )
 	{
-		case EKeyboardFocusCause::Keyboard:
-		case EKeyboardFocusCause::Mouse:
+		case EFocusCause::Navigation:
+		case EFocusCause::Mouse:
 			TextAction = ETextCommit::OnUserMovedFocus;
 			break;
 
-		case EKeyboardFocusCause::Cleared:
+		case EFocusCause::Cleared:
 			TextAction = ETextCommit::OnCleared;
 			break;
 

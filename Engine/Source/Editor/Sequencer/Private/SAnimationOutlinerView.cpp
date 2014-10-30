@@ -117,7 +117,7 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonUp( const FGeometry& MyGeometry,
 				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 				);
 			
-			return FReply::Handled().ReleaseMouseCapture().SetKeyboardFocus( MenuContent.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+			return FReply::Handled().ReleaseMouseCapture().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
 		}
 
 		return FReply::Handled().ReleaseMouseCapture();

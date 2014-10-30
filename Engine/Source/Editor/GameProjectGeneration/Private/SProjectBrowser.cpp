@@ -944,9 +944,9 @@ void SProjectBrowser::PopulateFilteredProjectCategories()
 	}
 }
 
-FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.GetKey() == EKeys::F5)
+	if (InKeyEvent.GetKey() == EKeys::F5)
 	{
 		return FindProjects();
 	}

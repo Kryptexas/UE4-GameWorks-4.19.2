@@ -155,9 +155,11 @@ struct FFocusableWidgetMatcher
  *
  * @return true if the focus moved successfully, false if we were unable to move focus
  */
-bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirection)
+bool FWidgetPath::MoveFocus(int32 PathLevel, EUINavigation NavigationType)
 {
-	const int32 MoveDirectionAsInt = (MoveDirection == EFocusMoveDirection::Next)
+	check(NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous);
+
+	const int32 MoveDirectionAsInt = (NavigationType == EUINavigation::Next)
 		? +1
 		: -1;
 
@@ -165,7 +167,7 @@ bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirec
 	if ( PathLevel == Widgets.Num()-1 )
 	{
 		// We are the currently focused widget because we are at the very bottom of focus path.
-		if (MoveDirection == EFocusMoveDirection::Next)
+		if (NavigationType == EUINavigation::Next)
 		{
 			// EFocusMoveDirection::Next implies descend, so try to find a focusable descendant.
 			return ExtendPathTo( FFocusableWidgetMatcher() );
@@ -197,7 +199,7 @@ bool FWidgetPath::MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirec
 			if ( ArrangedChildren[FocusedChildIndex].Widget->IsEnabled() )
 			{
 				// Look for a focusable descendant.
-				FArrangedChildren PathToFocusableChild = GeneratePathToWidget( FFocusableWidgetMatcher(), ArrangedChildren[FocusedChildIndex], MoveDirection );
+				FArrangedChildren PathToFocusableChild = GeneratePathToWidget(FFocusableWidgetMatcher(), ArrangedChildren[FocusedChildIndex], NavigationType);
 				// Either we found a focusable descendant, or an immediate child that is focusable.
 				const bool bFoundNextFocusable = ( PathToFocusableChild.Num() > 0 ) || ArrangedChildren[FocusedChildIndex].Widget->SupportsKeyboardFocus();
 				if ( bFoundNextFocusable )
@@ -330,8 +332,10 @@ bool FWeakWidgetPath::ContainsWidget( const TSharedRef< const SWidget >& SomeWid
  * 
  * @return The new focus path.
  */
-FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EFocusMoveDirection::Type MoveDirection)
+FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EUINavigation NavigationType)
 {
+	check(NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous);
+
 	// Make a copy of the focus path. We will mutate it until it meets the necessary requirements.
 	FWidgetPath NewFocusPath = this->ToWidgetPath();
 	TSharedPtr<SWidget> CurrentlyFocusedWidget = this->Widgets.Last().Pin();
@@ -340,7 +344,7 @@ FWidgetPath FWeakWidgetPath::ToNextFocusedPath(EFocusMoveDirection::Type MoveDir
 	// Attempt to move the focus starting at the leafmost widget and bubbling up to the root (i.e. the window)
 	for (int32 FocusNodeIndex=NewFocusPath.Widgets.Num()-1; !bMovedFocus && FocusNodeIndex >= 0; --FocusNodeIndex)
 	{
-		bMovedFocus = NewFocusPath.MoveFocus( FocusNodeIndex, MoveDirection );
+		bMovedFocus = NewFocusPath.MoveFocus(FocusNodeIndex, NavigationType);
 	}
 
 	return NewFocusPath;

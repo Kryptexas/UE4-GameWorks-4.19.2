@@ -24,9 +24,14 @@ FText FControllerEvent::ToText() const
 	return NSLOCTEXT("Events","Gamepad","Gamepad()");
 }
 
-FText FKeyboardEvent::ToText() const
+FText FKeyEvent::ToText() const
 {
 	return FText::Format( NSLOCTEXT("Events","Key","Key({0})"), Key.GetDisplayName() );
+}
+
+FText FAnalogInputEvent::ToText() const
+{
+	return FText::Format(NSLOCTEXT("Events", "AnalogInput", "AnalogInput Key({0})"), GetKey().GetDisplayName());
 }
 
 FText FPointerEvent::ToText() const

@@ -33,7 +33,7 @@ private:
 		return FText::Format(LOCTEXT("TootipHint", "{0}\n\n(Esc to pick)"), TranslationInfoPreviewText);
 	}
 
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	/** We need to support keyboard focus to process the 'Esc' key */
 	virtual bool SupportsKeyboardFocus() const override

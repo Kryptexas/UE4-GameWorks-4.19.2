@@ -94,9 +94,19 @@ bool UKismetInputLibrary::InputEvent_IsRightCommandDown(const FInputEvent& Input
 }
 
 
-FKey UKismetInputLibrary::GetKey(const FKeyboardEvent& Input)
+FKey UKismetInputLibrary::GetKey(const FKeyEvent& Input)
 {
 	return Input.GetKey();
+}
+
+int32 UKismetInputLibrary::GetUserIndex(const FKeyEvent& Input)
+{
+	return Input.GetUserIndex();
+}
+
+float UKismetInputLibrary::GetAnalogValue(const FAnalogInputEvent& Input)
+{
+	return Input.GetAnalogValue();
 }
 
 

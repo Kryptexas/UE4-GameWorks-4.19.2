@@ -173,6 +173,22 @@ public:
 	 */
 	FIntPoint operator/( const FIntPoint& Other ) const;
 
+	/**
+	* Gets specific component of the point.
+	*
+	* @param Index the index of point component
+	* @return reference to component.
+	*/
+	int32& operator[](int32 Index);
+
+	/**
+	* Gets specific component of the point.
+	*
+	* @param Index the index of point component
+	* @return copy of component value.
+	*/
+	int32 operator[](int32 Index) const;
+
 public:
 
 	/**
@@ -371,6 +387,17 @@ FORCEINLINE FIntPoint FIntPoint::operator/( int32 Divisor ) const
 	return FIntPoint(*this) /= Divisor;
 }
 
+FORCEINLINE int32& FIntPoint::operator[](int32 Index)
+{
+	check(Index >= 0 && Index < 2);
+	return ((Index == 0) ? X : Y);
+}
+
+FORCEINLINE int32 FIntPoint::operator[](int32 Index) const
+{
+	check(Index >= 0 && Index < 2);
+	return ((Index == 0) ? X : Y);
+}
 
 FORCEINLINE FIntPoint FIntPoint::DivideAndRoundUp( FIntPoint lhs, int32 Divisor )
 {

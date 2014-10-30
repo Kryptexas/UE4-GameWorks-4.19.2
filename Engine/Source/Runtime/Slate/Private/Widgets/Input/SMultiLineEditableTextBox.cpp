@@ -202,14 +202,14 @@ bool SMultiLineEditableTextBox::HasKeyboardFocus() const
 	return SBorder::HasKeyboardFocus() || EditableText->HasKeyboardFocus();
 }
 
-FReply SMultiLineEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SMultiLineEditableTextBox::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	FReply Reply = FReply::Handled();
 
-	if ( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared )
+	if ( InFocusEvent.GetCause() != EFocusCause::Cleared )
 	{
 		// Forward keyboard focus to our editable text widget
-		Reply.SetKeyboardFocus( EditableText.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+		Reply.SetUserFocus(EditableText.ToSharedRef(), InFocusEvent.GetCause());
 	}
 
 	return Reply;

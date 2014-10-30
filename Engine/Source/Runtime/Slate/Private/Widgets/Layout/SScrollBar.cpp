@@ -374,7 +374,7 @@ FReply SScrollBar::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 	if( bDraggingThumb )
 	{
-		return FReply::Handled().CaptureMouse(AsShared()).SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		return FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), EFocusCause::Mouse);
 	}
 	else
 	{

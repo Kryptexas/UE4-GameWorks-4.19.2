@@ -49,7 +49,7 @@ private:
 	EVisibility GetSelectButtonVisibility() const;
 
 	/** Overridden from SWidget: Called when a key is pressed down - capturing copy */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 private:
 	/** A pointer to the window that is asking the user to select a parent class */

@@ -464,7 +464,7 @@ void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFractio
 	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().Y;
 }
 
-FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
@@ -493,13 +493,13 @@ FReply SMultiLineEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeome
 		// of making sure that gets scrolled into view
 		PositionToScrollIntoView = TOptional<FScrollInfo>();
 
-		return SWidget::OnKeyboardFocusReceived( MyGeometry, InKeyboardFocusEvent );
+		return SWidget::OnFocusReceived( MyGeometry, InFocusEvent );
 	}
 
 	return FReply::Handled();
 }
 
-void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SMultiLineEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus lost code if it's due to the context menu opening
 	if (!ContextMenuWindow.IsValid())
@@ -521,14 +521,14 @@ void SMultiLineEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InK
 		// When focus is lost let anyone who is interested that text was committed
 		// See if user explicitly tabbed away or moved focus
 		ETextCommit::Type TextAction;
-		switch (InKeyboardFocusEvent.GetCause())
+		switch (InFocusEvent.GetCause())
 		{
-		case EKeyboardFocusCause::Keyboard:
-		case EKeyboardFocusCause::Mouse:
+		case EFocusCause::Navigation:
+		case EFocusCause::Mouse:
 			TextAction = ETextCommit::OnUserMovedFocus;
 			break;
 
-		case EKeyboardFocusCause::Cleared:
+		case EFocusCause::Cleared:
 			TextAction = ETextCommit::OnCleared;
 			break;
 
@@ -2090,7 +2090,7 @@ void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation)
 void SMultiLineEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 {
 	// Give this focus when the context menu has been dismissed
-	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::OtherWidgetLostFocus);
+	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EFocusCause::OtherWidgetLostFocus);
 }
 
 void SMultiLineEditableText::LoadText()
@@ -2298,12 +2298,12 @@ FReply SMultiLineEditableText::OnKeyChar( const FGeometry& MyGeometry,const FCha
 	return FTextEditHelper::OnKeyChar( InCharacterEvent, SharedThis( this ) );
 }
 
-FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FTextEditHelper::OnKeyDown( InKeyboardEvent, SharedThis( this ) );
+	FReply Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
 
 	// Process keybindings if the event wasn't already handled
-	if (!Reply.IsEventHandled() && UICommandList->ProcessCommandBindings(InKeyboardEvent))
+	if (!Reply.IsEventHandled() && UICommandList->ProcessCommandBindings(InKeyEvent))
 	{
 		Reply = FReply::Handled();
 	}
@@ -2311,7 +2311,7 @@ FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKe
 	return Reply;
 }
 
-FReply SMultiLineEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMultiLineEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }

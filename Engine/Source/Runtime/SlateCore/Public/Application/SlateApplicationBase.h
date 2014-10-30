@@ -266,7 +266,17 @@ public:
 	 * @param InCause The reason that keyboard focus is changing
 	 * @return true if the widget is now focused, false otherwise.
 	 */
-	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EKeyboardFocusCause::Type InCause ) = 0;
+	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) = 0;
+
+	/**
+	 * Sets user focus to the specified widget.  The widget must be allowed to receive focus.
+	 *
+	 * @param InUserIndex Index of the user that we want to change the focus of.
+	 * @param InWidget WidgetPath to the Widget to being focused.
+	 * @param InCause The reason that focus is changing.
+	 * @return true if the widget is now focused, false otherwise.
+	 */
+	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
 
 public:
 	const static uint32 CursorPointerIndex;

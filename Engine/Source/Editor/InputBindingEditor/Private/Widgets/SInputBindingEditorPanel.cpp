@@ -315,13 +315,13 @@ bool SInputBindingEditorPanel::SupportsKeyboardFocus() const
 }
 
 
-FReply SInputBindingEditorPanel::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SInputBindingEditorPanel::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	FReply Reply = FReply::Handled();
 
-	if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Cleared )
+	if( InFocusEvent.GetCause() != EFocusCause::Cleared )
 	{
-		Reply.SetKeyboardFocus( SearchBox.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+		Reply.SetUserFocus(SearchBox.ToSharedRef(), InFocusEvent.GetCause());
 	}
 
 	return Reply;

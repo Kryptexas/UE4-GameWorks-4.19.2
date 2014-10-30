@@ -166,10 +166,10 @@ FReply SSearchBox::OnClearSearch()
 {
 	// We clear the focus to commit any unset values as the search box is typically used for filtering
 	// and the widget could get immediately destroyed before committing its value.
-	FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 
 	this->SetText( FText::GetEmpty() );
-	return FReply::Handled().SetKeyboardFocus( EditableText.ToSharedRef(), EKeyboardFocusCause::SetDirectly );
+	return FReply::Handled().SetUserFocus(EditableText.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
 FSlateFontInfo SSearchBox::GetWidgetFont() const

@@ -1247,7 +1247,7 @@ void UConsole::FakeGotoState(FName NextStateName)
 		// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
 		// in order to ensure it gets a chance to reapply any custom input settings
 		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
 	}
 

@@ -131,27 +131,36 @@ public:
 	virtual bool OnHitTest( const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition ){return false;}
 
 	//
-	// KEYBOARD INPUT
+	// KEY INPUT
 	//
 
 	/**
-	 * Called when keyboard focus is given to this widget.  This event does not bubble.
+	 * Called when focus is given to this widget.  This event does not bubble.
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
+	 * @param  InFocusEvent  The FocusEvent
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent );
+	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent);
+
+	DEPRECATED(4.6, "SWidget::OnKeyboardFocusReceived() is deprecated, implement SWidget::OnFocusReceived() instead.")
+	virtual FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InFocusEvent);
 
 	/**
-	 * Called when this widget loses the keyboard focus.  This event does not bubble.
+	 * Called when this widget loses focus.  This event does not bubble.
 	 *
-	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
+	 * @param InFocusEvent The FocusEvent
 	 */
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent );
+	virtual void OnFocusLost(const FFocusEvent& InFocusEvent);
+
+	DEPRECATED(4.6, "SWidget::OnKeyboardFocusLost() is deprecated, implement SWidget::OnFocusLost() instead.")
+	virtual void OnKeyboardFocusLost(const FKeyboardFocusEvent& InFocusEvent);
 
 	/** Called whenever a focus path is changing on all the widgets within the old and new focus paths */
-	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath );
+	virtual void OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath);
+
+	DEPRECATED(4.6, "SWidget::OnKeyboardFocusChanging() is deprecated, implement SWidget::OnFocusChanging() instead.")
+	virtual void OnKeyboardFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath);
 
 	/**
 	 * Called after a character is entered while this widget has keyboard focus
@@ -163,35 +172,53 @@ public:
 	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent );
 
 	/**
-	 * Called after a key is pressed when this widget or a child of this widget has keyboard focus
+	 * Called after a key is pressed when this widget or a child of this widget has focus
 	 * If a widget handles this event, OnKeyDown will *not* be passed to the focused widget.
 	 *
 	 * This event is primarily to allow parent widgets to consume an event before a child widget processes
 	 * it and it should be used only when there is no better design alternative.
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
-	 * @return  Returns whether the event was handled, along with other possible actions
+	 * @param InKeyEvent  Key event
+	 * @return Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
 
 	/**
-	 * Called after a key is pressed when this widget has keyboard focus (this event bubbles if not handled)
+	 * Called after a key is pressed when this widget has focus (this event bubbles if not handled)
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
-	 * @return  Returns whether the event was handled, along with other possible actions
+	 * @param InKeyEvent  Key event
+	 * @return Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+
+	DEPRECATED(4.6, "SWidget::OnControllerButtonPressed() is deprecated, SWidget::OnKeyDown() now handles controller input as well as controller.")
+	virtual FReply OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
 
 	/**
-	 * Called after a key is released when this widget has keyboard focus
+	 * Called after a key is released when this widget has focus
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
-	 * @return  Returns whether the event was handled, along with other possible actions
+	 * @param InKeyEvent  Key event
+	 * @return Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent );
+	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+
+	DEPRECATED(4.6, "SWidget::OnControllerButtonReleased() is deprecated, SWidget::OnKeyUp() now handles controller input as well as controller.")
+	virtual FReply OnControllerButtonReleased(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
+
+	/**
+	 * Called when an analog value changes on a button that supports analog
+	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event
+	 * @param InAnalogInputEvent Analog input event
+	 * @return Returns whether the event was handled, along with other possible actions
+	 */
+	virtual FReply OnAnalogValueChanged( const FGeometry& MyGeometry, const FAnalogInputEvent& InAnalogInputEvent );
+
+	DEPRECATED(4.6, "SWidget::OnControllerAnalogValueChanged() is deprecated, SWidget::OnAnalogValueChanged() handles keyboard and controller input.")
+	virtual FReply OnControllerAnalogValueChanged(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
 
 	//
 	// MOUSE INPUT
@@ -344,27 +371,6 @@ public:
 	 * @return A reply that indicated whether this event was handled.
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
-	
-	/**
-	 * Called when a controller button is pressed
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	virtual FReply OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent );
-
-	/**
-	 * Called when a controller button is released
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent );
-
-	/**
-	 * Called when an analog value on a controller changes
-	 * 
-	 * @param ControllerEvent	The controller event generated
-	 */
-	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent );
 
 	/**
 	 * Called when the user performs a gesture on trackpad. This event is bubbled.
@@ -399,7 +405,7 @@ public:
 	 * Called when motion is detected (controller or device)
 	 * e.g. Someone tilts or shakes their controller.
 	 * 
-	 * @param MotionEvent	The motion event generated
+	 * @param InMotionEvent	The motion event generated
 	 */
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent );
 
@@ -419,6 +425,14 @@ public:
 	 * This is a widget's chance to act on any accumulated data.
 	 */
 	virtual void OnFinishedKeyInput();
+
+	/**
+	 * Called when navigation is requested
+	 * e.g. Left Joystick, Direction Pad, Arrow Keys can generate navigation events.
+	 * 
+	 * @param InNavigationEvent	The navigation event generated
+	 */
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent);
 
 	/**
 	 * Called when the mouse is moved over the widget's window, to determine if we should report whether
@@ -666,6 +680,16 @@ public:
 			}
 		}
 		return FoundMetaData;
+	}
+
+	/**
+	 * Add metadata to this widget.
+	 * @param AddMe the metadata to add to the widget.
+	 */
+	template<typename MetaDataType>
+	void AddMetadata(const TSharedRef<MetaDataType>& AddMe)
+	{
+		MetaData.Add(AddMe);
 	}
 
 public:

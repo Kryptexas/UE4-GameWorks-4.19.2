@@ -19,7 +19,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Override behavior when a key is pressed */
-	virtual	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Override the base method to allow for keyboard focus */
 	virtual bool SupportsKeyboardFocus() const override;

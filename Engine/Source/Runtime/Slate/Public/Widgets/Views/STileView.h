@@ -131,41 +131,41 @@ public:
 
 	// SWidget overrides
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		const TArray<ItemType>& ItemsSourceRef = (*this->ItemsSource);
 
 		// Don't respond to key-presses containing "Alt" as a modifier
-		if ( ItemsSourceRef.Num() > 0 && !InKeyboardEvent.IsAltDown() )
+		if ( ItemsSourceRef.Num() > 0 && !InKeyEvent.IsAltDown() )
 		{
 			// Check for selection manipulation keys that differ from SListView (Left, Right)
-			if ( InKeyboardEvent.GetKey() == EKeys::Left )
+			if ( InKeyEvent.GetKey() == EKeys::Left )
 			{
 				int32 SelectionIndex = ( !TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) ) ? 0 : ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->SelectorItem ) );
 
 				if ( SelectionIndex > 0 )
 				{
 					// Select the previous item
-					this->KeyboardSelect(ItemsSourceRef[SelectionIndex - 1], InKeyboardEvent);
+					this->KeyboardSelect(ItemsSourceRef[SelectionIndex - 1], InKeyEvent);
 				}
 
 				return FReply::Handled();
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Right )
+			else if ( InKeyEvent.GetKey() == EKeys::Right )
 			{
 				int32 SelectionIndex = ( !TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) ) ? 0 : ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( this->SelectorItem ) );
 
 				if ( SelectionIndex < ItemsSourceRef.Num() - 1 )
 				{
 					// Select the next item
-					this->KeyboardSelect(ItemsSourceRef[SelectionIndex + 1], InKeyboardEvent);
+					this->KeyboardSelect(ItemsSourceRef[SelectionIndex + 1], InKeyEvent);
 				}
 
 				return FReply::Handled();
 			}
 		}
 
-		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 public:	

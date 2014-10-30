@@ -28,15 +28,15 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	
 	/** Setup an input mode that allows only the UI to respond to user input. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	static void SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false);
+	static void SetInputMode_UIOnly(APlayerController*const& Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false);
 
 	/** Setup an input mode that allows only the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	static void SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false, bool bHideCursorDuringCapture = true);
+	static void SetInputMode_GameAndUI(APlayerController*const& Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false, bool bHideCursorDuringCapture = true);
 
 	/** Setup an input mode that allows only player input / player controller to respond to user input. */
 	UFUNCTION(BlueprintCallable, Category = "Input")
-	static void SetInputMode_GameOnly(APlayerController* Target);
+	static void SetInputMode_GameOnly(APlayerController*const& Target);
 
 
 	UFUNCTION(BlueprintCallable, Category="Focus")
@@ -86,11 +86,17 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	static FEventReply ReleaseMouseCapture(UPARAM(ref) FEventReply& Reply);
 
 	/**  */
-	UFUNCTION(BlueprintPure, meta=( HidePin="CapturingWidget", DefaultToSelf="CapturingWidget" ), Category="Widget|Event Reply")
+	UFUNCTION(BlueprintPure, meta= (HidePin="CapturingWidget", DefaultToSelf="CapturingWidget"), Category="Widget|Event Reply")
+	static FEventReply SetUserFocus(UPARAM(ref) FEventReply& Reply, UWidget* FocusWidget, bool bInAllUsers = false);
+
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use SetUserFocus() instead"), Category = "Widget|Event Reply")
 	static FEventReply CaptureJoystick(UPARAM(ref) FEventReply& Reply, UWidget* CapturingWidget, bool bInAllJoysticks = false);
 
 	/**  */
-	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
+	UFUNCTION(BlueprintPure, meta = (HidePin = "CapturingWidget", DefaultToSelf = "CapturingWidget"), Category = "Widget|Event Reply")
+	static FEventReply ClearUserFocus(UPARAM(ref) FEventReply& Reply, bool bInAllUsers = false);
+
+	UFUNCTION(BlueprintPure, meta = (DeprecatedFunction, DeprecationMessage = "Use ClearUserFocus() instead"), Category = "Widget|Event Reply")
 	static FEventReply ReleaseJoystickCapture(UPARAM(ref) FEventReply& Reply, bool bInAllJoysticks = false);
 
 	/**  */

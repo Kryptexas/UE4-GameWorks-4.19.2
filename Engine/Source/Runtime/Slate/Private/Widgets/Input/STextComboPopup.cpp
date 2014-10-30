@@ -94,12 +94,12 @@ void STextComboPopup::FocusDefaultWidget()
 {
 	FWidgetPath FocusMe;
 	FSlateApplication::Get().GeneratePathToWidgetChecked( StringCombo.ToSharedRef(), FocusMe );
-	FSlateApplication::Get().SetKeyboardFocus( FocusMe, EKeyboardFocusCause::SetDirectly );
+	FSlateApplication::Get().SetKeyboardFocus( FocusMe, EFocusCause::SetDirectly );
 }
 
-FReply STextComboPopup::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply STextComboPopup::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(InKeyboardEvent.GetKey() == EKeys::Enter)
+	if(InKeyEvent.GetKey() == EKeys::Enter)
 	{
 		return OnOK();
 	}

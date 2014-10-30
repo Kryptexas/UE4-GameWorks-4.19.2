@@ -722,7 +722,7 @@ void FEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 	if( IsMatineeRecordingWindow() )
 	{
 		// Allow the joystick to be used for matinee capture
-		InViewport->CaptureJoystickInput( true );
+		InViewport->SetUserFocus( true );
 	}
 }
 

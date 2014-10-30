@@ -125,11 +125,11 @@ void SPropertyTableCell::Tick( const FGeometry& AllottedGeometry, const double I
 					DropDownAnchor->SetIsOpen( true, false );
 				}
 
-				FSlateApplication::Get().SetKeyboardFocus( Presenter->WidgetToFocusOnEdit(), EKeyboardFocusCause::SetDirectly );
+				FSlateApplication::Get().SetKeyboardFocus( Presenter->WidgetToFocusOnEdit(), EFocusCause::SetDirectly );
 			}
 			else
 			{
-				FSlateApplication::Get().SetKeyboardFocus( ChildSlot.GetChildAt( 0 ), EKeyboardFocusCause::SetDirectly );
+				FSlateApplication::Get().SetKeyboardFocus( ChildSlot.GetChildAt( 0 ), EFocusCause::SetDirectly );
 			}
 		}
 

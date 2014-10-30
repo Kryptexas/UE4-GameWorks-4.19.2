@@ -93,7 +93,7 @@ bool STableViewBase::SupportsKeyboardFocus() const
 }
 
 
-void STableViewBase::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void STableViewBase::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	bShowSoftwareCursor = false;
 }
@@ -418,9 +418,9 @@ FReply STableViewBase::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 }
 
 
-FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetKey() == EKeys::End )
+	if ( InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::End )
 	{
 		ScrollOffset = GetNumItemsBeingObserved();
 		RequestListRefresh();

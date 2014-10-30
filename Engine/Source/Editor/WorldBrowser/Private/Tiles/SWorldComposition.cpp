@@ -573,19 +573,19 @@ protected:
 	}
 		
 	/**  SWidget interface */
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		if (CommandList->ProcessCommandBindings(InKeyboardEvent))
+		if (CommandList->ProcessCommandBindings(InKeyEvent))
 		{
 			return FReply::Handled();
 		}
 	
-		if (WorldModel->GetCommandList()->ProcessCommandBindings(InKeyboardEvent))
+		if (WorldModel->GetCommandList()->ProcessCommandBindings(InKeyEvent))
 		{
 			return FReply::Handled();
 		}
 
-		return SNodePanel::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SNodePanel::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 
 	/**  SWidget interface */

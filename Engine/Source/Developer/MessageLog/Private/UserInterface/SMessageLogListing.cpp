@@ -307,9 +307,9 @@ const TSharedRef< const FUICommandList > SMessageLogListing::GetCommandList() co
 }
 
 
-FReply SMessageLogListing::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMessageLogListing::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	return UICommandList->ProcessCommandBindings( InKeyboardEvent ) ? FReply::Handled() : FReply::Unhandled();
+	return UICommandList->ProcessCommandBindings( InKeyEvent ) ? FReply::Handled() : FReply::Unhandled();
 }
 
 

@@ -144,7 +144,7 @@ void SGestureEditBox::OnGestureChanged()
 		{
 			GestureEditor->CommitNewGesture();
 			GestureEditor->StopEditing();
-			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
 		}
 	}
 }
@@ -260,7 +260,7 @@ FReply SGestureEditBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FP
 		{
 			GestureEditor->StartEditing();
 		}
-		return FReply::Handled().SetKeyboardFocus( GestureEditor.ToSharedRef(), EKeyboardFocusCause::Mouse );
+		return FReply::Handled().SetUserFocus(GestureEditor.ToSharedRef(), EFocusCause::Mouse);
 	}
 
 	return FReply::Handled();

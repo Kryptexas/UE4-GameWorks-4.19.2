@@ -953,11 +953,11 @@ void SPlacementModeTools::Tick( const FGeometry& AllottedGeometry, const double 
 	}
 }
 
-FReply SPlacementModeTools::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SPlacementModeTools::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
-	if ( InKeyboardEvent.GetKey() == EKeys::Escape )
+	if ( InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		FPlacementMode* PlacementEditMode = (FPlacementMode*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
 		PlacementEditMode->StopPlacing();

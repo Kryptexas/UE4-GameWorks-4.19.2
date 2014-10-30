@@ -129,11 +129,11 @@ void SHierarchyView::OnMouseLeave(const FPointerEvent& MouseEvent)
 	BlueprintEditor.Pin()->ClearHoveredWidget();
 }
 
-FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
 
-	if ( BlueprintEditor.Pin()->DesignerCommandList->ProcessCommandBindings(InKeyboardEvent) )
+	if ( BlueprintEditor.Pin()->DesignerCommandList->ProcessCommandBindings(InKeyEvent) )
 	{
 		return FReply::Handled();
 	}

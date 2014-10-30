@@ -24,13 +24,6 @@ public:
 		return Me();
 	}
 
-	FReply& CaptureJoystick( TSharedRef<SWidget> InJoystickCaptor, bool bInAllJoysticks = false )
-	{
-		this->JoystickCaptor = InJoystickCaptor;
-		this->bAllJoysticks = bInAllJoysticks;
-		return Me();
-	}
-
 	/**
 	 * Enables the use of high precision (raw input) mouse movement, for more accurate mouse movement without mouse ballistics
 	 * NOTE: This implies mouse capture and hidden mouse movement.  Releasing mouse capture deactivates this mode.
@@ -51,14 +44,53 @@ public:
 		return Me();
 	}
 
-	/** An event should return FReply::Handled().SetKeyboardFocus( SomeWidget ) as a means of asking the system to set keyboard focus to the provided widget*/
-	FReply& SetKeyboardFocus( TSharedRef<SWidget> GiveMeFocus, EKeyboardFocusCause::Type ReasonFocusIsChanging )
+	/** An event should return FReply::Handled().SetUserFocus( SomeWidget ) as a means of asking the system to set users focus to the provided widget*/
+	FReply& SetUserFocus(TSharedRef<SWidget> GiveMeFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly, bool bInAllUsers = false)
 	{
+		this->bSetUserFocus = true;
 		this->FocusRecipient = GiveMeFocus;
 		this->FocusChangeReason = ReasonFocusIsChanging;
-		return *this;
+		this->bReleaseUserFocus = false;
+		this->bAllUsers = bInAllUsers;
+		return Me();
 	}
-		
+	
+	DEPRECATED(4.6, "FReply::CaptureJoystick() is deprecated, use FReply::SetUserFocus() instead.")
+	FReply& CaptureJoystick(TSharedRef<SWidget> InJoystickCaptor, bool bInAllJoysticks = false)
+	{
+		return SetUserFocus(InJoystickCaptor, EFocusCause::SetDirectly, bInAllJoysticks);
+	}
+
+	DEPRECATED(4.6, "FReply::SetKeyboardFocus() is deprecated, use FReply::SetUserFocus() instead.")
+	FReply& SetKeyboardFocus(TSharedRef<SWidget> GiveMeFocus, EFocusCause ReasonFocusIsChanging)
+	{
+		return SetUserFocus(GiveMeFocus, ReasonFocusIsChanging, false);
+	}
+
+	/** An event should return a FReply::Handled().ClearUserFocus() to ask the system to clear user focus*/
+	FReply& ClearUserFocus(bool bInAllUsers = false)
+	{
+		this->FocusRecipient = nullptr;
+		this->FocusChangeReason = EFocusCause::Cleared;
+		this->bReleaseUserFocus = true;
+		this->bSetUserFocus = false;
+		this->bAllUsers = bInAllUsers;
+		return Me();
+	}
+
+	DEPRECATED(4.6, "FReply::ReleaseJoystickCapture() is deprecated, use FReply::ClearUserFocus() instead.")
+	FReply& ReleaseJoystickCapture(bool bInAllJoysticks = false)
+	{
+		return ClearUserFocus(bInAllJoysticks);
+	}
+
+	/** An event should return FReply::Handled().SetNavigation( NavigationType ) as a means of asking the system to attempt a navigation*/
+	FReply& SetNavigation(EUINavigation InNavigationType)
+	{
+		this->NavigationType = InNavigationType;
+		return Me();
+	}
+
 	/**
 	 * An event should return FReply::Handled().LockMouseToWidget( SomeWidget ) as a means of asking the system to 
 	 * Lock the mouse so it cannot move out of the bounds of the widget.
@@ -77,7 +109,7 @@ public:
 	{
 		this->bShouldReleaseMouseLock = true;
 		MouseLockWidget.Reset();
-		return *this;
+		return Me();
 	}
 
 	/** 
@@ -88,16 +120,6 @@ public:
 	{
 		this->bReleaseMouseCapture = true;
 		this->bUseHighPrecisionMouse = false;
-		return Me();
-	}
-
-	/**
-	 * An event should return a FReply::Handled().ReleaseJoystickCapture() to ask the system to release joystick capture
-	 */
-	FReply& ReleaseJoystickCapture(bool bInAllJoysticks = false)
-	{
-		this->bReleaseJoystickCapture = true;
-		this->bAllJoysticks = bInAllJoysticks;
 		return Me();
 	}
 
@@ -147,11 +169,17 @@ public:
 	/** True if this reply indicated that we should release mouse capture as a result of the event being handled */
 	bool ShouldReleaseMouse() const { return bReleaseMouseCapture; }
 
-	/** true if this reply indicated that we should release joystick capture as a result of the event being handled */
-	bool ShouldReleaseJoystick() const { return bReleaseJoystickCapture; }
+	/** true if this reply indicated that we should set focus as a result of the event being handled */
+	bool ShouldSetUserFocus() const { return bSetUserFocus; }
 
-	/** If the event replied with a request to capture or release the joystick whether it should do it for all joysticks or just the one tied to the UserIndex */
-	bool AffectsAllJoysticks() const { return bAllJoysticks; }
+	/** true if this reply indicated that we should release focus as a result of the event being handled */
+	bool ShouldReleaseUserFocus() const { return bReleaseUserFocus; }
+
+	DEPRECATED(4.6, "FReply::ShouldReleaseJoystick() is deprecated, use FReply::ShouldReleaseUserFocus() instead.")
+	bool ShouldReleaseJoystick() const { return ShouldReleaseUserFocus(); }
+
+	/** If the event replied with a request to change the user focus whether it should do it for all users or just the current UserIndex */
+	bool AffectsAllUsers() const { return bAllUsers; }
 
 	/** True if this reply indicated that we should use high precision mouse movement */
 	bool ShouldUseHighPrecisionMouse() const { return bUseHighPrecisionMouse; }
@@ -165,17 +193,23 @@ public:
 	/** Returns the widget that the mouse should be locked to (if any) */
 	const TSharedPtr<SWidget>& GetMouseLockWidget() const { return MouseLockWidget; }
 
-	/** When not nullptr, keyboard focus has been requested to be set on the FocusRecipient. */
-	const TSharedPtr<SWidget>& GetFocusRecepient() const { return FocusRecipient; }
+	/** When not nullptr, user focus has been requested to be set on the FocusRecipient. */
+	const TSharedPtr<SWidget>& GetUserFocusRecepient() const { return FocusRecipient; }
+
+	DEPRECATED(4.6, "FReply::GetFocusRecepient() is deprecated, use FReply::GetUserFocusRecepient() instead.")
+	const TSharedPtr<SWidget>& GetFocusRecepient() const { return GetUserFocusRecepient(); }
+
+	DEPRECATED(4.6, "FReply::GetJoystickCaptor() is deprecated, use FReply::GetUserFocusRecepient() instead.")
+	const TSharedPtr<SWidget>& GetJoystickCaptor() const { return GetUserFocusRecepient(); }
 
 	/** Get the reason that a focus change is being requested. */
-	EKeyboardFocusCause::Type GetFocusCause() const { return FocusChangeReason; }
+	EFocusCause GetFocusCause() const { return FocusChangeReason; }
 
 	/** If the event replied with a request to capture the mouse, this returns the desired mouse captor. Otherwise returns an invalid pointer. */
 	const TSharedPtr<SWidget>& GetMouseCaptor() const { return MouseCaptor; }	
 
-	/** If the event replied with a request to capture the joystick, this returns the desired joystick captor. Otherwise returns an invalid pointer. */
-	const TSharedPtr<SWidget>& GetJoystickCaptor() const { return JoystickCaptor; }
+	/** Get the navigation type (Invalid if no navigation is requested). */
+	EUINavigation GetNavigationType() const { return NavigationType; }
 
 	/** @return the Content that we should use for the Drag and Drop operation; Invalid SharedPtr if a drag and drop operation is not requested*/
 	const TSharedPtr<FDragDropOperation>& GetDragDropContent() const { return DragDropContent; }
@@ -220,14 +254,15 @@ private:
 		, RequestedMousePos()
 		, EventHandler(nullptr)
 		, MouseCaptor(nullptr)
-		, JoystickCaptor(nullptr)
 		, FocusRecipient(nullptr)
 		, MouseLockWidget(nullptr)
 		, DragDropContent(nullptr)
-		, FocusChangeReason(EKeyboardFocusCause::SetDirectly)
+		, FocusChangeReason(EFocusCause::SetDirectly)
+		, NavigationType(EUINavigation::Invalid)
 		, bReleaseMouseCapture(false)
-		, bReleaseJoystickCapture(false)
-		, bAllJoysticks(false)
+		, bSetUserFocus(false)
+		, bReleaseUserFocus(false)
+		, bAllUsers(false)
 		, bShouldReleaseMouseLock(false)
 		, bUseHighPrecisionMouse(false)
 		, bPreventThrottling(false)
@@ -243,16 +278,17 @@ private:
 	TOptional<FIntPoint> RequestedMousePos;
 	TSharedPtr<SWidget> EventHandler;
 	TSharedPtr<SWidget> MouseCaptor;
-	TSharedPtr<SWidget> JoystickCaptor;
 	TSharedPtr<SWidget> FocusRecipient;
 	TSharedPtr<SWidget> MouseLockWidget;
 	TSharedPtr<SWidget> DetectDragForWidget;
 	FKey DetectDragForMouseButton;
 	TSharedPtr<FDragDropOperation> DragDropContent;
-	EKeyboardFocusCause::Type FocusChangeReason;
+	EFocusCause FocusChangeReason;
+	EUINavigation NavigationType;
 	uint32 bReleaseMouseCapture:1;
-	uint32 bReleaseJoystickCapture:1;
-	uint32 bAllJoysticks:1;
+	uint32 bSetUserFocus:1;
+	uint32 bReleaseUserFocus : 1;
+	uint32 bAllUsers:1;
 	uint32 bShouldReleaseMouseLock:1;
 	uint32 bUseHighPrecisionMouse:1;
 	uint32 bPreventThrottling:1;

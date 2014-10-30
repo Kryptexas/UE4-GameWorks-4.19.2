@@ -32,16 +32,16 @@ public:
 	}
 
 	// SWidget interface
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) override
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& KeyEvent) override
 	{
 		TSharedPtr< SListView< ListType > > TargetListViewPtr = TargetListView.Pin();
 
-		if (KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+		if (KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 		{
 			// Deliver focus to the tree view, so the user can use the arrow keys to move through the items
-			return TargetListViewPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyboardEvent);
+			return TargetListViewPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyEvent);
 		}
-		else if(KeyboardEvent.GetKey() == EKeys::Enter)
+		else if(KeyEvent.GetKey() == EKeys::Enter)
 		{
 			// If there is anything selected, re-select it "direct" so that the menu will act upon the selection
 			if(TargetListViewPtr->GetNumItemsSelected() > 0)
@@ -53,7 +53,7 @@ public:
 		else
 		{
 			TSharedPtr< SWidget > DefaultFocusWidgetPtr = DefaultFocusWidget.Pin();
-			return DefaultFocusWidgetPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyboardEvent).SetKeyboardFocus(DefaultFocusWidgetPtr.ToSharedRef(), EKeyboardFocusCause::OtherWidgetLostFocus);
+			return DefaultFocusWidgetPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyEvent).SetUserFocus(DefaultFocusWidgetPtr.ToSharedRef(), EFocusCause::OtherWidgetLostFocus);
 		}
 		return FReply::Unhandled();
 	}

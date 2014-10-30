@@ -4270,11 +4270,7 @@ void FInputModeDataBase::SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<
 {
 	if (InWidgetToFocus.IsValid())
 	{
-		SlateOperations.CaptureJoystick(InWidgetToFocus.ToSharedRef());
-	}
-	else
-	{
-		SlateOperations.ReleaseJoystickCapture();
+		SlateOperations.SetUserFocus(InWidgetToFocus.ToSharedRef());
 	}
 
 	if (bLockMouseToViewport)
@@ -4311,6 +4307,7 @@ void FInputModeGameAndUI::ApplyInputMode(FReply& SlateOperations, class UGameVie
 		SlateOperations.ReleaseMouseCapture();
 
 		GameViewportClient.SetIgnoreInput(false);
+		GameViewportClient.SetHideCursorDuringCapture(bHideCursorDuringCapture);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CaptureDuringMouseDown);
 	}
 }
@@ -4322,9 +4319,8 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 	{
 		TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.ToSharedRef();
 		SlateOperations.UseHighPrecisionMouseMovement(ViewportWidgetRef);
-		SlateOperations.CaptureJoystick(ViewportWidgetRef);
+		SlateOperations.SetUserFocus(ViewportWidgetRef);
 		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
-		SlateOperations.SetKeyboardFocus(ViewportWidgetRef, EKeyboardFocusCause::SetDirectly);
 		GameViewportClient.SetIgnoreInput(false);
 		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
 	}

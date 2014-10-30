@@ -125,7 +125,7 @@ FReply SExpandableArea::OnMouseDown( const FGeometry& MyGeometry, const FPointer
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		//we need to capture the mouse for MouseUp events
-		return FReply::Handled().CaptureMouse( HeaderBorder.ToSharedRef() ).SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		return FReply::Handled().CaptureMouse( HeaderBorder.ToSharedRef() ).SetUserFocus( AsShared(), EFocusCause::Mouse );
 	}
 
 	return FReply::Unhandled();

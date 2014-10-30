@@ -2016,11 +2016,11 @@ bool SPListEditorPanel::DetermineAddArrayContext() const
 }
 
 /** Callback for keyboard shortcut commands */
-FReply SPListEditorPanel::OnKeyDown( const FGeometry& /*MyGeometry*/, const FKeyboardEvent& InKeyboardEvent )
+FReply SPListEditorPanel::OnKeyDown( const FGeometry& /*MyGeometry*/, const FKeyEvent& InKeyEvent )
 {
 	// Perform commands if necessary
 	FReply Reply = FReply::Unhandled();
-	if( UICommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if( UICommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		// handle the event if a command was processed
 		Reply = FReply::Handled();

@@ -36,7 +36,7 @@ void FMainFrameCommands::RegisterCommands()
 	if ( !IsRunningCommandlet() )
 	{
 		// The global action list was created at static initialization time. Create a handler for otherwise unhandled keyboard input to route key commands through this list.
-		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyboardEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
+		FSlateApplication::Get().SetUnhandledKeyDownEventHandler( FOnKeyEvent::CreateStatic( &FMainFrameActionCallbacks::OnUnhandledKeyDownEvent ) );
 	}
 
 	// Make a default can execute action that disables input when in debug mode
@@ -157,13 +157,13 @@ void FMainFrameCommands::RegisterCommands()
 	FGlobalEditorCommonCommands::MapActions(ActionList);
 }
 
-FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyboardEvent& InKeyboardEvent)
+FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyEvent& InKeyEvent)
 {
-	if ( FMainFrameCommands::ActionList->ProcessCommandBindings( InKeyboardEvent ) )
+	if ( FMainFrameCommands::ActionList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}
-	else if( GEditor && GEditor->PlayWorld && InKeyboardEvent.GetKey() == EKeys::Escape )
+	else if( GEditor && GEditor->PlayWorld && InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked< FLevelEditorModule >(TEXT("LevelEditor"));
 		if( LevelEditor.GetLevelEditorTab()->IsForeground()  )

@@ -2036,9 +2036,9 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 	}
 }
 
-FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( CommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if ( CommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

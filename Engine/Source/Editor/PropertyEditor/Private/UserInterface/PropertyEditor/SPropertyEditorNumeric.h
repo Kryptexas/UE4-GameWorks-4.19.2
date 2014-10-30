@@ -117,10 +117,10 @@ public:
 		return PrimaryWidget.IsValid() && PrimaryWidget->SupportsKeyboardFocus();
 	}
 
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
 	{
 		// Forward keyboard focus to our editable text widget
-		return FReply::Handled().SetKeyboardFocus( PrimaryWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+		return FReply::Handled().SetUserFocus(PrimaryWidget.ToSharedRef(), InFocusEvent.GetCause());
 	}
 	
 	void GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )

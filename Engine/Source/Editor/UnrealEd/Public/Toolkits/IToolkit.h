@@ -97,13 +97,13 @@ public:
 	virtual const TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< class SDockableTab > > >& GetToolkitTabsInSpots() const = 0;
 
 	/**
-	 * Processes any UI commands which are activated by the specified keyboard event
+	 * Processes any UI commands which are activated by the specified event
 	 *
-	 * @param InKeyboardEvent	The keyboard event to check
+	 * @param InKeyEvent	The event to check
 	 *
 	 * @return true if an action was processed
 	 */
-	virtual bool ProcessCommandBindings( const struct FKeyboardEvent& InKeyboardEvent ) const = 0;
+	virtual bool ProcessCommandBindings( const struct FKeyEvent& InKeyEvent ) const = 0;
 
 	/** Call this function to bring all of this toolkit's tabs to the foreground in their respective stacks.  Also causes the toolkit's host window to be foregrounded, too! */
 	virtual void BringToolkitToFront() = 0;

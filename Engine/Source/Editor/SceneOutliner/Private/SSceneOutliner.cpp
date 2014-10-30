@@ -1543,7 +1543,7 @@ namespace SceneOutliner
 				// Set the keyboard focus back to the SceneOutliner, so the user can perform keyboard commands
 				FWidgetPath SceneOutlinerWidgetPath;
 				FSlateApplication::Get().GeneratePathToWidgetUnchecked( SharedThis( this ), SceneOutlinerWidgetPath );
-				FSlateApplication::Get().SetKeyboardFocus( SceneOutlinerWidgetPath, EKeyboardFocusCause::SetDirectly );
+				FSlateApplication::Get().SetKeyboardFocus( SceneOutlinerWidgetPath, EFocusCause::SetDirectly );
 			}
 		}
 		else
@@ -2846,7 +2846,7 @@ namespace SceneOutliner
 						FSlateApplication::Get().GeneratePathToWidgetUnchecked( SharedThis( this ), SceneOutlinerWidgetPath );
 
 						// Set keyboard focus directly
-						FSlateApplication::Get().SetKeyboardFocus( SceneOutlinerWidgetPath, EKeyboardFocusCause::SetDirectly );
+						FSlateApplication::Get().SetKeyboardFocus( SceneOutlinerWidgetPath, EFocusCause::SetDirectly );
 					}
 				}
 
@@ -2978,7 +2978,7 @@ namespace SceneOutliner
 		return false;
 	}
 
-	FReply SSceneOutliner::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	FReply SSceneOutliner::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		// @todo outliner: Use command system for these for discoverability? (allow bindings?)
 
@@ -2986,7 +2986,7 @@ namespace SceneOutliner
 		if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
 		{
 			// Delete key: Delete selected actors (not rebindable, because it doesn't make much sense to bind.)
-			if( InKeyboardEvent.GetKey() == EKeys::F2 )
+			if( InKeyEvent.GetKey() == EKeys::F2 )
 			{
 				auto SelectedItems = OutlinerTreeView->GetSelectedItems();
 				if (SelectedItems.Num() == 1 && SelectedItems[0]->Type == TOutlinerTreeItem::Folder)
@@ -2995,7 +2995,7 @@ namespace SceneOutliner
 					return FReply::Handled();
 				}
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+			else if ( InKeyEvent.GetKey() == EKeys::Platform_Delete )
 			{
 				if( InitOptions.CustomDelete.IsBound() )
 				{
@@ -3079,7 +3079,7 @@ namespace SceneOutliner
 		{
 			FWidgetPath WidgetToFocusPath;
 			FSlateApplication::Get().GeneratePathToWidgetUnchecked( FilterTextBoxWidget.ToSharedRef(), WidgetToFocusPath );
-			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 			bPendingFocusNextFrame = false;
 		}
 

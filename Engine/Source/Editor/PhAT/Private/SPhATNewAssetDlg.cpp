@@ -223,10 +223,10 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 	];
 }
 
-FReply SPhATNewAssetDlg::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SPhATNewAssetDlg::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	//see if we pressed the Enter or Spacebar keys
-	if (InKeyboardEvent.GetKey() == EKeys::Escape)
+	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		return OnClicked(EAppReturnType::Cancel);
 	}

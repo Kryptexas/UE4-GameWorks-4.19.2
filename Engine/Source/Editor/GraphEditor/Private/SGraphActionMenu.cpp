@@ -1063,28 +1063,28 @@ bool SGraphActionMenu::OnMouseButtonDownEvent( TWeakPtr<FEdGraphSchemaAction> In
 	return bResult;
 }
 
-FReply SGraphActionMenu::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SGraphActionMenu::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
 	int32 SelectionDelta = 0;
 
 	// Escape dismisses the menu without placing a node
-	if (KeyboardEvent.GetKey() == EKeys::Escape)
+	if (KeyEvent.GetKey() == EKeys::Escape)
 	{
 		FSlateApplication::Get().DismissAllMenus();
 		return FReply::Handled();
 	}
-	else if ((KeyboardEvent.GetKey() == EKeys::Enter) && !bIgnoreUIUpdate)
+	else if ((KeyEvent.GetKey() == EKeys::Enter) && !bIgnoreUIUpdate)
 	{
 		return TryToSpawnActiveSuggestion() ? FReply::Handled() : FReply::Unhandled();
 	}
 	else if (FilteredActionNodes.Num() > 0)
 	{
 		// Up and down move thru the filtered node list
-		if (KeyboardEvent.GetKey() == EKeys::Up)
+		if (KeyEvent.GetKey() == EKeys::Up)
 		{
 			SelectionDelta = -1;
 		}
-		else if (KeyboardEvent.GetKey() == EKeys::Down)
+		else if (KeyEvent.GetKey() == EKeys::Down)
 		{
 			SelectionDelta = +1;
 		}
@@ -1098,7 +1098,7 @@ FReply SGraphActionMenu::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 				TGuardValue<bool> PreventSelectionFromTriggeringCommit(bIgnoreUIUpdate, true);
 				TreeView->SetSelection(FilteredRootAction->Children[SelectedSuggestion], ESelectInfo::OnKeyPress);
 				TreeView->RequestScrollIntoView(FilteredRootAction->Children[SelectedSuggestion]);
-				return FReply::Handled().SetKeyboardFocus( SharedThis( TreeView.Get() ), EKeyboardFocusCause::WindowActivate );
+				return FReply::Handled().SetUserFocus(SharedThis(TreeView.Get()), EFocusCause::WindowActivate);
 			}
 
 			//Move up or down one, wrapping around

@@ -541,44 +541,44 @@ void SGraphPanel::UpdateSelectedNodesPositions (FVector2D PositionIncrement)
 	}
 }
 
-FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if( IsEditable.Get() )
 	{
-		if( InKeyboardEvent.GetKey() == EKeys::Up  ||InKeyboardEvent.GetKey() ==  EKeys::NumPadEight )
+		if( InKeyEvent.GetKey() == EKeys::Up  ||InKeyEvent.GetKey() ==  EKeys::NumPadEight )
 		{
 			UpdateSelectedNodesPositions(FVector2D(0.0f,-GetSnapGridSize()));
 			return FReply::Handled();
 		}
-		if( InKeyboardEvent.GetKey() ==  EKeys::Down || InKeyboardEvent.GetKey() ==  EKeys::NumPadTwo )
+		if( InKeyEvent.GetKey() ==  EKeys::Down || InKeyEvent.GetKey() ==  EKeys::NumPadTwo )
 		{
 			UpdateSelectedNodesPositions(FVector2D(0.0f,GetSnapGridSize()));
 			return FReply::Handled();
 		}
-		if( InKeyboardEvent.GetKey() ==  EKeys::Right || InKeyboardEvent.GetKey() ==  EKeys::NumPadSix )
+		if( InKeyEvent.GetKey() ==  EKeys::Right || InKeyEvent.GetKey() ==  EKeys::NumPadSix )
 		{
 			UpdateSelectedNodesPositions(FVector2D(GetSnapGridSize(),0.0f));
 			return FReply::Handled();
 		}
-		if( InKeyboardEvent.GetKey() ==  EKeys::Left || InKeyboardEvent.GetKey() ==  EKeys::NumPadFour )
+		if( InKeyEvent.GetKey() ==  EKeys::Left || InKeyEvent.GetKey() ==  EKeys::NumPadFour )
 		{
 			UpdateSelectedNodesPositions(FVector2D(-GetSnapGridSize(),0.0f));
 			return FReply::Handled();
 		}
-		if ( InKeyboardEvent.GetKey() ==  EKeys::Subtract )
+		if ( InKeyEvent.GetKey() ==  EKeys::Subtract )
 		{
-			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyboardEvent.IsControlDown());
+			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
-		if ( InKeyboardEvent.GetKey() ==  EKeys::Add )
+		if ( InKeyEvent.GetKey() ==  EKeys::Add )
 		{
-			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyboardEvent.IsControlDown());
+			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
 
 	}
 
-	return SNodePanel::OnKeyDown(MyGeometry, InKeyboardEvent);
+	return SNodePanel::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 
@@ -810,7 +810,7 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 {
 	const FVector2D NodeAddPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() ) );
 
-	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EFocusCause::SetDirectly);
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 	if (!Operation.IsValid() || !IsEditable.Get())

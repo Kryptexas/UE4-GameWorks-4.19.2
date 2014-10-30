@@ -191,14 +191,14 @@ public:
 
 	// SWidget overrides
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
 		// Check for selection/expansion toggling keys (Left, Right)
 		// SelectorItem represents the keyboard selection. If it isn't valid then we don't know what to expand.
 		// Don't respond to key-presses containing "Alt" as a modifier
-		if ( TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) && !InKeyboardEvent.IsAltDown() )
+		if ( TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) && !InKeyEvent.IsAltDown() )
 		{
-			if ( InKeyboardEvent.GetKey() == EKeys::Left )
+			if ( InKeyEvent.GetKey() == EKeys::Left )
 			{
 				if( TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) )
 				{
@@ -219,7 +219,7 @@ public:
 							if ( Private_GetNestingDepth(SelectionIndex) < SelectedNestingDepth )
 							{
 								// Found the parent
-								this->KeyboardSelect(this->LinearizedItems[SelectionIndex], InKeyboardEvent);
+								this->KeyboardSelect(this->LinearizedItems[SelectionIndex], InKeyEvent);
 								break;
 							}
 						}
@@ -228,7 +228,7 @@ public:
 
 				return FReply::Handled();
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Right )
+			else if ( InKeyEvent.GetKey() == EKeys::Right )
 			{
 				if( TListTypeTraits<ItemType>::IsPtrValid(this->SelectorItem) )
 				{
@@ -249,7 +249,7 @@ public:
 							// Make sure we aren't the last item on the list
 							if ( SelectionIndex < this->LinearizedItems.Num() - 1 )
 							{
-								this->KeyboardSelect(this->LinearizedItems[SelectionIndex + 1], InKeyboardEvent);
+								this->KeyboardSelect(this->LinearizedItems[SelectionIndex + 1], InKeyEvent);
 							}
 						}
 					}
@@ -259,7 +259,7 @@ public:
 			}
 		}
 
-		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyboardEvent);
+		return SListView<ItemType>::OnKeyDown(MyGeometry, InKeyEvent);
 	}
 	
 private:

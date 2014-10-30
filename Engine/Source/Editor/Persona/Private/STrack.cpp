@@ -673,7 +673,7 @@ FReply STrack::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent
 		WidgetToFocus = SummonContextMenu(MyGeometry, MouseEvent);
 
 		return (WidgetToFocus.IsValid())
-			? FReply::Handled().ReleaseMouseCapture().SetKeyboardFocus( WidgetToFocus.ToSharedRef(), EKeyboardFocusCause::SetDirectly )
+			? FReply::Handled().ReleaseMouseCapture().SetUserFocus( WidgetToFocus.ToSharedRef(), EFocusCause::SetDirectly )
 			: FReply::Handled().ReleaseMouseCapture();
 	}
 	else if ( bLeftMouseButton )

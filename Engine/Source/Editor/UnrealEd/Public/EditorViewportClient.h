@@ -95,7 +95,7 @@ private:
 	FViewport* Viewport;
 	/** Pressed Key */
 	FKey Key;
-	/** Keyboard event */
+	/** Key event */
 	EInputEvent InputEvent;
 };
 

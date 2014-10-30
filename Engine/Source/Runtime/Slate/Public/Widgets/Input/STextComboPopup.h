@@ -35,7 +35,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** SWidget interface */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Called to create a widget for each string */
 	TSharedRef<SWidget> MakeItemWidget( TSharedPtr<FString> StringItem );

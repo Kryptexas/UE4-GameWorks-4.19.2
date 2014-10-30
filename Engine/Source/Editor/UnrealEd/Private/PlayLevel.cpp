@@ -3227,7 +3227,7 @@ void UEditorEngine::FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous)
 			SlateInfoPtr->SlatePlayInEditorWindow.Pin()->BringToFront();
 
 			// Set viewport widget to have keyboard focus
-			FSlateApplication::Get().SetKeyboardFocus(SlateInfoPtr->SlatePlayInEditorWindowViewport->GetViewportWidget().Pin(), EKeyboardFocusCause::Keyboard);
+			FSlateApplication::Get().SetKeyboardFocus(SlateInfoPtr->SlatePlayInEditorWindowViewport->GetViewportWidget().Pin(), EFocusCause::Navigation);
 
 			// Execute notifcation delegate incase game code has to do anything else
 			PIEInstanceWindowSwitchDelegate.ExecuteIfBound();

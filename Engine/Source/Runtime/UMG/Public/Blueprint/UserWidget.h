@@ -232,63 +232,81 @@ public:
 	 * Called when keyboard focus is given to this widget.  This event does not bubble.
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param InKeyboardFocusEvent  KeyboardFocusEvent
+	 * @param InFocusEvent  FocusEvent
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Input")
+	FEventReply OnFocusReceived(FGeometry MyGeometry, FFocusEvent InFocusEvent);
+
+	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnFocusReceived() instead"), Category = "Keyboard")
 	FEventReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
 
-	/**
-	 * Called when this widget loses the keyboard focus.  This event does not bubble.
-	 *
-	 * @param  InKeyboardFocusEvent  KeyboardFocusEvent
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
-	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
 
 	/**
-	 * Called after a character is entered while this widget has keyboard focus
+	 * Called when this widget loses focus.  This event does not bubble.
+	 *
+	 * @param  InFocusEvent  FocusEvent
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category="Input")
+	void OnFocusLost(FFocusEvent InFocusEvent);
+
+	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnFocusLost() instead"), Category = "Keyboard")
+	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
+
+
+	/**
+	 * Called after a character is entered while this widget has focus
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param  InCharacterEvent  Character event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
+	UFUNCTION(BlueprintNativeEvent, Category="Input")
 	FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
 
 	/**
-	 * Called after a key is pressed when this widget or a child of this widget has keyboard focus
+	 * Called after a key (keyboard, controller, ...) is pressed when this widget or a child of this widget has focus
 	 * If a widget handles this event, OnKeyDown will *not* be passed to the focused widget.
 	 *
 	 * This event is primarily to allow parent widgets to consume an event before a child widget processes
 	 * it and it should be used only when there is no better design alternative.
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
-	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Input")
+	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
 	/**
-	 * Called after a key is pressed when this widget has keyboard focus (this event bubbles if not handled)
+	 * Called after a key (keyboard, controller, ...) is pressed when this widget has focus (this event bubbles if not handled)
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
-	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Input")
+	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
 	/**
-	 * Called after a key is released when this widget has keyboard focus
+	 * Called after a key (keyboard, controller, ...) is released when this widget has focus
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
-	 * @param  InKeyboardEvent  Keyboard event
+	 * @param  InKeyEvent  Key event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Keyboard")
-	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent);
+	UFUNCTION(BlueprintNativeEvent, Category="Input")
+	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyEvent InKeyEvent);
+
+	/**
+	* Called when an analog value changes on a button that supports analog
+	*
+	* @param MyGeometry The Geometry of the widget receiving the event
+	* @param  InAnalogInputEvent  Analog Event
+	* @return  Returns whether the event was handled, along with other possible actions
+	*/
+	UFUNCTION(BlueprintNativeEvent, Category = "Input")
+	FEventReply OnAnalogValueChanged(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent);
 
 	/**
 	 * The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
@@ -440,31 +458,14 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
-	/**
-	 * Called when a controller button is pressed
-	 * 
-	 * @param MyGeometry        The geometry of the widget receiving the event.
-	 * @param ControllerEvent	The controller event generated
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
+
+	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnKeyDown() instead"), Category = "Gamepad Input")
 	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
-	/**
-	 * Called when a controller button is released
-	 * 
-	 * @param MyGeometry        The geometry of the widget receiving the event.
-	 * @param ControllerEvent	The controller event generated
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
+	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnKeyUp() instead"), Category = "Gamepad Input")
 	FEventReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
-	/**
-	 * Called when an analog value on a controller changes, like a joystick.
-	 * 
-	 * @param MyGeometry        The geometry of the widget receiving the event.
-	 * @param ControllerEvent	The controller event generated
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Gamepad Input")
+	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnAnalogValueChanged() instead"), Category = "Gamepad Input")
 	FEventReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
 	/**

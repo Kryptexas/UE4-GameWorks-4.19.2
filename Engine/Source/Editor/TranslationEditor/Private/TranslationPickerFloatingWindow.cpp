@@ -128,9 +128,9 @@ FText STranslationPickerFloatingWindow::FormatFTextInfo(FText TextToFormat)
 	return OutText; 
 }
 
-FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (InKeyboardEvent.GetKey() == EKeys::Escape)
+	if (InKeyEvent.GetKey() == EKeys::Escape)
 	{
 		//TODO: pop up window for in-place translation
 

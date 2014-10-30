@@ -112,9 +112,9 @@ bool SCheckBox::SupportsKeyboardFocus() const
 	return bIsFocusable;
 }
 
-FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SCheckBox::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( InKeyboardEvent.GetKey() == EKeys::SpaceBar )
+	if ( InKeyEvent.GetKey() == EKeys::SpaceBar )
 	{
 		ToggleCheckedState();
 		const TAttribute<ESlateCheckBoxState::Type>& State = IsCheckboxChecked.Get();
@@ -161,12 +161,12 @@ FReply SCheckBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointer
 			}
 
 			// Set focus to this button, but don't capture the mouse
-			return FReply::Handled().SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+			return FReply::Handled().SetUserFocus(AsShared(), EFocusCause::Mouse);
 		}
 		else
 		{
 			// Capture the mouse, and also set focus to this button
-			return FReply::Handled().CaptureMouse( AsShared() ).SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+			return FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), EFocusCause::Mouse);
 		}
 	}
 	else if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && OnGetMenuContent.IsBound() )

@@ -196,15 +196,15 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FReply SAssetDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( InKeyboardEvent.GetKey() == EKeys::Escape )
+	if ( InKeyEvent.GetKey() == EKeys::Escape )
 	{
 		CloseDialog();
 		return FReply::Handled();
 	}
 
-	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 void SAssetDialog::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -232,7 +232,7 @@ void SAssetDialog::FocusNameBox()
 {
 	if ( NameEditableText.IsValid() )
 	{
-		FSlateApplication::Get().SetKeyboardFocus(NameEditableText.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(NameEditableText.ToSharedRef(), EFocusCause::SetDirectly);
 	}
 }
 

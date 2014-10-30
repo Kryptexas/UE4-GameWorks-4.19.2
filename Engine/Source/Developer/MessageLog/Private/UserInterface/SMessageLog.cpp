@@ -107,11 +107,11 @@ void SMessageLog::HandleSelectionUpdated()
 /* SWidget overrides
  *****************************************************************************/
 
-FReply SMessageLog::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SMessageLog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	if (LogListing.IsValid())
 	{
-		return LogListing->GetCommandList()->ProcessCommandBindings(InKeyboardEvent)
+		return LogListing->GetCommandList()->ProcessCommandBindings(InKeyEvent)
 			? FReply::Handled()
 			: FReply::Unhandled();
 	}

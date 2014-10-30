@@ -19,7 +19,7 @@ namespace EDebugConsoleStyle
 
 struct FDebugConsoleDelegates
 {
-	FSimpleDelegate OnKeyboardFocusLost;
+	FSimpleDelegate OnFocusLost;
 	FSimpleDelegate OnConsoleCommandExecuted;
 };
 

@@ -267,7 +267,7 @@ private:
 		}
 
 		// kind of a hack, but we need to maintain keyboard focus otherwise we wont get our keypress to 'pick'
-		FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EFocusCause::SetDirectly);
 		if(ParentWindow.IsValid())
 		{
 			// also kind of a hack, but this is the only way at the moment to get a 'cursor decorator' without using the drag-drop code path
@@ -280,11 +280,11 @@ private:
 		return FText::Format(LOCTEXT("TootipHint", "{0} (Esc to pick)"), FText::FromName(PickedWidgetName));
 	}
 
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		if(InKeyboardEvent.GetKey() == EKeys::Escape)
+		if(InKeyEvent.GetKey() == EKeys::Escape)
 		{
-			if( InKeyboardEvent.IsLeftControlDown() == false )
+			if( InKeyEvent.IsLeftControlDown() == false )
 			{
 				// We cant set a parameter if this isn't valid !
 				check(PickPropertyHandle.IsValid());

@@ -9,7 +9,7 @@ DECLARE_DELEGATE_OneParam( FOnItemDestroyed, const TSharedPtr<FAssetViewItem>& /
 
 namespace FAssetViewModeUtils 
 {
-	FReply OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyboardEvent& InKeyboardEvent );
+	FReply OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyEvent& InKeyEvent );
 }
 
 /** The tile view mode of the asset view */
@@ -17,7 +17,7 @@ class SAssetTileView : public STileView<TSharedPtr<FAssetViewItem>>
 {
 public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 };
 
 /** The list view mode of the asset view */
@@ -25,7 +25,7 @@ class SAssetListView : public SListView<TSharedPtr<FAssetViewItem>>
 {
 public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 };
 
 /** The columns view mode of the asset view */
@@ -33,7 +33,7 @@ class SAssetColumnView : public SListView<TSharedPtr<FAssetViewItem>>
 {
 public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 };
 
 /** A base class for all asset view items */

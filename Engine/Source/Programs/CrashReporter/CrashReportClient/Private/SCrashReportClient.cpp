@@ -167,7 +167,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 		];
 	}
 
-	FSlateApplication::Get().SetUnhandledKeyDownEventHandler(FOnKeyboardEvent::CreateSP(this, &SCrashReportClient::OnUnhandledKeyDown));
+	FSlateApplication::Get().SetUnhandledKeyDownEventHandler(FOnKeyEvent::CreateSP(this, &SCrashReportClient::OnUnhandledKeyDown));
 }
 
 void SCrashReportClient::SetDefaultFocus()
@@ -175,9 +175,9 @@ void SCrashReportClient::SetDefaultFocus()
 	FSlateApplication::Get().SetKeyboardFocus(UserCommentBox.ToSharedRef());
 }
 
-FReply SCrashReportClient::OnUnhandledKeyDown(const FKeyboardEvent& InKeyboardEvent)
+FReply SCrashReportClient::OnUnhandledKeyDown(const FKeyEvent& InKeyEvent)
 {
-	const FKey Key = InKeyboardEvent.GetKey();
+	const FKey Key = InKeyEvent.GetKey();
 	if (Key == EKeys::Escape)
 	{
 		CrashReportClient->Cancel();
@@ -185,7 +185,7 @@ FReply SCrashReportClient::OnUnhandledKeyDown(const FKeyboardEvent& InKeyboardEv
 	}
 	else if (Key == EKeys::Enter)
 	{
-		if (InKeyboardEvent.IsShiftDown())
+		if (InKeyEvent.IsShiftDown())
 		{
 			CrashReportClient->Submit();
 			return FReply::Handled();

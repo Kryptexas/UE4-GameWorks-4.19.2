@@ -78,10 +78,10 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 	}
 }
 
-FReply SEditorViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SEditorViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if( CommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if( CommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		Reply = FReply::Handled();
 		Client->Invalidate();
@@ -96,10 +96,10 @@ bool SEditorViewport::SupportsKeyboardFocus() const
 	return true;
 }
 
-FReply SEditorViewport::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SEditorViewport::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// forward focus to the viewport
-	return FReply::Handled().SetKeyboardFocus( ViewportWidget.ToSharedRef(), InKeyboardFocusEvent.GetCause() );
+	return FReply::Handled().SetUserFocus(ViewportWidget.ToSharedRef(), InFocusEvent.GetCause());
 }
 
 void SEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

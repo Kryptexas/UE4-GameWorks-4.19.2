@@ -335,7 +335,7 @@ void FLevelEditorModule::FocusViewport()
 
 		if( FSlateApplication::Get().GeneratePathToWidgetUnchecked( ViewportAsWidget, FocusWidgetPath ) )
 		{
-			FSlateApplication::Get().SetKeyboardFocus( FocusWidgetPath, EKeyboardFocusCause::SetDirectly );
+			FSlateApplication::Get().SetKeyboardFocus( FocusWidgetPath, EFocusCause::SetDirectly );
 		}
 	}
 }

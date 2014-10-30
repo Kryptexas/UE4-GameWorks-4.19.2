@@ -885,7 +885,7 @@ void SAutomationWindow::ExpandEnabledTests( TSharedPtr< IAutomationReport > InRe
 FReply SAutomationWindow::HandleNewPresetClicked()
 {
 	bAddingTestPreset = true;
-	return FReply::Handled().SetKeyboardFocus(PresetTextBox.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+	return FReply::Handled().SetUserFocus(PresetTextBox.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
 FReply SAutomationWindow::HandleSavePresetClicked()
@@ -1905,9 +1905,9 @@ bool SAutomationWindow::IsAnySelectedRowEnabled()
 /* SWidget implementation
  *****************************************************************************/
 
-FReply SAutomationWindow::OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAutomationWindow::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.GetKey() == EKeys::SpaceBar)
+	if (InKeyEvent.GetKey() == EKeys::SpaceBar)
 	{
 		SetAllSelectedTestsChecked(IsAnySelectedRowEnabled());
 		return FReply::Handled();
@@ -1916,11 +1916,11 @@ FReply SAutomationWindow::OnKeyUp( const FGeometry& InGeometry, const FKeyboardE
 }
 
 
-FReply SAutomationWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAutomationWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if (InKeyboardEvent.IsControlDown())
+	if (InKeyEvent.IsControlDown())
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::C)
+		if (InKeyEvent.GetKey() == EKeys::C)
 		{
 			CopyLog();
 

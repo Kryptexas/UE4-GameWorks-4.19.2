@@ -581,7 +581,7 @@ FReply SRemovableDialogueVoicePropertyEditor::OnMouseButtonDown( const FGeometry
 		bIsPressed = true;
 
 		//we need to capture the mouse for MouseUp events
-		Reply =  FReply::Handled().CaptureMouse( AsShared() ).SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		Reply = FReply::Handled().CaptureMouse(AsShared()).SetUserFocus(AsShared(), EFocusCause::Mouse);
 	}
 
 	//return the constructed reply

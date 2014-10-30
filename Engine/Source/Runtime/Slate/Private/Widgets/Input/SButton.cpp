@@ -55,6 +55,7 @@ void SButton::Construct( const FArguments& InArgs )
 
 	ClickMethod = InArgs._ClickMethod;
 	TouchMethod = InArgs._TouchMethod;
+	PressMethod = InArgs._PressMethod;
 
 	HoveredSound = InArgs._HoveredSoundOverride.Get(Style->HoveredSlateSound);
 	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
@@ -92,32 +93,73 @@ bool SButton::SupportsKeyboardFocus() const
 	return bIsFocusable;
 }
 
-FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+void SButton::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	//see if we pressed the Enter or Spacebar keys
-	if(InKeyboardEvent.GetKey() == EKeys::Enter || InKeyboardEvent.GetKey() == EKeys::SpaceBar)
-	{
-		if(IsEnabled())
-		{
-			PlayPressedSound();
-		}		
+	bIsPressed = false;
+}
 
-		//execute our "OnClicked" delegate, if we have one
-		if(OnClicked.IsBound() == true)
+FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
+{
+	FReply Reply = FReply::Unhandled();
+	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
+	{
+		bIsPressed = true;
+
+		PlayPressedSound();
+
+		if (PressMethod == EButtonPressMethod::ButtonPress)
 		{
-			return OnClicked.Execute();
+			//execute our "OnClicked" delegate, and get the reply
+			Reply = OnClicked.IsBound() ? OnClicked.Execute() : FReply::Handled();
+
+			//You should ALWAYS handle the OnClicked event.
+			ensure(Reply.IsEventHandled() == true);
+		}
+		else
+		{
+			Reply = FReply::Handled();
+		}
+	}
+	else
+	{
+		Reply = SBorder::OnKeyDown(MyGeometry, InKeyEvent);
+	}
+
+	//return the constructed reply
+	return Reply;
+}
+
+FReply SButton::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	FReply Reply = FReply::Unhandled();
+
+	if (IsEnabled() && (InKeyEvent.GetKey() == EKeys::Enter || InKeyEvent.GetKey() == EKeys::SpaceBar || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom))
+	{
+		bool bWasPressed = bIsPressed;
+		bIsPressed = false;
+		//@Todo Slate: This should check focus, however we don't have that API yet, will be easier when focus is unified.
+		if (PressMethod == EButtonPressMethod::ButtonRelease || (PressMethod == EButtonPressMethod::DownAndUp && bWasPressed))
+		{
+			//execute our "OnClicked" delegate, and get the reply
+			Reply = OnClicked.IsBound() ? OnClicked.Execute() : FReply::Handled();
+
+			//You should ALWAYS handle the OnClicked event.
+			ensure(Reply.IsEventHandled() == true);
+		}
+		else
+		{
+			Reply = FReply::Handled();
 		}
 	}
 
-	//if it was some other button, ignore it
-	return FReply::Unhandled();
+	//return the constructed reply
+	return Reply;
 }
-
 
 FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() )
+	if (IsEnabled() && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent()))
 	{
 		bIsPressed = true;
 
@@ -159,7 +201,7 @@ FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() )
+	if (IsEnabled() && (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent()))
 	{
 		bIsPressed = false;
 

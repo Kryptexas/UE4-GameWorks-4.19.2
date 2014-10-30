@@ -38,9 +38,9 @@ void SGestureEditor::Construct( const FArguments& InArgs, TSharedPtr<FGestureTre
 TWeakPtr<SGestureEditor> SGestureEditor::GestureBeingEdited;
 
 
-FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	const FKey Key = InKeyboardEvent.GetKey();
+	const FKey Key = InKeyEvent.GetKey();
 
 	if( bIsEditing ) 
 	{
@@ -54,10 +54,10 @@ FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 	
 		StartChangingText();
 
-		EditingInputGesture.bCtrl = InKeyboardEvent.IsControlDown();
-		EditingInputGesture.bAlt = InKeyboardEvent.IsAltDown();
-		EditingInputGesture.bShift = InKeyboardEvent.IsShiftDown();
-		EditingInputGesture.bCmd = InKeyboardEvent.IsCommandDown();
+		EditingInputGesture.bCtrl = InKeyEvent.IsControlDown();
+		EditingInputGesture.bAlt = InKeyEvent.IsAltDown();
+		EditingInputGesture.bShift = InKeyEvent.IsShiftDown();
+		EditingInputGesture.bCmd = InKeyEvent.IsCommandDown();
 
 		LoadText();
 		//@todo checking the length of localized string is not valid, at the very least in this manner [10/11/2013 justin.sargent]
@@ -74,7 +74,7 @@ FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 }
 
 
-FReply SGestureEditor::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SGestureEditor::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	return FReply::Unhandled();
 }
@@ -91,7 +91,7 @@ FReply SGestureEditor::OnMouseButtonDown( const FGeometry& MyGeometry, const FPo
 	if ( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !bIsEditing )
 	{
 		StartEditing();
-		return FReply::Handled().SetKeyboardFocus( AsShared(), EKeyboardFocusCause::Mouse );
+		return FReply::Handled().SetUserFocus(AsShared(), EFocusCause::Mouse);
 	}
 
 	return FReply::Unhandled();
@@ -104,7 +104,7 @@ FReply SGestureEditor::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, 
 }
 
 
-void SGestureEditor::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SGestureEditor::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// Notify a listener that we lost focus so they can determine if we should still be in edit mode
 	OnEditBoxLostFocus.ExecuteIfBound();

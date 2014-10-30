@@ -21,7 +21,7 @@ public:
 
 	/** IToolkit interface */
 	virtual FName GetToolkitContextFName() const override;
-	virtual bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const override;
+	virtual bool ProcessCommandBindings( const FKeyEvent& InKeyEvent ) const override;
 	virtual bool IsHosted() const override;
 	virtual const TSharedRef< class IToolkitHost > GetToolkitHost() const override;
 	virtual const TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< SDockableTab > > >& GetToolkitTabsInSpots() const override;

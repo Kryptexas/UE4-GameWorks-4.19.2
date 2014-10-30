@@ -655,7 +655,7 @@ void FLevelViewportLayout::FinishMaximizeTransition()
 		{
 			// We first need to clear keyboard focus so that Slate doesn't assume that focus won't need to change
 			// simply because the viewport widget object is the same -- it has a new widget path!
-			FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::SetDirectly );
+			FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
 
 			// Set keyboard focus directly
 			ViewportToFocus->SetKeyboardFocusToThisViewport();

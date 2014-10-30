@@ -2418,9 +2418,9 @@ bool SSkeletonTree::IsAddingSocketsAllowed() const
 	return false;
 }
 
-FReply SSkeletonTree::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SSkeletonTree::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if ( UICommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if ( UICommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

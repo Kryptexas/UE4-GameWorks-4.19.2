@@ -150,7 +150,7 @@ void SFindInBT::FocusForUse()
 	FSlateApplication::Get().GeneratePathToWidgetUnchecked(SearchTextField.ToSharedRef(), FilterTextBoxWidgetPath);
 
 	// Set keyboard focus directly
-	FSlateApplication::Get().SetKeyboardFocus(FilterTextBoxWidgetPath, EKeyboardFocusCause::SetDirectly);
+	FSlateApplication::Get().SetKeyboardFocus(FilterTextBoxWidgetPath, EFocusCause::SetDirectly);
 }
 
 void SFindInBT::OnSearchTextChanged(const FText& Text)

@@ -1454,9 +1454,9 @@ void STimelineEditor::OnRequestTrackRename() const
 	TrackListView->GetSelectedItems()[0]->OnRenameRequest.Execute();
 }
 
-FReply STimelineEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply STimelineEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(CommandList->ProcessCommandBindings(InKeyboardEvent))
+	if(CommandList->ProcessCommandBindings(InKeyEvent))
 	{
 		return FReply::Handled();
 	}

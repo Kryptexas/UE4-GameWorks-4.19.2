@@ -998,7 +998,7 @@ bool SMultiBoxWidget::SupportsKeyboardFocus() const
 	return true;
 }
 
-FReply SMultiBoxWidget::FocusNextWidget( EFocusMoveDirection::Type MoveDirection )
+FReply SMultiBoxWidget::FocusNextWidget(EUINavigation NavigationType)
 {
 	TSharedPtr<SWidget> FocusWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
 	if(FocusWidget.IsValid())
@@ -1006,35 +1006,35 @@ FReply SMultiBoxWidget::FocusNextWidget( EFocusMoveDirection::Type MoveDirection
 		FWidgetPath FocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( FocusWidget.ToSharedRef(), FocusPath );
 		FWeakWidgetPath WeakFocusPath = FocusPath;
-		FWidgetPath NextFocusPath = WeakFocusPath.ToNextFocusedPath( MoveDirection );
+		FWidgetPath NextFocusPath = WeakFocusPath.ToNextFocusedPath(NavigationType);
 		if ( NextFocusPath.Widgets.Num() > 0 )
 		{
-			return FReply::Handled().SetKeyboardFocus( NextFocusPath.Widgets.Last().Widget, EKeyboardFocusCause::Keyboard );
+			return FReply::Handled().SetUserFocus(NextFocusPath.Widgets.Last().Widget, EFocusCause::Navigation);
 		}
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply SMultiBoxWidget::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SMultiBoxWidget::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
-	if(InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::Keyboard)
+	if (InFocusEvent.GetCause() == EFocusCause::Navigation)
 	{
 		// forward focus to children
-		return FocusNextWidget( EFocusMoveDirection::Next );
+		return FocusNextWidget( EUINavigation::Next );
 	}
 
 	return FReply::Unhandled();
 }
 
-FReply SMultiBoxWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SMultiBoxWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
-	SCompoundWidget::OnKeyDown(MyGeometry, KeyboardEvent);
+	SCompoundWidget::OnKeyDown(MyGeometry, KeyEvent);
 
 	// allow use of up and down keys to transfer focus/hover state
-	if(KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+	if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 	{
-		return FocusNextWidget( EFocusMoveDirection::Next );
+		return FocusNextWidget(EUINavigation::Next);
 	}
 
 	return FReply::Unhandled();

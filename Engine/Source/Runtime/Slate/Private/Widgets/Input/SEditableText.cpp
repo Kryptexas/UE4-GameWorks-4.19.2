@@ -979,7 +979,7 @@ void SEditableText::OnEnter()
 
 		if ( ClearKeyboardFocusOnCommit.Get() )
 		{
-			FSlateApplication::Get().ClearKeyboardFocus( EKeyboardFocusCause::Cleared );
+			FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::Cleared );
 		}
 		else
 		{
@@ -1502,14 +1502,14 @@ bool SEditableText::SupportsKeyboardFocus() const
 	return true;
 }
 
-FReply SEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ContextMenuWindow.IsValid() )
 	{
 		// Don't unselect text when focus is set because another widget lost focus, as that may be in response to a
 		// dismissed context menu where the user clicked an option to select text.
-		if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::OtherWidgetLostFocus )
+		if( InFocusEvent.GetCause() != EFocusCause::OtherWidgetLostFocus )
 		{
 			// Deselect text, but override the last selection interaction time, so that the user doesn't
 			// see a selection transition animation when keyboard focus is received.
@@ -1526,11 +1526,11 @@ FReply SEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, cons
 		LoadText();
 
 		// For mouse-based focus, we'll handle the cursor positioning in the actual mouse down/up events
-		if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::Mouse )
+		if( InFocusEvent.GetCause() != EFocusCause::Mouse )
 		{
 			// Don't move the cursor if we gained focus because another widget lost focus.  It may
 			// have been a dismissed context menu where the user is expecting the selection to be retained
-			if( InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::OtherWidgetLostFocus )
+			if( InFocusEvent.GetCause() != EFocusCause::OtherWidgetLostFocus )
 			{
 				// Select all text on keyboard focus.  This mirrors mouse focus functionality.
 				if( bSelectAllTextWhenFocused.Get() )
@@ -1566,7 +1566,7 @@ FReply SEditableText::OnKeyboardFocusReceived( const FGeometry& MyGeometry, cons
 }
 
 
-void SEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus lost code if it's due to the context menu opening
 	if ( !ContextMenuWindow.IsValid() )
@@ -1586,7 +1586,7 @@ void SEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFo
 		}
 
 		// Clear selection unless activating a new window (otherwise can't copy and past on right click)
-		if (InKeyboardFocusEvent.GetCause() != EKeyboardFocusCause::WindowActivate)
+		if (InFocusEvent.GetCause() != EFocusCause::WindowActivate)
 		{
 			ClearSelection();
 		}
@@ -1596,14 +1596,14 @@ void SEditableText::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFo
 		
 		// See if user explicitly tabbed away or moved focus
 		ETextCommit::Type TextAction;
-		switch ( InKeyboardFocusEvent.GetCause() )
+		switch ( InFocusEvent.GetCause() )
 		{
-		case EKeyboardFocusCause::Keyboard:
-		case EKeyboardFocusCause::Mouse:
+		case EFocusCause::Navigation:
+		case EFocusCause::Mouse:
 			TextAction = ETextCommit::OnUserMovedFocus;
 			break;
 
-		case EKeyboardFocusCause::Cleared:
+		case EFocusCause::Cleared:
 			TextAction = ETextCommit::OnCleared;
 			break;
 
@@ -1624,12 +1624,12 @@ FReply SEditableText::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEv
 }
 
 
-FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FTextEditHelper::OnKeyDown( InKeyboardEvent, SharedThis( this ) );
+	FReply Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
 
 	// Process keybindings if the event wasn't already handled
-	if( !Reply.IsEventHandled() && UICommandList->ProcessCommandBindings( InKeyboardEvent ) )
+	if( !Reply.IsEventHandled() && UICommandList->ProcessCommandBindings( InKeyEvent ) )
 	{
 		Reply = FReply::Handled();
 	}
@@ -1638,7 +1638,7 @@ FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEve
 }
 
 
-FReply SEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
@@ -2102,7 +2102,7 @@ void SEditableText::RestartSelectionTargetAnimation()
 void SEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 {
 	// Give this focus when the context menu has been dismissed
-	FSlateApplication::Get().SetKeyboardFocus( AsShared(), EKeyboardFocusCause::OtherWidgetLostFocus );
+	FSlateApplication::Get().SetKeyboardFocus( AsShared(), EFocusCause::OtherWidgetLostFocus );
 }
 
 void SEditableText::SetHintText( const TAttribute< FText >& InHintText )

@@ -132,6 +132,8 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "Events.h"
 #include "DragAndDrop.h"
 #include "Reply.h"
+#include "NavigationReply.h"
+#include "NavigationMetaData.h"
 
 // Rendering
 #include "RenderingCommon.h"

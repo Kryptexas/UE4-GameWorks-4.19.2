@@ -1317,9 +1317,9 @@ bool SWindow::SupportsKeyboardFocus() const
 	return !bIsToolTipWindow && !bIsCursorDecoratorWindow;
 }
 
-FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
+FReply SWindow::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
-	if( InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::WindowActivate  || FSlateApplicationBase::Get().IsExternalUIOpened() )
+	if (InFocusEvent.GetCause() == EFocusCause::WindowActivate || FSlateApplicationBase::Get().IsExternalUIOpened())
 	{
 		TArray< TSharedRef<SWindow> > JustThisWindow;
 		{
@@ -1335,7 +1335,7 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 			FWidgetPath WidgetToFocusPath;
 			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
 			{
-				FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+				FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 			}
 		}
 		else
@@ -1344,7 +1344,7 @@ FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKey
 			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, AsShared(), WindowWidgetPath ) )
 			{
 				FWeakWidgetPath WeakWindowPath(WindowWidgetPath);
-				FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EFocusMoveDirection::Next), EKeyboardFocusCause::SetDirectly );
+				FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EUINavigation::Next), EFocusCause::SetDirectly );
 			}
 		}
 	}

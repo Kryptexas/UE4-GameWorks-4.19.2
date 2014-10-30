@@ -68,16 +68,16 @@ private:
 			);
 		}
 
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 		{
 			// Special case handling.  Intercept the tilde key.  It is not suitable for typing in the console
-			if( InKeyboardEvent.GetKey() == EKeys::Tilde )
+			if( InKeyEvent.GetKey() == EKeys::Tilde )
 			{
 				return FReply::Unhandled();
 			}
 			else
 			{
-				return SEditableText::OnKeyDown( MyGeometry, InKeyboardEvent );
+				return SEditableText::OnKeyDown( MyGeometry, InKeyEvent );
 			}
 		}
 
@@ -200,7 +200,7 @@ void SConsoleInputBox::SuggestionSelectionChanged(TSharedPtr<FString> NewValue, 
 			// Ideally this would set the focus back to the edit control
 //			FWidgetPath WidgetToFocusPath;
 //			FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-//			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+//			FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 			break;
 		}
 	}
@@ -384,13 +384,13 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 	}
 }
 
-FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent )
+FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent )
 {
 	if(SuggestionBox->IsOpen())
 	{
-		if(KeyboardEvent.GetKey() == EKeys::Up || KeyboardEvent.GetKey() == EKeys::Down)
+		if(KeyEvent.GetKey() == EKeys::Up || KeyEvent.GetKey() == EKeys::Down)
 		{
-			if(KeyboardEvent.GetKey() == EKeys::Up)
+			if(KeyEvent.GetKey() == EKeys::Up)
 			{
 				if(SelectedSuggestion < 0)
 				{
@@ -404,7 +404,7 @@ FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 				}
 			}
 
-			if(KeyboardEvent.GetKey() == EKeys::Down)
+			if(KeyEvent.GetKey() == EKeys::Down)
 			{
 				if(SelectedSuggestion < Suggestions.Num() - 1)
 				{
@@ -422,7 +422,7 @@ FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 
 			return FReply::Handled();
 		}
-		else if (KeyboardEvent.GetKey() == EKeys::Tab)
+		else if (KeyEvent.GetKey() == EKeys::Tab)
 		{
 			if (Suggestions.Num())
 			{
@@ -443,7 +443,7 @@ FReply SConsoleInputBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboard
 	}
 	else
 	{
-		if(KeyboardEvent.GetKey() == EKeys::Up)
+		if(KeyEvent.GetKey() == EKeys::Up)
 		{
 			TArray<FString> History;
 
@@ -495,7 +495,7 @@ void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, bool bInHistory
 		// Force the textbox back into focus.
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 	}
 	else
 	{
@@ -503,7 +503,7 @@ void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, bool bInHistory
 	}
 }
 
-void SConsoleInputBox::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent )
+void SConsoleInputBox::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
 //	SuggestionBox->SetIsOpen(false);
 }

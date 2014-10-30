@@ -312,7 +312,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 
 					if ( bFocusMenu )
 					{
-						FSlateApplication::Get().SetKeyboardFocus( MenuContentRef, EKeyboardFocusCause::SetDirectly );
+						FSlateApplication::Get().SetKeyboardFocus( MenuContentRef, EFocusCause::SetDirectly );
 					}
 				}
 			}

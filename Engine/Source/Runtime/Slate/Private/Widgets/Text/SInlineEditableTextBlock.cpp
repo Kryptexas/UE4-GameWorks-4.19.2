@@ -83,7 +83,7 @@ void SInlineEditableTextBlock::EnterEditingMode()
 					TextBox.ToSharedRef()
 				];
 
-			FSlateApplication::Get().SetKeyboardFocus(TextBox, EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(TextBox, EFocusCause::SetDirectly);
 
 			TextBlock->SetVisibility(EVisibility::Collapsed);
 
@@ -174,9 +174,9 @@ void SInlineEditableTextBlock::Tick( const FGeometry& AllottedGeometry, const do
 	}
 }
 
-FReply SInlineEditableTextBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SInlineEditableTextBlock::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(InKeyboardEvent.GetKey() == EKeys::F2)
+	if(InKeyEvent.GetKey() == EKeys::F2)
 	{
 		EnterEditingMode();
 		return FReply::Handled();

@@ -396,7 +396,7 @@ void STutorialEditableText::StyleSelectedText()
 		const FRunInfo RunInfo = ActiveStyle->CreateRunInfo();
 		const FTextBlockStyle TextBlockStyle = ActiveStyle->CreateTextBlockStyle();
 		RichEditableTextBox->ApplyToSelection(RunInfo, TextBlockStyle);
-		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EKeyboardFocusCause::SetDirectly);
+		FSlateApplication::Get().SetKeyboardFocus(RichEditableTextBox, EFocusCause::SetDirectly);
 	}
 }
 

@@ -45,8 +45,8 @@ public:
 	virtual bool IsValid() const override;
 	virtual bool IsClosing() const override;
 	virtual FString GetTitle() const override;
-	virtual void OnKeyDown(const FKeyboardEvent& InKeyboardEvent) override;
-	virtual void OnKeyUp(const FKeyboardEvent& InKeyboardEvent) override;
+	virtual void OnKeyDown(const FKeyEvent& InKeyEvent) override;
+	virtual void OnKeyUp(const FKeyEvent& InKeyEvent) override;
 	virtual void OnKeyChar(const FCharacterEvent& InCharacterEvent) override;
 	virtual void OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -118,12 +118,12 @@ private:
 	void OnCursorChange(CefCursorHandle Cursor);
 
 	/**
-	 * Gets the Cef Keyboard Modifiers based on a Keyboard Event
+	 * Gets the Cef Keyboard Modifiers based on a Key Event
 	 * 
-	 * @param KeyboardEvent The Keyboard event
+	 * @param KeyEvent The Key event
 	 * @return Bits representing keyboard modifiers
 	 */
-	static int32 GetCefKeyboardModifiers(const FKeyboardEvent& KeyboardEvent);
+	static int32 GetCefKeyboardModifiers(const FKeyEvent& KeyEvent);
 
 	/**
 	 * Gets the Cef Mouse Modifiers based on a Mouse Event

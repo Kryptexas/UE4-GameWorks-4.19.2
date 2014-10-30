@@ -1896,7 +1896,7 @@ void FCascade::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEven
 
 void FCascade::PreEditCurve(TArray<UObject*> CurvesAboutToChange)
 {
-	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Mouse);
 
 	//Need to keep text in-sync with PostEditCurve
 	BeginTransaction( NSLOCTEXT("UnrealEd", "EditCurve", "Edit Curve") );

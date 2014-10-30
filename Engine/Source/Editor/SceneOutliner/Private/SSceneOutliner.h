@@ -331,7 +331,7 @@ namespace SceneOutliner
 		virtual bool SupportsKeyboardFocus() const override;
 
 		/** Overridden from SWidget: Called when a key is pressed down */
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 		/** Function to validate actor list shown in scene outliner widget */
 		void ValidateOutlinerTreeView();

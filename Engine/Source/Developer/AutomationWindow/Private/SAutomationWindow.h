@@ -121,10 +121,10 @@ protected:
 	bool IsAnySelectedRowEnabled();
 
 	/** Overridden from SWidget: Called when a key is pressed down - capturing copy. */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Overridden from SWidget: Called after a key is released. */
-	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 
 private:
 

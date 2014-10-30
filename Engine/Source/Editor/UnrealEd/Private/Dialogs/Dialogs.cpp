@@ -166,15 +166,15 @@ public:
 		return Response;
 	}
 
-	virtual	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		//see if we pressed the Enter or Spacebar keys
-		if( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return HandleButtonClicked(EAppReturnType::Cancel);
 		}
 
-		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
 			CopyMessageToClipboard();
 
@@ -370,9 +370,9 @@ public:
 	bool GetResponse() const { return bUserResponse; }
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
 			FPlatformMisc::ClipboardCopy( *MyMessage.Get() );
 			return FReply::Handled();
@@ -586,15 +586,15 @@ public:
 	}
 
 	/** Used to intercept Escape key presses, then interprets them as cancel */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 	{
 		// Pressing escape returns as if the user canceled
-		if ( InKeyboardEvent.GetKey() == EKeys::Escape )
+		if ( InKeyEvent.GetKey() == EKeys::Escape )
 		{
 			return OnCancelClicked();
 		}
 
-		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
+		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
 			FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 			return FReply::Handled();

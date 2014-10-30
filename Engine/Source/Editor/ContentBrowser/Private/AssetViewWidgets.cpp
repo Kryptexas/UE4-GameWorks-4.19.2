@@ -19,10 +19,10 @@
 // FAssetViewModeUtils
 ///////////////////////////////
 
-FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyboardEvent& InKeyboardEvent )
+FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyEvent& InKeyEvent )
 {
 	// All asset views use Ctrl-C to copy references to assets
-	if ( InKeyboardEvent.IsControlDown() && InKeyboardEvent.GetCharacter() == 'C' )
+	if ( InKeyEvent.IsControlDown() && InKeyEvent.GetCharacter() == 'C' )
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
@@ -61,9 +61,9 @@ FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetView
 // Asset view modes
 ///////////////////////////////
 
-FReply SAssetTileView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetTileView::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyboardEvent);
+	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyEvent);
 
 	if ( Reply.IsEventHandled() )
 	{
@@ -71,13 +71,13 @@ FReply SAssetTileView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 	}
 	else
 	{
-		return STileView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyboardEvent);
+		return STileView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyEvent);
 	}
 }
 
-FReply SAssetListView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetListView::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyboardEvent);
+	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyEvent);
 
 	if ( Reply.IsEventHandled() )
 	{
@@ -85,13 +85,13 @@ FReply SAssetListView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEv
 	}
 	else
 	{
-		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyboardEvent);
+		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyEvent);
 	}
 }
 
-FReply SAssetColumnView::OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SAssetColumnView::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyboardEvent);
+	FReply Reply = FAssetViewModeUtils::OnViewModeKeyDown(SelectedItems, InKeyEvent);
 
 	if ( Reply.IsEventHandled() )
 	{
@@ -99,7 +99,7 @@ FReply SAssetColumnView::OnKeyDown( const FGeometry& InGeometry, const FKeyboard
 	}
 	else
 	{
-		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyboardEvent);
+		return SListView<TSharedPtr<FAssetViewItem>>::OnKeyDown(InGeometry, InKeyEvent);
 	}
 }
 

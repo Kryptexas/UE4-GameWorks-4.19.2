@@ -87,7 +87,7 @@ public:
 	{
 		const FArrangedWidget& LastWidget = Widgets.Last();
 		
-		FArrangedChildren Extension = GeneratePathToWidget( Matcher, LastWidget, EFocusMoveDirection::Next, VisibilityFilter );
+		FArrangedChildren Extension = GeneratePathToWidget(Matcher, LastWidget, EUINavigation::Next, VisibilityFilter);
 
 		for( int32 WidgetIndex=0; WidgetIndex < Extension.Num(); ++WidgetIndex )
 		{
@@ -107,11 +107,11 @@ public:
 	 * @return A path from FromWidget to WidgetToFind; will not include FromWidget.
 	 */
 	template<typename MatcherType>
-	FArrangedChildren GeneratePathToWidget( const MatcherType& Matcher, const FArrangedWidget& FromWidget, EFocusMoveDirection::Type Direction = EFocusMoveDirection::Next, EVisibility VisibilityFilter = EVisibility::Visible )
+	FArrangedChildren GeneratePathToWidget(const MatcherType& Matcher, const FArrangedWidget& FromWidget, EUINavigation NavigationType = EUINavigation::Next, EVisibility VisibilityFilter = EVisibility::Visible)
 	{
 		FArrangedChildren PathResult(VisibilityFilter);
 
-		if ( Direction == EFocusMoveDirection::Next )
+		if (NavigationType == EUINavigation::Next)
 		{
 			SearchForWidgetRecursively( Matcher, FromWidget, PathResult, VisibilityFilter );
 		}
@@ -136,7 +136,7 @@ public:
 	 *
 	 * @return true if the focus moved successfully, false if we were unable to move focus
 	 */
-	bool MoveFocus(int32 PathLevel, EFocusMoveDirection::Type MoveDirection);
+	bool MoveFocus(int32 PathLevel, EUINavigation NavigationType);
 
 
 	FArrangedChildren Widgets;
@@ -216,7 +216,7 @@ public:
 	 * 
 	 * @return The new focus path.
 	 */
-	FWidgetPath ToNextFocusedPath(EFocusMoveDirection::Type MoveDirection);
+	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType);
 	
 	/** Get the last (leaf-most) widget in this path; assumes path is valid */
 	TWeakPtr< SWidget > GetLastWidget() const

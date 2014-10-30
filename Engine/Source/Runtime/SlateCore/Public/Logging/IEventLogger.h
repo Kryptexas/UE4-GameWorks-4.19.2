@@ -26,6 +26,7 @@ namespace EEventLog
 		KeyDown,
 		KeyUp,
 		KeyChar,
+		AnalogInput,
 		UICommand,
 		BeginTransaction,
 		EndTransaction,
@@ -59,6 +60,7 @@ namespace EEventLog
 		case KeyDown: return FString("KeyDown");
 		case KeyUp: return FString("KeyUp");
 		case KeyChar: return FString("KeyChar");
+		case AnalogInput: return FString("AnalogInput");
 		case UICommand: return FString("UICommand");
 		case BeginTransaction: return FString("BeginTransaction");
 		case EndTransaction: return FString("EndTransaction");

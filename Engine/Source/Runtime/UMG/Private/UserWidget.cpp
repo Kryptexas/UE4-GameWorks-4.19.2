@@ -173,9 +173,19 @@ void UUserWidget::OnPaint_Implementation(FPaintContext& Context) const
 
 }
 
+FEventReply UUserWidget::OnFocusReceived_Implementation(FGeometry MyGeometry, FFocusEvent InFocusEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
 FEventReply UUserWidget::OnKeyboardFocusReceived_Implementation(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnFocusLost_Implementation(FFocusEvent InFocusEvent)
+{
+
 }
 
 void UUserWidget::OnKeyboardFocusLost_Implementation(FKeyboardFocusEvent InKeyboardFocusEvent)
@@ -188,17 +198,22 @@ FEventReply UUserWidget::OnKeyChar_Implementation(FGeometry MyGeometry, FCharact
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyboardEvent InKeyboardEvent)
+FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnAnalogValueChanged_Implementation(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent)
 {
 	return UWidgetBlueprintLibrary::Unhandled();
 }

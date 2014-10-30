@@ -1264,9 +1264,9 @@ void SLevelEditor::RefreshEditorModeCommands()
 	}
 }
 
-FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// Check to see if any of the actions for the level editor can be processed by the current keyboard event
+	// Check to see if any of the actions for the level editor can be processed by the current event
 	// If we are in debug mode do not process commands
 	if( FSlateApplication::Get().IsNormalExecution() )
 	{
@@ -1308,7 +1308,7 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 		if( ActiveToolkit.IsValid() )
 		{
 			// A toolkit tab is active, so direct all command processing to it
-			if( ActiveToolkit->ProcessCommandBindings( InKeyboardEvent ) )
+			if( ActiveToolkit->ProcessCommandBindings( InKeyEvent ) )
 			{
 				return FReply::Handled();
 			}
@@ -1316,7 +1316,7 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 		else
 		{
 			// No toolkit tab is active, so let the level editor have a chance at the keystroke
-			if( LevelEditorCommands->ProcessCommandBindings( InKeyboardEvent ) )
+			if( LevelEditorCommands->ProcessCommandBindings( InKeyEvent ) )
 			{
 				return FReply::Handled();
 			}
@@ -1326,10 +1326,10 @@ FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEven
 	return FReply::Unhandled();
 }
 
-FReply SLevelEditor::OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLevelEditor::OnKeyDownInViewport( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	// Check to see if any of the actions for the level editor can be processed by the current keyboard event from a viewport
-	if( LevelEditorCommands->ProcessCommandBindings( InKeyboardEvent ) )
+	// Check to see if any of the actions for the level editor can be processed by the current keyboard from a viewport
+	if( LevelEditorCommands->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

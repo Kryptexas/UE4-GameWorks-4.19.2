@@ -667,7 +667,7 @@ void SSettingsEditor::HandleModelSelectionChanged()
 
 		if (FSlateApplication::Get().GeneratePathToWidgetUnchecked(FocusWidget.ToSharedRef(), FocusWidgetPath))
 		{
-			FSlateApplication::Get().SetKeyboardFocus(FocusWidgetPath, EKeyboardFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(FocusWidgetPath, EFocusCause::SetDirectly);
 		}
 	}
 	else

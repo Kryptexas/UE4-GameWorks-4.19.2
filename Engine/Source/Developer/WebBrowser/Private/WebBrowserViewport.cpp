@@ -80,15 +80,15 @@ FReply FWebBrowserViewport::OnMouseButtonDoubleClick(const FGeometry& InMyGeomet
 	return FReply::Handled();
 }
 
-FReply FWebBrowserViewport::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply FWebBrowserViewport::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	WebBrowserWindow->OnKeyDown(InKeyboardEvent);
+	WebBrowserWindow->OnKeyDown(InKeyEvent);
 	return FReply::Handled();
 }
 
-FReply FWebBrowserViewport::OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply FWebBrowserViewport::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	WebBrowserWindow->OnKeyUp(InKeyboardEvent);
+	WebBrowserWindow->OnKeyUp(InKeyEvent);
 	return FReply::Handled();
 }
 
@@ -98,13 +98,13 @@ FReply FWebBrowserViewport::OnKeyChar( const FGeometry& MyGeometry, const FChara
 	return FReply::Handled();
 }
 
-FReply FWebBrowserViewport::OnKeyboardFocusReceived(const FKeyboardFocusEvent& InKeyboardFocusEvent)
+FReply FWebBrowserViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 {
 	WebBrowserWindow->OnFocus(true);
 	return FReply::Handled();
 }
 
-void FWebBrowserViewport::OnKeyboardFocusLost(const FKeyboardFocusEvent& InKeyboardFocusEvent)
+void FWebBrowserViewport::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 	WebBrowserWindow->OnFocus(false);
 }

@@ -1186,13 +1186,13 @@ FReply SLogVisualizer::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
-FReply SLogVisualizer::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+FReply SLogVisualizer::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	const FKey Key = InKeyboardEvent.GetKey();
+	const FKey Key = InKeyEvent.GetKey();
 	if (Key == EKeys::Left || Key == EKeys::Right)
 	{
 		int32 MoveBy = Key == EKeys::Left ? -1 : 1;
-		if (InKeyboardEvent.IsLeftControlDown())
+		if (InKeyEvent.IsLeftControlDown())
 		{
 			MoveBy *= 10;
 		}
@@ -1202,7 +1202,7 @@ FReply SLogVisualizer::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 		return FReply::Handled();
 	}
 
-	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 TSharedRef< SWidget > SLogVisualizer::MakeMainMenu()

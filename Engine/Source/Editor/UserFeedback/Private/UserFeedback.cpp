@@ -183,13 +183,13 @@ public:
 	}
 
 	/** Called when a key is pressed on the widget */
-	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		if (InKeyboardEvent.GetKey() == EKeys::Escape)
+		if (InKeyEvent.GetKey() == EKeys::Escape)
 		{
 			return OnCloseButtonClicked();
 		}
-		else if (InKeyboardEvent.GetKey() == EKeys::Enter)
+		else if (InKeyEvent.GetKey() == EKeys::Enter)
 		{
 			return OnFeedbackSubmitted();
 		}

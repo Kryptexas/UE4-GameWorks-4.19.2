@@ -129,7 +129,7 @@ void SMatineeRecorder::Construct(const FArguments& InArgs)
 
 	LevelViewportClient->SetRealtime( true );
 	LevelViewportClient->SetAllowMatineePreview( true );
-	LevelViewportClient->Viewport->CaptureJoystickInput(true);
+	LevelViewportClient->Viewport->SetUserFocus(true);
 	LevelViewportClient->SetMatineeRecordingWindow( ParentMatineeWindow.Pin().Get() );
 
 	LevelViewportClient->VisibilityDelegate.BindSP( this, &SMatineeRecorder::IsVisible );
