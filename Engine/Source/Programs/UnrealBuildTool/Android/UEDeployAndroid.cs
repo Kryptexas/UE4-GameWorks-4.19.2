@@ -258,7 +258,7 @@ namespace UnrealBuildTool.Android
             string Setting = OBBinAPK ? "AMAZON" : "DEVELOPMENT";
             if (!File.Exists(FileName) || ShouldWriteJavaBuildSettingsFile(FileName, Setting))
             {
-				Log.TraceInformation("{0} ====WRITING JAVABUILDSETTINGS.JAVA========================================================", DateTime.Now.ToString());
+				Log.TraceInformation("\n===={0}====WRITING JAVABUILDSETTINGS.JAVA========================================================", DateTime.Now.ToString());
 				StringBuilder BuildSettings = new StringBuilder("package com.epicgames.ue4;\npublic class JavaBuildSettings\n{\n");
                 BuildSettings.Append("\tpublic enum PackageType {AMAZON, GOOGLE, DEVELOPMENT};\n");
                 BuildSettings.Append("\tpublic static final PackageType PACKAGING = PackageType." + Setting + ";\n");
@@ -323,14 +323,25 @@ namespace UnrealBuildTool.Android
 //			File.Copy("E:/Dev2/UE4-Clean/Engine/Source/ThirdParty/NVIDIA/TegraGfxDebugger/libTegra_gfx_debugger.so", UE4BuildPath + "/libs/" + Arch + "/libTegra_gfx_debugger.so");
 		}
 
-		private static void RunCommandLineProgramAndThrowOnError(string WorkingDirectory, string Command, string Params)
+		private static void RunCommandLineProgramAndThrowOnError(string WorkingDirectory, string Command, string Params, string OverrideDesc=null, bool bUseShellExecute=false)
 		{
+			if (OverrideDesc == null)
+			{
+				Log.TraceInformation("\nRunning: " + Command + " " + Params);
+			}
+			else if (OverrideDesc != "")
+			{
+				Log.TraceInformation(OverrideDesc);
+				Log.TraceVerbose("\nRunning: " + Command + " " + Params);
+			}
+
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
 			StartInfo.WorkingDirectory = WorkingDirectory;
 			StartInfo.FileName = Command;
 			StartInfo.Arguments = Params;
-			StartInfo.UseShellExecute = false;
-			Log.TraceInformation("\nRunning: " + StartInfo.FileName + " " + StartInfo.Arguments);
+			StartInfo.UseShellExecute = bUseShellExecute;
+			StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+
 			Process Proc = new Process();
 			Proc.StartInfo = StartInfo;
 			Proc.Start();
@@ -341,47 +352,6 @@ namespace UnrealBuildTool.Android
 			{
 				throw new BuildException("{0} failed with args {1}", Command, Params);
 			}
-		}
-
-		private static string UpdateGooglePlayServicesAndReturnLocation(string EngineDirectory, string ProjectDirectory)
-		{
-			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
-			string IntermediateAndroidPath = Path.Combine(ProjectDirectory, "Intermediate/Android/");
-			string UE4BuildPath = Path.Combine(IntermediateAndroidPath, "APK");
-
-			// We update into a temporary directory, as changing the API level will modify files
-			string GooglePlayServicesSourcePath = Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java/google-play-services_lib_rev19/"));
-			string GooglePlayServicesIntermediatePath = Path.GetFullPath(Path.Combine(IntermediateAndroidPath, "google-play-services_lib/"));
-
-			// are we up to date? (version is current and the "bin" directory exists meaning we ran once)
-			bool bIsUpToDate = IsAPIVersionCurrent(GooglePlayServicesIntermediatePath) && Directory.Exists(Path.Combine(GooglePlayServicesIntermediatePath, "bin"));
-
-			if (!bIsUpToDate)
-			{
-				Log.TraceInformation("{0} ====UPDATING GOOGLE SERVICES LIBRARY======================================================", DateTime.Now.ToString());
-				Log.TraceInformation("Google Play Services library will now be updated...");
-
-				// wipe it and start over
-				DeleteDirectory(GooglePlayServicesIntermediatePath);
-				CopyFileDirectory(GooglePlayServicesSourcePath, GooglePlayServicesIntermediatePath, new Dictionary<string, string>());
-
-				// update the project
-				RunCommandLineProgramAndThrowOnError(GooglePlayServicesIntermediatePath, AndroidCommandPath, "update project " + " --path . --target " + GetSdkApiLevel());
-
-				// precompile the lib
-				RunCommandLineProgramAndThrowOnError(GooglePlayServicesIntermediatePath, "cmd.exe", "/c \"" + GetAntPath() + "\" release");
-			}
-
-			//need to create separate run for each lib. Will be added to project.properties in order in which they are added 
-			//the order is important.
-			//as android.library.reference.X=libpath where X = 1 - N
-			//for e.g this one will be added as android.library.reference.1=<EngineDirectory>/Source/ThirdParty/Android/google_play_services_lib
-
-			// Ant seems to need a relative path to work
-			Uri ServicesBuildUri = new Uri(GooglePlayServicesIntermediatePath);
-			Uri ProjectUri = new Uri(UE4BuildPath + "/");
-
-			return ProjectUri.MakeRelativeUri(ServicesBuildUri).ToString();
 		}
 
 		private static bool IsAPIVersionCurrent(string PropertiesFileLocation)
@@ -407,8 +377,101 @@ namespace UnrealBuildTool.Android
 			return false;
 		}
 
+		private void UpdateProjectProperties(string UE4BuildPath, string ProjectName)
+		{
+			Log.TraceInformation("\n===={0}====UPDATING BUILD CONFIGURATION FILES====================================================", DateTime.Now.ToString());
+
+			// get all of the libs (from engine + project)
+			string JavaLibsDir = Path.Combine(UE4BuildPath, "JavaLibs");
+			string[] LibDirs = Directory.GetDirectories(JavaLibsDir);
+
+			// get existing project.properties lines (if any)
+			string ProjectPropertiesFile = Path.Combine(UE4BuildPath, "project.properties");
+			string[] PropertiesLines = new string[] { };
+			if (File.Exists(ProjectPropertiesFile))
+			{
+				PropertiesLines = File.ReadAllLines(ProjectPropertiesFile);
+			}
+
+			// figure out how many libraries were already listed (if there were more than this listed, then we need to start the file over, because we need to unreference a library)
+			int NumOutstandingAlreadyReferencedLibs = 0;
+			foreach (string Line in PropertiesLines)
+			{
+				if (Line.StartsWith("android.library.reference."))
+				{
+					NumOutstandingAlreadyReferencedLibs++;
+				}
+			}
+
+			// now go through each one and verify they are listed in project properties, and if not, add them
+			List<string> LibsToBeAdded = new List<string>();
+			foreach (string LibDir in LibDirs)
+			{
+				// put it in terms of the subdirectory that would be in the project.properties
+				string RelativePath = "JavaLibs/" + Path.GetFileName(LibDir);
+
+				// now look for this in the existing file
+				bool bWasReferencedAlready = false;
+				foreach (string Line in PropertiesLines)
+				{
+					if (Line.StartsWith("android.library.reference.") && Line.EndsWith(RelativePath))
+					{
+						// this lib was already referenced, don't need to readd
+						bWasReferencedAlready = true;
+						break;
+					}
+				}
+
+				if (bWasReferencedAlready)
+				{
+					// if it was, no further action needed, and count it off
+					NumOutstandingAlreadyReferencedLibs--;
+				}
+				else
+				{
+					// otherwise, we need to add it to the project properties
+					LibsToBeAdded.Add(RelativePath);
+				}
+			}
+
+			// now at this point, if there are any outstanding already referenced libs, we have too many, so we have to start over
+			if (NumOutstandingAlreadyReferencedLibs > 0)
+			{
+				// @todo android: If a user had a project.properties in the game, NEVER do this
+				Log.TraceInformation("There were too many libs already referenced in project.properties, tossing it");
+				File.Delete(ProjectPropertiesFile);
+
+				LibsToBeAdded.Clear();
+				foreach (string LibDir in LibDirs)
+				{
+					// put it in terms of the subdirectory that would be in the project.properties
+					LibsToBeAdded.Add("JavaLibs/" + Path.GetFileName(LibDir));
+				}
+			}
+			
+			// now update the project for each library
+			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
+			string UpdateCommandLine = "--silent update project --subprojects --name " + ProjectName + " --path . --target " + GetSdkApiLevel();
+			foreach (string Lib in LibsToBeAdded)
+			{
+				UpdateCommandLine += " --library " + Lib;
+
+				// make sure each library has a build.xml - --subprojects doesn't create build.xml files, but it will create project.properties
+				// and later code needs each lib to have a build.xml
+				if (!File.Exists(Path.Combine(Lib, "build.xml")))
+				{
+					RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "--silent update lib-project --path " + Lib + " --target " + GetSdkApiLevel(), "");
+				}
+			}
+
+			RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, UpdateCommandLine, "Updating project.properties, local.properties, and build.xml...");
+		}
+
+
 		private void MakeApk(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bMakeSeparateApks, bool bIncrementalPackage)
 		{
+			Log.TraceInformation("\n===={0}====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
+
 			// cache some tools paths
 			string AndroidCommandPath = Environment.ExpandEnvironmentVariables("%ANDROID_HOME%/tools/android.bat");
 			string NDKBuildPath = Environment.ExpandEnvironmentVariables("%NDKROOT%/ndk-build.cmd");
@@ -525,15 +588,9 @@ namespace UnrealBuildTool.Android
 				Replacements.Add("android:debuggable=\"true\"", "android:debuggable=\"false\"");
 			}
 
-			// make sure that GooglePlayServices is up to date, and get the location so we can import it
-			// and if we have done a recent, incremental build with the same version, then the intermediate GPS stuff is up to date
-			string RelativeGPSLocation = UpdateGooglePlayServicesAndReturnLocation(EngineDirectory, ProjectDirectory);
-
-			Log.TraceInformation("{0} ====PREPARING TO MAKE APK=================================================================", DateTime.Now.ToString());
-
 			if (!bIncrementalPackage)
 			{
-				// Wipe the Intermediate/Build/APK directory first, except for dexedLibs, because Google Services takes FOREVER to predex, and it never changes
+				// Wipe the Intermediate/Build/APK directory first, except for dexedLibs, because Google Services takes FOREVER to predex, and it almost never changes
 				// so allow the ANT checking to win here - if this grows a bit with extra libs, it's fine, it _should_ only pull in dexedLibs it needs
 				Log.TraceInformation("Performing complete package - wiping {0}, except for predexedLibs", UE4BuildPath);
 				DeleteDirectory(UE4BuildPath, "dexedLibs");
@@ -585,12 +642,7 @@ namespace UnrealBuildTool.Android
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
 
 			// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
-			string BuildXmlFile = Path.Combine(UE4BuildPath, "build.xml");
-			if (!File.Exists(BuildXmlFile) || !IsAPIVersionCurrent(UE4BuildPath))
-			{
-				Log.TraceInformation("{0} ====UPDATING BUILD.XML AND PROJECT.PROPERTIES (MISSING OR BAD SDK VERSION)================", DateTime.Now.ToString());
-				RunCommandLineProgramAndThrowOnError(UE4BuildPath, AndroidCommandPath, "update project --name " + ProjectName + " --path . --target " + GetSdkApiLevel() + " --library " + RelativeGPSLocation);
-			}
+			UpdateProjectProperties(UE4BuildPath, ProjectName);
 
 			// now make the apk(s)
 			string FinalNdkBuildABICommand = "";
@@ -599,7 +651,7 @@ namespace UnrealBuildTool.Android
 				string Arch = Arches[ArchIndex];
 				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Length; GPUArchIndex++)
 				{
-					Log.TraceInformation("{0} ====PREPARING NATIVE CODE=================================================================", DateTime.Now.ToString());
+					Log.TraceInformation("\n===={0}====PREPARING NATIVE CODE=================================================================", DateTime.Now.ToString());
 
 					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
 					string SourceSOName = AndroidToolChain.InlineArchName(OutputPath, Arch, GPUArchitecture);
@@ -654,28 +706,15 @@ namespace UnrealBuildTool.Android
 						// if we need to run ndk-build, do it now (if making a shared .apk, we need to wait until all .libs exist)
 						if (!string.IsNullOrEmpty(FinalNdkBuildABICommand))
 						{
-							ProcessStartInfo NDKBuildInfo = new ProcessStartInfo();
-							NDKBuildInfo.WorkingDirectory = UE4BuildPath;
-							NDKBuildInfo.FileName = NDKBuildPath;
-							NDKBuildInfo.Arguments = "APP_ABI=\"" + FinalNdkBuildABICommand + "\"";
-							FinalNdkBuildABICommand = "";
+							string CommandLine = "APP_ABI=\"" + FinalNdkBuildABICommand + "\"";
 							if (!bForDistribution)
 							{
-								NDKBuildInfo.Arguments += " NDK_DEBUG=1";
+								CommandLine += " NDK_DEBUG=1";
 							}
-							NDKBuildInfo.UseShellExecute = true;
-							NDKBuildInfo.WindowStyle = ProcessWindowStyle.Minimized;
-							Console.WriteLine("\nRunning: " + NDKBuildInfo.FileName + " " + NDKBuildInfo.Arguments);
-							Process NDKBuild = new Process();
-							NDKBuild.StartInfo = NDKBuildInfo;
-							NDKBuild.Start();
-							NDKBuild.WaitForExit();
+							RunCommandLineProgramAndThrowOnError(UE4BuildPath, NDKBuildPath, CommandLine, "Preparing native code for debugging...", true);
 
-							// ndk build failure
-							if (NDKBuild.ExitCode != 0)
-							{
-								throw new BuildException("ndk-build failed [{0}]", NDKBuildInfo.Arguments);
-							}
+							// next loop we don't want to redo these ABIs
+							FinalNdkBuildABICommand = "";
 						}
 	
 						// after ndk-build is called, we can now copy in the stl .so (ndk-build deletes old files)
@@ -699,9 +738,10 @@ namespace UnrealBuildTool.Android
 						FileInfo DestFileInfo = new FileInfo(FinalSOName);
 						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 
-						// Use ant debug to build the .apk file
-						Log.TraceInformation("{0} ====PERFORMING FINAL APK PACKAGE OPERATION=(with no library dependency compiling)=========", DateTime.Now.ToString());
-						RunCommandLineProgramAndThrowOnError(UE4BuildPath, "cmd.exe", "/c \"" + GetAntPath() + "\" nodeps " + (bForDistribution ? "release" : "debug"));
+						Log.TraceInformation("\n===={0}====PERFORMING FINAL APK PACKAGE OPERATION================================================", DateTime.Now.ToString());
+
+						// Use ant to build the .apk file
+						RunCommandLineProgramAndThrowOnError(UE4BuildPath, "cmd.exe", "/c \"" + GetAntPath() + "\" -quiet " + (bForDistribution ? "release" : "debug"), "Making .apk with Ant... (note: it's safe to ignore javac obsolete warnings)");
 
 						// make sure destination exists
 						Directory.CreateDirectory(Path.GetDirectoryName(DestApkName));
@@ -790,16 +830,7 @@ namespace UnrealBuildTool.Android
 			CommandLine += " \"" + SourceApk + "\" " + Alias;
 
 			// sign in-place
-			ProcessStartInfo CallJarStartInfo = new ProcessStartInfo();
-			CallJarStartInfo.WorkingDirectory = Path.GetDirectoryName(ConfigFilePath);
-			CallJarStartInfo.FileName = JarCommandPath;
-			CallJarStartInfo.Arguments = CommandLine;// string.Format("galg SHA1withRSA -digestalg SHA1 -keystore {1} {2} {3}",	 Password, Keystore, SourceApk, Alias);
-			CallJarStartInfo.UseShellExecute = false;
-			Console.WriteLine("\nRunning: {0} {1}", CallJarStartInfo.FileName, CallJarStartInfo.Arguments);
-			Process CallAnt = new Process();
-			CallAnt.StartInfo = CallJarStartInfo;
-			CallAnt.Start();
-			CallAnt.WaitForExit();
+			RunCommandLineProgramAndThrowOnError(Path.GetDirectoryName(ConfigFilePath), JarCommandPath, CommandLine, "Signing for distribution...");
 
 			if (File.Exists(DestApk))
 			{
@@ -807,16 +838,8 @@ namespace UnrealBuildTool.Android
 			}
 
 			// now we need to zipalign the apk to the final destination (to 4 bytes, must be 4)
-			ProcessStartInfo CallZipStartInfo = new ProcessStartInfo();
-			CallZipStartInfo.WorkingDirectory = Path.GetDirectoryName(ConfigFilePath);
-			CallZipStartInfo.FileName = ZipalignCommandPath;
-			CallZipStartInfo.Arguments = string.Format("4 \"{0}\" \"{1}\"", SourceApk, DestApk);
-			CallZipStartInfo.UseShellExecute = false;
-			Console.WriteLine("\nRunning: {0} {1}", CallZipStartInfo.FileName, CallZipStartInfo.Arguments);
-			Process CallZip = new Process();
-			CallZip.StartInfo = CallZipStartInfo;
-			CallZip.Start();
-			CallZip.WaitForExit();
+			CommandLine = string.Format("4 \"{0}\" \"{1}\"", SourceApk, DestApk);
+			RunCommandLineProgramAndThrowOnError(Path.GetDirectoryName(ConfigFilePath), ZipalignCommandPath, CommandLine, "Zipaligning final .apk...");
 		}
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
