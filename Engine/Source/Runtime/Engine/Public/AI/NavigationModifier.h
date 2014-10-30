@@ -194,7 +194,7 @@ protected:
 
 struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 {
-	FCompositeNavModifier() : bHasPotentialLinks(false) {}
+	FCompositeNavModifier() : bHasPotentialLinks(false), bAdjustHeight(false) {}
 
 	void Shrink();
 	void Reset();

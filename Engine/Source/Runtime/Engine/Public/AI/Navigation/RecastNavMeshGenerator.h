@@ -333,6 +333,10 @@ public:
 
 	const TNavStatArray<FBox>& GetInclusionBounds() const { return InclusionBounds; }
 	
+	/** checks if any on InclusionBounds encapsulates given box.
+	 *	@return index to first item in InclusionBounds that meets expectations */
+	int32 FindInclusionBoundEncapsulatingBox(const FBox& Box) const;
+
 	/** Total navigable area box, sum of all navigation volumes bounding boxes */
 	FBox GetTotalBounds() const { return TotalNavBounds; }
 
