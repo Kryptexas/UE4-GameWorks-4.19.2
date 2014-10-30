@@ -277,7 +277,7 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef() );
 
 		check(Window.IsValid());
-		if (Window->IsViewportAutoResizeable())
+		if (Window->IsViewportSizeDrivenByWindow())
 		{
 			ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
 		}
@@ -856,7 +856,7 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 
 			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 			{
-				WindowToResize->SetViewportAutoResize(true);
+				WindowToResize->SetViewportSizeDrivenByWindow(true);
 				// Resize & move only if moving to a fullscreen mode
 				if (NewWindowMode != EWindowMode::Windowed)
 				{
@@ -878,7 +878,7 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 								NewSizeY = MonitorInfo.WindowSizeY;
 							}
 							NewWindowMode = DesiredWindowMode = EWindowMode::WindowedMirror;
-							WindowToResize->SetViewportSize(FVector2D(ViewportSizeX, ViewportSizeY));
+							WindowToResize->SetIndependentViewportSize(FVector2D(ViewportSizeX, ViewportSizeY));
 						}
 					}
 				}
@@ -926,7 +926,7 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 						}
 						ViewportSizeX = NewSizeX;
 						ViewportSizeY = NewSizeY;
-						WindowToResize->SetViewportAutoResize(true);
+						WindowToResize->SetViewportSizeDrivenByWindow(true);
 					}
 
 					if (NewWindowMode != WindowMode)
@@ -952,7 +952,7 @@ void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewport
 	TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
 	if (Window.IsValid())
 	{
-		Window->SetViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
+		Window->SetIndependentViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
 		const FVector2D vp = Window->GetViewportSize();
 		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
 		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);

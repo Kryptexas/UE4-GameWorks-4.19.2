@@ -598,7 +598,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 				// The viewport had better exist at this point  
 				FViewportInfo* ViewInfo = WindowToViewportInfo.FindChecked( Window.Get() );
 
-				if (Window->IsViewportAutoResizeable())
+				if (Window->IsViewportSizeDrivenByWindow())
 				{
 					// Resize the viewport if needed
 					ConditionalResizeViewport(ViewInfo, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight, IsViewportFullscreen(*Window));

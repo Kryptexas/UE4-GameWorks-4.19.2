@@ -629,9 +629,12 @@ public:
 	/** Are any of our child windows active? */
 	bool HasActiveChildren() const;
 
-	inline void SetViewportAutoResize(bool InAutoResize)
+	/**
+	 * Sets whether or not the viewport size should be driven by the window's size.  If true, the two will be the same.  If false, an independent viewport size can be specified with SetIndependentViewportSize
+	 */
+	inline void SetViewportSizeDrivenByWindow(bool bDrivenByWindow)
 	{
-		if (InAutoResize)
+		if (bDrivenByWindow)
 		{
 			ViewportSize = FVector2D::ZeroVector;
 		}
@@ -640,12 +643,27 @@ public:
 			ViewportSize = Size;
 		}
 	}
-	inline bool IsViewportAutoResizeable() const
+	
+	/**
+	 * Returns whether or not the viewport and window size should be linked together.  If false, the two can be independent in cases where it is needed (e.g. mirror mode window drawing)
+	 */
+	inline bool IsViewportSizeDrivenByWindow() const
 	{
 		return (ViewportSize.X == 0);
 	}
-	inline FVector2D GetViewportSize() const { return (ViewportSize.X) ? ViewportSize : Size; }
-	inline void SetViewportSize(const FVector2D& VP) 
+
+	/**
+	 * Returns the viewport size, taking into consideration if the window size should drive the viewport size
+	 */
+	inline FVector2D GetViewportSize() const
+	{
+		return (ViewportSize.X) ? ViewportSize : Size;
+	}
+	
+	/**
+	 * Sets the viewport size independently of the window size, if non-zero.
+	 */
+	inline void SetIndependentViewportSize(const FVector2D& VP) 
 	{
 		ViewportSize = VP;
 	}

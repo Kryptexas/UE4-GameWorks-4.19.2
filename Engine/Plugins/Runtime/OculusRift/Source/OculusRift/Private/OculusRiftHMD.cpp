@@ -1211,7 +1211,7 @@ bool FOculusRiftHMD::EnableStereo(bool stereo)
 			{
 				FVector2D size = Window->GetSizeInScreen();
 				GameEngine->SceneViewport->SetViewportSize(size.X, size.Y);
-				Window->SetViewportAutoResize(true);
+				Window->SetViewportSizeDrivenByWindow(true);
 			}
 		}
 	}
