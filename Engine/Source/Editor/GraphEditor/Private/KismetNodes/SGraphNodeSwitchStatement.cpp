@@ -22,6 +22,9 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 	{
 		SGraphPin::Construct(SGraphPin::FArguments().PinLabelStyle(FName("Graph.Node.DefaultPinName")), InPin);
+
+		bWasEventPin = false;
+		CachePinBrushes(/*bForceCache=*/ true);
 	}
 };
 
