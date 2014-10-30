@@ -45,7 +45,7 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string NonShippingArchitectures = "armv7";
 		[XmlConfig]
-		public static string ShippingArchitectures = "armv7";
+		public static string ShippingArchitectures = "armv7,arm64";
 
 		/** Which version of the iOS to allow at build time */
 		[XmlConfig]
@@ -128,12 +128,70 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public static void ParseArchitectures()
+		{
+			// look in ini settings for what platforms to compile for
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+			List<string> ProjectArches = new List<string>();
+			bool bBuild = true;
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("arm64");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7s");
+			}
+
+			// force armv7 if something went wrong
+			if (ProjectArches.Count == 0)
+			{
+				ProjectArches.Add("armv7");
+			}
+			NonShippingArchitectures = ProjectArches[0];
+			for (int Index = 1; Index < ProjectArches.Count; ++Index)
+			{
+				NonShippingArchitectures += "," + ProjectArches[Index];
+			}
+
+			ProjectArches.Clear();
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("arm64");
+			}
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bBuild) && bBuild)
+			{
+				ProjectArches.Add("armv7s");
+			}
+
+			// force armv7 if something went wrong
+			if (ProjectArches.Count == 0)
+			{
+				ProjectArches.Add("armv7");
+				ProjectArches.Add("arm64");
+			}
+			ShippingArchitectures = ProjectArches[0];
+			for (int Index = 1; Index < ProjectArches.Count; ++Index)
+			{
+				ShippingArchitectures += "," + ProjectArches[Index];
+			}
+		}
+
 		/** Hunt down the latest IOS sdk if desired */
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
 
 			ParseProjectSettings();
+			ParseArchitectures();
 
 			if (IOSSDKVersion == "latest")
 			{

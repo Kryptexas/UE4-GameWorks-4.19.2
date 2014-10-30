@@ -18,6 +18,12 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bSupportsIPhone = true;
 	MinimumiOSVersion = EIOSVersion::IOS_6;
 	CompressionLevel = 0;
+	bDevForArmV7 = true;
+	bDevForArm64 = false;
+	bDevForArmV7S = false;
+	bShipForArmV7 = true;
+	bShipForArm64 = true;
+	bShipForArmV7S = false;
 }
 
 #if WITH_EDITOR
@@ -35,6 +41,16 @@ void UIOSRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	if (!bSupportsMetal && !bSupportsOpenGLES2)
 	{
 		bSupportsOpenGLES2 = true;
+	}
+
+	// Ensure that at least armv7 is selected for shipping and dev
+	if (!bDevForArmV7 && !bDevForArm64 && !bDevForArmV7S)
+	{
+		bDevForArmV7 = true;
+	}
+	if (!bShipForArmV7 && !bShipForArm64 && !bShipForArmV7S)
+	{
+		bShipForArmV7 = true;
 	}
 }
 #endif
