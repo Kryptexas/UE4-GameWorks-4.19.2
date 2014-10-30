@@ -77,12 +77,6 @@ void FEdModeFoliage::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(SphereBrushComponent);
 }
 
-/** FEdMode: Called when the mode is created */
-void FEdModeFoliage::Initialize()
-{
-	FEditorDelegates::MapChange.AddSP(this, &FEdModeFoliage::NotifyMapRebuild);
-}
-
 /** FEdMode: Called when the mode is entered */
 void FEdModeFoliage::Enter()
 {
@@ -214,18 +208,6 @@ void FEdModeFoliage::NotifyToolChanged()
 			SelectionIFA->ApplySelectionToComponents(false);
 		}
 		SelectionIFA = nullptr;
-	}
-}
-
-void FEdModeFoliage::NotifyMapRebuild(uint32 MapChangeFlags) const
-{
-	if (MapChangeEventFlags::MapRebuild & MapChangeFlags)
-	{
-		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
-		if (IFA)
-		{
-			IFA->MapRebuild();
-		}
 	}
 }
 

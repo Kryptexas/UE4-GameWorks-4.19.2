@@ -1315,6 +1315,8 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 		UE_LOG(LogEditorServer, Log, TEXT("Rebuildmap Clear paths rebuilt"));
 	}
 
+	TArray<ULevel*> UpdatedLevels;
+
 	switch (RebuildType)
 	{
 		case EMapRebuildType::MRT_AllVisible:
@@ -1330,6 +1332,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 				csgRebuild( InWorld );
 				InWorld->InvalidateModelGeometry( Level );
 				Level->bGeometryDirtyForLighting = false;
+				UpdatedLevels.AddUnique( Level );
 			}
 
 			// Build CSG for all visible streaming levels
@@ -1345,6 +1348,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 						csgRebuild( InWorld );
 						InWorld->InvalidateModelGeometry( Level );
 						InWorld->GetCurrentLevel()->bGeometryDirtyForLighting = false;
+						UpdatedLevels.AddUnique( Level );
 					}
 				}
 			}
@@ -1366,6 +1370,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 					csgRebuild( InWorld );
 					InWorld->InvalidateModelGeometry( Level );
 					Level->bGeometryDirtyForLighting = false;
+					UpdatedLevels.AddUnique( Level );
 				}
 
 				// Build CSG for each streaming level that is out of date
@@ -1381,6 +1386,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 							csgRebuild( InWorld );
 							InWorld->InvalidateModelGeometry( Level );
 							Level->bGeometryDirtyForLighting = false;
+							UpdatedLevels.AddUnique( Level );
 						}
 					}
 				}
@@ -1396,10 +1402,21 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 			csgRebuild( InWorld );
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 			InWorld->GetCurrentLevel()->bGeometryDirtyForLighting = false;
+			UpdatedLevels.AddUnique( InWorld->GetCurrentLevel() );
 		}
 		break;
 	}
 
+	// See if there is any foliage that also needs to be updated
+	for (ULevel* Level : UpdatedLevels)
+	{
+		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+		if (IFA)
+		{
+			IFA->MapRebuild();
+		}
+	}
+	
 	GWarn->StatusUpdate( -1, -1, NSLOCTEXT("UnrealEd", "CleaningUpE", "Cleaning up...") );
 
 	RedrawLevelEditingViewports();
@@ -1442,6 +1459,13 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	Level.UpdateModelComponents();
 
 	RebuildStaticNavigableGeometry(&Level);
+
+	// See if there is any foliage that also needs to be updated
+	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(&Level);
+	if (IFA)
+	{
+		IFA->MapRebuild();
+	}
 }
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
@@ -1556,7 +1580,6 @@ void UEditorEngine::RebuildAlteredBSP()
 
 	}
 
-	int32 NumLevelsTouched = 0;
 	// Rebuild the levels
 	for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
 	{
@@ -1564,17 +1587,9 @@ void UEditorEngine::RebuildAlteredBSP()
 		if ( LevelToRebuild.IsValid() )
 		{
 			RebuildLevel(*LevelToRebuild.Get());
-			NumLevelsTouched++;
 		}
 	}
 
-	// Broadcast MapChange event in case we actually build something 
-	// will mark all loaded levels as dirty during components re-registration
-	if (NumLevelsTouched > 0)
-	{
-		FEditorDelegates::MapChange.Broadcast( MapChangeEventFlags::MapRebuild );
-	}
-	
 	RedrawLevelEditingViewports();
 
 	ABrush::OnRebuildDone();

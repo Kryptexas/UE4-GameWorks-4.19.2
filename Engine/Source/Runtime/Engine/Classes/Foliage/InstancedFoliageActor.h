@@ -42,7 +42,7 @@ public:
 
 #if WITH_EDITOR
 
-	// Called in response to FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::MapRebuild ) so BSP rebuilds migrate foliage from obsolete to new components.
+	// Called in response to BSP rebuilds to migrate foliage from obsolete to new components.
 	ENGINE_API void MapRebuild();
 
 	// Moves instances based on the specified component to the current streaming level

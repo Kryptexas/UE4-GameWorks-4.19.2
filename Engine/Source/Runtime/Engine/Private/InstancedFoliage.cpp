@@ -1305,7 +1305,7 @@ void AInstancedFoliageActor::MapRebuild()
 	UE_LOG(LogInstancedFoliage, Log, TEXT("Map Rebuilt - Update all BSP painted foliage!"));
 
 	TMap<UFoliageType*, TArray<FFoliageInstance>> NewInstances;
-	TArray<UActorComponent*> RemovedComponents;
+	TArray<UModelComponent*> RemovedModelComponents;
 	UWorld* World = GetWorld();
 	check(World);
 
@@ -1320,11 +1320,11 @@ void AInstancedFoliageActor::MapRebuild()
 		for (auto& ComponentFoliagePair : MeshInfo.ComponentHash)
 		{
 			// BSP components are UModelComponents - they are the only ones we need to change
-			UActorComponent* TargetComponent = ComponentFoliagePair.Key;
-			if (!TargetComponent || TargetComponent->IsA(UModelComponent::StaticClass()))
+			UModelComponent* TargetComponent = Cast<UModelComponent>(ComponentFoliagePair.Key);
+			if (TargetComponent)
 			{
-				// Delete it later
-				RemovedComponents.Add(TargetComponent);
+				// Delete its instances later
+				RemovedModelComponents.Add(TargetComponent);
 
 				FFoliageComponentHashInfo const& FoliageInfo = ComponentFoliagePair.Value;
 
@@ -1349,21 +1349,15 @@ void AInstancedFoliageActor::MapRebuild()
 					if (bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
 					{
 						NewInstance.Base = CastChecked<UPrimitiveComponent>(Result.Component.Get());
+						NewInstances.FindOrAdd(Settings).Add(NewInstance);
 					}
-					else
-					{
-						// Untargeted instances remain for manual deletion.
-						NewInstance.Base = nullptr;
-					}
-
-					NewInstances.FindOrAdd(Settings).Add(NewInstance);
 				}
 			}
 		}
 	}
 
 	// Remove all existing & broken instances & component references.
-	for (UActorComponent* Component : RemovedComponents)
+	for (UModelComponent* Component : RemovedModelComponents)
 	{
 		DeleteInstancesForComponent(Component);
 	}
