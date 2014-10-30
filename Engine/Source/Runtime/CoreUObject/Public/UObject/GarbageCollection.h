@@ -6,11 +6,7 @@
 =============================================================================*/
 
 /** Context sensitive keep flags for garbage collection */
-#define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Native | RF_Standalone : RF_Native)
-
-/** Points to the UProperty currently being serialized */
-extern COREUOBJECT_API UProperty* GSerializedProperty;
-
+#define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Native|RF_AsyncLoading|RF_Standalone : RF_Native|RF_AsyncLoading)
 
 /*-----------------------------------------------------------------------------
 	Realtime garbage collection helper classes.
@@ -458,7 +454,10 @@ protected:
 	{
 		if( Object )
 		{
-			Collector.AddReferencedObject( Object, SerializingObject, (UObject*)GSerializedProperty );
+			auto OldCollectorSerializedProperty = Collector.GetSerializedProperty();
+			Collector.SetSerializedProperty(GetSerializedProperty());
+			Collector.AddReferencedObject(Object, SerializingObject, (UObject*)GetSerializedProperty());
+			Collector.SetSerializedProperty(OldCollectorSerializedProperty);
 		}
 		return *this;
 	}

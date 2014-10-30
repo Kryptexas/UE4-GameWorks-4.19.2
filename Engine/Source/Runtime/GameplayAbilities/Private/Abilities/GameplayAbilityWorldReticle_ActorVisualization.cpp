@@ -25,7 +25,7 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 	CollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	//TSubobjectPtr<USceneComponent> SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	//USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = CollisionComponent;
 }
 

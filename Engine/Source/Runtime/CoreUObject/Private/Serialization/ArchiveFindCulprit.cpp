@@ -27,7 +27,6 @@ FArchiveFindCulprit::FArchiveFindCulprit( UObject* InFind, UObject* Src, bool In
 		ArIsPersistent	= true;
 	}
 
-	GSerializedProperty = NULL;
 	Src->Serialize( *this );
 }
 
@@ -35,9 +34,9 @@ FArchive& FArchiveFindCulprit::operator<<( UObject*& Obj )
 {
 	if( Obj==Find )
 	{
-		if ( GSerializedProperty != NULL )
+		if (GetSerializedProperty() != nullptr)
 		{
-			Referencers.AddUnique(GSerializedProperty);
+			Referencers.AddUnique(GetSerializedProperty());
 		}
 		Count++;
 	}

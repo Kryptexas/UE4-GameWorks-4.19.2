@@ -885,7 +885,6 @@ public:
 		ArIgnoreClassRef					= true;
 		ArIsModifyingWeakAndStrongReferences = true;
 
-		GSerializedProperty = NULL;
 		Src->Serialize( *this );
 	}
 	virtual FString GetArchiveName() const { return TEXT("FArchiveFindDistributionRefs"); }

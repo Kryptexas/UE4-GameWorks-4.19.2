@@ -14,7 +14,8 @@ DECLARE_STATS_GROUP_VERBOSE(TEXT("Linker Load"), STATGROUP_LinkerLoad, STATCAT_A
 DECLARE_CYCLE_STAT(TEXT("Linker Preload"),STAT_LinkerPreload,STATGROUP_LinkerLoad);
 DECLARE_CYCLE_STAT(TEXT("Linker Precache"),STAT_LinkerPrecache,STATGROUP_LinkerLoad);
 DECLARE_CYCLE_STAT(TEXT("Linker Serialize"),STAT_LinkerSerialize,STATGROUP_LinkerLoad);
-
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Linker Count"), STAT_LinkerCount, STATGROUP_LinkerLoad);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Live Linker Count"), STAT_LiveLinkerCount, STATGROUP_LinkerLoad);
 
 /** Points to the main PackageLinker currently being serialized (Defined in Linker.cpp) */
 extern ULinkerLoad* GSerializedPackageLinker;
@@ -602,6 +603,9 @@ ULinkerLoad::ULinkerLoad( const class FObjectInitializer& ObjectInitializer, UPa
 #endif
 {
 	check(!HasAnyFlags(RF_ClassDefaultObject));
+
+	INC_DWORD_STAT(STAT_LinkerCount);
+	INC_DWORD_STAT(STAT_LiveLinkerCount);
 }
 
 ULinkerLoad::~ULinkerLoad()
@@ -2062,6 +2066,9 @@ ULinkerLoad::EVerifyResult ULinkerLoad::VerifyImport(int32 ImportIndex)
 	return Result;
 }
 
+// Internal Load package call so that we can pass the linker that requested this package as an import dependency
+UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, ULinkerLoad* ImportLinker);
+
 /**
  * Safely verify that an import in the ImportMap points to a good object. This decides whether or not
  * a failure to load the object redirector in the wrapper is a fatal error or not (return value)
@@ -2124,7 +2131,7 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 		{
 			// we now fully load the package that we need a single export from - however, we still use CreatePackage below as it handles all cases when the package
 			// didn't exist (native only), etc		
-			TmpPkg = LoadPackage(NULL, *Import.ObjectName.ToString(), InternalLoadFlags);
+			TmpPkg = LoadPackageInternal(NULL, *Import.ObjectName.ToString(), InternalLoadFlags, this);
 		}
 
 #if WITH_EDITOR
@@ -3499,6 +3506,7 @@ void ULinkerLoad::Detach( bool bEnsureAllBulkDataIsLoaded )
 
 void ULinkerLoad::BeginDestroy()
 {
+	DEC_DWORD_STAT(STAT_LiveLinkerCount);
 	// Detaches linker.
 	Detach( false );
 	Super::BeginDestroy();

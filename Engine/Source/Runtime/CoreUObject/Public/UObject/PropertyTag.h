@@ -121,12 +121,12 @@ struct FPropertyTag
 		}
 		else
 		{
-			UProperty* OldSerializedProperty = GSerializedProperty;
-			GSerializedProperty = Property;
+			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
+			Ar.SetSerializedProperty(Property);
 
 			Property->SerializeItem( Ar, Value, MaxReadBytes, Defaults );
 
-			GSerializedProperty = OldSerializedProperty;
+			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 };

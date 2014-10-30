@@ -77,7 +77,7 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, TArra
 				if (!VisitedObjects.Contains(InObj))
 				{
 					VisitedObjects.Add(InObj);
-					if (GSerializedProperty && GSerializedProperty->ContainsInstancedObjectProperty())
+					if (Ar.GetSerializedProperty() && Ar.GetSerializedProperty()->ContainsInstancedObjectProperty())
 					{
 						// Serialize all DSO properties too					
 						FCDOWriter DefaultSubobjectWriter(Bytes, InObj, VisitedObjects);

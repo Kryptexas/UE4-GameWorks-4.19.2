@@ -11,9 +11,6 @@
 
 DEFINE_LOG_CATEGORY(LogProperty);
 
-UProperty* GSerializedProperty = NULL;
-
-
 // List the core ones here as they have already been included (and can be used without CoreUObject!)
 template<>
 struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase

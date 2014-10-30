@@ -24,7 +24,7 @@ FDuplicateDataReader::FDuplicateDataReader( class FUObjectAnnotationSparse<FDupl
 void FDuplicateDataReader::SerializeFail()
 {
 	extern UObject* GSerializedObject;
-	UE_LOG(LogObj, Fatal, TEXT("FDuplicateDataReader Overread. GSerializedObject = %s GSerializedProperty = %s"), *GetFullNameSafe(GSerializedObject), *GetFullNameSafe(GSerializedProperty));
+	UE_LOG(LogObj, Fatal, TEXT("FDuplicateDataReader Overread. SerializedObject = %s SerializedProperty = %s"), *GetFullNameSafe(GSerializedObject), *GetFullNameSafe(GetSerializedProperty()));
 }
 
 FArchive& FDuplicateDataReader::operator<<(FName& N)

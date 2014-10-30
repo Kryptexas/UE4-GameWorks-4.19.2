@@ -33,17 +33,57 @@ DECLARE_CYCLE_STAT(TEXT("Async Loading Time"),STAT_AsyncLoadingTime,STATGROUP_As
 /** Objects that have been constructed during async loading phase.						*/
 static TArray<UObject*>			GObjConstructedDuringAsyncLoading;
 
+/** Keeps a reference to all objects created during async load until streaming has finished */
+class FAsyncObjectsReferencer : FGCObject
+{
+	/** Private constructor */
+	FAsyncObjectsReferencer() {}
+
+	/** List of referenced objects */
+	TArray<UObject*> ReferencedObjects;
+public:
+	/** Returns the one and only instance of this object */
+	static FAsyncObjectsReferencer& Get();
+	/** FGCObject interface */
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		Collector.AllowEliminatingReferences(false);
+		Collector.AddReferencedObjects(ReferencedObjects);
+		Collector.AllowEliminatingReferences(true);
+	}
+	/** Adds an object to be referenced */
+	FORCEINLINE void AddObject(UObject* InObject)
+	{
+		ReferencedObjects.Add(InObject);
+	}
+	/** Removes all objects from the list */
+	FORCEINLINE void EmptyReferencedObjects()
+	{
+		ReferencedObjects.Empty(ReferencedObjects.Num());
+	}
+};
+FAsyncObjectsReferencer& FAsyncObjectsReferencer::Get()
+{
+	static FAsyncObjectsReferencer Singleton;
+	return Singleton;
+}
+
 /**
  * Call back into the async loading code to inform of the creation of a new object
  * @param Object		Object created
+ * @param bSubObject	Object created as a sub-object of a loaded object
  */
-void NotifyConstructedDuringAsyncLoading(UObject* Object)
+void NotifyConstructedDuringAsyncLoading(UObject* Object, bool bSubObject)
 {
 	// Mark objects created during async loading process (e.g. from within PostLoad or CreateExport) as async loaded so they 
 	// cannot be found. This requires also keeping track of them so we can remove the async loading flag later one when we 
 	// finished routing PostLoad to all objects.
-	Object->SetFlags( RF_AsyncLoading );
-	GObjConstructedDuringAsyncLoading.Add(Object);
+	if (!bSubObject)
+	{
+		Object->SetFlags(RF_AsyncLoading);
+		GObjConstructedDuringAsyncLoading.Add(Object);
+	}
+	FAsyncObjectsReferencer::Get().AddObject(Object);
 }
 
 
@@ -247,7 +287,7 @@ EAsyncPackageState::Type FAsyncPackage::Tick( bool InbUseTimeLimit, bool InbUseF
 
 		// Call PostLoad on objects, this could cause new objects to be loaded that require
 		// another iteration of the PreLoad loop.
-		if( LoadingState == EAsyncPackageState::Complete )
+		if (LoadingState == EAsyncPackageState::Complete)
 		{
 			LoadingState = PostLoadObjects();
 		}
@@ -731,7 +771,14 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 	}
 
 	// New objects might have been loaded during PostLoad.
-	return (PreLoadIndex == GObjLoaded.Num()) && (PostLoadIndex == GObjLoaded.Num()) ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
+	EAsyncPackageState::Type Result = (PreLoadIndex == GObjLoaded.Num()) && (PostLoadIndex == GObjLoaded.Num()) ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
+	if (PreLoadIndex < GObjLoaded.Num())
+	{
+		static volatile int32 xx = 0;
+		xx++;
+	}
+
+	return Result;
 }
 
 /**
@@ -965,6 +1012,7 @@ EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullT
 	EAsyncPackageState::Type LoadingState = EAsyncPackageState::Complete;
 	EAsyncPackageState::Type CompletionState = EAsyncPackageState::Complete;
 
+	bool bWasLoading = GObjAsyncPackages.Num() > 0;
 	// We need to loop as the function has to handle finish loading everything given no time limit
 	// like e.g. when called from FlushAsyncLoading.
 	for (int32 i = 0; LoadingState != EAsyncPackageState::TimeOut && i < GObjAsyncPackages.Num(); i++)
@@ -1023,6 +1071,13 @@ EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullT
 		CompletionState = FMath::Min(CompletionState, LoadingState);
 		// We cannot access Package anymore!
 	}
+
+	// Not that streaming has finished, we can stop force-referencing all objects that were created during async load.
+	if (CompletionState == EAsyncPackageState::Complete && bWasLoading)
+	{
+		FAsyncObjectsReferencer::Get().EmptyReferencedObjects();
+	}
+
 	return CompletionState;
 }
 

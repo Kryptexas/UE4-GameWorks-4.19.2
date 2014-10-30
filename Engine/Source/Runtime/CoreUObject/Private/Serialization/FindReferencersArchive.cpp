@@ -151,9 +151,9 @@ FArchive& FFindReferencersArchive::operator<<( UObject*& Obj )
 		if ( pReferenceCount != nullptr )
 		{
 			// if this object was serialized via a UProperty, add it to the list
-			if ( GSerializedProperty != nullptr )
+			if (GetSerializedProperty() != nullptr)
 			{
-				ReferenceMap.AddUnique(Obj, GSerializedProperty);
+				ReferenceMap.AddUnique(Obj, GetSerializedProperty());
 			}
 
 			// now increment the reference count for this target object

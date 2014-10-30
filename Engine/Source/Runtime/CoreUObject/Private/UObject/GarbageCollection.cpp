@@ -163,7 +163,7 @@ void SerializeRootSet( FArchive& Ar, EObjectFlags KeepFlags )
  * @param ReferencingObject UObject which owns the reference (can be NULL)
  * @param bAllowReferenceElimination	Whether to allow NULL'ing the reference if RF_PendingKill is set
  */
-static FORCEINLINE void HandleObjectReference( TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination )
+static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination)
 {
 	// Disregard NULL objects and perform very fast check to see whether object is part of permanent
 	// object pool and should therefore be disregarded. The check doesn't touch the object and is
@@ -197,7 +197,7 @@ static FORCEINLINE void HandleObjectReference( TArray<UObject*>& ObjectsToSerial
 					// this message is to help track down culprits behind "Object in PIE world still referenced" errors
 					if ( GIsEditor && !GIsPlayInEditorWorld && ReferencingObject != NULL && !ReferencingObject->RootPackageHasAnyFlags(PKG_PlayInEditor) && Object->RootPackageHasAnyFlags(PKG_PlayInEditor) )
 					{
-						UE_LOG(LogGarbage, Warning, TEXT("GC detected illegal reference to PIE object from content [possibly via %s]:"), *GSerializedProperty->GetFullName());
+						UE_LOG(LogGarbage, Warning, TEXT("GC detected illegal reference to PIE object from content [possibly via [todo]]:"));
 						UE_LOG(LogGarbage, Warning, TEXT("      PIE object: %s"), *Object->GetFullName());
 						UE_LOG(LogGarbage, Warning, TEXT("  NON-PIE object: %s"), *ReferencingObject->GetFullName());
 					}
@@ -222,7 +222,7 @@ static FORCEINLINE void HandleObjectReference( TArray<UObject*>& ObjectsToSerial
 	}
 }
 
-static FORCEINLINE void HandleTokenStreamObjectReference( TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination )
+static FORCEINLINE void HandleTokenStreamObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination)
 {
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 	if (Object && !Object->IsValidLowLevelFast())
@@ -256,13 +256,13 @@ class FGCCollector : public FReferenceCollector
 
 public:
 
-	FGCCollector( TArray<UObject*>& InObjectArray )
-		: ObjectArray( InObjectArray )
-		, bAllowEliminatingReferences( true )
+	FGCCollector(TArray<UObject*>& InObjectArray)
+		: ObjectArray(InObjectArray)
+		, bAllowEliminatingReferences(true)
 	{
 	}
 
-	virtual void HandleObjectReference( UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty ) override
+	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) override
 	{
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 		if (Object && !Object->IsValidLowLevelFast())
@@ -273,7 +273,7 @@ public:
 				ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
 		}
 #endif
-		::HandleObjectReference( ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences );
+		::HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
 	}
 	virtual bool IsIgnoringArchetypeRef() const override
 	{
@@ -296,27 +296,38 @@ public:
 FReferenceFinder::FReferenceFinder( TArray<UObject*>& InObjectArray, UObject* InOuter, bool bInRequireDirectOuter, bool bInShouldIgnoreArchetype, bool bInSerializeRecursively, bool bInShouldIgnoreTransient )
 	:	ObjectArray( InObjectArray )
 	,	LimitOuter( InOuter )
+	, SerializedProperty(nullptr)
 	,	bRequireDirectOuter( bInRequireDirectOuter )
 	, bShouldIgnoreArchetype( bInShouldIgnoreArchetype )
 	, bSerializeRecursively( false )
 	, bShouldIgnoreTransient( bInShouldIgnoreTransient )
 {
 	bSerializeRecursively = bInSerializeRecursively && LimitOuter != NULL;
+	if (InOuter)
+	{
+		// If the outer is specified, try to set the SerializedProperty based on its linker.
+		auto OuterLinker = InOuter->GetLinker();
+		if (OuterLinker)
+		{
+			SerializedProperty = OuterLinker->GetSerializedProperty();
+		}
+	}
 }
 
-void FReferenceFinder::FindReferences( UObject* Object )
+void FReferenceFinder::FindReferences(UObject* Object, UObject* InReferencingObject, UObject* InReferencingProperty)
 {
 	check(Object != NULL);
 
-	if( !Object->GetClass()->IsChildOf(UClass::StaticClass()) )
+	if (!Object->GetClass()->IsChildOf(UClass::StaticClass()))
 	{
-		FSimpleObjectReferenceCollectorArchive CollectorArchive( Object, *this );
-		Object->SerializeScriptProperties( CollectorArchive );
+		FSimpleObjectReferenceCollectorArchive CollectorArchive(Object, *this);
+		CollectorArchive.SetSerializedProperty(SerializedProperty);
+		Object->SerializeScriptProperties(CollectorArchive);
 	}
 	Object->CallAddReferencedObjects(*this);
 }
 
-void FReferenceFinder::HandleObjectReference( UObject*& InObject, const UObject* ReferencingObject /*= NULL*/, const UObject* ReferencingProperty /*= NULL*/ )
+void FReferenceFinder::HandleObjectReference( UObject*& InObject, const UObject* InReferencingObject /*= NULL*/, const UObject* InReferencingProperty /*= NULL*/ )
 {
 	// Avoid duplicate entries.
 	if ( InObject != NULL )
@@ -336,7 +347,7 @@ void FReferenceFinder::HandleObjectReference( UObject*& InObject, const UObject*
 			if ( bSerializeRecursively == true && !SerializedObjects.Find(Object) )
 			{
 				SerializedObjects.Add(Object);
-				FindReferences( Object );
+				FindReferences(Object, const_cast<UObject*>(InReferencingObject), const_cast<UObject*>(InReferencingProperty));
 			}
 		}
 	}
@@ -433,7 +444,7 @@ public:
 			//@todo UE4 - A prefetch was removed here. Re-add it. It wasn't right anyway, since it was ten items ahead and the consoles on have 8 prefetch slots
 			
 			// We can't collect garbage during an async load operation and by now all unreachable objects should've been purged.
-			checkf( !Object->HasAnyFlags(RF_AsyncLoading|RF_Unreachable), TEXT("%s"), *Object->GetFullName() );
+			checkf( !Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName() );
 	
 			// Keep track of how many objects are around.
 			GObjectCountDuringLastMarkPhase++;
@@ -1038,22 +1049,6 @@ static const auto CVarAllowParallelGC =
 
 void CollectGarbage( EObjectFlags KeepFlags, bool bPerformFullPurge )
 {
-	// Helper class to register FlushAsyncLoadingCallback on first GC run.
-	struct FAddFlushAsyncLoadingCallback
-	{
-		FAddFlushAsyncLoadingCallback()
-		{
-			FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushAsyncLoadingCallback);
-		}
-		/** Wrapper function to handle default parameter when used as function pointer */
-		static void FlushAsyncLoadingCallback()
-		{
-			FlushAsyncLoading();
-		}
-	};
-	// Add FlushAsyncLoadingCallback the first time CollectGarbage is called.
-	static FAddFlushAsyncLoadingCallback AddFlushAsyncLoadingCallback;
-
 	// We can't collect garbage while there's a load in progress. E.g. one potential issue is Import.XObject
 	check( !IsLoading() );
 
@@ -1223,6 +1218,7 @@ void UObject::AddReferencedObjects(UObject* This, FReferenceCollector& Collector
 		{
 			// Script properties
 			FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector( This, Collector );
+			ObjectReferenceCollector.SetSerializedProperty(Collector.GetSerializedProperty());
 			This->SerializeScriptProperties( ObjectReferenceCollector );
 		}
 

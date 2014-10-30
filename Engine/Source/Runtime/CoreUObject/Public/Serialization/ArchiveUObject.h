@@ -584,7 +584,7 @@ struct FTraceRouteRecord
 	struct FObjectGraphNode*	GraphNode;
 	TArray<UProperty*>			ReferencerProperties;
 
-	FTraceRouteRecord( struct FObjectGraphNode* InGraphNode, UProperty* InReferencerProperty=GSerializedProperty )
+	FTraceRouteRecord( struct FObjectGraphNode* InGraphNode, UProperty* InReferencerProperty)
 	: GraphNode(InGraphNode)
 	{
 		ReferencerProperties.Add(InReferencerProperty);
@@ -596,7 +596,7 @@ struct FTraceRouteRecord
 		ReferencerProperties = InReferencerProperties;
 	}
 
-	void Add(UProperty* InReferencerProperty=GSerializedProperty)
+	void Add(UProperty* InReferencerProperty)
 	{
 		ReferencerProperties.Add(InReferencerProperty);
 	}
@@ -1260,7 +1260,7 @@ private:
 			if ((LimitClass == NULL || Object->IsA(LimitClass)) &&
 				(LimitOuter == NULL || (Object->GetOuter() == LimitOuter || (!bRequireDirectOuter && Object->IsIn(LimitOuter)))) )
 			{
-				ObjectGraph->Add(GSerializedProperty, Object);
+				ObjectGraph->Add(GetSerializedProperty(), Object);
 				if ( bSerializeRecursively && !ObjectArray.Contains(Object) )
 				{
 					ObjectArray.Add( Object );

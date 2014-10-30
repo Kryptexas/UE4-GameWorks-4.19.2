@@ -482,13 +482,13 @@ void DissociateImportsAndForcedExports()
 	GForcedExportCount = 0;
 }
 
-static void LogGetPackageLinkerError(const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)
+static void LogGetPackageLinkerError(FArchiveUObject* LinkerArchive, const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)
 {
 	static FName NAME_LoadErrors("LoadErrors");
 	struct Local
 	{
 		/** Helper function to output more detailed error info if available */
-		static void OutputErrorDetail(const FName& LogName)
+		static void OutputErrorDetail(FArchiveUObject* LinkerArchive, const FName& LogName)
 		{
 			if ( GSerializedObject && GSerializedImportLinker )
 			{
@@ -499,9 +499,10 @@ static void LogGetPackageLinkerError(const TCHAR* InFilename, const FText& InFul
 				Message->AddToken(FAssetNameToken::Create(GSerializedImportLinker->GetImportPathName(GSerializedImportIndex)));
 				Message->AddToken(FTextToken::Create(LOCTEXT("FailedLoad_Referenced", "Referenced by")));
 				Message->AddToken(FUObjectToken::Create(GSerializedObject));
-				if(GSerializedProperty != NULL)
+				auto SerializedProperty = LinkerArchive ? LinkerArchive->GetSerializedProperty() : nullptr;
+				if (SerializedProperty != nullptr)
 				{
-					FString PropertyPathName = GSerializedProperty->GetPathName();
+					FString PropertyPathName = SerializedProperty->GetPathName();
 					Message->AddToken(FTextToken::Create(LOCTEXT("FailedLoad_Property", "Property")));
 					Message->AddToken(FAssetNameToken::Create(PropertyPathName, FText::FromString( PropertyPathName) ) );
 				}
@@ -541,14 +542,14 @@ static void LogGetPackageLinkerError(const TCHAR* InFilename, const FText& InFul
 				Message->AddToken(FAssetNameToken::Create(FPackageName::FilenameToLongPackageName(InOuter->GetPathName())));
 			}
 
-			Local::OutputErrorDetail(NAME_LoadErrors);
+			Local::OutputErrorDetail(LinkerArchive, NAME_LoadErrors);
 		}
 	}
 	else
 	{
 		if (!(LoadFlags & LOAD_NoWarn))
 		{
-			Local::OutputErrorDetail(NAME_LoadErrors);
+			Local::OutputErrorDetail(LinkerArchive, NAME_LoadErrors);
 		}
 
 		FFormatNamedArguments Arguments;
@@ -599,7 +600,7 @@ ULinkerLoad* GetPackageLinker
 		{
 			// try to recover from this instead of throwing, it seems recoverable just by doing this
 			FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
-			LogGetPackageLinkerError(InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
+			LogGetPackageLinkerError(Result, InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
 			return nullptr;
 		}
 
@@ -611,7 +612,7 @@ ULinkerLoad* GetPackageLinker
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
 				Arguments.Add(TEXT("PackageName"), FText::FromString(GSerializedPackageLinker ? *(GSerializedPackageLinker->Filename) : TEXT("NULL")));
-				LogGetPackageLinkerError(GSerializedPackageLinker ? *GSerializedPackageLinker->Filename : nullptr,
+				LogGetPackageLinkerError(Result, GSerializedPackageLinker ? *GSerializedPackageLinker->Filename : nullptr,
 											FText::Format(LOCTEXT("PackageNotFound", "Can't find file for asset '{AssetName}' while loading {PackageName}."), Arguments),
 											LOCTEXT("PackageNotFoundShort", "Can't find file for asset."),
 											InOuter,
@@ -628,7 +629,7 @@ ULinkerLoad* GetPackageLinker
 		{
 			// try to recover from this instead of throwing, it seems recoverable just by doing this
 			FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
-			LogGetPackageLinkerError(InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
+			LogGetPackageLinkerError(Result, InLongPackageName, ErrorText, ErrorText, InOuter, LoadFlags);
 			return nullptr;
 		}
 
@@ -648,7 +649,7 @@ ULinkerLoad* GetPackageLinker
 			Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
 
 			// try to recover from this instead of throwing, it seems recoverable just by doing this
-			LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
+			LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("FileNotFound", "Can't find file '{Filename}'"), Arguments), LOCTEXT("FileNotFoundShort", "Can't find file"), InOuter, LoadFlags);
 			return nullptr;
 		}
 
@@ -666,7 +667,7 @@ ULinkerLoad* GetPackageLinker
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Filename"), FText::FromString(InLongPackageName));
-				LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("FilenameToPackage", "Can't convert filename '{Filename}' to asset name"), Arguments), LOCTEXT("FilenameToPackageShort", "Can't convert filename to asset name"), InOuter, LoadFlags);
+				LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("FilenameToPackage", "Can't convert filename '{Filename}' to asset name"), Arguments), LOCTEXT("FilenameToPackageShort", "Can't convert filename to asset name"), InOuter, LoadFlags);
 				return nullptr;
 			}
 			InOuter = FilenamePkg;
@@ -687,7 +688,7 @@ ULinkerLoad* GetPackageLinker
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
 
-		LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("Sandbox", "Asset '{AssetName}' is not accessible in this sandbox"), Arguments), LOCTEXT("SandboxShort", "Asset is not accessible in this sandbox"), InOuter, LoadFlags);
+		LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("Sandbox", "Asset '{AssetName}' is not accessible in this sandbox"), Arguments), LOCTEXT("SandboxShort", "Asset is not accessible in this sandbox"), InOuter, LoadFlags);
 		return nullptr;
 	}
 #endif
@@ -710,7 +711,7 @@ ULinkerLoad* GetPackageLinker
 		Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
 
 		// This should never fire, because FindPackageFile should never return an incompatible file
-		LogGetPackageLinkerError(InLongPackageName, FText::Format(LOCTEXT("PackageVersion", "Asset '{AssetName}' version mismatch"), Arguments), LOCTEXT("PackageVersionShort", "Asset version mismatch"), InOuter, LoadFlags);
+		LogGetPackageLinkerError(Result, InLongPackageName, FText::Format(LOCTEXT("PackageVersion", "Asset '{AssetName}' version mismatch"), Arguments), LOCTEXT("PackageVersionShort", "Asset version mismatch"), InOuter, LoadFlags);
 		return nullptr;
 	}
 

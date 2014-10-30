@@ -40,16 +40,16 @@ static bool HasDeprecatedOrPendingKillOuter(UObject* InObj, UPackage* InSavingPa
 	return false;
 }
 
-static void CheckObjectPriorToSave(UObject* InObj, UPackage* InSavingPackage)
+static void CheckObjectPriorToSave(FArchiveUObject& Ar, UObject* InObj, UPackage* InSavingPackage)
 {
 	if (!InObj)
 	{
 		return;
 	}
+	extern UObject* GSerializedObject;
 	if (!InObj->IsValidLowLevelFast() || !InObj->IsValidLowLevel())
 	{
-		extern UObject* GSerializedObject;
-		UE_LOG(LogLinker, Fatal, TEXT("Attempt to save bogus object %p GSerializedObject=%s  GSerializedProperty=%s"), (void*)InObj, *GetFullNameSafe(GSerializedObject), *GetFullNameSafe(GSerializedProperty));
+		UE_LOG(LogLinker, Fatal, TEXT("Attempt to save bogus object %p GSerializedObject=%s  SerializedProperty=%s"), (void*)InObj, *GetFullNameSafe(GSerializedObject), *GetFullNameSafe(Ar.GetSerializedProperty()));
 		return;
 	}
 	// if the object class is abstract or has been marked as deprecated, mark this
@@ -64,7 +64,7 @@ static void CheckObjectPriorToSave(UObject* InObj, UPackage* InSavingPackage)
 		{
 			TArray<UObject*> ComponentReferences;
 			FReferenceFinder ComponentCollector(ComponentReferences, InObj, false, true, true);
-			ComponentCollector.FindReferences(InObj);
+			ComponentCollector.FindReferences(InObj, GSerializedObject, Ar.GetSerializedProperty());
 
 			for ( int32 Index = 0; Index < ComponentReferences.Num(); Index++ )
 			{
@@ -323,7 +323,7 @@ FString FArchiveSaveTagExports::GetArchiveName() const
 FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 {
 	check(Outer);
-	CheckObjectPriorToSave(Obj, Outer);
+	CheckObjectPriorToSave(*this, Obj, Outer);
 	if( Obj && Obj->IsIn(Outer) && !Obj->HasAnyFlags(RF_Transient) && !Obj->HasAnyMarks(OBJECTMARK_TagExp) )
 	{
 #if 0
@@ -583,7 +583,7 @@ FString FArchiveSaveTagImports::GetArchiveName() const
 
 FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 {
-	CheckObjectPriorToSave(Obj, NULL);
+	CheckObjectPriorToSave(*this, Obj, NULL);
 
 	const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform( CookingTarget(), IsCooking() );
 	

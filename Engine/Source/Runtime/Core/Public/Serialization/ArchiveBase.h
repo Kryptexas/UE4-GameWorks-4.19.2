@@ -886,6 +886,26 @@ public:
 		return false;
 	}
 
+	/**
+	 * Sets the property that is currently being serialized
+	 * 
+	 * @param InProperty Pointer to the property that is currently being serialized
+	 */
+	FORCEINLINE void SetSerializedProperty(class UProperty* InProperty)
+	{
+		SerializedProperty = InProperty;
+	}
+
+	/**
+	 * Gets the property that is currently being serialized
+	 *
+	 * @return Pointer to the property that is currently being serialized
+	 */
+	FORCEINLINE class UProperty* GetSerializedProperty() const
+	{
+		return SerializedProperty;
+	}
+
 protected:
 
 	/** Resets all of the base archive members. */
@@ -1002,6 +1022,9 @@ private:
 
 	/** Holds the cooking target platform. */
 	const ITargetPlatform* CookingTargetPlatform;
+
+	/** Holds the pointer to the property that is currently being serialized */
+	class UProperty* SerializedProperty;
 
 	/**
 	 * Indicates if the custom versions container is in a 'reset' state.  This will be used to defer the choice about how to

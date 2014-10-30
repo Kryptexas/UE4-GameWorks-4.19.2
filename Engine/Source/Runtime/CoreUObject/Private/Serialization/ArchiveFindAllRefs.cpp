@@ -13,7 +13,6 @@ FArchiveFindAllRefs::FArchiveFindAllRefs( UObject* Src )
 	ArIgnoreOuterRef					= true;
 	ArIgnoreClassRef					= false;
 
-	GSerializedProperty = NULL;
 	Src->Serialize( *this );
 }
 

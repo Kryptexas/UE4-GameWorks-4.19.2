@@ -423,13 +423,6 @@ COREUOBJECT_API UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageN
 void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, bool bNotifyObjectOfChange );
 
 /**
- * Call back into the async loading code to inform of the creation of a new object
- * @param Object		Object created
- */
-void NotifyConstructedDuringAsyncLoading(UObject* Object);
-
-
-/**
  * Save a copy of this object into the transaction buffer if we are currently recording into
  * one (undo/redo). If bMarkDirty is true, will also mark the package as needing to be saved.
  *
@@ -1454,10 +1447,17 @@ public:
 	 */
 	virtual bool IsIgnoringTransient() const = 0;
 	/**
-	 * Allows reference limination by this collector.
+	 * Allows reference elimination by this collector.
 	 */
 	virtual void AllowEliminatingReferences(bool bAllow) {}
-
+	/**
+	* Sets the property that is currently being serialized
+	*/
+	virtual void SetSerializedProperty(class UProperty* Inproperty) {}
+	/**
+	* Gets the property that is currently being serialized
+	*/
+	virtual class UProperty* GetSerializedProperty() const { return nullptr; }
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.
@@ -1495,14 +1495,23 @@ public:
 	 * Finds all objects referenced by Object.
 	 *
 	 * @param Object Object which references are to be found.
+	 * @param ReferencingObject object that's referencing the current object.
+	 * @param ReferencingProperty property the current object is being referenced through.
 	 */
-	virtual void FindReferences(UObject* Object);	
+	virtual void FindReferences(UObject* Object, UObject* ReferencingObject = nullptr, UObject* ReferencingProperty = nullptr);	
 
 	// FReferenceCollector interface.
-	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) override;
+	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* InReferencingProperty) override;
 	virtual bool IsIgnoringArchetypeRef() const override { return bShouldIgnoreArchetype; }
 	virtual bool IsIgnoringTransient() const override { return bShouldIgnoreTransient; }
-
+	virtual void SetSerializedProperty(class UProperty* Inproperty) override
+	{
+		SerializedProperty = Inproperty;
+	}
+	virtual class UProperty* GetSerializedProperty() const override
+	{
+		return SerializedProperty;
+	}
 protected:
 
 	/** Stored reference to array of objects we add object references to. */
@@ -1511,6 +1520,8 @@ protected:
 	TSet<const UObject*>	SerializedObjects;
 	/** Only objects within this outer will be considered, NULL value indicates that outers are disregarded. */
 	UObject*		LimitOuter;
+	/** Property that is referencing the current object */
+	class UProperty* SerializedProperty;
 	/** Determines whether nested objects contained within LimitOuter are considered. */
 	bool			bRequireDirectOuter;
 	/** Determines whether archetype references are considered. */

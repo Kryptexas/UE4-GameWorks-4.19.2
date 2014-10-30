@@ -16,7 +16,7 @@ DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 #include "MallocProfiler.h"
 #endif
 
-bool						GIsSavingPackage						= false;
+bool						GIsSavingPackage = false;
 int32							GImportCount							= 0;
 /** Forced exports for EndLoad optimization.											*/
 int32							GForcedExportCount						= 0;
@@ -763,14 +763,15 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 }
 
 /**
- * Loads a package and all contained objects that match context flags.
- *
- * @param	InOuter		Package to load new package into (usually NULL or ULevel->GetOuter())
- * @param	Filename	Long package name to load.
- * @param	LoadFlags	Flags controlling loading behavior
- * @return	Loaded package if successful, NULL otherwise
- */
-UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags )
+* Loads a package and all contained objects that match context flags.
+*
+* @param	InOuter		Package to load new package into (usually NULL or ULevel->GetOuter())
+* @param	Filename	Long package name to load.
+* @param	LoadFlags	Flags controlling loading behavior
+* @param	ImportLinker	Linker that requests this package through one of its imports
+* @return	Loaded package if successful, NULL otherwise
+*/
+UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, ULinkerLoad* ImportLinker)
 {
 	UPackage* Result = NULL;
 
@@ -861,7 +862,17 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 
 		if( !(LoadFlags & LOAD_Verify) )
 		{
+			// Make sure we pass the property that's currently being serialized by the linker that owns the import 
+			// that triggered this LoadPackage call
+			auto OldSerialziedProperty = Linker->GetSerializedProperty();
+			if (ImportLinker)
+			{
+				Linker->SetSerializedProperty(ImportLinker->GetSerializedProperty());
+			}
+
 			Linker->LoadAllObjects();
+
+			Linker->SetSerializedProperty(OldSerialziedProperty);
 		}
 
 		SlowTask.EnterProgressFrame(30);
@@ -937,6 +948,11 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 	Result->SetFlags(RF_WasLoaded);
 
 	return Result;
+}
+
+UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags)
+{
+	return LoadPackageInternal(InOuter, InLongPackageName, LoadFlags, /*ImportLinker =*/ nullptr);
 }
 
 /**
@@ -1612,6 +1628,10 @@ bool StaticAllocateObjectErrorTests( UClass* InClass, UObject* InOuter, FName In
 	return false;
 }
 
+/**
+* Call back into the async loading code to inform of the creation of a new object
+*/
+void NotifyConstructedDuringAsyncLoading(UObject* Object, bool bSubObject);
 
 /**
 * For object overwrites, the class may want to persist some info over the re-intialize
@@ -1788,9 +1808,9 @@ UObject* StaticAllocateObject
 		}
 	}
 
-	if( !bSubObject && GIsAsyncLoading )
+	if (GIsAsyncLoading)
 	{
-		NotifyConstructedDuringAsyncLoading(Obj);
+		NotifyConstructedDuringAsyncLoading(Obj, bSubObject);
 	}
 
 	// Let the caller know if a subobject has just been recycled.
@@ -2296,7 +2316,6 @@ public:
 		GObjectCountDuringLastMarkPhase = 0;
 		ReferenceSearchFlags = SearchFlags;
 		FoundReferencesList = FoundReferences;
-		GSerializedProperty = NULL;
 
 		checkSlow(!DebugSerialize.Num()); // should only be filled int he scope of this function
 		// Iterate over all objects.

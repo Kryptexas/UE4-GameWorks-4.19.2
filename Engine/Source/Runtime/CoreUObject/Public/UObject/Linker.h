@@ -1137,7 +1137,7 @@ class ULinker : public UObject, public FLinkerTables
 	void GetScriptSHAKey(uint8* OutKey);
 
 	// UObject interface.
-	void BeginDestroy();
+	virtual void BeginDestroy() override;
 
 	/**
 	 * Test and object against the load flag filters
@@ -1641,7 +1641,7 @@ private:
 	void DetachExport( int32 i );
 
 	// UObject interface.
-	void BeginDestroy();
+	virtual void BeginDestroy() override;
 
 	// FArchive interface.
 	/**

@@ -279,13 +279,13 @@ public:
 	{
 		if( ShouldSerializeValue(Ar) )
 		{
-			UProperty* OldSerializedProperty = GSerializedProperty;
+			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
 			for (int32 Idx = 0; Idx < ArrayDim; Idx++)
 			{
-				GSerializedProperty = this;
+				Ar.SetSerializedProperty(this);
 				SerializeItem( Ar, ContainerPtrToValuePtr<void>(Data, Idx), 0 );
 			}
-			GSerializedProperty = OldSerializedProperty;
+			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 	/**
@@ -306,10 +306,10 @@ public:
 				void const* Default = ContainerPtrToValuePtrForDefaults<void>(DefaultStruct, DefaultData, Idx);
 				if ( !Identical(Target, Default, Ar.GetPortFlags()) )
 				{
-					UProperty* OldSerializedProperty = GSerializedProperty;
-					GSerializedProperty = this;
+					UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
+					Ar.SetSerializedProperty(this);
 					SerializeItem( Ar, Target, 0, Default );
-					GSerializedProperty = OldSerializedProperty;
+					Ar.SetSerializedProperty(OldSerializedProperty);
 				}
 			}
 		}

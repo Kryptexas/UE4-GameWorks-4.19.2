@@ -89,7 +89,8 @@ void FArchive::Reset()
 	ArMaxSerializeSize					= 0;
 	ArIsFilterEditorOnly				= false;
 	ArIsSaveGame						= false;
-	CookingTargetPlatform				= NULL;
+	CookingTargetPlatform = nullptr;
+	SerializedProperty = nullptr;
 
 	// Reset all custom versions to the current registered versions.
 	ResetCustomVersions();
