@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FontBulkData.h"
 #include "CompositeFont.generated.h"
 
 UENUM()
@@ -26,41 +27,29 @@ struct SLATECORE_API FFontData
 	GENERATED_USTRUCT_BODY()
 
 	/** Default constructor */
-	FFontData()
-		: FontFilename()
-		, FontData()
-		, Hinting(EFontHinting::Default)
-	{
-	}
-
-	/** Construct the raw font data from a filename (it will load the file into FontData) */
-	FFontData(FString InFontFilename, const EFontHinting InHinting);
+	FFontData();
 
 	/** Construct the raw font data from a filename, and the data associated with that file */
-	FFontData(FString InFontFilename, TArray<uint8> InFontData, const EFontHinting InHinting)
-		: FontFilename(MoveTemp(InFontFilename))
-		, FontData(MoveTemp(InFontData))
-		, Hinting(InHinting)
-	{
-	}
-
-	/** Set the new font data from a filename (it will load the file into FontData) */
-	bool SetFont(FString InFontFilename);
+	FFontData(FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting);
 
 	/** Set the new font data from a filename, and the data associated with that file */
-	void SetFont(FString InFontFilename, TArray<uint8> InFontData);
+	void SetFont(FString InFontFilename, const UFontBulkData* const InBulkData);
 
 	/** The filename of the font to use - this may not always exist on disk, as we may have previously loaded and cached the font data inside an asset */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Font)
 	FString FontFilename;
 
-	/** The data associated with the font - this should always be filled in providing the source font filename is valid */
+	/** The data associated with the font */
 	UPROPERTY()
-	TArray<uint8> FontData;
+	const UFontBulkData* BulkDataPtr;
 
 	/** The hinting algorithm to use with the font */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Font)
 	EFontHinting Hinting;
+
+	/** The data associated with the font - this should always be filled in providing the source font filename is valid */
+	UPROPERTY()
+	TArray<uint8> FontData_DEPRECATED;
 };
 
 /** A single entry in a typeface */
@@ -80,17 +69,10 @@ struct SLATECORE_API FTypefaceEntry
 	{
 	}
 
-	/** Construct the entry from a filename */
-	FTypefaceEntry(const FName& InFontName, FString InFontFilename, const EFontHinting InHinting)
-		: Name(InFontName)
-		, Font(MoveTemp(InFontFilename), InHinting)
-	{
-	}
-
 	/** Construct the entry from a filename, and the data associated with that file */
-	FTypefaceEntry(const FName& InFontName, FString InFontFilename, TArray<uint8> InFontData, const EFontHinting InHinting)
+	FTypefaceEntry(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
 		: Name(InFontName)
-		, Font(MoveTemp(InFontFilename), MoveTemp(InFontData), InHinting)
+		, Font(MoveTemp(InFontFilename), InBulkData, InHinting)
 	{
 	}
 
@@ -115,28 +97,15 @@ struct SLATECORE_API FTypeface
 	}
 
 	/** Convenience constructor for when your font family only contains a single font */
-	FTypeface(const FName& InFontName, FString InFontFilename, const EFontHinting InHinting)
+	FTypeface(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
 	{
-		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), InHinting));
-	}
-
-	/** Convenience constructor for when your font family only contains a single font */
-	FTypeface(const FName& InFontName, FString InFontFilename, TArray<uint8> InFontData, const EFontHinting InHinting)
-	{
-		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), MoveTemp(InFontData), InHinting));
+		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting));
 	}
 
 	/** Append a new font into this family */
-	FTypeface& AppendFont(const FName& InFontName, FString InFontFilename, const EFontHinting InHinting = EFontHinting::Default)
+	FTypeface& AppendFont(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting = EFontHinting::Default)
 	{
-		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), InHinting));
-		return *this;
-	}
-
-	/** Append a new font into this family */
-	FTypeface& AppendFont(const FName& InFontName, FString InFontFilename, TArray<uint8> InFontData, const EFontHinting InHinting = EFontHinting::Default)
-	{
-		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), MoveTemp(InFontData), InHinting));
+		Fonts.Emplace(FTypefaceEntry(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting));
 		return *this;
 	}
 
@@ -185,16 +154,8 @@ struct SLATECORE_API FCompositeFont
 	}
 
 	/** Convenience constructor for when your composite font only contains a single font */
-	FCompositeFont(const FName& InFontName, FString InFontFilename, const EFontHinting InHinting = EFontHinting::Default)
-		: DefaultTypeface(InFontName, MoveTemp(InFontFilename), InHinting)
-		, SubTypefaces()
-		, HistoryRevision(0)
-	{
-	}
-
-	/** Convenience constructor for when your composite font only contains a single font */
-	FCompositeFont(const FName& InFontName, FString InFontFilename, TArray<uint8> InFontData, const EFontHinting InHinting = EFontHinting::Default)
-		: DefaultTypeface(InFontName, MoveTemp(InFontFilename), MoveTemp(InFontData), InHinting)
+	FCompositeFont(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting = EFontHinting::Default)
+		: DefaultTypeface(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting)
 		, SubTypefaces()
 		, HistoryRevision(0)
 	{
@@ -219,4 +180,25 @@ struct SLATECORE_API FCompositeFont
 	 * This should be updated when the composite font is changed (which should happen infrequently as composite fonts are assumed to be mostly immutable) once they've been setup
 	 */
 	int32 HistoryRevision;
+};
+
+/**
+ * A version of FCompositeFont that should be used when it's not being embedded within another UObject
+ * This derives from FGCObject to ensure that the bulk data objects are referenced correctly 
+ */
+struct SLATECORE_API FStandaloneCompositeFont : public FCompositeFont, public FGCObject
+{
+	/** Default constructor */
+	FStandaloneCompositeFont()
+	{
+	}
+
+	/** Convenience constructor for when your composite font only contains a single font */
+	FStandaloneCompositeFont(const FName& InFontName, FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting = EFontHinting::Default)
+		: FCompositeFont(InFontName, MoveTemp(InFontFilename), InBulkData, InHinting)
+	{
+	}
+
+	// FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 };

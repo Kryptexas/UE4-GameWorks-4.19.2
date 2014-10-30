@@ -699,10 +699,11 @@ void STypefaceEntryEditor::OnTypefaceEntryFontPathPicked(const FString& InNewFon
 		const FScopedTransaction Transaction(LOCTEXT("SetFontFile", "Set Font File"));
 		CompositeFontEditorPtr->GetFontObject()->Modify();
 
-		if(TypefaceEntryPtr->Font.SetFont(InNewFontFilename))
-		{
-			CompositeFontEditorPtr->FlushCachedFont();
-		}
+		// We need to allocate the bulk data with the font as its outer
+		const UFontBulkData* const BulkData = new(CompositeFontEditorPtr->GetFontObject()) UFontBulkData(InNewFontFilename);
+
+		TypefaceEntryPtr->Font.SetFont(InNewFontFilename, BulkData);
+		CompositeFontEditorPtr->FlushCachedFont();
 	}
 
 	FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_OPEN, FPaths::GetPath(InNewFontFilename));

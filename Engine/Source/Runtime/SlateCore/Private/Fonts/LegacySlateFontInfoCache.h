@@ -5,7 +5,7 @@
 /**
  * Cache used to efficiently upgrade legacy FSlateFontInfo structs to use a composite font by reducing the amount of duplicate instances that are created
  */
-class FLegacySlateFontInfoCache
+class FLegacySlateFontInfoCache : public FGCObject
 {
 public:
 
@@ -33,6 +33,9 @@ public:
 	 * Get (or create) the last resort fallback font
 	 */
 	const FFontData& GetLastResortFont();
+
+	// FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 private:
 	struct FLegacyFontKey

@@ -743,40 +743,44 @@ private:
 	FT_Face GetFontFace( const FFontData& InFontData )
 	{
 		FFontFaceAndMemory* FaceAndMemory = FontFaceMap.Find(&InFontData);
-		if (!FaceAndMemory && InFontData.FontData.Num() > 0)
+		if (!FaceAndMemory && InFontData.BulkDataPtr)
 		{
-			// make a new entry
-			FaceAndMemory = &FontFaceMap.Add(&InFontData, FFontFaceAndMemory());
-
-			// todo: jdale - can we avoid this copy without potentially crashing if the source FFontData is unloaded (when using a UObject)?
-			//				 We'd just need to remove this entry from the font cache before unloading the UFont and then we 
-			//				 could just take a pointer to the array data (which we don't own, so won't delete)
-			FaceAndMemory->Memory = static_cast<uint8*>(FMemory::Malloc(InFontData.FontData.Num()));
-			FMemory::Memcpy(FaceAndMemory->Memory, InFontData.FontData.GetData(), InFontData.FontData.Num());
-
-			// initialize the font, setting the error code
-			const bool bFailedToLoadFace = FT_New_Memory_Face(FTLibrary, FaceAndMemory->Memory, static_cast<FT_Long>(InFontData.FontData.Num()), 0, &FaceAndMemory->Face) != 0;
-
-			// if it failed, we don't want to keep the memory around
-			if (bFailedToLoadFace)
+			int32 LockedFontDataSizeBytes = 0;
+			const void* const LockedFontData = InFontData.BulkDataPtr->Lock(LockedFontDataSizeBytes);
+			if (LockedFontDataSizeBytes > 0)
 			{
-				FMemory::Free(FaceAndMemory->Memory);
-				FontFaceMap.Remove(&InFontData);
-				FaceAndMemory = nullptr;
-				UE_LOG(LogSlate, Warning, TEXT("GetFontFace failed to load or process '%s'"), *InFontData.FontFilename);
-			}
-			
-			if (FaceAndMemory)
-			{
-				// Parse out the font attributes
-				TArray<FString> Styles;
-				FString(FaceAndMemory->Face->style_name).ParseIntoArray(&Styles, TEXT(" "), true);
+				// make a new entry
+				FaceAndMemory = &FontFaceMap.Add(&InFontData, FFontFaceAndMemory());
 
-				for (const FString& Style : Styles)
+				FaceAndMemory->Memory = static_cast<uint8*>(FMemory::Malloc(LockedFontDataSizeBytes));
+				FMemory::Memcpy(FaceAndMemory->Memory, LockedFontData, LockedFontDataSizeBytes);
+
+				// initialize the font, setting the error code
+				const bool bFailedToLoadFace = FT_New_Memory_Face(FTLibrary, FaceAndMemory->Memory, static_cast<FT_Long>(LockedFontDataSizeBytes), 0, &FaceAndMemory->Face) != 0;
+
+				// if it failed, we don't want to keep the memory around
+				if (bFailedToLoadFace)
 				{
-					FaceAndMemory->Attributes.Add(*Style);
+					FMemory::Free(FaceAndMemory->Memory);
+					FontFaceMap.Remove(&InFontData);
+					FaceAndMemory = nullptr;
+					UE_LOG(LogSlate, Warning, TEXT("GetFontFace failed to load or process '%s'"), *InFontData.FontFilename);
+				}
+			
+				if (FaceAndMemory)
+				{
+					// Parse out the font attributes
+					TArray<FString> Styles;
+					FString(FaceAndMemory->Face->style_name).ParseIntoArray(&Styles, TEXT(" "), true);
+
+					for (const FString& Style : Styles)
+					{
+						FaceAndMemory->Attributes.Add(*Style);
+					}
 				}
 			}
+
+			InFontData.BulkDataPtr->Unlock();
 		}
 
 		return (FaceAndMemory) ? FaceAndMemory->Face : nullptr;

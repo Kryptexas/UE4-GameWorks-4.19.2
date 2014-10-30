@@ -49,7 +49,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(con
 		}
 	}
 
-	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShareable(new FCompositeFont(NAME_None, LegacyFontPath, InLegacyFontHinting));
+	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, LegacyFontPath, new UFontBulkData(LegacyFontPath), InLegacyFontHinting));
 	LegacyFontNameToCompositeFont.Add(LegacyFontKey, NewCompositeFont);
 	return NewCompositeFont;
 }
@@ -59,7 +59,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetSystemFont()
 	if (!SystemFont.IsValid())
 	{
 		TArray<uint8> FontBytes = FPlatformMisc::GetSystemFontBytes();
-		SystemFont = MakeShareable(new FCompositeFont(NAME_None, TEXT("DefaultSystemFont"), MoveTemp(FontBytes), EFontHinting::Default));
+		SystemFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, TEXT("DefaultSystemFont"), new UFontBulkData(FontBytes.GetData(), FontBytes.Num()), EFontHinting::Default));
 	}
 	return SystemFont;
 }
@@ -76,7 +76,8 @@ const FFontData& FLegacySlateFontInfoCache::GetFallbackFont()
 		}
 	}
 
-	TSharedRef<const FFontData> NewFallbackFont = MakeShareable(new FFontData(FallbackFontName.ToString(), EFontHinting::Default));
+	const FString FallbackFontPath = FallbackFontName.ToString();
+	TSharedRef<const FFontData> NewFallbackFont = MakeShareable(new FFontData(FallbackFontPath, new UFontBulkData(FallbackFontPath), EFontHinting::Default));
 	FallbackFonts.Add(FallbackFontName, NewFallbackFont);
 	return *NewFallbackFont;
 }
@@ -86,7 +87,22 @@ const FFontData& FLegacySlateFontInfoCache::GetLastResortFont()
 	if (!LastResortFont.IsValid())
 	{
 		const FString LastResortFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/LastResort.ttf");
-		LastResortFont = MakeShareable(new FFontData(LastResortFontPath, EFontHinting::Default));
+		LastResortFont = MakeShareable(new FFontData(LastResortFontPath, new UFontBulkData(LastResortFontPath), EFontHinting::Default));
 	}
 	return *LastResortFont;
+}
+
+void FLegacySlateFontInfoCache::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	for(auto& FallbackFontEntry : FallbackFonts)
+	{
+		const UFontBulkData* TmpPtr = FallbackFontEntry.Value->BulkDataPtr;
+		Collector.AddReferencedObject(TmpPtr);
+	}
+
+	if(LastResortFont.IsValid())
+	{
+		const UFontBulkData* TmpPtr = LastResortFont->BulkDataPtr;
+		Collector.AddReferencedObject(TmpPtr);
+	}
 }

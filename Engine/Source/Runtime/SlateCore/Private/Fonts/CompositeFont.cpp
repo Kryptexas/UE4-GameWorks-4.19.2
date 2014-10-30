@@ -3,33 +3,40 @@
 #include "SlateCorePrivatePCH.h"
 #include "CompositeFont.h"
 
-FFontData::FFontData(FString InFontFilename, const EFontHinting InHinting)
+FFontData::FFontData()
+	: FontFilename()
+	, BulkDataPtr(nullptr)
+	, Hinting(EFontHinting::Default)
+	, FontData_DEPRECATED()
+{
+}
+
+FFontData::FFontData(FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
 	: FontFilename(MoveTemp(InFontFilename))
-	, FontData()
+	, BulkDataPtr(InBulkData)
 	, Hinting(InHinting)
+	, FontData_DEPRECATED()
 {
-	if (!FFileHelper::LoadFileToArray(FontData, *FontFilename, FILEREAD_Silent))
-	{
-		UE_LOG(LogSlate, Warning, TEXT("Failed to load font data from '%s'"), *FontFilename);
-	}
 }
 
-bool FFontData::SetFont(FString InFontFilename)
+void FFontData::SetFont(FString InFontFilename, const UFontBulkData* const InBulkData)
 {
-	TArray<uint8> TempFontData;
-	if (!FFileHelper::LoadFileToArray(TempFontData, *InFontFilename, FILEREAD_Silent))
-	{
-		UE_LOG(LogSlate, Warning, TEXT("Failed to load font data from '%s'"), *InFontFilename);
-		return false;
-	}
-
 	FontFilename = MoveTemp(InFontFilename);
-	FontData = MoveTemp(TempFontData);
-	return true;
+	BulkDataPtr = InBulkData;
 }
 
-void FFontData::SetFont(FString InFontFilename, TArray<uint8> InFontData)
+void FStandaloneCompositeFont::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	FontFilename = MoveTemp(InFontFilename);
-	FontData = MoveTemp(InFontData);
+	for(FTypefaceEntry& TypefaceEntry : DefaultTypeface.Fonts)
+	{
+		Collector.AddReferencedObject(TypefaceEntry.Font.BulkDataPtr);
+	}
+
+	for(FCompositeSubFont& SubFont : SubTypefaces)
+	{
+		for(FTypefaceEntry& TypefaceEntry : SubFont.Typeface.Fonts)
+		{
+			Collector.AddReferencedObject(TypefaceEntry.Font.BulkDataPtr);
+		}
+	}
 }

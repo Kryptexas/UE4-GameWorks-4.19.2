@@ -5117,12 +5117,10 @@ UObject* UFontFileImportFactory::FactoryCreateBinary(UClass* InClass, UObject* I
 	{
 		Font->FontCacheType = EFontCacheType::Runtime;
 
-		FString FontFilename = GetCurrentFilename();
+		// We need to allocate the bulk data with the font as its outer
+		const UFontBulkData* const BulkData = new(Font) UFontBulkData(InBuffer, InBufferEnd - InBuffer);
 
-		TArray<uint8> FontData;
-		FontData.Insert(InBuffer, InBufferEnd - InBuffer, 0);
-
-		Font->CompositeFont.DefaultTypeface.Fonts.Add(FTypefaceEntry("Default", MoveTemp(FontFilename), MoveTemp(FontData), EFontHinting::Auto));
+		Font->CompositeFont.DefaultTypeface.Fonts.Add(FTypefaceEntry("Default", GetCurrentFilename(), BulkData, EFontHinting::Auto));
 	}
 
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, Font);

@@ -41,6 +41,32 @@ void UFont::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << CharRemap;
+
+	// Update any composite font data to use bulk data with us as its outer
+	if( Ar.UE4Ver() < VER_UE4_SLATE_BULK_FONT_DATA )
+	{
+		auto UpgradeFontDataToBulk = [this](FFontData& InFontData)
+		{
+			if( InFontData.FontData_DEPRECATED.Num() > 0 )
+			{
+				InFontData.BulkDataPtr = new(this) UFontBulkData(InFontData.FontData_DEPRECATED.GetData(), InFontData.FontData_DEPRECATED.Num());
+				InFontData.FontData_DEPRECATED.Empty();
+			}
+		};
+
+		for( FTypefaceEntry& TypefaceEntry : CompositeFont.DefaultTypeface.Fonts )
+		{
+			UpgradeFontDataToBulk(TypefaceEntry.Font);
+		}
+
+		for( FCompositeSubFont& SubFont : CompositeFont.SubTypefaces )
+		{
+			for( FTypefaceEntry& TypefaceEntry : SubFont.Typeface.Fonts )
+			{
+				UpgradeFontDataToBulk(TypefaceEntry.Font);
+			}
+		}
+	}
 }
 
 void UFont::PostLoad()
