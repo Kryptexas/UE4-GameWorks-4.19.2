@@ -3472,7 +3472,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 		LOG_EVENT_CONTENT( EEventLog::KeyDown, GetKeyName(InKeyEvent.GetKey()).ToString(), Reply );
 
 		// If the key event was not processed by any widget...
-		if (!Reply.IsEventHandled())
+		if (!Reply.IsEventHandled() && UnhandledKeyDownEventHandler.IsBound())
 		{
 			Reply = UnhandledKeyDownEventHandler.Execute( InKeyEvent );
 		}
