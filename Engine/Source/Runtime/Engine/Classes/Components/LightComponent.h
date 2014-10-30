@@ -278,9 +278,9 @@ public:
 	virtual bool IsReadyForFinishDestroy() override;
 	// End UObject interface.
 
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
+	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 
 	/** @return number of material elements in this primitive */
 	virtual int32 GetNumMaterials() const;

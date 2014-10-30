@@ -1273,15 +1273,15 @@ FName UInstancedStaticMeshComponent::GetComponentInstanceDataType() const
 	return InstancedStaticMeshComponentInstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UInstancedStaticMeshComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UInstancedStaticMeshComponent::GetComponentInstanceData() const
 {
 #if WITH_EDITOR
-	TSharedPtr<FInstancedStaticMeshComponentInstanceData> InstanceData;
+	FInstancedStaticMeshComponentInstanceData* InstanceData = nullptr;
 
 	// Don't back up static lighting if there isn't any
 	if (bHasCachedStaticLighting || SelectedInstances.Num() > 0)
 	{
-		InstanceData = MakeShareable(new FInstancedStaticMeshComponentInstanceData(*this));
+		InstanceData = new FInstancedStaticMeshComponentInstanceData(*this);
 	}
 
 	// Don't back up static lighting if there isn't any
@@ -1310,16 +1310,16 @@ TSharedPtr<FComponentInstanceDataBase> UInstancedStaticMeshComponent::GetCompone
 
 	return InstanceData;
 #else
-	return TSharedPtr<FComponentInstanceDataBase>();
+	return nullptr;
 #endif
 }
 
-void UInstancedStaticMeshComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
 #if WITH_EDITOR
-	check(ComponentInstanceData.IsValid());
+	check(ComponentInstanceData);
 
-	auto* InstancedMeshData = static_cast<FInstancedStaticMeshComponentInstanceData*>(ComponentInstanceData.Get());
+	FInstancedStaticMeshComponentInstanceData* InstancedMeshData  = static_cast<FInstancedStaticMeshComponentInstanceData*>(ComponentInstanceData);
 
 	// See if data matches current state
 	if (InstancedMeshData->bHasCachedStaticLighting)

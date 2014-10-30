@@ -88,15 +88,27 @@ FName UChildActorComponent::GetComponentInstanceDataType() const
 	return ChildActorComponentInstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UChildActorComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UChildActorComponent::GetComponentInstanceData() const
 {
-	return (CachedInstanceData.IsValid() ? CachedInstanceData : MakeShareable(new FChildActorComponentInstanceData(this)));
+	FChildActorComponentInstanceData* InstanceData = CachedInstanceData;
+
+	if (CachedInstanceData)
+	{
+		// We've handed over ownership of the pointer to the instance cache, so drop our reference
+		CachedInstanceData = nullptr;
+	}
+	else
+	{
+		InstanceData = new FChildActorComponentInstanceData(this);
+	}
+	
+	return InstanceData;
 }
 
-void UChildActorComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UChildActorComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
-	FChildActorComponentInstanceData* ChildActorInstanceData = StaticCastSharedPtr<FChildActorComponentInstanceData>(ComponentInstanceData).Get();
+	check(ComponentInstanceData);
+	FChildActorComponentInstanceData* ChildActorInstanceData  = static_cast<FChildActorComponentInstanceData*>(ComponentInstanceData);
 	ChildActorName = ChildActorInstanceData->ChildActorName;
 	if (ChildActor)
 	{
@@ -104,9 +116,9 @@ void UChildActorComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInsta
 		if(ChildActorName != NAME_None)
 		{
 			const FString ChildActorNameString = ChildActorName.ToString();
-			if (ChildActor->Rename(*ChildActorNameString, NULL, REN_Test))
+			if (ChildActor->Rename(*ChildActorNameString, nullptr, REN_Test))
 			{
-				ChildActor->Rename(*ChildActorNameString, NULL, REN_DoNotDirty);
+				ChildActor->Rename(*ChildActorNameString, nullptr, REN_DoNotDirty);
 			}
 		}
 
@@ -138,13 +150,17 @@ void UChildActorComponent::CreateChildActor()
 	DestroyChildActor();
 
 	// This is no longer needed
-	CachedInstanceData = NULL;
+	if (CachedInstanceData)
+	{
+		delete CachedInstanceData;
+		CachedInstanceData = nullptr;
+	}
 
 	// If we have a class to spawn.
-	if(ChildActorClass != NULL)
+	if(ChildActorClass != nullptr)
 	{
 		UWorld* World = GetWorld();
-		if(World != NULL)
+		if(World != nullptr)
 		{
 			// Before we spawn let's try and prevent cyclic disaster
 			bool bSpawn = true;
@@ -175,7 +191,7 @@ void UChildActorComponent::CreateChildActor()
 				ChildActor = World->SpawnActor(ChildActorClass, &Location, &Rotation, Params);
 
 				// If spawn was successful, 
-				if(ChildActor != NULL)
+				if(ChildActor != nullptr)
 				{
 					ChildActorName = ChildActor->GetFName();
 
@@ -193,16 +209,17 @@ void UChildActorComponent::CreateChildActor()
 void UChildActorComponent::DestroyChildActor()
 {
 	// If we own an Actor, kill it now
-	if(ChildActor != NULL)
+	if(ChildActor != nullptr)
 	{
 		// if still alive, destroy, otherwise just clear the pointer
 		if(!ChildActor->IsPendingKill())
 		{
-			CachedInstanceData = MakeShareable(new FChildActorComponentInstanceData(this));
+			check(!CachedInstanceData);
+			CachedInstanceData = new FChildActorComponentInstanceData(this);
 
 			UWorld* World = ChildActor->GetWorld();
-			// World may be NULL during shutdown
-			if(World != NULL)
+			// World may be nullptr during shutdown
+			if(World != nullptr)
 			{
 				UClass* ChildClass = ChildActor->GetClass();
 
@@ -211,11 +228,11 @@ void UChildActorComponent::DestroyChildActor()
 				ChildClass->ClassUnique = FMath::Max(ChildClass->ClassUnique, ChildActor->GetFName().GetNumber());
 
 				const FString ObjectBaseName = FString::Printf(TEXT("DESTROYED_%s_CHILDACTOR"), *ChildClass->GetName());
-				ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), NULL, REN_DoNotDirty);
+				ChildActor->Rename(*MakeUniqueObjectName(ChildActor->GetOuter(), ChildClass, *ObjectBaseName).ToString(), nullptr, REN_DoNotDirty);
 				World->DestroyActor(ChildActor);
 			}
 		}
 
-		ChildActor = NULL;
+		ChildActor = nullptr;
 	}
 }

@@ -43,7 +43,7 @@ public:
 	}
 
 	/** Re-apply vertex color data after RerunConstructionScripts is called */
-	bool ApplyVertexColorData(UStaticMeshComponent* StaticMeshComponent)
+	bool ApplyVertexColorData(UStaticMeshComponent* StaticMeshComponent) const
 	{
 		bool bAppliedAnyData = false;
 
@@ -1512,14 +1512,14 @@ FName UStaticMeshComponent::GetComponentInstanceDataType() const
 	return StaticMeshComponentInstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UStaticMeshComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UStaticMeshComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FStaticMeshComponentInstanceData> InstanceData;
+	FStaticMeshComponentInstanceData* InstanceData = nullptr;
 
 	// Don't back up static lighting if there isn't any
 	if(bHasCachedStaticLighting)
 	{
-		InstanceData = MakeShareable(new FStaticMeshComponentInstanceData(this));
+		InstanceData = new FStaticMeshComponentInstanceData(this);
 
 		// Fill in info
 		InstanceData->bHasCachedStaticLighting = true;
@@ -1541,9 +1541,9 @@ TSharedPtr<FComponentInstanceDataBase> UStaticMeshComponent::GetComponentInstanc
 
 		if ( LODInfo.OverrideVertexColors && LODInfo.OverrideVertexColors->GetNumVertices() > 0 && LODInfo.PaintedVertices.Num() > 0 )
 		{
-			if (!InstanceData.IsValid())
+			if (!InstanceData)
 			{
-				InstanceData = MakeShareable(new FStaticMeshComponentInstanceData(this));
+				InstanceData = new FStaticMeshComponentInstanceData(this);
 			}
 
 			InstanceData->AddVertexColorData(LODInfo, LODIndex);
@@ -1553,13 +1553,13 @@ TSharedPtr<FComponentInstanceDataBase> UStaticMeshComponent::GetComponentInstanc
 	return InstanceData;
 }
 
-void UStaticMeshComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
+	check(ComponentInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
-	TSharedPtr<FStaticMeshComponentInstanceData> StaticMeshInstanceData = StaticCastSharedPtr<FStaticMeshComponentInstanceData>(ComponentInstanceData);
+	FStaticMeshComponentInstanceData* StaticMeshInstanceData  = static_cast<FStaticMeshComponentInstanceData*>(ComponentInstanceData);
 
 	// See if data matches current state
 	if(	StaticMeshInstanceData->bHasCachedStaticLighting && StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld) )

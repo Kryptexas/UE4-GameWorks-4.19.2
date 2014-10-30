@@ -520,18 +520,18 @@ FName UWidgetComponent::GetComponentInstanceDataType() const
 	return InstanceDataName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> UWidgetComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UWidgetComponent::GetComponentInstanceData() const
 {
-	return MakeShareable( new FWidgetComponentInstanceData( this ) );
+	return new FWidgetComponentInstanceData( this );
 }
 
-void UWidgetComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UWidgetComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
+	check(ComponentInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
-	TSharedPtr<FWidgetComponentInstanceData> WidgetInstanceData = StaticCastSharedPtr<FWidgetComponentInstanceData>(ComponentInstanceData);
+	FWidgetComponentInstanceData* WidgetInstanceData  = static_cast<FWidgetComponentInstanceData*>(ComponentInstanceData);
 
 	RenderTarget = WidgetInstanceData->RenderTarget;
 	MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);

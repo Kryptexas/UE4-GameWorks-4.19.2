@@ -727,14 +727,14 @@ FName UAtmosphericFogComponent::GetComponentInstanceDataType() const
 }
 
 // Backup the precomputed data before re-running Blueprint construction script
-TSharedPtr<FComponentInstanceDataBase> UAtmosphericFogComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData;
+	FAtmospherePrecomputeInstanceData* PrecomputedData = nullptr;
 
 	if (TransmittanceData.GetElementCount() && IrradianceData.GetElementCount() && InscatterData.GetElementCount() && PrecomputeCounter.GetValue() == EValid)
 	{
 		// Allocate new struct for holding light map data
-		 PrecomputedData = MakeShareable(new FAtmospherePrecomputeInstanceData(this));
+		 PrecomputedData = new FAtmospherePrecomputeInstanceData(this);
 
 		// Fill in info
 		PrecomputedData->PrecomputeParameter = PrecomputeParams;
@@ -767,10 +767,10 @@ TSharedPtr<FComponentInstanceDataBase> UAtmosphericFogComponent::GetComponentIns
 }
 
 // Restore the precomputed data after re-running Blueprint construction script
-void UAtmosphericFogComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void UAtmosphericFogComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	check(ComponentInstanceData.IsValid());
-	TSharedPtr<FAtmospherePrecomputeInstanceData> PrecomputedData = StaticCastSharedPtr<FAtmospherePrecomputeInstanceData>(ComponentInstanceData);
+	check(ComponentInstanceData);
+	FAtmospherePrecomputeInstanceData* PrecomputedData = static_cast<FAtmospherePrecomputeInstanceData*>(const_cast<FComponentInstanceDataBase*>(ComponentInstanceData));
 
 	FComponentReregisterContext ReregisterContext(this);
 	ReleaseResource();

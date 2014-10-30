@@ -526,23 +526,23 @@ FName USplineComponent::GetComponentInstanceDataType() const
 	return SplineInstanceDataTypeName;
 }
 
-TSharedPtr<FComponentInstanceDataBase> USplineComponent::GetComponentInstanceData() const
+FComponentInstanceDataBase* USplineComponent::GetComponentInstanceData() const
 {
-	TSharedPtr<FSplineInstanceData> SplineInstanceData;
+	FSplineInstanceData* SplineInstanceData = nullptr;
 	if (bAllowSplineEditingPerInstance)
 	{
-		SplineInstanceData = MakeShareable(new FSplineInstanceData(this));
+		SplineInstanceData = new FSplineInstanceData(this);
 		SplineInstanceData->SplineInfo = SplineInfo;
 		SplineInstanceData->bClosedLoop = bClosedLoop;
 	}
 	return SplineInstanceData;
 }
 
-void USplineComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
+void USplineComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
 {
-	if (ComponentInstanceData.IsValid())
+	if (ComponentInstanceData)
 	{
-		const FSplineInstanceData* SplineInstanceData = StaticCastSharedPtr<FSplineInstanceData>(ComponentInstanceData).Get();
+		FSplineInstanceData* SplineInstanceData  = static_cast<FSplineInstanceData*>(ComponentInstanceData);
 		if (bAllowSplineEditingPerInstance)
 		{
 			SplineInfo = SplineInstanceData->SplineInfo;
