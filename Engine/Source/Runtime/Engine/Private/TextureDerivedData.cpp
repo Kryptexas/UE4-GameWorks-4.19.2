@@ -471,7 +471,6 @@ public:
 		: FScopedSlowTask(0, InMessage, IsInGameThread())
 	{
 		UE_LOG(LogTexture,Display,TEXT("%s"),*InMessage.ToString());
-		MakeDialog();
 	}
 };
 
