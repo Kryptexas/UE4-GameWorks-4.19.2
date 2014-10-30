@@ -62,9 +62,11 @@ public:
 
 	SLATE_BEGIN_ARGS(SWindowTitleBar)
 		: _Style(&FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window"))
+		, _ShowAppIcon(true)
 	{ }
 		SLATE_STYLE_ARGUMENT(FWindowStyle, Style)
-
+		SLATE_ARGUMENT(bool, ShowAppIcon)
+		SLATE_ATTRIBUTE(FText, Title)
 	SLATE_END_ARGS()
 	
 public:
@@ -81,31 +83,41 @@ public:
 	{
 		OwnerWindowPtr = InWindow;
 		Style = InArgs._Style;
-		
+		ShowAppIcon = InArgs._ShowAppIcon;
+		Title = InArgs._Title;
+
+		if (!Title.IsSet() && !Title.IsBound())
+		{
+			Title = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SWindowTitleBar::HandleWindowTitleText));
+		}
+
 		ChildSlot
 		[
 			SNew(SBorder)
-				.Padding(0.0f)
+			.Padding(0.0f)
+			.Visibility(EVisibility::SelfHitTestInvisible)
+			.BorderImage(this, &SWindowTitleBar::GetWindowTitlebackgroundImage)
+			[
+				SNew(SOverlay)
 				.Visibility(EVisibility::SelfHitTestInvisible)
-				.BorderImage(this, &SWindowTitleBar::GetWindowTitlebackgroundImage)
+				+ SOverlay::Slot()
 				[
-					SNew(SOverlay)
-						.Visibility(EVisibility::SelfHitTestInvisible)
-
-					+ SOverlay::Slot()
-						[
-							SNew(SImage)
-								.Visibility(this, &SWindowTitleBar::GetWindowFlashVisibility)
-								.Image(&Style->FlashTitleBrush )
-								.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleAreaColor)
-						]
-
-					+ SOverlay::Slot()
-						[
-							MakeTitleBarContent(InCenterContent, InCenterContentAlignment)
-						]
+					SNew(SImage)
+						.Visibility(this, &SWindowTitleBar::GetWindowFlashVisibility)
+						.Image(&Style->FlashTitleBrush )
+						.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleAreaColor)
 				]
+				+ SOverlay::Slot()
+				[
+					MakeTitleBarContent(InCenterContent, InCenterContentAlignment)
+				]
+			]
 		];
+	}
+
+	virtual EWindowZone::Type GetWindowZoneOverride() const override
+	{
+		return EWindowZone::TitleBar;
 	}
 
 public:
@@ -233,8 +245,15 @@ protected:
 #else // PLATFORM_MAC
 
 		// Windows UI layout
-		OutLeftContent = SNew(SAppIconWidget)
-			.IconColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor);
+		if (ShowAppIcon)
+		{
+			OutLeftContent = SNew(SAppIconWidget)
+				.IconColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor);
+		}
+		else
+		{
+			OutLeftContent = SNullWidget::NullWidget;
+		}
 
 		OutRightContent = SNew(SBox)
 			.Visibility(EVisibility::SelfHitTestInvisible)
@@ -296,7 +315,7 @@ protected:
 					SNew(STextBlock)
 						.Visibility(EVisibility::SelfHitTestInvisible)
 						.TextStyle(&Style->TitleTextStyle)
-						.Text(this, &SWindowTitleBar::HandleWindowTitleText)
+						.Text(Title)
 				];
 		}
 
@@ -661,4 +680,8 @@ private:
 
 	// Holds the close button.
 	TSharedPtr<SButton> CloseButton;
+
+	bool ShowAppIcon;
+
+	TAttribute<FText> Title;
 };
