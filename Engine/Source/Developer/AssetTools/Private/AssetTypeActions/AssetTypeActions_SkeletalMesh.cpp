@@ -336,7 +336,7 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	const TArray<FBoneNode> & BoneTree = Skeleton->GetBoneTree();
+	const TArray<FBoneNode>& BoneTree = Skeleton->GetBoneTree();
 	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);

@@ -332,7 +332,7 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	const TArray<FBoneNode> & BoneTree = Skeleton->GetBoneTree();
+	const TArray<FBoneNode>& BoneTree = Skeleton->GetBoneTree();
 	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
@@ -519,6 +519,23 @@ void FAssetTypeActions_Skeleton::CreateRig(const TWeakObjectPtr<USkeleton> Skele
 
 void FAssetTypeActions_Skeleton::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces)
 {
+	if((OldSkeleton && OldSkeleton->GetPreviewMesh(true) == NULL) || (NewSkeleton && NewSkeleton->GetPreviewMesh(true)==NULL))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("OldSkeletonName"), FText::FromString(GetNameSafe(OldSkeleton)));
+		Args.Add(TEXT("NewSkeletonName"), FText::FromString(GetNameSafe(NewSkeleton)));
+		FNotificationInfo Info(FText::Format(LOCTEXT("Retarget Failed", "Old Skeleton {OldSkeletonName} and New Skeleton {NewSkeletonName} need to have Preview Mesh set up to convert animation"), Args));
+		Info.ExpireDuration = 5.0f;
+		Info.bUseLargeFont = false;
+		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+		if(Notification.IsValid())
+		{
+			Notification->SetCompletionState(SNotificationItem::CS_Fail);
+		}
+
+		return;
+	}
+
 	// find all assets who references old skeleton
 	TArray<FName> Packages;
 
