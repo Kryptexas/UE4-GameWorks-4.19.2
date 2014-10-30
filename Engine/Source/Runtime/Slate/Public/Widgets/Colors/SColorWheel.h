@@ -61,6 +61,13 @@ protected:
 	 */
 	FVector2D CalcRelativeSelectedPosition( ) const;
 
+	/**
+	 * Performs actions according to mouse click / move
+	 *
+	 * @return	True if the mouse action occurred within the color wheel radius
+	 */
+	bool ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bProcessWhenOutsideColorWheel);
+
 private:
 
 	/** The color wheel image to show. */

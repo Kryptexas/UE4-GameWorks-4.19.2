@@ -61,6 +61,11 @@ protected:
 	 */
 	FVector2D CalcRelativeSelectedPosition( ) const;
 
+	/**
+	 * Performs actions according to mouse click / move
+	 */
+	void ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 private:
 
 	// The color wheel image to show.

@@ -38,6 +38,7 @@ FReply SColorSpectrum::OnMouseButtonDown( const FGeometry& MyGeometry, const FPo
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+		ProcessMouseAction(MyGeometry, MouseEvent);
 		OnMouseCaptureBegin.ExecuteIfBound();
 
 		return FReply::Handled().CaptureMouse(SharedThis(this));
@@ -67,24 +68,7 @@ FReply SColorSpectrum::OnMouseMove( const FGeometry& MyGeometry, const FPointerE
 		return FReply::Unhandled();
 	}
 
-	FVector2D NormalizedMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) / MyGeometry.Size;
-	NormalizedMousePosition = NormalizedMousePosition.ClampAxes(0.0f, 1.0f);
-
-	FLinearColor NewColor = SelectedColor.Get();
-	NewColor.R = 360.0f * NormalizedMousePosition.X;
-
-	if (NormalizedMousePosition.Y > 0.5f)
-	{
-		NewColor.G = 1.0f;
-		NewColor.B = 2.0f * (1.0f - NormalizedMousePosition.Y);
-	}
-	else
-	{
-		NewColor.G = 2.0f * NormalizedMousePosition.Y;
-		NewColor.B = 1.0f;
-	}
-
-	OnValueChanged.ExecuteIfBound(NewColor);
+	ProcessMouseAction(MyGeometry, MouseEvent);
 
 	return FReply::Handled();
 }
@@ -140,4 +124,27 @@ FVector2D SColorSpectrum::CalcRelativeSelectedPosition( ) const
 	}
 
 	return FVector2D(Color.R / 360.0f, 0.5f * Color.G);
+}
+
+
+void SColorSpectrum::ProcessMouseAction(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	FVector2D NormalizedMousePosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) / MyGeometry.Size;
+	NormalizedMousePosition = NormalizedMousePosition.ClampAxes(0.0f, 1.0f);
+
+	FLinearColor NewColor = SelectedColor.Get();
+	NewColor.R = 360.0f * NormalizedMousePosition.X;
+
+	if (NormalizedMousePosition.Y > 0.5f)
+	{
+		NewColor.G = 1.0f;
+		NewColor.B = 2.0f * (1.0f - NormalizedMousePosition.Y);
+	}
+	else
+	{
+		NewColor.G = 2.0f * NormalizedMousePosition.Y;
+		NewColor.B = 1.0f;
+	}
+
+	OnValueChanged.ExecuteIfBound(NewColor);
 }
