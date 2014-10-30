@@ -2164,17 +2164,22 @@ FString UEdGraphSchema_K2::IsPinDefaultValid(const UEdGraphPin* Pin, const FStri
 	const bool bIsReference = Pin->PinType.bIsReference;
 	const bool bIsAutoCreateRefTerm = IsAutoCreateRefTerm(Pin);
 
+	FFormatNamedArguments MessageArgs;
+	MessageArgs.Add(TEXT("PinName"), Pin->GetDisplayName());
+
 	if (OwningBP->BlueprintType != BPTYPE_Interface)
 	{
 		if( !bIsAutoCreateRefTerm )
 		{
 			if( bIsArray )
 			{
-				return TEXT("Literal values are not allowed for array parameters.  Use a Make Array node instead");
+				FText MsgFormat = LOCTEXT("BadArrayDefaultVal", "Array inputs (like '{PinName}') must have an input wired into them (try connecting a MakeArray node).");
+				return FText::Format(MsgFormat, MessageArgs).ToString();
 			}
 			else if( bIsReference )
 			{
-				return TEXT("Literal values are not allowed for pass-by-reference parameters.");
+				FText MsgFormat = LOCTEXT("BadRefDefaultVal", "'{PinName}' must have an input wired into it (\"by ref\" params expect a valid input to operate on).");
+				return FText::Format(MsgFormat, MessageArgs).ToString();
 			}
 		}
 	}

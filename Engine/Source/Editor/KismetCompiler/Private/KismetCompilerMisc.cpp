@@ -933,9 +933,19 @@ void FNodeHandlingFunctor::RegisterNets(FKismetFunctionContext& Context, UEdGrap
 				{
 					// Make sure the default value is valid
 					FString DefaultAllowedResult = CompilerContext.GetSchema()->IsCurrentPinDefaultValid(Net);
-					if (DefaultAllowedResult != TEXT(""))
+					if (!DefaultAllowedResult.IsEmpty())
 					{
-						CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("InvalidDefaultValue_Error", "Default value '%s' for @@ is invalid: '%s'").ToString(), *(Net->GetDefaultAsString()), *DefaultAllowedResult), Net);
+						FText ErrorFormat = LOCTEXT("InvalidDefault_Error", "The current value of the '@@' pin is invalid: {0}");
+						const FText InvalidReasonText = FText::FromString(DefaultAllowedResult);
+
+						FText DefaultValue = FText::FromString(Net->GetDefaultAsString());
+						if (!DefaultValue.IsEmpty())
+						{
+							ErrorFormat = LOCTEXT("InvalidDefaultVal_Error", "The current value ({1}) of the '@@' pin is invalid: {0}");
+						}
+
+						FString ErrorString = FText::Format(ErrorFormat, InvalidReasonText, DefaultValue).ToString();
+						CompilerContext.MessageLog.Error(*ErrorString, Net);
 
 						// Skip over these properties if they are array or ref properties, because the backend can't emit valid code for them
 						if( Pin->PinType.bIsArray || Pin->PinType.bIsReference )
