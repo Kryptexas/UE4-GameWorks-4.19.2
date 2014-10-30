@@ -165,8 +165,8 @@ void FSlateFontAtlasRHI::ConditionalUpdateTexture()
 		{
 			FontTexture->InitResource();
 
-			uint32 Stride;
-			uint8* TempData = (uint8*)RHILockTexture2D( FontTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false );
+			uint32 TextureStride;
+			uint8* TempData = (uint8*)RHILockTexture2D( FontTexture->GetTypedResource(), 0, RLM_WriteOnly, TextureStride, false );
 			FMemory::Memcpy( TempData, AtlasData.GetData(), Stride*AtlasWidth*AtlasHeight );
 			RHIUnlockTexture2D( FontTexture->GetTypedResource(),0,false );
 		}
@@ -179,8 +179,8 @@ void FSlateFontAtlasRHI::ConditionalUpdateTexture()
 			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( SlateUpdateFontTextureCommand,
 				FSlateFontAtlasRHI&, Atlas, *this,
 			{
-				uint32 Stride;
-				uint8* TempData = (uint8*)RHILockTexture2D( Atlas.FontTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false );
+				uint32 TextureStride;
+				uint8* TempData = (uint8*)RHILockTexture2D( Atlas.FontTexture->GetTypedResource(), 0, RLM_WriteOnly, TextureStride, false );
 				FMemory::Memcpy( TempData, Atlas.AtlasData.GetData(), Atlas.Stride*Atlas.AtlasWidth*Atlas.AtlasHeight );
 				RHIUnlockTexture2D( Atlas.FontTexture->GetTypedResource(),0,false );
 			});
