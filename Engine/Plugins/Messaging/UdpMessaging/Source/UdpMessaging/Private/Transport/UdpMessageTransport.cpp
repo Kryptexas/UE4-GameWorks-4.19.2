@@ -32,7 +32,21 @@ FUdpMessageTransport::~FUdpMessageTransport()
 
 bool FUdpMessageTransport::StartTransport()
 {
-	// create network sockets
+	// create & initialize unicast socket
+	UnicastSocket = FUdpSocketBuilder(TEXT("UdpMessageUnicastSocket"))
+		.AsNonBlocking()
+		.WithMulticastLoopback()
+		.BoundToEndpoint(LocalEndpoint)
+		.WithReceiveBufferSize(UDP_MESSAGING_RECEIVE_BUFFER_SIZE);
+
+	if (UnicastSocket == nullptr)
+	{
+		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
+
+		return false;
+	}
+
+	// create & initialize multicast socket (optional)
 	MulticastSocket = FUdpSocketBuilder(TEXT("UdpMessageMulticastSocket"))
 		.AsNonBlocking()
 		.AsReusable()
@@ -40,45 +54,27 @@ bool FUdpMessageTransport::StartTransport()
 		.BoundToPort(MulticastEndpoint.GetPort())
 		.JoinedToGroup(MulticastEndpoint.GetAddress())
 		.WithMulticastLoopback()
-		.WithMulticastTtl(MulticastTtl);
+		.WithMulticastTtl(MulticastTtl)
+		.WithReceiveBufferSize(UDP_MESSAGING_RECEIVE_BUFFER_SIZE);
 
 	if (MulticastSocket == nullptr)
 	{
 		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create multicast socket on %s, joined to %s with TTL %i"), *LocalEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString(), MulticastTtl);
-
-		return false;
 	}
-
-	UnicastSocket = FUdpSocketBuilder(TEXT("UdpMessageUnicastSocket"))
-		.AsNonBlocking()
-		.WithMulticastLoopback()
-		.BoundToEndpoint(LocalEndpoint);
-
-	if (UnicastSocket == nullptr)
-	{
-		SocketSubsystem->DestroySocket(MulticastSocket);
-		MulticastSocket = nullptr;
-
-		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
-
-		return false;
-	}
-
-	// adjust buffer sizes
-	int32 NewSize = 0;
-	MulticastSocket->SetReceiveBufferSize(2 * 1024 * 1024, NewSize);
-	UnicastSocket->SetReceiveBufferSize(2 * 1024 * 1024, NewSize);
-
-	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
 
 	// initialize threads
+	FTimespan ThreadWaitTime = FTimespan::FromMilliseconds(100);
+
 	MessageProcessor = new FUdpMessageProcessor(UnicastSocket, FGuid::NewGuid(), MulticastEndpoint);
 	MessageProcessor->OnMessageReassembled().BindRaw(this, &FUdpMessageTransport::HandleProcessorMessageReassembled);
 	MessageProcessor->OnNodeDiscovered().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeDiscovered);
 	MessageProcessor->OnNodeLost().BindRaw(this, &FUdpMessageTransport::HandleProcessorNodeLost);
 
-	MulticastReceiver = new FUdpSocketReceiver(MulticastSocket, ThreadWaitTime, TEXT("UdpMessageMulticastReceiver"));
-	MulticastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
+	if (MulticastSocket != nullptr)
+	{
+		MulticastReceiver = new FUdpSocketReceiver(MulticastSocket, ThreadWaitTime, TEXT("UdpMessageMulticastReceiver"));
+		MulticastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);
+	}
 
 	UnicastReceiver = new FUdpSocketReceiver(UnicastSocket, ThreadWaitTime, TEXT("UdpMessageUnicastReceiver"));
 	UnicastReceiver->OnDataReceived().BindRaw(this, &FUdpMessageTransport::HandleSocketDataReceived);

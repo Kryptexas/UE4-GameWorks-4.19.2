@@ -26,6 +26,9 @@
 /** Defines the maximum number of recipients a message can have. */
 #define UDP_MESSAGING_MAX_RECIPIENTS 1024
 
+/** Defines the desired size of socket receive buffers (in bytes). */
+#define UDP_MESSAGING_RECEIVE_BUFFER_SIZE 2 * 1024 * 1024
+
 /** Defines the protocol version of the UDP message transport. */
 #define UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION 10
 
