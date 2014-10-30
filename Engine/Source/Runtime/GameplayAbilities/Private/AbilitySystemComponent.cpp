@@ -13,8 +13,6 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
-#pragma optimize( "", off )
-
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
