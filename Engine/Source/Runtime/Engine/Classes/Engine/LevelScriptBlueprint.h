@@ -6,6 +6,17 @@
 
 #include "LevelScriptBlueprint.generated.h"
 
+/**
+ * A level blueprint is a specialized type of blueprint. It is used to house
+ * global, level-wide logic. In a level blueprint, you can operate on specific 
+ * level-actor instances through blueprint's node-based interface. UE3 users 
+ * should be familiar with this concept, as it is very similar to Kismet.
+ *
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Blueprints/UserGuide/Types/LevelBlueprint/index.html
+ * @see https://docs.unrealengine.com/latest/INT/Engine/Blueprints/index.html
+ * @see UBlueprint
+ * @see ALevelScriptActor
+ */
 UCLASS(MinimalAPI, NotBlueprintType)
 class ULevelScriptBlueprint : public UBlueprint
 {
