@@ -553,6 +553,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	Spec.CapturedSourceTags.RemoveAllTags();
 	Owner->GetOwnedGameplayTags(Spec.CapturedSourceTags);
 
+	Spec.CalculateModifierMagnitudes();
 
 	// ------------------------------------------------------
 	//	Modifiers
