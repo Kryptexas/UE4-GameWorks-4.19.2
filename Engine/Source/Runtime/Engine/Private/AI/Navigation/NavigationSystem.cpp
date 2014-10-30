@@ -2857,7 +2857,7 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 	{
 		RemoveLevelCollisionFromOctree(InLevel);
 
-		if (!InLevel->IsPersistentLevel())
+		if (InLevel && !InLevel->IsPersistentLevel())
 		{
 			for (ANavigationData* NavData : NavDataSet)
 			{
