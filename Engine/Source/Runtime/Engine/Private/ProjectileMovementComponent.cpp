@@ -28,13 +28,20 @@ UProjectileMovementComponent::UProjectileMovementComponent(const FObjectInitiali
 
 	MaxSimulationTimeStep = 0.05f;
 	MaxSimulationIterations = 8;
+
+	bBounceAngleAffectsFriction = false;
+	bIsSliding = false;
+	PreviousHitTime = 1.f;
+	PreviousHitNormal = FVector::UpVector;
 }
 
-void UProjectileMovementComponent::Serialize( FArchive& Ar)
+void UProjectileMovementComponent::PostLoad()
 {
-	Super::Serialize(Ar);
+	Super::PostLoad();
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REFACTOR_PROJECTILE_MOVEMENT)
+	const int32 LinkerUE4Ver = GetLinkerUE4Version();
+
+	if (LinkerUE4Ver < VER_UE4_REFACTOR_PROJECTILE_MOVEMENT)
 	{
 		// Old code used to treat Bounciness as Friction as well.
 		Friction = FMath::Clamp(1.f - Bounciness, 0.f, 1.f);
@@ -101,11 +108,9 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	}
 
 	float RemainingTime	= DeltaTime;
-	int32	NumBounces = 0;
+	int32 NumBounces = 0;
 	int32 Iterations = 0;
 	FHitResult Hit(1.f);
-	FVector OldHitNormal(0.f,0.f,1.f);
-	float PreviousHitTime = 1.f;
 
 	while( RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent )
 	{
@@ -144,6 +149,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		if( !Hit.bBlockingHit )
 		{
 			PreviousHitTime = 1.f;
+			bIsSliding = false;
 
 			// Only calculate new velocity if events didn't change it during the movement update.
 			if (Velocity == OldVelocity)
@@ -169,19 +175,19 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			float SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
 
 			// Multiple hits within very short time period?
-			const bool bMultiHit = (PreviousHitTime <= KINDA_SMALL_NUMBER && Hit.Time <= KINDA_SMALL_NUMBER);
-			
+			const bool bMultiHit = (PreviousHitTime < 1.f && Hit.Time <= KINDA_SMALL_NUMBER);
+
 			// if velocity still into wall (after HandleHitWall() had a chance to adjust), slide along wall
 			const float DotTolerance = 0.01f;
-			const bool bSliding = (bMultiHit && FVector::Coincident(OldHitNormal, Hit.Normal)) ||
-								  ((Velocity.SafeNormal() | Hit.Normal) <= DotTolerance);
+			bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Hit.Normal)) ||
+						 ((Velocity.SafeNormal() | Hit.Normal) <= DotTolerance);
 			
-			if (bSliding)
+			if (bIsSliding)
 			{
-				if (bMultiHit && (OldHitNormal | Hit.Normal) <= 0.f)
+				if (bMultiHit && (PreviousHitNormal | Hit.Normal) <= 0.f)
 				{
 					//90 degree or less corner, so use cross product for direction
-					FVector NewDir = (Hit.Normal ^ OldHitNormal);
+					FVector NewDir = (Hit.Normal ^ PreviousHitNormal);
 					NewDir = NewDir.SafeNormal();
 					Velocity = Velocity.ProjectOnToNormal(NewDir);
 					if ((OldVelocity | Velocity) < 0.f)
@@ -213,7 +219,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			}
 
 			PreviousHitTime = Hit.Time;
-			OldHitNormal = Hit.Normal;
+			PreviousHitNormal = Hit.Normal;
 			
 			// A few initial bounces should add more time and iterations to complete most of the simulation.
 			if (NumBounces <= 2 && SubTickTimeRemaining >= MIN_TICK_TIME)
@@ -398,7 +404,7 @@ FVector UProjectileMovementComponent::ComputeBounceResult(const FHitResult& Hit,
 		TempVelocity += ProjectedNormal;
 
 		// Only tangential velocity should be affected by friction.
-		const float ScaledFriction = FMath::Clamp(-VDotNormal / TempVelocity.Size(), 0.f, 1.f) * Friction;
+		const float ScaledFriction = (bBounceAngleAffectsFriction || bIsSliding) ? FMath::Clamp(-VDotNormal / TempVelocity.Size(), 0.f, 1.f) * Friction : Friction;
 		TempVelocity *= FMath::Clamp(1.f - ScaledFriction, 0.f, 1.f);
 
 		// Coefficient of restitution only applies perpendicular to impact.

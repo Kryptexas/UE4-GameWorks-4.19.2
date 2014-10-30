@@ -62,6 +62,28 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Homing)
 	uint32 bIsHomingProjectile:1;
 
+	/**
+	 * Controls the effects of friction on velocity parallel to the impact surface when bouncing.
+	 * If true, friction will be modified based on the angle of impact, making friction higher for perpendicular impacts and lower for glancing impacts.
+	 * If false, a bounce will retain a proportion of tangential velocity equal to (1.0 - Friction), acting as a "horizontal restitution".
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ProjectileBounces)
+	uint32 bBounceAngleAffectsFriction:1;
+
+	/**
+	 * If true, projectile is sliding / rolling along a surface.
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=ProjectileBounces)
+	uint32 bIsSliding:1;
+
+	/** Saved HitResult Time (0 to 1) from previous simulation step. Equal to 1.0 when there was no impact. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=ProjectileBounces)
+	float PreviousHitTime;
+
+	/** Saved HitResult Normal from previous simulation step that resulted in an impact. If PreviousHitTime is 1.0, then the hit was not in the last step. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=ProjectileBounces)
+	FVector PreviousHitNormal;
+
 	/** Custom gravity scale for this projectile. Set to 0 for no gravity. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Projectile)
 	float ProjectileGravityScale;
@@ -82,6 +104,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	 * Normal range is [0,1] : 0.0 = no friction, 1.0+ = very high friction.
 	 * Also affects the percentage of velocity maintained after the bounce in the direction tangent to the normal of impact.
 	 * Ignored if bShouldBounce is false.
+	 * @see bBounceAngleAffectsFriction
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ProjectileBounces, meta=(ClampMin="0", UIMin="0"))
 	float Friction;
@@ -118,7 +141,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 
 	//Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	virtual void Serialize( FArchive& Ar) override;
+	virtual void PostLoad() override;
 	//End UActorComponent Interface
 
 	//Begin UMovementComponent Interface
@@ -199,7 +222,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 
 protected:
 
-	/** @return true if the wall hit has been fully processed, and no further movement is needed */
+	/** @return true if the simulation should stop. */
 	bool HandleHitWall(const FHitResult& Hit, float TimeTick, const FVector& MoveDelta);
 
 	/** Applies bounce logic (if enabled) to affect velocity upon impact, or stops the projectile if bounces are not enabled (or velocity is below threshold). Fires applicable events. */

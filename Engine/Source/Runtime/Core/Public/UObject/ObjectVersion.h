@@ -636,6 +636,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION,
 	// Made Slate font data use bulk data to store the embedded font data
 	VER_UE4_SLATE_BULK_FONT_DATA,
+	// Add new friction behavior in ProjectileMovementComponent.
+	VER_UE4_ADD_PROJECTILE_FRICTION_BEHAVIOR,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
