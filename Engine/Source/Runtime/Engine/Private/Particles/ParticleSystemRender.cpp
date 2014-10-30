@@ -2231,6 +2231,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					{
 						Mesh.Type = PT_TriangleList;
 						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						Mesh.bWireframe = false;
 						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
 						BatchElement.FirstIndex = Section.FirstIndex;
 						BatchElement.NumPrimitives = Section.NumTriangles;
