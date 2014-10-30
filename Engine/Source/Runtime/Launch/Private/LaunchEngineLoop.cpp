@@ -2003,10 +2003,10 @@ void FEngineLoop::Exit()
 		GEngine->PreExit();
 	}
 
-	AppPreExit();
-
 	// close all windows
 	FSlateApplication::Shutdown();
+
+	AppPreExit();
 
 	// Shutdown and unregister all online subsystems
 	Online::ShutdownOnlineSubsystem();
