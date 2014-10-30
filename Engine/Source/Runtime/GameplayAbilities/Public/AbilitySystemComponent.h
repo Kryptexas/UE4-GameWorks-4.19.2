@@ -93,6 +93,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 		return Subobject;
 	}
 
+	bool HasAttributeSetForAttribute(FGameplayAttribute Attribute) const;
+
 	const UAttributeSet* InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
 
 	UFUNCTION(BlueprintCallable, Category="Skills", meta=(FriendlyName="InitStats"))

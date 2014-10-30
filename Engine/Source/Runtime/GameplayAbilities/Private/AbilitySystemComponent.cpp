@@ -111,6 +111,11 @@ const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobject(const TSubcl
 	return NULL;
 }
 
+bool UAbilitySystemComponent::HasAttributeSetForAttribute(FGameplayAttribute Attribute) const
+{
+	return (GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr);
+}
+
 void UAbilitySystemComponent::OnRegister()
 {
 	Super::OnRegister();
@@ -341,9 +346,21 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Effects with other effects may be a mix so go with non-predictive
 	check((PredictionKey.IsValidKey() == false) || (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
 
+	// Check Tag requirements
 	if (!HasNetworkAuthorityToApplyGameplayEffect(PredictionKey))
 	{
 		return FActiveGameplayEffectHandle();
+	}
+
+	// Check AttributeSet requirements: do we have everything this GameplayEffectSpec expects?
+	// We may want to cache this off in some way to make the runtime check quicker.
+	// We also need to handle things in the execution list
+	for (const FModifierSpec& Mod : Spec.Modifiers)
+	{
+		if (HasAttributeSetForAttribute(Mod.Info.Attribute) == false)
+		{
+			return FActiveGameplayEffectHandle();
+		}
 	}
 
 	// check if the effect being applied actually succeeds
