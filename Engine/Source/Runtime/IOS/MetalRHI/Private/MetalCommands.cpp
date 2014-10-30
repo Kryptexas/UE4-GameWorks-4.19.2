@@ -411,8 +411,8 @@ void FMetalDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 		const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
 		FMetalSurface& RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
 
-		uint32 Width = FMath::Max(RenderTarget.Texture.width >> RenderTargetView.MipIndex, (uint32)1);
-		uint32 Height = FMath::Max(RenderTarget.Texture.height >> RenderTargetView.MipIndex, (uint32)1);
+		uint32 Width = FMath::Max((uint32)(RenderTarget.Texture.width >> RenderTargetView.MipIndex), (uint32)1);
+		uint32 Height = FMath::Max((uint32)(RenderTarget.Texture.height >> RenderTargetView.MipIndex), (uint32)1);
 
 		RHISetViewport(0, 0, 0.0f, Width, Height, 1.0f);
 	}

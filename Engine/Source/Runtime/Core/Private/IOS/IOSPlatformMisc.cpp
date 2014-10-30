@@ -645,7 +645,7 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 		{
 			size_t TableSize = 0;
 			
-			uint32 aTag = (uint32)CFArrayGetValueAtIndex(Tags, TableIndex);
+			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
 			if (aTag == 'CFF ' && !bContainsCFFTable)
 			{
 				bContainsCFFTable = true;
@@ -700,7 +700,7 @@ void GetBytesForFont(const NSString* InFontName, OUT TArray<uint8>& OutBytes)
 
 		for (int TableIndex = 0; TableIndex < TableCount; ++TableIndex)
 		{
-			uint32 aTag = (uint32)CFArrayGetValueAtIndex(Tags, TableIndex);
+			uint64 aTag = (uint64)CFArrayGetValueAtIndex(Tags, TableIndex);
 			CFDataRef TableDataRef = CGFontCopyTableForTag(cgFont, aTag);
 			uint32 TableSize = CFDataGetLength(TableDataRef);
 

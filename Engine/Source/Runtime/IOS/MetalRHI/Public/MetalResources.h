@@ -186,8 +186,7 @@ public:
 	uint64 TotalTextureSize;
 
 private:
-	// a mapping of formats to small key, to fit into the PipelineState hash key
-	static TMap<MTLPixelFormat, uint8> PixelFormatKeyMap;
+	// next format for the pixel format mapping
 	static uint8 NextKey;
 };
 

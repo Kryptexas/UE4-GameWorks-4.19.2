@@ -6,7 +6,6 @@
 
 #include "MetalRHIPrivate.h"
 
-TMap<MTLPixelFormat, uint8> FMetalSurface::PixelFormatKeyMap;
 uint8 FMetalSurface::NextKey = 1; // 0 is reserved for MTLPixelFormatInvalid
 
 /** Texture reference class. */
@@ -84,6 +83,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	, TotalTextureSize(0)
 {
 	// get a unique key for this surface's format
+	static TMap<uint32, uint8> PixelFormatKeyMap;
 	MTLPixelFormat MTLFormat = (MTLPixelFormat)GPixelFormats[Format].PlatformFormat;
 	uint8* Key = PixelFormatKeyMap.Find(MTLFormat);
 	if (Key == NULL)
