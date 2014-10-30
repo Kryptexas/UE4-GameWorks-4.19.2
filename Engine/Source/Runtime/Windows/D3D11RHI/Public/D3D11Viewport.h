@@ -80,7 +80,7 @@ public:
 		CustomPresent = InCustomPresent;
 	}
 
-	virtual void* GetNativeWindow(void** AddParam = nullptr) const override { return (void*)&WindowHandle; }
+	virtual void* GetNativeWindow(void** AddParam = nullptr) const override { return (void*)WindowHandle; }
 
 private:
 

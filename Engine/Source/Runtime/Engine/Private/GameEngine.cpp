@@ -61,6 +61,11 @@ static FAutoConsoleCommand GDumpDrawListStatsCmd(
 
 int32 GetBoundFullScreenModeCVar()
 {
+	if (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	{
+		// For HMD, Fullscreen mode should be always 0 (normal fullscreen).
+		return 0;
+	}
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode")); 
 
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -82,7 +87,7 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if ((WindowMode != EWindowMode::Windowed) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullScreenAllowed())
+		if ((WindowMode != EWindowMode::Windowed) && GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsFullscreenAllowed())
 		{
 			return EWindowMode::Fullscreen;
 		}

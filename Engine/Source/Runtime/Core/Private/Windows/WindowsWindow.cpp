@@ -446,7 +446,15 @@ void FWindowsWindow::Hide()
 /** Toggle native window between fullscreen and normal mode */
 void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 {
-	if( NewWindowMode != WindowMode )
+	EWindowMode::Type InNewWindowMode = NewWindowMode;
+
+	if (InNewWindowMode == EWindowMode::WindowedMirror)
+	{
+		// treat WindowedMirror as a regular Windowed mode here
+		InNewWindowMode = EWindowMode::Windowed;
+	}
+
+	if( InNewWindowMode != WindowMode )
 	{
 		bool bTrueFullscreen = NewWindowMode == EWindowMode::Fullscreen;
 
@@ -456,16 +464,14 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		const LONG RestoredFlags = WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_CAPTION | WS_SYSMENU | WS_OVERLAPPED | WS_BORDER;
 
 		// If we're not in fullscreen, make it so
-		if( NewWindowMode == EWindowMode::WindowedFullscreen || NewWindowMode == EWindowMode::Fullscreen || NewWindowMode == EWindowMode::WindowedMirror)
+		if( NewWindowMode == EWindowMode::WindowedFullscreen || NewWindowMode == EWindowMode::Fullscreen)
 		{
 			::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
 
 			// Setup Win32 flags for fullscreen window
-			if (NewWindowMode != EWindowMode::WindowedMirror)
-			{
-				WindowFlags &= ~RestoredFlags;
-				WindowFlags |= FullscreenFlags;
-			}
+			WindowFlags &= ~RestoredFlags;
+			WindowFlags |= FullscreenFlags;
+
 			SetWindowLong(HWnd, GWL_STYLE, WindowFlags);
 
 			if (!bTrueFullscreen)

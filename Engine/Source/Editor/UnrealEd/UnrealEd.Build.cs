@@ -115,6 +115,7 @@ public class UnrealEd : ModuleRules
                 "InternationalizationSettings",
                 "JsonUtilities",
 				"Landscape",
+				"HeadMountedDisplay",
 			}
 		);
 

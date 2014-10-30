@@ -653,6 +653,11 @@ void FCanvas::Flush_GameThread(bool bForce)
 	{
 		ViewRect = FIntRect( FIntPoint::ZeroValue, RenderTarget->GetSizeXY() );
 	}
+	if (IsScaledToRenderTarget() && IsValidRef(RenderTarget->GetRenderTargetTexture()))
+	{
+		ViewRect = FIntRect(0, 0, RenderTarget->GetRenderTargetTexture()->GetSizeX(), 
+								  RenderTarget->GetRenderTargetTexture()->GetSizeY());
+	}
 
 	struct FCanvasFlushParameters
 	{

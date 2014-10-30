@@ -212,6 +212,8 @@ public:
 	virtual void OnViewportClosed() override;
 	virtual FIntPoint GetSize() const override { return GetSizeXY(); }
 	
+	void SetViewportSize(uint32 NewSizeX,uint32 NewSizeY);
+	TSharedPtr<SWindow> FindWindow();
 private:
 	/**
 	 * Called when this viewport is destroyed

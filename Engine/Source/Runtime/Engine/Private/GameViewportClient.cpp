@@ -990,7 +990,28 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 							DebugCanvasObject->SceneView = View;
 							PlayerController->MyHUD->SetCanvas(CanvasObject, DebugCanvasObject);
-							PlayerController->MyHUD->PostRender();
+							if (GEngine->IsStereoscopic3D())
+							{
+								check(GEngine->StereoRenderingDevice.IsValid());
+								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, SceneCanvas, CanvasObject, Viewport);
+								PlayerController->MyHUD->PostRender();
+								SceneCanvas->PopTransform();
+
+								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, SceneCanvas, CanvasObject, Viewport);
+								PlayerController->MyHUD->PostRender();
+								SceneCanvas->PopTransform();
+
+								// Reset the canvas for rendering to the full viewport.
+								CanvasObject->Reset();
+								CanvasObject->SizeX = View->UnscaledViewRect.Width();
+								CanvasObject->SizeY = View->UnscaledViewRect.Height();
+								CanvasObject->SetView(NULL);
+								CanvasObject->Update();
+							}
+							else
+							{
+								PlayerController->MyHUD->PostRender();
+							}
 							
 							// Put these pointers back as if a blueprint breakpoint hits during HUD PostRender they can
 							// have been changed
@@ -2433,7 +2454,19 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	auto FullScreenMode = GetBoundFullScreenModeCVar() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
-	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode);
+	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
+	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+	{
+		if (!GEngine->HMDDevice->IsFullscreenAllowed())
+		{
+			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::WindowedMirror;
+		}
+		else
+		{
+			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
+		}
+	}
+	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, FullScreenMode);
 	return true;
 }
 
@@ -2446,7 +2479,7 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		int32 Y=FCString::Atoi(CmdTemp);
 		Cmd = CmdTemp;
 		EWindowMode::Type WindowMode;
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled() && !GEngine->HMDDevice->IsFullScreenAllowed())
+		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled() && !GEngine->HMDDevice->IsFullscreenAllowed())
 		{
 			WindowMode = Viewport->IsFullscreen() ? EWindowMode::WindowedMirror : EWindowMode::Windowed;
 		}

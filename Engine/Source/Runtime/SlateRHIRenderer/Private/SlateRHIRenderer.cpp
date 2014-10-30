@@ -245,7 +245,8 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 
 	if( !WindowToViewportInfo.Contains( &Window.Get() ) )
 	{
-		const FVector2D WindowSize = Window->GetSizeInScreen();
+		const FVector2D WindowSize = Window->GetViewportSize();
+
 		// Clamp the window size to a reasonable default anything below 8 is a d3d warning and 8 is used anyway.
 		// @todo Slate: This is a hack to work around menus being summoned with 0,0 for window size until they are ticked.
 		const uint32 Width = FMath::Max(8,FMath::TruncToInt(WindowSize.X));
@@ -569,7 +570,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 		if( Window.IsValid() )
 		{
-			const FVector2D WindowSize = Window->GetSizeInScreen();
+			const FVector2D WindowSize = Window->GetViewportSize();
 			if ( WindowSize.X > 0 && WindowSize.Y > 0 )
 			{
 				// Add all elements for this window to the element batcher
@@ -597,8 +598,11 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 				// The viewport had better exist at this point  
 				FViewportInfo* ViewInfo = WindowToViewportInfo.FindChecked( Window.Get() );
 
-				// Resize the viewport if needed
-				ConditionalResizeViewport( ViewInfo, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight, IsViewportFullscreen( *Window )  );
+				if (Window->IsViewportAutoResizeable())
+				{
+					// Resize the viewport if needed
+					ConditionalResizeViewport(ViewInfo, ViewInfo->DesiredWidth, ViewInfo->DesiredHeight, IsViewportFullscreen(*Window));
+				}
 
 				if( bRequiresStencilTest )
 				{	

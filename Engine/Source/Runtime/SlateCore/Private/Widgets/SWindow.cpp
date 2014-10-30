@@ -604,6 +604,7 @@ FGeometry SWindow::GetWindowGeometryInWindow() const
 	// FGeometry expects Size in Local space, but our size is stored in screen space (same as window space + screen offset).
 	// So we need to transform Size into the window's local space for FGeometry.
 	FSlateLayoutTransform LocalToWindow = GetLocalToWindowTransform();
+	FVector2D Size = GetViewportSize();
 	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToWindow), Size), LocalToWindow );
 }
 
@@ -669,6 +670,7 @@ FVector2D SWindow::GetClientSizeInScreen() const
 
 FSlateRect SWindow::GetClippingRectangleInWindow() const
 {
+	FVector2D Size = GetViewportSize();
 	return FSlateRect( 0, 0, Size.X, Size.Y );
 }
 
@@ -1718,6 +1720,7 @@ SWindow::SWindow()
 	, ScreenPosition( FVector2D::ZeroVector )
 	, PreFullscreenPosition( FVector2D::ZeroVector )
 	, Size( FVector2D::ZeroVector )
+	, ViewportSize( FVector2D::ZeroVector )
 	, TitleBarSize( SWindowDefs::DefaultTitleBarSize )
 	, ContentSlot(nullptr)
 	, Style( &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window") )
@@ -1784,7 +1787,8 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 		NativeWindow->SetWindowMode( NewWindowMode );
 	
-		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState( SharedThis(this), Size.X, Size.Y );
+		FVector2D vp = GetViewportSize();
+		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(SharedThis(this), vp.X, vp.Y);
 
 		if( TitleArea.IsValid() )
 		{

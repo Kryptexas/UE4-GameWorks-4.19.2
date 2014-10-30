@@ -11,7 +11,9 @@
 #include "ScenePrivate.h"
 #include "PostProcess/PostProcessHMD.h"
 
-#ifndef OVR_DIRECT_RENDERING
+#include "SlateBasics.h"
+
+#ifndef OVR_SDK_RENDERING
 void FOculusRiftHMD::FDistortionMesh::Clear()
 {
 	delete[] pVertices;
@@ -24,16 +26,16 @@ void FOculusRiftHMD::FDistortionMesh::Clear()
 
 FOculusRiftHMD::FRenderParams::FRenderParams(FOculusRiftHMD* plugin)
 	: 
-#ifndef OVR_DIRECT_RENDERING
+#ifndef OVR_SDK_RENDERING
 	  CurHmdOrientation(FQuat::Identity)
-	, CurHmdPosition(FVector::ZeroVector)
 	,
-#endif // OVR_DIRECT_RENDERING
-	 bFrameBegun(false)
+#endif // OVR_SDK_RENDERING
+	  FrameNumber(~0u)
+	, bFrameBegun(false)
 	, bTimeWarp(false)
 	, ShowFlags(ESFIM_All0)
 {
-	#ifndef OVR_DIRECT_RENDERING
+	#ifndef OVR_SDK_RENDERING
 	FMemory::Memset(UVScale, 0, sizeof(UVScale));
 	FMemory::Memset(UVOffset, 0, sizeof(UVOffset));
 	#endif
@@ -41,7 +43,7 @@ FOculusRiftHMD::FRenderParams::FRenderParams(FOculusRiftHMD* plugin)
 
 void FOculusRiftHMD::PrecalculatePostProcess_NoLock()
 {
-#ifndef OVR_DIRECT_RENDERING
+#ifndef OVR_SDK_RENDERING
 	for (unsigned eyeNum = 0; eyeNum < 2; ++eyeNum)
 	{
 		// Allocate & generate distortion mesh vertices.
@@ -94,7 +96,7 @@ void FOculusRiftHMD::PrecalculatePostProcess_NoLock()
 
 void FOculusRiftHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize)
 {
-#ifndef OVR_DIRECT_RENDERING
+#ifndef OVR_SDK_RENDERING
 	float ClipSpaceQuadZ = 0.0f;
 	FMatrix QuadTexTransform = FMatrix::Identity;
 	FMatrix QuadPosTransform = FMatrix::Identity;
@@ -102,8 +104,9 @@ void FOculusRiftHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassCont
 
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
-	FIntPoint ViewportSize = ViewFamily.RenderTarget->GetSizeXY();
-	RHICmdList.SetViewport(0, 0, 0.0f, ViewportSize.X, ViewportSize.Y, 1.0f);
+	int ViewportSizeX = ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeX();
+	int ViewportSizeY = ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY();
+	RHICmdList.SetViewport(0, 0, 0.0f, ViewportSizeX, ViewportSizeY, 1.0f);
 
 	Ptr<FDistortionMesh> mesh = RenderParams_RenderThread.pDistortionMesh[(View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1];
 
@@ -117,7 +120,7 @@ void FOculusRiftHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassCont
 void FOculusRiftHMD::GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
 {
 	check(IsInRenderingThread());
-#ifndef OVR_DIRECT_RENDERING
+#ifndef OVR_SDK_RENDERING
 	const unsigned eyeIdx = (StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
 	EyeToSrcUVOffsetValue.X = RenderParams_RenderThread.UVOffset[eyeIdx].x;
 	EyeToSrcUVOffsetValue.Y = RenderParams_RenderThread.UVOffset[eyeIdx].y;
@@ -132,7 +135,7 @@ void FOculusRiftHMD::GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPas
 void FOculusRiftHMD::GetTimewarpMatrices_RenderThread(EStereoscopicPass StereoPass, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const
 {
 	check(IsInRenderingThread());
-#ifndef OVR_DIRECT_RENDERING
+#ifndef OVR_SDK_RENDERING
 	const ovrEyeType eye = (StereoPass == eSSP_LEFT_EYE) ? ovrEye_Left : ovrEye_Right;
 	ovrMatrix4f timeWarpMatrices[2];
 	if (RenderParams_RenderThread.bFrameBegun)
@@ -146,23 +149,29 @@ void FOculusRiftHMD::GetTimewarpMatrices_RenderThread(EStereoscopicPass StereoPa
 #endif
 }
 
-void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
+void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily, uint32 InFrameNumber)
 {
 	check(IsInRenderingThread());
 
 	RenderParams_RenderThread.ShowFlags = ViewFamily.EngineShowFlags;
+	// FrameNumber comes from SceneRenderer.FrameNumber and contains already incremented
+	// GFrameNumber. Therefore, decrementing it to match with the frame number used on a game thread.
+	RenderParams_RenderThread.FrameNumber = InFrameNumber - 1;
 
-#ifndef OVR_DIRECT_RENDERING 
+#ifndef OVR_SDK_RENDERING 
 	{
 		// make a copy of StereoParams to access from the RenderThread.
 		Lock::Locker lock(&StereoParamsLock);
+		RenderParams_RenderThread.EyeRenderDesc[0] = EyeRenderDesc[0];
+		RenderParams_RenderThread.EyeRenderDesc[1] = EyeRenderDesc[1];
 		RenderParams_RenderThread.UVScale[0] = UVScaleOffset[0][0];
 		RenderParams_RenderThread.UVScale[1] = UVScaleOffset[1][0];
 		RenderParams_RenderThread.UVOffset[0] = UVScaleOffset[0][1];
 		RenderParams_RenderThread.UVOffset[1] = UVScaleOffset[1][1];
 		RenderParams_RenderThread.pDistortionMesh[0] = pDistortionMesh[0];
 		RenderParams_RenderThread.pDistortionMesh[1] = pDistortionMesh[1];
-		RenderParams_RenderThread.bTimeWarp = bTimeWarp;
+		RenderParams_RenderThread.bTimeWarp = Flags.bTimeWarp;
+		RenderParams_RenderThread.DeltaControlOrientation = DeltaControlOrientation;
 	}
 #else
 	{
@@ -172,15 +181,21 @@ void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFami
 		RenderParams_RenderThread.EyeRenderDesc[1] = EyeRenderDesc[1];
 		RenderParams_RenderThread.EyeFov[0] = EyeFov[0];
 		RenderParams_RenderThread.EyeFov[1] = EyeFov[1];
-		RenderParams_RenderThread.bTimeWarp = bTimeWarp;
+		RenderParams_RenderThread.bTimeWarp = Flags.bTimeWarp;
+		RenderParams_RenderThread.DeltaControlOrientation = DeltaControlOrientation;
 	}
 #endif
-	// get latest orientation/position and cache it
-	if (bUpdateOnRT)
+
+	if (RenderParams_RenderThread.ShowFlags.Rendering)
 	{
-		Lock::Locker lock(&UpdateOnRTLock);
-		RenderParams_RenderThread.LastHmdPosition = LastHmdPosition;
-		RenderParams_RenderThread.DeltaControlOrientation = DeltaControlOrientation;
+		// get latest orientation/position and cache it
+		ovrTrackingState ts;
+		ovrVector3f hmdToEyeViewOffset[2] =
+		{
+			RenderParams_RenderThread.EyeRenderDesc[0].HmdToEyeViewOffset,
+			RenderParams_RenderThread.EyeRenderDesc[1].HmdToEyeViewOffset
+		};
+		ovrHmd_GetEyePoses(Hmd, RenderParams_RenderThread.FrameNumber, hmdToEyeViewOffset, RenderParams_RenderThread.EyeRenderPose, &ts);
 	}
 
 	BeginRendering_RenderThread();
@@ -191,24 +206,23 @@ void FOculusRiftHMD::PreRenderView_RenderThread(FSceneView& View)
 	check(IsInRenderingThread());
 
 	if (!RenderParams_RenderThread.ShowFlags.Rendering)
+	{
 		return;
+	}
 
 	const ovrEyeType eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? ovrEye_Left : ovrEye_Right;
-	FQuat	CurrentHmdOrientation;
-	FVector	CurrentHmdPosition;
+	FQuat	CurrentEyeOrientation;
+	FVector	CurrentEyePosition;
 
-	// Get new predicted pose to corresponding eye.
-	ovrPosef eyeRenderPose = ovrHmd_GetEyePose(Hmd, eyeIdx);
-	PoseToOrientationAndPosition(eyeRenderPose, CurrentHmdOrientation, CurrentHmdPosition);
-	RenderParams_RenderThread.EyeRenderPose[eyeIdx] = eyeRenderPose;
+	PoseToOrientationAndPosition(RenderParams_RenderThread.EyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
 
-	if (bUpdateOnRT)
+	if (Flags.bUpdateOnRT)
 	{
-		// Apply updated pose to corresponding View at recalc matrices.
-		UpdatePlayerViewPoint(CurrentHmdOrientation, CurrentHmdPosition, 
-			RenderParams_RenderThread.LastHmdPosition, RenderParams_RenderThread.DeltaControlOrientation,
-			View.BaseHmdOrientation, View.BaseHmdLocation,
-			View.ViewRotation, View.ViewLocation);
+		// Apply updated orientation to corresponding View at recalc matrices.
+		// The updated position will be applied from inside of the UpdateViewMatrix() call.
+		const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * CurrentEyeOrientation;
+		View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
+
 		View.UpdateViewMatrix();
 	}
 }
@@ -221,22 +235,21 @@ void FOculusRiftHMD::BeginRendering_RenderThread()
 		return;
 	}
 
-#ifdef OVR_DIRECT_RENDERING 
+#ifdef OVR_SDK_RENDERING 
 	{
 		Lock::Locker lock(&StereoParamsLock);
 
 		GetActiveRHIBridgeImpl()->BeginRendering();
 	}
 
-	ovrHmd_BeginFrame(Hmd, 0);
+	ovrHmd_BeginFrame(Hmd, RenderParams_RenderThread.FrameNumber);
 #else
-	ovrHmd_BeginFrameTiming(Hmd, 0);
+	ovrHmd_BeginFrameTiming(Hmd, RenderParams_RenderThread.FrameNumber);
 #endif
 	RenderParams_RenderThread.bFrameBegun = true;
 }
 
-
-#ifdef OVR_DIRECT_RENDERING 
+#ifdef OVR_SDK_RENDERING 
 FOculusRiftHMD::BridgeBaseImpl* FOculusRiftHMD::GetActiveRHIBridgeImpl()
 {
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
@@ -304,7 +317,7 @@ void FOculusRiftHMD::FinishRenderingFrame_RenderThread(FRHICommandListImmediate&
 	}
 }
 
-#endif // #ifdef OVR_DIRECT_RENDERING 
+#endif // #ifdef OVR_SDK_RENDERING 
 
 static const char* FormatLatencyReading(char* buff, UPInt size, float val)
 {
@@ -337,12 +350,13 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 	check(IsInGameThread());
 	if (StereoPass == eSSP_FULL)
 	{
-		if (bDrawGrid)
+		if (Flags.bDrawGrid)
 		{
 			bool bPopTransform = false;
 			if (EyeRenderDesc[0].DistortedViewport.Size.w != FMath::CeilToInt(Canvas->ClipX / 2) ||
 				EyeRenderDesc[0].DistortedViewport.Size.h != Canvas->ClipY)
 			{
+				// scale if resolution of the Canvas does not match the viewport
 				bPopTransform = true;
 				Canvas->Canvas->PushAbsoluteTransform(FScaleMatrix(
 					FVector((Canvas->ClipX * 0.5f) / float(EyeRenderDesc[0].DistortedViewport.Size.w),
@@ -428,12 +442,12 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 			}
 			if (bPopTransform)
 			{
-				Canvas->Canvas->PopTransform();
+				Canvas->Canvas->PopTransform(); // optional scaling
 			}
 		}
 		return;
 	}
-	else if (IsStereoEnabled() && bShowStats)
+	else if (IsStereoEnabled() && Flags.bShowStats)
 	{
 		static const FColor TextColor(0,255,0);
 		// Pick a larger font on console.
@@ -454,22 +468,22 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 
 		FString Str, StatusStr;
 		// First row
-		Str = FString::Printf(TEXT("TimeWarp: %s"), (bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
+		Str = FString::Printf(TEXT("TimeWarp: %s"), (Flags.bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
 		Y += RowHeight;
-		Str = FString::Printf(TEXT("VSync: %s"), (bVSync) ? TEXT("ON") : TEXT("OFF"));
+		Str = FString::Printf(TEXT("VSync: %s"), (Flags.bVSync) ? TEXT("ON") : TEXT("OFF"));
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 		
 		Y += RowHeight;
-		Str = FString::Printf(TEXT("Upd on GT/RT: %s / %s"), (!bDoNotUpdateOnGT) ? TEXT("ON") : TEXT("OFF"), 
-			(bUpdateOnRT) ? TEXT("ON") : TEXT("OFF"));
+		Str = FString::Printf(TEXT("Upd on GT/RT: %s / %s"), (!Flags.bDoNotUpdateOnGT) ? TEXT("ON") : TEXT("OFF"), 
+			(Flags.bUpdateOnRT) ? TEXT("ON") : TEXT("OFF"));
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
 		Y += RowHeight;
 		static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
 		int finFr = CFinishFrameVar->GetInt();
-		Str = FString::Printf(TEXT("FinFr: %s"), (finFr || bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
+		Str = FString::Printf(TEXT("FinFr: %s"), (finFr || Flags.bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 
 		Y += RowHeight;
@@ -511,12 +525,12 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 		Y = (int32)TopPos;
 
 		StatusStr = ((SupportedTrackingCaps & ovrTrackingCap_Position) != 0) ?
-			((bHmdPosTracking) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
+			((Flags.bHmdPosTracking) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
 		Str = FString::Printf(TEXT("PosTr: %s"), *StatusStr);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 		Y += RowHeight;
 
-		Str = FString::Printf(TEXT("Vision: %s"), (bHaveVisionTracking) ? TEXT("ACQ") : TEXT("LOST"));
+		Str = FString::Printf(TEXT("Vision: %s"), (Flags.bHaveVisionTracking) ? TEXT("ACQ") : TEXT("LOST"));
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 		Y += RowHeight;
 
@@ -525,13 +539,13 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 		Y += RowHeight;
 
 		StatusStr = ((SupportedHmdCaps & ovrHmdCap_LowPersistence) != 0) ? 
-			((bLowPersistenceMode) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
+			((Flags.bLowPersistenceMode) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
 		Str = FString::Printf(TEXT("LowPers: %s"), *StatusStr);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 		Y += RowHeight;
 
 		StatusStr = ((SupportedDistortionCaps & ovrDistortionCap_Overdrive) != 0) ?
-			((bOverdrive) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
+			((Flags.bOverdrive) ? TEXT("ON") : TEXT("OFF")) : TEXT("UNSUP");
 		Str = FString::Printf(TEXT("Overdrive: %s"), *StatusStr);
 		Canvas->Canvas->DrawShadowedString(X, Y, *Str, Font, TextColor);
 		Y += RowHeight;
@@ -539,7 +553,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass)
 #endif // #if !UE_BUILD_SHIPPING
 }
 
-void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport)
+void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)
 {
 	check(IsInGameThread());
 
@@ -556,6 +570,18 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 		{
 			ovrHmd_AttachToWindow(Hmd, NULL, NULL, NULL);
 			OSWindowHandle = nullptr;
+
+			// Restore AutoResizeViewport mode for the window
+			if (ViewportWidget && !IsFullscreenAllowed() && MirrorWindowSize.X != 0 && MirrorWindowSize.Y != 0)
+			{
+				FWidgetPath WidgetPath;
+				TSharedRef<SWidget> Widget = ViewportWidget->AsShared();
+				TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
+				if (Window.IsValid())
+				{
+					Window->SetViewportAutoResize(true);
+				}
+			}
 		}
 #endif
 		return;
@@ -566,12 +592,11 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	if (wnd && wnd != OSWindowHandle)
 	{
 		OSWindowHandle = wnd;
-		HWND Window = *(HWND*)wnd;
-		ovrHmd_AttachToWindow(Hmd, Window, NULL, NULL);
-	}
+		ovrHmd_AttachToWindow(Hmd, OSWindowHandle, NULL, NULL);
+ 	}
 #endif
 
-#ifdef OVR_DIRECT_RENDERING
+#ifdef OVR_SDK_RENDERING
 
 	check(GetActiveRHIBridgeImpl());
 
@@ -582,17 +607,17 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	{
 		EyeViewportSize.X = NewEyeRTSize.X;
 		EyeViewportSize.Y = NewEyeRTSize.Y;
-		bNeedUpdateStereoRenderingParams = true;
+		Flags.bNeedUpdateStereoRenderingParams = true;
 	}
-	if (bNeedUpdateStereoRenderingParams)
+	if (Flags.bNeedUpdateStereoRenderingParams)
 	{
 		UpdateStereoRenderingParams();
 	}
 	GetActiveRHIBridgeImpl()->UpdateViewport(InViewport, ViewportRHI);
-#endif // #ifdef OVR_DIRECT_RENDERING
+#endif // #ifdef OVR_SDK_RENDERING
 }
 
-#ifdef OVR_DIRECT_RENDERING
+#ifdef OVR_SDK_RENDERING
 void FOculusRiftHMD::ShutdownRendering()
 {
 	check(IsInRenderingThread());
@@ -610,9 +635,6 @@ void FOculusRiftHMD::ShutdownRendering()
 		pOGLBridge = NULL;
 	}
 #endif
-
-	ovrHmd_Destroy(Hmd);
-	Hmd = nullptr;
 }
 
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
@@ -663,51 +685,56 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering()
 			bNeedReinitRendererAPI = false;
 		}
 
-		if (bNeedReinitEyeTextures)
+		UpdateEyeTextures();
+	}
+}
+
+void FOculusRiftHMD::D3D11Bridge::UpdateEyeTextures()
+{
+	if (bNeedReinitEyeTextures)
+	{
+		OVR::Lock::Locker lock(&ModifyEyeTexturesLock);
+
+		ovrD3D11TextureData oldEye0 = EyeTexture_RenderThread[0].D3D11;
+		ovrD3D11TextureData oldEye1 = EyeTexture_RenderThread[1].D3D11;
+
+		EyeTexture_RenderThread[0] = EyeTexture[0];
+		if (EyeTexture_RenderThread[0].D3D11.pTexture)
 		{
-			OVR::Lock::Locker lock(&ModifyEyeTexturesLock);
-
-			ovrD3D11TextureData oldEye0 = EyeTexture_RenderThread[0].D3D11;
-			ovrD3D11TextureData oldEye1 = EyeTexture_RenderThread[1].D3D11;
-
-			EyeTexture_RenderThread[0] = EyeTexture[0];
-			if (EyeTexture_RenderThread[0].D3D11.pTexture)
-			{
-				EyeTexture_RenderThread[0].D3D11.pTexture->AddRef();
-			}
-			if (EyeTexture_RenderThread[0].D3D11.pSRView)
-			{
-				EyeTexture_RenderThread[0].D3D11.pSRView->AddRef();
-			}
-			EyeTexture_RenderThread[1] = EyeTexture[1];
-			if (EyeTexture_RenderThread[1].D3D11.pTexture)
-			{
-				EyeTexture_RenderThread[1].D3D11.pTexture->AddRef();
-			}
-			if (EyeTexture_RenderThread[1].D3D11.pSRView)
-			{
-				EyeTexture_RenderThread[1].D3D11.pSRView->AddRef();
-			}
-
-			if (oldEye0.pTexture)
-			{
-				oldEye0.pTexture->Release();
-			}
-			if (oldEye1.pTexture)
-			{
-				oldEye1.pTexture->Release();
-			}
-			if (oldEye0.pSRView)
-			{
-				oldEye0.pSRView->Release();
-			}
-			if (oldEye1.pSRView)
-			{
-				oldEye1.pSRView->Release();
-			}
-
-			bNeedReinitEyeTextures = false;
+			EyeTexture_RenderThread[0].D3D11.pTexture->AddRef();
 		}
+		if (EyeTexture_RenderThread[0].D3D11.pSRView)
+		{
+			EyeTexture_RenderThread[0].D3D11.pSRView->AddRef();
+		}
+		EyeTexture_RenderThread[1] = EyeTexture[1];
+		if (EyeTexture_RenderThread[1].D3D11.pTexture)
+		{
+			EyeTexture_RenderThread[1].D3D11.pTexture->AddRef();
+		}
+		if (EyeTexture_RenderThread[1].D3D11.pSRView)
+		{
+			EyeTexture_RenderThread[1].D3D11.pSRView->AddRef();
+		}
+
+		if (oldEye0.pTexture)
+		{
+			oldEye0.pTexture->Release();
+		}
+		if (oldEye1.pTexture)
+		{
+			oldEye1.pTexture->Release();
+		}
+		if (oldEye0.pSRView)
+		{
+			oldEye0.pSRView->Release();
+		}
+		if (oldEye1.pSRView)
+		{
+			oldEye1.pSRView->Release();
+		}
+
+		bNeedReinitEyeTextures = false;
 	}
 }
 
@@ -715,7 +742,9 @@ void FOculusRiftHMD::D3D11Bridge::FinishRendering()
 {
 	check(IsInRenderingThread());
 
-	if (Plugin->RenderParams_RenderThread.bFrameBegun && !bNeedReinitEyeTextures) 
+	UpdateEyeTextures();
+
+	if (Plugin->RenderParams_RenderThread.bFrameBegun)
 	{
 		// Finish the frame and let OVR do buffer swap (Present) and flush/sync.
 		const ovrTexture eyeTextures[2] = { EyeTexture_RenderThread[0].Texture, EyeTexture_RenderThread[1].Texture };
@@ -780,6 +809,7 @@ void FOculusRiftHMD::D3D11Bridge::Reset_RenderThread()
 	}
 	bNeedReinitEyeTextures = false;
 	bNeedReinitRendererAPI = false;
+	Plugin->RenderParams_RenderThread.bFrameBegun = false;
 }
 
 void FOculusRiftHMD::D3D11Bridge::Reset()
@@ -1079,7 +1109,7 @@ bool FOculusRiftHMD::OGLBridge::Present(int SyncInterval)
 	return false; // indicates that we are presenting here, UE shouldn't do Present.
 }
 #endif // #if defined(OVR_GL)
-#endif // OVR_DIRECT_RENDERING
+#endif // OVR_SDK_RENDERING
 
 
 #endif // OCULUS_RIFT_SUPPORTED_PLATFORMS

@@ -277,7 +277,10 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef() );
 
 		check(Window.IsValid());
-		ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+		if (Window->IsViewportAutoResizeable())
+		{
+			ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+		}
 	}	
 	
 	// Cannot pass negative canvas positions
@@ -894,13 +897,45 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 					NewSizeY = Rect.GetSize().Y;
 				}
 			}
-			
+			uint32 ViewportSizeX = NewSizeX;
+			uint32 ViewportSizeY = NewSizeY;
+
+			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+			{
+				WindowToResize->SetViewportAutoResize(true);
+				// Resize & move only if moving to a fullscreen mode
+				if (NewWindowMode != EWindowMode::Windowed)
+				{
+					IHeadMountedDisplay::MonitorInfo MonitorInfo;
+					if (GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
+					{
+						ViewportSizeX = MonitorInfo.ResolutionX;
+						ViewportSizeY = MonitorInfo.ResolutionY;
+						if (GEngine->HMDDevice->IsFullscreenAllowed())
+						{
+							NewSizeX = MonitorInfo.ResolutionX;
+							NewSizeY = MonitorInfo.ResolutionY;
+						}
+						else
+						{
+							if (MonitorInfo.WindowSizeX != 0 && MonitorInfo.WindowSizeY != 0)
+							{
+								NewSizeX = MonitorInfo.WindowSizeX;
+								NewSizeY = MonitorInfo.WindowSizeY;
+							}
+							NewWindowMode = DesiredWindowMode = EWindowMode::WindowedMirror;
+							WindowToResize->SetViewportSize(FVector2D(ViewportSizeX, ViewportSizeY));
+						}
+					}
+				}
+			}
+
 			// Avoid resizing if nothing changes.
-			bool bNeedsResize = SizeX != NewSizeX || SizeY != NewSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
+			bool bNeedsResize = SizeX != ViewportSizeX || SizeY != ViewportSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
 
 			if (bNeedsResize)
 			{
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 				{
 					// Resize & move only if moving to a fullscreen mode
 					if (NewWindowMode != EWindowMode::Windowed)
@@ -910,16 +945,9 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 						IHeadMountedDisplay::MonitorInfo MonitorInfo;
 						if (GEngine->HMDDevice->GetHMDMonitorInfo(MonitorInfo))
 						{
-							NewSizeX = MonitorInfo.ResolutionX;
-							NewSizeY = MonitorInfo.ResolutionY;
-							if (GEngine->HMDDevice->IsFullScreenAllowed())
+							if (GEngine->HMDDevice->IsFullscreenAllowed())
 							{
 								WindowToResize->ReshapeWindow(FVector2D(MonitorInfo.DesktopX, MonitorInfo.DesktopY), FVector2D(MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
-							}
-							else
-							{
-								WindowToResize->Resize(FVector2D(MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
-								DesiredWindowMode = EWindowMode::WindowedMirror;
 							}
 						}
 
@@ -930,18 +958,21 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 				// Toggle fullscreen and resize
 				WindowToResize->SetWindowMode(DesiredWindowMode);
 
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 				{
 					if (NewWindowMode == EWindowMode::Windowed)
 					{
 						FSlateRect PreFullScreenRect;
 						GEngine->HMDDevice->PopPreFullScreenRect(PreFullScreenRect);
-						if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && GEngine->HMDDevice->IsFullScreenAllowed())
+						if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && GEngine->HMDDevice->IsFullscreenAllowed())
 						{
 							NewSizeX = PreFullScreenRect.GetSize().X;
 							NewSizeY = PreFullScreenRect.GetSize().Y;
-							WindowToResize->MoveWindowTo (FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
+							WindowToResize->MoveWindowTo(FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
 						}
+						ViewportSizeX = NewSizeX;
+						ViewportSizeY = NewSizeY;
+						WindowToResize->SetViewportAutoResize(true);
 					}
 
 					if (NewWindowMode != WindowMode)
@@ -955,11 +986,28 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 
 				WindowToResize->Resize(FVector2D(NewSizeX, NewSizeY));
 
-				ResizeViewport(NewSizeX, NewSizeY, NewWindowMode, InPosX, InPosY);
+				ResizeViewport(ViewportSizeX, ViewportSizeY, NewWindowMode, InPosX, InPosY);
 			}
 			UCanvas::UpdateAllCanvasSafeZoneData();
 		}		
 	}
+}
+
+void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewportSizeY)
+{
+	TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
+	if (Window.IsValid())
+	{
+		Window->SetViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
+		const FVector2D vp = Window->GetViewportSize();
+		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
+		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);
+	}
+}
+
+TSharedPtr<SWindow> FSceneViewport::FindWindow()
+{
+	return FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
 }
 
 void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
@@ -1068,7 +1116,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	check( IsInGameThread() );
 
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
-	if (GEngine->StereoRenderingDevice.IsValid())
+	if (!GIsEditor && GEngine->StereoRenderingDevice.IsValid())
 	{
 		bool bNewUseSepRenTarget = GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget();
 		if (bNewUseSepRenTarget != bUseSeparateRenderTarget ||
@@ -1103,7 +1151,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 
 	if (GEngine->StereoRenderingDevice.IsValid())
 	{
-		GEngine->StereoRenderingDevice->UpdateViewport(bUseSeparateRenderTarget, *this);	
+		GEngine->StereoRenderingDevice->UpdateViewport(bUseSeparateRenderTarget, *this, ViewportWidget.Pin().Get());	
 	}
 }
 

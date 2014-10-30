@@ -39,6 +39,8 @@
 #include "SDPIScaler.h"
 #include "NotificationManager.h"
 
+#include "Runtime/HeadMountedDisplay/Public/HeadMountedDisplay.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 
 #define LOCTEXT_NAMESPACE "PlayLevel"
@@ -191,6 +193,11 @@ void UEditorEngine::EndPlayMap()
 	if (EditorWorld->GetNavigationSystem())
 	{
 		EditorWorld->GetNavigationSystem()->OnPIEEnd();
+	}
+
+	if (GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnEndPlay();
 	}
 
 	EditorWorld->bAllowAudioPlayback = true;
@@ -1976,6 +1983,11 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	{
 		// immediately end the playworld
 		EndPlayMap();
+	}
+
+	if (GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnBeginPlay();
 	}
 
 	// remember old GWorld

@@ -621,6 +621,27 @@ public:
 	/** Are any of our child windows active? */
 	bool HasActiveChildren() const;
 
+	inline void SetViewportAutoResize(bool InAutoResize)
+	{
+		if (InAutoResize)
+		{
+			ViewportSize = FVector2D::ZeroVector;
+		}
+		else
+		{
+			ViewportSize = Size;
+		}
+	}
+	inline bool IsViewportAutoResizeable() const
+	{
+		return (ViewportSize.X == 0);
+	}
+	inline FVector2D GetViewportSize() const { return (ViewportSize.X) ? ViewportSize : Size; }
+	inline void SetViewportSize(const FVector2D& VP) 
+	{
+		ViewportSize = VP;
+	}
+
 public:
 
 	// SWidget overrides
@@ -725,6 +746,9 @@ protected:
 
 	/** Size of the window's content area in screen space */
 	FVector2D Size;
+
+	/** Size of the viewport. If (0,0) then it is equal to Size */
+	FVector2D ViewportSize;
 
 	/** Size of this window's title bar.  Can be zero.  Set at construction and should not be changed afterwards. */
 	float TitleBarSize;

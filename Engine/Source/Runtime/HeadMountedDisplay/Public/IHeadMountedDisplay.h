@@ -32,6 +32,11 @@ public:
 	IHeadMountedDisplay();
 
 	/**
+	 * Returns true if HMD is currently connected.
+	 */
+	virtual bool IsHMDConnected() = 0;
+
+	/**
 	 * Whether or not switching to stereo is enabled; if it is false, then EnableStereo(true) will do nothing.
 	 */
 	virtual bool IsHMDEnabled() const = 0;
@@ -52,12 +57,15 @@ public:
 		size_t  MonitorId;
 		int		DesktopX, DesktopY;
 		int		ResolutionX, ResolutionY;
+		int		WindowSizeX, WindowSizeY;
 
 		MonitorInfo() : MonitorId(0)
 			, DesktopX(0)
 			, DesktopY(0)
 			, ResolutionX(0)
 			, ResolutionY(0)
+			, WindowSizeX(0)
+			, WindowSizeY(0)
 		{
 		}
 
@@ -66,7 +74,7 @@ public:
     /**
      * Get the name or id of the display to output for this HMD. 
      */
-	virtual bool	GetHMDMonitorInfo(MonitorInfo&) const = 0;
+	virtual bool	GetHMDMonitorInfo(MonitorInfo&) = 0;
 	
     /**
 	 * Calculates the FOV, based on the screen dimensions of the device
@@ -97,7 +105,7 @@ public:
     /**
      * Get the current orientation and position reported by the HMD.
      */
-    virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) const = 0;
+    virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) = 0;
 
     /**
      * Get the ISceneViewExtension for this HMD, or none.
@@ -151,7 +159,7 @@ public:
 	/**
 	 * Returns true, if HMD allows fullscreen mode.
 	 */
-	virtual bool IsFullScreenAllowed() const { return true; }
+	virtual bool IsFullscreenAllowed() { return true; }
 
 	/**
 	 * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position 
@@ -200,7 +208,69 @@ public:
 	 */
 	virtual void ResetOrientationAndPosition(float Yaw = 0.f) = 0;
 
-	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) = 0;
+	/** 
+	 * Resets orientation by setting roll and pitch to 0, assuming that current yaw is forward direction. Position is not changed. 
+	 *
+	 * @param Yaw				(in) the desired yaw to be set after orientation reset.
+	 */
+	virtual void ResetOrientation(float Yaw = 0.f) {}
+
+	/** 
+	 * Resets position, assuming current position as a 'zero-point'. 
+	 */
+	virtual void ResetPosition() {}
+
+	/** 
+	 * Sets near and far clipping planes (NCP and FCP) for stereo rendering. Similar to 'stereo ncp= fcp' console command, but NCP and FCP set by this
+	 * call won't be saved in .ini file.
+	 *
+	 * @param NCP				(in) Near clipping plane, in centimeters
+	 * @param FCP				(in) Far clipping plane, in centimeters
+	 */
+	virtual void SetClippingPlanes(float NCP, float FCP) {}
+
+	/** 
+	 * Sets base orientation by setting yaw, pitch, roll, assuming that this is forward direction. 
+	 * Position is not changed. 
+	 *
+	 * @param BaseRot			(in) the desired orientation to be treated as a base orientation.
+	 */
+	virtual void SetBaseRotation(const FRotator& BaseRot) {}
+
+	/**
+	 * Returns current base orientation of HMD as yaw-pitch-roll combination.
+	 */
+	virtual FRotator GetBaseRotation() const { return FRotator::ZeroRotator; }
+
+	/** 
+	 * Sets base orientation, assuming that this is forward direction. 
+	 * Position is not changed. 
+	 *
+	 * @param BaseOrient		(in) the desired orientation to be treated as a base orientation.
+	 */
+	virtual void SetBaseOrientation(const FQuat& BaseOrient) {}
+
+	/**
+	 * Returns current base orientation of HMD as a quaternion.
+	 */
+	virtual FQuat GetBaseOrientation() const { return FQuat::Identity; }
+
+	/**
+	 * Sets HMD position offset that will be added to current HMD position, 
+	 * effectively moving the virtual camera by the specified offset. The addition
+	 * occurs after the HMD orientation and position are applied.
+	 *
+	 * @param PosOffset			(in) the vector to be added to HMD position.
+	 */
+	virtual void SetPositionOffset(const FVector& PosOffset) {}
+
+	/**
+	 * Returns the currently set position offset, previously set by the 
+	 * SetPositionOffset call.
+	 */
+	virtual FVector GetPositionOffset() const { return FVector::ZeroVector; }
+
+	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) {}
 
 	/**
 	 * This method is able to change screen settings (such as rendering scale) right before
@@ -220,6 +290,16 @@ public:
 	 * otherwise, key won't be handled by the PlayerController.
 	 */
 	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) { return false; }
+
+	/**
+	 * This method is called when playing begins. Useful to reset all runtime values stored in the plugin.
+	 */
+	virtual void OnBeginPlay() {}
+
+	/**
+	 * This method is called when playing ends. Useful to reset all runtime values stored in the plugin.
+	 */
+	virtual void OnEndPlay() {}
 
 	/** 
 	 * Additional optional distorion rendering parameters
