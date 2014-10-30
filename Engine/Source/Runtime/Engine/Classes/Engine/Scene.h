@@ -743,7 +743,13 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=MotionBlur, AdvancedDisplay, meta=(ClampMin = "0.0", UIMax = "100.0", editcondition = "bOverride_MotionBlurPerObjectSize", DisplayName = "Per Object Size"))
 	float MotionBlurPerObjectSize;
 
-	/** to render with lower resolution and upscale, controlled by console variable, 100:off, needs to be <99 to see effect, only applied in game  */
+	/**
+	 * To render with lower or high resolution than it is presented, 
+	 * controlled by console variable, 
+	 * 100:off, needs to be <99 to get upsampling and lower to get performance,
+	 * >100 for super sampling (slower but higher quality), 
+	 * only applied in game
+	 */
 	UPROPERTY(interp, BlueprintReadWrite, Category=Misc, AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "400.0", editcondition = "bOverride_ScreenPercentage"))
 	float ScreenPercentage;
 

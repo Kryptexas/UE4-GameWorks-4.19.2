@@ -213,7 +213,7 @@ public:
 	/** An interaction which draws the view's interaction elements. */
 	FViewElementDrawer* Drawer;
 
-	/* Final position of the view in the final render target (in pixels), potentially scaled down by ScreenPercentage */
+	/* Final position of the view in the final render target (in pixels), potentially scaled by ScreenPercentage */
 	FIntRect ViewRect;
 
 	/* Final position of the view in the final render target (in pixels), potentially constrained by an aspect ratio requirement (black bars) */

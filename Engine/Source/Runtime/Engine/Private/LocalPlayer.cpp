@@ -757,7 +757,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		View->EndFinalPostprocessSettings();
 	}
 
-	// Upscaling
+	// Upscaling or Super sampling
 	{
 		float LocalScreenPercentage = View->FinalPostProcessSettings.ScreenPercentage;
 
