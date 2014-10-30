@@ -289,3 +289,8 @@ void AEQSTestingPawn::PostEditMove(bool bFinished)
 }
 
 #endif // WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
+/** Returns EdRenderComp subobject **/
+UEQSRenderingComponent* AEQSTestingPawn::GetEdRenderComp() { return EdRenderComp; }
+#endif

@@ -796,3 +796,10 @@ FString AAIController::GetDebugIcon() const
 	return TEXT("/Engine/EngineResources/AICON-Green.AICON-Green");
 }
 
+
+/** Returns NavComponent subobject **/
+UNavigationComponent* AAIController::GetNavComponent() const { return NavComponent; }
+/** Returns PathFollowingComponent subobject **/
+UPathFollowingComponent* AAIController::GetPathFollowingComponent() const { return PathFollowingComponent; }
+/** Returns ActionsComp subobject **/
+UPawnActionsComponent* AAIController::GetActionsComp() const { return ActionsComp; }

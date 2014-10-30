@@ -9,8 +9,9 @@ class ENGINE_API ALight : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
 	/** @todo document */
+	DEPRECATED_FORGAME(4.6, "LightComponent should not be accessed directly, please use GetLightComponent() function instead. LightComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Light, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Light,Rendering,Rendering|Components|Light", AllowPrivateAccess = "true"))
 	class ULightComponent* LightComponent;
 public:
@@ -63,10 +64,7 @@ public:
 	/**
 	 * Return whether the light supports being toggled off and on on-the-fly.
 	 */
-	bool IsToggleable() const
-	{
-		return !LightComponent->HasStaticLighting();
-	}
+	bool IsToggleable() const;
 
 	// Begin AActor interface.
 	void Destroyed();
@@ -74,7 +72,7 @@ public:
 	// End AActor interface.
 
 	/** Returns LightComponent subobject **/
-	FORCEINLINE class ULightComponent* GetLightComponent() const { return LightComponent; }
+	class ULightComponent* GetLightComponent() const;
 };
 
 

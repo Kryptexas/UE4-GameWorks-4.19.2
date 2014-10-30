@@ -656,6 +656,11 @@ namespace UnrealBuildTool
 		{
 			var VisitedModules = new Dictionary<UEBuildModule, bool>();
 
+			if (this.Type == UEBuildModuleType.Game)
+			{
+				Definitions.Add("DEPRECATED_FORGAME=DEPRECATED");
+			}
+
 			// Add this module's private include paths and definitions.
 			AddIncludePathsWithChecks(IncludePaths, PrivateIncludePaths);
 

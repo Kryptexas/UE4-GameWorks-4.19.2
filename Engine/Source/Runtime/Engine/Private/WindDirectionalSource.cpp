@@ -136,3 +136,10 @@ FWindSourceSceneProxy* UWindDirectionalSourceComponent::CreateSceneProxy() const
 		);
 }
 
+
+/** Returns Component subobject **/
+UWindDirectionalSourceComponent* AWindDirectionalSource::GetComponent() const { return Component; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* AWindDirectionalSource::GetArrowComponent() const { return ArrowComponent; }
+#endif

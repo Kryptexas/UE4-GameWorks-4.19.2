@@ -49,7 +49,8 @@ class ENGINE_API AEmitter : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ParticleSystemComponent should not be accessed directly, please use GetParticleSystemComponent() function instead. ParticleSystemComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Emitter, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Particles|Beam,Particles|Parameters,Particles,Effects|Components|ParticleSystem,Rendering,Activation,Components|Activation", AllowPrivateAccess = "true"))
 	class UParticleSystemComponent* ParticleSystemComponent;
 public:
@@ -78,10 +79,12 @@ public:
 
 #if WITH_EDITORONLY_DATA
 
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 public:
@@ -143,12 +146,12 @@ public:
 
 public:
 	/** Returns ParticleSystemComponent subobject **/
-	FORCEINLINE class UParticleSystemComponent* GetParticleSystemComponent() { return ParticleSystemComponent; }
+	class UParticleSystemComponent* GetParticleSystemComponent();
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	class UBillboardComponent* GetSpriteComponent() const;
 	/** Returns ArrowComponent subobject **/
-	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	class UArrowComponent* GetArrowComponent() const;
 #endif
 };
 

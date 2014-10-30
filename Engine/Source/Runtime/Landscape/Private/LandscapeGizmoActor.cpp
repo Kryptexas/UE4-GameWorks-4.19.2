@@ -1286,3 +1286,8 @@ void ALandscapeGizmoActiveActor::ImportFromClipboard()
 	}
 }
 #endif	//WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ALandscapeGizmoActor::GetSpriteComponent() const { return SpriteComponent; }
+#endif

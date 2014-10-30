@@ -18,7 +18,8 @@ class AMaterialInstanceActor : public AActor
 	TArray<class AActor*> TargetActors;
 
 #if WITH_EDITORONLY_DATA
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	// Reference to actor sprite
 	UBillboardComponent* SpriteComponent;
 #endif
@@ -34,7 +35,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
 #endif
 };
 

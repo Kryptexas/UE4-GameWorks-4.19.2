@@ -109,7 +109,8 @@ class ENGINE_API ABrush : public AActor
 	UPROPERTY(export)
 	class UModel* Brush;
 
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "BrushComponent should not be accessed directly, please use GetBrushComponent() function instead. BrushComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UBrushComponent* BrushComponent;
 public:
@@ -256,7 +257,7 @@ public:
 
 public:
 	/** Returns BrushComponent subobject **/
-	FORCEINLINE class UBrushComponent* GetBrushComponent() const { return BrushComponent; }
+	class UBrushComponent* GetBrushComponent() const;
 };
 
 

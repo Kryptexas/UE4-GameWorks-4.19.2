@@ -144,8 +144,9 @@ class ENGINE_API APlayerCameraManager : public AActor
 	UPROPERTY()
 	class APlayerController* PCOwner;
 
-private:
+private_subobject:
 	/** Dummy component we can use to attach things to the camera. */
+	DEPRECATED_FORGAME(4.6, "TransformComponent should not be accessed directly, please use GetTransformComponent() function instead. TransformComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = PlayerCameraManager, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USceneComponent* TransformComponent;
 public:
@@ -644,5 +645,5 @@ private:
 
 public:
 	/** Returns TransformComponent subobject **/
-	FORCEINLINE class USceneComponent* GetTransformComponent() const { return TransformComponent; }
+	class USceneComponent* GetTransformComponent() const;
 };

@@ -1229,3 +1229,6 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 		}
 	}
 }
+
+/** Returns TransformComponent subobject **/
+USceneComponent* APlayerCameraManager::GetTransformComponent() const { return TransformComponent; }

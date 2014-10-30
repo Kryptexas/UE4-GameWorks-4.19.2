@@ -61,3 +61,10 @@ ATargetPoint::ATargetPoint(const FObjectInitializer& ObjectInitializer)
 	bHidden = true;
 	bCanBeDamaged = false;
 }
+
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ATargetPoint::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ATargetPoint::GetArrowComponent() const { return ArrowComponent; }
+#endif

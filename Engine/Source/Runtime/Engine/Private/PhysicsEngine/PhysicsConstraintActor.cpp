@@ -62,3 +62,6 @@ void APhysicsConstraintActor::LoadedFromAnotherClass( const FName& OldClassName 
 	ConstraintComp->UpdateSpriteTexture();
 }
 #endif // WITH_EDITOR
+
+/** Returns ConstraintComp subobject **/
+UPhysicsConstraintComponent* APhysicsConstraintActor::GetConstraintComp() const { return ConstraintComp; }

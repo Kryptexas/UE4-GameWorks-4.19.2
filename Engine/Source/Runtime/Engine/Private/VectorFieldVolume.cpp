@@ -40,3 +40,10 @@ AVectorFieldVolume::AVectorFieldVolume(const FObjectInitializer& ObjectInitializ
 #endif // WITH_EDITORONLY_DATA
 }
 
+
+/** Returns VectorFieldComponent subobject **/
+UVectorFieldComponent* AVectorFieldVolume::GetVectorFieldComponent() const { return VectorFieldComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AVectorFieldVolume::GetSpriteComponent() const { return SpriteComponent; }
+#endif

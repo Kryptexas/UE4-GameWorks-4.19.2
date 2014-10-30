@@ -96,8 +96,9 @@ public:
 	/** Name of the CollisionComponent. */
 	static FName CollisionComponentName;
 
-private:
+private_subobject:
 	/** DefaultPawn collision component */
+	DEPRECATED_FORGAME(4.6, "CollisionComponent should not be accessed directly, please use GetCollisionComponent() function instead. CollisionComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Pawn, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* CollisionComponent;
 public:
@@ -105,8 +106,9 @@ public:
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
-private:
+private_subobject:
 	/** The mesh associated with this Pawn. */
+	DEPRECATED_FORGAME(4.6, "MeshComponent should not be accessed directly, please use GetMeshComponent() function instead. MeshComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Pawn, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* MeshComponent;
 public:
@@ -116,8 +118,8 @@ public:
 	uint32 bAddDefaultMovementBindings:1;
 
 	/** Returns CollisionComponent subobject **/
-	FORCEINLINE USphereComponent* GetCollisionComponent() const { return CollisionComponent; }
+	USphereComponent* GetCollisionComponent() const;
 	/** Returns MeshComponent subobject **/
-	FORCEINLINE UStaticMeshComponent* GetMeshComponent() const { return MeshComponent; }
+	UStaticMeshComponent* GetMeshComponent() const;
 };
 

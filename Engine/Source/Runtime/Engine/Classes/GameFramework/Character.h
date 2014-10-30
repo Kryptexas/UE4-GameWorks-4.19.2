@@ -207,21 +207,25 @@ public:
 	 */
 	ACharacter(const FObjectInitializer& ObjectInitializer);
 
-private:
+private_subobject:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
+	DEPRECATED_FORGAME(4.6, "Mesh should not be accessed directly, please use GetMesh() function instead. Mesh will soon be private and your code will not compile.")
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;
 
 #if WITH_EDITORONLY_DATA
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 #endif
 
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
+	DEPRECATED_FORGAME(4.6, "CharacterMovement should not be accessed directly, please use GetCharacterMovement() function instead. CharacterMovement will soon be private and your code will not compile.")
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCharacterMovementComponent* CharacterMovement;
 
 	/** The CapsuleComponent being used for movement collision (by CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
+	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = Character, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCapsuleComponent* CapsuleComponent;
 public:
@@ -684,13 +688,13 @@ public:
 
 public:
 	/** Returns Mesh subobject **/
-	FORCEINLINE class USkeletalMeshComponent* GetMesh() const { return Mesh; }
+	class USkeletalMeshComponent* GetMesh() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
-	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	class UArrowComponent* GetArrowComponent() const;
 #endif
 	/** Returns CharacterMovement subobject **/
-	FORCEINLINE class UCharacterMovementComponent* GetCharacterMovement() const { return CharacterMovement; }
+	class UCharacterMovementComponent* GetCharacterMovement() const;
 	/** Returns CapsuleComponent subobject **/
-	FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
+	class UCapsuleComponent* GetCapsuleComponent() const;
 };

@@ -1339,3 +1339,14 @@ void ACharacter::ClientCheatGhost_Implementation()
 		CharacterMovement->SetMovementMode(MOVE_Flying);
 	}
 }
+
+/** Returns Mesh subobject **/
+USkeletalMeshComponent* ACharacter::GetMesh() const { return Mesh; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ACharacter::GetArrowComponent() const { return ArrowComponent; }
+#endif
+/** Returns CharacterMovement subobject **/
+UCharacterMovementComponent* ACharacter::GetCharacterMovement() const { return CharacterMovement; }
+/** Returns CapsuleComponent subobject **/
+UCapsuleComponent* ACharacter::GetCapsuleComponent() const { return CapsuleComponent; }

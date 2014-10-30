@@ -255,3 +255,6 @@ void AFunctionalTest::GoToObservationPoint()
 		}
 	}
 }
+
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AFunctionalTest::GetSpriteComponent() { return SpriteComponent; }

@@ -48,3 +48,8 @@ ATriggerBase::ATriggerBase(const FObjectInitializer& ObjectInitializer)
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 }
+
+/** Returns CollisionComponent subobject **/
+UShapeComponent* ATriggerBase::GetCollisionComponent() const { return CollisionComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ATriggerBase::GetSpriteComponent() const { return SpriteComponent; }

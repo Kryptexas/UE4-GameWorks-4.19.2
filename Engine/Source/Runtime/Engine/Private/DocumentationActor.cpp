@@ -91,3 +91,7 @@ void ADocumentationActor::UpdateLinkType()
 	
 }
 
+#if WITH_EDITORONLY_DATA
+/** Returns Billboard subobject **/
+UMaterialBillboardComponent* ADocumentationActor::GetBillboard() const { return Billboard; }
+#endif

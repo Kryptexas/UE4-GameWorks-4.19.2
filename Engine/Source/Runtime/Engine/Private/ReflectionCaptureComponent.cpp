@@ -1555,3 +1555,12 @@ void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)
 	ReflectionXAxisAndYScale = ReflectionXAxis.SafeNormal() * ScaleVector.Y;
 	ReflectionXAxisAndYScale.W = ScaleVector.Y / ScaleVector.Z;
 }
+
+/** Returns CaptureComponent subobject **/
+UReflectionCaptureComponent* AReflectionCapture::GetCaptureComponent() const { return CaptureComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AReflectionCapture::GetSpriteComponent() const { return SpriteComponent; }
+#endif
+/** Returns DrawCaptureRadius subobject **/
+UDrawSphereComponent* ASphereReflectionCapture::GetDrawCaptureRadius() const { return DrawCaptureRadius; }

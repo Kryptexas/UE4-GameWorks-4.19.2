@@ -29,3 +29,6 @@ bool ADestructibleActor::GetReferencedContentObjects( TArray<UObject*>& Objects 
 #endif // WITH_EDITOR
 
 
+
+/** Returns DestructibleComponent subobject **/
+UDestructibleComponent* ADestructibleActor::GetDestructibleComponent() const { return DestructibleComponent; }

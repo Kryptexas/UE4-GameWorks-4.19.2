@@ -44,3 +44,13 @@ void AWheeledVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Deb
 	}
 #endif
 }
+
+class UWheeledVehicleMovementComponent* AWheeledVehicle::GetVehicleMovementComponent() const
+{
+	return VehicleMovement;
+}
+
+/** Returns Mesh subobject **/
+USkeletalMeshComponent* AWheeledVehicle::GetMesh() const { return Mesh; }
+/** Returns VehicleMovement subobject **/
+UWheeledVehicleMovementComponent* AWheeledVehicle::GetVehicleMovement() const { return VehicleMovement; }

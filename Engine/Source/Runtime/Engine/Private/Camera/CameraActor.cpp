@@ -117,3 +117,6 @@ void ACameraActor::BeginPlay()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns CameraComponent subobject **/
+UCameraComponent* ACameraActor::GetCameraComponent() const { return CameraComponent; }

@@ -59,3 +59,12 @@ ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
 	}
 #endif // WITH_EDITORONLY_DATA
 }
+
+/** Returns NiagaraComponent subobject **/
+UNiagaraComponent* ANiagaraActor::GetNiagaraComponent() const { return NiagaraComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ANiagaraActor::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ANiagaraActor::GetArrowComponent() const { return ArrowComponent; }
+#endif

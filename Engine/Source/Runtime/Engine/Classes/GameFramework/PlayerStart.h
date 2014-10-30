@@ -17,7 +17,8 @@ class ENGINE_API APlayerStart : public ANavigationObjectBase
 	FName PlayerStartTag;
 
 #if WITH_EDITORONLY_DATA
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 public:
@@ -29,7 +30,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
-	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	class UArrowComponent* GetArrowComponent() const;
 #endif
 };
 

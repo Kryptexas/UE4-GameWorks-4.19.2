@@ -15,23 +15,25 @@ class ATextRenderActor : public AActor
 
 	friend class UActorFactoryTextRender;
 
-private:
+private_subobject:
 	/** Component to render a text in 3d with a font */
+	DEPRECATED_FORGAME(4.6, "TextRender should not be accessed directly, please use GetTextRender() function instead. TextRender will soon be private and your code will not compile.")
 	UPROPERTY(Category = TextRenderActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Rendering|Components|TextRender", AllowPrivateAccess = "true"))
 	class UTextRenderComponent* TextRender;
 
 #if WITH_EDITORONLY_DATA
 	// Reference to the billboard component
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 #endif
 
 public:
 	/** Returns TextRender subobject **/
-	FORCEINLINE class UTextRenderComponent* GetTextRender() const { return TextRender; }
+	ENGINE_API class UTextRenderComponent* GetTextRender() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
 #endif
 };
 

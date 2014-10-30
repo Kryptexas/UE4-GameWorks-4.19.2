@@ -94,3 +94,12 @@ APhysicsThruster::APhysicsThruster(const FObjectInitializer& ObjectInitializer)
 	}
 #endif // WITH_EDITORONLY_DATA
 }
+
+/** Returns ThrusterComponent subobject **/
+UPhysicsThrusterComponent* APhysicsThruster::GetThrusterComponent() const { return ThrusterComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* APhysicsThruster::GetArrowComponent() const { return ArrowComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* APhysicsThruster::GetSpriteComponent() const { return SpriteComponent; }
+#endif

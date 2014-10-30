@@ -18,7 +18,10 @@ private:
 	UPROPERTY(Category="AutoPlayerActivation", EditAnywhere)
 	TEnumAsByte<EAutoReceiveInput::Type> AutoActivateForPlayer;
 
+private_subobject:
+
 	/** The camera component for this camera */
+	DEPRECATED_FORGAME(4.6, "CameraComponent should not be accessed directly, please use GetCameraComponent() function instead. CameraComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = CameraActor, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* CameraComponent;
 
@@ -63,5 +66,5 @@ public:
 	// End AActor interface
 
 	/** Returns CameraComponent subobject **/
-	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+	ENGINE_API class UCameraComponent* GetCameraComponent() const;
 };

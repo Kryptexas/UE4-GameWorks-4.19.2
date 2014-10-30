@@ -70,3 +70,6 @@ void AGameplayAbilityWorldReticle_ActorVisualization::EndPlay(const EEndPlayReas
 
 	Super::EndPlay(EndPlayReason);
 }
+
+/** Returns CollisionComponent subobject **/
+UCapsuleComponent* AGameplayAbilityWorldReticle_ActorVisualization::GetCollisionComponent() { return CollisionComponent; }

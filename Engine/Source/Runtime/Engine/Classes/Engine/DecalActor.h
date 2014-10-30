@@ -18,21 +18,25 @@ class ADecalActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
 	/** The decal component for this decal actor */
+	DEPRECATED_FORGAME(4.6, "Decal should not be accessed directly, please use GetDecal() function instead. Decal will soon be private and your code will not compile.")
 	UPROPERTY(Category = Decal, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Decal,Rendering|Components|Decal", AllowPrivateAccess = "true"))
 	class UDecalComponent* Decal;
 
 #if WITH_EDITORONLY_DATA
 	/* Reference to the editor only arrow visualization component */
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 
 	/* Reference to the billboard component */
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 
 	/* Reference to the selected visualization box component */
+	DEPRECATED_FORGAME(4.6, "BoxComponent should not be accessed directly, please use GetBoxComponent() function instead. BoxComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBoxComponent* BoxComponent;
 #endif
@@ -62,14 +66,14 @@ public:
 
 public:
 	/** Returns Decal subobject **/
-	FORCEINLINE class UDecalComponent* GetDecal() const { return Decal; }
+	ENGINE_API class UDecalComponent* GetDecal() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/
-	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	ENGINE_API class UArrowComponent* GetArrowComponent() const;
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
 	/** Returns BoxComponent subobject **/
-	FORCEINLINE UBoxComponent* GetBoxComponent() const { return BoxComponent; }
+	ENGINE_API UBoxComponent* GetBoxComponent() const;
 #endif
 };
 

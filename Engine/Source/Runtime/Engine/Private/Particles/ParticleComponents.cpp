@@ -6079,3 +6079,12 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns ParticleSystemComponent subobject **/
+UParticleSystemComponent* AEmitter::GetParticleSystemComponent() { return ParticleSystemComponent; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AEmitter::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns ArrowComponent subobject **/
+UArrowComponent* AEmitter::GetArrowComponent() const { return ArrowComponent; }
+#endif

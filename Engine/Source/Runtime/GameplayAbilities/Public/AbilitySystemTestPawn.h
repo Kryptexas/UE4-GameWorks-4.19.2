@@ -15,8 +15,9 @@ class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
-private:
+private_subobject:
 	/** DefaultPawn collision component */
+	DEPRECATED_FORGAME(4.6, "AbilitySystemComponent should not be accessed directly, please use GetAbilitySystemComponent() function instead. AbilitySystemComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = AbilitySystem, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UAbilitySystemComponent* AbilitySystemComponent;
 public:
@@ -30,5 +31,5 @@ public:
 	static FName AbilitySystemComponentName;
 
 	/** Returns AbilitySystemComponent subobject **/
-	FORCEINLINE class UAbilitySystemComponent* GetAbilitySystemComponent() { return AbilitySystemComponent; }
+	class UAbilitySystemComponent* GetAbilitySystemComponent();
 };

@@ -19,6 +19,7 @@ public:
 
 private:
 	/** Hardcoded collision component, so other objects don't think they can collide with the visualization actor */
+	DEPRECATED_FORGAME(4.6, "CollisionComponent should not be accessed directly, please use GetCollisionComponent() function instead. CollisionComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UCapsuleComponent* CollisionComponent;
 public:
@@ -30,5 +31,5 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 	/** Returns CollisionComponent subobject **/
-	FORCEINLINE class UCapsuleComponent* GetCollisionComponent() { return CollisionComponent; }
+	GAMEPLAYABILITIES_API class UCapsuleComponent* GetCollisionComponent();
 };

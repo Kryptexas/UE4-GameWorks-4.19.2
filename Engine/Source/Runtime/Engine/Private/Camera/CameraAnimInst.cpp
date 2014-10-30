@@ -256,3 +256,6 @@ void UCameraAnimInst::SetPlaySpace(ECameraAnimPlaySpace::Type NewSpace, FRotator
 	UserPlaySpaceMatrix = (PlaySpace == ECameraAnimPlaySpace::UserDefined) ? FRotationMatrix(UserPlaySpace) : FMatrix::Identity;
 }
 
+
+/** Returns InterpGroupInst subobject **/
+UInterpGroupInst* UCameraAnimInst::GetInterpGroupInst() const { return InterpGroupInst; }

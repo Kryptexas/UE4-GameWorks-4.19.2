@@ -16,8 +16,9 @@ class ENGINE_API UCameraAnimInst : public UObject
 	UPROPERTY()
 	class UCameraAnim* CamAnim;
 
-private:
+private_subobject:
 	/** the UInterpGroupInst used to do the interpolation */
+	DEPRECATED_FORGAME(4.6, "InterpGroupInst should not be accessed directly, please use GetInterpGroupInst() function instead. InterpGroupInst will soon be private and your code will not compile.")
 	UPROPERTY(instanced)
 	class UInterpGroupInst* InterpGroupInst;
 
@@ -136,7 +137,7 @@ public:
 
 protected:
 	/** Returns InterpGroupInst subobject **/
-	FORCEINLINE class UInterpGroupInst* GetInterpGroupInst() const { return InterpGroupInst; }
+	class UInterpGroupInst* GetInterpGroupInst() const;
 };
 
 

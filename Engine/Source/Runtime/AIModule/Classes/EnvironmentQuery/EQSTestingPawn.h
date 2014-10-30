@@ -45,8 +45,9 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 	
 
 #if WITH_EDITORONLY_DATA
-private:
+private_subobject:
 	/** Editor Preview */
+	DEPRECATED_FORGAME(4.6, "EdRenderComp should not be accessed directly, please use GetEdRenderComp() function instead. EdRenderComp will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UEQSRenderingComponent* EdRenderComp;
 #endif // WITH_EDITORONLY_DATA
@@ -87,6 +88,6 @@ protected:
 public:
 #if WITH_EDITORONLY_DATA
 	/** Returns EdRenderComp subobject **/
-	FORCEINLINE class UEQSRenderingComponent* GetEdRenderComp() { return EdRenderComp; }
+	class UEQSRenderingComponent* GetEdRenderComp();
 #endif
 };

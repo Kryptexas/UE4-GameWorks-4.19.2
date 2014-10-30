@@ -15,8 +15,9 @@ class AInfo : public AActor
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
-private:
+private_subobject:
 	/** Billboard Component displayed in editor */
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 public:
@@ -28,7 +29,7 @@ public:
 public:
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API class UBillboardComponent* GetSpriteComponent() const;
 #endif
 };
 

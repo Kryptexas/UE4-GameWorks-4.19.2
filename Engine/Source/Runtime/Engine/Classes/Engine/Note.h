@@ -18,11 +18,13 @@ class ANote : public AActor
 	FString Text;
 
 	// Reference to sprite visualization component
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 
 	// Reference to arrow visualization component
+	DEPRECATED_FORGAME(4.6, "ArrowComponent should not be accessed directly, please use GetArrowComponent() function instead. ArrowComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UArrowComponent* ArrowComponent;
 public:
@@ -37,9 +39,9 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API class UBillboardComponent* GetSpriteComponent() const;
 	/** Returns ArrowComponent subobject **/
-	FORCEINLINE class UArrowComponent* GetArrowComponent() const { return ArrowComponent; }
+	ENGINE_API class UArrowComponent* GetArrowComponent() const;
 #endif
 };
 

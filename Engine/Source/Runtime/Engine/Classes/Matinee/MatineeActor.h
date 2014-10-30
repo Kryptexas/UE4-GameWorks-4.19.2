@@ -166,7 +166,8 @@ class AMatineeActor : public AActor
 #if WITH_EDITORONLY_DATA
 
 	// Reference to the actor sprite
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 public:
@@ -467,7 +468,7 @@ public:
 public:
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API class UBillboardComponent* GetSpriteComponent() const;
 #endif
 };
 

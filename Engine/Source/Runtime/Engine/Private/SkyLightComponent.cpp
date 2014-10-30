@@ -542,3 +542,6 @@ void ASkyLight::OnRep_bEnabled()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns LightComponent subobject **/
+USkyLightComponent* ASkyLight::GetLightComponent() const { return LightComponent; }

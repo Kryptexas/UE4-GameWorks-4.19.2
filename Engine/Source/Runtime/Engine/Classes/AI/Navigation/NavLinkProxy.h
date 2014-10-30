@@ -23,8 +23,9 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 	UPROPERTY()
 	TArray<FNavigationSegmentLink> SegmentLinks;
 
-private:
+private_subobject:
 	/** Smart link: can affect path following */
+	DEPRECATED_FORGAME(4.6, "SmartLinkComp should not be accessed directly, please use GetSmartLinkComp() function instead. SmartLinkComp will soon be private and your code will not compile.")
 	UPROPERTY(VisibleAnywhere, Category=SmartLink)
 	class UNavLinkCustomComponent* SmartLinkComp;
 public:
@@ -34,11 +35,13 @@ public:
 	bool bSmartLinkIsRelevant;
 
 #if WITH_EDITORONLY_DATA
-private:
+private_subobject:
 	/** Editor Preview */
+	DEPRECATED_FORGAME(4.6, "EdRenderComp should not be accessed directly, please use GetEdRenderComp() function instead. EdRenderComp will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UNavLinkRenderingComponent* EdRenderComp;
 
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* SpriteComponent;
 public:
@@ -93,11 +96,11 @@ protected:
 
 public:
 	/** Returns SmartLinkComp subobject **/
-	FORCEINLINE class UNavLinkCustomComponent* GetSmartLinkComp() const { return SmartLinkComp; }
+	class UNavLinkCustomComponent* GetSmartLinkComp() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns EdRenderComp subobject **/
-	FORCEINLINE class UNavLinkRenderingComponent* GetEdRenderComp() const { return EdRenderComp; }
+	class UNavLinkRenderingComponent* GetEdRenderComp() const;
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	class UBillboardComponent* GetSpriteComponent() const;
 #endif
 };

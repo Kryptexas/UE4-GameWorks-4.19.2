@@ -9679,3 +9679,10 @@ void UInterpGroupCamera::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif // WITH_EDITOR
+
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AMatineeActor::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AMaterialInstanceActor::GetSpriteComponent() const { return SpriteComponent; }
+#endif

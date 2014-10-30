@@ -11,12 +11,14 @@ class ENGINE_API AWheeledVehicle : public APawn
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
 	/**  The main skeletal mesh associated with this Vehicle */
+	DEPRECATED_FORGAME(4.6, "Mesh should not be accessed directly, please use GetMesh() function instead. Mesh will soon be private and your code will not compile.")
 	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;
 
 	/** vehicle simulation component */
+	DEPRECATED_FORGAME(4.6, "VehicleMovement should not be accessed directly, please use GetVehicleMovement() function instead. VehicleMovement will soon be private and your code will not compile.")
 	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UWheeledVehicleMovementComponent* VehicleMovement;
 public:
@@ -28,17 +30,14 @@ public:
 	static FName VehicleMovementComponentName;
 
 	/** Util to get the wheeled vehicle movement component */
-	class UWheeledVehicleMovementComponent* GetVehicleMovementComponent() const 
-	{ 
-		return VehicleMovement; 
-	}
+	class UWheeledVehicleMovementComponent* GetVehicleMovementComponent() const;
 
 	// Begin AActor interface
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	// End Actor interface
 
 	/** Returns Mesh subobject **/
-	FORCEINLINE class USkeletalMeshComponent* GetMesh() const { return Mesh; }
+	class USkeletalMeshComponent* GetMesh() const;
 	/** Returns VehicleMovement subobject **/
-	FORCEINLINE class UWheeledVehicleMovementComponent* GetVehicleMovement() const { return VehicleMovement; }
+	class UWheeledVehicleMovementComponent* GetVehicleMovement() const;
 };

@@ -19,7 +19,8 @@ class ADestructibleActor : public AActor
 	/**
 	 * The component which holds the skinned mesh and physics data for this actor.
 	 */
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "DestructibleComponent should not be accessed directly, please use GetDestructibleComponent() function instead. DestructibleComponent will soon be private and your code will not compile.")
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Destruction, meta = (ExposeFunctionCategories = "Destruction,Components|Destructible", AllowPrivateAccess = "true"))
 	UDestructibleComponent* DestructibleComponent;
 public:
@@ -40,7 +41,7 @@ public:
 
 public:
 	/** Returns DestructibleComponent subobject **/
-	FORCEINLINE UDestructibleComponent* GetDestructibleComponent() const { return DestructibleComponent; }
+	ENGINE_API UDestructibleComponent* GetDestructibleComponent() const;
 };
 
 

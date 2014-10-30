@@ -4951,3 +4951,6 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 }
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns SkeletalMeshComponent subobject **/
+USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() { return SkeletalMeshComponent; }

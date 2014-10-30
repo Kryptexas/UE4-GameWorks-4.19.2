@@ -14,10 +14,13 @@ class ASphereReflectionCapture : public AReflectionCapture
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
 	/** Sphere component used to visualize the capture radius */
+	DEPRECATED_FORGAME(4.6, "DrawCaptureRadius should not be accessed directly, please use GetDrawCaptureRadius() function instead. DrawCaptureRadius will soon be private and your code will not compile.")
 	UPROPERTY()
 	UDrawSphereComponent* DrawCaptureRadius;
+
+public:
 
 #if WITH_EDITOR
 	// Begin AActor interface.
@@ -26,7 +29,7 @@ private:
 #endif
 
 	/** Returns DrawCaptureRadius subobject **/
-	FORCEINLINE UDrawSphereComponent* GetDrawCaptureRadius() const { return DrawCaptureRadius; }
+	ENGINE_API UDrawSphereComponent* GetDrawCaptureRadius() const;
 };
 
 

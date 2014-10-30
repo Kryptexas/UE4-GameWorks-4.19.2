@@ -36,3 +36,6 @@ UAbilitySystemComponent* AAbilitySystemTestPawn::GetAbilitySystemComponent() con
 {
 	return FindComponentByClass<UAbilitySystemComponent>();
 }
+
+/** Returns AbilitySystemComponent subobject **/
+UAbilitySystemComponent* AAbilitySystemTestPawn::GetAbilitySystemComponent() { return AbilitySystemComponent; }

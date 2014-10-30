@@ -427,6 +427,15 @@
 	#define DLLIMPORT
 #endif
 
+
+#ifndef DEPRECATED_FORGAME
+	#define DEPRECATED_FORGAME(...)
+#endif
+
+#ifndef private_subobject
+#define private_subobject public
+#endif
+
 // explicit bool support
 namespace FHasOperatorImpl
 {

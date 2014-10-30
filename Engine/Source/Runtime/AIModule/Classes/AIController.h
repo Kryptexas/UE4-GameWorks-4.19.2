@@ -90,12 +90,14 @@ public:
 	UPROPERTY()
 	uint32 bWantsPlayerState:1;
 
-private:
+private_subobject:
 	/** Component used for pathfinding and querying environment's navigation. */
+	DEPRECATED_FORGAME(4.6, "NavComponent should not be accessed directly, please use GetNavComponent() function instead. NavComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UNavigationComponent* NavComponent;
 
 	/** Component used for moving along a path. */
+	DEPRECATED_FORGAME(4.6, "PathFollowingComponent should not be accessed directly, please use GetPathFollowingComponent() function instead. PathFollowingComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UPathFollowingComponent* PathFollowingComponent;
 
@@ -108,7 +110,8 @@ public:
 	UPROPERTY()
 	UAIPerceptionComponent* PerceptionComponent;
 
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "ActionsComp should not be accessed directly, please use GetActionsComp() function instead. ActionsComp will soon be private and your code will not compile.")
 	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
 	UPawnActionsComponent* ActionsComp;
 
@@ -165,7 +168,7 @@ public:
 	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 	/** Returns the Move Request ID for the current move */
-	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
+	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return GetPathFollowingComponent() ? GetPathFollowingComponent()->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
 
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
@@ -312,11 +315,11 @@ public:
 
 public:
 	/** Returns NavComponent subobject **/
-	FORCEINLINE UNavigationComponent* GetNavComponent() const { return NavComponent; }
+	UNavigationComponent* GetNavComponent() const;
 	/** Returns PathFollowingComponent subobject **/
-	FORCEINLINE UPathFollowingComponent* GetPathFollowingComponent() const { return PathFollowingComponent; }
+	UPathFollowingComponent* GetPathFollowingComponent() const;
 	/** Returns ActionsComp subobject **/
-	FORCEINLINE UPawnActionsComponent* GetActionsComp() const { return ActionsComp; }
+	UPawnActionsComponent* GetActionsComp() const;
 };
 
 

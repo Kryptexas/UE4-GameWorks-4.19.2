@@ -994,3 +994,10 @@ void UTextRenderComponent::PostLoad()
 
 	Super::PostLoad();
 }
+
+/** Returns TextRender subobject **/
+UTextRenderComponent* ATextRenderActor::GetTextRender() const { return TextRender; }
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ATextRenderActor::GetSpriteComponent() const { return SpriteComponent; }
+#endif

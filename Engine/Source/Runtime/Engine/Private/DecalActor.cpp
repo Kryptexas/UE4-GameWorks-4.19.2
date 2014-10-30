@@ -133,3 +133,14 @@ class UMaterialInstanceDynamic* ADecalActor::CreateDynamicMaterialInstance()
 {
 	return Decal ? Decal->CreateDynamicMaterialInstance() : NULL;
 }
+
+/** Returns Decal subobject **/
+UDecalComponent* ADecalActor::GetDecal() const { return Decal; }
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* ADecalActor::GetArrowComponent() const { return ArrowComponent; }
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* ADecalActor::GetSpriteComponent() const { return SpriteComponent; }
+/** Returns BoxComponent subobject **/
+UBoxComponent* ADecalActor::GetBoxComponent() const { return BoxComponent; }
+#endif

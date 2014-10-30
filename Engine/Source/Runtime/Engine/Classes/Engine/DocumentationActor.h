@@ -45,7 +45,8 @@ class ENGINE_API ADocumentationActor : public AActor
 	UPROPERTY(Category = HelpDocumentation, EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	FString DocumentLink; 
 	
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "Billboard should not be accessed directly, please use GetBillboard() function instead. Billboard will soon be private and your code will not compile.")
 	UPROPERTY(Category = Sprite, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UMaterialBillboardComponent* Billboard;
 #endif
@@ -65,7 +66,7 @@ private:
 public:
 #if WITH_EDITORONLY_DATA
 	/** Returns Billboard subobject **/
-	FORCEINLINE class UMaterialBillboardComponent* GetBillboard() const { return Billboard; }
+	class UMaterialBillboardComponent* GetBillboard() const;
 #endif
 };
 

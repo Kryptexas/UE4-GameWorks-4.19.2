@@ -29,7 +29,8 @@ class AFunctionalTest : public AActor
 
 	static const uint32 DefaultTimeLimit = 60;	// seconds
 
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 public:
@@ -127,5 +128,5 @@ protected:
 
 public:
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE UBillboardComponent* GetSpriteComponent() { return SpriteComponent; }
+	UBillboardComponent* GetSpriteComponent();
 };

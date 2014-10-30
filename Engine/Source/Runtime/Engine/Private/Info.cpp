@@ -38,3 +38,8 @@ AInfo::AInfo(const FObjectInitializer& ObjectInitializer)
 	bReplicateMovement = false;
 	bCanBeDamaged = false;
 }
+
+#if WITH_EDITORONLY_DATA
+/** Returns SpriteComponent subobject **/
+UBillboardComponent* AInfo::GetSpriteComponent() const { return SpriteComponent; }
+#endif

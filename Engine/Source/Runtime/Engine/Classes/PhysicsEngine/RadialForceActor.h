@@ -9,12 +9,14 @@ class ARadialForceActor : public ARigidBodyBase
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
 	/** Force component */
+	DEPRECATED_FORGAME(4.6, "ForceComponent should not be accessed directly, please use GetForceComponent() function instead. ForceComponent will soon be private and your code will not compile.")
 	UPROPERTY(Category = RadialForceActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Activation,Components|Activation,Physics,Physics|Components|RadialForce", AllowPrivateAccess = "true"))
 	class URadialForceComponent* ForceComponent;
 
 #if WITH_EDITORONLY_DATA
+	DEPRECATED_FORGAME(4.6, "SpriteComponent should not be accessed directly, please use GetSpriteComponent() function instead. SpriteComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	UBillboardComponent* SpriteComponent;
 #endif
@@ -40,10 +42,10 @@ public:
 
 public:
 	/** Returns ForceComponent subobject **/
-	FORCEINLINE class URadialForceComponent* GetForceComponent() const { return ForceComponent; }
+	ENGINE_API class URadialForceComponent* GetForceComponent() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
-	FORCEINLINE UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; }
+	ENGINE_API UBillboardComponent* GetSpriteComponent() const;
 #endif
 };
 

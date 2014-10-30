@@ -78,3 +78,7 @@ void APlayerStart::PostUnregisterAllComponents()
 	}
 }
 
+#if WITH_EDITORONLY_DATA
+/** Returns ArrowComponent subobject **/
+UArrowComponent* APlayerStart::GetArrowComponent() const { return ArrowComponent; }
+#endif

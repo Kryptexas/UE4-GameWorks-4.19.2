@@ -9,15 +9,18 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 {
 	GENERATED_UCLASS_BODY()
 
-private:
+private_subobject:
+	DEPRECATED_FORGAME(4.6, "CapsuleComponent should not be accessed directly, please use GetCapsuleComponent() function instead. CapsuleComponent will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UCapsuleComponent* CapsuleComponent;
 
 	/** Normal editor sprite. */
+	DEPRECATED_FORGAME(4.6, "GoodSprite should not be accessed directly, please use GetGoodSprite() function instead. GoodSprite will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* GoodSprite;
 
 	/** Used to draw bad collision intersection in editor. */
+	DEPRECATED_FORGAME(4.6, "BadSprite should not be accessed directly, please use GetBadSprite() function instead. BadSprite will soon be private and your code will not compile.")
 	UPROPERTY()
 	class UBillboardComponent* BadSprite;
 public:
@@ -58,11 +61,11 @@ public:
 
 public:
 	/** Returns CapsuleComponent subobject **/
-	FORCEINLINE class UCapsuleComponent* GetCapsuleComponent() const { return CapsuleComponent; }
+	class UCapsuleComponent* GetCapsuleComponent() const;
 	/** Returns GoodSprite subobject **/
-	FORCEINLINE class UBillboardComponent* GetGoodSprite() const { return GoodSprite; }
+	class UBillboardComponent* GetGoodSprite() const;
 	/** Returns BadSprite subobject **/
-	FORCEINLINE class UBillboardComponent* GetBadSprite() const { return BadSprite; }
+	class UBillboardComponent* GetBadSprite() const;
 };
 
 

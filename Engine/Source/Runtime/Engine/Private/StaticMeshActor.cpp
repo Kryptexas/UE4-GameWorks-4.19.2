@@ -204,3 +204,6 @@ void AStaticMeshActor::CheckForErrors()
 #endif // WITH_EDITOR
 
 #undef LOCTEXT_NAMESPACE
+
+/** Returns StaticMeshComponent subobject **/
+UStaticMeshComponent* AStaticMeshActor::GetStaticMeshComponent() const { return StaticMeshComponent; }

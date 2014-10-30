@@ -602,3 +602,6 @@ void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutL
 	DOREPLIFETIME( AController, PlayerState );
 	DOREPLIFETIME( AController, Pawn );
 }
+
+/** Returns TransformComponent subobject **/
+USceneComponent* AController::GetTransformComponent() const { return TransformComponent; }

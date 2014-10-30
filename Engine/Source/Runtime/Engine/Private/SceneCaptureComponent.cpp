@@ -370,3 +370,14 @@ void USceneCaptureComponentCube::PostEditChangeProperty(FPropertyChangedEvent& P
 	UpdateContent();
 }
 #endif // WITH_EDITOR
+
+/** Returns MeshComp subobject **/
+UStaticMeshComponent* ASceneCapture::GetMeshComp() const { return MeshComp; }
+/** Returns CaptureComponent2D subobject **/
+USceneCaptureComponent2D* ASceneCapture2D::GetCaptureComponent2D() const { return CaptureComponent2D; }
+/** Returns DrawFrustum subobject **/
+UDrawFrustumComponent* ASceneCapture2D::GetDrawFrustum() const { return DrawFrustum; }
+/** Returns CaptureComponentCube subobject **/
+USceneCaptureComponentCube* ASceneCaptureCube::GetCaptureComponentCube() const { return CaptureComponentCube; }
+/** Returns DrawFrustum subobject **/
+UDrawFrustumComponent* ASceneCaptureCube::GetDrawFrustum() const { return DrawFrustum; }
