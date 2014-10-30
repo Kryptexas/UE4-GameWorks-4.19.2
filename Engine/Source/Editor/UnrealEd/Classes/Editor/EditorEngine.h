@@ -533,6 +533,13 @@ public:
 	/** Annotation to track which PIE/SIE (PlayWorld) UObjects have counterparts in the EditorWorld **/
 	class FUObjectAnnotationSparseBool ObjectsThatExistInEditorWorld;
 
+	/** Called prior to a Blueprint compile */
+	DECLARE_EVENT_OneParam( UEditorEngine, FBlueprintPreCompileEvent, UBlueprint* );
+	FBlueprintPreCompileEvent& OnBlueprintPreCompile() { return BlueprintPreCompileEvent; }
+
+	/** Broadcasts that a Blueprint is about to be compiled */
+	void BroadcastBlueprintPreCompile(UBlueprint* BlueprintToCompile) { BlueprintPreCompileEvent.Broadcast(BlueprintToCompile); }
+
 	/** Called when a Blueprint compile is completed. */
 	DECLARE_EVENT( UEditorEngine, FBlueprintCompiledEvent );
 	FBlueprintCompiledEvent& OnBlueprintCompiled() { return BlueprintCompiledEvent; }
@@ -2574,6 +2581,9 @@ private:
 	void HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded );
 
 private:
+
+	/** Delegate broadcast just before a blueprint is compiled */
+	FBlueprintPreCompileEvent BlueprintPreCompileEvent;
 
 	/** Delegate broadcast when blueprint is compiled */
 	FBlueprintCompiledEvent BlueprintCompiledEvent;

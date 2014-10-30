@@ -338,6 +338,14 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
 {
+	// Broadcast pre-compile
+#if WITH_EDITOR
+	if(GEditor && GIsEditor)
+	{
+		GEditor->BroadcastBlueprintPreCompile(BlueprintObj);
+	}
+#endif
+
 	// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
 	BlueprintObj->bDisplayCompilePIEWarning = true;
 

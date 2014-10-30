@@ -600,6 +600,9 @@ private:
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;
 
+	/** Called immediately prior to a blueprint compilation */
+	void OnBlueprintPreCompile(UBlueprint* BlueprintToCompile);
+
 	/** The extender to pass to the level editor to extend it's window menu */
 	TSharedPtr<FExtender> MenuExtender;
 

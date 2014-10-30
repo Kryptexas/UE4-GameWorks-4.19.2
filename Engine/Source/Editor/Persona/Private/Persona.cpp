@@ -188,10 +188,14 @@ FPersona::FPersona()
 	// Register to be notified when properties are edited
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPersona::OnPropertyChanged);
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+
+	GEditor->OnBlueprintPreCompile().AddRaw(this, &FPersona::OnBlueprintPreCompile);
 }
 
 FPersona::~FPersona()
 {
+	GEditor->OnBlueprintPreCompile().RemoveAll(this);
+
 	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
@@ -723,6 +727,8 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	// Register post import callback to catch animation imports when we have the asset open (we need to reinit)
 	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FPersona::OnPostImport);
+
+	
 }
 	
 TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) const
@@ -2865,6 +2871,28 @@ void FPersona::OnReimportAnimation()
 TStatId FPersona::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FPersona, STATGROUP_Tickables);
+}
+
+void FPersona::OnBlueprintPreCompile(UBlueprint* BlueprintToCompile)
+{
+	if(PreviewComponent && PreviewComponent->PreviewInstance)
+	{
+		// If we are compiling an anim notify state the class will soon be sanitized and 
+		// if an anim instance is running a state when that happens it will likely
+		// crash, so we end any states that are about to compile.
+		UAnimPreviewInstance* Instance = PreviewComponent->PreviewInstance;
+		USkeletalMeshComponent* SkelMeshComp = Instance->GetSkelMeshComponent();
+
+		for(int32 Idx = Instance->ActiveAnimNotifyState.Num() - 1 ; Idx >= 0 ; --Idx)
+		{
+			FAnimNotifyEvent& Event = Instance->ActiveAnimNotifyState[Idx];
+			if(Event.NotifyStateClass->GetClass() == BlueprintToCompile->GeneratedClass)
+			{
+				Event.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(Event.NotifyStateClass->GetOuter()));
+				Instance->ActiveAnimNotifyState.RemoveAt(Idx);
+			}
+		}
+	}
 }
 
 static class FMeshHierarchyCmd : private FSelfRegisteringExec
