@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SlateBasics.h"
+
 
 /**
  * Declares a delegate that is executed when a file was picked in the SFilePathPicker widget.
@@ -67,13 +69,13 @@ public:
 
 private:
 
-	// Callback for clicking the browse button.
+	/** Callback for clicking the browse button. */
 	FReply HandleBrowseButtonClicked( );
 
-	// Callback for getting the text in the path text box.
+	/** Callback for getting the text in the path text box. */
 	FText HandleTextBoxText( ) const;
 
-	// Callback for committing the text in the path text box.
+	/** Callback for committing the text in the path text box. */
 	void HandleTextBoxTextCommitted( const FText& NewText, ETextCommit::Type /*CommitInfo*/ );
 
 private:

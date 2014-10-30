@@ -63,7 +63,7 @@ void SFilePathPicker::Construct( const FArguments& InArgs )
 /* SFilePathPicker callbacks
  *****************************************************************************/
 
-FReply SFilePathPicker::HandleBrowseButtonClicked( )
+FReply SFilePathPicker::HandleBrowseButtonClicked()
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
@@ -93,7 +93,7 @@ FReply SFilePathPicker::HandleBrowseButtonClicked( )
 }
 
 
-FText SFilePathPicker::HandleTextBoxText( ) const
+FText SFilePathPicker::HandleTextBoxText() const
 {
 	return FText::FromString(FilePath.Get());
 }
