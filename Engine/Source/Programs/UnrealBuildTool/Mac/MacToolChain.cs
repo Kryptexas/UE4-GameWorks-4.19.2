@@ -942,12 +942,14 @@ namespace UnrealBuildTool
 
 					string UProjectFilePath = UProjectInfo.GetProjectFilePath(GameName);
 					string CustomResourcesPath = "";
+					string CustomBuildPath = "";
 					if (string.IsNullOrEmpty(UProjectFilePath))
 					{
 						string[] TargetFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), GameName + ".Target.cs", SearchOption.AllDirectories);
 						if (TargetFiles.Length == 1)
 						{
 							CustomResourcesPath = Path.GetDirectoryName(TargetFiles[0]) + "/Resources/Mac";
+							CustomBuildPath = Path.GetDirectoryName(TargetFiles[0]) + "../Build/Mac";
 						}
 						else
 						{
@@ -957,15 +959,32 @@ namespace UnrealBuildTool
 					else
 					{
 						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath) + "/Source/" + GameName + "/Resources/Mac";
+						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath) + "/Build/Mac";
 					}
 
-					CustomResourcesPath = ConvertPath(CustomResourcesPath);
+					CustomResourcesPath = ConvertPath(Path.GetFullPath(CustomResourcesPath));
+					CustomBuildPath = ConvertPath(Path.GetFullPath(CustomBuildPath));
+
+					bool bBuildingEditor = GameName.EndsWith("Editor");
 
 					// Copy resources
-					string CustomIcon = CustomResourcesPath + "/" + GameName + ".icns";
-					if (!File.Exists(CustomIcon))
+					string DefaultIcon = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + IconName + ".icns";
+					string CustomIcon = "";
+					if (bBuildingEditor)
 					{
-						CustomIcon = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + IconName + ".icns";
+						CustomIcon = DefaultIcon;
+					}
+					else
+					{
+						CustomIcon = CustomBuildPath + "/Application.icns";
+						if (!File.Exists(CustomIcon))
+						{
+							CustomIcon = CustomResourcesPath + "/" + GameName + ".icns";
+							if (!File.Exists(CustomIcon))
+							{
+								CustomIcon = DefaultIcon;
+							}
+						}
 					}
 					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{2}.app/Contents/Resources/{1}.icns\"", CustomIcon, IconName, ExeName);
 
@@ -977,7 +996,7 @@ namespace UnrealBuildTool
 					string InfoPlistFile = CustomResourcesPath + "/Info.plist";
 					if (!File.Exists(InfoPlistFile))
 					{
-						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (GameName.EndsWith("Editor") ? "Info-Editor.plist" : "Info.plist");
+						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");
 					}
 					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
 

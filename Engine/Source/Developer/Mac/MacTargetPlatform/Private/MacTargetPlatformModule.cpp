@@ -63,7 +63,7 @@ public:
 		{
 			SettingsModule->RegisterSettings("Project", "Platforms", "Mac",
 				LOCTEXT("TargetSettingsName", "Mac"),
-				LOCTEXT("TargetSettingsDescription", "Mac platform settings description text here"),
+				LOCTEXT("TargetSettingsDescription", "Settings and resources for Mac platform"),
 				TargetSettings
 			);
 		}
