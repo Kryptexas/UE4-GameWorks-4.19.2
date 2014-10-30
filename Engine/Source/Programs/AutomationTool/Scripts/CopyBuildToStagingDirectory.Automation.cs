@@ -764,7 +764,17 @@ public partial class Project : CommandUtils
 		MaybeConvertToLowerCase(Params, SC);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage)
 		{
-			DeleteDirectory(SC.StageDirectory);
+            try
+            {
+                DeleteDirectory(SC.StageDirectory);
+            }
+            catch (Exception Ex)
+            {
+                // Delete cooked data (if any) as it may be incomplete / corrupted.
+                Log("Failed to delete staging directory "+SC.StageDirectory);
+                AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_FailedToDeleteStagingDirectory);
+                throw Ex;   
+            }
 		}
 		if (ShouldCreatePak(Params, SC))
 		{

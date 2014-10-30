@@ -62,7 +62,8 @@ namespace iPhonePackager
         Error_AndroidBuildToolsPathNotFound = 54,
         Error_NoApkSuitableForArchitecture = 55,
 		Error_LauncherFailed = 100,
-		Error_UATLaunchFailure = 101,
+        Error_UATLaunchFailure = 101,
+        Error_FailedToDeleteStagingDirectory = 102,
 	};
 
 	public partial class Program

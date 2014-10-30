@@ -55,6 +55,7 @@ namespace EAnalyticsErrorCodes
 		NoApkSuitableForArchitecture = 55,
 		LauncherFailed = 100,
 		UATLaunchFailure = 101,
+		FailedToDeleteStagingDirectory = 102,
 	};
 };
 
