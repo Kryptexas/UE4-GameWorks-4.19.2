@@ -76,6 +76,11 @@ private:
 	/** Get the visibility for the selected template preview image */
 	EVisibility GetSelectedTemplatePreviewVisibility() const;
 
+	FString GetSelectedTemplateClassTypes() const;
+	EVisibility GetSelectedTemplateClassVisibility() const;
+	FString SNewProjectWizard::GetSelectedTemplateAssetTypes() const;	
+	EVisibility SNewProjectWizard::GetSelectedTemplateAssetVisibility() const;
+
 	/** Gets the assembled project filename with path */
 	FString GetProjectFilenameWithPath() const;
 
