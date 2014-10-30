@@ -21,7 +21,7 @@ void FMacPlatformMemory::Init()
 
 FMalloc* FMacPlatformMemory::BaseAllocator()
 {
-#if FORCE_ANSI_ALLOCATOR
+#if FORCE_ANSI_ALLOCATOR || IS_PROGRAM
 	return new FMallocAnsi();
 #elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
 	return new FMallocTBB();
