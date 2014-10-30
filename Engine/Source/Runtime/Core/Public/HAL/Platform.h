@@ -432,6 +432,7 @@
 	#define DEPRECATED_FORGAME(...)
 #endif
 
+// This is a temporary macro, will be removed when TSubobjectPtr can be safely removed
 #ifndef private_subobject
 #define private_subobject public
 #endif

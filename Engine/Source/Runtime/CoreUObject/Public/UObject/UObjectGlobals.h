@@ -580,7 +580,7 @@ template<class T> struct TIsZeroConstructType< TSubobjectPtrDeprecated<T> > { en
 template<class T> struct TIsWeakPointerType< TSubobjectPtrDeprecated<T> > { enum { Value = false }; };
 
 #define TSubobjectPtr \
-	EMIT_DEPRECATED_WARNING_MESSAGE("TSubobjectPtr is deprecated and and should no longer be used. Please use pointers instead.") \
+	EMIT_DEPRECATED_WARNING_MESSAGE("TSubobjectPtr is deprecated and should no longer be used. Please use pointers instead.") \
 	TSubobjectPtrDeprecated
 	
 
