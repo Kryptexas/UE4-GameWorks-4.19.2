@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "WidgetBlueprintEditor.h"
+
 class FWidgetNavigationCustomization : public IPropertyTypeCustomization
 {
 public:

@@ -8,6 +8,8 @@
 #include "Editor/Persona/Public/PersonaModule.h"
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "AnimationEditorUtils.h"
 

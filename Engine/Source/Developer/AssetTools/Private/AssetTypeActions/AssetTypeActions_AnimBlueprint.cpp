@@ -3,6 +3,8 @@
 #include "AssetToolsPrivatePCH.h"
 #include "PersonaModule.h"
 #include "EditorAnimUtils.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
