@@ -8,7 +8,7 @@
  * ensure all characters in the font texture exist if the rendering resource has to be recreated 
  * between caching new characters
  */
-class FSlateFontTextureRHI : public TSlateTexture<FTexture2DRHIRef>, public FSlateUpdatableTexture, public FTextureResource
+class FSlateFontTextureRHI : public TSlateTexture<FTexture2DRHIRef>, public FTextureResource
 {
 public:
 	/** Constructor.  Initializes the texture
@@ -21,12 +21,6 @@ public:
 	/** FSlateShaderResource interface */
 	virtual uint32 GetWidth() const override { return Width; }
 	virtual uint32 GetHeight() const override { return Height; }
-
-	/** FSlateUpdatableTexture interface */
-	virtual FSlateShaderResource* GetSlateResource() override { return this; }
-	virtual FRenderResource* GetRenderResource() override { return this; }
-	virtual void ResizeTexture( uint32 InWidth, uint32 InHeight ) override;
-	virtual void UpdateTexture( const TArray<uint8>& InBytes ) override;
 
 	/** FTextureResource interface */
 	virtual uint32 GetSizeX() const override { return Width; }

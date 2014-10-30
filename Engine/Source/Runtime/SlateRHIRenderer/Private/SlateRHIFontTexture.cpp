@@ -92,54 +92,6 @@ void FSlateFontTextureRHI::ReleaseDynamicRHI()
 	ShaderResource.SafeRelease();
 }
 
-void FSlateFontTextureRHI::ResizeTexture( uint32 InWidth, uint32 InHeight )
-{
-	if (Width != InWidth || Height != InHeight)
-	{
-		if (IsInRenderingThread())
-		{
-			Width = InWidth;
-			Height = InHeight;
-			UpdateRHI();
-		}
-		else
-		{
-			FIntPoint Dimensions(InWidth, InHeight);
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(SlateResizeFontTexture,
-			FSlateFontTextureRHI*, TextureRHIRef, this,
-			FIntPoint, InDimensions, Dimensions,
-			{
-				TextureRHIRef->Width = InDimensions.X;
-				TextureRHIRef->Height = InDimensions.Y;
-				TextureRHIRef->UpdateRHI();
-			});
-		}
-	}
-}
-
-void FSlateFontTextureRHI::UpdateTexture( const TArray<uint8>& InBytes )
-{
-	if (IsInRenderingThread())
-	{
-		uint32 Stride = 0;
-		void* TextureBuffer = RHILockTexture2D(GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
-		FMemory::Memcpy(TextureBuffer, InBytes.GetData(), InBytes.Num());
-		RHIUnlockTexture2D(GetTypedResource(), 0, false);
-	}
-	else
-	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(SlateUpdateFontTexture,
-		FSlateFontTextureRHI*, TextureRHIRef, this,
-		const TArray<uint8>&, TextureData, InBytes,
-		{
-			uint32 Stride = 0;
-			void* TextureBuffer = RHILockTexture2D(TextureRHIRef->GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
-			FMemory::Memcpy(TextureBuffer, TextureData.GetData(), TextureData.Num());
-			RHIUnlockTexture2D(TextureRHIRef->GetTypedResource(), 0, false);
-		});
-	}
-}
-
 FSlateFontAtlasRHI::FSlateFontAtlasRHI( uint32 Width, uint32 Height )
 	: FSlateFontAtlas( Width, Height ) 
 	, FontTexture( new FSlateFontTextureRHI( Width, Height ) )
