@@ -729,7 +729,9 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 				*(PrimitiveSceneInfo->ComponentLastRenderTime) = CurrentWorldTime;
 			}
 
-			if (bNeedsPreRenderView)
+			const bool bUseGetDynamicMeshElements = ShouldUseGetDynamicMeshElements();
+
+			if (!bUseGetDynamicMeshElements && bNeedsPreRenderView)
 			{
 				// Call PreRenderView on primitives that weren't visible in any of the main views, but need to be rendered in this shadow's depth pass
 				PrimitiveSceneInfo->Proxy->PreRenderView(Views[0]->Family, ViewMask, Views[0]->FrameNumber);
@@ -882,6 +884,84 @@ void FProjectedShadowInfo::AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSc
 	ReceiverPrimitives.Add(PrimitiveSceneInfo);
 }
 
+void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray)
+{
+	if (SubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
+	{
+		// Choose an arbitrary view where this shadow's subject is relevant.
+		FViewInfo* FoundView = NULL;
+		for (int32 ViewIndex = 0;ViewIndex < Renderer.Views.Num();ViewIndex++)
+		{
+			FViewInfo* CheckView = &Renderer.Views[ViewIndex];
+			const FVisibleLightViewInfo& VisibleLightViewInfo = CheckView->VisibleLightInfos[LightSceneInfo->Id];
+			FPrimitiveViewRelevance ViewRel = VisibleLightViewInfo.ProjectedShadowViewRelevanceMap[ShadowId];
+			if (ViewRel.bShadowRelevance)
+			{
+				FoundView = CheckView;
+				break;
+			}
+		}
+		check(FoundView && IsInRenderingThread());
+
+		// Backup properties of the view that we will override
+		FMatrix OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
+
+		// Override the view matrix so that billboarding primitives will be aligned to the light
+		FoundView->ViewMatrices.ViewMatrix = ShadowViewMatrix;
+
+		// Prevent materials from getting overridden during shadow casting in viewmodes like lighting only
+		// Lighting only should only affect the material used with direct lighting, not the indirect lighting
+		FoundView->bForceShowMaterials = true;
+
+		ReusedViewsArray[0] = FoundView;
+
+		GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+		GatherDynamicMeshElementsArray(FoundView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
+		GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
+
+		FoundView->bForceShowMaterials = false;
+		FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+	}
+}
+
+void FProjectedShadowInfo::GatherDynamicMeshElementsArray(
+	FViewInfo* FoundView,
+	FSceneRenderer& Renderer, 
+	PrimitiveArrayType& PrimitiveArray, 
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
+	TArray<const FSceneView*>& ReusedViewsArray)
+{
+	// Simple elements not supported in shadow passes
+	FSimpleElementCollector DynamicSubjectSimpleElements;
+
+	Renderer.MeshCollector.ClearViewMeshArrays();
+	Renderer.MeshCollector.AddViewMeshArrays(FoundView, &OutDynamicMeshElements, &DynamicSubjectSimpleElements, Renderer.ViewFamily.GetFeatureLevel());
+
+	const uint32 PrimitiveCount = PrimitiveArray.Num();
+
+	for (uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
+	{
+		const FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveArray[PrimitiveIndex];
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy = PrimitiveSceneInfo->Proxy;
+
+		// Lookup the primitive's cached view relevance
+		FPrimitiveViewRelevance ViewRelevance = FoundView->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
+
+		if (!ViewRelevance.bInitializedThisFrame)
+		{
+			// Compute the subject primitive's view relevance since it wasn't cached
+			ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(FoundView);
+		}
+
+		// Only draw if the subject primitive is shadow relevant.
+		if (ViewRelevance.bShadowRelevance && ViewRelevance.bDynamicRelevance)
+		{
+			Renderer.MeshCollector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
+			PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ReusedViewsArray, Renderer.ViewFamily, 0x1, Renderer.MeshCollector);
+		}
+	}
+}
+
 /** 
  * @param View view to check visibility in
  * @return true if this shadow info has any subject prims visible in the view
@@ -900,13 +980,19 @@ bool FProjectedShadowInfo::SubjectsVisible(const FViewInfo& View) const
 	return false;
 }
 
-/** Clears arrays allocated with the scene rendering allocator. */
+/** 
+ * Clears arrays allocated with the scene rendering allocator.
+ * Cached preshadows are reused across frames so scene rendering allocations will be invalid.
+ */
 void FProjectedShadowInfo::ClearTransientArrays()
 {
 	SubjectTranslucentPrimitives.Empty();
 	SubjectPrimitives.Empty();
 	ReceiverPrimitives.Empty();
 	SubjectMeshElements.Empty();
+	DynamicSubjectMeshElements.Empty();
+	DynamicReceiverMeshElements.Empty();
+	DynamicSubjectTranslucentMeshElements.Empty();
 }
 
 /** Returns a cached preshadow matching the input criteria if one exists. */
@@ -1615,20 +1701,23 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
 				FViewInfo& View = Views[ViewIndex];
+
 				if (ProjectedShadowInfo.DependentView && ProjectedShadowInfo.DependentView != &View)
 				{
 					// The view dependent projected shadow is valid for this view if it's the
 					// right eye and the projected shadow is being rendered for the left eye.
-					bool bIsValidForView = View.StereoPass == eSSP_RIGHT_EYE
+					const bool bIsValidForView = View.StereoPass == eSSP_RIGHT_EYE
 						&& Views.IsValidIndex(ViewIndex - 1)
 						&& Views[ViewIndex - 1].StereoPass == eSSP_LEFT_EYE
 						&& ProjectedShadowInfo.FadeAlphas.IsValidIndex(ViewIndex)
 						&& ProjectedShadowInfo.FadeAlphas[ViewIndex] == 1.0f;
+
 					if (!bIsValidForView)
 					{
 						continue;
 					}
 				}
+
 				FVisibleLightViewInfo& VisibleLightViewInfo = View.VisibleLightInfos[LightIt.GetIndex()];
 
 				if(VisibleLightViewInfo.bInViewFrustum)
@@ -1720,6 +1809,24 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 					}
 				}
 			}
+		}
+	}
+}
+
+void FSceneRenderer::GatherShadowDynamicMeshElements()
+{
+	TArray<const FSceneView*> ReusedViewsArray;
+	ReusedViewsArray.AddZeroed(1);
+
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+	{
+		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
+
+		for (int32 ShadowIndex = 0; ShadowIndex<VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.AllProjectedShadows[ShadowIndex];
+
+			ProjectedShadowInfo.GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
 		}
 	}
 }
@@ -2104,6 +2211,9 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 
 	// Gathers the list of primitives used to draw various shadow types
 	GatherShadowPrimitives(PreShadows, ViewDependentWholeSceneShadows, false);
+
+	// Generate mesh element arrays from shadow primitive arrays
+	GatherShadowDynamicMeshElements();
 }
 
 void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
@@ -2207,4 +2317,7 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 
 	// Gathers the list of primitives used to draw various shadow types
 	GatherShadowPrimitives(PreShadows, ViewDependentWholeSceneShadows, bStaticSceneOnly);
+
+	// Generate mesh element arrays from shadow primitive arrays
+	GatherShadowDynamicMeshElements();
 }

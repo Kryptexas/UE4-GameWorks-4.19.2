@@ -2034,7 +2034,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ViewRelevance);
-		// Compute view relevance for all visible primitives.
+			// Compute view relevance for all visible primitives.
 			if (!CVarLegacySingleThreadedRelevance.GetValueOnRenderThread())
 			{
 				ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
@@ -2044,7 +2044,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 				// This array contains a list of relevant static primities.
 				FRelevantStaticPrimitives RelevantStaticPrimitives;
 				ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
-		MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
+				MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
 			}
 		}
 
@@ -2079,7 +2079,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 	}
 	else
 	{
-	DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
+		DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
 	}
 
 	INC_DWORD_STAT_BY(STAT_ProcessedPrimitives,NumProcessedPrimitives);

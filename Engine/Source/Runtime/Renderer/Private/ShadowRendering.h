@@ -513,7 +513,7 @@ public:
 	/** Parent primitive of the shadow group that created this shadow, if not a bWholeSceneShadow. */
 	const FPrimitiveSceneInfo* const ParentSceneInfo;
 
-	/** The view this shadow must be rendered in, or NULL for a view independent shadow. */
+	/** The main view this shadow must be rendered in, or NULL for a view independent shadow. */
 	FViewInfo* DependentView;
 
 	/** Index of the shadow into FVisibleLightInfo::AllProjectedShadows. */
@@ -631,12 +631,18 @@ private:
 	PrimitiveArrayType SubjectPrimitives;
 	/** For preshadows, this contains the receiver primitives to mask the projection to. */
 	PrimitiveArrayType ReceiverPrimitives;
+	/** Subject primitives with translucent relevance. */
+	PrimitiveArrayType SubjectTranslucentPrimitives;
 
 	/** Static shadow casting elements. */
 	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
 
-	/** Subject primitives with translucent relevance. */
-	PrimitiveArrayType SubjectTranslucentPrimitives;
+	/** Dynamic mesh elements for subject primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectMeshElements;
+	/** Dynamic mesh elements for receiver primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicReceiverMeshElements;
+	/** Dynamic mesh elements for translucent subject primitives. */
+	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectTranslucentMeshElements;
 
 	/**
 	 * Bias during in shadowmap rendering, stored redundantly for better performance 
@@ -718,6 +724,9 @@ public:
 	 */
 	void AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
+	/** Gathers dynamic mesh elements for all the shadow's primitives arrays. */
+	void GatherDynamicMeshElements(FSceneRenderer& Renderer, class FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray);
+
 	/** 
 	 * @param View view to check visibility in
 	 * @return true if this shadow info has any subject prims visible in the view
@@ -779,6 +788,14 @@ private:
 
 	/** Updates object buffers needed by ray traced distance field shadows. */
 	int32 UpdateShadowCastingObjectBuffers() const;
+
+	/** Gathers dynamic mesh elements for the given primitive array. */
+	void GatherDynamicMeshElementsArray(
+		FViewInfo* FoundView,
+		FSceneRenderer& Renderer, 
+		PrimitiveArrayType& PrimitiveArray, 
+		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
+		TArray<const FSceneView*>& ReusedViewsArray);
 };
 
 /** Shader parameters for rendering the depth of a mesh for shadowing. */

@@ -1386,6 +1386,7 @@ private:
 	ERHIFeatureLevel::Type FeatureLevel;
 
 	friend class FSceneRenderer;
+	friend class FProjectedShadowInfo;
 };
 
 

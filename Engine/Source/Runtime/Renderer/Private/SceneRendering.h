@@ -642,6 +642,9 @@ protected:
 	/** Calculates projected shadow visibility. */
 	void InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList);	
 
+	/** Gathers dynamic mesh elements for all shadows. */
+	void GatherShadowDynamicMeshElements();
+
 	/** Performs once per frame setup prior to visibility determination. */
 	void PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList);
 
