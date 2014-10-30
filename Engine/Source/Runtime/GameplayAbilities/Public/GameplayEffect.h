@@ -587,12 +587,12 @@ struct FGameplayEffectSpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectSpec()
-		: Level(UGameplayEffect::INVALID_LEVEL)
-		, Duration(UGameplayEffect::INSTANT_APPLICATION)
+		: Duration(UGameplayEffect::INSTANT_APPLICATION)
 		, Period(UGameplayEffect::NO_PERIOD)
 		, ChanceToApplyToTarget(1.f)
 		, ChanceToExecuteOnGameplayEffect(1.f)
 		, bTopOfStack(false)
+		, Level(UGameplayEffect::INVALID_LEVEL)
 	{
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}

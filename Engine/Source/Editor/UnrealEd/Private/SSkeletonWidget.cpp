@@ -10,6 +10,8 @@
 #include "Animation/Rig.h"
 #include "Editor/AnimGraph/Classes/AnimPreviewInstance.h"
 #include "SceneViewport.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonWidget"
 
