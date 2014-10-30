@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "SlateReflector.h"
-
 
 /* Dependencies
  *****************************************************************************/
 
+#include "Core.h"
+#include "CoreUObject.h"
 #include "InputCore.h"
 #include "SlateBasics.h"
 #include "SlateCore.h"

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateReflectorPrivatePCH.h"
+#include "ISlateReflectorModule.h"
 #include "SDockTab.h"
 #include "ModuleManager.h"
 
@@ -18,7 +19,7 @@ public:
 
 	// ISlateReflectorModule interface
 
-	virtual TSharedRef<SWidget> GetWidgetReflector( ) override
+	virtual TSharedRef<SWidget> GetWidgetReflector() override
 	{
 		TSharedPtr<SWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
 
@@ -40,7 +41,7 @@ public:
 			.SetIcon(FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "WidgetReflector.TabIcon"));
 	}
 
-	virtual void UnregisterTabSpawner( ) 
+	virtual void UnregisterTabSpawner() 
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("WidgetReflector");
 	}
@@ -49,9 +50,9 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) override { }
+	virtual void StartupModule() override { }
 
-	virtual void ShutdownModule( ) override
+	virtual void ShutdownModule() override
 	{
 		UnregisterTabSpawner();
 	}
@@ -69,7 +70,7 @@ private:
 
 private:
 
-	// Holds the widget reflector singleton.
+	/** Holds the widget reflector singleton. */
 	TWeakPtr<SWidgetReflector> WidgetReflectorPtr;
 };
 

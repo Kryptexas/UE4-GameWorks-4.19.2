@@ -4,7 +4,10 @@
 
 #include "IWidgetReflector.h"
 
+
+// forward declarations
 struct FLoggedEvent;
+
 
 /**
  * Abstract base class for widget reflectors.
@@ -40,22 +43,22 @@ public:
 
 	virtual void OnEventProcessed( const FInputEvent& Event, const FReplyBase& InReply ) override;
 
-	virtual bool IsInPickingMode( ) const override
+	virtual bool IsInPickingMode() const override
 	{
 		return bIsPicking;
 	}
 
-	virtual bool IsShowingFocus( ) const override
+	virtual bool IsShowingFocus() const override
 	{
 		return bShowFocus;
 	}
 
-	virtual bool IsVisualizingLayoutUnderCursor( ) const override
+	virtual bool IsVisualizingLayoutUnderCursor() const override
 	{
 		return bIsPicking;
 	}
 
-	virtual void OnWidgetPicked( ) override
+	virtual void OnWidgetPicked() override
 	{
 		bIsPicking = false;
 	}
@@ -110,32 +113,32 @@ protected:
 
 private:
 
-	// Callback for changing the application scale slider
+	/** Callback for changing the application scale slider. */
 	void HandleAppScaleSliderChanged( float NewValue )
 	{
 		FSlateApplication::Get().SetApplicationScale(NewValue);
 	}
 
-	// Callback for getting the value of the application scale slider.
-	float HandleAppScaleSliderValue( ) const
+	/** Callback for getting the value of the application scale slider. */
+	float HandleAppScaleSliderValue() const
 	{
 		return FSlateApplication::Get().GetApplicationScale();
 	}
 
-	// Callback for checked state changes of the focus check box.
+	/** Callback for checked state changes of the focus check box. */
 	void HandleFocusCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type NewValue );
 
-	// Callback for getting the checked state of the focus check box.
-	ESlateCheckBoxState::Type HandleFocusCheckBoxIsChecked( ) const
+	/** Callback for getting the checked state of the focus check box. */
+	ESlateCheckBoxState::Type HandleFocusCheckBoxIsChecked() const
 	{
 		return bShowFocus ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
-	// Callback for getting the text of the frame rate text block.
-	FString HandleFrameRateText( ) const;
+	/** Callback for getting the text of the frame rate text block. */
+	FString HandleFrameRateText() const;
 
-	// Callback for clicking the pick button.
-	FReply HandlePickButtonClicked( )
+	/** Callback for clicking the pick button. */
+	FReply HandlePickButtonClicked()
 	{
 		bIsPicking = !bIsPicking;
 
@@ -147,27 +150,27 @@ private:
 		return FReply::Handled();
 	}
 
-	// Callback for getting the color of the pick button text.
-	FSlateColor HandlePickButtonColorAndOpacity( ) const
+	/** Callback for getting the color of the pick button text. */
+	FSlateColor HandlePickButtonColorAndOpacity() const
 	{
 		return bIsPicking
 			? FCoreStyle::Get().GetSlateColor("SelectionColor")
 			: FCoreStyle::Get().GetSlateColor("DefaultForeground");
 	}
 
-	// Callback for getting the text of the pick button.
+	/** Callback for getting the text of the pick button. */
 	FString HandlePickButtonText() const;
 
-	// Callback for generating a row in the reflector tree view.
+	/** Callback for generating a row in the reflector tree view. */
 	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( TSharedPtr<FReflectorNode> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
 
-	// Callback for getting the child items of the given reflector tree node.
+	/** Callback for getting the child items of the given reflector tree node. */
 	void HandleReflectorTreeGetChildren( TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren )
 	{
 		OutChildren = InWidgetGeometry->ChildNodes;
 	}
 
-	// Callback for when the selection in the reflector tree has changed.
+	/** Callback for when the selection in the reflector tree has changed. */
 	void HandleReflectorTreeSelectionChanged( TSharedPtr< FReflectorNode >, ESelectInfo::Type /*SelectInfo*/ )
 	{
 		SelectedNodes = ReflectorTree->GetSelectedItems();

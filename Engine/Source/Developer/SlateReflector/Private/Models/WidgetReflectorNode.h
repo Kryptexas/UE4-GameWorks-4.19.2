@@ -29,7 +29,7 @@ public:
 	/**
 	 * FReflectorNodes must be constructed as shared pointers.
 	 *
-	 * @param InWidgetGeometry   Optional widget and associated geometry which this node should represent
+	 * @param InWidgetGeometry Optional widget and associated geometry which this node should represent
 	 */
 	static TSharedRef<FReflectorNode> New( const FArrangedWidget& InWidgetGeometry = FArrangedWidget(SNullWidget::NullWidget, FGeometry()) )
 	{
@@ -40,7 +40,7 @@ public:
 	 * Capture all the children of the supplied widget along with their layout results
 	 * Note that we include both visible and invisible children!
 	 * 
-	 * @param InWidgetGeometry   Widget and geometry whose children to capture in the snapshot.
+	 * @param InWidgetGeometry Widget and geometry whose children to capture in the snapshot.
 	 */
 	static TSharedRef<FReflectorNode> NewTreeFrom( const FArrangedWidget& InWidgetGeometry )
 	{
@@ -61,10 +61,10 @@ public:
 	/**
 	 * Locate all the widgets from a widget path in a list of ReflectorNodes and their children.
 	 *
-	 * @param CandidateNodes    A list of FReflectorNodes that represent widgets.
-	 * @param WidgetPathToFind  We want to find all reflector nodes corresponding to widgets in this path
-	 * @param SearchResult      An array that gets results put in it
-	 * @param NodeIndexToFind   Index of the widget in the path that we are currently looking for; we are done when we've found all of them
+	 * @param CandidateNodes A list of FReflectorNodes that represent widgets.
+	 * @param WidgetPathToFind We want to find all reflector nodes corresponding to widgets in this path
+	 * @param SearchResult An array that gets results put in it
+	 * @param NodeIndexToFind Index of the widget in the path that we are currently looking for; we are done when we've found all of them
 	 */
 	static void FindWidgetPath( const TArray<TSharedPtr<FReflectorNode>>& CandidateNodes, const FWidgetPath& WidgetPathToFind, TArray< TSharedPtr<FReflectorNode> >& SearchResult, int32 NodeIndexToFind = 0 )
 	{
@@ -88,7 +88,7 @@ protected:
 	/**
 	 * FReflectorNode must be constructor through static methods.
 	 *
-	 * @param InWidgetGeometry   Widget and associated geometry that this node will represent
+	 * @param InWidgetGeometry Widget and associated geometry that this node will represent
 	 */
 	FReflectorNode( const FArrangedWidget& InWidgetGeometry )
 		: Widget( InWidgetGeometry.Widget )

@@ -95,7 +95,7 @@ public:
 
 private:
 
-	FString GetWidgetsDesiredSize( ) const
+	FString GetWidgetsDesiredSize() const
 	{
 		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
 
@@ -104,12 +104,12 @@ private:
 			: FString();
 	}
 
-	FString GetWidgetActualSize( ) const
+	FString GetWidgetActualSize() const
 	{
 		return WidgetInfo.Get()->Geometry.Size.ToString();
 	}
 
-	FString GetSizeInfo( ) const
+	FString GetSizeInfo() const
 	{
 		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
 
@@ -118,7 +118,7 @@ private:
 			: FString();
 	}
 
-	FString GetEnabled( ) const
+	FString GetEnabled() const
 	{
 		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
 
@@ -129,7 +129,7 @@ private:
 
 private:
 
-	// The info about the widget that we are visualizing.
+	/** The info about the widget that we are visualizing. */
 	TAttribute<TSharedPtr<FReflectorNode>> WidgetInfo;
 };
 

@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "UnrealNetwork.h"
 #include "SlateBasics.h"
-#include "SlateReflector.h"
+#include "ISlateReflectorModule.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "VisualLogger/VisualLogger.h"

@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "ModuleInterface.h"
+
+
+// forward declarations
+class FWorkspaceItem;
+class SWidget;
+
 
 /**
  * Interface for messaging modules.
@@ -16,7 +23,7 @@ public:
 	 *
 	 * @return The widget.
 	 */
-	virtual TSharedRef<SWidget> GetWidgetReflector( ) = 0;
+	virtual TSharedRef<SWidget> GetWidgetReflector() = 0;
 
 	/**
 	 * Registers a tab spawner for the widget reflector.
@@ -25,15 +32,11 @@ public:
 	 */
 	virtual void RegisterTabSpawner( const TSharedRef<FWorkspaceItem>& WorkspaceGroup ) = 0;
 
-	/**
-	 * Unregisters the tab spawner for the widget reflector.
-	 */
-	virtual void UnregisterTabSpawner( ) = 0;
+	/** Unregisters the tab spawner for the widget reflector. */
+	virtual void UnregisterTabSpawner() = 0;
 
 public:
 
-	/**
-	 * Virtual destructor.
-	 */
-	virtual ~ISlateReflectorModule( ) { }
+	/** Virtual destructor. */
+	virtual ~ISlateReflectorModule() { }
 };

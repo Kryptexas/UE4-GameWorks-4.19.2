@@ -8,7 +8,7 @@
 	#include "SCrashReportClient.h"
 	#include "CrashReportClient.h"
 	#include "CrashReportClientStyle.h"
-	#include "SlateReflector.h"
+	#include "ISlateReflectorModule.h"
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 
 #include "CrashReportClientUnattended.h"

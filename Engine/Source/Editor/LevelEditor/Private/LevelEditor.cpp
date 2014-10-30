@@ -15,7 +15,7 @@
 #include "LevelViewportActions.h"
 #include "GlobalEditorCommonCommands.h"
 #include "IUserFeedbackModule.h"
-#include "SlateReflector.h"
+#include "ISlateReflectorModule.h"
 #include "SDockTab.h"
 #include "ToolkitManager.h"
 #include "TargetPlatform.h"

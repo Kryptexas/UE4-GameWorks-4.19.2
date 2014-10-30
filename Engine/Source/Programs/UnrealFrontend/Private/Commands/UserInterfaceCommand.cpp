@@ -2,9 +2,9 @@
 
 #include "UnrealFrontendPrivatePCH.h"
 #include "AutomationController.h"
+#include "ISlateReflectorModule.h"
 #include "Projects.h"
 #include "SlateBasics.h"
-#include "SlateReflector.h"
 #include "StandaloneRenderer.h"
 #include "TaskGraphInterfaces.h"
 #include "UserInterfaceCommand.h"
@@ -35,7 +35,7 @@ void FUserInterfaceCommand::Run(  )
 	AutomationControllerModule.Init();
 
 	// load plug-ins
-	// @todo: allow for better plug-in support in standalone Slate apps
+	// @todo: allow for better plug-in support in standalone Slate applications
 	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault);
 
 	// load optional modules

@@ -4,7 +4,7 @@
 
 
 /**
- * Widget that visualizes the contents of a FReflectorNode
+ * Widget that visualizes the contents of a FReflectorNode.
  */
 class SLATEREFLECTOR_API SReflectorTreeWidgetItem
 	: public SMultiColumnTableRow<TSharedPtr<FReflectorNode>>
@@ -35,6 +35,10 @@ public:
 
 		SMultiColumnTableRow< TSharedPtr<FReflectorNode> >::Construct( SMultiColumnTableRow< TSharedPtr<FReflectorNode> >::FArguments().Padding(1), InOwnerTableView );
 	}
+
+public:
+
+	// SMultiColumnTableRow overrides
 
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
@@ -78,7 +82,7 @@ protected:
 	}
 
 	/** @return The tint of the reflector node */
-	FSlateColor GetTint () const
+	FSlateColor GetTint() const
 	{
 		return WidgetInfo.Get()->Tint;
 	}
@@ -91,7 +95,9 @@ protected:
 		}
 	}
 
-	/** The info about the widget that we are visualizing */
+private:
+
+	/** The info about the widget that we are visualizing. */
 	TAttribute< TSharedPtr<FReflectorNode> > WidgetInfo;
 
 	FAccessSourceCode OnAccessSourceCode;
