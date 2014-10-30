@@ -184,7 +184,7 @@ void SResponsiveGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry,
 		const FSlot& CurSlot = Slots[SlotIndex];
 
 		const EVisibility ChildVisibility = CurSlot.GetWidget()->GetVisibility();
-		if (ArrangedChildren.Accepts(ChildVisibility))
+		if (ChildVisibility != EVisibility::Collapsed)
 		{
 			// Find the appropriate column layout for the slot
 			FSlot::FColumnLayout ColumnLayout;
