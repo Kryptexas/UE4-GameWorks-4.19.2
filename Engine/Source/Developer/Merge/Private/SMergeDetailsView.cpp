@@ -10,6 +10,7 @@
 void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData )
 {
 	Data = InData;
+	CurrentMergeConflict = INDEX_NONE;
 
 	const UObject* RemoteCDO = DiffUtils::GetCDO(InData.BlueprintRemote);
 	const UObject* BaseCDO = DiffUtils::GetCDO(InData.BlueprintBase);
@@ -23,7 +24,8 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 	FPropertySoftPathSet RemoteDifferingPropertiesSet(RemoteDifferingProperties);
 	FPropertySoftPathSet LocalDifferingPropertiesSet(LocalDifferingProperties);
 	FPropertySoftPathSet BaseDifferingPropertiesSet(RemoteDifferingPropertiesSet.Union(LocalDifferingPropertiesSet));
-	
+	MergeConflicts = RemoteDifferingPropertiesSet.Intersect(LocalDifferingPropertiesSet).Array();
+
 	/*	
 		DifferingProperties is an ordered list of all differing properties (properties added, removed or changed) in remote or local.
 		Strictly speaking it's impossible to guarantee that we'll traverse remote and local differences in the same order (for instance
@@ -151,6 +153,44 @@ bool SMergeDetailsView::HasNextDifference() const
 bool SMergeDetailsView::HasPrevDifference() const
 {
 	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
+}
+
+void SMergeDetailsView::HighlightNextConflict()
+{
+	if (CurrentMergeConflict + 1 < MergeConflicts.Num())
+	{
+		++CurrentMergeConflict;
+	}
+	for (auto& DetailDiff : DetailsViews)
+	{
+		DetailDiff.HighlightProperty(MergeConflicts[CurrentMergeConflict]);
+	}
+}
+
+void SMergeDetailsView::HighlightPrevConflict()
+{
+	if (CurrentMergeConflict - 1 >= 0)
+	{
+		--CurrentMergeConflict;
+	}
+	for (auto& DetailDiff : DetailsViews)
+	{
+		DetailDiff.HighlightProperty(MergeConflicts[CurrentMergeConflict]);
+	}
+}
+
+bool SMergeDetailsView::HasNextConflict() const
+{
+	// return true if we have one conflict so that users can reselect the conflict if they desire. If we 
+	// return false when we already have selected this one and only conflict then there will be no way
+	// to reselect it if the user wants to.
+	return MergeConflicts.Num() != 0 && (MergeConflicts.Num() == 1 || CurrentMergeConflict < MergeConflicts.Num());
+}
+
+bool SMergeDetailsView::HasPrevConflict() const
+{
+	// note in HasNextConflict applies here as well.
+	return MergeConflicts.Num() == 1 || CurrentMergeConflict > 0;
 }
 
 FDetailsDiff& SMergeDetailsView::GetRemoteDetails()

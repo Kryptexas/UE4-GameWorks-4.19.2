@@ -61,6 +61,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	auto DetailsView = SNew(SMergeDetailsView, InData);
 	DetailsControl.Widget = DetailsView;
 	DetailsControl.DiffControl = &DetailsView.Get();
+	DetailsControl.MergeControl = &DetailsView.Get();
 
 	FToolBarBuilder ToolbarBuilder(TSharedPtr< FUICommandList >(), FMultiBoxCustomization::None);
 	ToolbarBuilder.AddToolBarButton( 

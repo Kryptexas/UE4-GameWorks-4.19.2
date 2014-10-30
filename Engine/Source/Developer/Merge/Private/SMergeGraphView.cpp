@@ -602,7 +602,7 @@ bool SMergeGraphView::HasNextConflict() const
 	// return true if we have one conflict so that users can reselect the conflict if they desire. If we 
 	// return false when we already have selected this one and only conflict then there will be no way
 	// to reselect it if the user wants to.
-	return MergeConflicts.Num() == 1 || CurrentMergeConflict < MergeConflicts.Num();
+	return  MergeConflicts.Num() != 0 && (MergeConflicts.Num() == 1 || CurrentMergeConflict < MergeConflicts.Num());
 }
 
 bool SMergeGraphView::HasPrevConflict() const
