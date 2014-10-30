@@ -173,32 +173,34 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 			NumBounces++;
 			float SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
+			FVector Normal = ConstrainNormalToPlane(Hit.Normal);
 
 			// Multiple hits within very short time period?
 			const bool bMultiHit = (PreviousHitTime < 1.f && Hit.Time <= KINDA_SMALL_NUMBER);
 
 			// if velocity still into wall (after HandleHitWall() had a chance to adjust), slide along wall
 			const float DotTolerance = 0.01f;
-			bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Hit.Normal)) ||
-						 ((Velocity.SafeNormal() | Hit.Normal) <= DotTolerance);
+			bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Normal)) ||
+						 ((Velocity.SafeNormal() | Normal) <= DotTolerance);
 			
 			if (bIsSliding)
 			{
-				if (bMultiHit && (PreviousHitNormal | Hit.Normal) <= 0.f)
+				if (bMultiHit && (PreviousHitNormal | Normal) <= 0.f)
 				{
 					//90 degree or less corner, so use cross product for direction
-					FVector NewDir = (Hit.Normal ^ PreviousHitNormal);
+					FVector NewDir = (Normal ^ PreviousHitNormal);
 					NewDir = NewDir.SafeNormal();
 					Velocity = Velocity.ProjectOnToNormal(NewDir);
 					if ((OldVelocity | Velocity) < 0.f)
 					{
 						Velocity *= -1.f;
 					}
+					Velocity = ConstrainDirectionToPlane(Velocity);
 				}
 				else 
 				{
 					//adjust to move along new wall
-					Velocity = FVector::VectorPlaneProject(Velocity, Hit.Normal);
+					Velocity = ComputeSlideVector(Velocity, 1.f, Normal, Hit);
 				}
 
 				// Check min velocity.
@@ -215,11 +217,12 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 					{
 						break;
 					}
+					Normal = ConstrainNormalToPlane(Hit.Normal);
 				}
 			}
 
 			PreviousHitTime = Hit.Time;
-			PreviousHitNormal = Hit.Normal;
+			PreviousHitNormal = Normal;
 			
 			// A few initial bounces should add more time and iterations to complete most of the simulation.
 			if (NumBounces <= 2 && SubTickTimeRemaining >= MIN_TICK_TIME)
@@ -237,7 +240,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTickTimeRemaining)
 {
 	FHitResult InitialHit(Hit);
-	const FVector OldHitNormal = Hit.Normal;
+	const FVector OldHitNormal = ConstrainDirectionToPlane(Hit.Normal);
 
 	// Velocity is now parallel to the impact surface.
 	// Perform the move now, before adding gravity/accel again, so we don't just keep hitting the surface.
@@ -265,7 +268,7 @@ bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTick
 			const FVector NewVelocity = Velocity + ProjectedForce;
 
 			const FVector FrictionForce = -NewVelocity.SafeNormal() * FMath::Min(-ForceDotN * Friction, NewVelocity.Size());
-			Velocity = NewVelocity + FrictionForce;
+			Velocity = ConstrainDirectionToPlane(NewVelocity + FrictionForce);
 		}
 		else
 		{
@@ -294,6 +297,7 @@ void UProjectileMovementComponent::SetVelocityInLocalSpace(FVector NewVelocity)
 }
 
 
+// Deprecated
 FVector UProjectileMovementComponent::CalculateVelocity(FVector OldVelocity, float DeltaTime, bool bGravityEnabled_UNUSED) const
 {
 	return ComputeVelocity(OldVelocity, DeltaTime);
@@ -317,7 +321,7 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 		NewVelocity = NewVelocity.ClampMaxSize(CurrentMaxSpeed);
 	}
 
-	return NewVelocity;
+	return ConstrainDirectionToPlane(NewVelocity);
 }
 
 FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime) const
@@ -392,13 +396,14 @@ bool UProjectileMovementComponent::HandleHitWall(const FHitResult& Hit, float Ti
 FVector UProjectileMovementComponent::ComputeBounceResult(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
 {
 	FVector TempVelocity = Velocity;
-	const float VDotNormal = (TempVelocity | Hit.Normal);
+	const FVector Normal = ConstrainNormalToPlane(Hit.Normal);
+	const float VDotNormal = (TempVelocity | Normal);
 
 	// Only if velocity is opposed by normal
 	if (VDotNormal < 0.f)
 	{
 		// Project velocity onto normal in reflected direction.
-		const FVector ProjectedNormal = Hit.Normal * -VDotNormal;
+		const FVector ProjectedNormal = Normal * -VDotNormal;
 
 		// Point velocity in direction parallel to surface
 		TempVelocity += ProjectedNormal;

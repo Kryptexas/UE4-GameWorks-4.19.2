@@ -372,6 +372,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual FVector ConstrainLocationToPlane(FVector Location) const;
 
+	/** Constrain a normal vector (of unit length) to the plane constraint, if enabled. */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
+	virtual FVector ConstrainNormalToPlane(FVector Normal) const;
+
 	/** Snap the updated component to the plane constraint, if enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SnapUpdatedComponentToPlane();

@@ -379,6 +379,17 @@ FVector UMovementComponent::ConstrainLocationToPlane(FVector Location) const
 }
 
 
+FVector UMovementComponent::ConstrainNormalToPlane(FVector Normal) const
+{
+	if (bConstrainToPlane)
+	{
+		Normal = FVector::VectorPlaneProject(Normal, PlaneConstraintNormal).SafeNormal();
+	}
+
+	return Normal;
+}
+
+
 void UMovementComponent::SnapUpdatedComponentToPlane()
 {
 	if (UpdatedComponent && bConstrainToPlane)
@@ -527,7 +538,7 @@ FVector UMovementComponent::ComputeSlideVector(const FVector& Delta, const float
 	}
 	else
 	{
-		const FVector ProjectedNormal = ConstrainDirectionToPlane(Normal).SafeNormal();
+		const FVector ProjectedNormal = ConstrainNormalToPlane(Normal);
 		return FVector::VectorPlaneProject(Delta, ProjectedNormal) * Time;
 	}
 }
