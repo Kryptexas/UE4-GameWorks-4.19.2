@@ -150,6 +150,12 @@ void FAnimBlueprintEditAppMode::PostActivateMode()
 		{
 			AnimBlueprint->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
 		}
+
+		// If we are a derived anim blueprint always show the overrides tab
+		if(UAnimBlueprint::FindRootAnimBlueprint(AnimBlueprint))
+		{
+			Persona->GetTabManager()->InvokeTab(FPersonaTabs::AnimBlueprintParentPlayerEditorID);
+		}
 	}
 
 	FBlueprintEditorApplicationMode::PostActivateMode();
