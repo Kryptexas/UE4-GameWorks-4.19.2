@@ -632,6 +632,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SLATE_COMPOSITE_FONTS,
 	// Remove UDEPRECATED_SaveGameSummary, required for UWorld::Serialize
 	VER_UE4_REMOVE_SAVEGAMESUMMARY,
+	//Remove bodyseutp serialization from skeletal mesh component
+	VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

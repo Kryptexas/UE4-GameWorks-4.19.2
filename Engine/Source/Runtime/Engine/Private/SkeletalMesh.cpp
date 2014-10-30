@@ -4881,9 +4881,13 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-	if (bEnablePerPolyCollision)
+	if (Ar.UE4Ver() < VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION)
 	{
-		Ar << BodySetup;
+		//we used to serialize bodysetup of skeletal mesh component. We no longer do this, but need to not break existing content
+		if (bEnablePerPolyCollision)
+		{
+			Ar << BodySetup;
+		}
 	}
 
 	// Since we separated simulation vs blending
