@@ -25,9 +25,6 @@ public:
 	/** Returns an array of viewports inside this tab */
 	const TArray< TSharedPtr< class SLevelViewport > >* GetViewports() const;
 
-	/** Ticks the contained layout object */
-	void Tick();
-
 	/**
 	 * Sets the current layout by changing the contained layout object
 	 * 

@@ -74,14 +74,6 @@ const TArray< TSharedPtr< SLevelViewport > >* FLevelViewportTabContent::GetViewp
 	return NULL;
 }
 
-void FLevelViewportTabContent::Tick()
-{
-	if (ActiveLevelViewportLayout.IsValid())
-	{
-		ActiveLevelViewportLayout->Tick();
-	}
-}
-
 void FLevelViewportTabContent::SetViewportConfiguration(const FName& ConfigurationName)
 {
 	bool bSwitchingLayouts = ActiveLevelViewportLayout.IsValid();
