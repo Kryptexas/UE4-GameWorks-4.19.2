@@ -50,7 +50,7 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 	// Output - Data Pin
 	if (TargetType != NULL)
 	{
-		const FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetName();
+		const FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetDisplayNameText().ToString();
 		CreatePin(EGPD_Output, K2Schema->PC_Class, TEXT(""), *TargetType, false, false, CastResultPinName);
 	}
 
