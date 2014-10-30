@@ -10,7 +10,7 @@
 
 #define CHECK_FOR_GL_SHADERS_TO_REPLACE 0
 
-#if PLATFORM_WINDOWS || PLATFORM_LINUX
+#if PLATFORM_WINDOWS
 #include <mmintrin.h>
 #elif PLATFORM_MAC
 #include <xmmintrin.h>

@@ -336,7 +336,7 @@ bool FLinuxCrashContext::GetInfoForAddress(void * Address, const char **OutFunct
 
 		if (NumLines >= kMaxBufferLinesAllowed)
 		{
-			fprintf(stderr, "Number of lines associated with a DIE looks unreasonable (%ld), early quitting.\n", NumLines);
+			fprintf(stderr, "Number of lines associated with a DIE looks unreasonable (%d), early quitting.\n", static_cast<int32>(NumLines));
 			ReturnCode = DW_DLE_DIE_NO_CU_CONTEXT;	// invalidate
 			break;
 		}
