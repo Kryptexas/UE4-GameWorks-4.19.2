@@ -83,6 +83,8 @@ public:
 		, _SupportsMinimize( true )
 		, _CreateTitleBar( true )
 		, _SaneWindowPlacement( true )
+		, _LayoutBorder(FMargin(5, 5, 5, 5))
+		, _UserResizeBorder(FMargin(5, 5, 5, 5))
 	{ }
 
 		/** Style used to draw this window */
@@ -142,6 +144,12 @@ public:
 		/** If the window appears off screen or is too large to safely fit this flag will force realistic 
 		    constraints on the window and bring it back into view. */
 		SLATE_ARGUMENT( bool, SaneWindowPlacement )
+
+		/** The padding around the edges of the window applied to it's content. */
+		SLATE_ARGUMENT(FMargin, LayoutBorder)
+
+		/** The margin around the edges of the window that will be detected as places the user can grab to resize the window. */
+		SLATE_ARGUMENT(FMargin, UserResizeBorder)
 
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 
@@ -858,6 +866,12 @@ private:
 
 	// The window title bar.
 	TSharedPtr<IWindowTitleBar> TitleBar;
+
+	// The padding for between the edges of the window and it's content
+	FMargin LayoutBorder;
+
+	// The margin around the edges of the window that will be detected as places the user can grab to resize the window. 
+	FMargin UserResizeBorder;
 
 private:
 	
