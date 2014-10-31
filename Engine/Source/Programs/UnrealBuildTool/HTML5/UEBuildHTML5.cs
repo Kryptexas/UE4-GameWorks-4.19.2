@@ -79,33 +79,23 @@ namespace UnrealBuildTool
 			if (HasSetupAutoSDK())
 			{
 				return SDKStatus.Invalid;
-			}
-
-			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			if (!string.IsNullOrEmpty(BaseSDKPath))
-			{
-
-				try 
-				{ 
-					// Check for the *actual* sdk version
-					string VersionInfo = File.ReadAllText( Path.Combine(BaseSDKPath,"emscripten-version.txt")); 
-					if (VersionInfo.Contains(ExpectedSDKVersion))
-					{
-						return SDKStatus.Valid;
-					}
-					else
-					{
-						Console.WriteLine( "EMSCRIPTEN sdk found but of unexpected version, Please install version " + ExpectedSDKVersion); 
-						return SDKStatus.Invalid;
-					}
-				} 
-				catch (System.Exception) 
-				{
-					Console.WriteLine( "Please check you emscripten installation. Incorrectly set EMSCRIPTEN sdk at " + BaseSDKPath );
-					return SDKStatus.Invalid; 
-				}
-			}
-			return SDKStatus.Invalid;
+            }
+            try
+            {
+                if (HTML5SDKInfo.EmscriptenVersion().Contains(ExpectedSDKVersion))
+                {
+                    return SDKStatus.Valid;
+                }
+                else
+                {
+                    Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is unsupported, Please install version " + ExpectedSDKVersion);
+                    return SDKStatus.Invalid;
+                }
+            }
+            catch (Exception /*ex*/)
+            {
+                 return SDKStatus.Invalid;
+            }
         }
 
         public override bool CanUseXGE()

@@ -168,6 +168,7 @@
         <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
         <Compile Include="HTML5\HTML5ToolChain.cs" />
         <Compile Include="HTML5\UEBuildHTML5.cs" />
+        <Compile Include="HTML5\HTML5SDKInfo.cs" />
       </ItemGroup>
     </When>
   </Choose>
