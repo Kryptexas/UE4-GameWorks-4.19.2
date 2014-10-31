@@ -1646,8 +1646,7 @@ bool FAssetContextMenu::CanExecuteSCCMerge() const
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
-	bool bCanExecuteMerge = false;
-	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bCanExecuteMerge, GEditorIni);
+	bool bCanExecuteMerge = GetDefault<UEditorExperimentalSettings>()->bEnableBlueprintMergeTool;
 	if( bCanExecuteMerge )
 	{
 		bCanExecuteMerge = bCanExecuteSCCMerge;

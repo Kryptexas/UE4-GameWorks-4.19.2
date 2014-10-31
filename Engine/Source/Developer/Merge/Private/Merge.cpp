@@ -240,8 +240,7 @@ TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShar
 
 bool FMerge::PendingMerge(const UBlueprint& BlueprintObj) const
 {
-	bool bIsMergeEnabled = false;
-	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bIsMergeEnabled, GEditorIni);
+	bool bIsMergeEnabled = GetDefault<UEditorExperimentalSettings>()->bEnableBlueprintMergeTool;
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 	bool bPendingMerge = false;
