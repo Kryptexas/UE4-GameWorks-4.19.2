@@ -432,6 +432,13 @@ FTextRenderSceneProxy::~FTextRenderSceneProxy()
 
 void FTextRenderSceneProxy::CreateRenderThreadResources()
 {
+	if(Font && Font->FontCacheType == EFontCacheType::Runtime)
+	{
+		// Runtime fonts can't currently be used here as they use the font cache from Slate application
+		// which can only be used on the game thread
+		return;
+	}
+
 	if(BuildStringMesh(VertexBuffer.Vertices, IndexBuffer.Indices))
 	{
 		// Init vertex factory
