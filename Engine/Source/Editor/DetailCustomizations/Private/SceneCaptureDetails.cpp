@@ -161,7 +161,7 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 			}
 
 			FName GroupFName = FName(*(GroupName.ToString()));
-			IDetailGroup& Group = SceneCaptureCategoryBuilder.AddGroup(GroupFName, GroupName.ToString());
+			IDetailGroup& Group = SceneCaptureCategoryBuilder.AddGroup(GroupFName, GroupName.ToString(), true);
 
 			// Add each show flag for this group
 			for (FString& FlagName : ShowFlagsByGroup[GroupIndex])
