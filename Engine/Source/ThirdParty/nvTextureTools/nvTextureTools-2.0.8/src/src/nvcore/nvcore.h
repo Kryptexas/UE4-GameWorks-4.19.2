@@ -61,6 +61,7 @@
 // NV_CPU_X86
 // NV_CPU_X86_64
 // NV_CPU_PPC
+// NV_CPU_ARM -- [RCL]
 
 #define NV_CPU_STRING 	POSH_CPU_STRING
 
@@ -70,6 +71,8 @@
 #	define NV_CPU_X86 1
 #elif defined POSH_CPU_PPC
 #	define NV_CPU_PPC 1
+#elif defined POSH_CPU_STRONGARM
+#	define NV_CPU_ARM 1
 #else
 #	error "Unsupported CPU"
 #endif

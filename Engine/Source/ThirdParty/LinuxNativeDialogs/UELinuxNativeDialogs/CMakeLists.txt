@@ -7,9 +7,11 @@ find_package(Qt4 QUIET COMPONENTS QtGui)
 find_package(Qt5Widgets QUIET)
 find_package(GTK2 QUIET)
 pkg_check_modules(GTK3 gtk+-3.0)
-pkg_check_modules(SDL2 sdl2)
+pkg_check_modules(SDL2 sdl2 QUIET)
 
-find_package(OpenGL REQUIRED)
+if(SDL2_FOUND)
+  find_package(OpenGL REQUIRED)
+endif(SDL2_FOUND)
 
 if(SDL2_FOUND)
     message(STATUS "SDL2 found")

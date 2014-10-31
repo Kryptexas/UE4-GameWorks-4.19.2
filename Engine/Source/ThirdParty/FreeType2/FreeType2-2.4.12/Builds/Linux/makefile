@@ -4,7 +4,7 @@ RANLIB=ranlib
 RM_F=rm -f
 CPP = g++
 
-CFLAGS= -g -O3 -m64 -ffunction-sections -funwind-tables -fstack-protector -fno-strict-aliasing -fno-exceptions -fno-short-enums -fPIC #-std=c++11
+CFLAGS= -g -O2 -ffunction-sections -funwind-tables -fstack-protector -fno-strict-aliasing -fno-exceptions -fno-short-enums -fPIC #-std=c++11
 CPPFLAGS= -I../include/ -DFT2_BUILD_LIBRARY -DNDEBUG
 
 OBJS = winfonts/winfnt.o \
