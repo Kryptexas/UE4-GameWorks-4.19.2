@@ -54,7 +54,9 @@ public:
 #endif// WITH_EDITOR
 
 private:
+#if WITH_RECAST
 	void SerializeRecastData(FArchive& Ar);
+#endif//WITH_RECAST
 
 private:
 	TArray<FRecastTileData> Tiles;
