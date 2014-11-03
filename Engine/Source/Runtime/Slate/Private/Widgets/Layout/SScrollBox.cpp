@@ -156,6 +156,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	SoftwareCursorPosition = FVector2D::ZeroVector;
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
+	bScrollToEnd = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -347,6 +348,17 @@ float SScrollBox::GetScrollOffset()
 void SScrollBox::SetScrollOffset( float NewScrollOffset )
 {
 	DesiredScrollOffset = NewScrollOffset;
+	bScrollToEnd = false;
+}
+
+void SScrollBox::ScrollToStart()
+{
+	SetScrollOffset(0);
+}
+
+void SScrollBox::ScrollToEnd()
+{
+	bScrollToEnd = true;
 }
 
 EOrientation SScrollBox::GetOrientation()
@@ -406,6 +418,12 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	const FGeometry ScrollPanelGeometry = FindChildGeometry( AllottedGeometry, ScrollPanel.ToSharedRef() );
 	
 	const float ContentSize = GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());
+
+	if ( bScrollToEnd )
+	{
+		DesiredScrollOffset = ContentSize;
+		bScrollToEnd = false;
+	}
 
 	// If this scroll box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 	const float ViewFraction = GetScrollComponentFromVector(AllottedGeometry.Size) > 0 ? GetScrollComponentFromVector(ScrollPanelGeometry.Size) / ContentSize : 1;

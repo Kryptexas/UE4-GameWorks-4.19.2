@@ -104,7 +104,9 @@ public:
 
 		ChildSlot
 		[
-			SAssignNew(CrumbBox, SHorizontalBox)
+			SAssignNew(CrumbBox, SScrollBox)
+			.Orientation(Orient_Horizontal)
+			.ScrollBarVisibility(EVisibility::Collapsed)
 		];
 
 		AddLeadingDelimiter();
@@ -119,7 +121,6 @@ public:
 
 		// Add the crumb button
 		CrumbBox->AddSlot()
-		.AutoWidth()
 		[
 			SNew(SVerticalBox)
 
@@ -165,7 +166,6 @@ public:
 		}
 
 		CrumbBox->AddSlot()
-		.AutoWidth()
 		[
 			SNew(SVerticalBox)
 
@@ -188,6 +188,9 @@ public:
 
 		// Trigger event
 		OnCrumbPushed.ExecuteIfBound(NewCrumbData);
+
+		// We've added a new crumb so defer scrolling to the end to next tick
+		CrumbBox->ScrollToEnd();
 	}
 
 	/** Pops a crumb off the end of the trail. Returns the crumb data. */
@@ -387,7 +390,6 @@ private:
 	void AddLeadingDelimiter()
 	{
 		CrumbBox->AddSlot()
-		.AutoWidth()
 		.VAlign(VAlign_Center)
 		[
 			SNew(SImage)
@@ -399,7 +401,7 @@ private:
 private:
 
 	/** The horizontal box which contains all the breadcrumbs */
-	TSharedPtr<SHorizontalBox> CrumbBox;
+	TSharedPtr<SScrollBox> CrumbBox;
 
 	/** The list of crumbs and their data */
 	TArray<FCrumbItem> CrumbList;

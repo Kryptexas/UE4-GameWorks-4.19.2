@@ -304,27 +304,20 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 
 					// Path
 					+ SHorizontalBox::Slot()
-					.VAlign(VAlign_Fill)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
 					.FillWidth(1.0f)
-					.Padding( FMargin(0) )
+					.Padding(FMargin(0))
 					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.FillWidth(1.0f)
-						[
-							SAssignNew(PathBreadcrumbTrail, SBreadcrumbTrail<FString>)
-							//.ToolTipText( LOCTEXT("PathTooltip", "Content Path") )
-							.ButtonContentPadding(FMargin(3.0f, 3.0f))
-							.DelimiterImage(FEditorStyle::GetBrush("ContentBrowser.PathDelimiter"))
-							.TextStyle(FEditorStyle::Get(), "ContentBrowser.PathText")
-							.ShowLeadingDelimiter( false )
-							.InvertTextColorOnHover( false )
-							.OnCrumbClicked(this, &SContentBrowser::OnPathClicked)
-							.GetCrumbMenuContent(this, &SContentBrowser::OnGetCrumbDelimiterContent)
-							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserPath")))
-						]
+						SAssignNew(PathBreadcrumbTrail, SBreadcrumbTrail<FString>)
+						.ButtonContentPadding(FMargin(3.0f, 3.0f))
+						.DelimiterImage(FEditorStyle::GetBrush("ContentBrowser.PathDelimiter"))
+						.TextStyle(FEditorStyle::Get(), "ContentBrowser.PathText")
+						.ShowLeadingDelimiter(false)
+						.InvertTextColorOnHover(false)
+						.OnCrumbClicked(this, &SContentBrowser::OnPathClicked)
+						.GetCrumbMenuContent(this, &SContentBrowser::OnGetCrumbDelimiterContent)
+						.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserPath")))
 					]
 
 					// Lock button

@@ -97,6 +97,10 @@ public:
 
 	void SetScrollOffset( float NewScrollOffset );
 
+	void ScrollToStart();
+
+	void ScrollToEnd();
+
 	/** Get the current orientation of the scrollbox. */
 	EOrientation GetOrientation();
 
@@ -212,6 +216,9 @@ private:
 
 	/** Style resource for the scrollbar */
 	const FScrollBarStyle* ScrollBarStyle;
+
+	/** If true, will scroll to the end next Tick */
+	bool bScrollToEnd;
 };
 
 
