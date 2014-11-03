@@ -1415,7 +1415,7 @@ namespace UnrealBuildTool
 							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
-						string RemoteZipPath = GetRemoteFrameworkZipPath( Framework );
+						string RemoteZipPath = GetRemoteIntermediateFrameworkZipPath( Framework );
 
 						RemoteZipPath = RemoteZipPath.Replace( ".zip", "" );
 
