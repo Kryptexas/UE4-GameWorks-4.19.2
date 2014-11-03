@@ -109,6 +109,9 @@ private:
 	/** Recreate the font object so that it's using the given caching method */
 	bool RecreateFontObject(const EFontCacheType NewCacheType);
 
+	/** Check to see if the given property should be visible in the details panel */
+	bool GetIsPropertyVisible(const struct FPropertyAndParent& PropertyAndParent) const;
+
 private:
 	/** The font asset being inspected */
 	UFont* Font;

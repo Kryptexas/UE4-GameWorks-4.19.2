@@ -530,6 +530,7 @@ void FFontEditor::CreateInternalWidgets()
 	FontProperties = PropertyModule.CreateDetailView(Args);
 	FontPageProperties = PropertyModule.CreateDetailView(Args);
 
+	FontProperties->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateRaw(this, &FFontEditor::GetIsPropertyVisible));
 	FontProperties->SetObject( Font );
 }
 
@@ -991,6 +992,18 @@ bool FFontEditor::RecreateFontObject(const EFontCacheType NewCacheType)
 	FReimportManager::Instance()->OnPostReimport().Broadcast(Font, bSuccess);
 
 	return bSuccess;
+}
+
+bool FFontEditor::GetIsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const
+{
+	static const FName CategoryFName = "Category";
+
+	// We need to hide the properties associated with the category that we're not currently using (either Offline or Runtime)
+	const FString CategoryToExclude = (Font->FontCacheType == EFontCacheType::Offline) ? TEXT("RuntimeFont") : TEXT("OfflineFont");
+
+	// We need to hide the properties associated with the category that we're not currently using (either Offline or Runtime)
+	const FString& CategoryValue = PropertyAndParent.Property.GetMetaData(CategoryFName);
+	return CategoryValue != CategoryToExclude;
 }
 
 bool FFontEditor::ShouldPromptForNewFilesOnReload(const UObject& EditingObject) const
