@@ -279,15 +279,13 @@ void SKismetInspector::EnableComponentDetailsCustomization(bool bEnable)
 void SKismetInspector::ShowDetailsForSingleObject(UObject* Object, const FShowDetailsOptions& Options)
 {
 	TArray<UObject*> PropertyObjects;
-	FKismetSelectionInfo SelectionInfo;
 
 	if (Object != NULL)
 	{
 		PropertyObjects.Add(Object);
-		SelectionInfo.ObjectsForPropertyEditing.Add(Object);
 	}
 
-	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
+	ShowDetailsForObjects(PropertyObjects, Options);
 }
 
 void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObjects, const FShowDetailsOptions& Options)

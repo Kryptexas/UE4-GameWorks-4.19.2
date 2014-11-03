@@ -4701,21 +4701,12 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	// Cache the GraphNode
-	if( BlueprintEditorPtr.IsValid() )
+	const TArray<TWeakObjectPtr<UObject>> SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	if( SelectedObjects.Num() == 1 )
 	{
-		/** Get the currently selected set of nodes */
-		TSet<UObject*> Objects = BlueprintEditorPtr.Pin()->GetSelectedNodes();
-
-		if (Objects.Num() == 1)
+		if (SelectedObjects[0].IsValid() && SelectedObjects[0]->IsA<UEdGraphNode>())
 		{
-			TSet<UObject*>::TIterator Iter(Objects);
-			UObject* Object = *Iter;
-
-			if (Object && Object->IsA<UEdGraphNode>())
-			{
-				GraphNodePtr = Cast<UEdGraphNode>(Object);
-			}
+			GraphNodePtr = Cast<UEdGraphNode>(SelectedObjects[0].Get());
 		}
 	}
 
