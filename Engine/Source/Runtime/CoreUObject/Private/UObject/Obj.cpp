@@ -719,7 +719,7 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 		}
 	}
 #if WITH_EDITOR
-	FCoreUObjectDelegates::OnObjectModified.Broadcast(this);
+	FCoreUObjectDelegates::BroadcastOnObjectModified(this);
 #endif
 	return bSavedToTransactionBuffer;
 }

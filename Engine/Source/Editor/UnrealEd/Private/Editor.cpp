@@ -810,6 +810,9 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	check( CurrentGWorld );
 	check( CurrentGWorld != PlayWorld || bIsSimulatingInEditor );
 
+	// Clear out the list of objects modified this frame, used for OnObjectModified notification.
+	FCoreUObjectDelegates::ObjectsModifiedThisFrame.Empty();
+
 	// Always ensure we've got adequate slack for any worlds that are going to get created in this frame so that
 	// our EditorContext reference doesn't get invalidated
 	WorldList.Reserve(WorldList.Num() + 10);

@@ -1569,6 +1569,19 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	// Called when any object is modified at all 
 	static FOnObjectModified OnObjectModified;
 
+	// Set of objects modified this frame, to prevent multiple triggerings of the OnObjectModified delegate.
+	static TSet<UObject*> ObjectsModifiedThisFrame;
+
+	// Broadcast OnObjectModified if the broadcast hasn't ocurred for this object in this frame
+	static void BroadcastOnObjectModified(UObject* Object)
+	{
+		if (OnObjectModified.IsBound() && !ObjectsModifiedThisFrame.Contains(Object))
+		{
+			ObjectsModifiedThisFrame.Add(Object);
+			OnObjectModified.Broadcast(Object);
+		}
+	}
+
 	// Callback for when an asset is loaded (Editor)
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
 
