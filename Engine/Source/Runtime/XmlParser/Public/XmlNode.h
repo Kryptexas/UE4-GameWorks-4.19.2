@@ -66,6 +66,17 @@ public:
 	const FString& GetTag() const;
 	/** Gets the value of the node */
 	const FString& GetContent() const;
+
+	/**
+	 * Gets all of the attributes in this node
+	 *
+	 * @return	List of attributes in this node
+	 */
+	const TArray<FXmlAttribute>& GetAttributes() const
+	{
+		return Attributes;
+	}
+
 	/** Gets an attribute that corresponds with the passed-in tag */
 	FString GetAttribute(const FString& InTag) const;
 	/** Adds a simple tag with content to the current node */
