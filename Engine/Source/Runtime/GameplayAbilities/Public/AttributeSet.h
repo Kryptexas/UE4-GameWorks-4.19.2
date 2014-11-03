@@ -32,16 +32,18 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 		Attribute = NewProperty;
 	}
 
-	UProperty * GetUProperty() const
+	UProperty* GetUProperty() const
 	{
 		return Attribute;
 	}
 
-	UClass * GetAttributeSetClass() const
+	UClass* GetAttributeSetClass() const
 	{
 		check(Attribute);
 		return CastChecked<UClass>(Attribute->GetOuter());
 	}
+
+	bool IsSystemAttribute() const;
 
 	void SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const;
 

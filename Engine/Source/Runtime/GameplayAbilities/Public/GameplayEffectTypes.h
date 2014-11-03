@@ -617,7 +617,40 @@ struct FGameplayTagRequirements
 	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
 	FGameplayTagContainer IgnoreTags;
 
-	bool	RequirementsMet(FGameplayTagContainer Container) const;
+	bool	RequirementsMet(const FGameplayTagContainer& Container) const;
+	bool	IsEmpty() const;
 
 	static FGetGameplayTags	SnapshotTags(FGetGameplayTags TagDelegate);
+};
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FTagContainerAggregator
+{
+	GENERATED_USTRUCT_BODY()
+
+	FTagContainerAggregator() : CacheIsValid(false) {}
+
+	FGameplayTagContainer& GetActorTags();
+	const FGameplayTagContainer& GetActorTags() const;
+
+	FGameplayTagContainer& GetSpecTags();
+	const FGameplayTagContainer& GetSpecTags() const;
+
+
+
+	const FGameplayTagContainer* GetAggregatedTags() const;
+
+private:
+
+	UPROPERTY()
+	FGameplayTagContainer CapturedActorTags;
+
+	UPROPERTY()
+	FGameplayTagContainer CapturedSpecTags;
+
+	UPROPERTY()
+	FGameplayTagContainer ScopedTags;
+
+	mutable FGameplayTagContainer CachedAggregator;
+	mutable bool CacheIsValid;
 };

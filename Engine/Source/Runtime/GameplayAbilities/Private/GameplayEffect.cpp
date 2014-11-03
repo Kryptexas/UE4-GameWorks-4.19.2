@@ -166,10 +166,10 @@ bool FGameplayEffectAttributeCaptureSpecContainer::HasNonSnapshottedAttributes()
 
 FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level)
 : Def(InDef)
-, EffectContext(InEffectContext)
 {
 	check(Def);	
 	SetLevel(Level);
+	SetContext(InEffectContext);
 
 	// Init our ModifierSpecs
 	Modifiers.Reserve(Def->Modifiers.Num());
@@ -206,30 +206,41 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 		}
 	}
 
-
-	
-
-	// Capture source tags	
-	InEffectContext.GetOwnedGameplayTags(CapturedSourceTags);
-
-	// Capture source Attributes
-	// Is this the right place to do it? Do we ever need to create spec and capture attributes at a later time? If so, this will need to move.
-	CapturedRelevantAttributes.CaptureAttributes(InEffectContext.GetInstigatorAbilitySystemComponent(), EGameplayEffectAttributeCaptureSource::Source);
+	// Add the GameplayEffect asset tags to the source Spec tags
+	CapturedSourceTags.GetSpecTags().AppendTags(InDef->GameplayEffectTags);
 
 	// Make TargetEffectSpecs too
 	for (UGameplayEffect* TargetDef : InDef->TargetEffects)
 	{
 		TargetEffectSpecs.Add(TSharedRef<FGameplayEffectSpec>(new FGameplayEffectSpec(TargetDef, EffectContext, Level)));
 	}
+
+	// Everything is setup now, capture data from our source
+	CaptureDataFromSource();
+}
+
+void FGameplayEffectSpec::CaptureDataFromSource()
+{
+	// Capture source actor tags
+	CapturedSourceTags.GetActorTags().RemoveAllTags();
+	EffectContext.GetOwnedGameplayTags(CapturedSourceTags.GetActorTags());
+
+	// Capture source Attributes
+	// Is this the right place to do it? Do we ever need to create spec and capture attributes at a later time? If so, this will need to move.
+	CapturedRelevantAttributes.CaptureAttributes(EffectContext.GetInstigatorAbilitySystemComponent(), EGameplayEffectAttributeCaptureSource::Source);
 }
 
 void FGameplayEffectSpec::SetLevel(float InLevel)
 {
 	Level = InLevel;
-	Duration = Def->Duration.GetValueAtLevel(InLevel);
-	Period = Def->Period.GetValueAtLevel(InLevel);
-	ChanceToApplyToTarget = Def->ChanceToApplyToTarget.GetValueAtLevel(InLevel);
-	ChanceToExecuteOnGameplayEffect = Def->ChanceToExecuteOnGameplayEffect.GetValueAtLevel(InLevel);
+	if (Def)
+	{
+		SetDuration(Def->Duration.GetValueAtLevel(InLevel));
+
+		Period = Def->Period.GetValueAtLevel(InLevel);
+		ChanceToApplyToTarget = Def->ChanceToApplyToTarget.GetValueAtLevel(InLevel);
+		ChanceToExecuteOnGameplayEffect = Def->ChanceToExecuteOnGameplayEffect.GetValueAtLevel(InLevel);
+	}
 }
 
 float FGameplayEffectSpec::GetLevel() const
@@ -240,6 +251,17 @@ float FGameplayEffectSpec::GetLevel() const
 float FGameplayEffectSpec::GetDuration() const
 {
 	return Duration;
+}
+
+void FGameplayEffectSpec::SetDuration(float NewDuration)
+{
+	Duration = NewDuration;
+	if (Duration > 0.f)
+	{
+		// We may  have potential problems one day if a game is applying duration based gameplay effects from instantaneous effects
+		// (E.g., everytime fire damage is applied, a DOT is also applied). We may need to for Duration to always be capturd.
+		CapturedRelevantAttributes.AddCaptureDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture());
+	}
 }
 
 float FGameplayEffectSpec::GetPeriod() const
@@ -345,6 +367,16 @@ void FGameplayEffectSpec::PruneModifiedAttributes()
 EGameplayEffectStackingPolicy::Type FGameplayEffectSpec::GetStackingType() const
 {
 	return Def->StackingPolicy;
+}
+
+void FGameplayEffectSpec::SetContext(FGameplayEffectContextHandle NewEffectContext)
+{
+	bool bWasAlreadyInit = EffectContext.IsValid();
+	EffectContext = NewEffectContext;	
+	if (bWasAlreadyInit)
+	{
+		CaptureDataFromSource();
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -526,6 +558,9 @@ void FActiveGameplayEffectsContainer::RegisterWithOwner(UAbilitySystemComponent*
 		// Binding raw is ok here, since the owner is literally the UObject that owns us. If we are destroyed, its because that uobject is destroyed,
 		// and if that is destroyed, the delegate wont be able to fire.
 		Owner->RegisterGenericGameplayTagEvent().AddRaw(this, &FActiveGameplayEffectsContainer::OnOwnerTagChange);
+
+		// Add Aggregators for system attributes
+		//FindOrCreateAttributeAggregator(
 	}
 }
 
@@ -547,9 +582,11 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 	float ChanceToExecute = Spec.GetChanceToExecuteOnGameplayEffect();		// Not implemented? Should we just remove ChanceToExecute?
 
-	// Capture our own tags. Should this ever be a setting or are Target tags always up to date? Seems simplier to keep them always up to date.
-	Spec.CapturedSourceTags.RemoveAllTags();
-	Owner->GetOwnedGameplayTags(Spec.CapturedSourceTags);
+	// Capture our own tags.
+	// TODO: We should only capture them if we need to. We may have snapshotted target tags (?) (in the case of dots with exotic setups?)
+
+	Spec.CapturedTargetTags.GetActorTags().RemoveAllTags();
+	Owner->GetOwnedGameplayTags(Spec.CapturedTargetTags.GetActorTags());
 
 	Spec.CalculateModifierMagnitudes();
 
@@ -730,9 +767,11 @@ FAggregatorRef& FActiveGameplayEffectsContainer::FindOrCreateAttributeAggregator
 	ABILITY_LOG(Log, TEXT("Creating new entry in AttributeAggregatorMap for %s. CurrentValue: %.2f"), *Attribute.GetName(), CurrentValueOfProperty);
 
 	FAggregator* NewAttributeAggregator = new FAggregator(CurrentValueOfProperty);
-
-	// FIXME: AddRaw is bad
-	NewAttributeAggregator->OnDirty.AddUObject(Owner, &UAbilitySystemComponent::OnAttributeAggregatorDirty, Attribute);
+	
+	if (Attribute.IsSystemAttribute() == false)
+	{
+		NewAttributeAggregator->OnDirty.AddUObject(Owner, &UAbilitySystemComponent::OnAttributeAggregatorDirty, Attribute);
+	}
 
 	return AttributeAggregatorMap.Add(Attribute, FAggregatorRef(NewAttributeAggregator));
 }
@@ -870,17 +909,47 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	FActiveGameplayEffectHandle NewHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
 	FActiveGameplayEffect& NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
 
+	// Calculate Duration mods if we have a real duration
+	float DurationBaseValue = NewEffect.Spec.GetDuration();
+	if (DurationBaseValue > 0.f)
+	{
+		const FAggregator& OutgoingAgg = NewEffect.Spec.CapturedRelevantAttributes.GetAggregator(UAbilitySystemComponent::GetOutgoingDurationCapture());
+		const FAggregator& IncomingAgg = *FindOrCreateAttributeAggregator(UAbilitySystemComponent::GetIncomingDurationProperty()).Get();
+		
+		FAggregator DurationAgg;
+
+		DurationAgg.AddModsFrom(OutgoingAgg);
+		DurationAgg.AddModsFrom(IncomingAgg);
+
+		FAggregatorEvaluateParameters Params;
+		Params.SourceTags = NewEffect.Spec.CapturedSourceTags.GetAggregatedTags();
+		Params.TargetTags = NewEffect.Spec.CapturedTargetTags.GetAggregatedTags();
+
+		float FinalDuration = DurationAgg.EvaluateWithBase(DurationBaseValue, Params);
+
+		// We cannot mod ourselves into an instant or infinite duration effect
+		if (FinalDuration <= 0.f)
+		{
+			ABILITY_LOG(Error, TEXT("GameplayEffect %s Duration was modified to %.2f. Clamping to 0.1s duration."), *NewEffect.Spec.Def->GetName(), FinalDuration);
+			FinalDuration = 0.1f;
+		}
+
+		NewEffect.Spec.SetDuration(FinalDuration);
+
+		// ABILITY_LOG(Warning, TEXT("SetDuration for %s. Base: %.2f, Final: %.2f"), *NewEffect.Spec.Def->GetName(), DurationBaseValue, FinalDuration);
+	}
+	
 	// register callbacks with the timer manager
 	if (Owner)
 	{
-		if (Spec.GetDuration() > 0.f)
+		if (NewEffect.Spec.GetDuration() > 0.f)
 		{
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
 			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, NewHandle);
-			TimerManager.SetTimer(NewEffect.DurationHandle, Delegate, Spec.GetDuration(), false, Spec.GetDuration());
+			TimerManager.SetTimer(NewEffect.DurationHandle, Delegate, NewEffect.Spec.GetDuration(), false, NewEffect.Spec.GetDuration());
 		}
 		// The timer manager moves things from the pending list to the active list after checking the active list on the first tick so we need to execute here
-		if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
+		if (NewEffect.Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
 		{
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
 			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::ExecutePeriodicEffect, NewHandle);
@@ -888,7 +957,7 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 			// If this is a periodic stacking effect, make sure that it's in sync with the others.
 			float FirstDelay = -1.f;
 			bool bApplyToNextTick = true;
-			if (Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
+			if (NewEffect.Spec.GetStackingType() != EGameplayEffectStackingPolicy::Unlimited)
 			{
 				for (FActiveGameplayEffect& Effect : GameplayEffects)
 				{
@@ -906,7 +975,7 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 				TimerManager.SetTimerForNextTick(Delegate); // not part of a stack or the first item on the stack, execute once right away
 			}
 
-			TimerManager.SetTimer(NewEffect.PeriodHandle, Delegate, Spec.GetPeriod(), true, FirstDelay); // this is going to be off by a frame for stacking because of the pending list
+			TimerManager.SetTimer(NewEffect.PeriodHandle, Delegate, NewEffect.Spec.GetPeriod(), true, FirstDelay); // this is going to be off by a frame for stacking because of the pending list
 		}
 	}
 	

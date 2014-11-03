@@ -5,8 +5,8 @@
 
 bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) const
 {
-	bool SourceMet = (!SourceTagReqs || SourceTagReqs->RequirementsMet(Parameters.SourceTags));
-	bool TargetMet = (!TargetTagReqs || TargetTagReqs->RequirementsMet(Parameters.TargetTags));
+	bool SourceMet = (!SourceTagReqs || SourceTagReqs->IsEmpty()) || (Parameters.SourceTags && SourceTagReqs->RequirementsMet(*Parameters.SourceTags));
+	bool TargetMet = (!TargetTagReqs || TargetTagReqs->IsEmpty()) || (Parameters.TargetTags && TargetTagReqs->RequirementsMet(*Parameters.TargetTags));
 
 	return SourceMet && TargetMet;
 }
@@ -49,29 +49,29 @@ float FAggregator::StaticExecModOnBaseValue(float BaseValue, TEnumAsByte<EGamepl
 {
 	switch (ModifierOp)
 	{
-	case EGameplayModOp::Override:
-	{
-		BaseValue = EvaluatedMagnitude;
-		break;
-	}
-	case EGameplayModOp::Additive:
-	{
-		BaseValue += EvaluatedMagnitude;
-		break;
-	}
-	case EGameplayModOp::Multiplicitive:
-	{
-		BaseValue *= EvaluatedMagnitude;
-		break;
-	}
-	case EGameplayModOp::Division:
-	{
-		if (FMath::IsNearlyZero(EvaluatedMagnitude) == false)
+		case EGameplayModOp::Override:
 		{
-			BaseValue /= EvaluatedMagnitude;
+			BaseValue = EvaluatedMagnitude;
+			break;
 		}
-		break;
-	}
+		case EGameplayModOp::Additive:
+		{
+			BaseValue += EvaluatedMagnitude;
+			break;
+		}
+		case EGameplayModOp::Multiplicitive:
+		{
+			BaseValue *= EvaluatedMagnitude;
+			break;
+		}
+		case EGameplayModOp::Division:
+		{
+			if (FMath::IsNearlyZero(EvaluatedMagnitude) == false)
+			{
+				BaseValue /= EvaluatedMagnitude;
+			}
+			break;
+		}
 	}
 
 	return BaseValue;
@@ -124,6 +124,14 @@ void FAggregator::RemoveMod(FActiveGameplayEffectHandle ActiveHandle)
 	}
 
 	BroadcastOnDirty();
+}
+
+void FAggregator::AddModsFrom(const FAggregator& SourceAggregator)
+{
+	for(int32 idx = 0; idx < ARRAY_COUNT(Mods); ++idx)
+	{
+		Mods[idx].Append(SourceAggregator.Mods[idx]);
+	}
 }
 
 void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle)

@@ -180,7 +180,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	/** Get an outgoing GameplayEffectSpec that is ready to be applied to other things. */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
-	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect, float Level) const;
+	FGameplayEffectSpecHandle GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level = 1.f) const;
+
+	/** Overloaded version that allows Context to be specified */
+	FGameplayEffectSpecHandle GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level, FGameplayEffectContextHandle Context) const;
 
 	/** Create an EffectContext for the owner of this AbilitySystemComponent */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
@@ -203,10 +206,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
-
-
-	// New Stuff ---------------------------------- (Remove this comment!)
-
 
 	/**
 	 * Populate the specified capture spec with the data necessary to capture an attribute from the component
@@ -255,6 +254,23 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayTagEvent();
 
 	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
+
+	// --------------------------------------------
+	// System Attributes
+	// --------------------------------------------
+	
+	UPROPERTY(meta=(SystemGameplayAttribute="true"))
+	float OutgoingDuration;
+
+	UPROPERTY(meta = (SystemGameplayAttribute = "true"))
+	float IncomingDuration;
+
+	static UProperty* GetOutgoingDurationProperty();
+	static UProperty* GetIncomingDurationProperty();
+
+	static const FGameplayEffectAttributeCaptureDefinition& GetOutgoingDurationCapture();
+	static const FGameplayEffectAttributeCaptureDefinition& GetIncomingDurationCapture();
+
 
 	// --------------------------------------------
 	// Possibly useful but not primary API functions:

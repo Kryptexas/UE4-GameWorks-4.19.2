@@ -23,6 +23,11 @@ float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 	return NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
 }
 
+bool FGameplayAttribute::IsSystemAttribute() const
+{
+	return GetAttributeSetClass()->IsChildOf(UAbilitySystemComponent::StaticClass());
+}
+
 UAttributeSet::UAttributeSet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

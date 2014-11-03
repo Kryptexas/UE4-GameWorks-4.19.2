@@ -304,7 +304,7 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 	bool bIsStale;
 
 	/** Construct a new prediction key with no dependancies */
-	static FPredictionKey CreateNewPredictionKey();
+	static FPredictionKey CreateNewPredictionKey(class UAbilitySystemComponent*);
 
 	/** Create a new dependant prediction key: keep our existing base or use the current key as the base. */
 	void GenerateDependantPredictionKey();

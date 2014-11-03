@@ -279,12 +279,17 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 	}
 }
 
-bool FGameplayTagRequirements::RequirementsMet(FGameplayTagContainer Container) const
+bool FGameplayTagRequirements::RequirementsMet(const FGameplayTagContainer& Container) const
 {
 	bool HasRequired = Container.MatchesAll(RequireTags, true);
 	bool HasIgnored = Container.MatchesAny(IgnoreTags, false);
 
 	return HasRequired && !HasIgnored;
+}
+
+bool FGameplayTagRequirements::IsEmpty() const
+{
+	return (RequireTags.Num() == 0 && IgnoreTags.Num() == 0);
 }
 
 void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
@@ -313,4 +318,41 @@ void FGameplayEffectSpec::PrintAll() const
 	ABILITY_LOG(Log, TEXT("Period: %.2f"), GetPeriod());
 
 	ABILITY_LOG(Log, TEXT("Modifiers:"));
+}
+
+const FGameplayTagContainer* FTagContainerAggregator::GetAggregatedTags() const
+{
+	if (CacheIsValid == false)
+	{
+		CacheIsValid = true;
+		CachedAggregator.RemoveAllTags(CapturedActorTags.Num() + CapturedSpecTags.Num() + ScopedTags.Num());
+		CachedAggregator.AppendTags(CapturedActorTags);
+		CachedAggregator.AppendTags(CapturedSpecTags);
+		CachedAggregator.AppendTags(ScopedTags);
+	}
+
+	return &CachedAggregator;
+}
+
+FGameplayTagContainer& FTagContainerAggregator::GetActorTags()
+{
+	CacheIsValid = false;
+	return CapturedActorTags;
+}
+
+const FGameplayTagContainer& FTagContainerAggregator::GetActorTags() const
+{
+	return CapturedActorTags;
+}
+
+FGameplayTagContainer& FTagContainerAggregator::GetSpecTags()
+{
+	CacheIsValid = false;
+	return CapturedSpecTags;
+}
+
+const FGameplayTagContainer& FTagContainerAggregator::GetSpecTags() const
+{
+	CacheIsValid = false;
+	return CapturedSpecTags;
 }

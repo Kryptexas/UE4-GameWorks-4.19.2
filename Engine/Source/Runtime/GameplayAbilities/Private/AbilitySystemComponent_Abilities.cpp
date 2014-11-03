@@ -975,7 +975,7 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 							Instance->InputPressed(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
 						}						
 					}
-					FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+					FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
 					FScopedPredictionWindow ScopedPrediction(this, NewKey);
 					//We don't require (AbilityKeyPressCallbacks.IsBound() || AbilityKeyReleaseCallbacks.IsBound())), because we don't necessarily know now if we'll need this data later.
 					if (GetOwnerRole() != ROLE_Authority)
@@ -1005,7 +1005,7 @@ void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 			if (Spec.Ability)
 			{
 				AbilitySpecInputReleased(Spec);
-				FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+				FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
 				FScopedPredictionWindow ScopedPrediction(this, NewKey);
 				//We don't require (AbilityKeyPressCallbacks.IsBound() || AbilityKeyReleaseCallbacks.IsBound())), because we don't necessarily know now if we'll need this data later.
 				if (GetOwnerRole() != ROLE_Authority)
@@ -1063,7 +1063,7 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 
 void UAbilitySystemComponent::InputConfirm()
 {
-	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
 	FScopedPredictionWindow ScopedPrediction(this, NewKey);
 
 	if (GetOwnerRole() != ROLE_Authority && ConfirmCallbacks.IsBound())
@@ -1077,7 +1077,7 @@ void UAbilitySystemComponent::InputConfirm()
 
 void UAbilitySystemComponent::InputCancel()
 {
-	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey();
+	FPredictionKey NewKey = FPredictionKey::CreateNewPredictionKey(this);
 	FScopedPredictionWindow ScopedPrediction(this, NewKey);
 
 	if (GetOwnerRole() != ROLE_Authority && CancelCallbacks.IsBound())

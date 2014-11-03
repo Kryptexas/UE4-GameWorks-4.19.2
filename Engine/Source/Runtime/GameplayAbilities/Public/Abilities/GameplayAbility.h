@@ -341,7 +341,7 @@ protected:
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToOwner(const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel = 1);
 
 	/** Non blueprintcallable, safe to call on CDO/NonInstance abilities */
-	FActiveGameplayEffectHandle ApplyGameplayEffectToOwner(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel);
+	FActiveGameplayEffectHandle ApplyGameplayEffectToOwner(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, float GameplayEffectLevel);
 
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "ApplyGameplayEffectToTarget")
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle TargetData, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel = 1);
@@ -401,7 +401,7 @@ protected:
 		SetCurrentActivationInfo(ActivationInfo);
 	}
 
-	public:
+public:
 
 	/** Returns the actor info associated with this ability, has cached pointers to useful objects */
 	UFUNCTION(BlueprintCallable, Category=Ability)
@@ -421,9 +421,15 @@ protected:
 
 	/** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
 	UFUNCTION(BlueprintCallable, Category=Ability)
-	FGameplayEffectSpecHandle GetOutgoingGameplayEffectSpec(UGameplayEffect* GameplayEffect, float Level=1.f) const;
+	FGameplayEffectSpecHandle GetOutgoingGameplayEffectSpec(const UGameplayEffect* GameplayEffect, float Level=1.f) const;
 
-	protected:
+	FGameplayEffectSpecHandle GetOutgoingGameplayEffectSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, float Level = 1.f) const;
+	
+
+	/** Add the Ability's tags to the given GameplayEffectSpec. This is likely to be overriden per project. */
+	virtual void ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec) const;
+
+protected:
 
 	bool IsSupportedForNetworking() const override;
 
@@ -452,10 +458,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Advanced)
 	TEnumAsByte<EGameplayAbilityNetExecutionPolicy::Type> NetExecutionPolicy;
 
-	/** This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
-	UPROPERTY(EditDefaultsOnly, Category=Cooldowns)
-	class UGameplayEffect* CooldownGameplayEffect;
-
 	/** This GameplayEffect represents the cost (mana, stamina, etc) of the ability. It will be applied when the ability is committed. */
 	UPROPERTY(EditDefaultsOnly, Category=Costs)
 	class UGameplayEffect* CostGameplayEffect;
@@ -463,6 +465,25 @@ protected:
 	/** Triggers to determine if this ability should execute in response to an event */
 	UPROPERTY(EditDefaultsOnly, Category = Triggers)
 	TArray<FAbilityTriggerData> AbilityTriggers;
+
+	// ----------------------------------------------------------------------------------------------------------------
+	//
+	//	Cooldowns
+	//
+	// ----------------------------------------------------------------------------------------------------------------
+		
+
+	/** Cooldown tags that we check for. If we have cooldowns with these tags, we cannot activate this ability */
+	UPROPERTY()
+	FGameplayTagContainer CheckedCooldownTags;
+
+	UPROPERTY()
+	TArray<FGameplayAbilityCooldownInfo> AppliedCooldowns;
+	
+	/** Deprecated? */
+	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
+	class UGameplayEffect* CooldownGameplayEffect;
+
 	
 	// ----------------------------------------------------------------------------------------------------------------
 	//

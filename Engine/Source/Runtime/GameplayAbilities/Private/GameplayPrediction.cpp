@@ -21,7 +21,8 @@ bool FPredictionKey::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bO
 		/**
 		 *	Only serialize the payload if we have no owning connection (Client sending to server).
 		 *	or if the owning connection is this connection (Server only sends the prediction key to the client who gave it to us).
-		 */	
+		 */
+		
 		if (PredictiveConnection == nullptr || (Map == PredictiveConnection))
 		{
 			Ar << Current;
@@ -68,10 +69,15 @@ void FPredictionKey::GenerateDependantPredictionKey()
 	}
 }
 
-FPredictionKey FPredictionKey::CreateNewPredictionKey()
+FPredictionKey FPredictionKey::CreateNewPredictionKey(UAbilitySystemComponent* OwningComponent)
 {
 	FPredictionKey NewKey;
-	NewKey.GenerateNewPredictionKey();
+	
+	// We should never generate prediction keys on the authority
+	if(OwningComponent->GetOwnerRole() != ROLE_Authority)
+	{
+		NewKey.GenerateNewPredictionKey();
+	}
 	return NewKey;
 }
 
@@ -190,7 +196,7 @@ void FPredictionKeyDelegates::AddDependancy(FPredictionKey::KeyType ThisKey, FPr
 
 FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey)
 {
-	// This is used to set an already generated predictiot key as the current scoped prediction key.
+	// This is used to set an already generated prediction key as the current scoped prediction key.
 	// Should be called on the server for logical scopes where a given key is valid. E.g, "client gave me this key, we both are going to run Foo()".
 
 	Owner = AbilitySystemComponent;

@@ -177,9 +177,9 @@ void FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
 	GameplayTags.Remove(TagToRemove);
 }
 
-void FGameplayTagContainer::RemoveAllTags()
+void FGameplayTagContainer::RemoveAllTags(int32 Slack)
 {
-	GameplayTags.Empty();
+	GameplayTags.Empty(Slack);
 }
 
 bool FGameplayTagContainer::Serialize(FArchive& Ar)

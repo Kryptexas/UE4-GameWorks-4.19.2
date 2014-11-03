@@ -10,6 +10,7 @@
 #include "SSearchBox.h"
 #include "STextComboBox.h"
 #include "GameplayEffect.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
@@ -105,7 +106,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 				{
-					UProperty *Property = *PropertyIt;
+					UProperty* Property = *PropertyIt;
 
 					if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
 					{
@@ -118,6 +119,23 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 						continue;
 					}
 				
+					PropertiesToAdd.Add(Property);
+				}
+			}
+
+			// UAbilitySystemComponent can add 'system' attributes
+			if (Class->IsChildOf(UAbilitySystemComponent::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
+			{
+				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+				{
+					UProperty* Property = *PropertyIt;
+
+					// SystemAttributes have to be explicitly tagged
+					if (Property->HasMetaData(TEXT("SystemGameplayAttribute")) == false)
+					{
+						continue;
+					}
+
 					PropertiesToAdd.Add(Property);
 				}
 			}

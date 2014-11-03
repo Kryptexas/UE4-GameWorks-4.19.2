@@ -111,7 +111,7 @@ const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobject(const TSubcl
 
 bool UAbilitySystemComponent::HasAttributeSetForAttribute(FGameplayAttribute Attribute) const
 {
-	return (GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr);
+	return (Attribute.IsSystemAttribute() || GetAttributeSubobject(Attribute.GetAttributeSetClass()) != nullptr);
 }
 
 void UAbilitySystemComponent::OnRegister()
@@ -151,18 +151,30 @@ void UAbilitySystemComponent::SetNumericAttribute(const FGameplayAttribute &Attr
 
 float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Attribute)
 {
+	if(Attribute.IsSystemAttribute())
+	{
+		return 0.f;
+	}
+
 	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
 	return Attribute.GetNumericValueChecked(AttributeSet);
 }
 
-FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffect* GameplayEffect, float Level) const
+FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level, FGameplayEffectContextHandle Context) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
-	// Fixme: we should build a map and cache these off. We can invalidate the map when an OutgoingGE modifier is applied or removed from us.
+	if (Context.IsValid() == false)
+	{
+		Context = GetEffectContext();
+	}
 
-	// By default use the owner and avatar as the instigator and causer
-	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, GetEffectContext(), Level);
+	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, Context, Level);
 	return FGameplayEffectSpecHandle(NewSpec);
+}
+
+FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level) const
+{
+	return GetOutgoingSpec(GameplayEffect, Level, GetEffectContext());
 }
 
 FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
@@ -240,7 +252,7 @@ void UAbilitySystemComponent::CaptureAttributeForGameplayEffect(OUT FGameplayEff
 {
 	// Verify the capture is happening on an attribute the component actually has a set for; if not, can't capture the value
 	const FGameplayAttribute& AttributeToCapture = OutCaptureSpec.BackingDefinition.AttributeToCapture;
-	if (AttributeToCapture.IsValid() && GetAttributeSubobject(AttributeToCapture.GetAttributeSetClass()))
+	if (AttributeToCapture.IsValid() && (AttributeToCapture.IsSystemAttribute() || GetAttributeSubobject(AttributeToCapture.GetAttributeSetClass())))
 	{
 		ActiveGameplayEffects.CaptureAttributeForGameplayEffect(OutCaptureSpec);
 	}
@@ -259,6 +271,32 @@ FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGenericGamepl
 FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
 {
 	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
+}
+
+UProperty* UAbilitySystemComponent::GetOutgoingDurationProperty()
+{
+	static UProperty* DurationProperty = FindFieldChecked<UProperty>(UAbilitySystemComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemComponent, OutgoingDuration));
+	return DurationProperty;
+}
+
+UProperty* UAbilitySystemComponent::GetIncomingDurationProperty()
+{
+	static UProperty* DurationProperty = FindFieldChecked<UProperty>(UAbilitySystemComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemComponent, IncomingDuration));
+	return DurationProperty;
+}
+
+const FGameplayEffectAttributeCaptureDefinition& UAbilitySystemComponent::GetOutgoingDurationCapture()
+{
+	// We will just always take snapshots of the source's duration mods
+	static FGameplayEffectAttributeCaptureDefinition OutgoingDurationCapture(GetOutgoingDurationProperty(), EGameplayEffectAttributeCaptureSource::Source, true);
+	return OutgoingDurationCapture;
+
+}
+const FGameplayEffectAttributeCaptureDefinition& UAbilitySystemComponent::GetIncomingDurationCapture()
+{
+	// Never take snapshots of the target's duration mods: we are going to evaluate this on apply only.
+	static FGameplayEffectAttributeCaptureDefinition IncomingDurationCapture(GetIncomingDurationProperty(), EGameplayEffectAttributeCaptureSource::Target, false);
+	return IncomingDurationCapture;
 }
 
 // ------------------------------------------------------------------------
@@ -340,14 +378,25 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToTa
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
 {
-	// Temp, only non instant, non periodic GEs can be predictive
-	// Effects with other effects may be a mix so go with non-predictive
-	check((PredictionKey.IsValidKey() == false) || (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD));
-
-	// Check Tag requirements
+	// Check Network Authority
 	if (!HasNetworkAuthorityToApplyGameplayEffect(PredictionKey))
 	{
 		return FActiveGameplayEffectHandle();
+	}
+
+	// Don't allow prediciton of periodic effects
+	if(PredictionKey.IsValidKey() && Spec.GetPeriod() > 0.f)
+	{
+		if(IsOwnerActorAuthoritative())
+		{
+			// Server continue with invliad prediction key
+			PredictionKey = FPredictionKey();
+		}
+		else
+		{
+			// Client just return now
+			return FActiveGameplayEffectHandle();
+		}
 	}
 
 	// Check AttributeSet requirements: do we have everything this GameplayEffectSpec expects?
@@ -400,6 +449,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			{
 				ActiveGameplayEffects.StacksNeedToRecalculate();
 			}
+
 			FActiveGameplayEffect& NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, PredictionKey);
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
@@ -411,27 +461,15 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			OurCopyOfSpec = StackSpec.Get();
 		}
 
-		// GE_REMOVE: Pretty sure this completely goes away? 
-
-		// Do a 1st order copy of the spec so that we can modify it
-		// (the one passed in is owned by the caller, we can't apply our incoming GEs to it)
-		// Note that at this point the spec has a bunch of modifiers. Those modifiers may
-		// have other modifiers. THOSE modifiers may or may not be copies of whatever.
-		//
-		// In theory, we don't modify 2nd order modifiers after they are 'attached'
-		// Long complex chains can be created but we never say 'Modify a GE that is modding another GE'
-		// 
-		// 
-		// OurCopyOfSpec->MakeUnique();
-
 		// if necessary add a modifier to OurCopyOfSpec to force it to have an infinite duration
 		if (bTreatAsInfiniteDuration)
 		{			
 			// This should just be a straight set of the duration float now
+			OurCopyOfSpec->SetDuration(UGameplayEffect::INFINITE_DURATION);
 		}
 	}
 
-	// Capture Our attributes (this may snapshot or link to our AttributeAggregators)
+
 	OurCopyOfSpec->CapturedRelevantAttributes.CaptureAttributes(this, EGameplayEffectAttributeCaptureSource::Target);
 	
 	// We still probably want to apply tags and stuff even if instant?
@@ -525,7 +563,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 	float ExecuteLevel = Spec.GetLevel();
 
 	FGameplayCueParameters CueParameters;
-	CueParameters.EffectContext = Spec.EffectContext;
+	CueParameters.EffectContext = Spec.GetContext();
 
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
@@ -549,9 +587,9 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &
 
 		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, CueInfo.GameplayCueTags, EventType, CueParameters);
 
-		if (DebugGameplayCues && Spec.EffectContext.GetHitResult())
+		if (DebugGameplayCues && Spec.GetContext().GetHitResult())
 		{
-			DrawDebugSphere(GetWorld(), Spec.EffectContext.GetHitResult()->Location, 30.f, 32, FColor(255, 0, 0), true, 30.f);
+			DrawDebugSphere(GetWorld(), Spec.GetContext().GetHitResult()->Location, 30.f, 32, FColor(255, 0, 0), true, 30.f);
 			ABILITY_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
 		}
 	}

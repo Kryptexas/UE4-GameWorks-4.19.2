@@ -28,7 +28,7 @@ void UGameplayEffectExtension_LifestealTest::PostGameplayEffectExecute(const FGa
 	float HealthToRestore = -DamageDone * LifestealPCT;
 	if (HealthToRestore > 0.f)
 	{
-		UAbilitySystemComponent *Source = Data.EffectSpec.EffectContext.GetOriginalInstigatorAbilitySystemComponent();
+		UAbilitySystemComponent *Source = Data.EffectSpec.GetContext().GetOriginalInstigatorAbilitySystemComponent();
 
 		UGameplayEffect * LocalHealthRestore = HealthRestoreGameplayEffect;
 		if (!LocalHealthRestore)

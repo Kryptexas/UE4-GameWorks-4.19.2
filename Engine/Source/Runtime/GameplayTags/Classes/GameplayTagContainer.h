@@ -197,7 +197,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	virtual void RemoveTag(FGameplayTag TagToRemove);
 
 	/** Remove all tags from the container */
-	virtual void RemoveAllTags();
+	virtual void RemoveAllTags(int32 Slack=0);
 
 	/**
 	 * Serialize the tag container

@@ -8,8 +8,10 @@
 
 struct GAMEPLAYABILITIES_API FAggregatorEvaluateParameters
 {
-	FGameplayTagContainer	SourceTags;
-	FGameplayTagContainer	TargetTags;
+	FAggregatorEvaluateParameters() : SourceTags(nullptr), TargetTags(nullptr) { }
+
+	const FGameplayTagContainer*	SourceTags;
+	const FGameplayTagContainer*	TargetTags;
 };
 
 struct GAMEPLAYABILITIES_API FAggregatorMod
@@ -51,6 +53,8 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	void TakeSnapshotOf(const FAggregator& AggToSnapshot);
 
 	FOnAggregatorDirty OnDirty;
+
+	void AddModsFrom(const FAggregator& SourceAggregator);
 
 private:
 

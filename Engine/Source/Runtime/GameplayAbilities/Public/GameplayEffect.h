@@ -587,14 +587,15 @@ struct FGameplayEffectSpec
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectSpec()
-		: Duration(UGameplayEffect::INSTANT_APPLICATION)
+		: Def(nullptr)
+		, Duration(UGameplayEffect::INSTANT_APPLICATION)
 		, Period(UGameplayEffect::NO_PERIOD)
 		, ChanceToApplyToTarget(1.f)
 		, ChanceToExecuteOnGameplayEffect(1.f)
 		, bTopOfStack(false)
 		, Level(UGameplayEffect::INVALID_LEVEL)
 	{
-		// If we initialize a GameplayEffectSpec with no level object passed in.
+
 	}
 
 	FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level = UGameplayEffect::INVALID_LEVEL);
@@ -602,11 +603,6 @@ struct FGameplayEffectSpec
 	UPROPERTY()
 	const UGameplayEffect* Def;
 	
-	// Replicated
-	UPROPERTY()
-	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
-
-	// Replicated
 	UPROPERTY()
 	TArray<FGameplayEffectModifiedAttribute> ModifiedAttributes;
 	
@@ -614,15 +610,18 @@ struct FGameplayEffectSpec
 	UPROPERTY(NotReplicated)
 	FGameplayEffectAttributeCaptureSpecContainer CapturedRelevantAttributes;
 
-	// Looks for an existing modified attribute struct, may return NULL
+	/** Looks for an existing modified attribute struct, may return NULL */
 	const FGameplayEffectModifiedAttribute* GetModifiedAttribute(const FGameplayAttribute& Attribute) const;
 	FGameplayEffectModifiedAttribute* GetModifiedAttribute(const FGameplayAttribute& Attribute);
 
-	// Adds a new modified attribute struct, will always add so check to see if it exists first
+	/** Adds a new modified attribute struct, will always add so check to see if it exists first */
 	FGameplayEffectModifiedAttribute* AddModifiedAttribute(const FGameplayAttribute& Attribute);
 
-	// Deletes any modified attributes that aren't needed. Call before replication
+	/** Deletes any modified attributes that aren't needed. Call before replication */
 	void PruneModifiedAttributes();
+
+	/** Sets duration. This should onlyt be called as the GameplayEffect is being created */
+	void SetDuration(float NewDuration);
 
 	float GetDuration() const;
 	float GetPeriod() const;
@@ -632,8 +631,16 @@ struct FGameplayEffectSpec
 
 	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 
-	// other effects that need to be applied to the target if this effect is successful
+	/** other effects that need to be applied to the target if this effect is successful */
 	TArray< TSharedRef< FGameplayEffectSpec > > TargetEffectSpecs;
+
+	/** Set the context info: who and where this spec came from. */
+	void SetContext(FGameplayEffectContextHandle NewEffectContext);
+
+	FGameplayEffectContextHandle GetContext() const
+	{
+		return EffectContext;
+	}
 
 	// The duration in seconds of this effect
 	// instantaneous effects should have a duration of UGameplayEffect::INSTANT_APPLICATION
@@ -658,17 +665,16 @@ struct FGameplayEffectSpec
 	UPROPERTY()
 	bool bTopOfStack;
 
-	// Captured Source Tags on GameplayEffectSpec creation.
-	//	-Do we ever not snapshot these tags?
+	// Captured Source Tags on GameplayEffectSpec creation.	
 	UPROPERTY()
-	FGameplayTagContainer	CapturedSourceTags;
+	FTagContainerAggregator	CapturedSourceTags;
 
 	// Tags from the target, captured during execute?
 	// Not sure if this is the right place or not, or how 'contextual' tags get injected (headshot, crit, etc)
 	// Does this overlap with info in the GameplayEffectContextHandle? Should it just all live there?
 	// For now - putting it here so places have one spot to pull from. Need to figure this out long term.
 	UPROPERTY()
-	FGameplayTagContainer	CapturedTargetTags;
+	FTagContainerAggregator	CapturedTargetTags;
 	
 	TArray<FModifierSpec> Modifiers;
 	
@@ -689,11 +695,13 @@ struct FGameplayEffectSpec
 
 	void PrintAll() const;
 
-	
-
 private:
 
-	// Replicated	
+	void CaptureDataFromSource();
+	
+	UPROPERTY()
+	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
+	
 	UPROPERTY()
 	float Level;	
 };
