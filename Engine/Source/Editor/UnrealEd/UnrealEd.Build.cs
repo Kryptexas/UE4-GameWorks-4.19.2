@@ -95,6 +95,7 @@ public class UnrealEd : ModuleRules
 				"MaterialEditor",
 				"MessageLog",
 				"NetworkFileSystem",
+				"PakFile",
 				"PropertyEditor",
 				"Projects",
 				"RawMesh",
