@@ -336,17 +336,11 @@ struct FNavMeshTileData
 	// actual tile data
 	TSharedPtr<FNavData> NavData;
 	
-
 	FNavMeshTileData() : LayerIndex(0), DataSize(0) { }
-
-	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(0))
-		: LayerIndex(LayerIdx)
-		, LayerBBox(LayerBounds)
-		, DataSize(RawDataSize)
-	{
-		NavData = MakeShareable(new FNavData(RawData));
-	}
+	~FNavMeshTileData();
 	
+	explicit FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx = 0, FBox LayerBounds = FBox(0));
+		
 	FORCEINLINE uint8* GetData()
 	{
 		check(NavData.IsValid());

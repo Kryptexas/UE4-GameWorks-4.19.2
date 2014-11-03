@@ -46,14 +46,32 @@ FNavMeshTileData::FNavData::~FNavData()
 #endif
 }
 
+FNavMeshTileData::FNavMeshTileData(uint8* RawData, int32 RawDataSize, int32 LayerIdx, FBox LayerBounds)
+	: LayerIndex(LayerIdx)
+	, LayerBBox(LayerBounds)
+	, DataSize(RawDataSize)
+{
+	INC_MEMORY_STAT_BY(STAT_Navigation_TileCacheMemory, DataSize);
+	NavData = MakeShareable(new FNavData(RawData));
+}
+
+FNavMeshTileData::~FNavMeshTileData()
+{
+	if (NavData.IsUnique() && NavData->RawNavData)
+	{
+		DEC_MEMORY_STAT_BY(STAT_Navigation_TileCacheMemory, DataSize);
+	}
+}
+
 uint8* FNavMeshTileData::Release()
 {
 	uint8* RawData = nullptr;
 
-	if (NavData.IsValid()) 
+	if (NavData.IsValid() && NavData->RawNavData) 
 	{ 
 		RawData = NavData->RawNavData;
-		NavData->RawNavData = nullptr; 
+		NavData->RawNavData = nullptr;
+		DEC_MEMORY_STAT_BY(STAT_Navigation_TileCacheMemory, DataSize);
 	} 
  
 	DataSize = 0; 
