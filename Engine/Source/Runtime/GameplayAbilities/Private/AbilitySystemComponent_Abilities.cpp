@@ -466,7 +466,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	}
 
 	// Always do a non instanced CanActivate check
- 	if (!Ability->CanActivateAbility(Handle, ActorInfo))
+	if (!Ability->CanActivateAbility(Handle, ActorInfo))
 	{
 		return false;
 	}
