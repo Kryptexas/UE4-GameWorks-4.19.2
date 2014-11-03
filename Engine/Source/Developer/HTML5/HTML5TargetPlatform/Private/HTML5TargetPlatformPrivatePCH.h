@@ -7,6 +7,7 @@
  *****************************************************************************/
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "Runtime/Core/Public/HTML5/HTML5PlatformProperties.h"
 
 #if WITH_ENGINE
