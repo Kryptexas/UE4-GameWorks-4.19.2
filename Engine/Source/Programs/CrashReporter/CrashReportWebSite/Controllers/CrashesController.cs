@@ -33,46 +33,49 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view to display a list of crash reports.</returns>
 		public ActionResult Index( FormCollection CrashesForm )
 		{
-			// Handle any edits made in the Set form fields
-			foreach( var Entry in CrashesForm )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				int Id = 0;
-				if( int.TryParse( Entry.ToString(), out Id ) )
+				// Handle any edits made in the Set form fields
+				foreach( var Entry in CrashesForm )
 				{
-					Crash CurrentCrash = LocalCrashRepository.GetCrash( Id );
-					if( CurrentCrash != null )
+					int Id = 0;
+					if( int.TryParse( Entry.ToString(), out Id ) )
 					{
-						if( !string.IsNullOrEmpty( CrashesForm["SetStatus"] ) )
+						Crash CurrentCrash = LocalCrashRepository.GetCrash( Id );
+						if( CurrentCrash != null )
 						{
-							CurrentCrash.Status = CrashesForm["SetStatus"];
-							LocalCrashRepository.SetCrashStatus( CurrentCrash.Status, Id );
-						}
+							if( !string.IsNullOrEmpty( CrashesForm["SetStatus"] ) )
+							{
+								CurrentCrash.Status = CrashesForm["SetStatus"];
+								LocalCrashRepository.SetCrashStatus( CurrentCrash.Status, Id );
+							}
 
-						if( !string.IsNullOrEmpty( CrashesForm["SetFixedIn"] ) )
-						{
-							CurrentCrash.FixedChangeList = CrashesForm["SetFixedIn"];
-							LocalCrashRepository.SetCrashFixedChangeList( CurrentCrash.FixedChangeList, Id );
-						}
+							if( !string.IsNullOrEmpty( CrashesForm["SetFixedIn"] ) )
+							{
+								CurrentCrash.FixedChangeList = CrashesForm["SetFixedIn"];
+								LocalCrashRepository.SetCrashFixedChangeList( CurrentCrash.FixedChangeList, Id );
+							}
 
-						if( !string.IsNullOrEmpty( CrashesForm["SetTTP"] ) )
-						{
-							CurrentCrash.TTPID = CrashesForm["SetTTP"];
-							LocalCrashRepository.SetCrashTTPID( CurrentCrash.TTPID, Id );
+							if( !string.IsNullOrEmpty( CrashesForm["SetTTP"] ) )
+							{
+								CurrentCrash.TTPID = CrashesForm["SetTTP"];
+								LocalCrashRepository.SetCrashTTPID( CurrentCrash.TTPID, Id );
+							}
 						}
 					}
 				}
+
+				// <STATUS>
+
+				// Parse the contents of the query string, and populate the form
+				FormHelper FormData = new FormHelper( Request, CrashesForm, "TimeOfCrash" );
+				CrashesViewModel Result = LocalCrashRepository.GetResults( FormData );
+
+				// Add the FromCollection to the CrashesViewModel since we don't need it for the get results function but we do want to post it back to the page.
+				Result.FormCollection = CrashesForm;
+
+				return View( "Index", Result );
 			}
-
-			// <STATUS>
-
-			// Parse the contents of the query string, and populate the form
-			FormHelper FormData = new FormHelper( Request, CrashesForm, "TimeOfCrash" );
-			CrashesViewModel Result = LocalCrashRepository.GetResults( FormData );
-
-			// Add the FromCollection to the CrashesViewModel since we don't need it for the get results function but we do want to post it back to the page.
-			Result.FormCollection = CrashesForm;
-
-			return View( "Index", Result );
 		}
 
 		/// <summary>
@@ -83,67 +86,71 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view to show crash details.</returns>
 		public ActionResult Show( FormCollection CrashesForm, int? Id )
 		{
-			if (!Id.HasValue)
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				return RedirectToAction("");
+				if( !Id.HasValue )
+				{
+					return RedirectToAction( "" );
+				}
+
+				CallStackContainer CurrentCallStack = null;
+
+				// Update the selected crash based on the form contents
+				Crash CurrentCrash = LocalCrashRepository.GetCrash( Id.Value );
+
+				if( CurrentCrash == null )
+				{
+					return RedirectToAction( "" );
+				}
+
+				string FormValue;
+
+				FormValue = CrashesForm["SetStatus"];
+				if( !string.IsNullOrEmpty( FormValue ) )
+				{
+					CurrentCrash.Status = FormValue;
+					//LocalCrashRepository.SetCrashStatus(FormValue, Id.Value);
+				}
+
+				FormValue = CrashesForm["SetFixedIn"];
+				if( !string.IsNullOrEmpty( FormValue ) )
+				{
+					CurrentCrash.FixedChangeList = FormValue;
+					//LocalCrashRepository.SetCrashFixedChangeList(FormValue, Id.Value);
+				}
+
+				FormValue = CrashesForm["SetTTP"];
+				if( !string.IsNullOrEmpty( FormValue ) )
+				{
+					CurrentCrash.TTPID = FormValue;
+					//LocalCrashRepository.SetCrashTTPID(FormValue, Id.Value);
+				}
+
+				// Valid to set description to an empty string
+				FormValue = CrashesForm["Description"];
+				if( FormValue != null )
+				{
+					CurrentCrash.Description = FormValue;
+					//LocalCrashRepository.SetCrashDescription(FormValue, Id.Value);
+				}
+
+				CurrentCallStack = new CallStackContainer( CurrentCrash );
+
+				// Set callstack properties
+				CurrentCallStack.bDisplayModuleNames = true;
+				CurrentCallStack.bDisplayFunctionNames = true;
+				CurrentCallStack.bDisplayFileNames = true;
+				CurrentCallStack.bDisplayFilePathNames = true;
+				CurrentCallStack.bDisplayUnformattedCallStack = false;
+
+				CurrentCrash.CallStackContainer = LocalCrashRepository.GetCallStack( CurrentCrash );
+
+				// Populate the crash with the correct user data
+				LocalCrashRepository.PopulateUserInfo( CurrentCrash );
+				LocalCrashRepository.SubmitChanges();
+
+				return View( "Show", new CrashViewModel { Crash = CurrentCrash, CallStack = CurrentCallStack } );
 			}
-
-			CallStackContainer CurrentCallStack = null;
-
-			// Update the selected crash based on the form contents
-			Crash CurrentCrash = LocalCrashRepository.GetCrash( Id.Value );
-
-			if (CurrentCrash == null)
-			{
-				return RedirectToAction( "" );
-			}
-
-			string FormValue;
-
-			FormValue = CrashesForm["SetStatus"];
-			if (!string.IsNullOrEmpty(FormValue))
-			{
-				CurrentCrash.Status = FormValue;
-				LocalCrashRepository.SetCrashStatus(FormValue, Id.Value);
-			}
-
-			FormValue = CrashesForm["SetFixedIn"];
-			if (!string.IsNullOrEmpty(FormValue))
-			{
-				CurrentCrash.FixedChangeList = FormValue;
-				LocalCrashRepository.SetCrashFixedChangeList(FormValue, Id.Value);
-			}
-
-			FormValue = CrashesForm["SetTTP"];
-			if (!string.IsNullOrEmpty(FormValue))
-			{
-				CurrentCrash.TTPID = FormValue;
-				LocalCrashRepository.SetCrashTTPID(FormValue, Id.Value);
-			}
-
-			// Valid to set description to an empty string
-			FormValue = CrashesForm["Description"];
-			if (FormValue != null)
-			{
-				CurrentCrash.Description = FormValue;
-				LocalCrashRepository.SetCrashDescription(FormValue, Id.Value);
-			}
-
-			CurrentCallStack = new CallStackContainer( CurrentCrash );
-
-			// Set callstack properties
-			CurrentCallStack.bDisplayModuleNames = true;
-			CurrentCallStack.bDisplayFunctionNames = true;
-			CurrentCallStack.bDisplayFileNames = true;
-			CurrentCallStack.bDisplayFilePathNames = true;
-			CurrentCallStack.bDisplayUnformattedCallStack = false;
-
-			CurrentCrash.CallStackContainer = CurrentCrash.GetCallStack();
-
-			// Populate the crash with the correct user data
-			LocalCrashRepository.PopulateUserInfo( CurrentCrash );
-
-			return View( "Show", new CrashViewModel { Crash = CurrentCrash, CallStack = CurrentCallStack } );
 		}
 
 		/// <summary>
@@ -153,27 +160,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>The row id of the newly added crash.</returns>
 		public ActionResult AddCrash( int id )
 		{
-			CrashReporterResult NewCrashResult = new CrashReporterResult();
-			NewCrashResult.ID = -1;
-
-			try
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				using( StreamReader Reader = new StreamReader( Request.InputStream, Request.ContentEncoding ) )
+				CrashReporterResult NewCrashResult = new CrashReporterResult();
+				NewCrashResult.ID = -1;
+
+				try
 				{
-					string Result = Reader.ReadToEnd();
-					CrashDescription NewCrash = XmlHandler.FromXmlString<CrashDescription>( Result );
-					NewCrashResult.ID = LocalCrashRepository.AddNewCrash( NewCrash );
-					NewCrashResult.bSuccess = true;
+					using( StreamReader Reader = new StreamReader( Request.InputStream, Request.ContentEncoding ) )
+					{
+						string Result = Reader.ReadToEnd();
+						CrashDescription NewCrash = XmlHandler.FromXmlString<CrashDescription>( Result );
+						NewCrashResult.ID = LocalCrashRepository.AddNewCrash( NewCrash );
+						NewCrashResult.bSuccess = true;
+					}
 				}
-			}
-			catch( Exception Ex )
-			{
-				NewCrashResult.Message = Ex.ToString();
-				NewCrashResult.bSuccess = false;
-			}
+				catch( Exception Ex )
+				{
+					NewCrashResult.Message = Ex.ToString();
+					NewCrashResult.bSuccess = false;
+				}
 
-			string ReturnResult = XmlHandler.ToXmlString<CrashReporterResult>( NewCrashResult );
-			return Content( ReturnResult, "text/xml" );
+				string ReturnResult = XmlHandler.ToXmlString<CrashReporterResult>( NewCrashResult );
+				return Content( ReturnResult, "text/xml" );
+			}
 		}
 	}
 }

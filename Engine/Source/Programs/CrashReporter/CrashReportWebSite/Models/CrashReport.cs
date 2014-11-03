@@ -5,9 +5,20 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System;
 using System.Data.Linq;
+using System.Diagnostics;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
+	/// <summary> Function call. </summary>
+	public partial class FunctionCall
+	{
+		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
+		public override string ToString()
+		{
+			return string.Format( "{0}:{1}", Id, Call );
+		}
+	}
+
 	/// <summary>
 	/// Derived information to the default Bugg information from the database.
 	/// </summary>
@@ -30,33 +41,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns></returns>
 		public EntitySet<Crash> GetCrashes()
 		{
-			int CrashCount = Crashes.Count;
-			if( NumberOfCrashes != CrashCount )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				NumberOfCrashes = CrashCount;
-
-				if( NumberOfCrashes > 0 )
+				int CrashCount = Crashes.Count;
+				if( NumberOfCrashes != CrashCount )
 				{
-					BuggRepository LocalBuggRepository = new BuggRepository();
-					LocalBuggRepository.UpdateBuggData( this, Crashes );
+					NumberOfCrashes = CrashCount;
+
+					if( NumberOfCrashes > 0 )
+					{
+						BuggRepository LocalBuggRepository = new BuggRepository();
+						LocalBuggRepository.UpdateBuggData( this, Crashes );
+					}
 				}
+
+				// Just fill the CallStackContainers
+				foreach( Crash CurrentCrash in Crashes )
+				{
+					if( CurrentCrash.CallStackContainer == null )
+					{
+						CurrentCrash.CallStackContainer = CurrentCrash.GetCallStack();
+					}
+
+					if( SourceContext == null )
+					{
+						SourceContext = CurrentCrash.SourceContext;
+					}
+				}
+
+				return Crashes;
 			}
-
-			// Just fill the CallStackContainers
-			foreach( Crash CurrentCrash in Crashes )
-			{
-				if( CurrentCrash.CallStackContainer == null )
-				{
-					CurrentCrash.CallStackContainer = CurrentCrash.GetCallStack();
-				}
-
-				if( SourceContext == null )
-				{
-					SourceContext = CurrentCrash.SourceContext;
-				}
-			}
-
-			return Crashes;
 		}
 
 		/// <summary></summary>
@@ -80,14 +94,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Return the top lines of a callstack.
 		/// </summary>
-		/// <param name="Max">The number of lines to return.</param>
 		/// <returns>A list of callstack entries.</returns>
-		public List<string> GetFunctionCalls( int Max )
+		public List<string> GetFunctionCalls( /*int Max*/ )
 		{
-			BuggRepository LocalBuggRepository = new BuggRepository();
-			List<string> Results = LocalBuggRepository.GetFunctionCalls( Pattern );
-
-			return Results;
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
+				BuggRepository LocalBuggRepository = new BuggRepository();
+				List<string> Results = LocalBuggRepository.GetFunctionCalls( Pattern );
+				return Results;
+			}
 		}
 
 		/// <summary>
@@ -202,15 +217,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>Lines of processed callstack entries.</returns>
 		public List<CallStackEntry> GetCallStackEntries( int StartIndex, int Count )
 		{
-			IEnumerable<CallStackEntry> Results = new List<CallStackEntry>() { new CallStackEntry() };
-
-			if( CallStackContainer != null && CallStackContainer.CallStackEntries != null )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				int MaxCount = Math.Min( Count, CallStackContainer.CallStackEntries.Count );
-				Results = CallStackContainer.CallStackEntries.Take( MaxCount );
-			}
+				IEnumerable<CallStackEntry> Results = new List<CallStackEntry>() { new CallStackEntry() };
 
-			return Results.ToList();
+				if( CallStackContainer != null && CallStackContainer.CallStackEntries != null )
+				{
+					int MaxCount = Math.Min( Count, CallStackContainer.CallStackEntries.Count );
+					Results = CallStackContainer.CallStackEntries.Take( MaxCount );
+				}
+
+				return Results.ToList();
+			}
 		}
 
 		/// <summary>

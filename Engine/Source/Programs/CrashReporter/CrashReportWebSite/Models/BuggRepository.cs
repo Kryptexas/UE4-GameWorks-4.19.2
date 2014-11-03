@@ -8,6 +8,8 @@ using System.Linq;
 using System.Web;
 using Naspinski.IQueryableSearch;
 using System.Data.Linq;
+using System.Linq.Dynamic;
+using System.Reflection;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -62,6 +64,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A Bugg representing a group of crashes.</returns>
 		public Bugg GetBugg( int Id )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			Bugg Result = null;
 
 			try
@@ -80,6 +84,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			return Result;
 		}
+		}
 
 		/// <summary>
 		/// Get the id of a function from its name.
@@ -88,6 +93,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The unique id of the function name, or zero if none is found.</returns>
 		public int GetFunctionCallId( string FunctionCallName )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			try
 			{
 				FunctionCall FunctionCall = BuggsDataContext.FunctionCalls.Where( FunctionCallInstance => FunctionCallInstance.Call.Contains( FunctionCallName ) ).First();
@@ -99,6 +106,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			return 0;
+		}
 		}
 
 		/// <summary>
@@ -122,25 +130,33 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A list of strings that make up a callstack.</returns>
 		public List<string> GetFunctionCalls( List<int> Ids )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Ids.Count + ")" ) )
+			{
 			List<string> FunctionCalls = new List<string>();
 			try
 			{
-				/*FunctionCalls =
-				(
-					from Id in Ids
-					join Function in BuggsDataContext.FunctionCalls on Id equals Function.Id
-					select Function.Call
-				).ToList();*/
-				
-				{
-					List<FunctionCall> Funcs = BuggsDataContext.FunctionCalls.Where( FuncCall => Ids.Contains(FuncCall.Id) ).ToList();
-					// Order by Ids
-					foreach( int Id in Ids )
+// 					using( FAutoScopedLogTimer LogTimer2 = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Ids.Count + ") slow" ) )
+// 					{
+// 						var Query =
+// 											(
+// 												from Id in Ids
+// 												join Function in BuggsDataContext.FunctionCalls on Id equals Function.Id
+// 												select Function.Call
+// 											);
+// 						FunctionCalls = Query.ToList();
+// 					}
+
+					using( FAutoScopedLogTimer LogTimer3 = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Ids.Count + ") fast" ) )
 					{
-						var Found = Funcs.Find( FC => FC.Id == Id );
-						FunctionCalls.Add( Found.Call );
-					}		
-				}
+						List<FunctionCall> Funcs = BuggsDataContext.FunctionCalls.Where( FuncCall => Ids.Contains(FuncCall.Id) ).ToList();
+						// Order by Ids
+						foreach( int Id in Ids )
+						{
+							var Found = Funcs.Find( FC => FC.Id == Id );
+							FunctionCalls.Add( Found.Call );
+						}		
+					}
+
 			}
 			catch( Exception Ex )
 			{
@@ -148,6 +164,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			return FunctionCalls;
+		}
 		}
 
 		/// <summary>
@@ -157,6 +174,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="Crashes">The set of crashes to add to the Bugg.</param>
 		public void UpdateBuggData( Bugg Bugg, IEnumerable<Crash> Crashes )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
+
 			DateTime? TimeOfFirstCrash = null;
 			DateTime? TimeOfLastCrash = null;
 			string BuildVersion = null;
@@ -228,6 +248,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			catch( Exception Ex )
 			{
 				Debug.WriteLine( "Exception in UpdateBuggData: " + Ex.ToString() );
+			}
+
 			}
 		}
 
@@ -312,6 +334,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A filtered set of Buggs.</returns>
 		public IQueryable<Bugg> Search( IQueryable<Bugg> Results, string Query )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			// Also may want to revisit how we search since this could get inefficient for a big search set.
 			IQueryable<Bugg> Buggs;
 			try
@@ -341,8 +365,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
 				Buggs = Results;
 			}
-
 			return Buggs;
+		}
 		}
 
 		/// <summary>
@@ -352,6 +376,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A view to display the filtered Buggs.</returns>
 		public BuggsViewModel GetResults( FormHelper FormData )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			// Right now we take a Result IQueryable starting with ListAll() Buggs then we widdle away the result set by tacking on 
 			// Linq queries. Essentially it's Results.ListAll().Where().Where().Where().Where().Where().Where()
 			// Could possibly create more optimized queries when we know exactly what we're querying
@@ -424,6 +450,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				GroupCounts = GroupCounts,
 			};
 		}
+		}
 
 		/// <summary>
 		/// Bucket the Buggs by user group.
@@ -432,6 +459,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A dictionary of user group names, and the count of Buggs for each group.</returns>
 		public Dictionary<string, int> GetCountsByGroup( IQueryable<Bugg> Buggs )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			Dictionary<string, int> Results = new Dictionary<string, int>();
 
 			try
@@ -462,6 +491,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			return Results;
 		}
+		}
 
 		/// <summary>
 		/// Filter a set of Buggs to a date range.
@@ -472,16 +502,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs between the earliest and latest date.</returns>
 		public IQueryable<Bugg> FilterByDate( IQueryable<Bugg> Results, DateTime DateFrom, DateTime DateTo )
 		{
-			IQueryable<Bugg> BuggsInTimeFrame = Results.Where( Bugg => Bugg.TimeOfLastCrash >= DateFrom && Bugg.TimeOfLastCrash <= AddOneDayToDate( DateTo ) );
-
-#if DEBUG
-			foreach( var MyBugg in BuggsInTimeFrame )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				Debug.WriteLine( "FilterByDate=" + MyBugg.ToString() );
+			IQueryable<Bugg> BuggsInTimeFrame = Results.Where( Bugg => Bugg.TimeOfLastCrash >= DateFrom && Bugg.TimeOfLastCrash <= AddOneDayToDate( DateTo ) );
+				return BuggsInTimeFrame;
 			}
-#endif
-
-			return BuggsInTimeFrame;
 		}
 
 		/// <summary>
@@ -492,6 +517,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs that matches specified build version</returns>
 		public IQueryable<Bugg> FilterByBuildVersion( IQueryable<Bugg> Results, string BuildVersion )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			IQueryable<Bugg> BuggsForBuildVersion = Results;
 
 			// Filter by BuildVersion
@@ -503,16 +530,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					where MyBugg.BuildVersion.Contains( BuildVersion )
 					select MyBugg
 				);
-
-#if DEBUG
-				foreach( var MyBugg in BuggsForBuildVersion )
-				{
-					Debug.WriteLine( "FilterByBuildVersion=" + MyBugg.ToString() );
 				}			
-#endif
+				return BuggsForBuildVersion;
 			}
-
-			return BuggsForBuildVersion;
 		} 
 
 		/// <summary>
@@ -523,6 +543,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs by users in the requested user group.</returns>
 		public IQueryable<Bugg> FilterByUserGroup( IQueryable<Bugg> SetOfBuggs, string UserGroup )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			IQueryable<Bugg> NewSetOfBuggs = null;
 
 			try
@@ -536,19 +558,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					select BuggDetail
 				);
 
-#if DEBUG
-				foreach( var MyBugg in NewSetOfBuggs )
-				{
-					Debug.WriteLine( "FilterByUserGroup=" + MyBugg.ToString() );
-				}
-#endif
 			}
 			catch( Exception Ex )
 			{
 				Debug.WriteLine( "Exception in FilterByUserGroup: " + Ex.ToString() );
 			}
 
+
 			return NewSetOfBuggs;
+		}
 		}
 
 		private DateTime AddOneDayToDate( DateTime Date )
@@ -567,8 +585,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A sorted container of Buggs.</returns>
 		public IQueryable<Bugg> GetSortedResults( IQueryable<Bugg> Results, string SortTerm, bool bSortDescending, DateTime DateFrom, DateTime DateTo )
 		{
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
 			try
 			{
+
 				var IntermediateResults =
 				(
 					from BuggCrashDetail in BuggsDataContext.Buggs_Crashes
@@ -578,10 +599,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					select new { Bugg = BuggDetail, Count = CrashesGrouped.Count() }
 				);
 
+					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggRepository.GetSortedResults.CrashesInTimeFrame" ) )
+					{
 				foreach( var Result in IntermediateResults )
 				{
 					Result.Bugg.CrashesInTimeFrame = Result.Count;
 				}
+					}
+
 
 				switch( SortTerm )
 				{
@@ -636,8 +661,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				Debug.WriteLine( "Exception in GetSortedResults: " + Ex.ToString() );
 			}
-
 			return Results;
 		}
 	}
+}
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Diagnostics;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -135,7 +136,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="CurrentCrash"></param>
 		public CallStackContainer( Crash CurrentCrash )
 		{
-			ParseCallStack( CurrentCrash );
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
+				ParseCallStack( CurrentCrash ); 
+			}
 		}
 
 		/// <summary>
