@@ -907,7 +907,7 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 		int32 MaxLayerId = 0;
 		{
 			MaxLayerId = WindowToDraw->PaintWindow(
-				FPaintArgs(WindowToDraw, *HittestGrid, WindowToDraw->GetPositionInScreen()),
+				FPaintArgs(WindowToDraw, *HittestGrid, WindowToDraw->GetPositionInScreen(), GetCurrentTime(), GetDeltaTime()),
 				WindowGeometry, WindowToDraw->GetClippingRectangleInWindow(),
 				WindowElementList,
 				0,
@@ -1137,6 +1137,8 @@ void FSlateApplication::FinishedInputThisFrame()
 	}
 }
 
+extern SLATECORE_API TAutoConsoleVariable<int32> FoldTick;
+
 /**
  * Ticks this application
  */
@@ -1221,39 +1223,43 @@ void FSlateApplication::Tick()
 	// Update auto-throttling based on elapsed time since user interaction
 	ThrottleApplicationBasedOnMouseMovement();
 
-	TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
+	const bool bFoldTick = (FoldTick.GetValueOnGameThread() != 0);
 
+	if ( !bFoldTick )
 	{
-		SCOPE_CYCLE_COUNTER( STAT_SlateTickWindowAndChildren );
+		TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
+		{
+			SCOPE_CYCLE_COUNTER( STAT_SlateTickWindowAndChildren );
 
-		if ( ActiveModalWindow.IsValid() )
-		{
-			// There is a modal window, and we just need to tick it.
-			TickWindowAndChildren( ActiveModalWindow.ToSharedRef() );
-			// And also tick any top-level windows.
-			for( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt( SlateWindows ); CurrentWindowIt; ++CurrentWindowIt )
+			if ( ActiveModalWindow.IsValid() )
 			{
-				TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
-				if (CurrentWindow->IsTopmostWindow())
+				// There is a modal window, and we just need to tick it.
+				TickWindowAndChildren( ActiveModalWindow.ToSharedRef() );
+				// And also tick any top-level windows.
+				for( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt( SlateWindows ); CurrentWindowIt; ++CurrentWindowIt )
 				{
-					TickWindowAndChildren(CurrentWindow);
+					TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
+					if (CurrentWindow->IsTopmostWindow())
+					{
+						TickWindowAndChildren(CurrentWindow);
+					}
 				}
+				// also tick the notification manager's windows
+				TArray< TSharedRef<SWindow> > NotificationWindows;
+				FSlateNotificationManager::Get().GetWindows(NotificationWindows);
+				for( auto CurrentWindowIt( NotificationWindows.CreateIterator() ); CurrentWindowIt; ++CurrentWindowIt )
+				{
+					TickWindowAndChildren(*CurrentWindowIt);
+				}		
 			}
-			// also tick the notification manager's windows
-			TArray< TSharedRef<SWindow> > NotificationWindows;
-			FSlateNotificationManager::Get().GetWindows(NotificationWindows);
-			for( auto CurrentWindowIt( NotificationWindows.CreateIterator() ); CurrentWindowIt; ++CurrentWindowIt )
+			else
 			{
-				TickWindowAndChildren(*CurrentWindowIt);
-			}		
-		}
-		else
-		{
-			// No modal window; tick all slate windows.
-			for( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt( SlateWindows ); CurrentWindowIt; ++CurrentWindowIt )
-			{
-				TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
-				TickWindowAndChildren( CurrentWindow );
+				// No modal window; tick all slate windows.
+				for( TArray< TSharedRef<SWindow> >::TIterator CurrentWindowIt( SlateWindows ); CurrentWindowIt; ++CurrentWindowIt )
+				{
+					TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
+					TickWindowAndChildren( CurrentWindow );
+				}
 			}
 		}
 	}

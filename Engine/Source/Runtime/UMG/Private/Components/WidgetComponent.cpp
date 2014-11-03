@@ -473,7 +473,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 		int32 MaxLayerId = 0;
 		{
 			MaxLayerId = SlateWidget->Paint(
-				FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector),
+				FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FSlateApplication::Get().GetCurrentTime(), FSlateApplication::Get().GetDeltaTime()),
 				WindowGeometry, WindowGeometry.GetClippingRect(),
 				WindowElementList,
 				0,
