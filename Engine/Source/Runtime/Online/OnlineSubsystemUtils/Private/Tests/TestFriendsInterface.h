@@ -24,6 +24,8 @@
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
 	/** Delegate to use for deleting the friends list */
 	FOnDeleteFriendsListCompleteDelegate OnDeleteFriendsListCompleteDelegate;
+	/** Delegate to use for querying for recent players */
+	FOnQueryRecentPlayersCompleteDelegate OnQueryRecentPlayersCompleteDelegate;
 
 	/** Default name of friends list for running tests */
 	FString FriendsListName;
@@ -44,6 +46,8 @@
 	bool bDeleteFriends;
 	/** true to delete the test friends list */
 	bool bDeleteFriendsList;
+	/** true to query for recent players */
+	bool bQueryRecentPlayers;
 
 	/** Hidden on purpose */
 	FTestFriendsInterface()
@@ -70,6 +74,15 @@
 	 * @param ErrorStr string representing the error condition
 	 */
 	void OnReadFriendsComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
+
+	/**
+	 * Delegate used when the query for recent players has completed
+	 *
+	 * @param UserId the id of the user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error string representing the error condition
+	 */
+	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr);
 
 	/**
 	 * Delegate used when an invite accept request has completed
@@ -129,6 +142,7 @@
 		, bSendInvites(true)
 		, bDeleteFriends(true)
 		, bDeleteFriendsList(false)
+		, bQueryRecentPlayers(true)
 	{
 	}
 

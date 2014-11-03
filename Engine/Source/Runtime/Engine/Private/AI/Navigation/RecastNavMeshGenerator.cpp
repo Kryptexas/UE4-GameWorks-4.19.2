@@ -1220,7 +1220,7 @@ protected:
 // FNavMeshBuildContext
 // A navmesh building reporting helper
 //----------------------------------------------------------------------//
-class FNavMeshBuildContext : public rcContext
+class FNavMeshBuildContext : public rcContext, public dtTileCacheLogContext
 {
 public:
 	FNavMeshBuildContext()
@@ -1246,6 +1246,11 @@ protected:
 			UE_LOG(LogNavigation, Verbose, TEXT("Recast: %s"), ANSI_TO_TCHAR( Msg ) );
 			break;
 		}
+	}
+
+	virtual void doDtLog(const char* Msg, const int32 /*len*/)
+	{
+		UE_LOG(LogNavigation, Error, TEXT("Recast: %s"), ANSI_TO_TCHAR(Msg));
 	}
 };
 
@@ -2385,7 +2390,7 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 				return false;
 			}
 
-			status = dtBuildTileCachePolyMesh(&MyAllocator, *GenerationContext.ContourSet, *GenerationContext.PolyMesh);
+			status = dtBuildTileCachePolyMesh(&MyAllocator, &BuildContext, *GenerationContext.ContourSet, *GenerationContext.PolyMesh);
 			if (dtStatusFailed(status))
 			{
 				BuildContext.log(RC_LOG_ERROR, "GenerateNavigationData: Failed to generate poly mesh.");

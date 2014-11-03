@@ -26,9 +26,12 @@ public:
 		[
 			SAssignNew(Contents, SVerticalBox)
 		]);
+
+		RefreshFriendsList();
 	}
 
 private:
+
 	void RefreshFriendsList()
 	{
 		Contents->ClearChildren();

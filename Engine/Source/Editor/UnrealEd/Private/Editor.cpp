@@ -715,6 +715,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		GLightmassStatsMode = true;
 		UE_LOG(LogInit, Log, TEXT("Running Engine with Lightmass Stats Mode ENABLED"));
 	}
+
+	// for IsInitialized()
+	bIsInitialized = true;
 };
 
 

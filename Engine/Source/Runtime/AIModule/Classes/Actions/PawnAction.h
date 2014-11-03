@@ -7,6 +7,7 @@
 
 class UPawnAction;
 class UPawnActionsComponent;
+class UBrainComponent;
 
 UENUM()
 namespace EPawnSubActionTriggeringPolicy
@@ -63,7 +64,7 @@ private:
 protected:
 	/** @Note: THIS IS HERE _ONLY_ BECAUSE OF THE WAY AI MESSAGING IS CURRENTLY IMPLEMENTED. WILL GO AWAY! */
 	UPROPERTY(Transient)
-	class UBrainComponent* BrainComp;
+	UBrainComponent* BrainComp;
 
 private:
 	/** stores registered message observers */
@@ -76,6 +77,9 @@ private:
 protected:
 
 	FAIRequestID RequestID;
+
+	/** specifies which resources will be locked by this action. */
+	FAIResourcesSet RequiredResources;
 
 	/** if this is FALSE and we're trying to push a new instance of a given class,
 	 *	but the top of the stack is already an instance of that class ignore the attempted push */
@@ -92,9 +96,9 @@ protected:
 private:
 	/** indicates whether action is in the process of abortion, and if so on what state */
 	EPawnActionAbortState::Type AbortState;
-
+	
 	EPawnActionResult::Type FinishResult;
-
+	
 	/** Used exclusively for action events sorting */
 	int32 IndexOnStack;
 	
@@ -169,6 +173,7 @@ public:
 	// messaging
 	//----------------------------------------------------------------------//
 	void WaitForMessage(FName MessageType, FAIRequestID RequestID = FAIRequestID::AnyRequest);
+	// @note this function will change its signature once AI messaging is rewritten @todo
 	virtual void HandleAIMessage(UBrainComponent*, const struct FAIMessage&){};
 
 	void SetActionObserver(const FPawnActionEventDelegate& ActionObserver) { this->ActionObserver = ActionObserver; }
@@ -195,7 +200,7 @@ protected:
 	void OnPopped();
 
 	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions")
-	void Finish(TEnumAsByte<EPawnActionResult::Type> WithResult);
+	virtual void Finish(TEnumAsByte<EPawnActionResult::Type> WithResult);
 
 	void SendEvent(EPawnActionEventType::Type Event);
 

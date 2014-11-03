@@ -53,6 +53,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 			SoundStreaming->SampleRate = SampleRate;
 			SoundStreaming->NumChannels = 1;
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;
+			SoundStreaming->SoundGroup = SOUNDGROUP_Voice;
 			SoundStreaming->bLooping = false;
 
 			AudioComponent = AudioDevice->CreateComponent(SoundStreaming, NULL, NULL, false);

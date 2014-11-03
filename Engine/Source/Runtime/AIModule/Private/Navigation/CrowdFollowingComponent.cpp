@@ -284,7 +284,7 @@ void UCrowdFollowingComponent::Initialize()
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 	if (CrowdManager)
 	{
-		const ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
+		ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);
 		CrowdManager->RegisterAgent(IAgent);
 	}
 	else

@@ -167,6 +167,20 @@ bool FOnlineFriendsFacebook::IsFriend(int32 LocalUserNum, const FUniqueNetId& Fr
 	return false;
 }
 
+bool FOnlineFriendsFacebook::QueryRecentPlayers(const FUniqueNetId& UserId)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::QueryRecentPlayers()"));
+
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+
+	return false;
+}
+
+bool FOnlineFriendsFacebook::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+{
+	return false;
+}
+
 void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::OnReadPermissionsUpdated() - %d"), bWasSuccessful);

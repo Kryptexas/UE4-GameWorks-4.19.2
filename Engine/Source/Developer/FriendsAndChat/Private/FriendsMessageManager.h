@@ -60,10 +60,9 @@ public:
 	/**
 	 * Init the manager
 	 *
-	 * @param NotificationDelegate The notification delegate.
 	 * @param bInAllowLaunchGame Can this app join a game directly.
 	 */
-	void Init( FOnFriendsNotification& NotificationDelegate, bool bInAllowLaunchGame );
+	void Init(bool bInAllowLaunchGame);
 
 	/**
 	 * Start or stop message polling for messages.
@@ -265,8 +264,6 @@ private:
 	FString DisplayName;
 	// Holds the ticker delegate
 	FTickerDelegate UpdateMessagesTickerDelegate;
-	// Holds the notification delegate
-	FOnFriendsNotification* FriendsListNotificationDelegate;
 
 public:
 

@@ -306,7 +306,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GenerateTextureResource( co
 		
 		check( Atlas && NewSlot );
 
-		// Create a proxy to the atlased texture. The texure being used is the atlas itself with sub uvs to access the correct texture
+		// Create a proxy to the atlased texture. The texture being used is the atlas itself with sub uvs to access the correct texture
 		NewProxy = new FSlateShaderResourceProxy;
 		NewProxy->Resource = Atlas->GetAtlasTexture();
 		NewProxy->StartUV = FVector2D( (float)(NewSlot->X+Padding) / Atlas->GetWidth(), (float)(NewSlot->Y+Padding) / Atlas->GetHeight() );
@@ -328,7 +328,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GenerateTextureResource( co
 
 		// The texture proxy only contains a single texture
 		NewProxy->Resource = Texture;
-		NewProxy->StartUV = FVector2D(0.0f,0.0f);
+		NewProxy->StartUV = FVector2D(0.0f, 0.0f);
 		NewProxy->SizeUV = FVector2D(1.0f, 1.0f);
 		NewProxy->ActualSize = FIntPoint( Width, Height );
 	}

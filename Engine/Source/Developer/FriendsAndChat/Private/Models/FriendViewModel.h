@@ -16,6 +16,7 @@ namespace EFriendActionType
 		InviteToGame,				// Invite to game
 		SendFriendRequest,			// Send a friend request
 		Updating,					// Updating;
+		Chat,						// Chat
 	};
 
 	inline FText ToText(EFriendActionType::Type State)
@@ -31,6 +32,7 @@ namespace EFriendActionType
 			case InviteToGame: return NSLOCTEXT("FriendsList","Invite to game", "Invite to Game");
 			case SendFriendRequest: return NSLOCTEXT("FriendsList","SendFriendRequst", "Send Friend Request");
 			case Updating: return NSLOCTEXT("FriendsList","Updating", "Updating");
+			case Chat: return NSLOCTEXT("FriendsList","Chat", "Chat");
 
 			default: return FText::GetEmpty();
 		}

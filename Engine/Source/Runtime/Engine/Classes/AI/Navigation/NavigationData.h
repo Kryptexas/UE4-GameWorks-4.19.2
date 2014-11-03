@@ -222,7 +222,15 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 		return PathPoints;
 	}
 
+	/** checks if given path, starting from StartingIndex, intersects with given AABB box */
 	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
+	/** checks if given path, starting from StartingIndex, intersects with given AABB box. This version uses AgentLocation as beginning of the path
+	 *	with segment between AgentLocation and path's StartingIndex-th node treated as first path segment to check */
+	virtual bool DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
+private:
+	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const;
+
+public:
 
 	/** type safe casts */
 	template<typename PathClass>

@@ -355,7 +355,7 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 	{
 		bHandled = true;
 		APlayerController* MyPC = Inworld->GetFirstPlayerController();
-		UAISystem* AISys = UAISystem::GetCurrent(Inworld);
+		UAISystem* AISys = UAISystem::GetCurrent(*Inworld);
 
 		UEnvQueryManager* EQS = AISys ? AISys->GetEnvironmentQueryManager() : NULL;
 		if (MyPC && EQS)

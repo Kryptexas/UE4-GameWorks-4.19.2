@@ -141,8 +141,8 @@ public:
 #endif // ENABLE_VISUAL_LOG
 	
 	// IAIResourceInterface begin
-	virtual void LockResource(EAILockSource::Type LockSource) override;
-	virtual void ClearResourceLock(EAILockSource::Type LockSource) override;
+	virtual void LockResource(EAIRequestPriority::Type LockSource) override;
+	virtual void ClearResourceLock(EAIRequestPriority::Type LockSource) override;
 	virtual void ForceUnlockResource() override;
 	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end

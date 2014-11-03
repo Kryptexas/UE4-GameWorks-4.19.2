@@ -578,6 +578,13 @@ private:
 
 		UPTRINT BasePtr;
 		FPoolInfo* Pool = FindPoolInfo((UPTRINT)Ptr, BasePtr);
+#if PLATFORM_IOS
+        if (Pool == NULL)
+        {
+            UE_LOG(LogMemory, Warning, TEXT("Attempting to free a pointer we didn't allocate!"));
+            return;
+        }
+#endif
 		checkSlow(Pool);
 		checkSlow(Pool->GetBytes() != 0);
 		if( Pool->TableIndex < BinnedOSTableIndex )

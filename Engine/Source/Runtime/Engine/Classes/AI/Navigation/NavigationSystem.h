@@ -276,7 +276,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
-	virtual void Tick(float DeltaSeconds);
+	virtual void Tick(float DeltaSeconds);	
 
 	UWorld* GetWorld() const { return GetOuterUWorld(); }
 
@@ -413,6 +413,7 @@ public:
 	bool CanRebuildDirtyNavigation() const;
 
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0);
+	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0);
 
 
 	//----------------------------------------------------------------------//

@@ -53,7 +53,9 @@ public:
 	// Overridden to also call StopActiveMovement().
 	virtual void StopMovementImmediately() override;
 
+	void SetUpdateNavAgentWithOwnersCollisions(bool bUpdateWithOwner);
 	FORCEINLINE bool ShouldUpdateNavAgentWithOwnersCollision() const { return bUpdateNavAgentWithOwnersCollision != 0; }
+	
 	void UpdateNavAgent(class AActor* Owner);
 	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
 

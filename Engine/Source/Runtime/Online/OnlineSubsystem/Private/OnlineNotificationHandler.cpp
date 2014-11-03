@@ -1,15 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemPrivatePCH.h"
+#include "OnlineNotificationTransportInterface.h"
 #include "OnlineNotificationHandler.h"
 
-void FOnlineNotificationHandler::AddNotificationBinding(FName NotificationName, const FOnlineNotificationBinding& NewBinding)
+
+FOnlineNotificationHandler FOnlineNotificationHandler::Singleton;
+
+// SYSTEM NOTIFICATION HANDLERS
+
+void FOnlineNotificationHandler::AddSystemNotificationBinding(FString NotificationType, const FOnlineNotificationBinding& NewBinding)
 {
-	TArray<FOnlineNotificationBinding>& FoundBindings = BindingMap.FindOrAdd(NotificationName);
+	TArray<FOnlineNotificationBinding>& FoundBindings = SystemBindingMap.FindOrAdd(NotificationType);
 
 	if (!NewBinding.NotificationDelegate.IsBound())
 	{
-		UE_LOG(LogOnline,Error,TEXT("Adding empty notification binding for type %s"), *NotificationName.ToString());
+		UE_LOG(LogOnline, Error, TEXT("Adding empty notification binding for type %s"), *NotificationType);
 		return;
 	}
 
@@ -17,7 +23,7 @@ void FOnlineNotificationHandler::AddNotificationBinding(FName NotificationName, 
 	{
 		if (FoundBindings[i] == NewBinding)
 		{
-			UE_LOG(LogOnline,Error,TEXT("Adding identical notification binding for type %s"), *NotificationName.ToString());
+			UE_LOG(LogOnline, Error, TEXT("Adding identical notification binding for type %s"), *NotificationType);
 			return;
 		}
 	}
@@ -25,50 +31,168 @@ void FOnlineNotificationHandler::AddNotificationBinding(FName NotificationName, 
 	FoundBindings.Add(NewBinding);
 }
 
-void FOnlineNotificationHandler::SetDefaultNotificationBinding(const FOnlineNotificationBinding& NewBinding)
+void FOnlineNotificationHandler::RemoveSystemNotificationBinding(FString NotificationType, const FOnlineNotificationBinding& RemoveBinding)
+{
+	TArray<FOnlineNotificationBinding>* FoundBindings = SystemBindingMap.Find(NotificationType);
+
+	int32 BindingsRemoved = 0;
+	if (FoundBindings)
+	{
+		BindingsRemoved = FoundBindings->Remove(RemoveBinding);
+	}
+
+	if (BindingsRemoved == 0)
+	{
+		UE_LOG_ONLINE(Error, TEXT("Attempted to remove binding that could not be found for type %s"), *NotificationType);
+	}
+}
+
+
+void FOnlineNotificationHandler::ResetSystemNotificationBindings()
+{
+	SystemBindingMap.Empty();
+}
+
+// PLAYER NOTIFICATION HANDLERS
+
+/** Add a notification binding for a type */
+void FOnlineNotificationHandler::AddPlayerNotificationBinding(const FUniqueNetId& PlayerId, FString NotificationType, const FOnlineNotificationBinding& NewBinding)
 {
 	if (!NewBinding.NotificationDelegate.IsBound())
 	{
-		UE_LOG(LogOnline,Error,TEXT("Adding empty default notification binding"));
+		UE_LOG(LogOnline, Error, TEXT("Adding empty notification binding for type %s"), *NotificationType);
 		return;
 	}
 
-	DefaultBinding = NewBinding;
+	NotificationTypeBindingsMap& FoundPlayerBindings = PlayerBindingMap.FindOrAdd(PlayerId.ToString());
+
+	TArray<FOnlineNotificationBinding>& FoundPlayerTypeBindings = FoundPlayerBindings.FindOrAdd(NotificationType);
+
+
+	for (int32 i = 0; i < FoundPlayerTypeBindings.Num(); i++)
+	{
+		if (FoundPlayerTypeBindings[i] == NewBinding)
+		{
+			UE_LOG(LogOnline, Error, TEXT("Adding identical notification binding for type %s"), *NotificationType);
+			return;
+		}
+	}
+
+	FoundPlayerTypeBindings.Add(NewBinding);
 }
 
-void FOnlineNotificationHandler::HandleNotification(const FOnlineNotification& Notification)
+/** Remove the player notification handler for a type */
+void FOnlineNotificationHandler::RemovePlayerNotificationBinding(const FUniqueNetId& PlayerId, FString NotificationType, const FOnlineNotificationBinding& RemoveBinding)
 {
-	EOnlineNotificationResult::Type CurrentResult = EOnlineNotificationResult::None;
+	int32 BindingsRemoved = 0;
 
-	TArray<FOnlineNotificationBinding>* FoundBindings = BindingMap.Find(FName(*Notification.TypeStr));
+	NotificationTypeBindingsMap* FoundPlayerBindings = PlayerBindingMap.Find(PlayerId.ToString());
 
-	if (FoundBindings)
+	if (FoundPlayerBindings)
 	{
-		for (int32 i = 0; i < FoundBindings->Num(); i++)
-		{
-			const FOnlineNotificationBinding& Binding = (*FoundBindings)[i];
-			
-			if (Binding.NotificationDelegate.IsBound())
-			{
-				CurrentResult = Binding.NotificationDelegate.Execute(Notification);
+		TArray<FOnlineNotificationBinding>* FoundPlayerTypeBindings = FoundPlayerBindings->Find(NotificationType);
 
-				if (CurrentResult == EOnlineNotificationResult::Block)
+		if (FoundPlayerTypeBindings)
+		{
+			BindingsRemoved = FoundPlayerTypeBindings->Remove(RemoveBinding);
+		}
+	}
+
+	if (BindingsRemoved == 0)
+	{
+		UE_LOG_ONLINE(Error, TEXT("Attempted to remove binding that could not be found for player %s type %s"), *PlayerId.ToDebugString(), *NotificationType);
+	}
+}
+
+/** Resets a player's notification handlers */
+void FOnlineNotificationHandler::ResetPlayerNotificationBindings(const FUniqueNetId& PlayerId)
+{
+	NotificationTypeBindingsMap* FoundPlayerBindings = PlayerBindingMap.Find(PlayerId.ToString());
+	if (FoundPlayerBindings)
+	{
+		FoundPlayerBindings->Reset();
+	}
+}
+
+/** Resets all player notification handlers */
+void FOnlineNotificationHandler::ResetAllPlayerNotificationBindings()
+{
+	PlayerBindingMap.Reset();
+}
+
+// RECEIVING NOTIFICATIONS
+
+void FOnlineNotificationHandler::DeliverNotification(const FOnlineNotification& Notification)
+{
+	EOnlineNotificationResult CurrentResult = EOnlineNotificationResult::None;
+
+	// Delivery system bindings, scoped out vars/results
+	{
+		TArray<FOnlineNotificationBinding>* FoundSystemBindings = SystemBindingMap.Find(Notification.TypeStr);
+
+		if (FoundSystemBindings)
+		{
+			for (int32 i = 0; i < FoundSystemBindings->Num(); i++)
+			{
+				const FOnlineNotificationBinding& Binding = (*FoundSystemBindings)[i];
+
+				if (Binding.NotificationDelegate.IsBound())
 				{
-					// Done handling
-					return;
+					CurrentResult = Binding.NotificationDelegate.Execute(Notification);
 				}
 			}
 		}
 	}
 
-	if (DefaultBinding.NotificationDelegate.IsBound())
+	// Delivery player bindings
+	if (Notification.ToUserId.IsValid())
 	{
-		CurrentResult = DefaultBinding.NotificationDelegate.Execute(Notification);
+		NotificationTypeBindingsMap* FoundPlayerBinding = PlayerBindingMap.Find(Notification.ToUserId->ToString());
+
+		if (FoundPlayerBinding)
+		{
+			TArray<FOnlineNotificationBinding>* FoundPlayerTypeBindings = FoundPlayerBinding->Find(Notification.TypeStr);
+			if (FoundPlayerTypeBindings)
+			{
+				for (int32 i = 0; i < FoundPlayerTypeBindings->Num(); i++)
+				{
+					const FOnlineNotificationBinding& Binding = (*FoundPlayerTypeBindings)[i];
+
+					if (Binding.NotificationDelegate.IsBound())
+					{
+						CurrentResult = Binding.NotificationDelegate.Execute(Notification);
+					}
+				}
+			}
+		}
+	}
+
+	if (CurrentResult == EOnlineNotificationResult::None)
+	{
+		// can be safely removed once this use case exists, just here to catch errors in initial implementation
+		UE_LOG_ONLINE(Error, TEXT("Received an onlinenotification that was not handled. Type %s for %s"), *Notification.TypeStr, Notification.ToUserId.IsValid() ? *Notification.ToUserId->ToString() : TEXT("<system notification>"));
 	}
 }
 
-void FOnlineNotificationHandler::ResetBindings()
+// NOTIFICATION TRANSPORTS
+
+void FOnlineNotificationHandler::AddNotificationTransport(FString TransportType, const FOnlineNotificationTransport& Transport)
 {
-	BindingMap.Empty();
-	DefaultBinding = FOnlineNotificationBinding();
+	TransportMap.Add(TransportType, Transport);
+}
+
+void FOnlineNotificationHandler::RemoveNotificationTransport(FString TransportType)
+{
+	TransportMap.Remove(TransportType);
+}
+
+bool FOnlineNotificationHandler::SendNotification(FString TransportType, const FOnlineNotification& Notification)
+{
+	FOnlineNotificationTransport* Transport = TransportMap.Find(TransportType);
+	return Transport->SendNotification(Notification);
+}
+
+void FOnlineNotificationHandler::ResetNotificationTransports()
+{
+	TransportMap.Empty();
 }

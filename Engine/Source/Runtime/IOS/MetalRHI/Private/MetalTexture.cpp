@@ -37,23 +37,27 @@ public:
 };
 
 /** Given a pointer to a RHI texture that was created by the Metal RHI, returns a pointer to the FMetalTextureBase it encapsulates. */
-FMetalSurface& GetMetalSurfaceFromRHITexture(FRHITexture* Texture)
+FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture)
 {
+    if (!Texture)
+    {
+        return NULL;
+    }
 	if(Texture->GetTexture2D())
 	{
-		return ((FMetalTexture2D*)Texture)->Surface;
+		return &((FMetalTexture2D*)Texture)->Surface;
 	}
 	else if(Texture->GetTexture2DArray())
 	{
-		return ((FMetalTexture2DArray*)Texture)->Surface;
+		return &((FMetalTexture2DArray*)Texture)->Surface;
 	}
 	else if(Texture->GetTexture3D())
 	{
-		return ((FMetalTexture3D*)Texture)->Surface;
+		return &((FMetalTexture3D*)Texture)->Surface;
 	}
 	else if(Texture->GetTextureCube())
 	{
-		return ((FMetalTextureCube*)Texture)->Surface;
+		return &((FMetalTextureCube*)Texture)->Surface;
 	}
 	else if(Texture->GetTextureReference())
 	{
@@ -62,7 +66,7 @@ FMetalSurface& GetMetalSurfaceFromRHITexture(FRHITexture* Texture)
 	else
 	{
 		UE_LOG(LogMetal, Fatal, TEXT("Unknown RHI texture type"));
-		return ((FMetalTexture2D*)Texture)->Surface;
+		return &((FMetalTexture2D*)Texture)->Surface;
 	}
 }
 
@@ -399,7 +403,7 @@ uint32 FMetalDynamicRHI::RHIComputeMemorySize(FTextureRHIParamRef TextureRHI)
 		return 0;
 	}
 
-	return GetMetalSurfaceFromRHITexture(TextureRHI).GetMemorySize();
+	return GetMetalSurfaceFromRHITexture(TextureRHI)->GetMemorySize();
 }
 
 /*-----------------------------------------------------------------------------

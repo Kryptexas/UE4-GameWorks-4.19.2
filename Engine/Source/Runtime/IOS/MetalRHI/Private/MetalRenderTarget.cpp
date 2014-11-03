@@ -36,10 +36,10 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 
 	DYNAMIC_CAST_METALRESOURCE(Texture2D, Texture);
 	
-	FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
+	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 	
 	// verify the input image format (but don't crash)
-	if (Surface.PixelFormat != PF_FloatRGBA)
+	if (Surface->PixelFormat != PF_FloatRGBA)
 	{
 		UE_LOG(LogRHI, Log, TEXT("Trying to read non-FloatRGBA surface."));
 	}
@@ -63,7 +63,7 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 	MTLRegion Region = MTLRegionMake2D(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
 	
 	// function wants details about the destination, not the source
-	[Surface.Texture getBytes: OutDataPtr bytesPerRow:Stride bytesPerImage:BytesPerImage fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
+	[Surface->Texture getBytes: OutDataPtr bytesPerRow:Stride bytesPerImage:BytesPerImage fromRegion:Region mipmapLevel:MipIndex slice:ArrayIndex];
 }
 
 void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,FIntRect InRect,FIntPoint ZMinMax,TArray<FFloat16Color>& OutData)

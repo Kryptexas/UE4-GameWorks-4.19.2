@@ -11,6 +11,7 @@ AFunctionalAITest::AFunctionalAITest( const FObjectInitializer& ObjectInitialize
 	, CurrentSpawnSetIndex(INDEX_NONE)
 	, bSingleSetRun(false)
 {
+	SpawnLocationRandomizationRange = 0.f;
 }
 
 bool AFunctionalAITest::IsOneOfSpawnedPawns(AActor* Actor)
@@ -209,6 +210,11 @@ void AFunctionalAITest::AddSpawnedPawn(APawn& SpawnedPawn)
 	OnAISpawned.Broadcast(Cast<AAIController>(SpawnedPawn.GetController()), &SpawnedPawn);
 }
 
+FVector AFunctionalAITest::GetRandomizedLocation(const FVector& Location) const
+{
+	return Location + FVector(FMath::FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), FMath::FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), 0);
+}
+
 //----------------------------------------------------------------------//
 // FAITestSpawnInfo
 //----------------------------------------------------------------------//
@@ -219,7 +225,7 @@ bool FAITestSpawnInfo::Spawn(AFunctionalAITest* AITest) const
 	bool bSuccessfullySpawned = false;
 
 	APawn* SpawnedPawn = UAIBlueprintHelperLibrary::SpawnAIFromClass(AITest->GetWorld(), PawnClass, BehaviorTree
-		, SpawnLocation->GetActorLocation()
+		, AITest->GetRandomizedLocation(SpawnLocation->GetActorLocation())
 		, SpawnLocation->GetActorRotation()
 		, /*bNoCollisionFail=*/true);
 

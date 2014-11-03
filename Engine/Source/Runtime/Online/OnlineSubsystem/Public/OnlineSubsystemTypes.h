@@ -1130,6 +1130,18 @@ public:
 };
 
 /**
+ * Friend user info returned via IOnlineFriends interface
+ */
+class FOnlineRecentPlayer : public FOnlineUser
+{
+public:
+	/**
+	 * @return last time the player was seen by the current user
+	 */
+	virtual FDateTime GetLastSeen() const = 0;
+};
+
+/**
  * Party user info returned via IOnlineParty interface
  */
 struct FOnlinePartyMember
@@ -1308,13 +1320,33 @@ struct FOnlineNotification
 	/** The payload of this notification */
 	TSharedPtr<FJsonValue> Payload;
 
+	// User to deliver the notification to.  Can be null for system notifications.
+	TSharedPtr<FUniqueNetId> ToUserId;
+
+	// User who sent the notification, optional.
+	TSharedPtr<FUniqueNetId> FromUserId;
+
 	FOnlineNotification() 
 	{
 
 	}
 
+	// Treated as a system notification unless ToUserId is added
 	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload)
 		: TypeStr(InTypeStr), Payload(InPayload)
+	{
+
+	}
+
+	// Notification to a specific user.  FromUserId is optional
+	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId)
+		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId)
+	{
+
+	}
+
+	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId, TSharedPtr<FUniqueNetId> InFromUserId)
+		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(InFromUserId)
 	{
 
 	}

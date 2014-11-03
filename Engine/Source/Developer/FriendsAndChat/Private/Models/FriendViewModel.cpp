@@ -21,22 +21,25 @@ public:
 				case EInviteStatus::Accepted :
 				{
 					Actions.Add(EFriendActionType::RemoveFriend);
-					Actions.Add(EFriendActionType::BlockFriend);
 					if( FFriendsAndChatManager::Get()->IsInSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}
+
 					if(FriendItem->IsOnline())
 					{
 						Actions.Add(EFriendActionType::JoinGame);
 					}
+
+					// TODO. Move to user is online. Here for testing until Chat is ready
+					Actions.Add(EFriendActionType::Chat);
+
 				}
 				break;
 				case EInviteStatus::PendingInbound :
 				{
 					Actions.Add(EFriendActionType::AcceptFriendRequest);
-					Actions.Add(EFriendActionType::IgnoreFriendRequest);
-					Actions.Add(EFriendActionType::BlockFriend);
+					Actions.Add(EFriendActionType::RejectFriendRequest);
 				}
 				break;
 				case EInviteStatus::PendingOutbound :
@@ -59,6 +62,7 @@ public:
 			case EFriendActionType::RemoveFriend :
 			case EFriendActionType::IgnoreFriendRequest :
 			case EFriendActionType::BlockFriend :
+			case EFriendActionType::RejectFriendRequest:
 			{
 				RemoveFriend();
 			}
@@ -66,6 +70,7 @@ public:
 			case EFriendActionType::SendFriendRequest : SendFriendRequest(); break;
 			case EFriendActionType::InviteToGame : InviteToGame(); break;
 			case EFriendActionType::JoinGame : JoinGame(); break;
+			case EFriendActionType::Chat : StartChat(); break;
 		}
 	}
 
@@ -88,6 +93,7 @@ public:
 	{
 		return FriendItem.IsValid() ? FriendItem->IsOnline() : false;
 	}
+private:
 
 	void RemoveFriend() const
 	{
@@ -120,6 +126,14 @@ public:
 		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
 		{
 			FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
+		}
+	}
+
+	void StartChat()
+	{
+		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		{
+			FFriendsAndChatManager::Get()->GenerateChatWindow(FriendItem);
 		}
 	}
 

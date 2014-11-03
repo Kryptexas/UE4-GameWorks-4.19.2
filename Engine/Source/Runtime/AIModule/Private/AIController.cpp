@@ -491,12 +491,12 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	SCOPE_CYCLE_COUNTER(STAT_MoveToActor);
 	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
 
-	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToActor: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d)"),
-		*GetNameSafe(Goal), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe);
+	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToActor: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d) Filter(%s)"),
+		*GetNameSafe(Goal), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe, *GetNameSafe(FilterClass));
 
 	if (Goal)
 	{
-		if (PathFollowingComponent && PathFollowingComponent->HasReached(Goal, AcceptanceRadius, !bStopOnOverlap))
+		if (PathFollowingComponent && PathFollowingComponent->HasReached(*Goal, AcceptanceRadius, !bStopOnOverlap))
 		{
 			UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToActor: already at goal!"));
 
@@ -541,8 +541,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
 	bool bCanRequestMove = true;
 
-	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d)"),
-		*Dest.ToString(), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe);
+	UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d) Filter(%s)"),
+		*Dest.ToString(), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe, *GetNameSafe(FilterClass));
 
 	// Check input is valid
 	if( Dest.ContainsNaN() )

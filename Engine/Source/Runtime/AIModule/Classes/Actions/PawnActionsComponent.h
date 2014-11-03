@@ -9,7 +9,7 @@
 class UPawnAction;
 
 USTRUCT()
-struct FPawnActionEvent
+struct AIMODULE_API FPawnActionEvent
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -35,7 +35,7 @@ struct FPawnActionEvent
 };
 
 USTRUCT()
-struct FPawnActionStack
+struct AIMODULE_API FPawnActionStack
 {
 	GENERATED_USTRUCT_BODY()
 

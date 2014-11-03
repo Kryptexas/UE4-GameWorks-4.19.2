@@ -417,6 +417,7 @@ bool FHotReloadModule::RecompileModule( const FName InModuleName, const bool bRe
 	// and bIsHotReloadingFromEditor may not be enough to prevent those from being treated as actual hot-reload from IDE modules
 	ModulesRecentlyCompiledInTheEditor.Empty();
 
+
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("CodeModuleName"), FText::FromName( InModuleName ) );
 	const FText StatusUpdate = FText::Format( NSLOCTEXT("ModuleManager", "Recompile_SlowTaskName", "Compiling {CodeModuleName}..."), Args );

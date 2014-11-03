@@ -170,6 +170,17 @@ public:
 		return FBox(Min - FVector(W, W, W), Max + FVector(W, W, W));
 	}
 
+	/**
+	* Increases the box size.
+	*
+	* @param V The size to increase the volume by.
+	* @return A new bounding box.
+	*/
+	FBox ExpandBy(const FVector& V) const
+	{
+		return FBox(Min - V, Max + V);
+	}
+
 	/** 
 	 * Shifts the bounding box position.
 	 *

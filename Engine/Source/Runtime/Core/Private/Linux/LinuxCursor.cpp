@@ -177,8 +177,9 @@ void FLinuxCursor::SetPosition( const int32 X, const int32 Y )
 }
 
 void FLinuxCursor::SetType( const EMouseCursor::Type InNewCursor )
-{
+{	
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor );
+	CurrentType = InNewCursor;
 	if(InNewCursor == EMouseCursor::None)
 	{
 		bHidden = true;

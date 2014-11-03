@@ -27,7 +27,8 @@ DECLARE_MULTICAST_DELEGATE(FOnFriendsUpdated)
  * Implement the Friend and Chat manager
  */
 class FFriendsAndChatManager
-	: public TSharedFromThis<FFriendsAndChatManager>
+	: public IFriendsAndChatManager
+	, public TSharedFromThis<FFriendsAndChatManager>
 {
 public:
 
@@ -39,18 +40,11 @@ public:
 
 public:
 
-	/** */
-	void StartupManager();
-
-	/**
-	 * Init the manager.
-	 *
-	 * @param Notification delegate The delegate for message notifications.
-	 */
-	void Init(FOnFriendsNotification& NotificationDelegate);
-
 	/** Logout and close any Friends windows. */
-	void Logout();
+	virtual void Logout() override;
+
+	/** Login and start checking for Friends updates. */
+	virtual void Login() override;
 
 	/**
 	 * Create the friends list window.
@@ -58,21 +52,7 @@ public:
 	 * @param ParentWindow The holding window.
 	 * @param InStyle The style used to create the widgets.
 	 */
-	void GenerateFriendsWindow( TSharedPtr< const SWidget > ParentWidget, const FFriendsAndChatStyle* InStyle );
-
-	/**
-	 * Set if the player is in a session.
-	 *
-	 * @param bInSession Whether we are in a game session.
-	 */
-	void SetInSession( bool bInSession );
-
-	/**
-	 * Get if the player is in a session.
-	 *
-	 * @return True if we are in a game session.
-	 */
-	bool IsInSession();
+	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const FFriendsAndChatStyle* InStyle ) override;
 
 	/**
 	 * Create the friends list widget without a holder
@@ -80,7 +60,21 @@ public:
 	 * @param InStyle The style used to create the widgets.
 	 * @return The generated widget.
 	 */
-	TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle );
+	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
+
+	/**
+	 * Set if the player is in a session.
+	 *
+	 * @param bInSession Whether we are in a game session.
+	 */
+	virtual void SetInSession( bool bInSession ) override;
+
+	/**
+	 * Get if the player is in a session.
+	 *
+	 * @return True if we are in a game session.
+	 */
+	bool IsInSession();
 
 	/**
 	 * Create the friends list window.
@@ -102,13 +96,6 @@ public:
 	 * @param FriendItem The friend to reject.
 	 */
 	void RejectFriend( TSharedPtr< FFriendStuct > FriendItem );
-
-	/**
-	 * Clear any existing notifications
-	 *
-	 * @param FriendItem The friend related to the notification message.
-	 */
-	void ClearNotification( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
 	 * Get the friends filtered list of friends.
@@ -180,6 +167,12 @@ public:
 	 * @return The Friend ID.
 	 */
 	TSharedPtr< FFriendStuct > FindUser( TSharedRef<FUniqueNetId> InUserID);
+
+	DECLARE_DERIVED_EVENT(FFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsNotificationEvent, FOnFriendsNotificationEvent)
+	virtual FOnFriendsNotificationEvent& OnFriendsNotification() override
+	{
+		return FriendsListNotificationDelegate;
+	}
 
 private:
 
@@ -260,7 +253,7 @@ private:
 	 * @param IdentifiedUserId		The net ID of the found friend.
 	 * @param ErrorStr				String representing the error condition.
 	 */
-	void OnQueryUserIdFromDisplayNameComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error);
+	void OnQueryUserIdMappingComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error);
 
 	/**
 	 * Delegate used when a query user info request has completed.
@@ -271,6 +264,14 @@ private:
 	 * @param ErrorStr			String representing the error condition.
 	 */
 	void OnQueryUserInfoComplete( int32 LocalPlayer, bool bWasSuccessful, const TArray< TSharedRef<class FUniqueNetId> >& UserIds, const FString& ErrorStr );
+
+	/**
+	 * Delegate used when a query presence info request has completed.
+	 *
+	 * @param UserId		The user ID.
+	 * @param Presence	The user presence.
+	 */
+	void OnPresenceReceived( const class FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence);
 
 	/**
 	 * Handle an accept message accepted from a notification.
@@ -355,13 +356,16 @@ private:
 	// Delegate to use for deleting a friend
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
 	// Delegate for querying user id from a name string
-	FOnQueryUserIdFromDisplayNameCompleteDelegate OnQueryUserIdFromDisplayNameCompleteDelegate;
+	FOnQueryUserIdMappingCompleteDelegate OnQueryUserIdMappingCompleteDelegate;
 	// Delegate to use for querying user info list
 	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate;
+	// Delegate to use for querying user presence
+	FOnPresenceReceivedDelegate OnPresenceReceivedCompleteDelegate;
+
 	// Holds the delegate to call when the friends list gets updated - refresh the UI
 	FOnFriendsUpdated OnFriendsListUpdatedDelegate;
 	// Holds the Friends list notification delegate
-	FOnFriendsNotification* FriendsListNotificationDelegate;
+	FOnFriendsNotificationEvent FriendsListNotificationDelegate;
 
 	/* Identity stuff
 	*****************************************************************************/

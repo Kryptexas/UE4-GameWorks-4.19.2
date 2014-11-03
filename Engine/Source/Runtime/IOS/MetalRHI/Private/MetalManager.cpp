@@ -586,7 +586,7 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		if (RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets && RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex].Texture != nullptr)
 		{
 			const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
-			FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
 			FormatKey = Surface.FormatKey;
 		
 			// if this is the back buffer, make sure we have a usable drawable
@@ -648,7 +648,7 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	// setup depth and/or stencil
 	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture != nullptr)
 	{
-		FMetalSurface& Surface= GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+		FMetalSurface& Surface= *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
 		if (Surface.Texture != nil)
 		{
 			MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
@@ -771,15 +771,22 @@ uint32 FMetalManager::AllocateFromQueryBuffer()
 
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface* RESTRICT Surface)
 {
-	check(Surface->Texture != nil);
-	if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
-	{
-		[FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
-	}
-	else
-	{
-		[FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex : BindIndex];
-	}
+//	check(Surface->Texture != nil);
+    if (Surface != nullptr)
+    {
+        if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
+        {
+            [FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
+        }
+        else
+        {
+            [FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex : BindIndex];
+        }
+    }
+    else
+    {
+        [FMetalManager::GetContext() setVertexTexture:nil atIndex : BindIndex];
+    }
 }
 
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState)

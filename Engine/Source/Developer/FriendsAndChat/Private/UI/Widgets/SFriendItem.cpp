@@ -25,50 +25,55 @@ public:
 			.Placement(MenuMethod == SMenuAnchor::UseCurrentWindow ? MenuPlacement_MenuLeft : MenuPlacement_MenuRight)
 			.Content()
 			[
-				SNew( SHorizontalBox )
-				+SHorizontalBox::Slot()
-				.Padding( 10, 0 )
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
+				SNew(SBorder)
+				.BorderImage(&FriendStyle.TitleBarBrush)
+				.BorderBackgroundColor(this, &SFriendItemImpl::GetItemBackgroundColor)
 				[
-					SNew(SImage)
-					.Image(&FriendStyle.FriendImageBrush)
-				]
-				+SHorizontalBox::Slot()
-				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					[
-						SNew(STextBlock)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(ViewModel->GetFriendName())
-					]
-					+ SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
+					SNew( SHorizontalBox )
+					+SHorizontalBox::Slot()
+					.Padding( 10, 0 )
+					.AutoWidth()
 					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
 					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SImage)
-							.Visibility(this, &SFriendItemImpl::GetStatusVisibility, true)
-							.Image(&FriendStyle.OnlineBrush)
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SImage)
-							.Visibility(this, &SFriendItemImpl::GetStatusVisibility, false)
-							.Image(&FriendStyle.OfflineBrush)
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
+						SNew(SImage)
+						.Image(&FriendStyle.FriendImageBrush)
+					]
+					+SHorizontalBox::Slot()
+					[
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
 						[
 							SNew(STextBlock)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
+							.Font(FriendStyle.FriendsFontStyle)
+							.Text(ViewModel->GetFriendName())
+						]
+						+ SVerticalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Visibility(this, &SFriendItemImpl::GetStatusVisibility, true)
+								.Image(&FriendStyle.OnlineBrush)
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Visibility(this, &SFriendItemImpl::GetStatusVisibility, false)
+								.Image(&FriendStyle.OfflineBrush)
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.Font(FriendStyle.FriendsFontStyleSmall)
+								.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
+							]
 						]
 					]
 				]
@@ -147,6 +152,16 @@ private:
 				}
 			}
 		}
+	}
+
+	FSlateColor GetItemBackgroundColor() const
+	{
+		// TODO Move color selection into style
+		if (Anchor.IsValid() && Anchor->IsOpen())
+		{
+			return FLinearColor(0.1f,0.05f,0.05f);
+		}
+		return FLinearColor(1.0f,1.0f,1.0f,0);
 	}
 
 private:

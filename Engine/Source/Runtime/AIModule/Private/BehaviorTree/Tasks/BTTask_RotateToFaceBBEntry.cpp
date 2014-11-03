@@ -24,6 +24,13 @@ void UBTTask_RotateToFaceBBEntry::PostInitProperties()
 	PrecisionDot = FMath::Cos(FMath::DegreesToRadians(Precision));
 }
 
+void UBTTask_RotateToFaceBBEntry::PostLoad()
+{
+	Super::PostLoad();
+
+	PrecisionDot = FMath::Cos(FMath::DegreesToRadians(Precision));
+}
+
 namespace
 {
 	FORCEINLINE_DEBUGGABLE float CalculateAngleDifferenceDot(const FVector& VectorA, const FVector& VectorB)

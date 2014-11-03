@@ -1986,7 +1986,7 @@ public:
 	 *
 	 * @returns The number of items removed. For RemoveSingleItem, this is always either 0 or 1.
 	 */
-	int32 RemoveSingleSwap(const ElementType& Item)
+	int32 RemoveSingleSwap(const ElementType& Item, bool bAllowShrinking = true)
 	{
 		int32 Index = Find(Item);
 		if (Index == INDEX_NONE)
@@ -1994,7 +1994,7 @@ public:
 			return 0;
 		}
 
-		RemoveAtSwap(Index);
+		RemoveAtSwap(Index, 1, bAllowShrinking);
 
 		// Removed one item
 		return 1;

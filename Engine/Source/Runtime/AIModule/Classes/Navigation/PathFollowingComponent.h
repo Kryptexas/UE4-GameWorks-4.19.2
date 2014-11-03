@@ -164,7 +164,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	 *  @param AcceptanceRadius - allowed 2D distance
 	 *  @param bExactSpot - false: increase AcceptanceRadius with agent's radius
 	 */
-	bool HasReached(const AActor* TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
+	bool HasReached(const AActor& TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
 
 	/** update state of block detection */
 	void SetBlockDetectionState(bool bEnable);
@@ -213,6 +213,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FVector GetPathDestination() const;
 
 	FORCEINLINE const FNavPathSharedPtr GetPath() const { return Path; }
+	bool HasDirectPath() const;
 
 	/** readable name of current status */
 	FString GetStatusDesc() const;
@@ -247,8 +248,8 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	virtual void FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink);
 
 	// IAIResourceInterface begin
-	virtual void LockResource(EAILockSource::Type LockSource) override;
-	virtual void ClearResourceLock(EAILockSource::Type LockSource) override;
+	virtual void LockResource(EAIRequestPriority::Type LockSource) override;
+	virtual void ClearResourceLock(EAIRequestPriority::Type LockSource) override;
 	virtual void ForceUnlockResource() override;
 	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end
@@ -330,6 +331,9 @@ protected:
 
 	/** set when UpdateMove() is called during paused move, will update path's start segment on resuming */
 	uint32 bPendingPathStartUpdate : 1;
+
+	/** if set, movment will be stopped on finishing path */
+	uint32 bStopMovementOnFinish : 1;
 
 	/** detect blocked movement when distance between center of location samples and furthest one (centroid radius) is below threshold */
 	float BlockDetectionDistance;

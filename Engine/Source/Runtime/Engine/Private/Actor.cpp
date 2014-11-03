@@ -2742,15 +2742,15 @@ void AActor::PlaySoundAtLocation(USoundCue* InSoundCue, FVector SoundLocation, f
 ENetMode AActor::GetNetMode() const
 {
 	UNetDriver *NetDriver = GetNetDriver();
-
-	if ( NetDriver != NULL )
+	if (NetDriver != NULL)
 	{
 		return NetDriver->GetNetMode();
 	}
 
-	if ( GetWorld() != NULL && GetWorld()->DemoNetDriver != NULL )
+	UWorld* World = GetWorld();
+	if (World != NULL && World->DemoNetDriver != NULL)
 	{
-		return GetWorld()->DemoNetDriver->GetNetMode();
+		return World->DemoNetDriver->GetNetMode();
 	}
 
 	return NM_Standalone;

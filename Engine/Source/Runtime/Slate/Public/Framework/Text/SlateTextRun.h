@@ -48,7 +48,7 @@ public:
 
 	virtual ERunAttributes GetRunAttributes() const override;
 
-private:
+protected:
 
 	FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle );
 
@@ -56,7 +56,7 @@ private:
 
 	FSlateTextRun( const FSlateTextRun& Run );
 
-private:
+protected:
 
 	FRunInfo RunInfo;
 	TSharedRef< const FString > Text;

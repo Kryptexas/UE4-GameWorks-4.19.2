@@ -2,39 +2,65 @@
 
 #pragma once
 #include "OnlineSubsystemPackage.h"
+#include "OnlineNotificationTransportInterface.h"
 
-/** This class should be embedded inside other classes, and is used to bind delegates to OnlineNotifications */
+/**
+* unique identifier for notification transports
+*/
+typedef FString FNotificationTransportId;
+
+/**
+* Details of an entitlement
+*/
+struct FOnlineNotificationTransport
+{
+	/** Unique notification transport id associated with this transport */
+	FNotificationTransportId Id;
+
+	//TODO
+	//delegate for receiving
+	//delegate for sending
+
+	/**
+	* Equality operator
+	*/
+	bool operator==(const FOnlineNotificationTransport& Other) const
+	{
+		return Other.Id == Id;
+	}
+
+	bool SendNotification(const FOnlineNotification& Notification)
+	{
+		return true;
+	}
+};
 
 /** What happened in the handler function */
-namespace EOnlineNotificationResult
+enum class EOnlineNotificationResult
 {
-	enum Type
-	{
-		None,		// No handling occurred
-		Block,		// Notification was handled and should not be forwarded
-		Forward,	// Notification handled, forward to other 
-	};
-}
+	None,		// No handling occurred
+	Handled,	// Notification was handled
+};
 
-/** 
- * Macro to parse a notification struct into a passed in UStruct.
- * Example: 
- *
- * FNotificationData Data;
- *
- * if (READ_NOTIFICATION_JSON(Data,Notification)) {}
- *
- * You'll need to include JsonUtilities.h to use it
- */
+/**
+* Macro to parse a notification struct into a passed in UStruct.
+* Example:
+*
+* FNotificationData Data;
+*
+* if (READ_NOTIFICATION_JSON(Data,Notification)) {}
+*
+* You'll need to include JsonUtilities.h to use it
+*/
 #define READ_NOTIFICATION_JSON(Struct, Notification) FJsonObjectConverter::JsonObjectToUStruct(Notification.Payload->AsObject().ToSharedRef(), Struct.StaticStruct(), &Struct, 0, 0)
 
 /**
- * Delegate type for handling a notification
- *
- * The first parameter is a notification structure
- * Return result code to indicate if notification has been blocked or should be forwarded
- */
-DECLARE_DELEGATE_RetVal_OneParam(EOnlineNotificationResult::Type, FHandleOnlineNotificationSignature, const FOnlineNotification&);
+* Delegate type for handling a notification
+*
+* The first parameter is a notification structure
+* Return result code to indicate if notification has been handled
+*/
+DECLARE_DELEGATE_RetVal_OneParam(EOnlineNotificationResult, FHandleOnlineNotificationSignature, const FOnlineNotification&);
 
 
 /** Struct to keep track of bindings */
@@ -56,34 +82,72 @@ struct FOnlineNotificationBinding
 	{}
 };
 
-
+/** This class is a static manager used to track notification transports and map the delivered notifications to subscribed notification handlers */
 class ONLINESUBSYSTEM_API FOnlineNotificationHandler
 {
 
 protected:
 
-	/** Map from name of notification to the delegate to call */
-	TMap<FName, TArray<FOnlineNotificationBinding> > BindingMap;
+	typedef TMap< FString, TArray<FOnlineNotificationBinding> > NotificationTypeBindingsMap;
 
-	/** Call this binding for all non-blocked notifications */
-	FOnlineNotificationBinding DefaultBinding;
+	/** Map from type of notification to the delegate to call */
+	NotificationTypeBindingsMap SystemBindingMap;
 
-	
+	/** Map from player and type of notification to the delegate to call */
+	TMap< FString, NotificationTypeBindingsMap > PlayerBindingMap;
+
+	/** Map from a transport type to the transport object */
+	TMap< FString, FOnlineNotificationTransport > TransportMap;
+
 public:
 
 	FOnlineNotificationHandler()
 	{
 	}
 
-	/** Add a new binding.  */
-	void AddNotificationBinding(FName NotificationName, const FOnlineNotificationBinding& NewBinding);
+	static FOnlineNotificationHandler Singleton;
 
-	/** Set the default binding, which is called after all other bindings */
-	void SetDefaultNotificationBinding(const FOnlineNotificationBinding& NewBinding);
+	// SYSTEM NOTIFICATION BINDINGS
 
-	/** Handle a notification, will call all applicable bindings, until a Block result is returned */
-	void HandleNotification(const FOnlineNotification& Notification);
+	/** Add a notification binding for a type */
+	void AddSystemNotificationBinding(FString NotificationType, const FOnlineNotificationBinding& NewBinding);
 
-	/** Resets all bindings */
-	void ResetBindings();
+	/** Remove the notification handler for a type */
+	void RemoveSystemNotificationBinding(FString NotificationType, const FOnlineNotificationBinding& NewBinding);
+
+	/** Resets all system notification handlers */
+	void ResetSystemNotificationBindings();
+
+	// PLAYER NOTIFICATION BINDINGS
+
+	/** Add a notification binding for a type */
+	void AddPlayerNotificationBinding(const FUniqueNetId& PlayerId, FString NotificationType, const FOnlineNotificationBinding& NewBinding);
+
+	/** Remove the player notification handler for a type */
+	void RemovePlayerNotificationBinding(const FUniqueNetId& PlayerId, FString NotificationType, const FOnlineNotificationBinding& NewBinding);
+
+	/** Resets a player's notification handlers */
+	void ResetPlayerNotificationBindings(const FUniqueNetId& PlayerId);
+
+	/** Resets all player notification handlers */
+	void ResetAllPlayerNotificationBindings();
+
+	// RECEIVING NOTIFICATIONS
+
+	/** Deliver a notification to the appropriate handler for that player/msg type.  Called by NotificationTransport implementations. */
+	void DeliverNotification(const FOnlineNotification& Notification);
+
+	// NOTIFICATION TRANSPORTS / SENDING
+
+	/** Add a notification transport */
+	void AddNotificationTransport(FString TransportType, const FOnlineNotificationTransport& Transport);
+
+	/** Remove a notification transport */
+	void RemoveNotificationTransport(FString TransportType);
+
+	/** Send a notification using a specific transport */
+	bool SendNotification(FString TransportType, const FOnlineNotification& Notification);
+
+	/** Resets all transports */
+	void ResetNotificationTransports();
 };

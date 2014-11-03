@@ -653,6 +653,7 @@ FSlateApplication::FSlateApplication()
 	, bSlateWindowActive(true)
 	, Scale( 1.0f )
 	, DragTriggerDistnace( 5.0f )
+	, LastUserInteractionTime( 0.0 )
 	, LastUserInteractionTimeForThrottling( 0.0 )
 	, SlateSoundDevice( MakeShareable(new FNullSlateSoundDevice()) )
 	, CurrentTime( FPlatformTime::Seconds() )
@@ -688,6 +689,7 @@ FSlateApplication::FSlateApplication()
 	, bIsGameFakingTouch( false )
 	, bIsFakingTouched( false )
 	, bTouchFallbackToMouse( true )
+	, bSoftwareCursorAvailable( false )	
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
@@ -700,6 +702,7 @@ FSlateApplication::FSlateApplication()
 	if (GConfig)
 	{	
 		GConfig->GetBool(TEXT("MobileSlateUI"),TEXT("bTouchFallbackToMouse"),bTouchFallbackToMouse,GEngineIni);
+		GConfig->GetBool(TEXT("CursorControl"), TEXT("bAllowSoftwareCursor"), bSoftwareCursorAvailable, GEngineIni);
 	}
 
 	// causes InputCore to initialize, even if statically linked
@@ -3264,6 +3267,15 @@ FVector2D FSlateApplication::GetCursorSize( ) const
 	return FVector2D( 1.0f, 1.0f );
 }
 
+EVisibility FSlateApplication::GetSoftwareCursorVis( ) const
+{
+	const TSharedPtr<ICursor>& Cursor = PlatformApplication->Cursor;
+	if (bSoftwareCursorAvailable && Cursor.IsValid() && Cursor->GetType() != EMouseCursor::None)
+	{
+		return EVisibility::HitTestInvisible;
+	}
+	return EVisibility::Hidden;
+}
 
 TSharedPtr< SWidget > FSlateApplication::GetKeyboardFocusedWidget() const
 {

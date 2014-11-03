@@ -29,6 +29,8 @@ static const unsigned int DT_PATHQ_INVALID = 0;
 
 typedef unsigned int dtPathQueueRef;
 
+struct dtCrowdAgent;
+
 class dtPathQueue
 {
 	struct PathQuery
@@ -44,6 +46,13 @@ class dtPathQueue
 		dtStatus status;
 		int keepAlive;
 		const dtQueryFilter* filter; ///< TODO: This is potentially dangerous!
+
+		// crowd support
+		dtCrowdAgent* crowdAgent;	// this is guaranteed to be valid if dtCrowd is the owner of this dtPathQueue instance
+
+		void init(dtPolyRef startRef, dtPolyRef endRef,
+			const float* startPos, const float* endPos,
+			const dtQueryFilter* filter);
 	};
 	
 	static const int MAX_QUEUE = 8;
@@ -66,6 +75,8 @@ public:
 	dtPathQueueRef request(dtPolyRef startRef, dtPolyRef endRef,
 						   const float* startPos, const float* endPos, 
 						   const dtQueryFilter* filter);
+
+	dtPathQueueRef request(dtCrowdAgent* crowdAgent, const dtQueryFilter* filter);
 	
 	dtStatus getRequestStatus(dtPathQueueRef ref) const;
 	
@@ -73,6 +84,8 @@ public:
 	
 	inline const dtNavMeshQuery* getNavQuery() const { return m_navquery; }
 
+private:
+	dtPathQueueRef createPathQuery(PathQuery*& q);
 };
 
 #endif // DETOURPATHQUEUE_H

@@ -858,7 +858,7 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 	
 	Controller->InitNavigationControl(PFindComp, PFollowComp);
 
-	if (PFindComp && PFollowComp && !PFollowComp->HasReached(Goal))
+	if (PFindComp && PFollowComp && !PFollowComp->HasReached(*Goal))
 	{
 		const bool bPathExists = PFindComp->FindPathToActor(Goal);
 		if (bPathExists)
@@ -868,7 +868,7 @@ void UNavigationSystem::SimpleMoveToActor(AController* Controller, const AActor*
 	}
 }
 
-void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVector& Goal)
+void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVector& GoalLocation)
 {
 	if (Controller == NULL || Controller->GetPawn() == NULL)
 	{
@@ -882,9 +882,9 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 
 	Controller->InitNavigationControl(PFindComp, PFollowComp);
 
-	if (PFindComp && PFollowComp && !PFollowComp->HasReached(Goal))
+	if (PFindComp && PFollowComp && !PFollowComp->HasReached(GoalLocation))
 	{
-		const bool bPathExists = PFindComp->FindPathToLocation(Goal);
+		const bool bPathExists = PFindComp->FindPathToLocation(GoalLocation);
 		if (bPathExists)
 		{
 			PFollowComp->RequestMove(PFindComp->GetPath(), NULL);
@@ -3195,4 +3195,9 @@ bool UNavigationSystem::CanRebuildDirtyNavigation() const
 bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex)
 {
 	return Path != NULL && Path->DoesIntersectBox(Box, StartingIndex);
+}
+
+bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex)
+{
+	return Path != NULL && Path->DoesIntersectBox(Box, AgentLocation, StartingIndex);
 }

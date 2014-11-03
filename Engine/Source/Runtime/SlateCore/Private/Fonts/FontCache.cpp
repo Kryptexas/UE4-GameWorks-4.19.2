@@ -433,6 +433,8 @@ public:
 		OutRenderData.RawPixels.Reset();
 		OutRenderData.RawPixels.AddUninitialized( Bitmap->rows * Bitmap->width );
 
+		// Nothing to do for zero width or height glyphs
+		if (OutRenderData.RawPixels.Num())
 		{
 			// Copy the rendered bitmap to our raw pixels array
 

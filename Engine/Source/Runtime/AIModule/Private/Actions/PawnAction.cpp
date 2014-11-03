@@ -18,6 +18,7 @@ namespace
 
 UPawnAction::UPawnAction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, RequiredResources(FAIResourcesSet::AllResources)
 	, AbortState(EPawnActionAbortState::NeverStarted)
 	, FinishResult(EPawnActionResult::NotStarted)
 {

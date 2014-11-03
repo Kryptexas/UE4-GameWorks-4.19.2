@@ -66,15 +66,14 @@ public:
 	FORCEINLINE UAIHotSpotManager* GetHotSpotManager() { return HotSpotManager; }
 	FORCEINLINE const UAIHotSpotManager* GetHotSpotManager() const { return HotSpotManager; }
 
-	FORCEINLINE static UAISystem* GetCurrent(UWorld* World, bool bChecked = true) 
+	FORCEINLINE static UAISystem* GetCurrentSafe(UWorld* World) 
 	{ 
-		if (!bChecked && World == NULL)
-		{
-			return NULL;
-		}
+		return World != nullptr ? Cast<UAISystem>(World->GetAISystem()) : NULL;
+	}
 
-		check(World);
-		return Cast<UAISystem>(World->GetAISystem());
+	FORCEINLINE static UAISystem* GetCurrent(UWorld& World)
+	{
+		return Cast<UAISystem>(World.GetAISystem());
 	}
 
 	FORCEINLINE UWorld* GetOuterWorld() const { return Cast<UWorld>(GetOuter()); }

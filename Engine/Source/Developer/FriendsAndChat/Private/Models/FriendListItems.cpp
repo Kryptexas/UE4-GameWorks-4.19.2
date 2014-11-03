@@ -43,13 +43,30 @@ const FText FFriendStuct::GetFriendLocation() const
 	if(OnlineFriend.IsValid())
 	{
 		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
-		if(OnlinePresence.bIsPlaying)
+
+		// TODO - Localize text once final format is decided
+		if (OnlinePresence.bIsOnline)
 		{
-			return FText::FromString("Is Playing");
+			switch (OnlinePresence.Status.State)
+			{
+			case EOnlinePresenceState::Offline:
+				return FText::FromString("Offline");
+			case EOnlinePresenceState::Away:
+			case EOnlinePresenceState::ExtendedAway:
+				return FText::FromString("Away");
+			case EOnlinePresenceState::Chat:
+				return FText::FromString("Online (chatting)");
+			case EOnlinePresenceState::DoNotDisturb:
+				return FText::FromString("Busy");
+			default:
+			case EOnlinePresenceState::Online:			
+				return FText::FromString("Online");
+
+			};
 		}
 		else
 		{
-			return FText::FromString("Not Playing");
+			return FText::FromString("Offline");
 		}
 	}
 	return FText::GetEmpty();

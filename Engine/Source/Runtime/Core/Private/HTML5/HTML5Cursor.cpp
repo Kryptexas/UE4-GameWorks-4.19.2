@@ -29,6 +29,8 @@ void FHTML5Cursor::SetPosition( const int32 X, const int32 Y )
 
 void FHTML5Cursor::SetType( const EMouseCursor::Type InNewCursor )
 {
+	CurrentType = InNewCursor;
+
 	// TODO: use .css to correctly change cursor types in javascript. 
 	if ( InNewCursor == EMouseCursor::None)
 		CursorStatus = false; 

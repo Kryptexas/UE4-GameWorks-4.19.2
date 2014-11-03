@@ -119,7 +119,7 @@ void AEQSTestingPawn::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 
 	if (QueryTemplate && !QueryInstance.IsValid())
 	{
-		UAISystem* AISys = UAISystem::GetCurrent(GetWorld());
+		UAISystem* AISys = UAISystem::GetCurrentSafe(GetWorld());
 		if (AISys)
 		{
 			RunEQSQuery();

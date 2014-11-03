@@ -22,6 +22,11 @@ public:
 
 	virtual void SetType( const EMouseCursor::Type InNewCursor ) override;
 
+	virtual EMouseCursor::Type GetType() const override
+	{
+		return CurrentType;
+	}
+
 	virtual void GetSize( int32& Width, int32& Height ) const override;
 
 	virtual void Show( bool bShow ) override;
@@ -38,6 +43,7 @@ public:
 	
 private:
 
+	EMouseCursor::Type CurrentType;
 	bool bHidden;
 
 	/** Cursors */

@@ -101,14 +101,14 @@ void UEnvQueryManager::FinishDestroy()
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
 {
-	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
 	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
 }
 
 UEnvQueryManager* UEnvQueryManager::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
-	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
 	return AISys ? AISys->GetEnvironmentQueryManager() : NULL;
 }
 

@@ -253,13 +253,13 @@ void UCrowdManager::Tick(float DeltaTime)
 			// velocity updates
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepMovementTime);
-				for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
+				for (auto It = ActiveAgents.CreateIterator(); It; ++It)
 				{
 					const FCrowdAgentData& AgentData = It.Value();
 					if (AgentData.bIsSimulated && AgentData.IsValid())
 					{
-						const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(It.Key());
-						if (CrowdComponent)
+						UCrowdFollowingComponent* CrowdComponent = Cast<UCrowdFollowingComponent>(It.Key());
+						if (CrowdComponent && CrowdComponent->IsCrowdSimulationActive())
 						{
 							ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
 						}
@@ -291,7 +291,7 @@ void UCrowdManager::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif // WITH_EDITOR
 
-void UCrowdManager::RegisterAgent(const ICrowdAgentInterface* Agent)
+void UCrowdManager::RegisterAgent(ICrowdAgentInterface* Agent)
 {
 	UpdateNavData();
 
@@ -523,6 +523,35 @@ int32 UCrowdManager::GetNumNearbyAgents(const ICrowdAgentInterface* Agent) const
 	return NumNearby;
 }
 
+int32 UCrowdManager::GetNearbyAgentLocations(const ICrowdAgentInterface* Agent, TArray<FVector>& OutLocations) const
+{
+	const int32 InitialSize = OutLocations.Num();
+#if WITH_RECAST
+	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
+
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
+	{
+		const dtCrowdAgent* CrowdAgent = DetourCrowd->getAgent(AgentData->AgentIndex);
+
+		if (CrowdAgent)
+		{
+			OutLocations.Reserve(InitialSize + CrowdAgent->nneis);
+
+			for (int32 NeighbourIndex = 0; NeighbourIndex < CrowdAgent->nneis; NeighbourIndex++)
+			{
+				const dtCrowdAgent* NeighbourAgent = DetourCrowd->getAgent(CrowdAgent->neis[NeighbourIndex].idx);
+				if (NeighbourAgent)
+				{
+					OutLocations.Add(Recast2UnrealPoint(NeighbourAgent->npos));
+				}
+			}
+		}
+	}
+#endif
+
+	return OutLocations.Num() - InitialSize;
+}
+
 bool UCrowdManager::GetAvoidanceConfig(int32 Idx, FCrowdAvoidanceConfig& Data) const
 {
 	if (AvoidanceConfig.IsValidIndex(Idx))
@@ -665,11 +694,11 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 		AgentParams->obstacleAvoidanceType = CrowdComponent->GetCrowdAvoidanceQuality();
 	
 		AgentParams->updateFlags =
-			(CrowdComponent->IsCrowdAnticipateTurnsEnabled() ? DT_CROWD_ANTICIPATE_TURNS : 0) |
-			(CrowdComponent->IsCrowdObstacleAvoidanceEnabled() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
-			(CrowdComponent->IsCrowdSeparationEnabled() ? DT_CROWD_SEPARATION : 0) |
+			(CrowdComponent->IsCrowdAnticipateTurnsActive() ? DT_CROWD_ANTICIPATE_TURNS : 0) |
+			(CrowdComponent->IsCrowdObstacleAvoidanceActive() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
+			(CrowdComponent->IsCrowdSeparationActive() ? DT_CROWD_SEPARATION : 0) |
 			(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
-			(CrowdComponent->IsCrowdOptimizeTopologyEnabled() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
+			(CrowdComponent->IsCrowdOptimizeTopologyActive() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
 			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0) |
 			(CrowdComponent->IsCrowdSlowdownAtGoalEnabled() ? DT_CROWD_SLOWDOWN_AT_GOAL : 0);
 
@@ -710,17 +739,17 @@ void UCrowdManager::PrepareAgentStep(const ICrowdAgentInterface* Agent, FCrowdAg
 	}
 }
 
-void UCrowdManager::ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const
+void UCrowdManager::ApplyVelocity(UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const
 {
 	const dtCrowdAgent* ag = DetourCrowd->getAgent(AgentIndex);
 	const dtCrowdAgentAnimation* anims = DetourCrowd->getAgentAnims();
 
-	FVector NewVelocity = Recast2UnrealPoint(ag->nvel);
+	const FVector NewVelocity = Recast2UnrealPoint(ag->nvel);
 	const float* RcDestCorner = anims[AgentIndex].active ? anims[AgentIndex].endPos : 
 		ag->ncorners ? &ag->cornerVerts[0] : &ag->npos[0];
 
-	FVector DestPathCorner = Recast2UnrealPoint(RcDestCorner);
-	((UCrowdFollowingComponent*)AgentComponent)->ApplyCrowdAgentVelocity(NewVelocity, DestPathCorner, anims->active != 0);
+	const FVector DestPathCorner = Recast2UnrealPoint(RcDestCorner);
+	AgentComponent->ApplyCrowdAgentVelocity(NewVelocity, DestPathCorner, anims->active != 0);
 }
 
 void UCrowdManager::UpdateAgentPaths()
@@ -960,8 +989,9 @@ void UCrowdManager::DrawDebugPathOptimization(const dtCrowdAgent* CrowdAgent) co
 
 void UCrowdManager::DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const
 {
+	UWorld* World = GetWorld();
 	FVector Center = Recast2UnrealPoint(CrowdAgent->npos) + CrowdDebugDrawing::Offset;
-	DrawDebugCylinder(GetWorld(), Center - CrowdDebugDrawing::Offset, Center, CrowdAgent->params.collisionQueryRange, 32, CrowdDebugDrawing::CollisionRange);
+	DrawDebugCylinder(World, Center - CrowdDebugDrawing::Offset, Center, CrowdAgent->params.collisionQueryRange, 32, CrowdDebugDrawing::CollisionRange);
 
 	for (int32 Idx = 0; Idx < CrowdAgent->nneis; Idx++)
 	{
@@ -969,7 +999,7 @@ void UCrowdManager::DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const
 		if (nei)
 		{
 			FVector Pt0 = Recast2UnrealPoint(nei->npos) + CrowdDebugDrawing::Offset;
-			DrawDebugLine(GetWorld(), Center, Pt0, CrowdDebugDrawing::Neighbor);
+			DrawDebugLine(World, Center, Pt0, CrowdDebugDrawing::Neighbor);
 		}
 	}
 }

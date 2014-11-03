@@ -30,11 +30,10 @@ void FFriendsMessageManager::StartupManager()
 }
 
 
-void FFriendsMessageManager::Init( FOnFriendsNotification& NotificationDelegate, bool bInCanJointGame )
+void FFriendsMessageManager::Init(bool bInCanJointGame)
 {
 	// Clear existing data
 	Logout();
-	FriendsListNotificationDelegate = &NotificationDelegate;
 	bCanJoinGame = bInCanJointGame;
 	bPollForMessages = false;
 
@@ -352,69 +351,70 @@ void FFriendsMessageManager::OnEnumerateMessagesComplete(int32 LocalPlayer, bool
 
 void FFriendsMessageManager::OnReadMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr)
 {
-	if ( bWasSuccessful )
-	{
-		TSharedPtr<FOnlineMessage> TempMessage = OnlineSubMcp->GetMessageInterface()->GetMessage( 0, MessageId );
-		FOnlineMessagePayload Payload = TempMessage->Payload;
-		FVariantData TestValue;
-		Payload.GetAttribute(TEXT("STRINGValue"), TestValue);
-		FVariantData SenderName;
- 		Payload.GetAttribute(TEXT("SenderID"), SenderName );
-
-		FString DisplayMessage = SenderName.ToString();
-
-		FVariantData GameInvite;
- 		if ( Payload.GetAttribute(TEXT("GameInvite"), GameInvite ) )
-		{
-			TSharedPtr< FUniqueNetId > NetID = FFriendsAndChatManager::Get()->FindUserID( DisplayMessage);
-			if ( NetID.IsValid() )
-			{
-				DisplayMessage += TEXT ( " invited you to play" );
-				TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable( new FFriendsAndChatMessage( DisplayMessage, NetID.ToSharedRef() ) );
-				NotificationMessage->SetMessageType( EFriendsRequestType::JoinGame );
-				NotificationMessage->SetRequesterName( SenderName.ToString() );
-				NotificationMessage->SetSelfHandle( true );
-
-				// auto accept - for game launch
-				if ( bCanJoinGame && GameLaunchMessageID != TEXT("") && GameLaunchMessageID == MessageId.ToString() )
-				{
-					NotificationMessage->SetAutoAccept();
-				}
-				else if ( !bCanJoinGame )
-				{
-					// Send message ID
-					NotificationMessage->SetLaunchGameID( MessageId.ToString() );
-				}
-
-				FriendsListNotificationDelegate->Broadcast( NotificationMessage.ToSharedRef() );
-
-				// Chache, and don't delete game invites if the app cannot directly join a game
-				if ( bCanJoinGame == false && LatentMessage.IsEmpty() )
-				{
-					for ( int32 Index = 0; Index < MessagesToDelete.Num(); Index++ )
-					{
-						if ( *MessagesToDelete[Index] == MessageId )
-						{
-							LatentMessage = MessageId.ToString();
-							MessagesToDelete.RemoveAt( Index );
-							break;
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			DisplayMessage += TEXT ( " says:\n" );
-			DisplayMessage += TestValue.ToString();
-			TSharedPtr< FFriendsAndChatMessage > ChatMessage = MakeShareable( new FFriendsAndChatMessage( DisplayMessage ) );
-			ChatMessage->SetSelfHandle( false );
-			ChatMessages.Add( ChatMessage );
-			OChatListUpdatedDelegate.Broadcast();
-		}
-
-		MessagesToRead.RemoveAt(0);
-	}
+	// TODO: Temporarily disabled while new notification system is worked on
+// 	if ( bWasSuccessful )
+// 	{
+// 		TSharedPtr<FOnlineMessage> TempMessage = OnlineSubMcp->GetMessageInterface()->GetMessage( 0, MessageId );
+// 		FOnlineMessagePayload Payload = TempMessage->Payload;
+// 		FVariantData TestValue;
+// 		Payload.GetAttribute(TEXT("STRINGValue"), TestValue);
+// 		FVariantData SenderName;
+//  		Payload.GetAttribute(TEXT("SenderID"), SenderName );
+// 
+// 		FString DisplayMessage = SenderName.ToString();
+// 
+// 		FVariantData GameInvite;
+//  		if ( Payload.GetAttribute(TEXT("GameInvite"), GameInvite ) )
+// 		{
+// 			TSharedPtr< FUniqueNetId > NetID = FFriendsAndChatManager::Get()->FindUserID( DisplayMessage);
+// 			if ( NetID.IsValid() )
+// 			{
+// 				DisplayMessage += TEXT ( " invited you to play" );
+// 				TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable( new FFriendsAndChatMessage( DisplayMessage, NetID.ToSharedRef() ) );
+// 				NotificationMessage->SetMessageType( EFriendsRequestType::JoinGame );
+// 				NotificationMessage->SetRequesterName( SenderName.ToString() );
+// 				NotificationMessage->SetSelfHandle( true );
+// 
+// 				// auto accept - for game launch
+// 				if ( bCanJoinGame && GameLaunchMessageID != TEXT("") && GameLaunchMessageID == MessageId.ToString() )
+// 				{
+// 					NotificationMessage->SetAutoAccept();
+// 				}
+// 				else if ( !bCanJoinGame )
+// 				{
+// 					// Send message ID
+// 					NotificationMessage->SetLaunchGameID( MessageId.ToString() );
+// 				}
+// 
+// 				FriendsListNotificationDelegate->Broadcast( NotificationMessage.ToSharedRef() );
+// 
+// 				// Chache, and don't delete game invites if the app cannot directly join a game
+// 				if ( bCanJoinGame == false && LatentMessage.IsEmpty() )
+// 				{
+// 					for ( int32 Index = 0; Index < MessagesToDelete.Num(); Index++ )
+// 					{
+// 						if ( *MessagesToDelete[Index] == MessageId )
+// 						{
+// 							LatentMessage = MessageId.ToString();
+// 							MessagesToDelete.RemoveAt( Index );
+// 							break;
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 		else
+// 		{
+// 			DisplayMessage += TEXT ( " says:\n" );
+// 			DisplayMessage += TestValue.ToString();
+// 			TSharedPtr< FFriendsAndChatMessage > ChatMessage = MakeShareable( new FFriendsAndChatMessage( DisplayMessage ) );
+// 			ChatMessage->SetSelfHandle( false );
+// 			ChatMessages.Add( ChatMessage );
+// 			OChatListUpdatedDelegate.Broadcast();
+// 		}
+// 
+// 		MessagesToRead.RemoveAt(0);
+// 	}
 
 	SetState( EFriendsMessageManagerState::Idle );
 }
@@ -455,15 +455,16 @@ FReply FFriendsMessageManager::HandleMessageDeclined( TSharedPtr< FFriendsAndCha
 
 void FFriendsMessageManager::ResendMessage()
 {
-	if ( UnhandledNetID.IsValid() )
-	{
-		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable( new FFriendsAndChatMessage( TEXT(""), UnhandledNetID.ToSharedRef() ) );
-		NotificationMessage->SetMessageType( EFriendsRequestType::JoinGame );
-		NotificationMessage->SetSelfHandle( true );
-		NotificationMessage->SetAutoAccept();
-		FriendsListNotificationDelegate->Broadcast( NotificationMessage.ToSharedRef() );
-	}
-	UnhandledNetID.Reset();
+	//TODO: Temporarily removed while working on the notification system
+// 	if ( UnhandledNetID.IsValid() )
+// 	{
+// 		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable( new FFriendsAndChatMessage( TEXT(""), UnhandledNetID.ToSharedRef() ) );
+// 		NotificationMessage->SetMessageType( EFriendsRequestType::JoinGame );
+// 		NotificationMessage->SetSelfHandle( true );
+// 		NotificationMessage->SetAutoAccept();
+// 		FriendsListNotificationDelegate->Broadcast( NotificationMessage.ToSharedRef() );
+// 	}
+// 	UnhandledNetID.Reset();
 }
 
 

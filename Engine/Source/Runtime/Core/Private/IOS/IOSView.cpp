@@ -164,6 +164,7 @@ id<MTLDevice> GMetalDevice = nil;
 
 
 		// handle Metal or GL sizing
+#if HAS_METAL
 		if (bIsUsingMetal)
 		{
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
@@ -173,6 +174,7 @@ id<MTLDevice> GMetalDevice = nil;
 			MetalLayer.drawableSize = DrawableSize;
 		}
 		else
+#endif
 		{
 			// make sure this is current
 			[self MakeCurrent];

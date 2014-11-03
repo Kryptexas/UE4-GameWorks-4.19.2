@@ -6,6 +6,7 @@
 
 struct FNavMeshPath;
 class UCrowdFollowingComponent;
+class ICrowdAgentInterface;
 /**
  *  Crowd manager is responsible for handling crowds using Detour (Recast library)
  *
@@ -151,7 +152,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	virtual void BeginDestroy() override;
 
 	/** adds new agent to crowd */
-	void RegisterAgent(const class ICrowdAgentInterface* Agent);
+	void RegisterAgent(ICrowdAgentInterface* Agent);
 
 	/** removes agent from crowd */
 	void UnregisterAgent(const class ICrowdAgentInterface* Agent);
@@ -189,6 +190,9 @@ class AIMODULE_API UCrowdManager : public UObject
 
 	/** returns number of nearby agents */
 	int32 GetNumNearbyAgents(const class ICrowdAgentInterface* Agent) const;
+
+	/** returns a list of locations of nearby agents */
+	int32 GetNearbyAgentLocations(const ICrowdAgentInterface* Agent, TArray<FVector>& OutLocations) const;
 
 	/** reads existing avoidance config or returns false */
 	bool GetAvoidanceConfig(int32 Idx, FCrowdAvoidanceConfig& Data) const;
@@ -260,7 +264,7 @@ protected:
 	uint32 bSingleAreaVisibilityOptimization : 1;
 
 	/** agents registered in crowd manager */
-	TMap<const class ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
+	TMap<ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
 
 #if WITH_RECAST
 	/** crowd manager */
@@ -293,7 +297,7 @@ protected:
 	void PrepareAgentStep(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData, float DeltaTime) const;
 
 	/** pass new velocity to movement components */
-	void ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;
+	void ApplyVelocity(UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;
 
 	/** check changes in crowd simulation and adjust UE specific properties (smart links, poly updates) */
 	void UpdateAgentPaths();

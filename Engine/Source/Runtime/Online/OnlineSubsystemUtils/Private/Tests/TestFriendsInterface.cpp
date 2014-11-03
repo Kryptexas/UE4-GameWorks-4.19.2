@@ -24,12 +24,15 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnSendInviteComplete);
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendComplete);
 		OnDeleteFriendsListCompleteDelegate = FOnDeleteFriendsListCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendsListComplete);
+		OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnQueryRecentPlayersComplete);
+		
 
 		OnlineSub->GetFriendsInterface()->AddOnReadFriendsListCompleteDelegate(0, OnReadFriendsCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendsListCompleteDelegate(0, OnDeleteFriendsListCompleteDelegate);
+		OnlineSub->GetFriendsInterface()->AddOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
 
 		// list of pending users to send invites to
 		for (int32 Idx=0; Idx < Invites.Num(); Idx++)
@@ -58,6 +61,15 @@ void FTestFriendsInterface::StartNextTest()
 	if (bReadFriendsList)
 	{
 		OnlineSub->GetFriendsInterface()->ReadFriendsList(0, FriendsListName);
+	}
+	else if (bQueryRecentPlayers)
+	{
+		if (OnlineSub->GetIdentityInterface().IsValid() &&
+			OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0).IsValid())
+		{
+			OnlineSub->GetFriendsInterface()->QueryRecentPlayers(*OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0));
+		}
+		bQueryRecentPlayers = false;
 	}
 	else if (bAcceptInvites && InvitesToAccept.Num() > 0)
 	{
@@ -93,6 +105,7 @@ void FTestFriendsInterface::FinishTest()
 		OnlineSub->GetFriendsInterface()->ClearOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
 		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendsListCompleteDelegate(0, OnDeleteFriendsListCompleteDelegate);
+		OnlineSub->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
 	}
 	delete this;
 }
@@ -100,7 +113,7 @@ void FTestFriendsInterface::FinishTest()
 void FTestFriendsInterface::OnReadFriendsComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
 	UE_LOG(LogOnline, Log,
-		TEXT("ReadFriendsList() for player (%d) was success=%d"), LocalPlayer, bWasSuccessful);
+		TEXT("ReadFriendsList() for player (%d) was success=%d error=%s"), LocalPlayer, bWasSuccessful, *ErrorStr);
 
 	if (bWasSuccessful)
 	{
@@ -156,6 +169,37 @@ void FTestFriendsInterface::OnReadFriendsComplete(int32 LocalPlayer, bool bWasSu
 	
 	// done with this part of the test
 	bReadFriendsList = false;
+	// kick off next test
+	StartNextTest();
+}
+
+void FTestFriendsInterface::OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr)
+{
+	UE_LOG(LogOnline, Log,
+		TEXT("QueryRecentPlayers() for player (%s) was success=%d error=%s"), *UserId.ToDebugString(), bWasSuccessful, *ErrorStr);
+
+	if (bWasSuccessful)
+	{
+		TArray< TSharedRef<FOnlineRecentPlayer> > Players;
+		// Grab the friends data so we can print it out
+		if (OnlineSub->GetFriendsInterface()->GetRecentPlayers(UserId, Players))
+		{
+			UE_LOG(LogOnline, Log,
+				TEXT("GetRecentPlayers returned %d players"), Players.Num());
+
+			// Log each friend's data out
+			for (auto RecentPlayer : Players)
+			{
+				UE_LOG(LogOnline, Log,
+					TEXT("\t%s has unique id (%s)"), *RecentPlayer->GetDisplayName(), *RecentPlayer->GetUserId()->ToDebugString());
+				UE_LOG(LogOnline, Log,
+					TEXT("\t LastSeen (%s)"), *RecentPlayer->GetLastSeen().ToString());
+			}
+		}
+	}
+
+	// done with this part of the test
+	bQueryRecentPlayers = false;
 	// kick off next test
 	StartNextTest();
 }

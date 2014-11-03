@@ -454,7 +454,6 @@ public:
 	 *	Indicates that PreInitializeComponents/PostInitializeComponents have been called on this Actor 
 	 *	Prevents re-initializing of actors spawned during level startup
 	 */
-	UPROPERTY()
 	uint32 bActorInitialized:1;
 
 	/** Indicates the actor was pulled through a seamless travel.  */

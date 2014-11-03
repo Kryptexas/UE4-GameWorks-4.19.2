@@ -6,12 +6,6 @@
 class FUniqueNetId;
 
 
-/**
- * Type definition for shared references to instances of ILauncherProfile.
- */
-typedef TSharedRef<class FFriendsAndChatMessage> FFriendsAndChatMessageRef;
-
-
 // Enum to list download status flags
 namespace EFriendsRequestType
 {

@@ -40,6 +40,47 @@ namespace LogVisualizer
 	static const FString LogFileDescription = LOCTEXT("FileTypeDescription", "Visual Log File").ToString();
 	static const FString LoadFileTypes = FString::Printf(TEXT("%s (*.vlog;*.%s)|*.vlog;*.%s"), *LogFileDescription, VISLOG_FILENAME_EXT, VISLOG_FILENAME_EXT);
 	static const FString SaveFileTypes = FString::Printf(TEXT("%s (*.%s)|*.%s"), *LogFileDescription, VISLOG_FILENAME_EXT, VISLOG_FILENAME_EXT);
+
+	FORCEINLINE bool PointInFrustum(UCanvas* Canvas, const FVector& Location)
+	{
+		return Canvas->SceneView->ViewFrustum.IntersectBox(Location, FVector::ZeroVector);
+	}
+
+	FORCEINLINE void DrawText(UCanvas* Canvas, UFont* Font, const FString& TextToDraw, const FVector& WorldLocation)
+	{
+		if (PointInFrustum(Canvas, WorldLocation))
+		{
+			const FVector ScreenLocation = Canvas->Project(WorldLocation);
+			Canvas->DrawText(Font, *TextToDraw, ScreenLocation.X, ScreenLocation.Y);
+		}
+	}
+
+	FORCEINLINE void DrawTextCentered(UCanvas* Canvas, UFont* Font, const FString& TextToDraw, const FVector& WorldLocation)
+	{
+		if (PointInFrustum(Canvas, WorldLocation))
+		{
+			const FVector ScreenLocation = Canvas->Project(WorldLocation);
+			float TextXL = 0.f;
+			float TextYL = 0.f;
+			Canvas->StrLen(Font, TextToDraw, TextXL, TextYL);
+			Canvas->DrawText(Font, *TextToDraw, ScreenLocation.X - TextXL / 2.0f, ScreenLocation.Y - TextYL / 2.0f);
+		}
+	}
+
+	FORCEINLINE void DrawTextShadowed(UCanvas* Canvas, UFont* Font, const FString& TextToDraw, const FVector& WorldLocation)
+	{
+		if (PointInFrustum(Canvas, WorldLocation))
+		{
+			const FVector ScreenLocation = Canvas->Project(WorldLocation);
+			float TextXL = 0.f;
+			float TextYL = 0.f;
+			Canvas->StrLen(Font, TextToDraw, TextXL, TextYL);
+			Canvas->SetDrawColor(FColor::Black);
+			Canvas->DrawText(Font, *TextToDraw, 1 + ScreenLocation.X - TextXL / 2.0f, 1 + ScreenLocation.Y - TextYL / 2.0f);
+			Canvas->SetDrawColor(FColor::White);
+			Canvas->DrawText(Font, *TextToDraw, ScreenLocation.X - TextXL / 2.0f, ScreenLocation.Y - TextYL / 2.0f);
+		}
+	}
 }
 
 FColor SLogVisualizer::ColorPalette[] = {
@@ -2194,13 +2235,10 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			
 			UFont* Font = GEngine->GetSmallFont();
 			FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), Font, FLinearColor::White );
+			
 			const FString TimeStampString = FString::Printf(TEXT("%.2f"), Entry->TimeStamp);
-			const FVector EntryScreenLoc = Canvas->Project(Entry->Location);
-			Canvas->SetDrawColor(FColor::Black);
-			Canvas->DrawText(Font, TimeStampString,EntryScreenLoc.X+1, EntryScreenLoc.Y+1);
-			Canvas->SetDrawColor(FColor::White);
-			Canvas->DrawText(Font, TimeStampString, EntryScreenLoc.X, EntryScreenLoc.Y);
-
+			LogVisualizer::DrawTextShadowed(Canvas, Font, TimeStampString, Entry->Location);
+			
 			//let's draw histogram data
 
 			struct FGraphLineData
@@ -2425,8 +2463,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 							DrawDebugSphere(World, *Location, Radius, 16, Color);
 							if (bDrawLabel)
 							{
-								const FVector ScreenLoc = Canvas->Project(*Location);
-								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+								LogVisualizer::DrawText(Canvas, Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), *Location);
 							}
 						}
 					}
@@ -2445,19 +2482,13 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 							if (bDrawLabel)
 							{
 								const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
-								float TextXL, TextYL;
-								Canvas->StrLen(Font, PrintString, TextXL, TextYL);
-								const FVector ScreenLoc = Canvas->Project(*Location + (*(Location+1)-*Location)/2);
-								Canvas->DrawText(Font, *PrintString, ScreenLoc.X - TextXL/2.0f, ScreenLoc.Y - TextYL/2.0f);
+								LogVisualizer::DrawTextCentered(Canvas, Font, PrintString, (*Location + (*(Location + 1) - *Location) / 2));
 							}
 						}
 						if (ElementToDraw->Description.IsEmpty() == false)
 						{
-							float TextXL, TextYL;
-							Canvas->StrLen(Font, ElementToDraw->Description, TextXL, TextYL);
-							const FVector ScreenLoc = Canvas->Project(ElementToDraw->Points[0] 
-								+ (ElementToDraw->Points[1] - ElementToDraw->Points[0])/2);
-							Canvas->DrawText(Font, *ElementToDraw->Description, ScreenLoc.X - TextXL/2.0f, ScreenLoc.Y - TextYL/2.0f);
+							LogVisualizer::DrawTextCentered(Canvas, Font, ElementToDraw->Description
+								, ElementToDraw->Points[0] + (ElementToDraw->Points[1] - ElementToDraw->Points[0]) / 2);
 						}
 					}
 					break;
@@ -2490,19 +2521,13 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 							if (bDrawLabel)
 							{
 								const FString PrintString = FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index);
-								float TextXL, TextYL;
-								Canvas->StrLen(Font, PrintString, TextXL, TextYL);
-								const FVector ScreenLoc = Canvas->Project(Box.GetCenter());
-								Canvas->DrawText(Font, *PrintString, ScreenLoc.X - TextXL/2.0f, ScreenLoc.Y - TextYL/2.0f);
+								LogVisualizer::DrawTextCentered(Canvas, Font, PrintString, Box.GetCenter());
 							}
 						}
 						if (ElementToDraw->Description.IsEmpty() == false)
 						{
-							float TextXL, TextYL;
-							Canvas->StrLen(Font, ElementToDraw->Description, TextXL, TextYL);
-							const FVector ScreenLoc = Canvas->Project(ElementToDraw->Points[0] 
-							+ (ElementToDraw->Points[1] - ElementToDraw->Points[0])/2);
-							Canvas->DrawText(Font, *ElementToDraw->Description, ScreenLoc.X - TextXL/2.0f, ScreenLoc.Y - TextYL/2.0f);
+							LogVisualizer::DrawTextCentered(Canvas, Font, ElementToDraw->Description
+								, ElementToDraw->Points[0] + (ElementToDraw->Points[1] - ElementToDraw->Points[0]) / 2);
 						}
 					}
 					break;
@@ -2518,8 +2543,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 							DrawDebugCone(World, Orgin, Direction, Angles.X, Angles.Y, Angles.Z, 16, Color);
 							if (bDrawLabel)
 							{
-								const FVector ScreenLoc = Canvas->Project(Orgin);
-								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+								LogVisualizer::DrawTextCentered(Canvas, Font, ElementToDraw->Description, Orgin);
 							}
 						}
 					}
@@ -2536,8 +2560,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 							DrawDebugCylinder(World, Start, End, OtherData.X, 16, Color);
 							if (bDrawLabel)
 							{
-								const FVector ScreenLoc = Canvas->Project(Start);
-								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+								LogVisualizer::DrawTextCentered(Canvas, Font, ElementToDraw->Description, Start);
 							}
 						}
 					}
@@ -2554,8 +2577,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 							DrawDebugCapsule(World, Center, FirstData.X, FirstData.Y, FQuat(FirstData.Z, SecondData.X, SecondData.Y, SecondData.Z), Color);
 							if (bDrawLabel)
 							{
-								const FVector ScreenLoc = Canvas->Project(Center);
-								Canvas->DrawText(Font, FString::Printf(TEXT("%s_%d"), *ElementToDraw->Description, Index), ScreenLoc.X, ScreenLoc.Y);
+								LogVisualizer::DrawTextCentered(Canvas, Font, ElementToDraw->Description, Center);
 							}
 						}
 					}

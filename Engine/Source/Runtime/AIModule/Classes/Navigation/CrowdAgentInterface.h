@@ -14,7 +14,7 @@ class ICrowdAgentInterface
 	GENERATED_IINTERFACE_BODY()
 
 	/** @return current location of crowd agent */
-	virtual FVector GetCrowdAgentLocation() const { return FVector::ZeroVector; }
+	virtual FVector GetCrowdAgentLocation() const { return FAISystem::InvalidLocation; }
 
 	/** @return current velocity of crowd agent */
 	virtual FVector GetCrowdAgentVelocity() const { return FVector::ZeroVector; }

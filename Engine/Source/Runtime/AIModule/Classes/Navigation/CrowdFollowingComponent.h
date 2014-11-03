@@ -73,13 +73,25 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	void SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Type Quality, bool bUpdateAgent = true);
 
 	FORCEINLINE bool IsCrowdSimulationEnabled() const { return bEnableCrowdSimulation; }
-	FORCEINLINE bool IsCrowdAnticipateTurnsEnabled() const { return bEnableAnticipateTurns && !bSuspendCrowdSimulation; }
-	FORCEINLINE bool IsCrowdObstacleAvoidanceEnabled() const { return bEnableObstacleAvoidance && !bSuspendCrowdSimulation; }
-	FORCEINLINE bool IsCrowdSeparationEnabled() const { return bEnableSeparation && !bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdSimulatioSuspended() const { return bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdAnticipateTurnsEnabled() const { return bEnableAnticipateTurns; }
+	FORCEINLINE bool IsCrowdObstacleAvoidanceEnabled() const { return bEnableObstacleAvoidance; }
+	FORCEINLINE bool IsCrowdSeparationEnabled() const { return bEnableSeparation; }
 	FORCEINLINE bool IsCrowdOptimizeVisibilityEnabled() const { return bEnableOptimizeVisibility; /** don't check suspend here! */ }
-	FORCEINLINE bool IsCrowdOptimizeTopologyEnabled() const { return bEnableOptimizeTopology && !bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdOptimizeTopologyEnabled() const { return bEnableOptimizeTopology; }
 	FORCEINLINE bool IsCrowdPathOffsetEnabled() const { return bEnablePathOffset; }
 	FORCEINLINE bool IsCrowdSlowdownAtGoalEnabled() const { return bEnableSlowdownAtGoal; }
+
+	FORCEINLINE bool IsCrowdSimulationActive() const { return IsCrowdSimulationEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableAnticipateTurns is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdAnticipateTurnsActive() const { return IsCrowdAnticipateTurnsEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableObstacleAvoidance is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdObstacleAvoidanceActive() const { return IsCrowdObstacleAvoidanceEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableSeparation is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdSeparationActive() const { return IsCrowdSeparationEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableOptimizeTopology is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdOptimizeTopologyActive() const { return IsCrowdOptimizeTopologyEnabled() && !IsCrowdSimulatioSuspended(); }
+
 	FORCEINLINE float GetCrowdSeparationWeight() const { return SeparationWeight; }
 	FORCEINLINE float GetCrowdCollisionQueryRange() const { return CollisionQueryRange; }
 	FORCEINLINE float GetCrowdPathOptimizationRange() const { return PathOptimizationRange; }

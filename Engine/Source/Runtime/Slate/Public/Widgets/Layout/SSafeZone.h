@@ -54,5 +54,5 @@ class SLATE_API SSafeZone : public SBox
 private:
 	/** Cached values from the args */
 	TAttribute<FMargin> Padding;
-	bool IsTitleSafe;
+	FMargin SafeMargin;
 };

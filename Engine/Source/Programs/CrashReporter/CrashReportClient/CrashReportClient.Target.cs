@@ -107,7 +107,7 @@ public class CrashReportClientTarget : TargetRules
 	{
 		if (InHostPlatform == UnrealTargetPlatform.Win64)
 		{
-			return new List<UnrealTargetPlatform> { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Win32 };
+			return new List<UnrealTargetPlatform> { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Win32, UnrealTargetPlatform.Linux };
 		}
 		return base.GUBP_ToolPlatforms(InHostPlatform);
 	}

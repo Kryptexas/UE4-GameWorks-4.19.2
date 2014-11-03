@@ -18,7 +18,7 @@ UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const FObjectInitializer&
 	MyWorld = Cast<UWorld>(GetOuter());
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+		UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 		if (AISystem)
 		{
 			AISystem->AddReferenceFromProxyObject(this);
@@ -41,7 +41,7 @@ void UAIAsyncTaskBlueprintProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFo
 			OnFail.Broadcast(MovementResult);
 		}
 
-		UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+		UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 		if (AISystem)
 		{
 			AISystem->RemoveReferenceToProxyObject(this);
@@ -52,7 +52,7 @@ void UAIAsyncTaskBlueprintProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFo
 void UAIAsyncTaskBlueprintProxy::OnNoPath()
 {
 	OnFail.Broadcast(EPathFollowingResult::Aborted);
-	UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+	UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 	if (AISystem)
 	{
 		AISystem->RemoveReferenceToProxyObject(this);
@@ -61,7 +61,7 @@ void UAIAsyncTaskBlueprintProxy::OnNoPath()
 
 void UAIAsyncTaskBlueprintProxy::BeginDestroy()
 {
-	UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+	UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 	if (AISystem)
 	{
 		AISystem->RemoveReferenceToProxyObject(this);
@@ -180,11 +180,11 @@ void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(UAnimInstance* Anim
 		{
 			if (bLockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->GetPathFollowingComponent()->LockResource(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->LockResource(EAIRequestPriority::HardScript);
 			}
 			if (LockAILogic && OwningAI->BrainComponent)
 			{
-				OwningAI->BrainComponent->LockResource(EAILockSource::Animation);
+				OwningAI->BrainComponent->LockResource(EAIRequestPriority::HardScript);
 			}
 		}
 	}
@@ -205,11 +205,11 @@ void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(UAnimInstance* An
 		{
 			if (bUnlockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->GetPathFollowingComponent()->ClearResourceLock(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->ClearResourceLock(EAIRequestPriority::HardScript);
 			}
 			if (UnlockAILogic && OwningAI->BrainComponent)
 			{
-				OwningAI->BrainComponent->ClearResourceLock(EAILockSource::Animation);
+				OwningAI->BrainComponent->ClearResourceLock(EAIRequestPriority::HardScript);
 			}
 		}
 	}

@@ -65,27 +65,12 @@ public:
 						SNew(SButton)
 						.ContentPadding(FMargin(15.0f, 0.f))
 						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::IgnoreFriendRequest)
+						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::RejectFriendRequest)
 						[
 							SNew(STextBlock)
 							.ColorAndOpacity(FLinearColor::White)
 							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::IgnoreFriendRequest))
-						]
-					]
-					+ SHorizontalBox::Slot()
-					.Padding(3)
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ContentPadding(FMargin(15.0f, 0.f))
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::BlockFriend)
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::BlockFriend))
+							.Text(EFriendActionType::ToText(EFriendActionType::RejectFriendRequest))
 						]
 					]
 				]

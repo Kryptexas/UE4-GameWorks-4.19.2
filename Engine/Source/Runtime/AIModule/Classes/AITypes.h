@@ -149,16 +149,15 @@ struct AIMODULE_API FAIResourceID
 	const uint8 Index;
 	const FName Name;
 private:
-	static uint32 NextAvailableID;
+	static uint16 NextAvailableID;
 public:
 
-	FAIResourceID(const FName& ResourceName)
-		: Index(NextAvailableID++), Name(ResourceName)
-	{}
-
-	FAIResourceID(const FAIResourceID& Other)
-		: Index(Other.Index), Name(Other.Name)
-	{}
+	FAIResourceID() : Index(uint8(-1)) {}
+	explicit FAIResourceID(const FName& ResourceName);
+	FAIResourceID(const FAIResourceID& Other);
+	/* This constructor looks for ResourceIndex in registered resources.
+	 *	@see FAIResources::RegisterResource */
+	explicit FAIResourceID(uint8 ResourceIndex);
 
 	FAIResourceID& operator=(const FAIResourceID& Other)
 	{
@@ -167,70 +166,110 @@ public:
 	}
 
 	static uint32 ResourcesCount() { return NextAvailableID; }
+
+	operator int32() const { return int32(Index); }
 };
 
 struct AIMODULE_API FAIResourcesSet
 {
 	static const uint32 NoResources = 0;
 	static const uint32 AllResources = uint32(-1);
+	static const uint8 MaxFlags = 32;
 private:
 	uint32 Flags;
 public:
 	FAIResourcesSet(uint32 ResourceSetDescription = NoResources) : Flags(ResourceSetDescription) {}
+	FAIResourcesSet(const FAIResourceID& Resource) : Flags(0) 
+	{
+		AddResource(Resource);
+	}
 
-	FAIResourcesSet& AddResourceID(uint8 ResourceID) { Flags |= (1 << ResourceID); return *this; }
-	FAIResourcesSet& RemoveResourceID(uint8 ResourceID) { Flags &= ~(1 << ResourceID); return *this; }
-	bool ContainsResourceID(uint8 ResourceID) const { return (Flags & ResourceID) != 0; }
+	FAIResourcesSet& AddResourceIndex(uint8 ResourceIndex) { Flags |= (1 << ResourceIndex); return *this; }
+	FAIResourcesSet& RemoveResourceIndex(uint8 ResourceIndex) { Flags &= ~(1 << ResourceIndex); return *this; }
+	bool ContainsResourceIndex(uint8 ResourceID) const { return (Flags & (1 << ResourceID)) != 0; }
 
-	FAIResourcesSet& AddResource(const FAIResourceID& Resource) { AddResourceID(Resource.Index); return *this; }		
-	FAIResourcesSet& RemoveResource(const FAIResourceID& Resource) { RemoveResourceID(Resource.Index); return *this; }	
-	bool ContainsResource(const FAIResourceID& Resource) const { return ContainsResourceID(Resource.Index); }
-	
+	FAIResourcesSet& AddResource(const FAIResourceID& Resource) { AddResourceIndex(Resource.Index); return *this; }
+	FAIResourcesSet& RemoveResource(const FAIResourceID& Resource) { RemoveResourceIndex(Resource.Index); return *this; }
+	bool ContainsResource(const FAIResourceID& Resource) const { return ContainsResourceIndex(Resource.Index); }
+
 	bool IsEmpty() const { return Flags == 0; }
+	void Clear() { Flags = 0; }
 };
 
 /** structure used to define which subsystem requested locking of a specific AI resource (like movement, logic, etc.) */
 struct AIMODULE_API FAIResourceLock
 {
-	uint8 Locks[EAILockSource::MAX];
+	/** @note feel free to change the type if you need to support more then 16 lock sources */
+	typedef uint16 FLockFlags;
 
+	FLockFlags Locks;
+	
 	FAIResourceLock();
 
-	FORCEINLINE void SetLock(EAILockSource::Type LockSource)
+	FORCEINLINE void SetLock(EAIRequestPriority::Type LockPriority)
 	{
-		check(LockSource != EAILockSource::MAX);
-		Locks[LockSource] = 1;
+		Locks |= (1 << LockPriority);
 	}
 
-	FORCEINLINE void ClearLock(EAILockSource::Type LockSource)
+	FORCEINLINE void ClearLock(EAIRequestPriority::Type LockPriority)
 	{
-		check(LockSource != EAILockSource::MAX);
-		Locks[LockSource] = 0;
+		Locks &= ~(1 << LockPriority);
 	}
-
+	
 	/** force-clears all locks */
 	void ForceClearAllLocks();
 
 	FORCEINLINE bool IsLocked() const
 	{
-		for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
+		return Locks != 0;
+	}
+
+	FORCEINLINE bool IsLockedBy(EAIRequestPriority::Type LockPriority) const
+	{
+		return (Locks & (1 << LockPriority)) != 0;
+	}
+
+	/** Answers the question if given priority is allowed to use this resource.
+	 *	@Note that if resource is locked with priority LockPriority this function will
+	 *	return false as well */
+	FORCEINLINE bool IsAvailableFor(EAIRequestPriority::Type LockPriority) const
+	{
+		for (int32 Priority = EAIRequestPriority::MAX - 1; Priority >= LockPriority; --Priority)
 		{
-			if (Locks[LockLevel])
+			if ((Locks & (1 << Priority)) != 0)
 			{
-				return true;
+				return false;
 			}
 		}
-		return false;
+		return true;
 	}
 
-	FORCEINLINE bool IsLocked(EAILockSource::Type LockSource) const
+	FString GetLockPriorityName() const;
+
+	void operator+=(const FAIResourceLock& Other)
 	{
-		check(LockSource != EAILockSource::MAX);
-		return Locks[LockSource] > 0;
+		Locks |= Other.Locks;		
 	}
 
-	FString GetLockSourceName() const;
+	bool operator==(const FAIResourceLock& Other)
+	{
+		return Locks == Other.Locks;
+	}
 };
+
+namespace FAIResources
+{
+	extern AIMODULE_API const FAIResourceID InvalidResource;
+	extern AIMODULE_API const FAIResourceID Movement;
+	extern AIMODULE_API const FAIResourceID Logic;
+	extern AIMODULE_API const FAIResourceID Perception;
+	
+	AIMODULE_API void RegisterResource(const FAIResourceID& Resource);
+	AIMODULE_API const FAIResourceID& GetResource(int32 ResourceIndex);
+	AIMODULE_API int32 GetResourcesCount();
+	AIMODULE_API FString GetSetDescription(FAIResourcesSet ResourceSet);
+}
+
 
 USTRUCT()
 struct AIMODULE_API FAIRequestID

@@ -41,6 +41,7 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	bLastMoveReachedGoal = false;
 	bUseVisibilityTestsSimplification = false;
 	bPendingPathStartUpdate = false;
+	bStopMovementOnFinish = true;
 
 	MoveSegmentStartIndex = 0;
 	MoveSegmentEndIndex = 1;
@@ -126,7 +127,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 	if (ResourceLock.IsLocked())
 	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Rejecting move request due to resource lock by %s"), *ResourceLock.GetLockSourceName());
+		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("Rejecting move request due to resource lock by %s"), *ResourceLock.GetLockPriorityName());
 		return FAIRequestID::InvalidRequest;
 	}
 
@@ -374,7 +375,7 @@ void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 	Reset();
 	UpdateMoveFocus();
 
-	if (MovementComp && MovementComp->CanStopPathFollowing())	
+	if (MovementComp && MovementComp->CanStopPathFollowing() && bStopMovementOnFinish)
 	{
 		MovementComp->StopMovementKeepPathing();
 	}
@@ -831,30 +832,24 @@ bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAccep
 	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, !bExactSpot);
 }
 
-bool UPathFollowingComponent::HasReached(const AActor* TestGoal, float InAcceptanceRadius, bool bExactSpot) const
+bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAcceptanceRadius, bool bExactSpot) const
 {
-	if (TestGoal == NULL)
-	{
-		// we might just as well say "we're there" if "there" is NULL
-		return true;
-	}
-
 	// simple test for stationary agent, used as early finish condition
 	float GoalRadius = 0.0f;
 	float GoalHalfHeight = 0.0f;
 	FVector GoalOffset = FVector::ZeroVector;
-	FVector TestPoint = TestGoal->GetActorLocation();
+	FVector TestPoint = TestGoal.GetActorLocation();
 	if (InAcceptanceRadius == UPathFollowingComponent::DefaultAcceptanceRadius)
 	{
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(TestGoal);
+	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
 	if (NavAgent)
 	{
 		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(GetOwner());
 		NavAgent->GetMoveGoalReachTest(GetOwner(), GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
-		TestPoint = FRotationTranslationMatrix(TestGoal->GetActorRotation(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+		TestPoint = FRotationTranslationMatrix(TestGoal.GetActorRotation(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
 	}
 
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
@@ -1264,6 +1259,11 @@ FVector UPathFollowingComponent::GetPathDestination() const
 	return Path.IsValid() ? Path->GetDestinationLocation() : FVector::ZeroVector;
 }
 
+bool UPathFollowingComponent::HasDirectPath() const
+{
+	return Path.IsValid() ? (Path->CastPath<FNavMeshPath>() == NULL) : false;
+}
+
 FString UPathFollowingComponent::GetStatusDesc() const
 {
 	const static UEnum* StatusEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EPathFollowingStatus"));
@@ -1350,7 +1350,7 @@ void UPathFollowingComponent::GetDebugStringTokens(TArray<FString>& Tokens, TArr
 	if (Path.IsValid())
 	{
 		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->GetPathPoints().Num() : -1;
-		const bool bIsDirect = (Path->CastPath<FNavMeshPath>() == NULL);
+		const bool bIsDirect = HasDirectPath();
 		const bool bIsCustomLink = CurrentCustomLinkOb.IsValid();
 
 		if (!bIsDirect)
@@ -1406,7 +1406,7 @@ FString UPathFollowingComponent::GetDebugString() const
 	return Desc;
 }
 
-void UPathFollowingComponent::LockResource(EAILockSource::Type LockSource)
+void UPathFollowingComponent::LockResource(EAIRequestPriority::Type LockSource)
 {
 	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
 	const bool bWasLocked = ResourceLock.IsLocked();
@@ -1419,7 +1419,7 @@ void UPathFollowingComponent::LockResource(EAILockSource::Type LockSource)
 	}
 }
 
-void UPathFollowingComponent::ClearResourceLock(EAILockSource::Type LockSource)
+void UPathFollowingComponent::ClearResourceLock(EAIRequestPriority::Type LockSource)
 {
 	const bool bWasLocked = ResourceLock.IsLocked();
 	ResourceLock.ClearLock(LockSource);

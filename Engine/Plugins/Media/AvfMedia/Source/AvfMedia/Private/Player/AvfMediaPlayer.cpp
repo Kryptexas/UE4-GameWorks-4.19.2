@@ -312,7 +312,11 @@ bool FAvfMediaPlayer::Tick( float DeltaTime )
 {
     if( ShouldAdvanceFrames() )
     {
-        CurrentTime = FTimespan::FromSeconds(CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]));
+		AVPlayerItem* item = [MediaPlayer currentItem];
+	    if (item != nil)
+	    {
+	        CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([item currentTime]) );
+	    }
         
         for (IMediaTrackRef& Track : Tracks)
         {

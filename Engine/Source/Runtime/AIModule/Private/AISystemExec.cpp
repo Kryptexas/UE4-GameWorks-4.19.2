@@ -25,7 +25,7 @@ bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 		return false;
 	}
 
-	UAISystem* AISys = UAISystem::GetCurrent(Inworld);	
+	UAISystem* AISys = UAISystem::GetCurrent(*Inworld);	
 	bool bHandled = false;
 
 	if (AISys != NULL)

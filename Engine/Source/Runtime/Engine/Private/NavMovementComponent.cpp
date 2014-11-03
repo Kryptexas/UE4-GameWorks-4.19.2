@@ -71,3 +71,8 @@ void UNavMovementComponent::UpdateNavAgent(class UCapsuleComponent* CapsuleCompo
 	NavAgentProps.AgentRadius = CapsuleComponent->GetScaledCapsuleRadius();
 	NavAgentProps.AgentHeight = CapsuleComponent->GetScaledCapsuleHalfHeight() * 2.f;
 }
+
+void UNavMovementComponent::SetUpdateNavAgentWithOwnersCollisions(bool bUpdateWithOwner)
+{
+	bUpdateNavAgentWithOwnersCollision = bUpdateWithOwner;
+}

@@ -113,8 +113,15 @@ void FMetalDynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShade
 
 void FMetalDynamicRHI::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShaderRHI, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
-	FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(NewTextureRHI);
-	[FMetalManager::GetContext() setVertexTexture:Surface.Texture atIndex:TextureIndex];
+	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(NewTextureRHI);
+    if (Surface != nullptr)
+    {
+        [FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex:TextureIndex];
+    }
+    else
+    {
+        [FMetalManager::GetContext() setVertexTexture:nil atIndex:TextureIndex];
+    }
 }
 
 void FMetalDynamicRHI::RHISetShaderTexture(FHullShaderRHIParamRef HullShader, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
@@ -135,8 +142,15 @@ void FMetalDynamicRHI::RHISetShaderTexture(FGeometryShaderRHIParamRef GeometrySh
 
 void FMetalDynamicRHI::RHISetShaderTexture(FPixelShaderRHIParamRef PixelShader, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
-	FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(NewTextureRHI);
-	[FMetalManager::GetContext() setFragmentTexture:Surface.Texture atIndex:TextureIndex];
+	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(NewTextureRHI);
+    if (Surface != nullptr)
+    {
+        [FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:TextureIndex];
+    }
+    else
+    {
+        [FMetalManager::GetContext() setFragmentTexture:nil atIndex:TextureIndex];
+    }
 }
 
 void FMetalDynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShader, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
@@ -152,8 +166,15 @@ void FMetalDynamicRHI::RHISetShaderResourceViewParameter(FVertexShaderRHIParamRe
 	FRHITexture* Texture = SRV->SourceTexture.GetReference();
 	if (Texture)
 	{
-		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(Texture);
-		[FMetalManager::GetContext() setVertexTexture:Surface.Texture atIndex:TextureIndex];
+		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+		if (Surface != nullptr)
+		{
+			[FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex : TextureIndex];
+		}
+		else
+		{
+			[FMetalManager::GetContext() setVertexTexture:nil atIndex : TextureIndex];
+		}
 	}
 	else
 	{
@@ -187,8 +208,15 @@ void FMetalDynamicRHI::RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef
 	FRHITexture* Texture = SRV->SourceTexture.GetReference();
 	if (Texture)
 	{
-		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(Texture);
-		[FMetalManager::GetContext() setFragmentTexture:Surface.Texture atIndex:TextureIndex];
+		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(Texture);
+		if (Surface != nullptr)
+		{
+			[FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex : TextureIndex];
+		}
+		else
+		{
+			[FMetalManager::GetContext() setFragmentTexture:nil atIndex : TextureIndex];
+		}
 	}
 	else
 	{
@@ -375,8 +403,8 @@ void FMetalDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 		// update the current RTs
 		if (RenderTargetIndex < RenderTargetsInfo.NumColorRenderTargets && RenderTargetView.Texture != NULL)
 		{
-			FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
-			Manager->SetCurrentRenderTarget(&Surface, RenderTargetIndex, RenderTargetView.MipIndex, RenderTargetView.ArraySliceIndex, GetMetalRTLoadAction(RenderTargetView.LoadAction), GetMetalRTStoreAction(RenderTargetView.StoreAction), RenderTargetsInfo.NumColorRenderTargets);
+			FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+			Manager->SetCurrentRenderTarget(Surface, RenderTargetIndex, RenderTargetView.MipIndex, RenderTargetView.ArraySliceIndex, GetMetalRTLoadAction(RenderTargetView.LoadAction), GetMetalRTStoreAction(RenderTargetView.StoreAction), RenderTargetsInfo.NumColorRenderTargets);
 		}
 		else
 		{
@@ -386,8 +414,8 @@ void FMetalDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 
 	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture)
 	{
-		FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
-		Manager->SetCurrentDepthStencilTarget(&Surface, 
+		FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+		Manager->SetCurrentDepthStencilTarget(Surface, 
 			GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction), 
 			GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction), 
 			RenderTargetsInfo.DepthClearValue,
@@ -409,10 +437,10 @@ void FMetalDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 	if (RenderTargetsInfo.ColorRenderTarget[0].Texture)
 	{
 		const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
-		FMetalSurface& RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+		FMetalSurface* RenderTarget = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
 
-		uint32 Width = FMath::Max((uint32)(RenderTarget.Texture.width >> RenderTargetView.MipIndex), (uint32)1);
-		uint32 Height = FMath::Max((uint32)(RenderTarget.Texture.height >> RenderTargetView.MipIndex), (uint32)1);
+		uint32 Width = FMath::Max((uint32)(RenderTarget->Texture.width >> RenderTargetView.MipIndex), (uint32)1);
+		uint32 Height = FMath::Max((uint32)(RenderTarget->Texture.height >> RenderTargetView.MipIndex), (uint32)1);
 
 		RHISetViewport(0, 0, 0.0f, Width, Height, 1.0f);
 	}

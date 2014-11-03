@@ -925,8 +925,7 @@ void dtCrowd::updateMoveRequest(const float /*dt*/)
 	for (int i = 0; i < nqueue; ++i)
 	{
 		dtCrowdAgent* ag = queue[i];
-		ag->targetPathqRef = m_pathq.request(ag->corridor.getLastPoly(), ag->targetRef,
-			ag->corridor.getTarget(), ag->targetPos, &m_filters[ag->params.filter]);
+		ag->targetPathqRef = m_pathq.request(ag, &m_filters[ag->params.filter]);
 		if (ag->targetPathqRef != DT_PATHQ_INVALID)
 			ag->targetState = DT_CROWDAGENT_TARGET_WAITING_FOR_PATH;
 	}

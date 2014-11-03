@@ -214,7 +214,7 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 			}
 		}
 
-		// Recursively search left for the smallest empty slot that can fit the texture
+		// Recursively search right for the smallest empty slot that can fit the texture
 		if (Start.Right)
 		{
 			const FAtlasedTextureSlot* NewSlot = FindSlotForTexture(*Start.Right, InWidth, InHeight);
@@ -229,22 +229,21 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 	}
 
 	// Account for padding on both sides
-	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
-	uint32 TotalPadding = Padding * 2;
+	const uint32 Padding = (PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding) ? 1 : 0;
+	const uint32 TotalPadding = Padding * 2;
+	const uint32 PaddedWidth = InWidth + TotalPadding;
+	const uint32 PaddedHeight = InHeight + TotalPadding;
 
 	// This slot can't fit the character
-	if (InWidth+TotalPadding > (Start.Width) || InHeight+TotalPadding > (Start.Height))
+	if ((PaddedWidth > Start.Width) || (PaddedHeight > Start.Height))
 	{
 		// not enough space
 		return nullptr;
 	}
 	
-	uint32 PaddedWidth = InWidth+TotalPadding;
-	uint32 PaddedHeight = InHeight+TotalPadding;
 	// The width and height of the new child node
-	uint32 RemainingWidth =  FMath::Max<int32>(0,Start.Width - PaddedWidth);
-	uint32 RemainingHeight = FMath::Max<int32>(0,Start.Height - PaddedHeight);
-
+	const uint32 RemainingWidth =  FMath::Max<int32>(0, Start.Width - PaddedWidth);
+	const uint32 RemainingHeight = FMath::Max<int32>(0, Start.Height - PaddedHeight);
 
 	// Split the remaining area around this slot into two children.
 	if (RemainingHeight <= RemainingWidth)
@@ -261,8 +260,8 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 	}
 
 	// Shrink the slot to the remaining area.
-	Start.Width = InWidth+TotalPadding;
-	Start.Height = InHeight+TotalPadding;
+	Start.Width = PaddedWidth;
+	Start.Height = PaddedHeight;
 
 	return &Start;
 }

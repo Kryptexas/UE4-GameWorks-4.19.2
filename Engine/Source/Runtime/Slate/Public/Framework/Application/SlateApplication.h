@@ -962,7 +962,14 @@ public:
 
 	virtual FVector2D GetLastCursorPos( ) const override;
 
-	virtual FVector2D GetCursorSize( ) const override;
+	virtual FVector2D GetCursorSize( ) const override;	
+
+	virtual bool GetSoftwareCursorAvailable( ) const override
+	{
+		return bSoftwareCursorAvailable;
+	}
+
+	virtual EVisibility GetSoftwareCursorVis( ) const override;	
 	
 	virtual TSharedPtr<SWidget> GetKeyboardFocusedWidget( ) const override;
 
@@ -1425,6 +1432,9 @@ private:
 
 	/** controls whether unhandled touch events fall back to sending mouse events */
 	bool bTouchFallbackToMouse;
+
+	/** .ini controlled option to allow or disallow software cursor rendering */
+	bool bSoftwareCursorAvailable;	
 
 	/**
 	 * Slate look and feel

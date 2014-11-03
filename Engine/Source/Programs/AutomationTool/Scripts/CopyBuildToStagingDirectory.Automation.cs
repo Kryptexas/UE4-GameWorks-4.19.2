@@ -147,6 +147,8 @@ public partial class Project : CommandUtils
     {
         int FilesAdded = 0;
 
+        CultureName = CultureName.Replace('-', '_');
+
         string[] LocaleTags = CultureName.Replace('-', '_').Split('_');
 
         List<string> PotentialParentCultures = new List<string>();
@@ -270,6 +272,10 @@ public partial class Project : CommandUtils
 
 			// Engine ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform)); // TODO: Exclude localization data generation config files.
+
+			// Stat prefix/suffix files (used for FPSChart, etc...)
+			//@TODO: Avoid packaging stat files in shipping builds (only 6 KB, but still more than zero)
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Stats"), "*", true, null, null, false, !Params.UsePak(SC.StageTargetPlatform));
 
 			if (Params.bUsesSlate)
 			{

@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendsContainer.h"
 #include "FriendsViewModel.h"
+#include "ChatViewModel.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
@@ -25,15 +26,10 @@ FFriendsAndChatManager::~FFriendsAndChatManager( )
 /* IFriendsAndChatManager interface
  *****************************************************************************/
 
-void FFriendsAndChatManager::StartupManager()
-{
-}
-
-void FFriendsAndChatManager::Init(FOnFriendsNotification& NotificationDelegate)
+void FFriendsAndChatManager::Login()
 {
 	// Clear existing data
 	Logout();
-	FriendsListNotificationDelegate = &NotificationDelegate;
 
 	UpdateTimer = 0.0f;
 	bIsInited = false;
@@ -58,17 +54,19 @@ void FFriendsAndChatManager::Init(FOnFriendsNotification& NotificationDelegate)
 		OnAcceptInviteCompleteDelegate = FOnAcceptInviteCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnAcceptInviteComplete );
 		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnSendInviteComplete );
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnDeleteFriendComplete );
-		OnQueryUserIdFromDisplayNameCompleteDelegate = FOnQueryUserIdFromDisplayNameCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdFromDisplayNameComplete );
+		OnQueryUserIdMappingCompleteDelegate = FOnQueryUserIdMappingCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserIdMappingComplete );
 		OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateSP( this, &FFriendsAndChatManager::OnQueryUserInfoComplete );
+		OnPresenceReceivedCompleteDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FFriendsAndChatManager::OnPresenceReceived);
 
 		FriendsInterface->AddOnReadFriendsListCompleteDelegate( 0, OnReadFriendsCompleteDelegate );
 		FriendsInterface->AddOnAcceptInviteCompleteDelegate( 0, OnAcceptInviteCompleteDelegate );
 		FriendsInterface->AddOnDeleteFriendCompleteDelegate( 0, OnDeleteFriendCompleteDelegate );
 		FriendsInterface->AddOnSendInviteCompleteDelegate( 0, OnSendInviteCompleteDelegate );
 		UserInterface->AddOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
+		OnlineSubMcp->GetPresenceInterface()->AddOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
 
-		FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
-		OnlineAccountMappingMcp->AddOnQueryUserIdFromDisplayNameCompleteDelegate(OnQueryUserIdFromDisplayNameCompleteDelegate);
+		FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
+		OnlinePersonaMcp->AddOnQueryUserIdMappingCompleteDelegate(OnQueryUserIdMappingCompleteDelegate);
 
 		ManagerState = EFriendsAndManagerState::Idle;
 
@@ -129,10 +127,11 @@ void FFriendsAndChatManager::Logout()
 
 		if ( OnlineSubMcp != nullptr )
 		{
-			FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
-			if ( OnlineAccountMappingMcp.IsValid() )
+			OnlineSubMcp->GetPresenceInterface()->ClearOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
+			FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
+			if (OnlinePersonaMcp.IsValid())
 			{
-				OnlineAccountMappingMcp->ClearOnQueryUserIdFromDisplayNameCompleteDelegate( OnQueryUserIdFromDisplayNameCompleteDelegate );
+				OnlinePersonaMcp->ClearOnQueryUserIdMappingCompleteDelegate(OnQueryUserIdMappingCompleteDelegate);
 				OnlineSubMcp->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate( 0, OnQueryUserInfoCompleteDelegate );
 			}
 		}
@@ -166,7 +165,7 @@ void FFriendsAndChatManager::Logout()
 	}
 }
 
-void FFriendsAndChatManager::GenerateFriendsWindow( TSharedPtr< const SWidget > InParentWidget, const FFriendsAndChatStyle* InStyle )
+void FFriendsAndChatManager::CreateFriendsListWidget( TSharedPtr< const SWidget > InParentWidget, const FFriendsAndChatStyle* InStyle )
 {
 	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(308, 458);
 	ParentWidget = InParentWidget;
@@ -201,6 +200,9 @@ void FFriendsAndChatManager::GenerateFriendsWindow( TSharedPtr< const SWidget > 
 		FriendWindow->Restore();
 		BuildFriendsUI();
 	}
+
+	// Clear notifications
+	OnFriendsNotification().Broadcast(false);
 }
 
 
@@ -225,6 +227,9 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 		.FriendStyle( &Style )
 		.Method(SMenuAnchor::UseCurrentWindow);
 	}
+
+	// Clear notifications
+	OnFriendsNotification().Broadcast(false);
 
 	return FriendListWidget;
 }
@@ -251,9 +256,8 @@ void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< FFriendStuct > Frie
 			.HAlign( HAlign_Fill )
 			.BorderImage( &Style.Background )
 			[
-				SNew( SChatWindow )
+				SNew(SChatWindow, FChatViewModelFactory::Create())
 				.FriendStyle( &Style )
-				.FriendItem( FriendItem )
 				.OnCloseClicked( this, &FFriendsAndChatManager::OnChatCloseClicked )
 				.OnMinimizeClicked( this, &FFriendsAndChatManager::OnChatMinimizeClicked )
 			]
@@ -274,7 +278,7 @@ void FFriendsAndChatManager::AcceptFriend( TSharedPtr< FFriendStuct > FriendItem
 	PendingOutgoingAcceptFriendRequests.Add( FUniqueNetIdString(FriendItem->GetOnlineUser()->GetUserId()->ToString()) );
 	FriendItem->SetPendingAccept();
 	RefreshList();
-	ClearNotification( FriendItem );
+	OnFriendsNotification().Broadcast(false);
 }
 
 
@@ -284,24 +288,8 @@ void FFriendsAndChatManager::RejectFriend( TSharedPtr< FFriendStuct > FriendItem
 	PendingOutgoingDeleteFriendRequests.Add(FUniqueNetIdString(FriendItem->GetOnlineUser()->GetUserId().Get().ToString()));
 	FriendsList.Remove( FriendItem );
 	RefreshList();
-	ClearNotification( FriendItem );
+	OnFriendsNotification().Broadcast(false);
 }
-
-
-void FFriendsAndChatManager::ClearNotification( TSharedPtr< FFriendStuct > FriendItem )
-{
-	if ( NotificationMessages.Num() > 0 )
-	{
-		if ( NotificationMessages[0]->GetUniqueID().Get() == FriendItem->GetUniqueID().Get() )
-		{
-			// Inform the UI that this friend has been rejected. Clear any notifications
-			NotificationMessages[0]->SetHandled();
-			FriendsListNotificationDelegate->Broadcast( NotificationMessages[0].ToSharedRef() );
-			NotificationMessages.RemoveAt( 0 );
-		}
-	}
-}
-
 
 FReply FFriendsAndChatManager::HandleMessageAccepted( TSharedPtr< FFriendsAndChatMessage > ChatMessage, EFriendsResponseType::Type ResponseType )
 {
@@ -418,6 +406,8 @@ void FFriendsAndChatManager::DeleteFriend( TSharedPtr< FFriendStuct > FriendItem
 	FriendsList.Remove( FriendItem );
 	FriendItem->SetPendingDelete();
 	RefreshList();
+	// Clear notifications
+	OnFriendsNotification().Broadcast(false);
 }
 
 
@@ -517,12 +507,12 @@ void FFriendsAndChatManager::RequestFriend( const FText& FriendName )
 void FFriendsAndChatManager::SendFriendRequests()
 {
 	// Invite Friends
-	FOnlineAccountMappingMcpPtr OnlineAccountMappingMcp = OnlineSubMcp->GetMcpAccountMappingService();
+	FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
 	TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 
 	for ( int32 Index = 0; Index < FriendByNameRequests.Num(); Index++ )
 	{
-		OnlineAccountMappingMcp->QueryUserIdFromDisplayName( *UserId, FriendByNameRequests[Index] );
+		OnlinePersonaMcp->QueryUserIdMapping(*UserId, FriendByNameRequests[Index]);
 	}
 }
 
@@ -578,8 +568,14 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 		break;
 	case EFriendsAndManagerState::RequestFriendsListRefresh:
 		{
- 			FriendsInterface->ReadFriendsList( 0, EFriendsLists::ToString( EFriendsLists::Default ) );
-			SetState(EFriendsAndManagerState::RequestingFriendsList);
+ 			if(FriendsInterface->ReadFriendsList( 0, EFriendsLists::ToString( EFriendsLists::Default ) ))
+			{
+				SetState(EFriendsAndManagerState::RequestingFriendsList);
+			}
+			else
+			{
+				SetState(EFriendsAndManagerState::Idle);
+			}
 		}
 		break;
 	case EFriendsAndManagerState::RequestingFriendsList:
@@ -619,29 +615,14 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 
 void FFriendsAndChatManager::SendFriendInviteNotification()
 {
-	check( PendingIncomingInvitesList[ 0 ].IsValid() )
-
-	FString InviteMessage = PendingIncomingInvitesList[ 0 ]->GetName();
-	InviteMessage += LOCTEXT( "FFriendsAndChatManager_InviteRequest", " Requested you as a friend" ).ToString();
-	TSharedPtr< FFriendsAndChatMessage > ChatMessage = MakeShareable( new FFriendsAndChatMessage( InviteMessage, PendingIncomingInvitesList[0]->GetUniqueID() ) );
-	ChatMessage->SetSelfHandle( false );
-	ChatMessage->SetButtonCallback( FOnClicked::CreateSP( this, &FFriendsAndChatManager::HandleMessageAccepted, ChatMessage, EFriendsResponseType::Response_Accept ) );
-	ChatMessage->SetButtonCallback( FOnClicked::CreateSP( this, &FFriendsAndChatManager::HandleMessageAccepted, ChatMessage, EFriendsResponseType::Response_Reject ) );
-	ChatMessage->SetButtonCallback( FOnClicked::CreateSP( this, &FFriendsAndChatManager::HandleMessageAccepted, ChatMessage, EFriendsResponseType::Response_Ignore ) );
-
-	// Only allow one friend notification at a time
-	if ( NotificationMessages.Num() == 0 )
-	{
-		NotificationMessages.Add( ChatMessage );
-		FriendsListNotificationDelegate->Broadcast( ChatMessage.ToSharedRef() );
-	}
-	PendingIncomingInvitesList.RemoveAt( 0 );
+	PendingIncomingInvitesList.Empty();
+	FriendsListNotificationDelegate.Broadcast(true);
 }
 
 
-void FFriendsAndChatManager::OnQueryUserIdFromDisplayNameComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error)
+void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, const FUniqueNetId& RequestingUserId, const FString& DisplayName, const FUniqueNetId& IdentifiedUserId, const FString& Error)
 {
-	check( OnlineSubMcp != nullptr && OnlineSubMcp->GetMcpAccountMappingService().IsValid() );
+	check( OnlineSubMcp != nullptr && OnlineSubMcp->GetMcpPersonaService().IsValid() );
 
 	if ( bWasSuccessful && IdentifiedUserId.IsValid() )
 	{
@@ -713,7 +694,7 @@ void FFriendsAndChatManager::OnReadFriendsListComplete( int32 LocalPlayer, bool 
 			}
 		}
 
-		check( OnlineSubMcp != nullptr && OnlineSubMcp->GetMcpAccountMappingService().IsValid() );
+		check(OnlineSubMcp != nullptr && OnlineSubMcp->GetMcpPersonaService().IsValid());
 		IOnlineUserPtr UserInterface = OnlineSubMcp->GetUserInterface();
 
 		if ( QueryUserIds.Num() > 0 )
@@ -737,7 +718,7 @@ void FFriendsAndChatManager::OnReadFriendsListComplete( int32 LocalPlayer, bool 
 
 void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bWasSuccessful, const TArray< TSharedRef<class FUniqueNetId> >& UserIds, const FString& ErrorStr )
 {
-	check(OnlineSubMcp != nullptr && OnlineSubMcp->GetMcpAccountMappingService().IsValid());
+	check(OnlineSubMcp != nullptr && OnlineSubMcp->GetMcpPersonaService().IsValid());
 	IOnlineUserPtr UserInterface = OnlineSubMcp->GetUserInterface();
 
 	for ( int32 UserIdx=0; UserIdx < UserIds.Num(); UserIdx++ )
@@ -761,6 +742,16 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 	SetState( EFriendsAndManagerState::ProcessFriendsList );
 }
 
+void FFriendsAndChatManager::OnPresenceReceived( const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)
+{
+	for (const auto& Friend : FriendsList)
+	{
+		if( Friend->GetUniqueID().Get() == UserId)
+		{
+			// May need to do something here
+		}
+	}
+}
 
 void FFriendsAndChatManager::OnAcceptInviteComplete( int32 LocalPlayer, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr )
 {
@@ -805,7 +796,6 @@ TSharedRef< FFriendsAndChatManager > FFriendsAndChatManager::Get()
 	if ( !SingletonInstance.IsValid() )
 	{
 		SingletonInstance = MakeShareable( new FFriendsAndChatManager() );
-		SingletonInstance->StartupManager();
 	}
 	return SingletonInstance.ToSharedRef();
 }

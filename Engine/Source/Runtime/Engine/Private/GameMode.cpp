@@ -916,7 +916,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 		}
 	}
 	
-	// Handle short package names (convienience code so that short map names
+	// Handle short package names (convenience code so that short map names
 	// can still be specified in the console).
 	if (FPackageName::IsShortPackageName(NextMap))
 	{

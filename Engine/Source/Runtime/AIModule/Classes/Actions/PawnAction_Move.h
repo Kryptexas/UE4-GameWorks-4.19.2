@@ -4,6 +4,8 @@
 
 #include "PawnAction_Move.generated.h"
 
+class AAIController;
+
 namespace EPawnActionMoveMode
 {
 	enum Type
@@ -60,8 +62,8 @@ public:
 	static UPawnAction_Move* CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode);
 	static UPawnAction_Move* CreateAction(UWorld& World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode);
 
-	static bool CheckAlreadyAtGoal(class AAIController* Controller, const FVector& TestLocation, float Radius);
-	static bool CheckAlreadyAtGoal(class AAIController* Controller, const AActor* TestGoal, float Radius);
+	static bool CheckAlreadyAtGoal(AAIController& Controller, const FVector& TestLocation, float Radius);
+	static bool CheckAlreadyAtGoal(AAIController& Controller, const AActor& TestGoal, float Radius);
 
 	virtual void HandleAIMessage(UBrainComponent*, const struct FAIMessage&) override;
 
@@ -89,7 +91,7 @@ protected:
 	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) override;
 
-	virtual EPathFollowingRequestResult::Type RequestMove(AAIController* Controller);
+	virtual EPathFollowingRequestResult::Type RequestMove(AAIController& Controller);
 	
 	bool PerformMoveAction();
 	void DeferredPerformMoveAction();

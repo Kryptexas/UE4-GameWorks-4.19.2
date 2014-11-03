@@ -121,6 +121,20 @@ public:
 	 */
 	virtual FVector2D GetCursorSize( ) const = 0;
 
+	/** 
+	 * Whether the software cursor is enabled for this application.  
+	 *
+	 * @return software cursor available or not.
+	 */
+	virtual bool GetSoftwareCursorAvailable( ) const = 0;
+
+	/** 
+	 * Gets the desired visibility of the software cursor
+	 *
+	 * @return Software Cursor visibility
+	 */
+	virtual EVisibility GetSoftwareCursorVis( ) const = 0;
+
 	/**
 	 * Gets the application's display metrics.
 	 *

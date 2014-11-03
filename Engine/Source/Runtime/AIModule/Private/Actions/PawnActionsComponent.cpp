@@ -279,14 +279,14 @@ void UPawnActionsComponent::UpdateAILogicLock()
 			if (CurrentAction != NULL && CurrentAction->GetPriority() > EAIRequestPriority::Logic)
 			{
 				UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Locking AI logic"));
-				BrainComp->LockResource(EAILockSource::Script);
+				BrainComp->LockResource(EAIRequestPriority::HardScript);
 				bLockedAILogic = true;
 			}
 			else if (bLockedAILogic)
 			{
 				UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Clearing AI logic lock"));
 				bLockedAILogic = false;
-				BrainComp->ClearResourceLock(EAILockSource::Script);
+				BrainComp->ClearResourceLock(EAIRequestPriority::HardScript);
 				if (BrainComp->IsResourceLocked() == false)
 				{
 					UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Reseting AI logic"));

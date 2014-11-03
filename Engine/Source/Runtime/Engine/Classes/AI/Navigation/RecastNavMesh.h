@@ -91,7 +91,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	FORCEINLINE void SetWantsPathCorridor(const bool bNewWantsPathCorridor) { bWantsPathCorridor = bNewWantsPathCorridor; }
 	FORCEINLINE bool WantsPathCorridor() const { return bWantsPathCorridor; }
 	
-	FORCEINLINE const TArray<FNavigationPortalEdge>* GetPathCorridorEdges() const { return bCorridorEdgesGenerated ? &PathCorridorEdges : GeneratePathCorridorEdges(); }
+	FORCEINLINE const TArray<FNavigationPortalEdge>& GetPathCorridorEdges() const { return bCorridorEdgesGenerated ? PathCorridorEdges : GeneratePathCorridorEdges(); }
 	FORCEINLINE void SetPathCorridorEdges(const TArray<FNavigationPortalEdge>& InPathCorridorEdges) { PathCorridorEdges = InPathCorridorEdges; bCorridorEdgesGenerated = true; }
 
 	FORCEINLINE void OnPathCorridorUpdated() { bCorridorEdgesGenerated = false; }
@@ -143,6 +143,10 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 
 	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const override;
+	virtual bool DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const override;
+private:
+	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const;
+public:
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
@@ -163,7 +167,7 @@ protected:
 	/** it's only const to be callable in const environment. It's not supposed to be called directly externally anyway,
 	 *	just as part of retrieving corridor on demand or generating it in internal processes. It fills a mutable
 	 *	array. */
-	const TArray<FNavigationPortalEdge>* GeneratePathCorridorEdges() const;
+	const TArray<FNavigationPortalEdge>& GeneratePathCorridorEdges() const;
 
 public:
 	

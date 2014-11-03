@@ -19,6 +19,8 @@
 
 #include "TestLogger.h"
 
+#include "AITypes.h"
+
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 #include "BehaviorTree/BlackboardData.h"
 

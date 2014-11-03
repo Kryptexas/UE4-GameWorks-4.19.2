@@ -19,7 +19,7 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemMcp.h"
 #include "OnlineFriendsInterface.h"
-#include "OnlineAccountMappingMcp.h"
+#include "OnlinePersonaMcp.h"
 #include "OnlineUserInterface.h"
 #include "OnlineMessageInterface.h"
 #include "FriendListItems.h"

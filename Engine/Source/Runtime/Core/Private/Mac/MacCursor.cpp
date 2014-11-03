@@ -172,6 +172,7 @@ void FMacCursor::SetPosition( const int32 X, const int32 Y )
 void FMacCursor::SetType( const EMouseCursor::Type InNewCursor )
 {
 	check( InNewCursor < EMouseCursor::TotalCursorCount );
+	CurrentType = InNewCursor;
 	CurrentCursor = CursorHandles[InNewCursor];
 	if( CurrentCursor )
 	{

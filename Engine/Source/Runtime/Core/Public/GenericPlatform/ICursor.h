@@ -79,6 +79,9 @@ public:
 	/** Sets the cursor */
 	virtual void SetType( const EMouseCursor::Type InNewCursor ) = 0;
 
+	/** Gets the current type of the cursor */
+	virtual EMouseCursor::Type GetType() const = 0;
+
 	/** Gets the size of the cursor */
 	virtual void GetSize( int32& Width, int32& Height ) const = 0;
 
