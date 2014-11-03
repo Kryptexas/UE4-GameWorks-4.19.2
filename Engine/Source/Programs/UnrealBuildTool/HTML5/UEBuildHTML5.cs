@@ -80,6 +80,10 @@ namespace UnrealBuildTool
 			{
 				return SDKStatus.Invalid;
             }
+			if (!HTML5SDKInfo.IsSDKInstalled())
+			{
+				return SDKStatus.Invalid;
+			}
             try
             {
                 if (HTML5SDKInfo.EmscriptenVersion().Contains(ExpectedSDKVersion))

@@ -139,15 +139,7 @@ namespace UnrealBuildTool
 
         public static bool IsSDKInstalled()
         {
-            try 
-            {
-                EmscriptenVersion();
-                return true; 
-            }
-            catch (Exception /*ex*/ )
-            {
-                return false; 
-            }
+			return File.Exists(GetVersionInfoPath());
         }
 
         public static bool IsPythonInstalled()
@@ -159,11 +151,16 @@ namespace UnrealBuildTool
 
         public static string EmscriptenVersion()
         {
-            string BaseSDKPath = HTML5SDKInfo.EmscriptenSDKPath(); 
-            string VersionInfo = File.ReadAllText( Path.Combine(BaseSDKPath,"emscripten-version.txt"));
+            string VersionInfo = File.ReadAllText(GetVersionInfoPath());
             VersionInfo = VersionInfo.Trim();
             return VersionInfo; 
         }
+
+		static string GetVersionInfoPath()
+		{
+            string BaseSDKPath = HTML5SDKInfo.EmscriptenSDKPath(); 
+            return Path.Combine(BaseSDKPath,"emscripten-version.txt");
+		}
     }
 }
  
