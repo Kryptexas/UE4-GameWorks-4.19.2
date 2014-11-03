@@ -417,6 +417,8 @@ public:
 
 	void AllocLightAttenuation();
 
+	void AllocateReflectionTargets();
+
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
 private: // Get...() methods instead of direct access
@@ -535,8 +537,6 @@ private:
 
 	/** Allocates render targets for use with the current shading path. */
 	void AllocateRenderTargets();
-
-	void AllocateReflectionTargets();
 
 	/** Allocates common depth render targets that are used by both forward and deferred rendering paths */
 	void AllocateCommonDepthTargets();
