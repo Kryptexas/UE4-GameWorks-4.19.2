@@ -80,6 +80,7 @@ public:
 		: _CompositeFontEditor(nullptr)
 		, _Typeface(nullptr)
 		, _TypefaceDisplayName()
+		, _OnDisplayNameCommitted()
 		, _HeaderContent()
 		, _BodyContent()
 		{}
@@ -92,6 +93,9 @@ public:
 
 		/** Name to show in the UI for this typeface */
 		SLATE_ATTRIBUTE(FText, TypefaceDisplayName)
+
+		/** Callback to use when the display name is committed (if not set, the display name will be read-only) */
+		SLATE_EVENT(FOnTextCommitted, OnDisplayNameCommitted)
 
 		/** Slot for extra content to place in the header bar (optional) */
 		SLATE_NAMED_SLOT(FArguments, HeaderContent)
@@ -255,7 +259,6 @@ public:
 		: _CompositeFontEditor(nullptr)
 		, _SubTypeface()
 		, _ParentTypeface(nullptr)
-		, _TypefaceDisplayName()
 		, _OnDeleteSubFontFamily()
 		{}
 
@@ -267,9 +270,6 @@ public:
 
 		/** Parent typeface to inherit font slots from (may be invalid, or change in response to an undo/redo) */
 		SLATE_ATTRIBUTE(const FTypeface*, ParentTypeface)
-
-		/** Name to show in the UI for this typeface */
-		SLATE_ATTRIBUTE(FText, TypefaceDisplayName)
 
 		/** Called when this typeface entry should be deleted */
 		SLATE_EVENT(FOnDeleteSubFontFamily, OnDeleteSubFontFamily)
@@ -285,6 +285,12 @@ public:
 private:
 	/** Get the typeface used by this sub-typeface */
 	FTypeface* GetTypeface() const;
+
+	/** Get the display name of this sub-font family */
+	FText GetDisplayName() const;
+
+	/** Set the display name of this sub-font family */
+	void OnDisplayNameCommitted(const FText& InNewName, ETextCommit::Type InCommitType);
 
 	/** Get the visibility of the "Add Font Override" combo button */
 	EVisibility GetAddFontOverrideVisibility() const;
