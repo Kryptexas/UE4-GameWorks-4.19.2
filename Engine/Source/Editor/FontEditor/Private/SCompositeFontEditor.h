@@ -135,8 +135,8 @@ private:
 	/** Internal list of font pointers for the list view (generated from TypefacePtr->Fonts) */
 	TArray<FTypefaceListViewEntryPtr> TypefaceEntries;
 
-	/** List view widget showing the font entries (uses TypefaceEntries as its source) */
-	TSharedPtr<SListView<FTypefaceListViewEntryPtr>> TypefaceEntriesListView;
+	/** Tile view widget showing the font entries (uses TypefaceEntries as its source) */
+	TSharedPtr<STileView<FTypefaceListViewEntryPtr>> TypefaceEntriesTileView;
 };
 
 class STypefaceEntryEditor : public SCompoundWidget
@@ -194,7 +194,13 @@ private:
 	bool OnTypefaceEntryChanged(const FText& InNewName, FText& OutFailureReason) const;
 
 	/** Get the current font filename of this typeface entry */
-	FString GetTypefaceEntryFontFilePath() const;
+	FText GetTypefaceEntryFontFilePath() const;
+
+	/** Get the current font leafname of this typeface entry */
+	FText GetTypefaceEntryFontLeafname() const;
+
+	/** Open a file picker to let you pick a new font file */
+	FReply OnBrowseTypefaceEntryFontPath();
 
 	/** Set the current font filename (and associated font data) */
 	void OnTypefaceEntryFontPathPicked(const FString& InNewFontFilename);

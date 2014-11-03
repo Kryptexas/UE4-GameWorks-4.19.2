@@ -169,9 +169,60 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		// Erase with our background color
 		Canvas->Clear( BackgroundColor);
 
+		static const FVector2D StartPos(4.0f, 4.0f);
+
 		// And draw the text with the foreground color
-		FCanvasTextItem TextItem( FVector2D::ZeroVector, PreviewText, Font, FLinearColor(ForegroundColor) );
-		Canvas->DrawItem( TextItem );		
+		if (Font->FontCacheType == EFontCacheType::Runtime && Font->CompositeFont.DefaultTypeface.Fonts.Num() > 0)
+		{
+			static const float FontScale = 1.0f;
+
+			TSharedRef<FSlateFontCache> FontCache = FSlateApplication::Get().GetRenderer()->GetFontCache();
+			TSharedRef<FSlateFontMeasure> FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+
+			FVector2D CurPos = StartPos;
+			float WidestName = 0.0f;
+
+			// Draw and measure each name so we can work out where to start drawing the preview text column
+			for (const FTypefaceEntry& TypefaceEntry : Font->CompositeFont.DefaultTypeface.Fonts)
+			{
+				const FSlateFontInfo FontInfo(Font, Font->LegacyFontSize, TypefaceEntry.Name);
+
+				FCharacterList& CharacterList = FontCache->GetCharacterList(FontInfo, FontScale);
+				const int32 MaxCharHeight = CharacterList.GetMaxHeight();
+
+				const FText EntryNameText = FText::FromName(TypefaceEntry.Name);
+
+				FCanvasTextItem TextItem(CurPos, EntryNameText, FontInfo, FLinearColor(ForegroundColor));
+				Canvas->DrawItem(TextItem);
+
+				const FVector2D MeasuredText = FontMeasure->Measure(EntryNameText, FontInfo, FontScale);
+				WidestName = FMath::Max(WidestName, MeasuredText.X);
+
+				CurPos.Y += MaxCharHeight;
+			}
+
+			CurPos = FVector2D(WidestName + 12.0f, StartPos.Y);
+
+			// Draw the preview text using each of the default fonts
+			for (const FTypefaceEntry& TypefaceEntry : Font->CompositeFont.DefaultTypeface.Fonts)
+			{
+				const FSlateFontInfo FontInfo(Font, Font->LegacyFontSize, TypefaceEntry.Name);
+
+				FCharacterList& CharacterList = FontCache->GetCharacterList(FontInfo, FontScale);
+				const int32 MaxCharHeight = CharacterList.GetMaxHeight();
+
+				FCanvasTextItem TextItem(CurPos, PreviewText, FontInfo, FLinearColor(ForegroundColor));
+				Canvas->DrawItem(TextItem);
+
+				CurPos.Y += MaxCharHeight;
+			}
+		}
+		else
+		{
+			FCanvasTextItem TextItem(StartPos, PreviewText, Font, FLinearColor(ForegroundColor));
+			TextItem.BlendMode = (Font->ImportOptions.bUseDistanceFieldAlpha) ? SE_BLEND_TranslucentDistanceField : SE_BLEND_Translucent;
+			Canvas->DrawItem(TextItem);
+		}
 	}
 }
 
