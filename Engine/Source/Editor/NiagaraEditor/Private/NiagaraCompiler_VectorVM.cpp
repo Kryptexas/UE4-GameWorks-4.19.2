@@ -180,7 +180,7 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	check(InScript);
 
 	Script = InScript;
-	UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
+	Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
 
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
 	UEdGraph* UpdateGraph = FEdGraphUtilities::CloneGraph(Source->UpdateGraph, Source, &MessageLog, true);

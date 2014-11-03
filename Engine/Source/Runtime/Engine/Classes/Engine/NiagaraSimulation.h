@@ -37,7 +37,7 @@ struct FNiagaraEmitterProperties
 {
 	GENERATED_USTRUCT_BODY()
 public:
-	FNiagaraEmitterProperties() : RenderModuleType(RMT_Sprites)
+	FNiagaraEmitterProperties() : RenderModuleType(RMT_Sprites), Material(nullptr), SpawnRate(50), UpdateScript(nullptr), SpawnScript(nullptr), bIsEnabled(true)
 	{
 	}
 
@@ -63,8 +63,8 @@ public:
 struct FNiagaraSimulation
 {
 public:
-	explicit FNiagaraSimulation(FNiagaraEmitterProperties *InProps);
-	FNiagaraSimulation(FNiagaraEmitterProperties &Props, ERHIFeatureLevel::Type InFeatureLeve);
+	explicit ENGINE_API FNiagaraSimulation(FNiagaraEmitterProperties *InProps);
+	ENGINE_API FNiagaraSimulation(FNiagaraEmitterProperties *Props, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FNiagaraSimulation()
 	{}
 

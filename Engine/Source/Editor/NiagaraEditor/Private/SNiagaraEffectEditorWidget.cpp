@@ -52,6 +52,15 @@ void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 	*/
 
 	EffectObj = InArgs._EffectObj;
+	if (InArgs._EffectInstance)
+	{
+		EffectInstance = InArgs._EffectInstance;
+	}
+	else
+	{
+		EffectInstance = new FNiagaraEffectInstance(EffectObj);
+	}
+
 	//bNeedsRefresh = false;
 
 
@@ -112,7 +121,7 @@ void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 					[
 						SAssignNew(ListView, SListView<TSharedPtr<FNiagaraSimulation> >)
 						.ItemHeight(256)
-						.ListItemsSource(&(this->EffectObj->Emitters))
+						.ListItemsSource(&(this->EffectInstance->GetEmitters()))
 						.OnGenerateRow(this, &SNiagaraEffectEditorWidget::OnGenerateWidgetForList)
 					]
 
@@ -152,7 +161,7 @@ void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 				]
 		];
 
-	Viewport->SetPreviewEffect(EffectObj);
+	Viewport->SetPreviewEffect(EffectInstance);
 }
 
 
@@ -164,7 +173,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 	CurSpawnScript = nullptr;
 	CurUpdateScript = nullptr;
 	Emitter = InArgs._Emitter;
-	Effect = InArgs._Effect;
+	EffectInstance = InArgs._Effect;
 	CurMaterial = nullptr;
 
 	ThumbnailPool = MakeShareable(new FAssetThumbnailPool(1, /*InAreRealTileThumbnailsAllowed=*/false));

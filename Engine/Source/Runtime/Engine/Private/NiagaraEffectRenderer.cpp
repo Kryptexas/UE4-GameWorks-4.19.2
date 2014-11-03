@@ -343,7 +343,7 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 		NewVertex.ParticleId = ParticleId;
 		ParticleId += IdInc;
 		NewVertex.RelativeTime = AgePtr[ParticleIndex].X;
-		NewVertex.Size = FVector2D(1.0f, 1.0f);
+		NewVertex.Size = FVector2D(2.0f, 2.0f);
 		NewVertex.Rotation = RotPtr[ParticleIndex].X;
 		NewVertex.SubImageIndex = 0.f;
 

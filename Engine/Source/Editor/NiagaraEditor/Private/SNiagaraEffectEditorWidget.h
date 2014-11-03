@@ -23,7 +23,7 @@ class SEmitterWidget : public SCompoundWidget, public FNotifyHook
 {
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
-	UNiagaraEffect *Effect;
+	FNiagaraEffectInstance *EffectInstance;
 	TSharedPtr<STextBlock> UpdateComboText, SpawnComboText;
 	TSharedPtr<SComboButton> UpdateCombo, SpawnCombo;
 	TSharedPtr<SContentReference> UpdateScriptSelector, SpawnScriptSelector;
@@ -41,7 +41,7 @@ public:
 	{
 	}
 	SLATE_ARGUMENT(TSharedPtr<FNiagaraSimulation>, Emitter)
-	SLATE_ARGUMENT(UNiagaraEffect*, Effect)
+	SLATE_ARGUMENT(FNiagaraEffectInstance*, Effect)
 	SLATE_END_ARGS()
 
 	void OnUpdateScriptSelectedFromPicker(UObject *Asset)
@@ -116,7 +116,7 @@ public:
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			FChangeNiagaraRenderModule,
-			UNiagaraEffect*, InEffect, this->Effect,
+			FNiagaraEffectInstance*, InEffect, this->EffectInstance,
 			TSharedPtr<FNiagaraSimulation>, InEmitter, this->Emitter,
 			EEmitterRenderModuleType, InType, Type,
 		{
@@ -180,6 +180,7 @@ class SNiagaraEffectEditorWidget : public SCompoundWidget, public FNotifyHook
 {
 private:
 	UNiagaraEffect *EffectObj;
+	FNiagaraEffectInstance *EffectInstance;
 
 	/** Notification list to pass messages to editor users  */
 	TSharedPtr<SNotificationList> NotificationListPtr;
@@ -194,7 +195,8 @@ public:
 	{
 	}
 	SLATE_ARGUMENT(UNiagaraEffect*, EffectObj)
-		SLATE_ARGUMENT(TSharedPtr<SWidget>, TitleBar)
+	SLATE_ARGUMENT(TSharedPtr<SWidget>, TitleBar)
+	SLATE_ARGUMENT(FNiagaraEffectInstance*, EffectInstance)
 	SLATE_END_ARGS()
 
 
@@ -220,7 +222,7 @@ public:
 				//.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 				.Padding(2.0f)
 				[
-					SNew(SEmitterWidget).Emitter(InItem).Effect(EffectObj)
+					SNew(SEmitterWidget).Emitter(InItem).Effect(EffectInstance)
 				]
 			];
 	}

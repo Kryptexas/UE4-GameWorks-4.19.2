@@ -557,7 +557,7 @@ void UActorFactoryNiagara::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	NiagaraActor->GetNiagaraComponent()->UnregisterComponent();
 
 	// Change properties
-	NiagaraActor->GetNiagaraComponent()->Effect = Effect;
+	NiagaraActor->GetNiagaraComponent()->SetAsset(Effect);
 
 	// if we're created by Kismet on the server during gameplay, we need to replicate the emitter
 	if (NiagaraActor->GetWorld()->HasBegunPlay() && NiagaraActor->GetWorld()->GetNetMode() != NM_Client)
@@ -577,7 +577,7 @@ UObject* UActorFactoryNiagara::GetAssetFromActorInstance(AActor* Instance)
 	ANiagaraActor* NewActor = CastChecked<ANiagaraActor>(Instance);
 	if (NewActor->GetNiagaraComponent())
 	{
-		return NewActor->GetNiagaraComponent()->Effect;
+		return NewActor->GetNiagaraComponent()->GetAsset();
 	}
 	else
 	{
@@ -591,7 +591,7 @@ void UActorFactoryNiagara::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 	{
 		UNiagaraEffect* Effect = CastChecked<UNiagaraEffect>(Asset);
 		ANiagaraActor* Actor = CastChecked<ANiagaraActor>(CDO);
-		Actor->GetNiagaraComponent()->Effect = Effect;
+		Actor->GetNiagaraComponent()->SetAsset(Effect);
 	}
 }
 

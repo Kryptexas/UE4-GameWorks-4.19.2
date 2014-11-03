@@ -13,20 +13,11 @@ UNiagaraEffect::UNiagaraEffect(const FObjectInitializer& ObjectInitializer)
 
 
 
-TSharedPtr<FNiagaraSimulation> UNiagaraEffect::AddEmitter()
+FNiagaraEmitterProperties &UNiagaraEffect::AddEmitterProperties()
 {
 	FNiagaraEmitterProperties Props;
 	EmitterProps.Add(Props);
-
-	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(new FNiagaraSimulation(&EmitterProps.Top()));
-
-	Sim->SetRenderModuleType(RMT_Sprites, Component->GetWorld()->FeatureLevel);
-	Emitters.Add(Sim);
-
-	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
-	SceneProxy->UpdateEffectRenderers(this);
-
-	return Sim;
+	return EmitterProps.Top();
 }
 
 
@@ -35,12 +26,19 @@ TSharedPtr<FNiagaraSimulation> UNiagaraEffect::AddEmitter()
 void UNiagaraEffect::PostLoad()
 {
 	Super::PostLoad();
+}
 
-	Emitters.Empty();
 
-	for (FNiagaraEmitterProperties &Props : EmitterProps)
-	{
-		FNiagaraSimulation *Sim = new FNiagaraSimulation(&Props);
-		Emitters.Add(MakeShareable(Sim));
-	}
+
+
+
+void FNiagaraEffectInstance::AddEmitter(FNiagaraEmitterProperties *Properties)
+{
+	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(new FNiagaraSimulation(Properties));
+
+	Sim->SetRenderModuleType(RMT_Sprites, Component->GetWorld()->FeatureLevel);
+	Emitters.Add(Sim);
+	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
+	SceneProxy->UpdateEffectRenderers(this);
+
 }

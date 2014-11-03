@@ -89,17 +89,19 @@ UCLASS()
 class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
-
-	UPROPERTY(EditAnywhere, Category = NiagaraComponent)
-	class UNiagaraEffect *Effect;
+private:
+	UPROPERTY()
+	//class UNiagaraEffect *Effect;
+	class UNiagaraEffect *Asset;
+	class FNiagaraEffectInstance *EffectInstance;
 
 	// Begin UActorComponent interface.
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister()  override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 public:
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End UActorComponent interface.
 
 	// Begin UPrimitiveComponent Interface
@@ -107,6 +109,12 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent Interface
+
+	void SetAsset(UNiagaraEffect *InAsset);
+	UNiagaraEffect *GetAsset() const { return Asset; }
+
+	FNiagaraEffectInstance *GetEffectInstance()	const { return EffectInstance; }
+	void SetEffectInstance(FNiagaraEffectInstance *InInstance)	{ EffectInstance = InInstance; }
 
 	// Begin UObject interface.
 #if WITH_EDITOR
@@ -134,7 +142,7 @@ public:
 	void SetDynamicData_RenderThread(struct FNiagaraDynamicDataBase* NewDynamicData);
 	TArray<class NiagaraEffectRenderer*> &GetEffectRenderers() { return EffectRenderers; }
 	void AddEffectRenderer(NiagaraEffectRenderer *Renderer)	{ EffectRenderers.Add(Renderer); }
-	ENGINE_API void UpdateEffectRenderers(UNiagaraEffect *InEffect);
+	ENGINE_API void UpdateEffectRenderers(FNiagaraEffectInstance *InEffect);
 
 private:
 	void ReleaseRenderThreadResources();

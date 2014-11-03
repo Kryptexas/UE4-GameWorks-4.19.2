@@ -97,7 +97,7 @@ FLinearColor FNiagaraEffectEditor::GetWorldCentricTabColorScale() const
 TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(UNiagaraEffect* InEffect)
 {
 	check(InEffect != NULL);
-	
+	EffectInstance = new FNiagaraEffectInstance(InEffect);
 	
 	if (!EditorCommands.IsValid())
 	{
@@ -107,8 +107,6 @@ TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(
 	// Create the appearance info
 	FGraphAppearanceInfo AppearanceInfo;
 	AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "NIAGARA").ToString();
-
-	//SGraphEditor::FGraphEditorEvents InEvents;
 
 	// Make title bar
 	TSharedRef<SWidget> TitleBarWidget =
@@ -127,12 +125,10 @@ TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(
 			]
 		];
 
-	// make preview pane
-	
 		
 		
 	// Make the effect editor widget
-	return SNew(SNiagaraEffectEditorWidget).TitleBar(TitleBarWidget).EffectObj(InEffect);
+	return SNew(SNiagaraEffectEditorWidget).TitleBar(TitleBarWidget).EffectObj(InEffect).EffectInstance(EffectInstance);
 }
 
 
@@ -212,8 +208,9 @@ FReply FNiagaraEffectEditor::OnAddEmitterClicked()
 {
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 
-	Effect->AddEmitter();
-	UpdateEditorPtr.Pin()->GetViewport()->SetPreviewEffect(Effect);
+	FNiagaraEmitterProperties &Props = Effect->AddEmitterProperties();
+	EffectInstance->AddEmitter(&Props);
+	UpdateEditorPtr.Pin()->GetViewport()->SetPreviewEffect(EffectInstance);
 	UpdateEditorPtr.Pin()->UpdateList();
 	return FReply::Handled();
 }

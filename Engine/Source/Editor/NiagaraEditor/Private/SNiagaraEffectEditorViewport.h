@@ -24,7 +24,7 @@ public:
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	void RefreshViewport();
 	
-	void SetPreviewEffect(UNiagaraEffect* InEffect);
+	void SetPreviewEffect(FNiagaraEffectInstance* InEffect);
 	
 	void ToggleRealtime();
 	

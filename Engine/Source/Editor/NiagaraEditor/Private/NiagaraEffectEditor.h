@@ -46,7 +46,9 @@ private:
 
 	/* The Effect being edited */
 	UNiagaraEffect	*Effect;
-	
+	class FNiagaraEffectInstance *EffectInstance;
+
+
 	/** The command list for this editor */
 	TSharedPtr<FUICommandList> EditorCommands;
 

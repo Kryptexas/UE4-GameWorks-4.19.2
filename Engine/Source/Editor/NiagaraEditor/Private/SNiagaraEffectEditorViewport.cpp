@@ -141,7 +141,7 @@ void SNiagaraEffectEditorViewport::Tick(const FGeometry& AllottedGeometry, const
 
 
 
-void SNiagaraEffectEditorViewport::SetPreviewEffect(UNiagaraEffect *InPreviewEffect)
+void SNiagaraEffectEditorViewport::SetPreviewEffect(FNiagaraEffectInstance *InPreviewEffect)
 {
 	check( PreviewComponent );
 
@@ -150,8 +150,8 @@ void SNiagaraEffectEditorViewport::SetPreviewEffect(UNiagaraEffect *InPreviewEff
 	PreviewScene.AddComponent(PreviewComponent, Transform);
 
 	FComponentReregisterContext ReregisterContext(PreviewComponent);
-	PreviewComponent->Effect = InPreviewEffect;
-	PreviewComponent->Effect->Init(PreviewComponent);
+	PreviewComponent->SetEffectInstance(InPreviewEffect);
+	PreviewComponent->GetEffectInstance()->Init(PreviewComponent);
 }
 
 
