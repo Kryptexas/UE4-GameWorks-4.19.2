@@ -130,7 +130,7 @@ void SGraphNodeDocumentation::UpdateGraphNode()
 	TSharedPtr<SWidget> DocumentationPage = CreateDocumentationPage();
 
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
-	ChildSlot
+	GetOrAddSlot( ENodeZone::Center )
 	.HAlign( HAlign_Center )
 	.VAlign( VAlign_Center )
 	[

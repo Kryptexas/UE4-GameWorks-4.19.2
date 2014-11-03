@@ -1,0 +1,138 @@
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+DECLARE_DELEGATE_RetVal( bool, FIsGraphNodeHovered );
+
+class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS( SCommentBubble )
+		: _GraphNode( NULL )
+		, _ColorAndOpacity( FLinearColor::White )
+		, _AllowPinning( false )
+		, _EnableTitleBarBubble( false )
+		, _EnableBubbleCtrls( false )
+		, _GraphLOD( EGraphRenderingLOD::DefaultDetail )
+	{}
+
+		/** the GraphNode this bubble should interact with */
+		SLATE_ARGUMENT( UEdGraphNode*, GraphNode )
+
+		/** The comment text for the bubble */
+		SLATE_ATTRIBUTE( FString, Text )
+
+		/** Color and opacity for the comment bubble */
+		SLATE_ATTRIBUTE( FSlateColor, ColorAndOpacity )
+
+		/** Allow bubble to be pinned */
+		SLATE_ARGUMENT( bool, AllowPinning )
+
+		/** Enable the title bar bubble to toggle */
+		SLATE_ARGUMENT( bool, EnableTitleBarBubble )
+
+		/** Enable the controls within the bubble */
+		SLATE_ARGUMENT( bool, EnableBubbleCtrls )
+
+		/** The current level of detail */
+		SLATE_ATTRIBUTE( EGraphRenderingLOD::Type, GraphLOD )
+
+		/** Delegate to determine if the parent node is in the hovered state. */
+		SLATE_EVENT( FIsGraphNodeHovered, IsGraphNodeHovered )
+
+	SLATE_END_ARGS()
+
+	/**
+	 * Construct this widget.  Called by the SNew() Slate macro.
+	 *
+	 * @param	InArgs				Declaration used by the SNew() macro to construct this widget
+	 */
+	void Construct( const FArguments& InArgs );
+
+
+	// Begin SWidget interface
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	// End SWidget Interface
+
+	/** Returns the offset from the SNode center slot */
+	FVector2D GetOffset() const;
+
+	/** Returns the bubble size */
+	FVector2D GetSize() const;
+
+	/** Returns if comment bubble is visible */
+	bool IsBubbleVisible() const;
+
+	/** Returns if graph scaling can be applied to this bubble */
+	bool IsScalingAllowed() const;
+
+	/** Called to display/hide the comment bubble */
+	void OnCommentBubbleToggle( ESlateCheckBoxState::Type State );
+
+	/** Called when a node's comment bubble pinned state is changed */
+	void OnPinStateToggle( ESlateCheckBoxState::Type State ) const;
+
+protected:
+
+	/** Called to update the bubble widget layout */
+	void UpdateBubble();
+
+	/** Returns the current comment text, converting from FString into FText */
+	FText GetCommentText() const;
+
+	/** Returns the current scale button tooltip */
+	FText GetScaleButtonTooltip() const;
+
+	/** Called to determine if the comment bubble's current visibility */
+	EVisibility GetBubbleVisibility() const;
+
+	/** Called to determine if the toggle button's current visibility */
+	EVisibility GetToggleButtonVisibility() const;
+
+	/** Returns the color for the toggle bubble including the opacity value */
+	FSlateColor GetToggleButtonColour() const;
+
+	/** Called when the comment text is committed */
+	void OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
+
+	/** Called when a node's comment bubble visibility state is changed */
+	void OnNodeBubbleVisibilityChange( UEdGraphNode* NodeBeingChanged, bool bIsVisible );
+
+protected:
+
+	/** The GraphNode this widget interacts with */
+	UEdGraphNode* GraphNode;
+	/** Cached inline editable text box */
+	TSharedPtr<SInlineEditableTextBlock> TextBlock;
+
+	/** The Comment Bubble color and opacity value */
+	TAttribute<FSlateColor> ColorAndOpacity;
+	/** Attribute to query node comment */
+	TAttribute<FString> CommentAttribute;
+	/** Attribute to query node pinned state */
+	TAttribute<bool> PinnedState;
+	/** Attribute to query node visibility state */
+	TAttribute<bool> VisibilityState;
+	/** Attribute to query current LOD */
+	TAttribute<EGraphRenderingLOD::Type> GraphLOD;
+
+	/** Delegate to determine if the graph node is currently hovered */
+	FIsGraphNodeHovered IsGraphNodeHovered;
+
+	/** Allow pin behaviour */
+	bool bAllowPinning;
+	/** Allow in bubble controls */
+	bool bEnableBubbleCtrls;
+	/** Enable the title bar bubble toggle */
+	bool bEnableTitleBarBubble;
+	/** Used to control the delay on double click selection */
+	float DoubleClickDelayTime;
+	/** Used to Control hover fade up/down for widgets */
+	float OpacityValue;
+	/** Cached comment */
+	mutable FString CachedComment;
+	/** Cached FText version of the comment */
+	mutable FText CachedCommentText;
+};

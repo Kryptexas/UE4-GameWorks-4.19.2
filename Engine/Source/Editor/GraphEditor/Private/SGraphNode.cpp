@@ -748,7 +748,7 @@ void SGraphNode::UpdateGraphNode()
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -793,6 +793,28 @@ void SGraphNode::UpdateGraphNode()
 				]
 			]			
 		];
+
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNode::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 
 	CreateBelowWidgetControls(MainVerticalBox);
 	CreatePinWidgets();
@@ -1163,11 +1185,6 @@ FString SGraphNode::GetErrorMsgToolTip( ) const
 	return GraphNode->ErrorMsg;
 }
 
-bool SGraphNode::ShouldScaleNodeComment() const
-{
-	return true;
-}
-
 bool SGraphNode::IsNameReadOnly() const
 {
 	return !GraphNode->bCanRenameNode;
@@ -1343,4 +1360,9 @@ void SGraphNode::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
 		TagMeta->GUID = GraphNode->NodeGuid;
 		TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString(), *TagMeta->OuterName);		
 	}
+}
+
+EGraphRenderingLOD::Type SGraphNode::GetCurrentLOD() const
+{
+	return OwnerGraphPanelPtr.IsValid() ? OwnerGraphPanelPtr.Pin()->GetCurrentLOD() : EGraphRenderingLOD::DefaultDetail;
 }

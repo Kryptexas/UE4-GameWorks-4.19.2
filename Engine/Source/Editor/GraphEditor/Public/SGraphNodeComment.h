@@ -27,7 +27,8 @@ public:
 
 	// Begin SGraphNode Interface
 	virtual bool IsNameReadOnly() const override;
-	// ENd SGraphNode Interface
+	virtual FSlateColor GetCommentColor() const override { return GetCommentBodyColor(); }
+	// End SGraphNode Interface
 
 	void Construct( const FArguments& InArgs, UEdGraphNode* InNode );
 
@@ -43,7 +44,6 @@ public:
 protected:
 	// SGraphNode Interface
 	virtual void UpdateGraphNode() override;
-	virtual bool ShouldScaleNodeComment()const override;
 	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const override;
 
 	/**

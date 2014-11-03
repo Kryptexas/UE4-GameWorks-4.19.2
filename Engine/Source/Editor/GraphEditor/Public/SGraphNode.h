@@ -111,9 +111,6 @@ public:
 	/** @return the tint for the node's comment */
 	FSlateColor GetNodeCommentColor() const;
 
-	/** @return if node's comment should be effected by scaling of panel(zoom) */
-	virtual bool ShouldScaleNodeComment()const;
-
 	/** @return the tooltip to display when over the node */
 	FText GetNodeTooltip() const;
 	
@@ -195,6 +192,9 @@ public:
 	/** Gets the unscaled position of the node from the last tick */
 	FVector2D GetUnscaledPosition() const {return CachedUnscaledPosition;}
 
+	/** Returns the current Node LOD or Highest LOD if unable to query */
+	EGraphRenderingLOD::Type GetCurrentLOD() const;
+
 protected:
 	SGraphNode();
 
@@ -258,6 +258,9 @@ protected:
 
 	// Should we use low-detail node titles?
 	virtual bool UseLowDetailNodeTitles() const;
+
+	/** Return the desired comment bubble color */
+	virtual FSlateColor GetCommentColor() const { return FLinearColor::White; }
 
 	///// ADVANCED VIEW FUNCTIONS /////
 

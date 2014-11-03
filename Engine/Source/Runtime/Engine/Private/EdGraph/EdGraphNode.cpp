@@ -45,6 +45,8 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 {
 
 #if WITH_EDITORONLY_DATA
+	bCommentBubblePinned = false;
+	bCommentBubbleVisible = false;
 	bCanResizeNode = false;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -252,6 +254,11 @@ void UEdGraphNode::PostLoad()
 	{
 		// Generate new one
 		CreateNewGuid();
+	}
+	// Moving to the new style comments requires conversion to preserve previous state
+	if(GetLinkerUE4Version() < VER_UE4_GRAPH_INTERACTIVE_COMMENTBUBBLES)
+	{
+		bCommentBubbleVisible = !NodeComment.IsEmpty();
 	}
 }
 

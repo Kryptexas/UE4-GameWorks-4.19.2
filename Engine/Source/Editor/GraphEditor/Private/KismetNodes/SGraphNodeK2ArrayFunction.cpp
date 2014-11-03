@@ -70,7 +70,7 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 			.Text(this, &SGraphNodeK2ArrayFunction::GetNodeCompactTitle);
 
 		this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-		this->ChildSlot
+		this->GetOrAddSlot( ENodeZone::Center )
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[

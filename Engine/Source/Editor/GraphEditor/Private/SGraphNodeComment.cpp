@@ -122,7 +122,7 @@ void SGraphNodeComment::UpdateGraphNode()
 
 	bool bIsSet = GraphNode->IsA(UEdGraphNode_Comment::StaticClass());
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
 		[
@@ -179,6 +179,27 @@ void SGraphNodeComment::UpdateGraphNode()
 				]
 			]			
 		];
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNodeComment::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 }
 
 FVector2D SGraphNodeComment::ComputeDesiredSize() const
@@ -319,11 +340,6 @@ FSlateRect SGraphNodeComment::GetHitTestingBorder( float InverseZoomFactor ) con
 FVector2D SGraphNodeComment::GetNodeMaximumSize() const
 {
 	return FVector2D( UserSize.X + 100, UserSize.Y + 100 );
-}
-
-bool SGraphNodeComment::ShouldScaleNodeComment() const 
-{
-	return false;
 }
 
 FSlateColor SGraphNodeComment::GetCommentBodyColor() const

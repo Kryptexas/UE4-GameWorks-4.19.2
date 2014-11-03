@@ -15,6 +15,7 @@
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "IDocumentation.h"
 #include "SInlineEditableTextBlock.h"
+#include "SCommentBubble.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNode_BehaviorTree"
 
@@ -365,7 +366,7 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 		.OnGetIndexColor(this, &SGraphNode_BehaviorTree::GetIndexColor);
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Center)
 		[
@@ -523,6 +524,27 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 				]
 			]
 		];
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNode_BehaviorTree::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 
 	ErrorReporting = ErrorText;
 	ErrorReporting->SetError(ErrorMsg);

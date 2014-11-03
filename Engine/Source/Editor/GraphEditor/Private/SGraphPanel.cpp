@@ -123,8 +123,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	ArrangeChildNodes(AllottedGeometry, ArrangedChildren);
 
 	// Determine some 'global' settings based on current LOD
-	const bool bDrawScaledCommentBubblesThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
-	const bool bDrawUnscaledCommentBubblesThisFrame = GetCurrentLOD() <= EGraphRenderingLOD::MediumDetail;
 	const bool bDrawShadowsThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
 
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
@@ -208,23 +206,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 				// Draw the comments and information popups for this node, if it has any.
 				{
 					float CommentBubbleY = 0.0f;
-
-					const FString NodeComment = ChildNode->GetNodeComment();
-					if (!NodeComment.IsEmpty())
-					{
-						// Comment bubbles have different LOD behavior:
-						//   A comment box comment (bScaleComments=false) will only be shown when zoomed out (the title bar is readable instead when up close)
-						//   A per-node comment (bScaleComments=true) will only be show when zoomed in (it gets too small to read)
-						const bool bScaleComments = ChildNode->ShouldScaleNodeComment();
-						const bool bShowCommentBubble = bScaleComments ? bDrawScaledCommentBubblesThisFrame : bDrawUnscaledCommentBubblesThisFrame;
-
-						if (bShowCommentBubble)
-						{
-							FGeometry CommentGeometry = CurWidget.Geometry.MakeChild(CurWidget.Geometry.Size, FSlateLayoutTransform(bScaleComments ? 1.0f : Inverse(CurWidget.Geometry.Scale)));
-							PaintComment(NodeComment, CommentGeometry, MyClippingRect, OutDrawElements, ChildLayerId, ChildNode->GetNodeCommentColor().GetColor( InWidgetStyle ), /*inout*/ CommentBubbleY, InWidgetStyle);
-						}
-					}
-
 					Context.bSelected = bSelected;
 					TArray<FGraphInformationPopupInfo> Popups;
 

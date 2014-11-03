@@ -640,7 +640,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_PROJECTILE_FRICTION_BEHAVIOR,
 	// Add axis settings enum to MovementComponent.
 	VER_UE4_MOVEMENTCOMPONENT_AXIS_SETTINGS,
-
+	// Switch to new interactive comments, requires boundry conversion to preserve previous states
+	VER_UE4_GRAPH_INTERACTIVE_COMMENTBUBBLES,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

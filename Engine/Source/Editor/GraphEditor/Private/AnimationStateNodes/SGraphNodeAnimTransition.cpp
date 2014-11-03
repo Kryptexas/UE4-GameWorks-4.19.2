@@ -165,7 +165,7 @@ void SGraphNodeAnimTransition::UpdateGraphNode()
 	LeftNodeBox.Reset();
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[

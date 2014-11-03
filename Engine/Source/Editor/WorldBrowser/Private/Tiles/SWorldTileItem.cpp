@@ -153,7 +153,7 @@ void SWorldTileItem::Construct(const FArguments& InArgs)
 
 	TileModel->ChangedEvent.AddSP(this, &SWorldTileItem::RequestRefresh);
 			
-	ChildSlot
+	GetOrAddSlot( ENodeZone::Center )
 	[
 		ThumbnailViewport.ToSharedRef()
 	];

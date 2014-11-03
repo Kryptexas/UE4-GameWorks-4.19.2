@@ -127,6 +127,14 @@ class ENGINE_API UEdGraphNode : public UObject
 	UPROPERTY()
 	FString NodeComment;
 
+	/** Comment bubble pinned state */
+	UPROPERTY()
+	bool bCommentBubblePinned;
+
+	/** Comment bubble visibility */
+	UPROPERTY()
+	bool bCommentBubbleVisible;
+
 	/** Flag to store node specific compile error/warning*/
 	UPROPERTY()
 	int32 ErrorType;

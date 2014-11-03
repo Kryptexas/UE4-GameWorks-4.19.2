@@ -24,6 +24,8 @@ UEdGraphNode_Comment::UEdGraphNode_Comment(const FObjectInitializer& ObjectIniti
 	bColorCommentBubble = false;
 	MoveMode = ECommentBoxMode::GroupMovement;
 
+	bCommentBubblePinned = true;
+	bCommentBubbleVisible = true;
 	bCanResizeNode = true;
 	bCanRenameNode = true;
 }
