@@ -281,12 +281,15 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 	// Calculate transform for the instance
 	FTransform InstanceToWorld = InNewInstance.GetInstanceWorldTransform();
 
+	// Bounds of the new instance
+	FBoxSphereBounds InstanceWorldBounds = InSettings->GetStaticMesh()->GetBounds().TransformBy(InstanceToWorld);
+
 	if (BestCluster == nullptr)
 	{
 		BestClusterIndex = InstanceClusters.Num();
 		BestCluster = new(InstanceClusters)FFoliageInstanceCluster(
 			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(), InIFA, NAME_None, RF_Transactional),
-			InSettings->GetStaticMesh()->GetBounds().TransformBy(InstanceToWorld)
+			InstanceWorldBounds
 			);
 
 		BestCluster->ClusterComponent->Mobility = EComponentMobility::Static;
@@ -319,6 +322,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 	{
 		BestCluster->ClusterComponent->Modify();
 		BestCluster->ClusterComponent->InvalidateLightingCache();
+		BestCluster->Bounds = BestCluster->Bounds + InstanceWorldBounds;
 	}
 
 	BestCluster->InstanceIndices.Add(InstanceIndex);
@@ -333,9 +337,6 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 	{
 		BestCluster->ClusterComponent->SelectedInstances.Add(false);
 	}
-
-	// Update the bounds for the cluster
-	BestCluster->Bounds = BestCluster->ClusterComponent->CalcBounds(BestCluster->ClusterComponent->ComponentToWorld);
 
 	// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
 	// it is based on the center of the component's bounds.
