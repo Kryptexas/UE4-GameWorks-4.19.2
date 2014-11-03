@@ -5,7 +5,8 @@
 #include "VectorVM.h"
 
 
-FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) : Age(0.0f)
+FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) 
+: Age(0.0f)
 , bIsEnabled(true)
 , SpawnRemainder(0.0f)
 , CachedBounds(ForceInit)
@@ -14,6 +15,11 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) : Age
 	Props = InProps;
 }
 
+FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIFeatureLevel::Type InFeatureLevel)
+:FNiagaraSimulation(InProps)
+{
+	SetRenderModuleType(InProps->RenderModuleType, InFeatureLevel);
+}
 
 void FNiagaraSimulation::Tick(float DeltaSeconds)
 {
