@@ -51,9 +51,20 @@ public:
 
 public:
 
-	/** Updates the scroll offset of the scrollbox */
+	/**
+	 * Updates the scroll offset of the scrollbox.
+	 * @param NewScrollOffset is in Slate Units.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetScrollOffset(float NewScrollOffset);
+
+	/** Scrolls the ScrollBox to the top instantly */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ScrollToStart();
+
+	/** Scrolls the ScrollBox to the bottom instantly during the next layout pass. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ScrollToEnd();
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

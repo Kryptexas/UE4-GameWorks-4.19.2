@@ -96,6 +96,22 @@ void UScrollBox::SetScrollOffset(float NewScrollOffset)
 	}
 }
 
+void UScrollBox::ScrollToStart()
+{
+	if ( MyScrollBox.IsValid() )
+	{
+		MyScrollBox->ScrollToStart();
+	}
+}
+
+void UScrollBox::ScrollToEnd()
+{
+	if ( MyScrollBox.IsValid() )
+	{
+		MyScrollBox->ScrollToEnd();
+	}
+}
+
 void UScrollBox::PostLoad()
 {
 	Super::PostLoad();
