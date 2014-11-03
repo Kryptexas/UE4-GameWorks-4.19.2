@@ -527,6 +527,7 @@ public:
 	TRefCountPtr<IPooledRenderTarget> TemporalAAHistoryRT;
 	// Temporal AA result for DOF of last frame
 	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT;
+	TRefCountPtr<IPooledRenderTarget> DOFHistoryRT2;
 	// Temporal AA result for SSR
 	TRefCountPtr<IPooledRenderTarget> SSRHistoryRT;
 	// Temporal AA result for light shafts of last frame
@@ -549,6 +550,7 @@ public:
 
 	// Is DOFHistoryRT set from Bokeh DOF?
 	bool bBokehDOFHistory;
+	bool bBokehDOFHistory2;
 
 	// call after SetupTemporalAA()
 	uint32 GetCurrentTemporalAASampleIndex() const
@@ -688,6 +690,7 @@ public:
 		SeparateTranslucencyRT.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();
+		DOFHistoryRT2.SafeRelease();
 		SSRHistoryRT.SafeRelease();
 		LightShaftOcclusionHistoryRT.SafeRelease();
 		LightShaftBloomHistoryRTs.Empty();

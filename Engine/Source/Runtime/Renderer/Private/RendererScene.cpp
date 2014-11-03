@@ -59,6 +59,7 @@ FSceneViewState::FSceneViewState()
 	TemporalAASampleCount = 1;
 	AOTileIntersectionResources = NULL;
 	bBokehDOFHistory = true;
+	bBokehDOFHistory2 = true;
 
 	LightPropagationVolume = NULL; 
 
