@@ -34,10 +34,10 @@
 	</div>
 
 	<div id="UserNames">
-		<form action="<%="/Users/Index/" + Model.UserGroup %>" method="POST" id="UserNamesForm" style="text-align: center">
-			<%foreach( string UserName in Model.Users )
-			{%>
-			<span>
+		<%foreach( string UserName in Model.Users )
+		{%>
+		<div>
+			<form action="<%="/Users/Index/" + Model.UserGroup %>" method="POST" id="UserNamesForm" style="text-align: center">
 				<%=UserName%>
 
 				<span id="set-user-group"></span>
@@ -49,9 +49,9 @@
 					<%} %>
 				</select>
 				<br />
-			</span>
-			<% } %>
-		</form>
+			</form>
+		</div>
+		<% } %>
 	</div>
 </asp:Content>
 
