@@ -204,7 +204,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 {
 	check(AbilitySystemComponent.IsValid());
 
-	FScopedPredictionWindow	ScopedPrediction(Ability.Get());
+	FScopedPredictionWindow	ScopedPrediction(Ability.Get(), ShouldReplicateDataToServer());
 	
 	if (ShouldReplicateDataToServer())
 	{

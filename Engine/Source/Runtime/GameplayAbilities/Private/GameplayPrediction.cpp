@@ -205,7 +205,7 @@ FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* Abilit
 
 }
 
-FScopedPredictionWindow::FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance)
+FScopedPredictionWindow::FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance, bool bCanGenerateNewKey)
 {
 	// "Gets" the current/"best" prediction key and sets it as the prediciton key for this given abilities CurrentActivationInfo.
 	//	-On the server, it means we look for the prediction key that was given to us and either stored on the ActivationIfno or on the ScopedPredictionKey.
@@ -242,7 +242,7 @@ FScopedPredictionWindow::FScopedPredictionWindow(UGameplayAbility* GameplayAbili
 			ActivationInfo.ActivationMode = EGameplayAbilityActivationMode::Predicting;
 			ScopedPredictionKey = Owner->ScopedPedictionKey;
 		}
-		else
+		else if(bCanGenerateNewKey)
 		{
 			// We don't have a valid key, so generate a new one.
 			ActivationInfo.GenerateNewPredictionKey();

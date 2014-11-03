@@ -445,7 +445,7 @@ struct FScopedPredictionWindow
 	FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey);
 
 	/** To be called in the callsite where the predictive code will take place. This generates a new PredictionKey and acts as a synchonization point between client and server for that key.  */
-	FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance);
+	FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance, bool CanGenerateNewKey=true);
 
 	~FScopedPredictionWindow();
 
