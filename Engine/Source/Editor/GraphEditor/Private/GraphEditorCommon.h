@@ -12,6 +12,7 @@
 #include "GraphEditorSettings.h"
 #include "SNodePanel.h"
 #include "SGraphPanel.h"
+#include "SCommentBubble.h"
 #include "SGraphNode.h"
 #include "SGraphNodeResizable.h"
 #include "SGraphPin.h"

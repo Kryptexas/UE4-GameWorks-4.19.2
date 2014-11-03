@@ -3,6 +3,7 @@
 #include "GraphEditorCommon.h"
 #include "SCommentBubble.h"
 #include "SInlineEditableTextBlock.h"
+#include "ScopedTransaction.h"
 
 namespace SCommentBubbleDefs
 {
