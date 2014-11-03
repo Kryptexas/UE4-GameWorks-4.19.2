@@ -309,7 +309,7 @@ struct TNumericLimits<double>
 
 	static NumericType Max()
 	{
-		return MIN_dbl;
+		return MAX_dbl;
 	}
 
 	static NumericType Lowest()
