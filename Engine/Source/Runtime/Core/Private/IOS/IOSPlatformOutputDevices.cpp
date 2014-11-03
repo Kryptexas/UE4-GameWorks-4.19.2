@@ -18,6 +18,11 @@ class FOutputDeviceError* FIOSPlatformOutputDevices::GetError()
 	static FOutputDeviceIOSError Singleton;
 	return &Singleton;
 }
+class FOutputDevice*	FIOSPlatformOutputDevices::GetLog()
+{
+    static FOutputDeviceFile Singleton(nullptr, true);
+    return &Singleton;
+}
 
 //class FFeedbackContext*				FIOSPlatformOutputDevices::GetWarn()
 //{
