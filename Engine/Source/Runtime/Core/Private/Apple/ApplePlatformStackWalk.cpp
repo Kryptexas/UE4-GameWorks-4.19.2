@@ -85,7 +85,7 @@ static void AsyncSafeProgramCounterToSymbolInfo( uint64 ProgramCounter, FProgram
 		return;
 	}
 
-#if PLATFORM_MAC // On the Mac the crash report client can resymbolise
+#if PLATFORM_MAC && IS_PROGRAM // On the Mac the crash report client can resymbolise
 	if (DylibInfo.dli_sname)
 	{
 		// Mangled function name
