@@ -6,6 +6,8 @@
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
+#include "HlslLexer.h"
+#include "HlslParser.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -49,13 +51,22 @@ namespace CCT
 		FString HLSLShaderSource;
 		if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
 		{
-			UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file!"));
+			UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
 			return 1;
+		}
+
+		if (RunInfo.bUseNew)
+		{
+			// Assume it's preprocessed
+			////Parser.Parse(TEXT("+-1 * 2 + (3 + -4) + F(5) + G(6,7) + A++ - --B"));
+			//Parser.Parse(TEXT("void X() { a += (b ? 1 : 0); }"));
+			//Parser.Parse(TEXT("void X() { return 5 * 3 + 2; }"));
+			CrossCompiler::Parser::Parse(HLSLShaderSource);
+			//Scanner.Dump();
 		}
 
 		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;
-
 		int Result = HlslCrossCompile(
 			TCHAR_TO_ANSI(*RunInfo.InputFile),
 			TCHAR_TO_ANSI(*HLSLShaderSource),

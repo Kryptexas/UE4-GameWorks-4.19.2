@@ -1,5 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// HlslLexer.h - Interface for scanning & tokenizing hlsl
+// HlslLexer.cpp - Implementation for scanning & tokenizing hlsl
 
 
 #include "ShaderCompilerCommon.h"
@@ -39,6 +39,11 @@ namespace CrossCompiler
 		return Char >= '0' && Char <= '9';
 	}
 
+	static FORCEINLINE bool IsHexDigit(TCHAR Char)
+	{
+		return IsDigit(Char) || (Char >= 'a' && Char <= 'f') || (Char >= 'A' && Char <= 'F');
+	}
+
 	static FORCEINLINE bool IsAlphaOrDigit(TCHAR Char)
 	{
 		return IsAlpha(Char) || IsDigit(Char);
@@ -53,11 +58,6 @@ namespace CrossCompiler
 	};
 	typedef TMap<TCHAR, FKeywordToken> TCharKeywordTokenMap;
 	TCharKeywordTokenMap Keywords;
-
-/*
-	typedef TMap<TCHAR, EHlslToken> TCharTokenMap;
-	typedef TMap<TCHAR, TCharTokenMap > TCharCharTokenMap;
-	TCharCharTokenMap SymbolTokens;*/
 
 	static void InsertToken(const TCHAR* String, EHlslToken Token)
 	{
@@ -81,45 +81,76 @@ namespace CrossCompiler
 		}
 	}
 
-	static bool MatchSymbolToken(const TCHAR*& String, EHlslToken& OutToken)
+	static bool MatchSymbolToken(const TCHAR* InString, const TCHAR** OutString, EHlslToken& OutToken, FString* OutTokenString, bool bGreedy)
 	{
-		const TCHAR* OriginalString = String;
-		FKeywordToken* Found = Keywords.Find(*String);
+		const TCHAR* OriginalString = InString;
+		FKeywordToken* Found = Keywords.Find(*InString);
+
+		if (OutString)
+		{
+			*OutString = OriginalString;
+		}
+
 		if (!Found)
 		{
-			String = OriginalString;
 			return false;
 		}
 
 		do
 		{
-			++String;
+			++InString;
 			if (Found->Map)
 			{
 				auto* Map = (TCharKeywordTokenMap*)Found->Map;
-				FKeywordToken* NewFound = Map->Find(*String);
+				FKeywordToken* NewFound = Map->Find(*InString);
 				if (!NewFound)
 				{
 					if (Found->Current != EHlslToken::Invalid)
 					{
-						OutToken = Found->Current;
-						return true;
+						// Don't early out on a partial match (e.g., Texture1DSample should not be 2 tokens)
+						if (!bGreedy || !*InString)
+						{
+							OutToken = Found->Current;
+							if (OutTokenString)
+							{
+								*OutTokenString = TEXT("");
+								OutTokenString->AppendChars(OriginalString, InString - OriginalString);
+							}
+
+							if (OutString)
+							{
+								*OutString = InString;
+							}
+							return true;
+						}
 					}
 
-					String = OriginalString;
 					return false;
 				}
 				Found = NewFound;
 			}
+			else if (bGreedy && *InString)
+			{
+				break;
+			}
 			else
 			{
 				OutToken = Found->Current;
+				if (OutTokenString)
+				{
+					*OutTokenString = TEXT("");
+					OutTokenString->AppendChars(OriginalString, InString - OriginalString);
+				}
+
+				if (OutString)
+				{
+					*OutString = InString;
+				}
 				return true;
 			}
 		}
-		while (*String);
+		while (*InString);
 
-		String = OriginalString;
 		return false;
 	}
 
@@ -127,10 +158,15 @@ namespace CrossCompiler
 	{
 		// Math
 		InsertToken(TEXT("+"), EHlslToken::Plus);
+		InsertToken(TEXT("+="), EHlslToken::PlusEqual);
 		InsertToken(TEXT("-"), EHlslToken::Minus);
+		InsertToken(TEXT("-="), EHlslToken::MinusEqual);
 		InsertToken(TEXT("*"), EHlslToken::Times);
+		InsertToken(TEXT("*="), EHlslToken::TimesEqual);
 		InsertToken(TEXT("/"), EHlslToken::Div);
+		InsertToken(TEXT("/="), EHlslToken::DivEqual);
 		InsertToken(TEXT("%"), EHlslToken::Mod);
+		InsertToken(TEXT("%="), EHlslToken::ModEqual);
 		InsertToken(TEXT("("), EHlslToken::LeftParenthesis);
 		InsertToken(TEXT(")"), EHlslToken::RightParenthesis);
 
@@ -145,22 +181,35 @@ namespace CrossCompiler
 		InsertToken(TEXT("||"), EHlslToken::OrOr);
 
 		// Bit
+		InsertToken(TEXT("<<"), EHlslToken::LowerLower);
+		InsertToken(TEXT("<<="), EHlslToken::LowerLowerEqual);
+		InsertToken(TEXT(">>"), EHlslToken::GreaterGreater);
+		InsertToken(TEXT(">>="), EHlslToken::GreaterGreaterEqual);
 		InsertToken(TEXT("&"), EHlslToken::And);
+		InsertToken(TEXT("&="), EHlslToken::And);
 		InsertToken(TEXT("|"), EHlslToken::Or);
+		InsertToken(TEXT("|="), EHlslToken::OrEqual);
+		InsertToken(TEXT("^"), EHlslToken::Xor);
+		InsertToken(TEXT("^="), EHlslToken::XorEqual);
 		InsertToken(TEXT("!"), EHlslToken::Not);
 		InsertToken(TEXT("~"), EHlslToken::Neg);
-		InsertToken(TEXT("^"), EHlslToken::Xor);
 
 		// Statements/Keywords
 		InsertToken(TEXT("="), EHlslToken::Equal);
-		InsertToken(TEXT("{"), EHlslToken::LeftBracket);
-		InsertToken(TEXT("}"), EHlslToken::RightBracket);
+		InsertToken(TEXT("{"), EHlslToken::LeftBrace);
+		InsertToken(TEXT("}"), EHlslToken::RightBrace);
 		InsertToken(TEXT(";"), EHlslToken::Semicolon);
 		InsertToken(TEXT("if"), EHlslToken::If);
+		InsertToken(TEXT("else"), EHlslToken::Else);
 		InsertToken(TEXT("for"), EHlslToken::For);
 		InsertToken(TEXT("while"), EHlslToken::While);
 		InsertToken(TEXT("do"), EHlslToken::Do);
 		InsertToken(TEXT("return"), EHlslToken::Return);
+		InsertToken(TEXT("switch"), EHlslToken::Switch);
+		InsertToken(TEXT("case"), EHlslToken::Case);
+		InsertToken(TEXT("break"), EHlslToken::Break);
+		InsertToken(TEXT("default"), EHlslToken::Default);
+		InsertToken(TEXT("goto"), EHlslToken::Goto);
 
 		// Unary
 		InsertToken(TEXT("++"), EHlslToken::PlusPlus);
@@ -279,6 +328,7 @@ namespace CrossCompiler
 		InsertToken(TEXT("float2x4"), EHlslToken::Float2x4);
 		InsertToken(TEXT("float3x4"), EHlslToken::Float3x4);
 		InsertToken(TEXT("float4x4"), EHlslToken::Float4x4);
+
 		InsertToken(TEXT("Texture"), EHlslToken::Texture);
 		InsertToken(TEXT("Texture1D"), EHlslToken::Texture1D);
 		InsertToken(TEXT("Texture1DArray"), EHlslToken::Texture1DArray);
@@ -287,6 +337,7 @@ namespace CrossCompiler
 		InsertToken(TEXT("Texture3D"), EHlslToken::Texture3D);
 		InsertToken(TEXT("TextureCube"), EHlslToken::TextureCube);
 		InsertToken(TEXT("TextureCubeArray"), EHlslToken::TextureCubeArray);
+
 		InsertToken(TEXT("Sampler"), EHlslToken::Sampler);
 		InsertToken(TEXT("Sampler1D"), EHlslToken::Sampler1D);
 		InsertToken(TEXT("Sampler2D"), EHlslToken::Sampler2D);
@@ -294,12 +345,11 @@ namespace CrossCompiler
 		InsertToken(TEXT("SamplerCube"), EHlslToken::SamplerCube);
 		InsertToken(TEXT("SamplerState"), EHlslToken::SamplerState);
 		InsertToken(TEXT("SampleComparisonState"), EHlslToken::SampleComparisonState);
+
 		InsertToken(TEXT("Buffer"), EHlslToken::Buffer);
 		InsertToken(TEXT("AppendStructuredBuffer"), EHlslToken::AppendStructuredBuffer);
 		InsertToken(TEXT("ByteAddressBuffer"), EHlslToken::ByteAddressBuffer);
 		InsertToken(TEXT("ConsumeStructuredBuffer"), EHlslToken::ConsumeStructuredBuffer);
-		InsertToken(TEXT("InputPatch"), EHlslToken::InputPatch);
-		InsertToken(TEXT("OutputPatch"), EHlslToken::OutputPatch);
 		InsertToken(TEXT("RWBuffer"), EHlslToken::RWBuffer);
 		InsertToken(TEXT("RWByteAddressBuffer"), EHlslToken::RWByteAddressBuffer);
 		InsertToken(TEXT("RWStructuredBuffer"), EHlslToken::RWStructuredBuffer);
@@ -309,6 +359,8 @@ namespace CrossCompiler
 		InsertToken(TEXT("RWTexture2DArray"), EHlslToken::RWTexture2DArray);
 		InsertToken(TEXT("RWTexture3D"), EHlslToken::RWTexture3D);
 		InsertToken(TEXT("StructuredBuffer"), EHlslToken::StructuredBuffer);
+		InsertToken(TEXT("InputPatch"), EHlslToken::InputPatch);
+		InsertToken(TEXT("OutputPatch"), EHlslToken::OutputPatch);
 
 		// Modifiers
 		InsertToken(TEXT("in"), EHlslToken::In);
@@ -333,12 +385,14 @@ namespace CrossCompiler
 		FString Filename;
 		const TCHAR* Current;
 		const TCHAR* End;
+		const TCHAR* CurrentLineStart;
 		int32 Line;
 
 		FTokenizer(const FString& InString, const FString& InFilename = TEXT("")) :
 			Filename(InFilename),
 			Current(nullptr),
 			End(nullptr),
+			CurrentLineStart(nullptr),
 			Line(0)
 		{
 			if (InString.Len() > 0)
@@ -346,6 +400,7 @@ namespace CrossCompiler
 				Current = *InString;
 				End = *InString + InString.Len();
 				Line = 1;
+				CurrentLineStart = Current;
 			}
 
 			static bool bInitialized = false;
@@ -365,7 +420,7 @@ namespace CrossCompiler
 		{
 			while (HasCharsAvailable())
 			{
-				auto Char = *Current;
+				auto Char = Peek();
 				if (!IsSpaceOrTab(Char))
 				{
 					break;
@@ -381,45 +436,55 @@ namespace CrossCompiler
 			{
 				SkipWhitespaceInLine();
 				auto Char = Peek();
-				if (!IsEOL(Char))
+				if (IsEOL(Char))
 				{
-					if (Char == '/')
-					{
-						auto NextChar = Peek(1);
-						if (NextChar == '*')
-						{
-							// C Style comment, eat everything up to */
-							Current += 2;
-							bool bClosedComment = false;
-							while (HasCharsAvailable())
-							{
-								if (*Current == '*')
-								{
-									if (Peek(1) == '/')
-									{
-										bClosedComment = true;
-										Current += 2;
-										break;
-									}
-								}
-								++Current;
-							}
-							//@todo-rco: Error if no closing */ found and we got to EOL
-							//check(bClosedComment);
-						}
-						else if (NextChar == '/')
-						{
-							// C++Style comment
-							Current += 2;
-							this->SkipToNextLine();
-							continue;
-						}
-					}
-
-					break;
+					SkipToNextLine();
 				}
-				++Current;
-				++Line;
+				else
+				{
+					auto NextChar = Peek(1);
+					if (Char == '/' && NextChar == '/')
+					{
+						// C++ comment
+						Current += 2;
+						this->SkipToNextLine();
+						continue;
+					}
+					else if (Char == '/' && NextChar == '*')
+					{
+						// C Style comment, eat everything up to * /
+						Current += 2;
+						bool bClosedComment = false;
+						while (HasCharsAvailable())
+						{
+							if (Peek() == '*')
+							{
+								if (Peek(1) == '/')
+								{
+									bClosedComment = true;
+									Current += 2;
+									break;
+								}
+
+							}
+							else if (Peek() == '\n')
+							{
+								SkipToNextLine();
+
+								// Don't increment current!
+								continue;
+							}
+
+							++Current;
+						}
+						//@todo-rco: Error if no closing * / found and we got to EOL
+						//check(bClosedComment);
+					}
+					else
+					{
+						break;
+					}
+				}
 			}
 		}
 
@@ -448,7 +513,7 @@ namespace CrossCompiler
 		{
 			while (HasCharsAvailable())
 			{
-				auto Char = *Current;
+				auto Char = Peek();
 				++Current;
 				if (Char == '\n')
 				{
@@ -458,6 +523,7 @@ namespace CrossCompiler
 			}
 
 			++Line;
+			CurrentLineStart = Current;
 		}
 
 		bool MatchString(const TCHAR* Target, int32 TargetLen)
@@ -475,35 +541,23 @@ namespace CrossCompiler
 
 		bool PeekDigit() const
 		{
-			return (HasCharsAvailable() && IsDigit(*Current));
+			return IsDigit(Peek());
 		}
 
-		bool MatchUnsignedIntegerNumber(uint32& OutNum)
+		bool MatchAndSkipDigits()
 		{
-			if (!PeekDigit())
+			auto* Original = Current;
+			while (PeekDigit())
 			{
-				return false;
-			}
-
-			OutNum = 0;
-			do
-			{
-				auto Next = *Current;
-				if (!IsDigit(Next))
-				{
-					break;
-				}
-				
-				OutNum = OutNum * 10 + Next - '0';
 				++Current;
 			}
-			while (HasCharsAvailable());
-			return true;
+
+			return Original != Current;
 		}
 
 		bool Match(TCHAR Char)
 		{
-			if (HasCharsAvailable() && Char == *Current)
+			if (Char == Peek())
 			{
 				++Current;
 				return true;
@@ -514,52 +568,106 @@ namespace CrossCompiler
 
 		bool MatchFloatNumber(float& OutNum)
 		{
-			if (!PeekDigit() && Peek() != '.')
+			auto* Original = Current;
+			TCHAR Char = Peek();
+
+			// \.[0-9]+([eE][+-]?[0-9]+)?[fF]?			-> Dot Digits+ Exp? F?
+			// [0-9]+\.([eE][+-]?[0-9]+)?[fF]?			-> Digits+ Dot Exp? F?
+			// [0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	-> Digits+ Dot Digits+ Exp? F?
+			// [0-9]+[eE][+-]?[0-9]+[fF]?				-> Digits+ Exp F?
+			// [0-9]+[fF]								-> Digits+ F
+			if (!IsDigit(Char) && Char != '.')
 			{
 				return false;
 			}
 
-			OutNum = FCString::Atof(Current);
-			uint32 DummyNum;
-			MatchUnsignedIntegerNumber(DummyNum);
-			if (Match('.'))
+			bool bExpOptional = false;
+			if (Match('.') && MatchAndSkipDigits())
 			{
-				MatchUnsignedIntegerNumber(DummyNum);
+				bExpOptional = true;
+			}
+			else if (MatchAndSkipDigits())
+			{
+				if (Match('.'))
+				{
+					bExpOptional = true;
+					MatchAndSkipDigits();
+				}
+				else
+				{
+					if (Match('f') || Match('F'))
+					{
+						goto Done;
+					}
+
+					bExpOptional = false;
+				}
+			}
+			else
+			{
+				goto NotFloat;
 			}
 
-			if (Match('E') || Match('e'))
+			// Exponent [eE][+-]?[0-9]+
+			bool bExponentFound = false;
+			if (Match('e') || Match('E'))
 			{
-				Match('-');
-				MatchUnsignedIntegerNumber(DummyNum);
+				Char = Peek();
+				if (Char == '+' || Char == '-')
+				{
+					++Current;
+				}
+
+				if (MatchAndSkipDigits())
+				{
+					bExponentFound = true;
+				}
 			}
 
+			if (!bExponentFound && !bExpOptional)
+			{
+				goto NotFloat;
+			}
+
+			// [fF]
+			Char = Peek();
+			if (Char == 'F' || Char == 'f')
+			{
+				++Current;
+			}
+
+		Done:
+			OutNum = FCString::Atof(Original);
 			return true;
+
+		NotFloat:
+			Current = Original;
+			return false;
 		}
 
 		bool MatchQuotedString(FString& OutString)
 		{
-			if (Peek() != '"')
+			if (!Match('"'))
 			{
 				return false;
 			}
 
 			OutString = TEXT("");
-			++Current;
 			while (Peek() != '"')
 			{
-				OutString += *Current;
+				OutString += Peek();
 				//@todo-rco: Check for \"
 				//@todo-rco: Check for EOL
 				++Current;
 			}
 
-			if (Peek() == '"')
+			if (Match('"'))
 			{
-				++Current;
 				return true;
 			}
 
 			//@todo-rco: Error!
+			check(0);
 			return false;
 		}
 
@@ -567,7 +675,7 @@ namespace CrossCompiler
 		{
 			if (HasCharsAvailable())
 			{
-				auto Char = *Current;
+				auto Char = Peek();
 				if (!IsAlpha(Char) && Char != '_')
 				{
 					return false;
@@ -578,7 +686,7 @@ namespace CrossCompiler
 				OutIdentifier += Char;
 				do
 				{
-					Char = *Current;
+					Char = Peek();
 					if (!IsAlphaOrDigit(Char) && Char != '_')
 					{
 						break;
@@ -593,11 +701,11 @@ namespace CrossCompiler
 			return false;
 		}
 
-		bool MatchSymbol(EHlslToken& OutToken)
+		bool MatchSymbol(EHlslToken& OutToken, FString& OutTokenString)
 		{
 			if (HasCharsAvailable())
 			{
-				if (MatchSymbolToken(Current, OutToken))
+				if (MatchSymbolToken(Current, &Current, OutToken, &OutTokenString, false))
 				{
 					return true;
 				}
@@ -613,9 +721,9 @@ namespace CrossCompiler
 			{
 				Tokenizer.SkipWhitespaceInLine();
 				uint32 Line = 0;
-				if (Tokenizer.MatchUnsignedIntegerNumber(Line))
+				if (Tokenizer.RuleInteger(Line))
 				{
-					Tokenizer.Line = Line;
+					Tokenizer.Line = Line - 1;
 					Tokenizer.SkipWhitespaceInLine();
 					FString Filename;
 					if (Tokenizer.MatchQuotedString(Filename))
@@ -626,59 +734,164 @@ namespace CrossCompiler
 				else
 				{
 					//@todo-rco: Warn malformed #line directive
+					check(0);
 				}
 			}
 			else
 			{
 				//@todo-rco: Warn about unknown pragma
+				check(0);
 			}
 
 			Tokenizer.SkipToNextLine();
 		}
-	};
 
-	struct FToken
-	{
-		EHlslToken Token;
-		FString String;
-		uint32 UnsignedInteger;
-		float Float;
+		bool RuleDecimalInteger(uint32& OutValue)
+		{
+			// [1-9][0-9]*
+			auto Char = Peek();
+			{
+				if (Char < '1' || Char > '9')
+				{
+					return false;
+				}
 
-		explicit FToken(const FString& Identifier) : Token(EHlslToken::Identifier), String(Identifier) { }
-		explicit FToken(EHlslToken InToken) : Token(InToken) { }
-		explicit FToken(uint32 InUnsignedInteger) : Token(EHlslToken::UnsignedInteger), UnsignedInteger(InUnsignedInteger) { }
-		explicit FToken(float InFloat) : Token(EHlslToken::Float), Float(InFloat) { }
-	};
+				++Current;
+				OutValue = Char - '0';
+			}
 
-	struct FHlslScanner::FHlslScannerData
-	{
-		TArray<FToken> Tokens;
+			while (HasCharsAvailable())
+			{
+				Char = Peek();
+				if (!IsDigit(Char))
+				{
+					break;
+				}
+				OutValue = OutValue * 10 + Char - '0';
+				++Current;
+			}
+
+			return true;
+		}
+
+		bool RuleOctalInteger(uint32& OutValue)
+		{
+			// 0[0-7]*
+			auto Char = Peek();
+			if (Char != '0')
+			{
+				return false;
+			}
+
+			OutValue = 0;
+			++Current;
+			while (HasCharsAvailable())
+			{
+				Char = Peek();
+				if (Char >= '0' && Char <= '7')
+				{
+					OutValue = OutValue * 8 + Char - '0';
+				}
+				else
+				{
+					break;
+				}
+				++Current;
+			}
+
+			return true;
+		}
+
+		bool RuleHexadecimalInteger(uint32& OutValue)
+		{
+			// 0[xX][0-9a-zA-Z]+
+			auto Char = Peek();
+			auto Char1 = Peek(1);
+			auto Char2 = Peek(2);
+			if (Char == '0' && (Char1 == 'x' || Char1 == 'X') && IsHexDigit(Char2))
+			{
+				Current += 2;
+				OutValue = 0;
+				do
+				{
+					Char = Peek();
+					if (IsDigit(Char))
+					{
+						OutValue = OutValue * 16 + Char - '0';
+					}
+					else if (Char >= 'a' && Char <= 'f')
+					{
+						OutValue = OutValue * 16 + Char - 'a' + 10;
+					}
+					else if (Char >= 'A' && Char <= 'F')
+					{
+						OutValue = OutValue * 16 + Char - 'A' + 10;
+					}
+					else
+					{
+						break;
+					}
+					++Current;
+				}
+				while (HasCharsAvailable());
+
+				return true;
+			}
+
+			return false;
+		}
+
+		bool RuleInteger(uint32& OutValue)
+		{
+			return RuleDecimalInteger(OutValue) || RuleHexadecimalInteger(OutValue) || RuleOctalInteger(OutValue);
+		}
+
+		bool MatchLiteralInteger(uint32& OutValue)
+		{
+			if (RuleInteger(OutValue))
+			{
+				auto Char = Peek();
+				if (Char == 'u' || Char == 'U')
+				{
+					++Current;
+				}
+
+				return true;
+			}
+
+			return false;
+		}
 	};
 
 	FHlslScanner::FHlslScanner() :
-		Data(nullptr)
+		CurrentToken(0)
 	{
 	}
 
 	FHlslScanner::~FHlslScanner()
 	{
-		if (Data)
-		{
-			delete Data;
-		}
 	}
 
-	void FHlslScanner::Lex(const FString& String)
+	inline void FHlslScanner::AddToken(const FHlslToken& Token, const FTokenizer& Tokenizer)
 	{
-		if (Data)
-		{
-			delete Data;
-		}
+		int32 TokenIndex = Tokens.Add(Token);
+		Tokens[TokenIndex].SourceFilename = &SourceFilenames.Last();
+		Tokens[TokenIndex].SourceLine = Tokenizer.Line;
+		Tokens[TokenIndex].SourceColumn = (int32)(Tokenizer.Current - Tokenizer.CurrentLineStart) + 1;
+	}
 
-		Data = new FHlslScannerData();
+	void FHlslScanner::Clear()
+	{
+		Tokens.Empty();
+		new (SourceFilenames) FString(TEXT(""));
+	}
+
+	bool FHlslScanner::Lex(const FString& String)
+	{
+		Clear();
 
 		// Simple heuristic to avoid reallocating
-		Data->Tokens.Reserve(String.Len() / 4);
+		Tokens.Reserve(String.Len() / 4);
 
 		FTokenizer Tokenizer(String);
 		while (Tokenizer.HasCharsAvailable())
@@ -688,6 +901,10 @@ namespace CrossCompiler
 			if (Tokenizer.Peek() == '#')
 			{
 				FTokenizer::ProcessDirective(Tokenizer);
+				if (Tokenizer.Filename != SourceFilenames.Last())
+				{
+					new(SourceFilenames) FString(Tokenizer.Filename);
+				}
 			}
 			else
 			{
@@ -695,37 +912,148 @@ namespace CrossCompiler
 				EHlslToken SymbolToken;
 				uint32 UnsignedInteger;
 				float FloatNumber;
-				if (Tokenizer.MatchSymbol(SymbolToken))
+				if (Tokenizer.MatchFloatNumber(FloatNumber))
 				{
-					new(Data->Tokens) FToken(SymbolToken);
+					AddToken(FHlslToken(FloatNumber), Tokenizer);
+				}
+				else if (Tokenizer.MatchLiteralInteger(UnsignedInteger))
+				{
+					AddToken(FHlslToken(UnsignedInteger), Tokenizer);
 				}
 				else if (Tokenizer.MatchIdentifier(Identifier))
 				{
-					new(Data->Tokens) FToken(Identifier);
+					if (!FCString::Strcmp(*Identifier, TEXT("true")))
+					{
+						AddToken(FHlslToken(true), Tokenizer);
+					}
+					else if (!FCString::Strcmp(*Identifier, TEXT("false")))
+					{
+						AddToken(FHlslToken(false), Tokenizer);
+					}
+					else if (MatchSymbolToken(*Identifier, nullptr, SymbolToken, nullptr, true))
+					{
+						AddToken(FHlslToken(SymbolToken, Identifier), Tokenizer);
+					}
+					else
+					{
+						AddToken(FHlslToken(Identifier), Tokenizer);
+					}
 				}
-				else if (Tokenizer.MatchFloatNumber(FloatNumber))
+				else if (Tokenizer.MatchSymbol(SymbolToken, Identifier))
 				{
-					new (Data->Tokens) FToken(FloatNumber);
+					AddToken(FHlslToken(SymbolToken, Identifier), Tokenizer);
 				}
-				else if (Tokenizer.MatchUnsignedIntegerNumber(UnsignedInteger))
+				else if (Tokenizer.HasCharsAvailable())
 				{
-					new (Data->Tokens) FToken(UnsignedInteger);
+					//@todo-rco: Unknown token!
+					if (Tokenizer.Filename.Len() > 0)
+					{
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unknown token at line %d, file '%s'!"), Tokenizer.Line, *Tokenizer.Filename);
+					}
+					else
+					{
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unknown token at line %d!"), Tokenizer.Line);
+					}
+					return false;
 				}
 			}
 
 			check(Sanity != Tokenizer.Current);
 		}
+
+		return true;
 	}
 
 	void FHlslScanner::Dump()
 	{
-		if (Data)
+		for (int32 Index = 0; Index < Tokens.Num(); ++Index)
 		{
-			for (int32 Index = 0; Index < Data->Tokens.Num(); ++Index)
+			auto& Token = Tokens[Index];
+			switch (Token.Token)
 			{
-				auto& Token = Data->Tokens[Index];
+			case EHlslToken::UnsignedIntegerConstant:
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** %d: UnsignedIntegerConstant '%d'\n"), Index, Token.UnsignedInteger);
+				break;
+
+			case EHlslToken::FloatConstant:
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** %d: FloatConstant '%f'\n"), Index, Token.Float);
+				break;
+
+			default:
 				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** %d: %d '%s'\n"), Index, Token.Token, *Token.String);
+				break;
 			}
+		}
+	}
+
+	bool FHlslScanner::MatchToken(EHlslToken InToken)
+	{
+		const auto* Token = GetCurrentToken();
+		if (Token)
+		{
+			if (Token->Token == InToken)
+			{
+				++CurrentToken;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	const FHlslToken* FHlslScanner::PeekToken(uint32 LookAhead /*= 0*/) const
+	{
+		if (CurrentToken + LookAhead < (uint32)Tokens.Num())
+		{
+			return &Tokens[CurrentToken + LookAhead];
+		}
+
+		return nullptr;
+	}
+
+	bool FHlslScanner::HasMoreTokens() const
+	{
+		return CurrentToken < (uint32)Tokens.Num();
+	}
+
+	const FHlslToken* FHlslScanner::GetCurrentToken() const
+	{
+		if (CurrentToken < (uint32)Tokens.Num())
+		{
+			return &Tokens[CurrentToken];
+		}
+
+		return nullptr;
+	}
+
+	const FHlslToken* FHlslScanner::GetCurrentTokenAndAdvance()
+	{
+		if (CurrentToken < (uint32)Tokens.Num())
+		{
+			auto* Return = &Tokens[CurrentToken];
+			Advance();
+		}
+
+		return nullptr;
+	}
+
+	void FHlslScanner::SetCurrentTokenIndex(uint32 NewToken)
+	{
+		check(NewToken <= (uint32)Tokens.Num());
+		CurrentToken = NewToken;
+	}
+
+	void FHlslScanner::SourceError(const FString& Error)
+	{
+		if (CurrentToken < (uint32)Tokens.Num())
+		{
+			const auto& Token = Tokens[CurrentToken];
+			check(Token.SourceFilename);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **Token.SourceFilename, Token.SourceLine, Token.SourceColumn, *Error);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), *Error);
 		}
 	}
 }

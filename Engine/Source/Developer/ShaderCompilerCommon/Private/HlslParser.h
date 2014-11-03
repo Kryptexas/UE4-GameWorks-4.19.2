@@ -1,0 +1,24 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	HlslParser.h - Interface for parsing hlsl.
+=============================================================================*/
+
+#pragma once
+
+#include "HlslLexer.h"
+
+namespace CrossCompiler
+{
+	enum class EParseResult
+	{
+		Matched,
+		NotMatched,
+		Error,
+	};
+
+	namespace Parser
+	{
+		bool Parse(const FString& Input);
+	}
+}

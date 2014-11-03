@@ -12,7 +12,8 @@ namespace CCT
 		InputFile(""),
 		OutputFile(""),
 		BackEnd(BE_Invalid),
-		bRunCPP(true)
+		bRunCPP(true),
+		bUseNew(false)
 	{
 	}
 
@@ -242,6 +243,10 @@ namespace CCT
 			else if (Switch.StartsWith(TEXT("nocpp")))
 			{
 				bRunCPP = false;
+			}
+			else if (Switch.StartsWith(TEXT("new")))
+			{
+				bUseNew = true;
 			}
 		}
 
