@@ -608,25 +608,27 @@ namespace CrossCompiler
 				goto NotFloat;
 			}
 
-			// Exponent [eE][+-]?[0-9]+
-			bool bExponentFound = false;
-			if (Match('e') || Match('E'))
 			{
-				Char = Peek();
-				if (Char == '+' || Char == '-')
+				// Exponent [eE][+-]?[0-9]+
+				bool bExponentFound = false;
+				if (Match('e') || Match('E'))
 				{
-					++Current;
+					Char = Peek();
+					if (Char == '+' || Char == '-')
+					{
+						++Current;
+					}
+
+					if (MatchAndSkipDigits())
+					{
+						bExponentFound = true;
+					}
 				}
 
-				if (MatchAndSkipDigits())
+				if (!bExponentFound && !bExpOptional)
 				{
-					bExponentFound = true;
+					goto NotFloat;
 				}
-			}
-
-			if (!bExponentFound && !bExpOptional)
-			{
-				goto NotFloat;
 			}
 
 			// [fF]

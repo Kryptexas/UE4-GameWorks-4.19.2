@@ -17,7 +17,7 @@ namespace CrossCompiler
 		TTryRule OptionalPrefix;
 		TTryRule TryRule;
 
-		FRulePair(EHlslToken InToken, TTryRule InTryRule, TTryRule InOptionalPrefix = nullptr) : Token(InToken), TryRule(InTryRule), OptionalPrefix(InOptionalPrefix) {}
+		FRulePair(EHlslToken InToken, TTryRule InTryRule, TTryRule InOptionalPrefix = nullptr) : Token(InToken), OptionalPrefix(InOptionalPrefix), TryRule(InTryRule) {}
 	};
 	typedef TArray<FRulePair> TRulesArray;
 
