@@ -887,7 +887,7 @@ void FAnimMontageInstance::Terminate()
 	// terminating, trigger end
 	if (UAnimInstance* Inst = AnimInstance.Get())
 	{
-		Inst->OnMontageEnded.Broadcast(Montage, bInterrupted);
+		Inst->OnMontageEnded.Broadcast(OldMontage, bInterrupted);
 	}
 	OnMontageEnded.ExecuteIfBound(OldMontage, bInterrupted);
 }
