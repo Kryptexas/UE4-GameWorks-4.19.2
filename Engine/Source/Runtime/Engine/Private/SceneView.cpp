@@ -52,6 +52,15 @@ static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
 	TEXT(" 0: off\n")
 	TEXT(" 1: on (Note: this also disables occlusion queries)"),
 	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarScreenPercentageEditor(
+	TEXT("r.ScreenPercentage.Editor"),
+	0,
+	TEXT("To allow to have an effect of ScreenPercentage in the editor.\n")
+	TEXT("0: off (default)\n")
+	TEXT("1: allow upsample (blurry but faster) and downsample (cripser but slower)"),
+	ECVF_Default);
+
 #endif
 
 static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
@@ -945,7 +954,7 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 	}
 }
 
-void FSceneView::EndFinalPostprocessSettings()
+void FSceneView::EndFinalPostprocessSettings(FSceneViewInitOptions ViewInitOptions)
 {
 	{
 		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
@@ -1218,6 +1227,70 @@ void FSceneView::EndFinalPostprocessSettings()
 		}
 	}
 #endif // WITH_EDITOR
+
+
+	// Upscaling or Super sampling
+	{
+		float LocalScreenPercentage = FinalPostProcessSettings.ScreenPercentage;
+
+		float Fraction = 1.0f;
+
+		// apply ScreenPercentage
+		if (LocalScreenPercentage != 100.f)
+		{
+			Fraction = FMath::Clamp(LocalScreenPercentage / 100.0f, 0.1f, 4.0f);
+		}
+
+		// Window full screen mode with upscaling
+		bool bFullscreen = false;
+		if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
+		{
+			bFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
+		}
+
+		check(Family->RenderTarget);
+
+		if (bFullscreen)
+		{
+			extern int32 GetBoundFullScreenModeCVar();
+			int32 WindowModeType = GetBoundFullScreenModeCVar();
+
+			// CVar mode 2 is fullscreen with upscale
+			if(WindowModeType == 2)
+			{
+//				FIntPoint WindowSize = Viewport->GetSizeXY();
+				FIntPoint WindowSize = Family->RenderTarget->GetSizeXY();
+
+				// allow only upscaling
+				float FractionX = FMath::Clamp((float)GSystemResolution.ResX / WindowSize.X, 0.1f, 4.0f);
+				float FractionY = FMath::Clamp((float)GSystemResolution.ResY / WindowSize.Y, 0.1f, 4.0f);
+
+				// maintain a pixel aspect ratio of 1:1 for easier internal computations
+				Fraction *= FMath::Max(FractionX, FractionY);
+			}
+		}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if(CVarScreenPercentageEditor.GetValueOnAnyThread() == 0)
+		{
+			bool bNotInGame = GEngine && GEngine->GameViewport == 0;
+
+			if(bNotInGame)
+			{
+				Fraction = 1.0f;
+			}
+		}
+#endif
+
+
+		// Upscale if needed
+		if (Fraction != 1.0f)
+		{
+			// compute the view rectangle with the ScreenPercentage applied
+			const FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
+			SetScaledViewRect(ScreenPercentageAffectedViewRect);
+		}
+	}
 }
 
 void FSceneView::ConfigureBufferVisualizationSettings()

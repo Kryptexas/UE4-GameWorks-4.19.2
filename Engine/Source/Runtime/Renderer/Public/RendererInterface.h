@@ -439,7 +439,9 @@ enum EDrawRectangleFlags
 	// Rectangle is created by 2 triangles (diagonal can cause some slightly less efficient shader execution), this is the default as it has no artifacts
 	EDRF_Default,
 	//
-	EDRF_UseTriangleOptimization
+	EDRF_UseTriangleOptimization,
+	//
+	EDRF_UseTesselatedIndexBuffer
 };
 
 class ICustomVisibilityQuery: public IRefCountedObject

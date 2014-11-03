@@ -1185,7 +1185,7 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 		View->bIsReflectionCapture = true;
 		View->bStaticSceneOnly = bStaticSceneOnly;
 		View->StartFinalPostprocessSettings(CapturePosition);
-		View->EndFinalPostprocessSettings();
+		View->EndFinalPostprocessSettings(ViewInitOptions);
 
 		ViewFamily.Views.Add(View);
 

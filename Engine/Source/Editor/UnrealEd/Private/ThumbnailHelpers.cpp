@@ -105,7 +105,7 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 		ViewFamily->Views.Add(NewView);
 
 		NewView->StartFinalPostprocessSettings( ViewMatrix.GetOrigin() );
-		NewView->EndFinalPostprocessSettings();
+		NewView->EndFinalPostprocessSettings(ViewInitOptions);
 
 		FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(NewView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 		CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;

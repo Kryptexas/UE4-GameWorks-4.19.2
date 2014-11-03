@@ -233,7 +233,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	{
 		View->OverridePostProcessSettings(*PostProcessSettings, PostProcessBlendWeight);
 	}
-	View->EndFinalPostprocessSettings();
+	View->EndFinalPostprocessSettings(ViewInitOptions);
 
 	return FSceneRenderer::CreateSceneRenderer(&ViewFamily, NULL);
 }

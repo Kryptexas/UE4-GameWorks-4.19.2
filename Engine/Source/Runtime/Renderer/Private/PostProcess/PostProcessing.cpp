@@ -71,8 +71,18 @@ static TAutoConsoleVariable<int32> CVarRenderTargetSwitchWorkaround(
 	TEXT("We want this enabled (1) on all 32 bit iOS devices (implemented through DeviceProfiles)."),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarUpsampleQuality(
-	TEXT("r.UpsampleQuality"),
+static TAutoConsoleVariable<float> CVarUpscaleCylinder(
+	TEXT("r.Upscale.Cylinder"),
+	0,
+	TEXT("Allows to apply a cylindrical distortion to the rendered image. Values between 0 and 1 allow to fade the effect (lerp).\n")
+	TEXT("There is a quality loss that can be compensated by adjusting r.ScreenPercentage (>100).\n")
+	TEXT("0: off(default)\n")
+	TEXT(">0: enabled (requires an extra post processing pass if upsampling wasn't used - see r.ScreenPercentage)\n")
+	TEXT("1: full effect"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarUpscaleQuality(
+	TEXT("r.Upscale.Quality"),
 	3,
 	TEXT(" 0: Nearest filtering\n")
 	TEXT(" 1: Simple Bilinear\n")
@@ -1295,13 +1305,21 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 		AddHighResScreenshotMask(Context, SeparateTranslucency);
 
-		// Do not use upscale if SeparateRenderTarget is in use!
-		if (View.UnscaledViewRect != View.ViewRect && (!View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget)))
+		// 0=none..1=full
+		float Cylinder = 0.0f;
+
+		if(View.IsPerspectiveProjection() && !GEngine->StereoRenderingDevice.IsValid())
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UpsampleQuality")); 
-			int32 UpsampleMethod = CVar->GetValueOnRenderThread();
-			UpsampleMethod = FMath::Clamp(UpsampleMethod, 0, 3);
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpsampleMethod));
+			Cylinder = FMath::Clamp(CVarUpscaleCylinder.GetValueOnRenderThread(), 0.0f, 1.0f);
+		}
+
+		// Do not use upscale if SeparateRenderTarget is in use!
+		if ((Cylinder > 0.01f || View.UnscaledViewRect != View.ViewRect)
+			&& (!View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget)))
+		{
+			int32 UpscaleQuality = CVarUpscaleQuality.GetValueOnRenderThread();
+			UpscaleQuality = FMath::Clamp(UpscaleQuality, 0, 3);
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpscaleQuality, Cylinder));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput)); // Bilinear sampling.
 			Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput)); // Point sampling.
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);

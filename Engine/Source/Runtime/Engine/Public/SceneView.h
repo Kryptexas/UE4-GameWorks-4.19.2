@@ -442,7 +442,7 @@ public:
 	void OverridePostProcessSettings(const FPostProcessSettings& Src, float Weight);
 
 	/** applied global restrictions from show flags */
-	void EndFinalPostprocessSettings();
+	void EndFinalPostprocessSettings(FSceneViewInitOptions ViewInitOptions);
 
 	/** Configure post process settings for the buffer visualization system */
 	void ConfigureBufferVisualizationSettings();
@@ -555,10 +555,10 @@ public:
 	/** The views which make up the family. */
 	TArray<const FSceneView*> Views;
 
-	/** The width in screen pixels of the view family being rendered. */
+	/** The width in screen pixels of the view family being rendered (maximum x of all viewports). */
 	uint32 FamilySizeX;
 
-	/** The height in screen pixels of the view family being rendered. */
+	/** The height in screen pixels of the view family being rendered (maximum y of all viewports). */
 	uint32 FamilySizeY;
 
 	/** The render target which the views are being rendered to. */

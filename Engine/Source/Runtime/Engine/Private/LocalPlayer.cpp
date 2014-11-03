@@ -754,53 +754,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		//	NOTE: Matinee works through this channel
 		View->OverridePostProcessSettings(ViewInfo.PostProcessSettings, ViewInfo.PostProcessBlendWeight);
 
-		View->EndFinalPostprocessSettings();
-	}
-
-	// Upscaling or Super sampling
-	{
-		float LocalScreenPercentage = View->FinalPostProcessSettings.ScreenPercentage;
-
-		float Fraction = 1.0f;
-
-		// apply ScreenPercentage
-		if (LocalScreenPercentage != 100.f)
-		{
-			Fraction = FMath::Clamp(LocalScreenPercentage / 100.0f, 0.1f, 4.0f);
-		}
-
-		// Window full screen mode with upscaling
-		bool bFullscreen = false;
-		if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
-		{
-			bFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
-		}
-
-		if (bFullscreen)
-		{
-			int32 WindowModeType = GetBoundFullScreenModeCVar();
-
-			// CVar mode 2 is fullscreen with upscale
-			if(WindowModeType == 2)
-			{
-				FIntPoint WindowSize = Viewport->GetSizeXY();
-
-				// allow only upscaling
-				float FractionX = FMath::Clamp((float)GSystemResolution.ResX / WindowSize.X, 0.1f, 4.0f);
-				float FractionY = FMath::Clamp((float)GSystemResolution.ResY / WindowSize.Y, 0.1f, 4.0f);
-
-				// maintain a pixel aspect ratio of 1:1 for easier internal computations
-				Fraction *= FMath::Max(FractionX, FractionY);
-			}
-		}
-
-		// Upscale if needed
-		if (Fraction != 1.0f)
-		{
-			// compute the view rectangle with the ScreenPercentage applied
-			const FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
-			View->SetScaledViewRect(ScreenPercentageAffectedViewRect);
-		}
+		View->EndFinalPostprocessSettings(ViewInitOptions);
 	}
 
 	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)

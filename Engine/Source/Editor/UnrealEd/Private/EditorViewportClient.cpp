@@ -662,7 +662,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 	OverridePostProcessSettings( *View );
 
-	View->EndFinalPostprocessSettings();
+	View->EndFinalPostprocessSettings(ViewInitOptions);
 
 	return View;
 }
