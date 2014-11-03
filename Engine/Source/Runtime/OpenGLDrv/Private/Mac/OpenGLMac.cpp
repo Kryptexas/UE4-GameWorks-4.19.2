@@ -1311,3 +1311,16 @@ void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
 	TexturesToDelete.Append(Textures, Number);
 }
 
+void FMacOpenGL::BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data)
+{
+	if(GMacUseMTGL)
+	{
+		void* Dest = MapBufferRange(Target, Offset, Size, FOpenGLBase::RLM_WriteOnly);
+		FMemory::Memcpy(Dest, Data, Size);
+		UnmapBuffer(Target);
+	}
+	else
+	{
+		glBufferSubData(Target, Offset, Size, Data);
+	}
+}
