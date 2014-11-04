@@ -433,14 +433,17 @@ TArray<FBox> ANavigationData::GetNavigableBoundsInLevel(const FName& InLevelPack
 	TArray<FBox> Result;
 	const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
 	
-	const auto& NavigationBounds = NavSys->GetNavigationBounds();
-	Result.Reserve(NavigationBounds.Num());
-
-	for (const auto& Bounds : NavigationBounds)
+	if (NavSys != nullptr)
 	{
-		if (Bounds.PackageName == InLevelPackageName)
+		const auto& NavigationBounds = NavSys->GetNavigationBounds();
+		Result.Reserve(NavigationBounds.Num());
+
+		for (const auto& Bounds : NavigationBounds)
 		{
-			Result.Add(Bounds.AreaBox);
+			if (Bounds.PackageName == InLevelPackageName)
+			{
+				Result.Add(Bounds.AreaBox);
+			}
 		}
 	}
 	
