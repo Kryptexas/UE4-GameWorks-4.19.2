@@ -8,6 +8,11 @@
 #include "GameFramework/PhysicsVolume.h"
 #include "PhysicsPublic.h"
 #include "LevelUtils.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "Collision.h"
+#include "ConvexVolume.h"
+#endif
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
@@ -1850,6 +1855,43 @@ bool UPrimitiveComponent::GetOverlapsWithActor(const AActor* Actor, TArray<FOver
 
 	return InitialCount != OutOverlaps.Num();
 }
+
+#if WITH_EDITOR
+bool UPrimitiveComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP)
+	{
+		const FBox& ComponentBounds = Bounds.GetBox();
+
+		// Check the component bounds versus the selection box
+		// If the selection box must encompass the entire component, then both the min and max vector of the bounds must be inside in the selection
+		// box to be valid. If the selection box only has to touch the component, then it is sufficient to check if it intersects with the bounds.
+		if ((!bMustEncompassEntireComponent && InSelBBox.Intersect(ComponentBounds))
+			|| (bMustEncompassEntireComponent && InSelBBox.IsInside(ComponentBounds)))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UPrimitiveComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP)
+	{
+		bool bIsFullyContained;
+		if (InFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent, bIsFullyContained))
+		{
+			return !bMustEncompassEntireComponent || bIsFullyContained;
+		}
+	}
+
+	return false;
+}
+#endif
+
+
 
 /** Used to determine if it is ok to call a notification on this object */
 static bool IsActorValidToNotify(AActor* Actor)

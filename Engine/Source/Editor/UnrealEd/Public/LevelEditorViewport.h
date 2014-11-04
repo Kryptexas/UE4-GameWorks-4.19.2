@@ -196,18 +196,6 @@ public:
 	/** Determines if the new MoveCanvas movement should be used */
 	bool ShouldUseMoveCanvasMovement (void);
 
-	/**
-	 * Determines if InComponent is inside of InSelBBox.  This check differs depending on the type of component.
-	 * If InComponent is NULL, false is returned.
-	 *
-	 * @param	InActor							Used only when testing billboard components.
-	 * @param	InComponent						The component to query.  If NULL, false is returned.
-	 * @param	InSelBox						The selection box.
-	 * @param	bConsiderOnlyBSP				If true, consider only BSP.
-	 * @param	bMustEncompassEntireComponent	If true, the entire component must be encompassed by the selection box in order to return true.
-	 */
-	bool ComponentIsTouchingSelectionBox( AActor* InActor, UPrimitiveComponent* InComponent, const FBox& InSelBBox, bool bConsiderOnlyBSP, bool bMustEncompassEntireComponent );
-
 	/** 
 	 * Returns true if the passed in volume is visible in the viewport (due to volume actor visibility flags)
 	 *

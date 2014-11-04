@@ -3,6 +3,10 @@
 #include "EnginePrivate.h"
 #include "Engine/Light.h"
 #include "LevelUtils.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#endif
 
 namespace BillboardConstants
 {
@@ -353,6 +357,54 @@ FBoxSphereBounds UBillboardComponent::CalcBounds(const FTransform& LocalToWorld)
 	const float NewScale = LocalToWorld.GetScale3D().GetMax() * (Sprite ? (float)FMath::Max(Sprite->GetSizeX(),Sprite->GetSizeY()) : 1.0f);
 	return FBoxSphereBounds(LocalToWorld.GetLocation(),FVector(NewScale,NewScale,NewScale),FMath::Sqrt(3.0f * FMath::Square(NewScale)));
 }
+
+#if WITH_EDITOR
+bool UBillboardComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	AActor* Actor = GetOwner();
+
+	if (!bConsiderOnlyBSP && ShowFlags.BillboardSprites && Sprite != nullptr && Actor != nullptr)
+	{
+		const float Scale = ComponentToWorld.GetMaximumAxisScale();
+
+		// Construct a box representing the sprite
+		const FBox SpriteBox(
+			Actor->GetActorLocation() - Scale * FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY()) * FVector(0.5f, 0.5f, 0.5f),
+			Actor->GetActorLocation() + Scale * FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY()) * FVector(0.5f, 0.5f, 0.5f));
+
+		// If the selection box doesn't have to encompass the entire component and it intersects with the box constructed for the sprite, then it is valid.
+		// Additionally, if the selection box does have to encompass the entire component and both the min and max vectors of the sprite box are inside the selection box,
+		// then it is valid.
+		if ((!bMustEncompassEntireComponent && InSelBBox.Intersect(SpriteBox))
+			|| (bMustEncompassEntireComponent && InSelBBox.IsInside(SpriteBox)))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UBillboardComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	AActor* Actor = GetOwner();
+
+	if (!bConsiderOnlyBSP && ShowFlags.BillboardSprites && Sprite != nullptr && Actor != nullptr)
+	{
+		const float Scale = ComponentToWorld.GetMaximumAxisScale();
+		const float MaxExtent = FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY());
+		const FVector Extent = Scale * MaxExtent * FVector(0.5f, 0.5f, 0.0f);
+
+		bool bIsFullyContained;
+		if (InFrustum.IntersectBox(Actor->GetActorLocation(), Extent, bIsFullyContained))
+		{
+			return !bMustEncompassEntireComponent || bIsFullyContained;
+		}
+	}
+
+	return false;
+}
+#endif
 
 void UBillboardComponent::SetSprite(UTexture2D* NewSprite)
 {

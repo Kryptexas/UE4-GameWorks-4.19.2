@@ -384,6 +384,20 @@ FPrimitiveSceneProxy* UArrowComponent::CreateSceneProxy()
 	return new FArrowSceneProxy(this);
 }
 
+#if WITH_EDITOR
+bool UArrowComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	// Arrow components not treated as 'selectable' in editor
+	return false;
+}
+
+bool UArrowComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	// Arrow components not treated as 'selectable' in editor
+	return false;
+}
+#endif
+
 
 FBoxSphereBounds UArrowComponent::CalcBounds(const FTransform& LocalToWorld) const
 {

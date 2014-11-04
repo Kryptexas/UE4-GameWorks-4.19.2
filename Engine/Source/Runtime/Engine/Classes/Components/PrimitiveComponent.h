@@ -14,6 +14,8 @@
 class FPrimitiveSceneProxy;
 class AController; 
 class UTexture;
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 /** Information about a streaming texture that a primitive uses for rendering. */
 struct FStreamingTexturePrimitiveInfo
@@ -1129,6 +1131,34 @@ public:
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
 	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);
+
+#if WITH_EDITOR
+	/**
+	 * Determines whether the supplied bounding box intersects with the component.
+	 * Used by the editor in orthographic viewports.
+	 *
+	 * @param	InSelBBox						Bounding box to test against
+	 * @param	ShowFlags						Engine ShowFlags for the viewport
+	 * @param	bConsiderOnlyBSP				If only BSP geometry should be tested
+	 * @param	bMustEncompassEntireComponent	Whether the component bounding box must lay wholly within the supplied bounding box
+	 *
+	 * @return	true if the supplied bounding box is determined to intersect the component (partially or wholly)
+	 */
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const;
+
+	/**
+	 * Determines whether the supplied frustum intersects with the component.
+	 * Used by the editor in perspective viewports.
+	 *
+	 * @param	InFrustum						Frustum to test against
+	 * @param	ShowFlags						Engine ShowFlags for the viewport
+	 * @param	bConsiderOnlyBSP				If only BSP geometry should be tested
+	 * @param	bMustEncompassEntireComponent	Whether the component bounding box must lay wholly within the supplied bounding box
+	 *
+	 * @return	true if the supplied bounding box is determined to intersect the component (partially or wholly)
+	 */
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const;
+#endif
 
 protected:
 

@@ -12,6 +12,8 @@ class FColorVertexBuffer;
 class UStaticMesh;
 class FStaticMeshStaticLightingMesh;
 class ULightComponent;
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -288,6 +290,10 @@ public:
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const;
+#if WITH_EDITOR
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+#endif
 	// End UPrimitiveComponent interface.
 
 	/**

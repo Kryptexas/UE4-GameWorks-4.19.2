@@ -283,7 +283,6 @@ bool FDragTool_ActorBoxSelect::IntersectsBox( AActor& InActor, const FBox& InBox
 	// Check for special cases (like certain show flags that might hide an actor)
 	bool bActorIsHiddenByShowFlags = false;
 
-
 	// Check to see that volume actors are visible in the viewport
 	if( InActor.IsA(AVolume::StaticClass()) && (!LevelViewportClient->EngineShowFlags.Volumes || !LevelViewportClient->IsVolumeVisibleInViewport(InActor) ) )
 	{
@@ -300,12 +299,12 @@ bool FDragTool_ActorBoxSelect::IntersectsBox( AActor& InActor, const FBox& InBox
 		TArray<UPrimitiveComponent*> PrimitiveComponents;
 		InActor.GetComponents(PrimitiveComponents);
 
-		for( int32 ComponentIndex = 0 ; ComponentIndex < PrimitiveComponents.Num() ; ++ComponentIndex )
+		for (const UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 		{
-			UPrimitiveComponent* PrimitiveComponent = PrimitiveComponents[ComponentIndex];
-			if ( PrimitiveComponent->IsRegistered() && PrimitiveComponent->IsVisibleInEditor() )
+			check(PrimitiveComponent != nullptr);
+			if (PrimitiveComponent->IsRegistered() && PrimitiveComponent->IsVisibleInEditor())
 			{
-				if ( LevelViewportClient->ComponentIsTouchingSelectionBox( &InActor, PrimitiveComponent, InBox, bGeometryMode, bUseStrictSelection ) )
+				if (PrimitiveComponent->ComponentIsTouchingSelectionBox(InBox, LevelViewportClient->EngineShowFlags, bGeometryMode, bUseStrictSelection))
 				{
 					bActorHitByBox = true;
 					break;

@@ -13,6 +13,10 @@ class ENGINE_API UNavLinkRenderingComponent : public UPrimitiveComponent
 
 	/** Should recreate proxy one very update */
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override { return true; }
+#if WITH_EDITOR
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+#endif
 	// End UPrimitiveComponent Interface
 
 	// Begin USceneComponent Interface

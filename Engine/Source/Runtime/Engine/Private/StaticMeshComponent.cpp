@@ -7,6 +7,11 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "Collision.h"
+#include "ConvexVolume.h"
+#endif
 #include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
@@ -1614,6 +1619,95 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 
 	return true;
 }
+
+#if WITH_EDITOR
+bool UStaticMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP && ShowFlags.StaticMeshes && StaticMesh != nullptr && StaticMesh->HasValidRenderData())
+	{
+		// Check if we are even inside it's bounding box, if we are not, there is no way we colliding via the more advanced checks we will do.
+		if (Super::ComponentIsTouchingSelectionBox(InSelBBox, ShowFlags, bConsiderOnlyBSP, false))
+		{
+			TArray<FVector> Vertex;
+
+			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
+
+			for (const auto& Section : LODModel.Sections)
+			{
+				// Iterate over each triangle.
+				for (int32 TriangleIndex = 0; TriangleIndex < (int32)Section.NumTriangles; TriangleIndex++)
+				{
+					Vertex.Empty(3);
+
+					int32 FirstIndex = TriangleIndex * 3 + Section.FirstIndex;
+					for (int32 i = 0; i < 3; i++)
+					{
+						int32 VertexIndex = Indices[FirstIndex + i];
+						FVector LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
+						Vertex.Emplace(ComponentToWorld.TransformPosition(LocalPosition));
+					}
+
+					// Check if the triangle is colliding with the bounding box.
+					FSeparatingAxisPointCheck ThePointCheck(Vertex, InSelBBox.GetCenter(), InSelBBox.GetExtent(), false);
+					if (!bMustEncompassEntireComponent && ThePointCheck.bHit)
+					{
+						// Needn't encompass entire component: any intersection, we consider as touching
+						return true;
+					}
+					else if (bMustEncompassEntireComponent && !ThePointCheck.bHit)
+					{
+						// Must encompass entire component: any non intersection, we consider as not touching
+						return false;
+					}
+				}
+			}
+
+			// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+			// is consider touching
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool UStaticMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP && ShowFlags.StaticMeshes && StaticMesh != nullptr && StaticMesh->HasValidRenderData())
+	{
+		// Check if we are even inside it's bounding box, if we are not, there is no way we colliding via the more advanced checks we will do.
+		if (Super::ComponentIsTouchingSelectionFrustum(InFrustum, ShowFlags, bConsiderOnlyBSP, false))
+		{
+			TArray<FVector> Vertex;
+
+			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+
+			uint32 NumVertices = LODModel.VertexBuffer.GetNumVertices();
+			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+			{
+				const FVector& LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
+				const FVector WorldPosition = ComponentToWorld.TransformPosition(LocalPosition);
+				bool bLocationIntersected = InFrustum.IntersectSphere(WorldPosition, 0.0f);
+				if (bLocationIntersected && !bMustEncompassEntireComponent)
+				{
+					return true;
+				}
+				else if (!bLocationIntersected && bMustEncompassEntireComponent)
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////
 // StaticMeshComponentLODInfo

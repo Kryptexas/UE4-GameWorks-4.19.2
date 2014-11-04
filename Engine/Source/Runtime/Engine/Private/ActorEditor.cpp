@@ -382,19 +382,19 @@ void AActor::EditorApplyScale( const FVector& DeltaScale, const FVector* PivotLo
 		if( AActor::bUsePercentageBasedScaling )
 		{
 			GetRootComponent()->SetRelativeScale3D(CurrentScale + DeltaScale * CurrentScale);
+
+			if (PivotLocation)
+			{
+				FVector Loc = GetActorLocation();
+				Loc -= *PivotLocation;
+				Loc += DeltaScale * Loc;
+				Loc += *PivotLocation;
+				GetRootComponent()->SetWorldLocation(Loc);
+			}
 		}
 		else
 		{
 			GetRootComponent()->SetRelativeScale3D(CurrentScale + DeltaScale * CurrentScale.GetSignVector());
-		}
-
-		if( PivotLocation )
-		{
-			FVector Loc = GetActorLocation();
-			Loc -= *PivotLocation;
-			Loc += DeltaScale * Loc;
-			Loc += *PivotLocation;
-			GetRootComponent()->SetWorldLocation( Loc );
 		}
 	}
 	else

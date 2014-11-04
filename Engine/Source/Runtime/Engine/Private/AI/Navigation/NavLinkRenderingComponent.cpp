@@ -3,6 +3,10 @@
 #include "EnginePrivate.h"
 #include "AI/NavLinkRenderingProxy.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#endif
 
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent
@@ -70,6 +74,20 @@ FPrimitiveSceneProxy* UNavLinkRenderingComponent::CreateSceneProxy()
 {
 	return new FNavLinkRenderingProxy(this);
 }
+
+#if WITH_EDITOR
+bool UNavLinkRenderingComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	// NavLink rendering components not treated as 'selectable' in editor
+	return false;
+}
+
+bool UNavLinkRenderingComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	// NavLink rendering components not treated as 'selectable' in editor
+	return false;
+}
+#endif
 
 //----------------------------------------------------------------------//
 // FNavLinkRenderingProxy

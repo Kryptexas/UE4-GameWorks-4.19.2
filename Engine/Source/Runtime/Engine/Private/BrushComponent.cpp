@@ -7,7 +7,11 @@
 #include "EnginePrivate.h"
 #include "Model.h"
 #include "LevelUtils.h"
-
+#if WITH_EDITOR
+#include "Collision.h"
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#endif
 #include "DebuggingDefines.h"
 #include "ActorEditorUtils.h"
 
@@ -683,6 +687,116 @@ uint8 UBrushComponent::GetStaticDepthPriorityGroup() const
 		return DepthPriorityGroup;
 	}
 }
+
+#if WITH_EDITOR
+static bool IsComponentTypeShown(AActor* Actor, const FEngineShowFlags& ShowFlags)
+{
+	if (Actor != nullptr)
+	{
+		return (Actor->IsA(AVolume::StaticClass())) ? ShowFlags.Volumes : ShowFlags.BSP;
+	}
+
+	return false;
+}
+
+bool UBrushComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!IsComponentTypeShown(GetOwner(), ShowFlags))
+	{
+		return false;
+	}
+
+	if (Brush != nullptr && Brush->Polys != nullptr)
+	{
+		TArray<FVector> Vertices;
+
+		for (const auto& Poly : Brush->Polys->Element)
+		{
+			if (!bMustEncompassEntireComponent)
+			{
+				// Just an intersection will do...
+				Vertices.Empty(Poly.Vertices.Num());
+				for (const auto& Vertex : Poly.Vertices)
+				{
+					Vertices.Add(ComponentToWorld.TransformPosition(Vertex));
+				}
+
+				FSeparatingAxisPointCheck PointCheck(Vertices, InSelBBox.GetCenter(), InSelBBox.GetExtent(), false);
+				if (PointCheck.bHit)
+				{
+					// If any poly intersected with the bounding box, this component is considered to be touching
+					return true;
+				}
+			}
+			else
+			{
+				// The component must be entirely within the bounding box...
+				for (const auto& Vertex : Poly.Vertices)
+				{
+					const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+					const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+
+					// If the selection box has to encompass the entire component and a poly vertex didn't intersect with the selection
+					// box, this component does not qualify
+					if (!bLocationIntersected)
+					{
+						return false;
+					}
+				}
+			}
+		}
+
+		// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+		// is considered touching
+		return true;
+	}
+
+	return false;
+}
+
+
+bool UBrushComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!IsComponentTypeShown(GetOwner(), ShowFlags))
+	{
+		return false;
+	}
+
+	if (Brush != nullptr && Brush->Polys != nullptr)
+	{
+		TArray<FVector> Vertices;
+
+		for (const auto& Poly : Brush->Polys->Element)
+		{
+			for (const auto& Vertex : Poly.Vertices)
+			{
+				const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+				const bool bIntersect = InFrustum.IntersectSphere(Location, 0.0f);
+
+				if (bIntersect && !bMustEncompassEntireComponent)
+				{
+					// If we intersected a vertex and we don't require the box to encompass the entire component
+					// then the actor should be selected and we can stop checking
+					return true;
+				}
+				else if (!bIntersect && bMustEncompassEntireComponent)
+				{
+					// If we didn't intersect a vertex but we require the box to encompass the entire component
+					// then this test failed and we can stop checking
+					return false;
+				}
+			}
+		}
+
+		// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+		// is considered touching
+		return true;
+	}
+
+	return false;
+}
+#endif
+
 
 void UBrushComponent::BuildSimpleBrushCollision()
 {
