@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GenericTeamAgentInterface.h"
+#include "AITypes.h"
 #include "AIPerceptionTypes.generated.h"
 
 class UAIPerceptionComponent;
