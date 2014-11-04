@@ -110,6 +110,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	void SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue);
 	float GetNumericAttribute(const FGameplayAttribute &Attribute);
 
+	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
 	// -- Replication -------------------------------------------------------------------------------------------------
 
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;

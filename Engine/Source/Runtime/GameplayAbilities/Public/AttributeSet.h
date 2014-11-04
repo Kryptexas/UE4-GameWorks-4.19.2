@@ -13,18 +13,15 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAttribute()
-		: Attribute(NULL)
+		: Attribute(nullptr)
 	{
 	}
 
-	FGameplayAttribute(UProperty *NewProperty)
-		: Attribute(NewProperty)
-	{
-	}
+	FGameplayAttribute(UProperty *NewProperty);
 
 	bool IsValid() const
 	{
-		return Attribute != NULL;
+		return Attribute != nullptr;
 	}
 
 	void SetUProperty(UProperty *NewProperty)

@@ -719,6 +719,8 @@ struct FGameplayTagRequirements
 	bool	IsEmpty() const;
 
 	static FGetGameplayTags	SnapshotTags(FGetGameplayTags TagDelegate);
+
+	FString ToString() const;
 };
 
 USTRUCT()

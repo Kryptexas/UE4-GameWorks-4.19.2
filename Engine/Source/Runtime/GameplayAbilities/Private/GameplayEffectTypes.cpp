@@ -164,7 +164,9 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 FString EGameplayModOpToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModOp"));
-	return e->GetEnum(Type).ToString();
+	FString Right;
+	e->GetEnum(Type).ToString().Split(TEXT("::"), nullptr, &Right);
+	return Right;
 }
 
 FString EGameplayModEffectToString(int32 Type)
@@ -305,6 +307,22 @@ bool FGameplayTagRequirements::RequirementsMet(const FGameplayTagContainer& Cont
 bool FGameplayTagRequirements::IsEmpty() const
 {
 	return (RequireTags.Num() == 0 && IgnoreTags.Num() == 0);
+}
+
+FString FGameplayTagRequirements::ToString() const
+{
+	FString Str;
+
+	if (RequireTags.Num() > 0)
+	{
+		Str += FString::Printf(TEXT("require: %s "), *RequireTags.ToStringSimple());
+	}
+	if (IgnoreTags.Num() >0)
+	{
+		Str += FString::Printf(TEXT("ignore: %s "), *IgnoreTags.ToStringSimple());
+	}
+
+	return Str;
 }
 
 void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const

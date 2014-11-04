@@ -221,6 +221,9 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Returns human readable Tag list */
 	FString ToString() const;
 
+	/** Returns abbreviated human readable Tag list without parens or property names */
+	FString ToStringSimple() const;
+
 	/** Creates a const iterator for the contents of this array */
 	TArray<FGameplayTag>::TConstIterator CreateConstIterator() const
 	{

@@ -880,4 +880,72 @@ void UAbilitySystemComponent::OnAttributeAggregatorDirty(FAggregator* Aggregator
 	ActiveGameplayEffects.OnAttributeAggregatorDirty(Aggregator, Attribute);
 }
 
+void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
+{
+	FGameplayTagContainer OwnerTags;
+	GetOwnedGameplayTags(OwnerTags);
+
+	Canvas->SetDrawColor(FColor::White);
+	YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Owned Tags: %s"), *OwnerTags.ToStringSimple()), 4.f, YPos);
+	YPos += YL;
+
+	TSet<FGameplayAttribute> DrawAttributes;
+
+	for (auto It = ActiveGameplayEffects.AttributeAggregatorMap.CreateConstIterator(); It; ++It)
+	{
+		FGameplayAttribute Attribute = It.Key();
+		const FAggregatorRef& AggregatorRef = It.Value();
+		if(AggregatorRef.Get())
+		{
+			FAggregator& Aggregator = *AggregatorRef.Get();
+
+			Canvas->SetDrawColor(FColor::White);
+			YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %.2f"), *Attribute.GetName(), GetNumericAttribute(Attribute) ), 4.f, YPos);
+
+			DrawAttributes.Add(Attribute);
+
+			for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Aggregator.Mods); ++ModOpIdx)
+			{
+				for (const FAggregatorMod& Mod : Aggregator.Mods[ModOpIdx])
+				{
+					FAggregatorEvaluateParameters EmptyParams;
+					bool IsActivelyModifyingAttribute = Mod.Qualifies(EmptyParams);
+					Canvas->SetDrawColor(IsActivelyModifyingAttribute ? FColor::Yellow : FColor(128, 128, 128));
+
+					FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Mod.ActiveHandle);
+					FString SrcName = ActiveGE ? ActiveGE->Spec.Def->GetName() : FString(TEXT(""));
+
+					if (IsActivelyModifyingAttribute == false)
+					{
+						if (Mod.SourceTagReqs) SrcName += FString::Printf(TEXT(" SourceTags: [%s] "), *Mod.SourceTagReqs->ToString());
+						if (Mod.TargetTagReqs) SrcName += FString::Printf(TEXT("TargetTags: [%s]"), *Mod.TargetTagReqs->ToString());
+					}
+
+					YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("   %s\t %.2f - %s"), *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), 7.f, YPos);
+
+				}
+			}
+			YPos += YL;
+		}
+	}
+
+	Canvas->SetDrawColor(FColor::White);
+	for (UAttributeSet* Set : SpawnedAttributes)
+	{
+		for (TFieldIterator<UProperty> It(Set->GetClass()); It; ++It)
+		{
+			FGameplayAttribute	Attribute(*It);
+
+			if(DrawAttributes.Contains(Attribute))
+				continue;
+
+			if (Attribute.IsValid())
+			{
+				float Value = GetNumericAttribute(Attribute);
+				YPos += Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %.2f"), *Attribute.GetName(), Value ), 4.f, YPos);
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

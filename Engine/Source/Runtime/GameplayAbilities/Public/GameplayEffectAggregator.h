@@ -75,6 +75,7 @@ private:
 	void RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle);
 
 	friend struct FAggregator;
+	friend class UAbilitySystemComponent;	// Only needed for DisplayDebug()
 };
 
 struct GAMEPLAYABILITIES_API FAggregatorRef

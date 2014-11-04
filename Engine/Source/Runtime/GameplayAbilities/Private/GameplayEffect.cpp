@@ -700,6 +700,9 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 		}
 	}
 
+	// Handles are not replicated, so create a new one.
+	Handle = FActiveGameplayEffectHandle::GenerateNewHandle(InArray.Owner);
+
 	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectAdded(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
 
 	static const int32 MAX_DELTA_TIME = 3;
@@ -1094,12 +1097,17 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 	}
 }
 
+/**	This Creates a new ActiveGameplayEffect and is only called on the Server or in cases where a client predictively applies a GameplayEffect. */
 FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, FPredictionKey InPredictionKey)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
 
 	FActiveGameplayEffectHandle NewHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
 	FActiveGameplayEffect& NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
+
+	// Calc all of our modifier magnitudes now. Some may need to update later based on attributes changing, etc, but those should
+	// be done through delegate callbacks.
+	NewEffect.Spec.CalculateModifierMagnitudes();
 
 	// Calculate Duration mods if we have a real duration
 	float DurationBaseValue = NewEffect.Spec.GetDuration();
@@ -1194,6 +1202,7 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	return NewEffect;
 }
 
+/** This is called anytime a new ActiveGameplayEffect is added, on both client and server in all cases */
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect)
 {
 	// Add our ongoing tag requirements to the dependency map. We will actually check for these tags below.
@@ -1217,22 +1226,18 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 	// Check if we should actually be turned on or not (this will turn us on for the first time)
 	FGameplayTagContainer OwnerTags;
 	Owner->GetOwnedGameplayTags(OwnerTags);
-
-	// Calc all of our modifier magnitudes now. Some may need to update later based on attributes changing, etc, but those should
-	// be done through delegate callbacks.
-	Effect.Spec.CalculateModifierMagnitudes();
-
-	// @todo: Probably do the initial mod spec magnitude calculations right here, but only on the server
-	// @todo: Shouldn't the rest of the stuff about dependencies only run on the server?
+	
+	Effect.IsInhibited = true; // Effect has to start inhibited, if it should be uninhibited, CheckOnGoingTagRequirements will handle that state change
 	Effect.CheckOngoingTagRequirements(OwnerTags, *this);
 }
 
+/** Called on server to remove a GameplayEffect */
 bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
 	// Could make this a map for quicker lookup
-	for (int32 Idx = 0; Idx < GameplayEffects.Num(); ++Idx)
+	for(int32 Idx = 0; Idx < GameplayEffects.Num(); ++Idx)
 	{
-		if (GameplayEffects[Idx].Handle == Handle)
+		if(GameplayEffects[Idx].Handle == Handle)
 		{
 			return InternalRemoveActiveGameplayEffect(Idx);
 		}
@@ -1242,6 +1247,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 	return false;
 }
 
+/** Called by server to actually remove a GameplayEffect */
 bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 Idx)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RemoveActiveGameplayEffect);
@@ -1276,49 +1282,7 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 			Owner->GetWorld()->GetTimerManager().ClearTimer(GameplayEffects[Idx].PeriodHandle);
 		}
 
-		// Remove our tag requirements from the dependancy map
-		for (const FGameplayTag& Tag : Effect.Spec.Def->OngoingTagRequirements.IgnoreTags)
-		{
-			auto Ptr = ActiveEffectTagDependencies.Find(Tag);
-			if (Ptr)
-			{
-				Ptr->Remove(Effect.Handle);
-				if (Ptr->Num() <= 0)
-				{
-					ActiveEffectTagDependencies.Remove(Tag);
-				}
-			}
-		}
-
-		for (const FGameplayTag& Tag : Effect.Spec.Def->OngoingTagRequirements.RequireTags)
-		{
-			auto Ptr = ActiveEffectTagDependencies.Find(Tag);
-			if (Ptr)
-			{
-				Ptr->Remove(Effect.Handle);
-				if (Ptr->Num() <= 0)
-				{
-					ActiveEffectTagDependencies.Remove(Tag);
-				}
-			}
-		}
-
-
-		// Fixme: Yuck?
-		for (const FGameplayModifierInfo& Mod : Effect.Spec.Def->Modifiers)
-		{
-			if (Mod.Attribute.IsValid())
-			{
-				FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Mod.Attribute);
-				if (RefPtr)
-				{
-					RefPtr->Get()->RemoveMod(Effect.Handle);
-				}
-			}
-		}
-
-
-
+		// Finally remove the ActiveGameplayEffect
 		GameplayEffects.RemoveAtSwap(Idx);
 		MarkArrayDirty();
 
@@ -1328,7 +1292,6 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		Owner->GetOwner()->ForceNetUpdate();
 
 		StacksNeedToRecalculate();
-
 		return true;
 	}
 
@@ -1336,10 +1299,27 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 	return false;
 }
 
-/** This does cleanup that has to happen whether the effect is being removed locally or due to replication */
+/** Called by client and server: This does cleanup that has to happen whether the effect is being removed locally or due to replication */
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect)
 {
 	Effect.OnRemovedDelegate.Broadcast();
+
+	// Update AttributeAggregators: remove mods from this ActiveGE Handle
+	for(const FGameplayModifierInfo& Mod : Effect.Spec.Def->Modifiers)
+	{
+		if(Mod.Attribute.IsValid())
+		{
+			FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Mod.Attribute);
+			if(RefPtr)
+			{
+				RefPtr->Get()->RemoveMod(Effect.Handle);
+			}
+		}
+	}
+
+	// Remove our tag requirements from the dependancy map
+	RemoveActiveEffectTagDependancy(Effect.Spec.Def->OngoingTagRequirements.IgnoreTags, Effect.Handle);
+	RemoveActiveEffectTagDependancy(Effect.Spec.Def->OngoingTagRequirements.RequireTags, Effect.Handle);
 
 	if (Effect.Spec.Def)
 	{
@@ -1355,6 +1335,22 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(cons
 	else
 	{
 		ABILITY_LOG(Warning, TEXT("InternalOnActiveGameplayEffectRemoved called with no GameplayEffect: %s"), *Effect.Handle.ToString());
+	}
+}
+
+void FActiveGameplayEffectsContainer::RemoveActiveEffectTagDependancy(const FGameplayTagContainer& Tags, FActiveGameplayEffectHandle Handle)
+{
+	for(const FGameplayTag& Tag : Tags)
+	{
+		auto Ptr = ActiveEffectTagDependencies.Find(Tag);
+		if (Ptr)
+		{
+			Ptr->Remove(Handle);
+			if (Ptr->Num() <= 0)
+			{
+				ActiveEffectTagDependencies.Remove(Tag);
+			}
+		}
 	}
 }
 

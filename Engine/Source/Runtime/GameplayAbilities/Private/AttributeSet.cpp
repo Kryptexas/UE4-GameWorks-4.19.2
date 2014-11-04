@@ -8,6 +8,12 @@
 
 #include "ComponentReregisterContext.h"	
 
+FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
+{
+	// Only numeric properties are allowed right now
+	Attribute = Cast<UNumericProperty>(NewProperty);
+}
+
 void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);

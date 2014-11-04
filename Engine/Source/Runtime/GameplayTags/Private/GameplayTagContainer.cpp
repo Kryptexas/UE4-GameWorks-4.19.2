@@ -271,6 +271,22 @@ FString FGameplayTagContainer::ToString() const
 	return RetString;
 }
 
+FString FGameplayTagContainer::ToStringSimple() const
+{
+	FString RetString;
+	for (int i = 0; i < GameplayTags.Num(); ++i)
+	{
+		RetString += TEXT("\"");
+		RetString += GameplayTags[i].ToString();
+		RetString += TEXT("\"");
+		if (i < GameplayTags.Num() - 1)
+		{
+			RetString += TEXT(", ");
+		}
+	}
+	return RetString;
+}
+
 FGameplayTag::FGameplayTag()
 	: TagName(NAME_None)
 {

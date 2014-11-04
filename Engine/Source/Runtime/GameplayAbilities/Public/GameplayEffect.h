@@ -1108,6 +1108,9 @@ private:
 	void InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
 
+	/** Updates tag dependancy map when a GameplayEffect is removed */
+	void RemoveActiveEffectTagDependancy(const FGameplayTagContainer& Tags, FActiveGameplayEffectHandle Handle);
+
 	// -------------------------------------------------------------------------------------------
 
 	TMap<FGameplayAttribute, FAggregatorRef>		AttributeAggregatorMap;
