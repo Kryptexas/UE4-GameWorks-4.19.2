@@ -1739,7 +1739,7 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Center)
 		[
-			PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintGraphArgumentLayout::OnRemoveClicked))
+			PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintGraphArgumentLayout::OnRemoveClicked), FText(), !IsPinEditingReadOnly())
 		]
 	];
 }
@@ -1782,38 +1782,42 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 		];
 	}
 		
-	ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsMoving", "Moving" ).ToString() )
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		[
-			SNew(SSpacer)
-		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2, 0)
-		[
-			SNew(SButton)
-			.ContentPadding(0)
-			.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveUp)
+	// Read only graphs can't have their pins re-organized
+	if ( !IsPinEditingReadOnly() )
+	{
+		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsMoving", "Moving" ).ToString() )
 			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
-			]
-		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2, 0)
-		[
-			SNew(SButton)
-			.ContentPadding(0)
-			.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveDown)
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
-			]
-		]
-	];
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SNew(SSpacer)
+				]
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2, 0)
+					[
+						SNew(SButton)
+						.ContentPadding(0)
+						.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveUp)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
+						]
+					]
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2, 0)
+					[
+						SNew(SButton)
+						.ContentPadding(0)
+						.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveDown)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
+						]
+					]
+			];
+	}
 }
 
 void FBlueprintGraphArgumentLayout::OnRemoveClicked()
@@ -1877,8 +1881,26 @@ bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly() const
 		{
 			return true;
 		}
+		else
+		{
+			// Check if pin editing is read only
+			return IsPinEditingReadOnly();
+		}
 	}
 	
+	return false;
+}
+
+bool FBlueprintGraphArgumentLayout::IsPinEditingReadOnly() const
+{
+	if(UEdGraph* NodeGraph = TargetNode->GetGraph())
+	{
+		// Math expression should not be modified directly, do not let the user tweak the parameters
+		if ( Cast<UK2Node_MathExpression>(NodeGraph->GetOuter()) )
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -2330,6 +2352,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				SNew(SButton)
 				.Text(LOCTEXT("FunctionNewInputArg", "New").ToString())
 				.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewInputClicked)
+				.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
 			]
 		];
 
@@ -2352,6 +2375,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 					SNew(SButton)
 					.Text(LOCTEXT("FunctionNewOutputArg", "New").ToString())
 					.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewOutputClicked)
+					.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
 				]
 			];
 		}
@@ -3689,6 +3713,20 @@ FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()
 	}
 
 	return FReply::Handled();
+}
+
+EVisibility FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility() const
+{
+	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	if(UEdGraph* Graph = FunctionEntryNode->GetGraph())
+	{
+		// Math expression graphs are read only, do not allow adding or removing of pins
+		if(Cast<UK2Node_MathExpression>(Graph->GetOuter()))
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+	return EVisibility::Visible;
 }
 
 FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()

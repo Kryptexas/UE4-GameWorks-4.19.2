@@ -340,6 +340,9 @@ private:
 	/** Determines if this pin should not be editable */
 	bool ShouldPinBeReadOnly() const;
 	
+	/** Determines if editing the pins on the node should be read only */
+	bool IsPinEditingReadOnly() const;
+
 	/** Callbacks for all the functionality for modifying arguments */
 	void OnRemoveClicked();
 	FReply OnArgMoveUp();
@@ -473,6 +476,9 @@ private:
 
 	
 	FReply OnAddNewOutputClicked();
+
+	/** Callback to determine if the "New" button for adding input/output pins is visible */
+	EVisibility GetAddNewInputOutputVisibility() const;
 
 	/** Called to set the replication type from the details view combo */
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);
