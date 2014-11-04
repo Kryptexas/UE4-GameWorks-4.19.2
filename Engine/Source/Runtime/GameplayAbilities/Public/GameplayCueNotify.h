@@ -15,7 +15,7 @@
  */
 
 UCLASS(abstract, BlueprintType, hidecategories=Object, collapsecategories)
-class GAMEPLAYABILITIES_API UGameplayCueNotify : public UDataAsset
+class GAMEPLAYABILITIES_API UGameplayCueNotify : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -32,6 +32,10 @@ class GAMEPLAYABILITIES_API UGameplayCueNotify : public UDataAsset
 	virtual void Serialize(FArchive& Ar);
 	
 	virtual void HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
+	#if WITH_EDITOR
+		virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	#endif // WITH_EDITOR
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayCue, meta=(Categories="GameplayCue"))
 	FGameplayTag	GameplayCueTag;

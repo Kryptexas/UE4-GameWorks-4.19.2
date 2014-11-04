@@ -15,6 +15,7 @@ UGameplayCueManager::UGameplayCueManager(const class FObjectInitializer& PCIP)
 : Super(PCIP)
 {
 #if WITH_EDITOR
+	bAccelerationMapOutdated = true;
 	RegisteredEditorCallbacks = false;
 #endif
 }
@@ -161,23 +162,35 @@ void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPa
 	bFullyLoad = InFullyLoad;
 
 	LoadObjectLibrary_Internal();
-
 #if WITH_EDITOR
+	bAccelerationMapOutdated = false;
 	if (!RegisteredEditorCallbacks)
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 		AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UGameplayCueManager::HandleAssetAdded);
 		AssetRegistryModule.Get().OnInMemoryAssetDeleted().AddUObject(this, &UGameplayCueManager::HandleAssetDeleted);
+		FWorldDelegates::OnPreWorldInitialization.AddUObject(this, &UGameplayCueManager::ReloadObjectLibrary);
 		RegisteredEditorCallbacks = true;
 	}
 #endif
 }
+
+#if WITH_EDITOR
+void UGameplayCueManager::ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS)
+{
+	if (bAccelerationMapOutdated)
+	{
+		LoadObjectLibrary_Internal();
+	}
+}
+#endif
 
 void UGameplayCueManager::LoadObjectLibrary_Internal()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Library"), STAT_ObjectLibrary, STATGROUP_LoadTime);
 
 #if WITH_EDITOR
+	bAccelerationMapOutdated = false;
 	FFormatNamedArguments Args;
 	FScopedSlowTask SlowTask(0, FText::Format(NSLOCTEXT("AbilitySystemEditor", "BeginLoadingGameplayCueNotify", "Loading GameplayCue Library"), Args));
 	SlowTask.MakeDialog();
@@ -186,7 +199,6 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 	FScopeCycleCounterUObject PreloadScope(GameplayCueNotifyObjectLibrary);
 	
 	GameplayCueNotifyObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);
-	GameplayCueNotifyObjectLibrary->LoadAssetDataFromPaths(LoadedPaths);
 
 	if (bFullyLoad)
 	{

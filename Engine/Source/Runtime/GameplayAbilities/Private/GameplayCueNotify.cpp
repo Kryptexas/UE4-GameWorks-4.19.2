@@ -3,6 +3,8 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueNotify.h"
 #include "GameplayTagsModule.h"
+#include "GameplayCueManager.h"
+#include "AbilitySystemComponent.h"
 
 
 
@@ -11,6 +13,13 @@ UGameplayCueNotify::UGameplayCueNotify(const class FObjectInitializer& PCIP)
 {
 	IsOverride = true;
 }
+
+#if WITH_EDITOR
+void UGameplayCueNotify::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->bAccelerationMapOutdated = true;
+}
+#endif
 
 void UGameplayCueNotify::DeriveGameplayCueTagFromAssetName()
 {

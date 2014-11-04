@@ -29,7 +29,7 @@ void UAbilitySystemGlobals::InitGlobalData()
 	GetGlobalCurveTable();
 	GetGlobalAttributeMetaDataTable();
 	
-	InitAtributeDefaults();
+	InitAttributeDefaults();
 
 	GetGameplayCueManager();
 }
@@ -184,7 +184,7 @@ FAttributeSetInitter* UAbilitySystemGlobals::GetAttributeSetInitter() const
 	return GlobalAttributeSetInitter.Get();
 }
 
-void UAbilitySystemGlobals::InitAtributeDefaults()
+void UAbilitySystemGlobals::InitAttributeDefaults()
 {
 	if (InternalGetLoadTable<UCurveTable>(GlobalAttributeDefaultsTable, GlobalAttributeSetDefaultsTableName))
 	{	

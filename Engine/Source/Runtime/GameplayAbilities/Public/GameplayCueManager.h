@@ -134,11 +134,18 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	void HandleAssetDeleted(UObject *Object);
 
 	bool RegisteredEditorCallbacks;
+
+	bool bAccelerationMapOutdated;
 #endif
 
 private:
 
 	virtual void HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
+	#if WITH_EDITOR
+		//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
+		void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
+	#endif
 
 	void LoadObjectLibrary_Internal();
 
