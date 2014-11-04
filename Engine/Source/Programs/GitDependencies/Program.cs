@@ -111,12 +111,14 @@ namespace GitDependencies
 				return 0;
 			}
 
-			// Update the tree
+			// Register a delegate to clear the status text if we use ctrl-c to quit
+			Console.CancelKeyPress += delegate { Log.FlushStatus(); };
+
+			// Update the tree. Make sure we clear out the status line if we quit for any reason (eg. ctrl-c)
 			if(!UpdateWorkingTree(bForce, bDryRun, RootPath, ExcludeFolders, NumThreads, MaxRetries))
 			{
 				return 1;
 			}
-
 			return 0;
 		}
 
@@ -438,12 +440,18 @@ namespace GitDependencies
 				WorkerThreads[Idx].Start();
 			}
 
-			// Tick the status message until we've finished or ended with an error
-			while(State.NumFilesRead < NumFilesTotal && State.ErrorMessage == null)
+			// Tick the status message until we've finished or ended with an error. Use a circ
+			long[] NumBytesReadBuffer = new long[10];
+			for(int BufferIdx = 0; State.NumFilesRead < NumFilesTotal && State.ErrorMessage == null; BufferIdx = (BufferIdx + 1) % NumBytesReadBuffer.Length)
 			{
-				Thread.Sleep(100);
+				const int TickInterval = 100;
+
 				long NumBytesRead = Interlocked.Read(ref State.NumBytesRead);
-				Log.WriteStatus("Staged {0}/{1} files ({2:0.0}/{3:0.0}mb; {4}%)", State.NumFilesRead, NumFilesTotal, NumBytesRead / (1024.0 * 1024.0), NumBytesTotal / (1024.0 * 1024.0), (NumBytesRead * 100) / NumBytesTotal);
+				float NumBytesPerSecond = (float)Math.Max(NumBytesRead - NumBytesReadBuffer[BufferIdx], 0) * 1000.0f / (NumBytesReadBuffer.Length * TickInterval);
+				Log.WriteStatus("Staged {0}/{1} files ({2:0.0}/{3:0.0}mb; {4:0.00}mb/s; {5}%)...", State.NumFilesRead, NumFilesTotal, (NumBytesRead / (1024.0 * 1024.0)) + 0.0999999, (NumBytesTotal / (1024.0 * 1024.0)) + 0.0999999, (NumBytesPerSecond / (1024.0 * 1024.0)) + 0.00999999, (NumBytesRead * 100) / NumBytesTotal);
+				NumBytesReadBuffer[BufferIdx] = NumBytesRead;
+
+				Thread.Sleep(TickInterval);
 			}
 
 			// If we finished with an error
@@ -477,7 +485,7 @@ namespace GitDependencies
 				try
 				{
 					// Format the URL for it
-					string BundleUrl = String.Format("http://s3.amazonaws.com/unrealengine/dependencies/{0}/{1}", NextPack.RemotePath, NextPack.Hash);
+					string BundleUrl = String.Format("http://cdn.unrealengine.com/dependencies/{0}/{1}", NextPack.RemotePath, NextPack.Hash);
 
 					// Download the file, decompressing and hashing it as we go.
 					for(int NumAttempts = 0;;)
