@@ -1413,7 +1413,7 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->SupportsMinimize = InSlateWindow->HasMinimizeBox();
 	Definition->SupportsMaximize = InSlateWindow->HasMaximizeBox();
 
-    Definition->IsModalWindow = InSlateWindow->IsModalWindow();
+	Definition->IsModalWindow = InSlateWindow->IsModalWindow();
 	Definition->IsRegularWindow = InSlateWindow->IsRegularWindow();
 	Definition->HasSizingFrame = InSlateWindow->HasSizingFrame();
 	Definition->SizeWillChangeOften = InSlateWindow->SizeWillChangeOften();
@@ -5085,9 +5085,14 @@ TSharedRef<FSlateApplication> FSlateApplication::InitializeAsStandaloneApplicati
 
 void FSlateApplication::SetWidgetReflector(const TSharedRef<IWidgetReflector>& WidgetReflector)
 {
-	if (SourceCodeAccessDelegate.IsBound())
+	if ( SourceCodeAccessDelegate.IsBound() )
 	{
 		WidgetReflector->SetSourceAccessDelegate(SourceCodeAccessDelegate);
+	}
+
+	if ( AssetAccessDelegate.IsBound() )
+	{
+		WidgetReflector->SetAssetAccessDelegate(AssetAccessDelegate);
 	}
 
 	WidgetReflectorPtr = WidgetReflector;

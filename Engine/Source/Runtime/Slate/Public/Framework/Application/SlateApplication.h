@@ -511,6 +511,12 @@ public:
 		QuerySourceCodeAccessDelegate = QueryAccessDelegate;
 	}
 
+	/** @param AccessDelegate The delegate to pass along to the widget reflector */
+	void SetWidgetReflectorAssetAccessDelegate(FAccessAsset AccessDelegate)
+	{
+		AssetAccessDelegate = AccessDelegate;
+	}
+
 	/** @param Scale  Sets the ratio SlateUnit / ScreenPixel */
 	void SetApplicationScale( float InScale ){ Scale = InScale; }
 
@@ -1312,11 +1318,14 @@ private:
 	/** A Widget that introspects the current UI hierarchy */
 	TWeakPtr<IWidgetReflector> WidgetReflectorPtr;
 
-	/** Delegate for accessing source code to pass to any widget inspectors. */
+	/** Delegate for accessing source code, to pass to any widget inspectors. */
 	FAccessSourceCode SourceCodeAccessDelegate;
 
 	/** Delegate for querying if source code access is available */
 	FQueryAccessSourceCode QuerySourceCodeAccessDelegate;
+
+	/** Delegate for accessing assets, to pass to any widget inspectors. */
+	FAccessAsset AssetAccessDelegate;
 
 	/** System for logging all relevant slate events to a log file */
 	TSharedPtr<class IEventLogger> EventLogger;

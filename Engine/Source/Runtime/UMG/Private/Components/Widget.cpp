@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#include "ReflectionMetaData.h"
+
 /////////////////////////////////////////////////////
 // UWidget
 
@@ -478,6 +480,10 @@ void UWidget::SynchronizeProperties()
 
 		Navigation->UpdateMetaData(MetaData.ToSharedRef());
 	}
+
+#if WITH_EDITOR
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy)));
+#endif
 }
 
 bool UWidget::IsDesignTime() const

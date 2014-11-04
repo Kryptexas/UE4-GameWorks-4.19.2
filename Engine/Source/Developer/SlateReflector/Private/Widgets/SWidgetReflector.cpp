@@ -113,41 +113,41 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					[
 						// The tree view that shows all the info that we capture.
 						SAssignNew(ReflectorTree, SReflectorTree)
-							.ItemHeight(24.0f)
-							.TreeItemsSource(&ReflectorTreeRoot)
-							.OnGenerateRow(this, &SWidgetReflector::HandleReflectorTreeGenerateRow)
-							.OnGetChildren(this, &SWidgetReflector::HandleReflectorTreeGetChildren)
-							.OnSelectionChanged(this, &SWidgetReflector::HandleReflectorTreeSelectionChanged)
-							.HeaderRow
-							(
-								SNew(SHeaderRow)
+						.ItemHeight(24.0f)
+						.TreeItemsSource(&ReflectorTreeRoot)
+						.OnGenerateRow(this, &SWidgetReflector::HandleReflectorTreeGenerateRow)
+						.OnGetChildren(this, &SWidgetReflector::HandleReflectorTreeGetChildren)
+						.OnSelectionChanged(this, &SWidgetReflector::HandleReflectorTreeSelectionChanged)
+						.HeaderRow
+						(
+							SNew(SHeaderRow)
 
-								+ SHeaderRow::Column("WidgetName")
-									.DefaultLabel(LOCTEXT("WidgetName", "Widget Name").ToString())
-									.FillWidth(0.65f)
+							+ SHeaderRow::Column("WidgetName")
+							.DefaultLabel(LOCTEXT("WidgetName", "Widget Name").ToString())
+							.FillWidth(0.65f)
 
-								+ SHeaderRow::Column("ForegroundColor")
-									.FixedWidth(24.0f)
-									.VAlignHeader(VAlign_Center)
-									.HeaderContent()
-									[
-										SNew(STextBlock)
-											.Text(LOCTEXT("ForegroundColor", "FG").ToString())
-											.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color").ToString())
-									]
+							+ SHeaderRow::Column("ForegroundColor")
+							.FixedWidth(24.0f)
+							.VAlignHeader(VAlign_Center)
+							.HeaderContent()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("ForegroundColor", "FG").ToString())
+								.ToolTipText(LOCTEXT("ForegroundColorToolTip", "Foreground Color").ToString())
+							]
 
-								+ SHeaderRow::Column("Visibility")
-									.DefaultLabel(LOCTEXT("Visibility", "Visibility" ).ToString())
-									.FixedWidth(125.0f)
+							+ SHeaderRow::Column("Visibility")
+							.DefaultLabel(LOCTEXT("Visibility", "Visibility" ).ToString())
+							.FixedWidth(125.0f)
 
-								+ SHeaderRow::Column("WidgetInfo")
-									.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
-									.FillWidth(0.25f)
+							+ SHeaderRow::Column("WidgetInfo")
+							.DefaultLabel(LOCTEXT("WidgetInfo", "Widget Info" ).ToString())
+							.FillWidth(0.25f)
 
-								+ SHeaderRow::Column("Address")
-									.DefaultLabel( LOCTEXT("Address", "Address") )
-									.FillWidth( 0.10f )
-							)
+							+ SHeaderRow::Column("Address")
+							.DefaultLabel( LOCTEXT("Address", "Address") )
+							.FillWidth( 0.10f )
+						)
 					]
 
 				#if WITH_EVENT_LOGGING
@@ -381,7 +381,14 @@ TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( TSharedP
 	return SNew(SReflectorTreeWidgetItem, OwnerTable)
 		.WidgetInfoToVisualize(InReflectorNode)
 		.ToolTip(GenerateToolTipForReflectorNode(InReflectorNode))
-		.SourceCodeAccessor(SourceAccessDelegate);
+		.SourceCodeAccessor(SourceAccessDelegate)
+		.AssetAccessor(AsseetAccessDelegate);
+}
+
+
+void SWidgetReflector::HandleReflectorTreeGetChildren(TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren)
+{
+	OutChildren = InWidgetGeometry->ChildNodes;
 }
 
 
@@ -390,7 +397,7 @@ TSharedRef<ITableRow> SWidgetReflector::GenerateEventLogRow( TSharedRef<FLoggedE
 	return SNew(STableRow<TSharedRef<FLoggedEvent>>, OwnerTable)
 	[
 		SNew(STextBlock)
-			.Text(InLoggedEvent->ToText())
+		.Text(InLoggedEvent->ToText())
 	];
 }
 

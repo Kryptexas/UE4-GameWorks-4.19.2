@@ -125,7 +125,13 @@ public:
 	UPROPERTY()
 	bool bHiddenInDesigner;
 
+	/** Stores a reference to the asset responsible for this widgets construction. */
+	UPROPERTY(Transient)
+	UObject* WidgetGeneratedBy;
+
 #endif
+
+public:
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category="Widget|Transform")

@@ -15,43 +15,13 @@ UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FObjectInit
 {
 }
 
-void UWidgetBlueprintGeneratedClass::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	//// Create a widget tree if one doesn't already exist.
-	//if ( WidgetTree == NULL )
-	//{
-	//	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
-	//}
-
-	////WidgetTree->SetFlags(RF_DefaultSubObject);
-	//WidgetTree->SetFlags(RF_Transactional);
-}
-
-void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
-{
-	Super::Link(Ar, bRelinkExistingProperties);
-
-	// @TODO: Shouldn't be necessary to clear these, but currently the class gets linked twice during compilation
-	WidgetNodeProperties.Empty();
-
-	// Initialize derived members
-	//for ( TFieldIterator<UProperty> It(this); It; ++It )
-	//{
-	//	if ( UStructProperty* StructProp = Cast<UStructProperty>(*It) )
-	//	{
-	//		if ( StructProp->Struct->IsChildOf(FWidgetNode_Base::StaticStruct()) )
-	//		{
-	//			WidgetNodeProperties.Add(StructProp);
-	//		}
-	//	}
-	//}
-}
-
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>( WidgetTree, UserWidget );
+
+#if WITH_EDITOR
+	UserWidget->WidgetGeneratedBy = ClassGeneratedBy;
+#endif
 
 	if ( ClonedTree )
 	{
@@ -82,6 +52,10 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 			{
 				return;
 			}
+
+#if WITH_EDITOR
+			Widget->WidgetGeneratedBy = ClassGeneratedBy;
+#endif
 
 			// TODO UMG Make this an FName
 			FString VariableName = Widget->GetName();

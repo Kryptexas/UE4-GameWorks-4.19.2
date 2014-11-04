@@ -70,6 +70,11 @@ public:
 		SourceAccessDelegate = InDelegate;
 	}
 
+	virtual void SetAssetAccessDelegate(FAccessAsset InDelegate) override
+	{
+		AsseetAccessDelegate = InDelegate;
+	}
+
 	virtual void SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisualize ) override;
 	virtual int32 Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId ) override;
 
@@ -165,10 +170,7 @@ private:
 	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( TSharedPtr<FReflectorNode> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the child items of the given reflector tree node. */
-	void HandleReflectorTreeGetChildren( TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren )
-	{
-		OutChildren = InWidgetGeometry->ChildNodes;
-	}
+	void HandleReflectorTreeGetChildren( TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren );
 
 	/** Callback for when the selection in the reflector tree has changed. */
 	void HandleReflectorTreeSelectionChanged( TSharedPtr< FReflectorNode >, ESelectInfo::Type /*SelectInfo*/ )
@@ -192,6 +194,7 @@ private:
 	SSplitter::FSlot* WidgetInfoLocation;
 
 	FAccessSourceCode SourceAccessDelegate;
+	FAccessAsset AsseetAccessDelegate;
 
 	bool bShowFocus;
 	bool bIsPicking;
