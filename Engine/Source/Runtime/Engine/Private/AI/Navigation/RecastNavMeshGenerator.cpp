@@ -1406,7 +1406,7 @@ static FBox CalculateTileBounds(int32 X, int32 Y, const FVector& NavMeshOrigin, 
 //----------------------------------------------------------------------//
 
 FRecastTileGenerator::FRecastTileGenerator(
-	const FRecastNavMeshGenerator* ParentGenerator,
+	FRecastNavMeshGenerator* ParentGenerator,
 	const int32 X, 
 	const int32 Y,
 	TArray<FBox> DirtyAreas
@@ -1445,21 +1445,16 @@ FRecastTileGenerator::FRecastTileGenerator(
 			}
 		}
 	}
+
+	// Take ownership of tile cache data if it exist 
+	CompressedLayers = ParentGenerator->TakeIntermediateLayersData(FIntPoint(TileX, TileY));
+
+	// We have to regenerate layers data in case geometry is changed or tile cache is missing
+	bRegenerateCompressedLayers = (DirtyAreas.Num() == 0 || CompressedLayers.Num() == 0);
 	
 	// Gather geometry for tile if it inside navigable bounds
-	bRegenerateCompressedLayers = true;
 	if (InclusionBounds.Num())
 	{
-		// In case we don't need to regenerate tile from scratch
-		// get compressed layers data from cache
-		if (DirtyAreas.Num() > 0)
-		{
-			CompressedLayers = ParentGenerator->GetIntermediateLayersData(FIntPoint(TileX, TileY));
-		}
-	
-		// We have to regenerate layers data in case it's missing
-		bRegenerateCompressedLayers = (CompressedLayers.Num() == 0);
-
 		if (!bRegenerateCompressedLayers)
 		{
 			// Mark layers that needs to be updated
@@ -3213,17 +3208,11 @@ FBox FRecastNavMeshGenerator::GrowBoundingBox(const FBox& BBox, bool bIncludeAge
 	return FBox(BBox.Min - BBoxGrowOffsetBoth - BBoxGrowOffsetMin, BBox.Max + BBoxGrowOffsetBoth);
 }
 
-TArray<FNavMeshTileData> FRecastNavMeshGenerator::GetIntermediateLayersData(FIntPoint GridCoord) const
+TArray<FNavMeshTileData> FRecastNavMeshGenerator::TakeIntermediateLayersData(FIntPoint GridCoord)
 {
-	const TArray<FNavMeshTileData>* ExistingData = IntermediateLayerDataMap.Find(GridCoord);
-	if (ExistingData)
-	{
-		return *ExistingData;
-	}
-	else
-	{
-		return TArray<FNavMeshTileData>();
-	}
+	TArray<FNavMeshTileData> Result;
+	IntermediateLayerDataMap.RemoveAndCopyValue(GridCoord, Result);
+	return Result;
 }
 
 static bool IntercestBounds(const FBox& TestBox, const TNavStatArray<FBox>& Bounds)
@@ -3514,10 +3503,6 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 				if (ComressedLayers.Num())
 				{
 					IntermediateLayerDataMap.Add(Element.Coord, ComressedLayers);
-				}
-				else
-				{
-					IntermediateLayerDataMap.Remove(Element.Coord);
 				}
 			}
 
