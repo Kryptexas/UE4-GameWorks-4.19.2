@@ -204,6 +204,8 @@ public:
 	/** True if a lighting build is currently in the works, or is finished but not accepted yet */
 	bool IsLightingBuildCurrentlyRunning() const;
 
+	bool IsLightingBuildCurrentlyExporting() const;
+
 private:
 	FStaticLightingManager()
 		: StaticLightingSystem(NULL) {}
@@ -258,6 +260,8 @@ public:
 
 	/** True if the current stage of building is asynchronous (lightmass in flight) */
 	bool IsAsyncBuilding() const;
+
+	bool IsAmortizedExporting() const;
 
 private:
 	/**

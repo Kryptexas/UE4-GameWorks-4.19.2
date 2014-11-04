@@ -6041,6 +6041,12 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 		}
 	}
 
+	// Don't throttle during amortized export, greatly increases export time
+	if (IsLightingBuildCurrentlyExporting())
+	{
+		return false;
+	}
+
 	return bShouldThrottle;
 }
 

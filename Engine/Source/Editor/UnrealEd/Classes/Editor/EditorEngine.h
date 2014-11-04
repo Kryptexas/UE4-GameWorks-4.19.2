@@ -1431,6 +1431,8 @@ public:
 	/** Checks to see if the asynchronous lighting build is running or not */
 	bool IsLightingBuildCurrentlyRunning() const;
 
+	bool IsLightingBuildCurrentlyExporting() const;
+
 	/** Checks if asynchronous lighting is building, if so, it throws a warning notification and returns true */
 	bool WarnIfLightingBuildIsCurrentlyRunning();
 

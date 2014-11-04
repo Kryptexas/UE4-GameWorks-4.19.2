@@ -288,6 +288,11 @@ bool FStaticLightingManager::IsLightingBuildCurrentlyRunning() const
 	return StaticLightingSystem != NULL;
 }
 
+bool FStaticLightingManager::IsLightingBuildCurrentlyExporting() const
+{
+	return StaticLightingSystem != NULL && StaticLightingSystem->IsAmortizedExporting();
+}
+
 
 
 
@@ -2105,6 +2110,11 @@ bool FStaticLightingSystem::IsAsyncBuilding() const
 	return CurrentBuildStage == FStaticLightingSystem::AsynchronousBuilding;
 }
 
+bool FStaticLightingSystem::IsAmortizedExporting() const
+{
+	return CurrentBuildStage == FStaticLightingSystem::AmortizedExport;
+}
+
 #endif
 
 
@@ -2142,6 +2152,11 @@ void UEditorEngine::UpdateBuildLighting()
 bool UEditorEngine::IsLightingBuildCurrentlyRunning() const
 {
 	return FStaticLightingManager::Get()->IsLightingBuildCurrentlyRunning();
+}
+
+bool UEditorEngine::IsLightingBuildCurrentlyExporting() const
+{
+	return FStaticLightingManager::Get()->IsLightingBuildCurrentlyExporting(); 
 }
 
 bool UEditorEngine::WarnIfLightingBuildIsCurrentlyRunning()
