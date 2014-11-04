@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "ModuleManager.h"
+#include "OnlineSubsystemImpl.h"
 
 IMPLEMENT_MODULE( FOnlineSubsystemModule, OnlineSubsystem );
 
