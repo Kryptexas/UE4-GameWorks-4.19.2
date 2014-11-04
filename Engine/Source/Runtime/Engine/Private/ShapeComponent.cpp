@@ -6,7 +6,8 @@
 UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.SetCollisionProfileName(FName(TEXT("OverlapAllDynamic")));
+	static const FName CollisionProfileName(TEXT("OverlapAllDynamic"));
+	BodyInstance.SetCollisionProfileName(CollisionProfileName);
 	// when we deprecated this variable, we switched on for the shapecomponent collision profile
 	// the problem with adding collision profile later, the instanced data will be wiped
 	// since shape component is so popular for BP and so on, I'm adding manual support for compatibility

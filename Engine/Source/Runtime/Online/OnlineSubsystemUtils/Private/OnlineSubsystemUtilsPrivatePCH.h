@@ -6,6 +6,7 @@
 #include "Engine.h"
 #include "Sockets.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemUtilsModule.h"
 #include "SocketSubsystem.h"

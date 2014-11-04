@@ -1613,7 +1613,7 @@ void UClass::AssembleReferenceTokenStream()
 		}
 
 		// Emit end of stream token.
-		const FName EOSDebugName("EOS");
+		static const FName EOSDebugName("EOS");
 		EmitObjectReference(0, EOSDebugName, GCRT_EndOfStream);
 
 		// Shrink reference token stream to proper size.

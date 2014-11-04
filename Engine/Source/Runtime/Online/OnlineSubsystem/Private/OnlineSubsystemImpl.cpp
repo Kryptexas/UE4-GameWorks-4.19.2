@@ -5,8 +5,10 @@
 #include "NamedInterfaces.h"
 #include "OnlineIdentityInterface.h"
 
+const FName FOnlineSubsystemImpl::DefaultInstanceName(TEXT("DefaultInstance"));
+
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
-	InstanceName(DEFAULT_INSTANCE),
+	InstanceName(DefaultInstanceName),
 	bForceDedicated(false),
 	NamedInterfaces(NULL)
 {
@@ -68,7 +70,7 @@ void FOnlineSubsystemImpl::SetNamedInterface(FName InterfaceName, UObject* NewIn
 
 bool FOnlineSubsystemImpl::IsServer() const
 {
-	FName WorldContextHandle = (InstanceName != NAME_None && InstanceName != DEFAULT_INSTANCE) ? InstanceName : NAME_None;
+	FName WorldContextHandle = (InstanceName != NAME_None && InstanceName != DefaultInstanceName) ? InstanceName : NAME_None;
 	return IsServerForOnlineSubsystems(WorldContextHandle);
 }
 

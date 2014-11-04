@@ -51,5 +51,8 @@ public:
 	 * @return the name of the online subsystem instance
 	 */
 	FName GetInstanceName() const { return InstanceName; }
+
+	/** Name given to default OSS instances (disambiguates for PIE) */
+	static const FName DefaultInstanceName;
 };
 

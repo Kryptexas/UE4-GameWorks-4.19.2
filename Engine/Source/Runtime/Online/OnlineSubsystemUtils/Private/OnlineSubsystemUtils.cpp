@@ -81,7 +81,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 UWorld* GetWorldForOnline(FName InstanceName)
 {
 	UWorld* World = NULL;
-	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
+	if (InstanceName != FOnlineSubsystemImpl::DefaultInstanceName && InstanceName != NAME_None)
 	{
 		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(InstanceName);
 		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);
