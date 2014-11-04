@@ -21,7 +21,7 @@ struct FCustomMeshTriangle
 
 /** Component that allows you to specify custom triangle mesh geometry */
 UCLASS(hidecategories=(Object,LOD, Physics, Collision), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
-class UCustomMeshComponent : public UMeshComponent
+class CUSTOMMESHCOMPONENT_API UCustomMeshComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 
