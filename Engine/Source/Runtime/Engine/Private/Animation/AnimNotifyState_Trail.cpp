@@ -52,6 +52,12 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 		Width = AnimInst->GetCurveValue(WidthScaleCurve);
 	}
 
+	UParticleSystem* ParticleSystemTemplate = OverridePSTemplate(MeshComp, Animation);
+	if (ParticleSystemTemplate == nullptr)
+	{
+		ParticleSystemTemplate = PSTemplate;
+	}
+
 	bool bFoundExistingTrail = false;
 	for (USceneComponent* Comp : Children)
 	{
