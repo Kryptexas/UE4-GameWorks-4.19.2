@@ -15,8 +15,10 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** Creates a widget */
-	UFUNCTION(BlueprintCallable, meta=( WorldContext="WorldContextObject", FriendlyName = "Create Widget", BlueprintInternalUseOnly = "true" ), Category="Widget")
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, meta=( WorldContext="WorldContextObject", FriendlyName="Create Widget", BlueprintInternalUseOnly="true" ), Category="Widget")
 	static class UUserWidget* Create(UObject* WorldContextObject, TSubclassOf<class UUserWidget> WidgetType, APlayerController* OwningPlayer);
 
 	/**
@@ -27,19 +29,19 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	static UDragDropOperation* CreateDragDropOperation(TSubclassOf<UDragDropOperation> OperationClass);
 	
 	/** Setup an input mode that allows only the UI to respond to user input. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Input")
 	static void SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false);
 
 	/** Setup an input mode that allows only the UI to respond to user input, and if the UI doesn't handle it player input / player controller gets a chance. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Input")
 	static void SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus = nullptr, bool bLockMouseToViewport = false, bool bHideCursorDuringCapture = true);
 
 	/** Setup an input mode that allows only player input / player controller to respond to user input. */
-	UFUNCTION(BlueprintCallable, Category = "Input")
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Input")
 	static void SetInputMode_GameOnly(APlayerController* Target);
 
-
-	UFUNCTION(BlueprintCallable, Category="Focus")
+	/** */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Focus")
 	static void SetFocusToGameViewport();
 
 	/** Draws a box */
@@ -125,13 +127,13 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * Returns true if a drag/drop event is occurring that a widget can handle.
 	 */
-	UFUNCTION(BlueprintPure, Category="Widget|Drag and Drop")
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Widget|Drag and Drop")
 	static bool IsDragDropping();
 
 	/**
 	 * Returns the drag and drop operation that is currently occuring if any, otherwise nothing.
 	 */
-	UFUNCTION(BlueprintPure, Category="Widget|Drag and Drop")
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Widget|Drag and Drop")
 	static UDragDropOperation* GetDragDroppingContent();
 
 	/**
@@ -180,6 +182,6 @@ class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 	static UMaterialInstanceDynamic* GetDynamicMaterial(FSlateBrush& Brush);
 
 	/** Closes any popup menu */
-	UFUNCTION(BlueprintCallable, Category="Widget|Menu")
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Widget|Menu")
 	static void DismissAllMenus();
 };

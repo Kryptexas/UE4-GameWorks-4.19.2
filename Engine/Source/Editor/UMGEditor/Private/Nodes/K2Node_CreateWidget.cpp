@@ -73,6 +73,11 @@ void UK2Node_CreateWidget::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuB
 	NodeAction->NodeTemplate = TemplateNode;
 }
 
+FName UK2Node_CreateWidget::GetCornerIcon() const
+{
+	return TEXT("Graph.Replication.ClientEvent");
+}
+
 UEdGraphPin* UK2Node_CreateWidget::GetOwningPlayerPin() const
 {
 	UEdGraphPin* Pin = FindPin(FK2Node_CreateWidgetHelper::OwningPlayerPinName);

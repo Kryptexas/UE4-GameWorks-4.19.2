@@ -9,6 +9,8 @@ class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/**  */
 	UFUNCTION(BlueprintPure, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
 	static float GetViewportScale(UObject* WorldContextObject);
@@ -35,14 +37,14 @@ class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 	 * Gets the slot object on the child widget as a Horizontal Box Slot, allowing you to manipulate its information.
 	 * @param Widget The child widget of a Horizontal Box.
 	 */
-	UFUNCTION(BlueprintPure, Category = "Slot")
+	UFUNCTION(BlueprintPure, Category="Slot")
 	static UHorizontalBoxSlot* SlotAsHorizontalBoxSlot(UWidget* Widget);
 
 	/**
 	 * Gets the slot object on the child widget as a Overlay Slot, allowing you to manipulate layout information.
 	 * @param Widget The child widget of a overlay panel.
 	 */
-	UFUNCTION(BlueprintPure, Category = "Slot")
+	UFUNCTION(BlueprintPure, Category="Slot")
 	static UOverlaySlot* SlotAsOverlaySlot(UWidget* Widget);
 
 	/**
