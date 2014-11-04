@@ -22,6 +22,7 @@
 /*.xcodeproj
 /Makefile
 /CMakeLists.txt
+/.ue4dependencies
 
 # Derived data cache is never checked in
 /Engine/DerivedDataCache/**
