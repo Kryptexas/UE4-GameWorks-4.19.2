@@ -11,8 +11,6 @@
 #include "WorldCollision.h"
 #include "CharacterMovementComponent.generated.h"
 
-struct FVector_NetQuantize100;
-struct FVector_NetQuantizeNormal;
 class FDebugDisplayInfo;
 
 /** Data about the floor for walking movement, used by CharacterMovementComponent. */
@@ -100,6 +98,9 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage() override;
 };
+
+/** Shared pointer for easy memory management of FSavedMove_Character, for accumulating and replaying network moves. */
+typedef TSharedPtr<class FSavedMove_Character> FSavedMovePtr;
 
 
 //=============================================================================
@@ -1484,6 +1485,9 @@ public:
 	 */
 	virtual float GetNetworkSafeRandomAngleDegrees() const;
 
+	/** Round acceleration, for better consistency and lower bandwidth in networked games. */
+	virtual FVector RoundAcceleration(FVector InAccel) const;
+
 	//--------------------------------
 	// INetworkPredictionInterface implementation
 
@@ -1557,6 +1561,9 @@ protected:
 	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
 	virtual void UpdateFromCompressedFlags(uint8 Flags);
 
+	/** Return true if it is OK to delay sending this player movement to the server, in order to conserve bandwidth. */
+	virtual bool CanDelaySendingMove(const FSavedMovePtr& NewMove);
+
 	/** Ticks the characters pose and accumulates root motion */
 	void TickCharacterPose(float DeltaTime);
 
@@ -1585,15 +1592,15 @@ public:
 
 	/** Replicated function sent by client to server - contains client movement and view info. */
 	UFUNCTION(unreliable, server, WithValidation)
-	virtual void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	virtual void ServerMove(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
 	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
 	UFUNCTION(unreliable, server, WithValidation)
-	virtual void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	virtual void ServerMoveDual(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	
 	/* Resending an (important) old move. Process it if not already processed. */
 	UFUNCTION(unreliable, server, WithValidation)
-	virtual void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
+	virtual void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
 	
 	/** If no client adjustment is needed after processing received ServerMove(), ack the good move so client can remove it from SavedMoves */
 	UFUNCTION(unreliable, client)
@@ -1682,8 +1689,6 @@ public:
 };
 
 
-typedef TSharedPtr<class FSavedMove_Character> FSavedMovePtr;
-
 /** FSavedMove_Character represents a saved move on the client that has been sent to the server and might need to be played back. */
 class ENGINE_API FSavedMove_Character
 {
@@ -1739,10 +1744,12 @@ public:
 	float RootMotionTrackPosition;
 	FRootMotionMovementParams RootMotionMovement;
 
-	/** threshold for deciding this is an "important" move based on DP with last acked acceleration. */
+	/** Threshold for deciding this is an "important" move based on DP with last acked acceleration. */
 	float AccelDotThreshold;    
 	/** Threshold for deciding is this is an important move because acceleration magnitude has changed too much */
 	float AccelMagThreshold;	
+	/** Threshold for deciding if we can combine two moves, true if cosine of angle between them is <= this. */
+	float AccelDotThresholdCombine;
 	
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear();

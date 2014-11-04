@@ -5048,6 +5048,16 @@ FVector UCharacterMovementComponent::ScaleInputAcceleration(const FVector& Input
 }
 
 
+FVector UCharacterMovementComponent::RoundAcceleration(FVector InAccel) const
+{
+	// Match FVector_NetQuantize10 (1 decimal place of precision).
+	InAccel.X = FMath::RoundToFloat(InAccel.X * 10.f) / 10.f;
+	InAccel.Y = FMath::RoundToFloat(InAccel.Y * 10.f) / 10.f;
+	InAccel.Z = FMath::RoundToFloat(InAccel.Z * 10.f) / 10.f;
+	return InAccel;
+}
+
+
 float UCharacterMovementComponent::ComputeAnalogInputModifier() const
 {
 	const float MaxAccel = GetMaxAcceleration();
@@ -5440,6 +5450,7 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 
 	// Perform the move locally
 	Acceleration = NewMove->Acceleration;
+	AnalogInputModifier = ComputeAnalogInputModifier(); // recompute since acceleration may have changed.
 	CharacterOwner->ClientRootMotionParams.Clear();
 	PerformMovement(NewMove->DeltaTime);
 
@@ -5448,9 +5459,9 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	// Add NewMove to the list
 	ClientData->SavedMoves.Push(NewMove);
 
-	const bool bCanCombine = (CVarNetEnableMoveCombining.GetValueOnGameThread() != 0);
+	const bool bCanDelayMove = (CVarNetEnableMoveCombining.GetValueOnGameThread() != 0) && CanDelaySendingMove(NewMove);
 
-	if (bCanCombine && ClientData->PendingMove.IsValid() == false)
+	if (bCanDelayMove && ClientData->PendingMove.IsValid() == false)
 	{
 		// Decide whether to hold off on move
 		// send moves more frequently in small games where server isn't likely to be saturated
@@ -5472,6 +5483,7 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 
 		if ((GetWorld()->TimeSeconds - ClientData->ClientUpdateTime) * CharacterOwner->GetWorldSettings()->GetEffectiveTimeDilation() < NetMoveDelta)
 		{
+			// Delay sending this move.
 			ClientData->PendingMove = NewMove;
 			return;
 		}
@@ -5573,7 +5585,7 @@ void UCharacterMovementComponent::CallServerMove
 void UCharacterMovementComponent::ServerMoveOld_Implementation
 	(
 	float OldTimeStamp,
-	FVector_NetQuantize100 OldAccel,
+	FVector_NetQuantize10 OldAccel,
 	uint8 OldMoveFlags
 	)
 {
@@ -5601,11 +5613,11 @@ void UCharacterMovementComponent::ServerMoveOld_Implementation
 
 void UCharacterMovementComponent::ServerMoveDual_Implementation(
 	float TimeStamp0,
-	FVector_NetQuantize100 InAccel0,
+	FVector_NetQuantize10 InAccel0,
 	uint8 PendingFlags,
 	uint32 View0,
 	float TimeStamp,
-	FVector_NetQuantize100 InAccel,
+	FVector_NetQuantize10 InAccel,
 	FVector_NetQuantize100 ClientLoc,
 	uint8 NewFlags,
 	uint8 ClientRoll,
@@ -5653,7 +5665,7 @@ bool UCharacterMovementComponent::VerifyClientTimeStamp(float TimeStamp, FNetwor
 
 void UCharacterMovementComponent::ServerMove_Implementation(
 	float TimeStamp,
-	FVector_NetQuantize100 InAccel,
+	FVector_NetQuantize10 InAccel,
 	FVector_NetQuantize100 ClientLoc,
 	uint8 MoveFlags,
 	uint8 ClientRoll,
@@ -5827,17 +5839,17 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 }
 
 
-bool UCharacterMovementComponent::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+bool UCharacterMovementComponent::ServerMove_Validate(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
 	return true;
 }
 
-bool UCharacterMovementComponent::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+bool UCharacterMovementComponent::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
 	return true;
 }
 
-bool UCharacterMovementComponent::ServerMoveOld_Validate(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags)
+bool UCharacterMovementComponent::ServerMoveOld_Validate(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags)
 {
 	return true;
 }
@@ -6604,6 +6616,7 @@ FSavedMove_Character::FSavedMove_Character()
 {
 	AccelMagThreshold = 1.f;
 	AccelDotThreshold = 0.9f;
+	AccelDotThresholdCombine = 0.996f; // approx 5 degrees.
 }
 
 FSavedMove_Character::~FSavedMove_Character()
@@ -6658,7 +6671,10 @@ void FSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaTime, 
 
 	AccelMag = NewAccel.Size();
 	AccelNormal = (AccelMag > SMALL_NUMBER ? NewAccel / AccelMag : FVector::ZeroVector);
-	Acceleration = NewAccel;
+	
+	// Round value, so that client and server match exactly (and so we can send with less bandwidth). This rounded value is copied back to the client in ReplicateMoveToServer.
+	// This is done after the AccelMag and AccelNormal are computed above, because those are only used client-side for combining move logic and need to remain accurate.
+	Acceleration = Character->GetCharacterMovement()->RoundAcceleration(NewAccel);
 
 	bPressedJump = Character->bPressedJump;
 	JumpKeyHoldTime = Character->JumpKeyHoldTime;
@@ -6760,6 +6776,11 @@ FVector FSavedMove_Character::GetRevertedLocation() const
 	return StartLocation;
 }
 
+bool UCharacterMovementComponent::CanDelaySendingMove(const FSavedMovePtr& NewMove)
+{
+	return true;
+}
+
 bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta) const
 {
 	if (bForceNoCombine || NewMove->bForceNoCombine)
@@ -6800,7 +6821,7 @@ bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharact
 			&& MovementMode == NewMove->MovementMode
 			&& StartCapsuleRadius == NewMove->StartCapsuleRadius
 			&& StartCapsuleHalfHeight == NewMove->StartCapsuleHalfHeight
-			&& ((AccelNormal | NewMove->AccelNormal) > 0.99f)
+			&& FVector::Coincident(AccelNormal, NewMove->AccelNormal, AccelDotThresholdCombine)
 			&& StartBaseRotation.Equals(NewMove->StartBaseRotation) // only if base hasn't rotated
 			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
 	}
