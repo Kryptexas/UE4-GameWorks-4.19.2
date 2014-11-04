@@ -38,6 +38,11 @@ public:
 		DistortionParams.Bind(Initializer.ParameterMap,TEXT("DistortionParams"));
 	}
 
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+	}
+
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FPostProcessVS::ModifyCompilationEnvironment(Platform,OutEnvironment);
