@@ -121,9 +121,9 @@ public:
 
 	virtual void OnSelection();
 	
-	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-
-	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent);
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual FReply HandleDrop(FDragDropEvent const& DragDropEvent) override;
+	virtual FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
@@ -172,7 +172,12 @@ public:
 
 	virtual bool IsVisible() const override
 	{
-		return !Item.GetTemplate()->bHiddenInDesigner;
+		if ( UWidget* TemplateWidget = Item.GetTemplate() )
+		{
+			return !TemplateWidget->bHiddenInDesigner;
+		}
+
+		return true;
 	}
 
 	virtual bool CanControlVisibility() const override
