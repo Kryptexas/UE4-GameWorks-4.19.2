@@ -71,6 +71,9 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 						check(bDefaultValueSet);
 						K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
 					}
+
+					// Copy tooltip from the property.
+					K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
 				}
 			}
 		}

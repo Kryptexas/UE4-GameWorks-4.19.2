@@ -269,7 +269,10 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 			}
 
 			// Copy tooltip from the property.
-			K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
+			if (Pin != nullptr)
+			{
+				K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
+			}
 		}
 	}
 }

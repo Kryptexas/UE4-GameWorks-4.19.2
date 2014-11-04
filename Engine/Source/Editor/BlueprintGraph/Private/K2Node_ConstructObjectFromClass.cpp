@@ -101,6 +101,12 @@ void UK2Node_ConstructObjectFromClass::CreatePinsForClass(UClass* InClass)
 				check( bDefaultValueSet );
 				K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
 			}
+
+			// Copy tooltip from the property.
+			if (Pin != nullptr)
+			{
+				K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
+			}
 		}
 	}
 
