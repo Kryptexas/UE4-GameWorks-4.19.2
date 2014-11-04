@@ -90,7 +90,7 @@ void UNamedSlot::OnSlotRemoved(UPanelSlot* Slot)
 
 const FSlateBrush* UNamedSlot::GetEditorIcon()
 {
-	return FUMGStyle::Get().GetBrush("Widget.Spacer");
+	return FUMGStyle::Get().GetBrush("Widget.NamedSlot");
 }
 
 const FText UNamedSlot::GetPaletteCategory()
