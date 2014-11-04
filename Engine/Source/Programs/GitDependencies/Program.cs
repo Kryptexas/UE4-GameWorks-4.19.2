@@ -352,8 +352,6 @@ namespace GitDependencies
 			// If there's nothing to do, just print a simpler message and exit early
 			if(FilesToDownload.Count > 0)
 			{
-				Log.WriteLine("Downloading {0} files using {1} threads...", FilesToDownload.Count, NumThreads);
-
 				// Download all the new dependencies
 				if(!DownloadDependencies(RootPath, FilesToDownload, TargetBlobs.Values, TargetPacks.Values, NumThreads, MaxRetries))
 				{
@@ -490,7 +488,7 @@ namespace GitDependencies
 					// Download the file, decompressing and hashing it as we go.
 					for(int NumAttempts = 0;;)
 					{
-						string ExceptionMessage;
+						Exception CaughtException;
 
 						// Try to download the file
 						long RollbackSize = 0;
@@ -502,19 +500,24 @@ namespace GitDependencies
 						catch(InvalidDataException Ex)
 						{
 							// The downloaded file was corrupt
-							ExceptionMessage = Ex.Message;
+							CaughtException = Ex;
+						}
+						catch(IOException Ex)
+						{
+							// Couldn't read/write from the stream or file
+							CaughtException = Ex;
 						}
 						catch(WebException Ex)
 						{
 							// Error while downloading the file
-							ExceptionMessage = Ex.Message;
+							CaughtException = Ex;
 						}
 						Interlocked.Add(ref State.NumBytesRead, -RollbackSize);
 
 						// Bail out after retrying
 						if(++NumAttempts == MaxRetries)
 						{
-							throw new Exception(String.Format("Failed to download '{0}' to '{1}' after {2} attempts: {3}", BundleUrl, PackFileName, NumAttempts, ExceptionMessage));
+							throw new Exception(String.Format("Failed to download '{0}' to '{1}' after {2} attempts: {3} ({4})", BundleUrl, PackFileName, NumAttempts, CaughtException.Message, CaughtException.GetType().Name));
 						}
 					}
 
