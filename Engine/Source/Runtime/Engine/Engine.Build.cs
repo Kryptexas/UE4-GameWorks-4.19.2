@@ -80,19 +80,9 @@ public class Engine : ModuleRules
 				"MovieSceneCoreTypes",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
+                "UMG",
 			}
 		);
-
-        // Prevent adding UMG as a dependency in dedicated server builds.
-        if (!(Target.Type == TargetRules.TargetType.Server || Target.Type == TargetRules.TargetType.Program))
-        {
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[]
-			    {
-				    "UMG",
-			    }
-            );
-        }
 
 		if (UEBuildConfiguration.bBuildDeveloperTools)
 		{
