@@ -16,15 +16,8 @@ struct FActiveGameplayEffect;
 class UGameplayEffect;
 class UGameplayEffectTemplate;
 class UAbilitySystemComponent;
-class UGameplayModCalculation;
-
-/** Enumeration for options of where to capture gameplay attributes from for gameplay effects */
-UENUM()
-enum class EGameplayEffectAttributeCaptureSource : uint8
-{
-	Source,	// Source (caster) of the gameplay effect
-	Target	// Target (recipient) of the gameplay effect
-};
+class UGameplayModMagnitudeCalculation;
+class UGameplayEffectExecutionCalculation;
 
 // Repurposing(?) this to be the inplace/custom/scoped modifier used by FGameplayEffectExecutionDefinition
 //	I would expect this to be the thing that is built off to be a "scalable float/attribute reference/custom magnitude" thing.
@@ -92,105 +85,217 @@ struct FGameplayEffectStackingCallbacks
 	TArray<TSubclassOf<class UGameplayEffectStackingExtension> >	ExtensionClasses;
 };
 
+/** Enumeration outlining the possible gameplay effect magnitude calculation policies */
+UENUM()
+enum class EGameplayEffectMagnitudeCalculation : uint8
+{
+	ScalableFloat,			// Use a simple, scalable float for the calculation
+	AttributeBased,			// Perform a calculation based upon an attribute
+	CustomCalculationClass	// Perform a custom calculation, capable of capturing and acting on multiple attributes, in either BP or native
+};
 
+/** Enumeration outlining the possible attribute based float calculation policies */
+UENUM()
+enum class EAttributeBasedFloatCalculationType : uint8
+{
+	AttributeMagnitude,			// Use the final evaluated magnitude of the attribute
+	AttributeBaseValue,			// Use the base value of the attribute
+	AttributeBonusMagnitude		// Use the "bonus" evaluated magnitude of the attribute: Equivalent to (FinalMag - BaseValue)
+};
 
-
-
-/** Struct defining gameplay attribute capture options for gameplay effects */
+/** 
+ * Struct representing a float whose magnitude is dictated by a backing attribute and a calculation policy, follows basic form of:
+ * (Coefficient * (PreMultiplyAdditiveValue + [Eval'd Attribute Value According to Policy])) + PostMultiplyAdditiveValue
+ */
 USTRUCT()
-struct FGameplayEffectAttributeCaptureDefinition
+struct FAttributeBasedFloat
 {
 	GENERATED_USTRUCT_BODY()
 
-	FGameplayEffectAttributeCaptureDefinition()
-	{
+public:
 
-	}
+	/** Constructor */
+	FAttributeBasedFloat()
+		: Coefficient(1.f)
+		, PreMultiplyAdditiveValue(0.f)
+		, PostMultiplyAdditiveValue(0.f)
+		, BackingAttribute()
+		, AttributeCalculationType(EAttributeBasedFloatCalculationType::AttributeMagnitude)
+	{}
 
-	FGameplayEffectAttributeCaptureDefinition(FGameplayAttribute InAttribute, EGameplayEffectAttributeCaptureSource InSource, bool InSnapshot)
-		: AttributeToCapture(InAttribute), AttributeSource(InSource), bSnapshot(InSnapshot)
-	{
+	/**
+	 * Calculate and return the magnitude of the float given the specified gameplay effect spec.
+	 * 
+	 * @note:	This function assumes (and asserts on) the existence of the required captured attribute within the spec.
+	 *			It is the responsibility of the caller to verify that the spec is properly setup before calling this function.
+	 *			
+	 *	@param InRelevantSpec	Gameplay effect spec providing the backing attribute capture
+	 *	
+	 *	@return Evaluated magnitude based upon the spec & calculation policy
+	 */
+	float CalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const;
 
-	}
+	/** Coefficient to the attribute calculation */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FScalableFloat Coefficient;
 
-	/** Gameplay attribute to capture */
-	UPROPERTY(EditDefaultsOnly, Category=Capture)
-	FGameplayAttribute AttributeToCapture;
+	/** Additive value to the attribute calculation, added in before the coefficient applies */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FScalableFloat PreMultiplyAdditiveValue;
 
-	/** Source of the gameplay attribute */
-	UPROPERTY(EditDefaultsOnly, Category=Capture)
-	EGameplayEffectAttributeCaptureSource AttributeSource;
+	/** Additive value to the attribute calculation, added in after the coefficient applies */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FScalableFloat PostMultiplyAdditiveValue;
 
-	/** Whether the attribute should be snapshotted or not */
-	UPROPERTY(EditDefaultsOnly, Category=Capture)
-	bool bSnapshot;
+	/** Attribute backing the calculation */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FGameplayEffectAttributeCaptureDefinition BackingAttribute;
 
-	/** Equality/Inequality operators */
-	bool operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const;
-	bool operator!=(const FGameplayEffectAttributeCaptureDefinition& Other) const;
+	/** Calculation policy in regards to the attribute */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	EAttributeBasedFloatCalculationType AttributeCalculationType;
 
-	FString ToSimpleString() const;
+	/** Filter to use on source tags; If specified, only modifiers applied with all of these tags will factor into the calculation */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FGameplayTagContainer SourceTagFilter;
+
+	/** Filter to use on target tags; If specified, only modifiers applied with all of these tags will factor into the calculation */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FGameplayTagContainer TargetTagFilter;
 };
 
-/** Structure for defining custom logic when a gameplay effect execution happens */
+/** Struct representing the magnitude of a gameplay effect modifier, potentially calculated in numerous different ways */
+USTRUCT()
+struct FGameplayEffectModifierMagnitude
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	/** Constructor */
+	FGameplayEffectModifierMagnitude()
+		: MagnitudeCalculationType(EGameplayEffectMagnitudeCalculation::ScalableFloat)
+		, ScalableFloatMagnitude()
+		, AttributeBasedMagnitude()
+		, CalculationClassMagnitude(nullptr)
+	{
+	}
+
+	/**
+	 * Determines if the magnitude can be properly calculated with the specified gameplay effect spec (could fail if relying on an attribute not present, etc.)
+	 * 
+	 * @param InRelevantSpec	Gameplay effect spec to check for magnitude calculation
+	 * 
+	 * @return Whether or not the magnitude can be properly calculated
+	 */
+	bool CanCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const;
+
+	/**
+	 * Attempts to calculate the magnitude given the provided spec. May fail if necessary information (such as captured attributes) is missing from
+	 * the spec.
+	 * 
+	 * @param InRelevantSpec			Gameplay effect spec to use to calculate the magnitude with
+	 * @param OutCalculatedMagnitude	[OUT] Calculated value of the magnitude, will be set to 0.f in the event of failure
+	 * 
+	 * @return True if the calculation was successful, false if it was not
+	 */
+	bool AttemptCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude) const;
+
+	/**
+	 * Gather all of the attribute capture definitions necessary to compute the magnitude and place them into the provided array
+	 * 
+	 * @param OutCaptureDefs	[OUT] Array populated with necessary attribute capture definitions
+	 */
+	void GetAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutCaptureDefs) const;
+
+protected:
+
+	/** Type of calculation to perform to derive the magnitude */
+	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
+	EGameplayEffectMagnitudeCalculation MagnitudeCalculationType;
+
+	/** Magnitude value represented by a scalable float */
+	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
+	FScalableFloat ScalableFloatMagnitude;
+
+	/** Magnitude value represented by an attribute-based float */
+	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
+	FAttributeBasedFloat AttributeBasedMagnitude;
+
+	/** Magnitude value represented by a custom calculation class */
+	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
+	TSubclassOf<UGameplayModMagnitudeCalculation> CalculationClassMagnitude;
+
+	// @hack: @todo: This is temporary to aid in post-load fix-up w/o exposing members publicly
+	friend class UGameplayEffect;
+};
+
+/** 
+ * Struct representing modifier info used exclusively for "scoped" executions that happen instantaneously. These are
+ * folded into a calculation only for the extent of the calculation and never permanently added to an aggregator.
+ */
+USTRUCT()
+struct FGameplayEffectExecutionScopedModifierInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Constructors
+	FGameplayEffectExecutionScopedModifierInfo()
+		: ModifierOp(EGameplayModOp::Additive)
+	{}
+
+	FGameplayEffectExecutionScopedModifierInfo(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef)
+		: CapturedAttribute(InCaptureDef)
+		, ModifierOp(EGameplayModOp::Additive)
+	{
+	}
+
+	/** Backing attribute that the scoped modifier is for */
+	UPROPERTY(VisibleDefaultsOnly, Category=Execution)
+	FGameplayEffectAttributeCaptureDefinition CapturedAttribute;
+
+	/** Modifier operation to perform */
+	UPROPERTY(EditDefaultsOnly, Category=Execution)
+	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
+
+	/** Magnitude of the scoped modifier */
+	UPROPERTY(EditDefaultsOnly, Category=Execution)
+	FGameplayEffectModifierMagnitude ModifierMagnitude;
+
+	/** Source tag requirements for the modifier to apply */
+	UPROPERTY(EditDefaultsOnly, Category=Execution)
+	FGameplayTagRequirements SourceTags;
+
+	/** Target tag requirements for the modifier to apply */
+	UPROPERTY(EditDefaultsOnly, Category=Execution)
+	FGameplayTagRequirements TargetTags;
+};
+
+/** 
+ * Struct representing the definition of a custom execution for a gameplay effect.
+ * Custom executions run special logic from an outside class each time the gameplay effect executes.
+ */
 USTRUCT()
 struct FGameplayEffectExecutionDefinition
 {
 	GENERATED_USTRUCT_BODY()
 
-	void OnObjectPostEditChange(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent);
+	/**
+	 * Gathers and populates the specified array with the capture definitions that the execution would like in order
+	 * to perform its custom calculation. Up to the individual execution calculation to handle if some of them are missing
+	 * or not.
+	 * 
+	 * @param OutCaptureDefs	[OUT] Capture definitions requested by the execution
+	 */
+	void GetAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutCaptureDefs) const;
 
-	// @todo: Ideally this would be an interface, but can't store one in a UPROPERTY. Need to figure out where we want custom
-	// execution to come from, as it could potentially be multiple places in reality. Might want native code, might want a blueprint graph,
-	// might want to implement it inline in the gameplay effect graph (maybe? would need to be static or instancing becomes a mess), might
-	// even just want it to be a "custom calculation" inline with fancy math operations.
+	/** Custom execution calculation class to run when the gameplay effect executes */
 	UPROPERTY(EditDefaultsOnly, Category=Execution)
-	TSubclassOf<UGameplayEffectCalculation> CalculationClass;
+	TSubclassOf<UGameplayEffectExecutionCalculation> CalculationClass;
 	
-	// @todo: This area should also be able to capture attributes because it's going to likely want them for the execution, as well as for
-	// scoped modifiers. Need to decide where they live/how this looks in the UI/etc.
-	// 
-	
-	
-
-	// FGameplayEffectAttributeCaptureDefinition
-
 	/** Modifiers that are applied "in place" during the execution calculation */
 	UPROPERTY(EditDefaultsOnly, Category = Execution)
-	TArray<FExtensionAttributeModifierInfo>	CalculationModifiers;
-};
-
-/** The runtime/mutable data of an ExecutionDefinition */
-USTRUCT()
-struct FGameplayEffectExecutionSpec
-{
-	GENERATED_USTRUCT_BODY()
-
-	//FAggregatorRef	
-};
-
-// @todo: Enum to choose between types; Details customization to hide the other one
-// @todo: Add Math Expression parser
-USTRUCT()
-struct FGameplayEffectMagnitude
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayEffectMagnitude()
-	: ScalableFloatMagnitude()
-	, CalculationClassMagnitude(nullptr)
-	{
-	}
-
-	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
-	FScalableFloat ScalableFloatMagnitude;
-
-	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
-	TSubclassOf<UGameplayModCalculation> CalculationClassMagnitude;
-
-	/** Attributes to capture for usage in custom calculations for magnitude */
-	UPROPERTY(EditDefaultsOnly, Category=Magnitude)
-	TArray<FGameplayEffectAttributeCaptureDefinition> CustomMagnitudeCalculationAttributes;
+	TArray<FGameplayEffectExecutionScopedModifierInfo> CalculationModifiers;
 };
 
 /**
@@ -221,13 +326,14 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier, meta=(DisplayName="Custom Ops"))
 	TArray<FGameplayModifierCallback> Callbacks;
 
-	/** How much this modifies what it is applied to */
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	FScalableFloat Magnitude; // Not modified from defaults
+	// @todo: Remove this after content resave
+	/** Now "deprecated," though being handled in a custom manner to avoid engine version bump. */
+	UPROPERTY()
+	FScalableFloat Magnitude;
 
-	// @todo: Rename/fix-up/etc.
+	/** Magnitude of the modifier */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	FGameplayEffectMagnitude MagnitudeV2;
+	FGameplayEffectModifierMagnitude ModifierMagnitude;
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagRequirements	SourceTags;
@@ -398,11 +504,9 @@ public:
 	//		Tag pass: properties that make sense "right now" (remove this comment DaveR/BillyB)
 	// ----------------------------------------------------------------------
 	
-
 	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(DisplayName="GameplayEffectAssetTag"))
 	FGameplayTagContainer GameplayEffectTags;
-
 	
 	/** "These tags are applied to the actor I am applied to" */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
@@ -416,30 +520,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
 	FGameplayTagRequirements ApplicationTagRequirements;
 
-};
-
-// GE_REMOVE this may go away? Or still useful for storing 'Final results of shit we calculated'?
-struct FGameplayModifierEvaluatedData
-{
-	FGameplayModifierEvaluatedData()
-		: Magnitude(0.f)
-		, IsValid(false)
-	{
-	}
-
-	FGameplayModifierEvaluatedData(float InMagnitude, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle())
-		: Magnitude(InMagnitude)
-		, Handle(InHandle)
-		, IsValid(true)
-	{
-	}
-
-	FGameplayTagContainer	SourceTags;
-	FGameplayTagContainer	TargetTags;
-
-	float	Magnitude;
-	FActiveGameplayEffectHandle	Handle;	// Handle of the active gameplay effect that originated us. Will be invalid in many cases
-	bool IsValid;
 };
 
 /**
@@ -503,17 +583,67 @@ struct FGameplayEffectAttributeCaptureSpec
 	FGameplayEffectAttributeCaptureSpec();
 	FGameplayEffectAttributeCaptureSpec(const FGameplayEffectAttributeCaptureDefinition& InDefinition);
 
-	// @todo:
-	// API should provide way to get:
-		// Final modified value
-		// Base value
-		// Bonus value (Final - Base)
-		// Mods (optionally matching tag filter)
+	/**
+	 * Returns whether the spec actually has a valid capture yet or not
+	 * 
+	 * @return True if the spec has a valid attribute capture, false if it does not
+	 */
+	bool HasValidCapture() const;
+
+	/**
+	 * Attempts to calculate the magnitude of the captured attribute given the specified parameters. Can fail if the spec doesn't have
+	 * a valid capture yet.
+	 * 
+	 * @param InEvalParams	Parameters to evaluate the attribute under
+	 * @param OutMagnitude	[OUT] Computed magnitude, falls back to 0.f in the event of failure
+	 * 
+	 * @return True if the magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateAttributeMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const;
+
+	/**
+	 * Attempts to calculate the base value of the captured attribute given the specified parameters. Can fail if the spec doesn't have
+	 * a valid capture yet.
+	 * 
+	 * @param OutBaseValue	[OUT] Computed base value, falls back to 0.f in the event of failure
+	 * 
+	 * @return True if the base value was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateAttributeBaseValue(OUT float& OutBaseValue) const;
+
+	/**
+	 * Attempts to calculate the "bonus" magnitude (final - base value) of the captured attribute given the specified parameters. Can fail if the spec doesn't have
+	 * a valid capture yet.
+	 * 
+	 * @param InEvalParams		Parameters to evaluate the attribute under
+	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude, falls back to 0.f in the event of failure
+	 * 
+	 * @return True if the bonus magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateAttributeBonusMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutBonusMagnitude) const;
+	
+	/**
+	 * Attempts to populate the specified aggregator with a snapshot of the backing captured aggregator. Can fail if the spec doesn't have
+	 * a valid capture yet.
+	 *
+	 * @param OutAggregatorSnapshot	[OUT] Snapshotted aggregator, if possible
+	 *
+ 	 * @return True if the aggregator was successfully snapshotted, false if it was not
+	 */
+	bool AttemptGetAttributeAggregatorSnapshot(OUT FAggregator& OutAggregatorSnapshot) const;
+
+	/**
+	 * Attempts to populate the specified aggregator with all of the mods of the backing captured aggregator. Can fail if the spec doesn't have
+	 * a valid capture yet.
+	 *
+	 * @param OutAggregatorToAddTo	[OUT] Aggregator with mods appended, if possible
+	 *
+ 	 * @return True if the aggregator had mods successfully added to it, false if it did not
+	 */
+	bool AttemptAddAggregatorModsToAggregator(OUT FAggregator& OutAggregatorToAddTo) const;
 	
 	/** Simple accessor to backing capture definition */
 	const FGameplayEffectAttributeCaptureDefinition& GetBackingDefinition() const;
-
-	const FAggregator& GetAggregator() const;
 		
 private:
 
@@ -549,10 +679,24 @@ public:
 	 */
 	void CaptureAttributes(class UAbilitySystemComponent* InAbilitySystemComponent, EGameplayEffectAttributeCaptureSource InCaptureSource);
 
-	// @todo:
-	// API should provide access to querying specs by definition; Wrapper around @todo API for specs above
-	
-	const FAggregator& GetAggregator(const FGameplayEffectAttributeCaptureDefinition& InDefinition) const;
+	/**
+	 * Find a capture spec within the container matching the specified capture definition, if possible.
+	 * 
+	 * @param InDefinition				Capture definition to use as the search basis
+	 * @param bOnlyIncludeValidCapture	If true, even if a spec is found, it won't be returned if it doesn't also have a valid capture already
+	 * 
+	 * @return The found attribute spec matching the specified search params, if any
+	 */
+	const FGameplayEffectAttributeCaptureSpec* FindCaptureSpecByDefinition(const FGameplayEffectAttributeCaptureDefinition& InDefinition, bool bOnlyIncludeValidCapture) const;
+
+	/**
+	 * Determines if the container has specs with valid captures for all of the specified definitions.
+	 * 
+	 * @param InCaptureDefsToCheck	Capture definitions to check for
+	 * 
+	 * @return True if the container has valid capture attributes for all of the specified definitions, false if it does not
+	 */
+	bool HasValidCapturedAttributes(const TArray<FGameplayEffectAttributeCaptureDefinition>& InCaptureDefsToCheck) const;
 
 	/** Returns whether the container has at least one spec w/o snapshotted attributes */
 	bool HasNonSnapshottedAttributes() const;
@@ -609,6 +753,15 @@ struct FGameplayEffectSpec
 	/** Attributes captured by the spec that are relevant to custom calculations, potentially in owned modifiers, etc.; NOT replicated to clients */
 	UPROPERTY(NotReplicated)
 	FGameplayEffectAttributeCaptureSpecContainer CapturedRelevantAttributes;
+
+	/**
+	 * Determines if the spec has capture specs with valid captures for all of the specified definitions.
+	 * 
+	 * @param InCaptureDefsToCheck	Capture definitions to check for
+	 * 
+	 * @return True if the container has valid capture attributes for all of the specified definitions, false if it does not
+	 */
+	bool HasValidCapturedAttributes(const TArray<FGameplayEffectAttributeCaptureDefinition>& InCaptureDefsToCheck) const;
 
 	/** Looks for an existing modified attribute struct, may return NULL */
 	const FGameplayEffectModifiedAttribute* GetModifiedAttribute(const FGameplayAttribute& Attribute) const;
@@ -678,8 +831,6 @@ struct FGameplayEffectSpec
 	
 	TArray<FModifierSpec> Modifiers;
 	
-	TArray<FGameplayEffectExecutionSpec>	Executions;
-
 	// GE_REMOVE: this feels strange but need to start standardizing how people get this info.
 	float GetModifierMagnitude(const FModifierSpec& ModSpec) const;
 	void CalculateModifierMagnitudes();
@@ -698,6 +849,9 @@ struct FGameplayEffectSpec
 private:
 
 	void CaptureDataFromSource();
+
+	/** Helper function to initialize all of the capture definitions required by the spec */
+	void SetupAttributeCaptureDefinitions();
 	
 	UPROPERTY()
 	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
@@ -868,6 +1022,24 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle) const;
 
 	/**
+	 * Get the source tags from the gameplay spec represented by the specified handle, if possible
+	 * 
+	 * @param Handle	Handle of the gameplay effect to retrieve source tags from
+	 * 
+	 * @return Source tags from the gameplay spec represented by the handle, if possible
+	 */
+	const FGameplayTagContainer* GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const;
+
+	/**
+	 * Get the target tags from the gameplay spec represented by the specified handle, if possible
+	 * 
+	 * @param Handle	Handle of the gameplay effect to retrieve target tags from
+	 * 
+	 * @return Target tags from the gameplay spec represented by the handle, if possible
+	 */
+	const FGameplayTagContainer* GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const;
+
+	/**
 	 * Populate the specified capture spec with the data necessary to capture an attribute from the container
 	 * 
 	 * @param OutCaptureSpec	[OUT] Capture spec to populate with captured data
@@ -928,6 +1100,16 @@ private:
 	FTimerHandle StackHandle;
 
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
+	
+	/**
+	 * Helper function to execute a mod on owned attributes
+	 * 
+	 * @param Spec			Gameplay effect spec executing the mod
+	 * @param ModEvalData	Evaluated data for the mod
+	 * 
+	 * @return True if the mod successfully executed, false if it did not
+	 */
+	bool InternalExecuteMod(FGameplayEffectSpec& Spec, FGameplayModifierEvaluatedData& ModEvalData);
 
 	bool IsNetAuthority() const;
 

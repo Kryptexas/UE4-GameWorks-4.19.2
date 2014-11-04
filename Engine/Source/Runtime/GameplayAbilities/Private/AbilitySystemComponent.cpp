@@ -248,6 +248,16 @@ bool UAbilitySystemComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
 }
 
+const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
+{
+	return ActiveGameplayEffects.GetGameplayEffectSourceTagsFromHandle(Handle);
+}
+
+const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const
+{
+	return ActiveGameplayEffects.GetGameplayEffectTargetTagsFromHandle(Handle);
+}
+
 void UAbilitySystemComponent::CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec)
 {
 	// Verify the capture is happening on an attribute the component actually has a set for; if not, can't capture the value

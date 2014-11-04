@@ -158,7 +158,12 @@ struct GAMEPLAYABILITIES_API FScalableFloat
 		: Value(0.f)
 		, FinalCurve(NULL)
 	{
+	}
 
+	FScalableFloat(float InInitialValue)
+		: Value(InInitialValue)
+		, FinalCurve(NULL)
+	{
 	}
 
 public:

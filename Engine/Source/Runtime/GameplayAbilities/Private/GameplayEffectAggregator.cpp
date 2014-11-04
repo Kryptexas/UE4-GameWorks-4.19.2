@@ -2,13 +2,33 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectAggregator.h"
+#include "AbilitySystemComponent.h"
 
 bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) const
 {
-	bool SourceMet = (!SourceTagReqs || SourceTagReqs->IsEmpty()) || (Parameters.SourceTags && SourceTagReqs->RequirementsMet(*Parameters.SourceTags));
-	bool TargetMet = (!TargetTagReqs || TargetTagReqs->IsEmpty()) || (Parameters.TargetTags && TargetTagReqs->RequirementsMet(*Parameters.TargetTags));
+	bool bSourceMet = (!SourceTagReqs || SourceTagReqs->IsEmpty()) || (Parameters.SourceTags && SourceTagReqs->RequirementsMet(*Parameters.SourceTags));
+	bool bTargetMet = (!TargetTagReqs || TargetTagReqs->IsEmpty()) || (Parameters.TargetTags && TargetTagReqs->RequirementsMet(*Parameters.TargetTags));
 
-	return SourceMet && TargetMet;
+	bool bSourceFilterMet = (Parameters.AppliedSourceTagFilter.Num() == 0);
+	bool bTargetFilterMet = (Parameters.AppliedTargetTagFilter.Num() == 0);
+	
+	const UAbilitySystemComponent* HandleComponent = ActiveHandle.GetOwningAbilitySystemComponent();
+	if (HandleComponent)
+	{
+		if (!bSourceFilterMet)
+		{
+			const FGameplayTagContainer* SourceTags = HandleComponent->GetGameplayEffectSourceTagsFromHandle(ActiveHandle);
+			bSourceFilterMet = (SourceTags && SourceTags->MatchesAll(Parameters.AppliedSourceTagFilter, false));
+		}
+
+		if (!bTargetFilterMet)
+		{
+			const FGameplayTagContainer* TargetTags = HandleComponent->GetGameplayEffectTargetTagsFromHandle(ActiveHandle);
+			bTargetFilterMet = (TargetTags && TargetTags->MatchesAll(Parameters.AppliedTargetTagFilter, false));
+		}
+	}
+
+	return bSourceMet && bTargetMet && bSourceFilterMet && bTargetFilterMet;
 }
 
 float FAggregator::Evaluate(const FAggregatorEvaluateParameters& Parameters) const
@@ -37,6 +57,16 @@ float FAggregator::EvaluateWithBase(float InlineBaseValue, const FAggregatorEval
 	}
 
 	return ((InlineBaseValue + Additive) * Multiplicitive) / Division;
+}
+
+float FAggregator::EvaluateBonus(const FAggregatorEvaluateParameters& Parameters) const
+{
+	return (Evaluate(Parameters) - GetBaseValue());
+}
+
+float FAggregator::GetBaseValue() const
+{
+	return BaseValue;
 }
 
 void FAggregator::SetBaseValue(float NewBaseValue)
@@ -158,21 +188,7 @@ void FAggregator::TakeSnapshotOf(const FAggregator& AggToSnapshot)
 
 void FAggregator::BroadcastOnDirty()
 {
-	if (!CallbacksDisabled)
-	{
-		OnDirty.Broadcast(this);
-	}
-
-}
-
-void FAggregator::DisableCallbacks()
-{
-	CallbacksDisabled= true;
-}
-
-void FAggregator::EnabledCallbacks()
-{
-	CallbacksDisabled = false;
+	OnDirty.Broadcast(this);
 }
 
 void FAggregatorRef::TakeSnapshotOf(const FAggregatorRef& RefToSnapshot)

@@ -88,16 +88,16 @@ bool UAbilitySystemTestAttributeSet::PreGameplayEffectExecute(struct FGameplayEf
 
 void UAbilitySystemTestAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data)
 {
-	static UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
-	static UProperty *DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
+	static UProperty* HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
+	static UProperty* DamageProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Damage));
 
-	UProperty *ModifiedProperty = Data.ModifierSpec.Info.Attribute.GetUProperty();
+	UProperty* ModifiedProperty = Data.EvaluatedData.Attribute.GetUProperty();
 
 	// What property was modified?
 	if (DamageProperty == ModifiedProperty)
 	{
 		// Anytime Damage is applied with 'Damage.Fire' tag, there is a chance to apply a burning DOT
-		if (Data.EvaluatedData.SourceTags.HasTag( IGameplayTagsModule::RequestGameplayTag(FName(TEXT("FireDamage"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		if (Data.EffectSpec.CapturedSourceTags.GetAggregatedTags()->HasTag( IGameplayTagsModule::RequestGameplayTag(FName(TEXT("FireDamage"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 		{
 			// Logic to rand() a burning DOT, if successful, apply DOT GameplayEffect to the target
 		}

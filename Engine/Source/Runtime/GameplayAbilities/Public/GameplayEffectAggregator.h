@@ -12,6 +12,12 @@ struct GAMEPLAYABILITIES_API FAggregatorEvaluateParameters
 
 	const FGameplayTagContainer*	SourceTags;
 	const FGameplayTagContainer*	TargetTags;
+
+	/** If any tags are specified in the filter, a mod's owning active gameplay effect's source tags must match ALL of them in order for the mod to count during evaluation */
+	FGameplayTagContainer	AppliedSourceTagFilter;
+
+	/** If any tags are specified in the filter, a mod's owning active gameplay effect's target tags must match ALL of them in order for the mod to count during evaluation */
+	FGameplayTagContainer	AppliedTargetTagFilter;
 };
 
 struct GAMEPLAYABILITIES_API FAggregatorMod
@@ -31,8 +37,10 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 {
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAggregatorDirty, FAggregator*);
 
-	FAggregator(float InBaseValue=0.f) : CallbacksDisabled(false), BaseValue(InBaseValue) { }
+	FAggregator(float InBaseValue=0.f) : BaseValue(InBaseValue) { }
 
+	/** Simple accessor to base value */
+	float GetBaseValue() const;
 	void SetBaseValue(float NewBaseValue);
 	
 	void ExecModOnBaseValue(TEnumAsByte<EGameplayModOp::Type> ModifierOp, float EvaluatedMagnitude);
@@ -41,14 +49,14 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 	void AddMod(float EvaluatedData, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements*	SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, FActiveGameplayEffectHandle ActiveHandle = FActiveGameplayEffectHandle());
 	void RemoveMod(FActiveGameplayEffectHandle ActiveHandle);
 
-	void DisableCallbacks();
-	void EnabledCallbacks();
-
 	/** Evaluates the Aggregator with the internal base value and given parameters */
 	float Evaluate(const FAggregatorEvaluateParameters& Parameters) const;
 
 	/** Evaluates the Aggregator with an arbitrary base value */
 	float EvaluateWithBase(float InlineBaseValue, const FAggregatorEvaluateParameters& Parameters) const;
+
+	/** Evaluates the Aggregator to compute its "bonus" (final - base) value */
+	float EvaluateBonus(const FAggregatorEvaluateParameters& Parameters) const;
 
 	void TakeSnapshotOf(const FAggregator& AggToSnapshot);
 
@@ -59,8 +67,6 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 private:
 
 	void BroadcastOnDirty();
-
-	bool CallbacksDisabled;
 
 	float	BaseValue;
 	TArray<FAggregatorMod>	Mods[EGameplayModOp::Max];

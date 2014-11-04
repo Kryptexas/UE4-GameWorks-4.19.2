@@ -9,12 +9,7 @@ UGameplayEffectCalculation::UGameplayEffectCalculation(const FObjectInitializer&
 
 }
 
-void UGameplayEffectCalculation::Execute(FGameplayEffectSpec& Spec, int32 ExecutionIdx, UAbilitySystemComponent* TargetAbilitySystemComponent) const
+const TArray<FGameplayEffectAttributeCaptureDefinition>& UGameplayEffectCalculation::GetAttributeCaptureDefinitions() const
 {
-	
-}
-
-void UGameplayEffectCalculation::GetCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& Definitions) const
-{
-
+	return RelevantAttributesToCapture;
 }

@@ -92,13 +92,13 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 	else
 */
 	{
-		// Gather all UAttriubute classes
+		// Gather all UAttribute classes
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass *Class = *ClassIt;
 			if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 			{
-				// Allow entire classes to be filtered globalyl
+				// Allow entire classes to be filtered globally
 				if (Class->HasMetaData(TEXT("HideInDetailsView")))
 				{
 					continue;
@@ -147,7 +147,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 		PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *Property->GetOuter()->GetName(), *Property->GetName()))));
 	}
 
-	// Fixme: this should be unified to use SGameplayATtributeWidget instead of custom combo box
+	// Fixme: this should be unified to use SGameplayAttributeWidget instead of custom combo box
 
 	HeaderRow.
 		NameContent()
@@ -167,6 +167,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 				SNew(STextComboBox)
 				.ContentPadding(FMargin(2.0f, 2.0f))
+				.IsEnabled(!StructPropertyHandle->IsEditConst())
 				.OptionsSource( &PropertyOptions )
 				.InitiallySelectedItem(GetPropertyType())
 				.OnSelectionChanged( this, &FAttributePropertyDetails::OnChangeProperty )

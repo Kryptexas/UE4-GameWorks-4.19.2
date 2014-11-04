@@ -82,6 +82,13 @@ namespace EGameplayEffectStackingPolicy
 	};
 }
 
+/** Enumeration for options of where to capture gameplay attributes from for gameplay effects */
+UENUM()
+enum class EGameplayEffectAttributeCaptureSource : uint8
+{
+	Source,	// Source (caster) of the gameplay effect
+	Target	// Target (recipient) of the gameplay effect
+};
 
 /**
  * This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
@@ -113,6 +120,7 @@ struct FActiveGameplayEffectHandle
 	static FActiveGameplayEffectHandle GenerateNewHandle(UAbilitySystemComponent* OwningComponent);
 
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent();
+	const UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
 
 	bool operator==(const FActiveGameplayEffectHandle& Other) const
 	{
@@ -140,6 +148,96 @@ private:
 	int32 Handle;
 };
 
+USTRUCT()
+struct FGameplayModifierEvaluatedData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayModifierEvaluatedData()
+		: Attribute()
+		, ModifierOp(EGameplayModOp::Additive)
+		, Magnitude(0.f)
+		, IsValid(false)
+	{
+	}
+
+	FGameplayModifierEvaluatedData(const FGameplayAttribute& InAttribute, TEnumAsByte<EGameplayModOp::Type> InModOp, float InMagnitude, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle())
+		: Attribute(InAttribute)
+		, ModifierOp(InModOp)
+		, Magnitude(InMagnitude)
+		, Handle(InHandle)
+		, IsValid(true)
+	{
+	}
+
+	UPROPERTY()
+	FGameplayAttribute Attribute;
+
+	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
+	UPROPERTY()
+	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
+
+	UPROPERTY()
+	float Magnitude;
+
+	/** Handle of the active gameplay effect that originated us. Will be invalid in many cases */
+	UPROPERTY()
+	FActiveGameplayEffectHandle	Handle;
+
+	UPROPERTY()
+	bool IsValid;
+
+	FString ToSimpleString() const
+	{
+		return FString::Printf(TEXT("%s %s EvalMag: %f"), *Attribute.GetName(), *EGameplayModOpToString(ModifierOp), Magnitude);
+	}
+};
+
+/** Struct defining gameplay attribute capture options for gameplay effects */
+USTRUCT()
+struct FGameplayEffectAttributeCaptureDefinition
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectAttributeCaptureDefinition()
+	{
+
+	}
+
+	FGameplayEffectAttributeCaptureDefinition(FGameplayAttribute InAttribute, EGameplayEffectAttributeCaptureSource InSource, bool InSnapshot)
+		: AttributeToCapture(InAttribute), AttributeSource(InSource), bSnapshot(InSnapshot)
+	{
+
+	}
+
+	/** Gameplay attribute to capture */
+	UPROPERTY(EditDefaultsOnly, Category=Capture)
+	FGameplayAttribute AttributeToCapture;
+
+	/** Source of the gameplay attribute */
+	UPROPERTY(EditDefaultsOnly, Category=Capture)
+	EGameplayEffectAttributeCaptureSource AttributeSource;
+
+	/** Whether the attribute should be snapshotted or not */
+	UPROPERTY(EditDefaultsOnly, Category=Capture)
+	bool bSnapshot;
+
+	/** Equality/Inequality operators */
+	bool operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const;
+	bool operator!=(const FGameplayEffectAttributeCaptureDefinition& Other) const;
+
+	/**
+	 * Get type hash for the capture definition; Implemented to allow usage in TMap
+	 *
+	 * @param CaptureDef Capture definition to get the type hash of
+	 */
+	friend uint32 GetTypeHash(const FGameplayEffectAttributeCaptureDefinition& CaptureDef)
+	{
+		return FCrc::MemCrc32(&CaptureDef, sizeof(FGameplayEffectAttributeCaptureDefinition));
+	}
+
+	FString ToSimpleString() const;
+};
 
 /**
  * FGameplayEffectContext

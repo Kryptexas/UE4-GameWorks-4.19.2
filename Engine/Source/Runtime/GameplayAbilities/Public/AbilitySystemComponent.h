@@ -67,13 +67,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	/** Finds existing AttributeSet */
 	template <class T >
-	const T*	GetSet()
+	const T*	GetSet() const
 	{
 		return (T*)GetAttributeSubobject(T::StaticClass());
 	}
 
 	template <class T >
-	const T*	GetSetChecked()
+	const T*	GetSetChecked() const
 	{
 		return (T*)GetAttributeSubobjectChecked(T::StaticClass());
 	}
@@ -206,6 +206,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
+
+	/**
+	 * Get the source tags from the gameplay spec represented by the specified handle, if possible
+	 * 
+	 * @param Handle	Handle of the gameplay effect to retrieve source tags from
+	 * 
+	 * @return Source tags from the gameplay spec represented by the handle, if possible
+	 */
+	const FGameplayTagContainer* GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const;
+
+	/**
+	 * Get the target tags from the gameplay spec represented by the specified handle, if possible
+	 * 
+	 * @param Handle	Handle of the gameplay effect to retrieve target tags from
+	 * 
+	 * @return Target tags from the gameplay spec represented by the handle, if possible
+	 */
+	const FGameplayTagContainer* GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const;
 
 	/**
 	 * Populate the specified capture spec with the data necessary to capture an attribute from the component

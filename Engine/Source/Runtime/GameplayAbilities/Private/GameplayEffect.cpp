@@ -8,7 +8,8 @@
 #include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
-#include "GameplayModCalculation.h"
+#include "GameplayModMagnitudeCalculation.h"
+#include "GameplayEffectExecutionCalculation.h"
 
 const float UGameplayEffect::INFINITE_DURATION = -1.f;
 const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
@@ -46,117 +47,171 @@ void UGameplayEffect::PostLoad()
 {
 	Super::PostLoad();
 
+	// Temporary post-load fix-up to preserve magnitude data
+	for (FGameplayModifierInfo& CurModInfo : Modifiers)
+	{
+		// If the old magnitude actually had some value in it, copy it over and then clear out the old data
+		if (CurModInfo.Magnitude.Value != 0.f || CurModInfo.Magnitude.Curve.IsValid())
+		{
+			CurModInfo.ModifierMagnitude.ScalableFloatMagnitude = CurModInfo.Magnitude;
+			CurModInfo.Magnitude = FScalableFloat();
+		}
+	}
+
 	ValidateGameplayEffect();
 }
 
 void UGameplayEffect::ValidateGameplayEffect()
 {
-	// todo: add a check here for instant effects that modify incoming/outgoing GEs
 }
 
-bool FGameplayEffectAttributeCaptureDefinition::operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const
-{
-	return ((AttributeToCapture == Other.AttributeToCapture) && (AttributeSource == Other.AttributeSource) && (bSnapshot == Other.bSnapshot));
-}
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	FAttributeBasedFloat
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool FGameplayEffectAttributeCaptureDefinition::operator!=(const FGameplayEffectAttributeCaptureDefinition& Other) const
+float FAttributeBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const
 {
-	return ((AttributeToCapture != Other.AttributeToCapture) || (AttributeSource != Other.AttributeSource) || (bSnapshot != Other.bSnapshot));
-}
+	const FGameplayEffectAttributeCaptureSpec* CaptureSpec = InRelevantSpec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(BackingAttribute, true);
+	checkf(CaptureSpec, TEXT("Attempted to calculate an attribute-based float from spec: %s that did not have the required captured attribute: %s"), 
+		*InRelevantSpec.ToSimpleString(), *BackingAttribute.ToSimpleString());
 
-FString FGameplayEffectAttributeCaptureDefinition::ToSimpleString() const
-{
-	return FString::Printf(TEXT("Attribute: %s, Capture Point: %s, Snapshot: %d"), *AttributeToCapture.GetName(), AttributeSource == EGameplayEffectAttributeCaptureSource::Source ? TEXT("Source") : TEXT("Target"), bSnapshot);
-}
+	float AttribValue = 0.f;
 
-FGameplayEffectAttributeCaptureSpec::FGameplayEffectAttributeCaptureSpec()
-{
-}
-
-FGameplayEffectAttributeCaptureSpec::FGameplayEffectAttributeCaptureSpec(const FGameplayEffectAttributeCaptureDefinition& InDefinition)
-	: BackingDefinition(InDefinition)
-{
-}
-
-const FGameplayEffectAttributeCaptureDefinition& FGameplayEffectAttributeCaptureSpec::GetBackingDefinition() const
-{
-	return BackingDefinition;
-}
-
-const FAggregator& FGameplayEffectAttributeCaptureSpec::GetAggregator() const
-{
-	FAggregator* Aggregator = AttributeAggregator.Get();
-	if (ensure(Aggregator))
+	// Base value can be calculated w/o evaluation parameters
+	if (AttributeCalculationType == EAttributeBasedFloatCalculationType::AttributeBaseValue)
 	{
-		return *Aggregator;
+		CaptureSpec->AttemptCalculateAttributeBaseValue(AttribValue);
+	}
+	// Set up eval params to handle magnitude or bonus magnitude calculations
+	else
+	{
+		FAggregatorEvaluateParameters EvaluationParameters;
+		EvaluationParameters.SourceTags = InRelevantSpec.CapturedSourceTags.GetAggregatedTags();
+		EvaluationParameters.TargetTags = InRelevantSpec.CapturedTargetTags.GetAggregatedTags();
+		EvaluationParameters.AppliedSourceTagFilter = SourceTagFilter;
+		EvaluationParameters.AppliedTargetTagFilter = TargetTagFilter;
+
+		if (AttributeCalculationType == EAttributeBasedFloatCalculationType::AttributeMagnitude)
+		{
+			CaptureSpec->AttemptCalculateAttributeMagnitude(EvaluationParameters, AttribValue);
+		}
+		else
+		{
+			CaptureSpec->AttemptCalculateAttributeBonusMagnitude(EvaluationParameters, AttribValue);
+		}
 	}
 
-	ABILITY_LOG(Error, TEXT("FGameplayEffectAttributeCaptureSpec::GetAggregator called with no valid aggregator"));
-	static FAggregator InvalidAggregator;
-	return InvalidAggregator;
+	const float SpecLvl = InRelevantSpec.GetLevel();
+	return ((Coefficient.GetValueAtLevel(SpecLvl) * (AttribValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
 }
 
-void FGameplayEffectAttributeCaptureSpecContainer::AddCaptureDefinition(const FGameplayEffectAttributeCaptureDefinition& InCaptureDefinition)
-{
-	const bool bSourceAttribute = (InCaptureDefinition.AttributeSource == EGameplayEffectAttributeCaptureSource::Source);
-	TArray<FGameplayEffectAttributeCaptureSpec>& AttributeArray = (bSourceAttribute ? SourceAttributes : TargetAttributes);
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	FGameplayEffectMagnitude
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	// Only add additional captures if this exact capture definition isn't already being handled
-	if (!AttributeArray.ContainsByPredicate(
-			[&](const FGameplayEffectAttributeCaptureSpec& Element)
+bool FGameplayEffectModifierMagnitude::CanCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec) const
+{
+	// Only can calculate magnitude properly if all required capture definitions are fulfilled by the spec
+	TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
+	GetAttributeCaptureDefinitions(ReqCaptureDefs);
+
+	return InRelevantSpec.HasValidCapturedAttributes(ReqCaptureDefs);
+}
+
+bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude) const
+{
+	OutCalculatedMagnitude = 0.f;
+	
+	const bool bCanCalc = CanCalculateMagnitude(InRelevantSpec);
+	if (bCanCalc)
+	{
+		switch (MagnitudeCalculationType)
+		{
+			case EGameplayEffectMagnitudeCalculation::ScalableFloat:
 			{
-				return Element.GetBackingDefinition() == InCaptureDefinition;
-			}))
-	{
-		AttributeArray.Add(FGameplayEffectAttributeCaptureSpec(InCaptureDefinition));
+				OutCalculatedMagnitude = ScalableFloatMagnitude.GetValueAtLevel(InRelevantSpec.GetLevel());
+			}
+			break;
 
-		if (!InCaptureDefinition.bSnapshot)
-		{
-			bHasNonSnapshottedAttributes = true;
+			case EGameplayEffectMagnitudeCalculation::AttributeBased:
+			{
+				OutCalculatedMagnitude = AttributeBasedMagnitude.CalculateMagnitude(InRelevantSpec);
+			}
+			break;
+
+			case EGameplayEffectMagnitudeCalculation::CustomCalculationClass:
+			{
+				const UGameplayModMagnitudeCalculation* CalcCDO = CalculationClassMagnitude->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+				check(CalcCDO);
+
+				OutCalculatedMagnitude = CalcCDO->CalculateMagnitude(InRelevantSpec);
+			}
+			break;
 		}
 	}
+
+	return bCanCalc;
 }
 
-void FGameplayEffectAttributeCaptureSpecContainer::CaptureAttributes(UAbilitySystemComponent* InAbilitySystemComponent, EGameplayEffectAttributeCaptureSource InCaptureSource)
+void FGameplayEffectModifierMagnitude::GetAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutCaptureDefs) const
 {
-	if (InAbilitySystemComponent)
-	{
-		const bool bSourceComponent = (InCaptureSource == EGameplayEffectAttributeCaptureSource::Source);
-		TArray<FGameplayEffectAttributeCaptureSpec>& AttributeArray = (bSourceComponent ? SourceAttributes : TargetAttributes);
+	OutCaptureDefs.Empty();
 
-		// Capture every spec's requirements from the specified component
-		for (FGameplayEffectAttributeCaptureSpec& CurCaptureSpec : AttributeArray)
+	switch (MagnitudeCalculationType)
+	{
+		case EGameplayEffectMagnitudeCalculation::AttributeBased:
 		{
-			InAbilitySystemComponent->CaptureAttributeForGameplayEffect(CurCaptureSpec);
+			OutCaptureDefs.Add(AttributeBasedMagnitude.BackingAttribute);
 		}
-	}
-}
+		break;
 
-const FAggregator& FGameplayEffectAttributeCaptureSpecContainer::GetAggregator(const FGameplayEffectAttributeCaptureDefinition& InDefinition) const
-{
-	const bool bSourceAttribute = (InDefinition.AttributeSource == EGameplayEffectAttributeCaptureSource::Source);
-	const TArray<FGameplayEffectAttributeCaptureSpec>& AttributeArray = (bSourceAttribute ? SourceAttributes : TargetAttributes);
-
-	const FGameplayEffectAttributeCaptureSpec* MatchingSpec = AttributeArray.FindByPredicate(
-		[&](const FGameplayEffectAttributeCaptureSpec& Element)
+		case EGameplayEffectMagnitudeCalculation::CustomCalculationClass:
 		{
-			return Element.GetBackingDefinition() == InDefinition;
-		});
+			if (CalculationClassMagnitude)
+			{
+				const UGameplayModMagnitudeCalculation* CalcCDO = CalculationClassMagnitude->GetDefaultObject<UGameplayModMagnitudeCalculation>();
+				check(CalcCDO);
 
-	if (MatchingSpec)
+				OutCaptureDefs.Append(CalcCDO->GetAttributeCaptureDefinitions());
+			}
+		}
+		break;
+	}
+}
+
+
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	FGameplayEffectExecutionDefinition
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+void FGameplayEffectExecutionDefinition::GetAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutCaptureDefs) const
+{
+	OutCaptureDefs.Empty();
+
+	if (CalculationClass)
 	{
-		return MatchingSpec->GetAggregator();
+		const UGameplayEffectExecutionCalculation* CalculationCDO = Cast<UGameplayEffectExecutionCalculation>(CalculationClass->ClassDefaultObject);
+		check(CalculationCDO);
+
+		OutCaptureDefs.Append(CalculationCDO->GetAttributeCaptureDefinitions());
 	}
 
-	ABILITY_LOG(Error, TEXT("FGameplayEffectAttributeCaptureSpecContainer::GetAggregator called for attribute definition %s when that attribute was not captured."), *InDefinition.ToSimpleString());
-	static FAggregator InvalidAggregator;
-	return InvalidAggregator;
+	// Scoped modifiers might have custom magnitude calculations, requiring additional captured attributes
+	for (const FGameplayEffectExecutionScopedModifierInfo& CurScopedMod : CalculationModifiers)
+	{
+		TArray<FGameplayEffectAttributeCaptureDefinition> ScopedModMagDefs;
+		CurScopedMod.ModifierMagnitude.GetAttributeCaptureDefinitions(ScopedModMagDefs);
+
+		OutCaptureDefs.Append(ScopedModMagDefs);
+	}
 }
 
-bool FGameplayEffectAttributeCaptureSpecContainer::HasNonSnapshottedAttributes() const
-{
-	return bHasNonSnapshottedAttributes;
-}
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -179,33 +234,9 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 		new (Modifiers)FModifierSpec(ModInfo);
 	}
 
-	// Gather all capture definitions from modifiers
-	for (const FModifierSpec& CurModSpec : Modifiers)
-	{
-		for (const FGameplayEffectAttributeCaptureDefinition& CurCaptureDef : CurModSpec.Info.MagnitudeV2.CustomMagnitudeCalculationAttributes)
-		{
-			CapturedRelevantAttributes.AddCaptureDefinition(CurCaptureDef);
-		}
-	}
-
-	// Gather all capture definitions from executions
-	for (const FGameplayEffectExecutionDefinition& Exec : Def->Executions)
-	{
-		if (Exec.CalculationClass == nullptr)
-			continue;
-
-		TArray<FGameplayEffectAttributeCaptureDefinition> Reqs;
-		const UGameplayEffectCalculation* CDO = Cast<UGameplayEffectCalculation>(Exec.CalculationClass->ClassDefaultObject);
-		
-		CDO->GetCaptureDefinitions(Reqs);
-
-		// Maybe it's better to pass in CapturedRelevantAttributes.AddCaptureDefinition(CurCaptureDef); to GetCaptureDefinitions?
-		for (const FGameplayEffectAttributeCaptureDefinition& Req : Reqs)
-		{
-			CapturedRelevantAttributes.AddCaptureDefinition(Req);
-		}
-	}
-
+	// Prep the spec with all of the attribute captures it will need to perform
+	SetupAttributeCaptureDefinitions();
+	
 	// Add the GameplayEffect asset tags to the source Spec tags
 	CapturedSourceTags.GetSpecTags().AppendTags(InDef->GameplayEffectTags);
 
@@ -217,6 +248,33 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 
 	// Everything is setup now, capture data from our source
 	CaptureDataFromSource();
+}
+
+void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
+{
+	// Gather all capture definitions from modifiers
+	for (const FModifierSpec& CurModSpec : Modifiers)
+	{
+		TArray<FGameplayEffectAttributeCaptureDefinition> CalculationCaptureDefs;
+		CurModSpec.Info.ModifierMagnitude.GetAttributeCaptureDefinitions(CalculationCaptureDefs);
+		
+		for (const FGameplayEffectAttributeCaptureDefinition& CurCaptureDef : CalculationCaptureDefs)
+		{
+			CapturedRelevantAttributes.AddCaptureDefinition(CurCaptureDef);
+		}
+	}
+
+	// Gather all capture definitions from executions
+	for (const FGameplayEffectExecutionDefinition& Exec : Def->Executions)
+	{
+		TArray<FGameplayEffectAttributeCaptureDefinition> ExecutionCaptureDefs;
+		Exec.GetAttributeCaptureDefinitions(ExecutionCaptureDefs);
+
+		for (const FGameplayEffectAttributeCaptureDefinition& CurExecCaptureDef : ExecutionCaptureDefs)
+		{
+			CapturedRelevantAttributes.AddCaptureDefinition(CurExecCaptureDef);
+		}
+	}
 }
 
 void FGameplayEffectSpec::CaptureDataFromSource()
@@ -282,8 +340,6 @@ float FGameplayEffectSpec::GetChanceToExecuteOnGameplayEffect() const
 float FGameplayEffectSpec::GetModifierMagnitude(const FModifierSpec& ModSpec) const
 {
 	return ModSpec.EvaluatedMagnitude;
-
-	//return ModSpec.Info.Magnitude.GetValueAtLevel(Level);
 }
 
 void FGameplayEffectSpec::CalculateModifierMagnitudes()
@@ -309,6 +365,11 @@ float FGameplayEffectSpec::GetMagnitude(const FGameplayAttribute &Attribute) con
 	}
 
 	return CurrentMagnitude;
+}
+
+bool FGameplayEffectSpec::HasValidCapturedAttributes(const TArray<FGameplayEffectAttributeCaptureDefinition>& InCaptureDefsToCheck) const
+{
+	return CapturedRelevantAttributes.HasValidCapturedAttributes(InCaptureDefsToCheck);
 }
 
 const FGameplayEffectModifiedAttribute* FGameplayEffectSpec::GetModifiedAttribute(const FGameplayAttribute& Attribute) const
@@ -386,8 +447,8 @@ void FGameplayEffectSpec::SetContext(FGameplayEffectContextHandle NewEffectConte
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 FModifierSpec::FModifierSpec(const FGameplayModifierInfo& InInfo)
-: Info(InInfo)
-, EvaluatedMagnitude(0.f)
+	: Info(InInfo)
+	, EvaluatedMagnitude(0.f)
 {
 
 }
@@ -399,23 +460,176 @@ float FModifierSpec::GetEvaluatedMagnitude() const
 
 void FModifierSpec::CalculateMagnitude(OUT FGameplayEffectSpec& OwnerSpec)
 {	
-	EvaluatedMagnitude = Info.Magnitude.GetValueAtLevel(OwnerSpec.GetLevel());
-
-	// @todo: this should have an enumeration over which to use
-	/*
-	if (Info.MagnitudeV2.CalculationClassMagnitude)
+	if (!Info.ModifierMagnitude.AttemptCalculateMagnitude(OwnerSpec, EvaluatedMagnitude))
 	{
-		const UGameplayModCalculation* ModCalcCDO = Info.MagnitudeV2.CalculationClassMagnitude->GetDefaultObject<UGameplayModCalculation>();
-		check(ModCalcCDO);
-
-		EvaluatedMagnitude = ModCalcCDO->CalculateMagnitude(OwnerSpec);
+		EvaluatedMagnitude = 0.f;
+		ABILITY_LOG(Warning, TEXT("Modifier on spec: %s was asked to CalculateMagnitude and failed, falling back to 0."), *OwnerSpec.ToSimpleString());
 	}
-	else
-	{
-		EvaluatedMagnitude = Info.MagnitudeV2.ScalableFloatMagnitude.GetValueAtLevel(OwnerSpec.GetLevel());
-	}
-	*/
 }
+
+FGameplayEffectAttributeCaptureSpec::FGameplayEffectAttributeCaptureSpec()
+{
+}
+
+FGameplayEffectAttributeCaptureSpec::FGameplayEffectAttributeCaptureSpec(const FGameplayEffectAttributeCaptureDefinition& InDefinition)
+	: BackingDefinition(InDefinition)
+{
+}
+
+bool FGameplayEffectAttributeCaptureSpec::HasValidCapture() const
+{
+	return (AttributeAggregator.Get() != nullptr);
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const
+{
+	OutMagnitude = 0.f;
+
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutMagnitude = Agg->Evaluate(InEvalParams);
+		return true;
+	}
+
+	return false;
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeBaseValue(OUT float& OutBaseValue) const
+{
+	OutBaseValue = 0.f;
+
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutBaseValue = Agg->GetBaseValue();
+		return true;
+	}
+
+	return false;
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeBonusMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutBonusMagnitude) const
+{
+	OutBonusMagnitude = 0.f;
+
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutBonusMagnitude = Agg->EvaluateBonus(InEvalParams);
+		return true;
+	}
+
+	return false;
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptGetAttributeAggregatorSnapshot(OUT FAggregator& OutAggregatorSnapshot) const
+{
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutAggregatorSnapshot.TakeSnapshotOf(*Agg);
+		return true;
+	}
+
+	return false;
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptAddAggregatorModsToAggregator(OUT FAggregator& OutAggregatorToAddTo) const
+{
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg)
+	{
+		OutAggregatorToAddTo.AddModsFrom(*Agg);
+		return true;
+	}
+
+	return false;
+}
+
+const FGameplayEffectAttributeCaptureDefinition& FGameplayEffectAttributeCaptureSpec::GetBackingDefinition() const
+{
+	return BackingDefinition;
+}
+
+void FGameplayEffectAttributeCaptureSpecContainer::AddCaptureDefinition(const FGameplayEffectAttributeCaptureDefinition& InCaptureDefinition)
+{
+	const bool bSourceAttribute = (InCaptureDefinition.AttributeSource == EGameplayEffectAttributeCaptureSource::Source);
+	TArray<FGameplayEffectAttributeCaptureSpec>& AttributeArray = (bSourceAttribute ? SourceAttributes : TargetAttributes);
+
+	// Only add additional captures if this exact capture definition isn't already being handled
+	if (!AttributeArray.ContainsByPredicate(
+			[&](const FGameplayEffectAttributeCaptureSpec& Element)
+			{
+				return Element.GetBackingDefinition() == InCaptureDefinition;
+			}))
+	{
+		AttributeArray.Add(FGameplayEffectAttributeCaptureSpec(InCaptureDefinition));
+
+		if (!InCaptureDefinition.bSnapshot)
+		{
+			bHasNonSnapshottedAttributes = true;
+		}
+	}
+}
+
+void FGameplayEffectAttributeCaptureSpecContainer::CaptureAttributes(UAbilitySystemComponent* InAbilitySystemComponent, EGameplayEffectAttributeCaptureSource InCaptureSource)
+{
+	if (InAbilitySystemComponent)
+	{
+		const bool bSourceComponent = (InCaptureSource == EGameplayEffectAttributeCaptureSource::Source);
+		TArray<FGameplayEffectAttributeCaptureSpec>& AttributeArray = (bSourceComponent ? SourceAttributes : TargetAttributes);
+
+		// Capture every spec's requirements from the specified component
+		for (FGameplayEffectAttributeCaptureSpec& CurCaptureSpec : AttributeArray)
+		{
+			InAbilitySystemComponent->CaptureAttributeForGameplayEffect(CurCaptureSpec);
+		}
+	}
+}
+
+const FGameplayEffectAttributeCaptureSpec* FGameplayEffectAttributeCaptureSpecContainer::FindCaptureSpecByDefinition(const FGameplayEffectAttributeCaptureDefinition& InDefinition, bool bOnlyIncludeValidCapture) const
+{
+	const bool bSourceAttribute = (InDefinition.AttributeSource == EGameplayEffectAttributeCaptureSource::Source);
+	const TArray<FGameplayEffectAttributeCaptureSpec>& AttributeArray = (bSourceAttribute ? SourceAttributes : TargetAttributes);
+
+	const FGameplayEffectAttributeCaptureSpec* MatchingSpec = AttributeArray.FindByPredicate(
+		[&](const FGameplayEffectAttributeCaptureSpec& Element)
+	{
+		return Element.GetBackingDefinition() == InDefinition;
+	});
+
+	// Null out the found results if the caller only wants valid captures and we don't have one yet
+	if (MatchingSpec && bOnlyIncludeValidCapture && !MatchingSpec->HasValidCapture())
+	{
+		MatchingSpec = nullptr;
+	}
+
+	return MatchingSpec;
+}
+
+bool FGameplayEffectAttributeCaptureSpecContainer::HasValidCapturedAttributes(const TArray<FGameplayEffectAttributeCaptureDefinition>& InCaptureDefsToCheck) const
+{
+	bool bHasValid = true;
+
+	for (const FGameplayEffectAttributeCaptureDefinition& CurDef : InCaptureDefsToCheck)
+	{
+		const FGameplayEffectAttributeCaptureSpec* CaptureSpec = FindCaptureSpecByDefinition(CurDef, true);
+		if (!CaptureSpec)
+		{
+			bHasValid = false;
+			break;
+		}
+	}
+
+	return bHasValid;
+}
+
+bool FGameplayEffectAttributeCaptureSpecContainer::HasNonSnapshottedAttributes() const
+{
+	return bHasNonSnapshottedAttributes;
+}
+
 
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -567,7 +781,7 @@ void FActiveGameplayEffectsContainer::RegisterWithOwner(UAbilitySystemComponent*
 /** This is the main function that executes a GameplayEffect on Attributes and ActiveGameplayEffects */
 void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey)
 {
-	// If there are no modifiers, we always want to apply the GameplayCue. If there are modifiers, we only want to invoke the GameplayCue if one of them went through (coudl be blocked by immunity or % chance roll)
+	// If there are no modifiers, we always want to apply the GameplayCue. If there are modifiers, we only want to invoke the GameplayCue if one of them went through (could be blocked by immunity or % chance roll)
 	bool InvokeGameplayCueExecute = (Spec.Modifiers.Num() == 0);
 
 	// check if this is a stacking effect and if it is the active stacking effect.
@@ -597,122 +811,35 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 	for (const FModifierSpec &Mod : Spec.Modifiers)
 	{
-		UAttributeSet* AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass()));
-		if (AttributeSet == NULL)
-		{
-			// Our owner doesn't have this attribute, so we can't do anything
-			ABILITY_LOG(Log, TEXT("%s does not have attribute %s. Skipping modifier"), *Owner->GetPathName(), *Mod.Info.Attribute.GetName());
-			continue;
-		}
-
-		ABILITY_LOG_SCOPE(TEXT("Executing Attribute Mod %s"), *Mod.ToSimpleString());
-
-		// First, evaluate all of our data
-			
-		// GE_Remove: still fixing this up:
-
-		float EvaluatedMagnitude = Mod.Info.Magnitude.GetValueAtLevel(Spec.GetLevel());
-
-		FGameplayModifierEvaluatedData EvaluatedData(EvaluatedMagnitude);
-
-		FGameplayEffectModCallbackData ExecuteData(Spec, Mod, EvaluatedData, *Owner);
-
-		/** 
-		 *  This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc 
-		 *	PreAttributeModify can return false to 'throw out' this modification.
-		 */
-		if (AttributeSet->PreGameplayEffectExecute(ExecuteData) == false)
-		{
-			continue;
-		}
-
-		// Todo: Tags/application checks here - make sure we can still apply (GE_Remove ??? is this still valid?)
-		InvokeGameplayCueExecute = true;
-
-		// Do we have active GE's that are already modifying this?
-		FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Mod.Info.Attribute);
-		if (RefPtr)
-		{
-			ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *Mod.Info.Attribute.GetName());
-			RefPtr->Get()->ExecModOnBaseValue(Mod.Info.ModifierOp, Mod.GetEvaluatedMagnitude() );
-		}
-		else
-		{
-			// Modify the property inplace, without putting it in the AttributeAggregatorMap map
-			float		CurrentValueOfProperty = Owner->GetNumericAttribute(Mod.Info.Attribute);
-			const float NewPropertyValue = FAggregator::StaticExecModOnBaseValue(CurrentValueOfProperty, Mod.Info.ModifierOp, Mod.GetEvaluatedMagnitude());
-
-			InternalUpdateNumericalAttribute(Mod.Info.Attribute, NewPropertyValue, &ExecuteData);
-		}
-
-		FGameplayEffectModifiedAttribute* ModifiedAttribute = Spec.GetModifiedAttribute(Mod.Info.Attribute);
-		if (!ModifiedAttribute)
-		{
-			// If we haven't already created a modified attribute holder, create it
-			ModifiedAttribute = Spec.AddModifiedAttribute(Mod.Info.Attribute);
-		}
-		ModifiedAttribute->TotalMagnitude += EvaluatedData.Magnitude;
-
-		/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
-		AttributeSet->PostGameplayEffectExecute(ExecuteData);
+		FGameplayModifierEvaluatedData EvalData(Mod.Info.Attribute, Mod.Info.ModifierOp, Mod.GetEvaluatedMagnitude());
+		InvokeGameplayCueExecute |= InternalExecuteMod(Spec, EvalData);
 	}
 
 	// ------------------------------------------------------
 	//	Executions
 	//		This will run custom code to 'do stuff'
 	// ------------------------------------------------------
-	 
-	for (int32 ExecIdx=0; ExecIdx < Spec.Def->Executions.Num(); ++ExecIdx)
+	
+	for (const FGameplayEffectExecutionDefinition& CurExecDef : Spec.Def->Executions)
 	{
-		const FGameplayEffectExecutionDefinition& Exec = Spec.Def->Executions[ExecIdx];
-		if (Exec.CalculationClass == nullptr)
-			continue;
-
-		const UGameplayEffectCalculation* CDO = Cast<UGameplayEffectCalculation>(Exec.CalculationClass->ClassDefaultObject);
-		check(CDO);
-
-
-		// Apply custom inline mods
-		FActiveGameplayEffectHandle ModifierHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
-		TSet<FAggregator*>	ModifiedAggregators;
-		for (const FExtensionAttributeModifierInfo& Mod : Exec.CalculationModifiers)
+		if (CurExecDef.CalculationClass)
 		{
-			// Evaluate this mods current value. Right now this is always a scalable float, but we'd like to support
-			// pulling arbitrary attribute values here too - these would be pulled from the Spec's captured attribute only?
-			// But bottom line - we evaluate them right here and that is their value for this scope. Right?
-			
-			// We do a const cast here becase we are being really careful! We will add Mods below but we will also remove them once the 
-			// custom calculation is finished. Custom Exec functions will only get const references to the aggregator.
-			
-			// If the custom exec functions want to add mods inplace, they can do it either like:
-			//	A) like we are doing it here (careful const cast + remove)
-			//  B) We give them a way to clone the aggregators on the stack and allow them to do whatever they want to those copies
-			//  C) We provide another optional parameter into ::Evaluate that takes additional mods.
-			 
-			
-			// @todo: Just always assuming snapshot for now, which is wrong. This should use a different struct.
-			FAggregator& Aggregator = const_cast<FAggregator&>(Spec.CapturedRelevantAttributes.GetAggregator(FGameplayEffectAttributeCaptureDefinition(Mod.Attribute, Mod.Source, true)));
+			const UGameplayEffectExecutionCalculation* ExecCDO = CurExecDef.CalculationClass->GetDefaultObject<UGameplayEffectExecutionCalculation>();
+			check(ExecCDO);
 
+			TArray<FGameplayModifierEvaluatedData> OutModifiers;
 
-			float EvaluatedMagnitude = Mod.Magnitude.GetValueAtLevel(Spec.GetLevel());
+			// Run the custom execution
+			FGameplayEffectCustomExecutionParameters ExecutionParams(Spec, CurExecDef.CalculationModifiers, Owner);
+			ExecCDO->Execute(ExecutionParams, OutModifiers);
 
-			Aggregator.DisableCallbacks();
-			Aggregator.AddMod(EvaluatedMagnitude, Mod.ModifierOp, &Mod.SourceTags, &Mod.TargetTags, ModifierHandle);
-
-			ModifiedAggregators.Add(&Aggregator);
+			// Execute any mods the custom execution yielded
+			for (FGameplayModifierEvaluatedData& CurExecMod : OutModifiers)
+			{
+				InvokeGameplayCueExecute |= InternalExecuteMod(Spec, CurExecMod);
+			}
 		}
-
-		CDO->Execute(Spec, ExecIdx, Owner);
-
-		// Remove those custom inline mods
-		for (FAggregator* Aggregator : ModifiedAggregators)
-		{
-			Aggregator->RemoveMod(ModifierHandle);
-			Aggregator->EnabledCallbacks();
-		}
-
 	}
-
 
 	// ------------------------------------------------------
 	//	Invoke GameplayCue events
@@ -864,6 +991,34 @@ bool FActiveGameplayEffectsContainer::IsGameplayEffectActive(FActiveGameplayEffe
 	return false;
 }
 
+const FGameplayTagContainer* FActiveGameplayEffectsContainer::GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
+{
+	// @todo: Need to consider this with tag changes
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		if (Effect.Handle == Handle)
+		{
+			return Effect.Spec.CapturedSourceTags.GetAggregatedTags();
+		}
+	}
+
+	return nullptr;
+}
+
+const FGameplayTagContainer* FActiveGameplayEffectsContainer::GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const
+{
+	// @todo: Need to consider this with tag changes
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		if (Effect.Handle == Handle)
+		{
+			return Effect.Spec.CapturedTargetTags.GetAggregatedTags();
+		}
+	}
+
+	return nullptr;
+}
+
 void FActiveGameplayEffectsContainer::CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec)
 {
 	FAggregatorRef& AttributeAggregator = FindOrCreateAttributeAggregator(OutCaptureSpec.BackingDefinition.AttributeToCapture);
@@ -890,6 +1045,62 @@ void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplay
 	}
 }
 
+bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Spec, FGameplayModifierEvaluatedData& ModEvalData)
+{
+	bool bExecuted = false;
+
+	UAttributeSet* AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(ModEvalData.Attribute.GetAttributeSetClass()));
+	if (AttributeSet)
+	{
+		ABILITY_LOG_SCOPE(TEXT("Executing Attribute Mod %s"), *ModEvalData.ToSimpleString());
+
+		FGameplayEffectModCallbackData ExecuteData(Spec, ModEvalData, *Owner);
+
+		/**
+		 *  This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc
+		 *	PreAttributeModify can return false to 'throw out' this modification.
+		 */
+		if (AttributeSet->PreGameplayEffectExecute(ExecuteData))
+		{
+			// Do we have active GE's that are already modifying this?
+			FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(ModEvalData.Attribute);
+			if (RefPtr)
+			{
+				ABILITY_LOG(Log, TEXT("Property %s has active mods. Adding to Aggregator."), *ModEvalData.Attribute.GetName());
+				RefPtr->Get()->ExecModOnBaseValue(ModEvalData.ModifierOp, ModEvalData.Magnitude);
+			}
+			else
+			{
+				// Modify the property in place, without putting it in the AttributeAggregatorMap map
+				float		CurrentValueOfProperty = Owner->GetNumericAttribute(ModEvalData.Attribute);
+				const float NewPropertyValue = FAggregator::StaticExecModOnBaseValue(CurrentValueOfProperty, ModEvalData.ModifierOp, ModEvalData.Magnitude);
+
+				InternalUpdateNumericalAttribute(ModEvalData.Attribute, NewPropertyValue, &ExecuteData);
+			}
+
+			FGameplayEffectModifiedAttribute* ModifiedAttribute = Spec.GetModifiedAttribute(ModEvalData.Attribute);
+			if (!ModifiedAttribute)
+			{
+				// If we haven't already created a modified attribute holder, create it
+				ModifiedAttribute = Spec.AddModifiedAttribute(ModEvalData.Attribute);
+			}
+			ModifiedAttribute->TotalMagnitude += ModEvalData.Magnitude;
+
+			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
+			AttributeSet->PostGameplayEffectExecute(ExecuteData);
+
+			bExecuted = true;
+		}
+	}
+	else
+	{
+		// Our owner doesn't have this attribute, so we can't do anything
+		ABILITY_LOG(Log, TEXT("%s does not have attribute %s. Skipping modifier"), *Owner->GetPathName(), *ModEvalData.Attribute.GetName());
+	}
+
+	return bExecuted;
+}
+
 void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 {
 	if (!bNeedToRecalculateStacks)
@@ -913,12 +1124,16 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 	float DurationBaseValue = NewEffect.Spec.GetDuration();
 	if (DurationBaseValue > 0.f)
 	{
-		const FAggregator& OutgoingAgg = NewEffect.Spec.CapturedRelevantAttributes.GetAggregator(UAbilitySystemComponent::GetOutgoingDurationCapture());
 		const FAggregator& IncomingAgg = *FindOrCreateAttributeAggregator(UAbilitySystemComponent::GetIncomingDurationProperty()).Get();
 		
 		FAggregator DurationAgg;
 
-		DurationAgg.AddModsFrom(OutgoingAgg);
+		const FGameplayEffectAttributeCaptureSpec* CaptureSpec = NewEffect.Spec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture(), true);
+		if (CaptureSpec)
+		{
+			CaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
+		}
+
 		DurationAgg.AddModsFrom(IncomingAgg);
 
 		FAggregatorEvaluateParameters Params;
@@ -1509,6 +1724,18 @@ UAbilitySystemComponent* FActiveGameplayEffectHandle::GetOwningAbilitySystemComp
 
 	return nullptr;	
 }
+
+const UAbilitySystemComponent* FActiveGameplayEffectHandle::GetOwningAbilitySystemComponent() const
+{
+	TWeakObjectPtr<UAbilitySystemComponent>* Ptr = GlobalActiveGameplayEffectHandles::Map.Find(*this);
+	if (Ptr)
+	{
+		return Ptr->Get();
+	}
+
+	return nullptr;
+}
+
 // -----------------------------------------------------------------
 
 bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const

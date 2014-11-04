@@ -1,0 +1,106 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "GameplayEffectCalculation.h"
+#include "GameplayEffectAggregator.h"
+#include "GameplayEffectExecutionCalculation.generated.h"
+
+struct FGameplayEffectSpec;
+class UAbilitySystemComponent;
+
+/** Struct representing parameters for a custom gameplay effect execution. Should not be held onto via reference, used just for the scope of the execution */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayEffectCustomExecutionParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+
+	// Constructors
+	FGameplayEffectCustomExecutionParameters();
+	FGameplayEffectCustomExecutionParameters(const FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent);
+
+	/** Simple accessor to owning gameplay spec */
+	const FGameplayEffectSpec& GetOwningSpec() const;
+
+	/** Simple accessor to target ability system component */
+	UAbilitySystemComponent* GetTargetAbilitySystemComponent() const;
+	
+	/**
+	 * Attempts to calculate the magnitude of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have
+	 * a valid capture for the attribute.
+	 * 
+	 * @param InCaptureDef	Attribute definition to attempt to calculate the magnitude of
+	 * @param InEvalParams	Parameters to evaluate the attribute under
+	 * @param OutMagnitude	[OUT] Computed magnitude, falls back to 0.f in the event of failure
+	 * 
+	 * @return True if the magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const;
+	
+	/**
+	 * Attempts to calculate the base value of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have
+	 * a valid capture for the attribute.
+	 * 
+	 * @param InCaptureDef	Attribute definition to attempt to calculate the base value of
+	 * @param OutBaseValue	[OUT] Computed base value, falls back to 0.f in the event of failure
+	 * 
+	 * @return True if the base value was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateCapturedAttributeBaseValue(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT float& OutBaseValue) const;
+
+	/**
+	 * Attempts to calculate the bonus magnitude of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have
+	 * a valid capture for the attribute.
+	 * 
+	 * @param InCaptureDef		Attribute definition to attempt to calculate the bonus magnitude of
+	 * @param InEvalParams		Parameters to evaluate the attribute under
+	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude, falls back to 0.f in the event of failure
+	 * 
+	 * @return True if the bonus magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateCapturedAttributeBonusMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutBonusMagnitude) const;
+	
+	/**
+	 * Attempts to populate the specified aggregator with a snapshot of a backing captured aggregator. Can fail if the gameplay spec doesn't have
+	 * a valid capture for the attribute.
+	 * 
+	 * @param InCaptureDef				Attribute definition to attempt to snapshot
+	 * @param OutSnapshottedAggregator	[OUT] Snapshotted aggregator, if possible
+	 * 
+	 * @return True if the aggregator was successfully snapshotted, false if it was not
+	 */
+	bool AttemptGetCapturedAttributeAggregatorSnapshot(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, OUT FAggregator& OutSnapshottedAggregator) const;
+
+private:
+
+	/** Mapping of capture definition to aggregator with scoped modifiers added in; Used to process scoped modifiers w/o modifying underlying aggregators in the capture */
+	TMap<FGameplayEffectAttributeCaptureDefinition, FAggregator> ScopedModifierAggregators;
+
+	/** Owning gameplay effect spec */
+	const FGameplayEffectSpec* OwningSpec;
+
+	/** Target ability system component of the execution */
+	TWeakObjectPtr<UAbilitySystemComponent> TargetAbilitySystemComponent;
+};
+
+UCLASS(BlueprintType, Blueprintable, Abstract)
+class GAMEPLAYABILITIES_API UGameplayEffectExecutionCalculation : public UGameplayEffectCalculation
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	/**
+	 * Called whenever the owning gameplay effect is executed. Allowed to do essentially whatever is desired, including generating new
+	 * modifiers to instantly execute as well.
+	 * 
+	 * @note: Native subclasses should override the auto-generated Execute_Implementation function and NOT this one.
+	 * 
+	 * @param ExecutionParams			Parameters for the custom execution calculation
+	 * @param OutAdditionalModifiers	[OUT] Additional modifiers the custom execution has generated and would like executed upon the target
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category="Calculation")
+	void Execute(const FGameplayEffectCustomExecutionParameters& ExecutionParams, TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const;
+};

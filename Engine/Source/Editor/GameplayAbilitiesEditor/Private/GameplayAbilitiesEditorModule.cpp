@@ -6,6 +6,7 @@
 #include "AttributeSet.h"
 #include "GameplayEffectDetails.h"
 #include "GameplayModifierInfoDetails.h"
+#include "GameplayEffectExecutionScopedModifierInfoDetails.h"
 
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
@@ -26,6 +27,12 @@ protected:
 private:
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
+
+	/** Pin factory for abilities graph; Cached so it can be unregistered */
+	TSharedPtr<FGameplayAbilitiesGraphPanelPinFactory> GameplayAbilitiesGraphPanelPinFactory;
+
+	/** Node factory for abilities graph; Cached so it can be unregistered */
+	TSharedPtr<FGameplayAbilitiesGraphPanelNodeFactory> GameplayAbilitiesGraphPanelNodeFactory;
 };
 
 IMPLEMENT_MODULE(FGameplayAbilitiesEditorModule, GameplayAbilitiesEditor)
@@ -37,6 +44,7 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayAttribute", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FAttributePropertyDetails::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "ScalableFloat", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FScalableFloatDetails::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayModifierInfo", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FGameplayModifierInfoCustomization::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyTypeLayout( "GameplayEffectExecutionScopedModifierInfo", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FGameplayEffectExecutionScopedModifierInfoDetails::MakeInstance ) );
 
 	PropertyModule.RegisterCustomClassLayout( "AttributeSet", FOnGetDetailCustomizationInstance::CreateStatic( &FAttributeDetails::MakeInstance ) );
 	PropertyModule.RegisterCustomClassLayout( "GameplayEffect", FOnGetDetailCustomizationInstance::CreateStatic( &FGameplayEffectDetails::MakeInstance ) );
@@ -48,10 +56,10 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	CreatedAssetTypeActions.Add(Action);
 
 	// Register factories for pins and nodes
-	TSharedPtr<FGameplayAbilitiesGraphPanelPinFactory> GameplayAbilitiesGraphPanelPinFactory = MakeShareable(new FGameplayAbilitiesGraphPanelPinFactory());
+	GameplayAbilitiesGraphPanelPinFactory = MakeShareable(new FGameplayAbilitiesGraphPanelPinFactory());
 	FEdGraphUtilities::RegisterVisualPinFactory(GameplayAbilitiesGraphPanelPinFactory);
 
-	TSharedPtr<FGameplayAbilitiesGraphPanelNodeFactory> GameplayAbilitiesGraphPanelNodeFactory = MakeShareable(new FGameplayAbilitiesGraphPanelNodeFactory());
+	GameplayAbilitiesGraphPanelNodeFactory = MakeShareable(new FGameplayAbilitiesGraphPanelNodeFactory());
 	FEdGraphUtilities::RegisterVisualNodeFactory(GameplayAbilitiesGraphPanelNodeFactory);
 }
 
@@ -66,5 +74,43 @@ void FGameplayAbilitiesEditorModule::ShutdownModule()
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 
+	// Unregister customizations
+	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomClassLayout("GameplayEffect");
+		PropertyModule.UnregisterCustomClassLayout("AttributeSet");
+
+		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayEffectExecutionScopedModifierInfo");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayModifierInfo");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("ScalableFloat");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("GameplayAttribute");
+	}
+
+	// Unregister asset type actions
+	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
+	{
+		IAssetTools& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		for (auto& AssetTypeAction : CreatedAssetTypeActions)
+		{
+			if (AssetTypeAction.IsValid())
+			{
+				AssetToolsModule.UnregisterAssetTypeActions(AssetTypeAction.ToSharedRef());
+			}
+		}
+	}
 	CreatedAssetTypeActions.Empty();
+
+	// Unregister graph factories
+	if (GameplayAbilitiesGraphPanelPinFactory.IsValid())
+	{
+		FEdGraphUtilities::UnregisterVisualPinFactory(GameplayAbilitiesGraphPanelPinFactory);
+		GameplayAbilitiesGraphPanelPinFactory.Reset();
+	}
+
+	if (GameplayAbilitiesGraphPanelNodeFactory.IsValid())
+	{
+		FEdGraphUtilities::UnregisterVisualNodeFactory(GameplayAbilitiesGraphPanelNodeFactory);
+		GameplayAbilitiesGraphPanelNodeFactory.Reset();
+	}
 }
