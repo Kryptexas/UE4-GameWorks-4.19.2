@@ -422,7 +422,7 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 #if PLATFORM_MAC
 	FString Arguments = TEXT("-xcodeprojectfile");
 #elif PLATFORM_LINUX
-	FString Arguments = TEXT("-makefile");
+	FString Arguments = TEXT(" -makefile -qmakefile -cmakefile ");
 #else
 	FString Arguments = TEXT("-projectfiles");
 #endif
@@ -568,6 +568,10 @@ FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCm
 		}
 	}
 
+#if PLATFORM_LINUX
+	CmdLineParams += (" -progress");
+#endif // PLATFORM_LINUX
+
 	Ar.Logf(TEXT("Launching UnrealBuildTool... [%s %s]"), *ExecutableFileName, *CmdLineParams);
 
 #if PLATFORM_MAC
@@ -575,6 +579,11 @@ FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCm
 	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
 	CmdLineParams = FString::Printf(TEXT("\"%s\" \"%s\" %s"), *ScriptPath, *ExecutableFileName, *CmdLineParams);
 	ExecutableFileName = TEXT("/bin/sh");
+#elif PLATFORM_LINUX
+	// Real men run Linux (with Mono??)
+	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Linux/RunMono.sh"));
+	CmdLineParams = FString::Printf(TEXT("\"%s\" \"%s\" %s"), *ScriptPath, *ExecutableFileName, *CmdLineParams);
+	ExecutableFileName = TEXT("/bin/bash");
 #endif
 
 	// Run UnrealBuildTool
@@ -597,8 +606,7 @@ bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 #if PLATFORM_MAC
 	const TCHAR* Suffix = TEXT(".xcodeproj/project.pbxproj");
 #elif PLATFORM_LINUX
-	UE_LOG(LogDesktopPlatform, Warning, TEXT("STUBBED: solution file path for Linux"));
-	const TCHAR* Suffix = TEXT("/stubbed/path/to.solution");
+	const TCHAR* Suffix = TEXT(".kdev4");	// FIXME: inconsistent with GameProjectUtils where we use .pro. Should depend on PreferredAccessor setting
 #else
 	const TCHAR* Suffix = TEXT(".sln");
 #endif
@@ -965,7 +973,10 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(FOutputDevice &Ar)
 	CompilerExecutableFilename = TEXT("/bin/sh");
 	CmdLineParams = FString::Printf(TEXT("\"%s\" /property:Configuration=Development %s"), *ScriptPath, *CsProjLocation);
 #elif PLATFORM_LINUX
-	printf("ModuleManager.cpp: TODO: Linux BuildUBT");
+	const FString CsProjLocation = FPaths::ConvertRelativePathToFull(GetUnrealBuildToolSourceCodePath()) / TEXT("UnrealBuildTool_Mono.csproj");
+	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Linux/RunXBuild.sh"));
+	CompilerExecutableFilename = TEXT("/bin/bash");
+	CmdLineParams = FString::Printf(TEXT("\"%s\" /property:Configuration=Development /property:TargetFrameworkVersion=v4.0 %s"), *ScriptPath, *CsProjLocation);
 #else
 	Ar.Log(TEXT("Unknown platform, unable to build UnrealBuildTool."));
 #endif
