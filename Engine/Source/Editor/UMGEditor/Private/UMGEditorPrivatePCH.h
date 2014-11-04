@@ -13,6 +13,7 @@
 #include "LevelEditorViewport.h"
 #include "ParticleHelper.h"
 #include "Viewports.h"
+#include "EditorStyle.h"
 #endif // WITH_EDITOR
 //#include "UnrealEd.h" // End
 
