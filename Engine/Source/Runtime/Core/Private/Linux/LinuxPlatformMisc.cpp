@@ -161,6 +161,9 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			return false;
 		}
 
+		// Used to make SDL push SDL_TEXTINPUT events.
+		SDL_StartTextInput();
+
 		GInitializedSDL = true;
 
 		// needs to come after GInitializedSDL, otherwise it will recurse here
