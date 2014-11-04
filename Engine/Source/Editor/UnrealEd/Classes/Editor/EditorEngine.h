@@ -547,6 +547,13 @@ public:
 	/**	Broadcasts that a blueprint just finished compiling. THIS SHOULD NOT BE PUBLIC */
 	void BroadcastBlueprintCompiled() { BlueprintCompiledEvent.Broadcast(); }
 
+	/** Called by the blueprint compiler after a blueprint has been compiled and all instances replaced, but prior to garbage collection. */
+	DECLARE_EVENT(UEditorEngine, FBlueprintReinstanced);
+	FBlueprintReinstanced& OnBlueprintReinstanced() { return BlueprintReinstanced; }
+
+	/**	Broadcasts that a blueprint just finished being reinstanced. THIS SHOULD NOT BE PUBLIC */
+	void BroadcastBlueprintReinstanced() { BlueprintReinstanced.Broadcast(); }
+
 	/** Called when uobjects have been replaced to allow others a chance to fix their references. */
 	typedef TMap<UObject*, UObject*> ReplacementObjectMap;
 	DECLARE_EVENT_OneParam( UEditorEngine, FObjectsReplacedEvent, const ReplacementObjectMap& );
@@ -2595,6 +2602,9 @@ private:
 	/** Delegate broadcast when blueprint is compiled */
 	FBlueprintCompiledEvent BlueprintCompiledEvent;
 
+	/** Delegate broadcast when blueprint is reinstanced */
+	FBlueprintReinstanced BlueprintReinstanced;
+
 	/** Delegate broadcast when objects have been replaced (e.g on blueprint compile) */
 	FObjectsReplacedEvent ObjectsReplacedEvent;
 
@@ -2700,6 +2710,9 @@ protected:
 	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCompleted(bool Succeeded, double TotalTime, int32 ErrorCode, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr, TSharedPtr<class FMessageLog> MessageLog);
 
+	// Handle requests from slate application to open assets.
+	bool HandleOpenAsset(UObject* Asset);
+
 public:
 	/** True if world assets are enabled */
 	static bool IsUsingWorldAssets();
@@ -2711,5 +2724,3 @@ private:
 	/** Gets the init values for worlds opened via Map_Load in the editor */
 	UWorld::InitializationValues GetEditorWorldInitializationValues() const;
 };
-
-

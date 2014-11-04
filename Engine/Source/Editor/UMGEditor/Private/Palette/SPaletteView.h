@@ -69,7 +69,7 @@ private:
 	void TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel> WidgetViewModel, OUT TArray< FString >& Array);
 
 	/** Requests a rebuild of the widget list if a widget blueprint was compiled */
-	void HandleOnBlueprintCompiled(UBlueprint* Blueprint);
+	void OnBlueprintReinstanced();
 
 	/** Requests a rebuild of the widget list */
 	void HandleOnHotReload(bool bWasTriggeredAutomatically);

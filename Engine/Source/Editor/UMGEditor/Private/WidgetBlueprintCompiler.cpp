@@ -13,8 +13,6 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "NamedSlot.h"
 
-FOnWidgetBlueprintCompiled FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled = FOnWidgetBlueprintCompiled();
-
 ///-------------------------------------------------------------
 
 FWidgetBlueprintCompiler::FWidgetBlueprintCompiler(UWidgetBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
@@ -282,8 +280,6 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 void FWidgetBlueprintCompiler::Compile()
 {
 	Super::Compile();
-
-	OnWidgetBlueprintCompiled.Broadcast( WidgetBlueprint() );
 
 	WidgetToMemberVariableMap.Empty();
 }

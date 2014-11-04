@@ -46,6 +46,7 @@ void UUserWidget::Initialize()
 			BGClass->InitializeWidget(this);
 		}
 
+		// Map the named slot bindings to the available slots.
 		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
 			{
@@ -55,11 +56,14 @@ void UUserWidget::Initialize()
 					{
 						NamedWidet->ClearChildren();
 						NamedWidet->AddChild(Binding.Content);
-						continue;
+						return;
 					}
 				}
 			}
 		});
+
+		// Clear the named slot bindings table.
+		NamedSlotBindings.Reset();
 	}
 }
 

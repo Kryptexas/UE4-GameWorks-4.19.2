@@ -103,14 +103,11 @@ private:
 
 	void OnEditorSelectionChanged();
 
-	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
-	FWidgetReference GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
-
 	/** Gets the blueprint being edited by the designer */
 	UWidgetBlueprint* GetBlueprint() const;
 
 	/** Called whenever the blueprint is recompiled */
-	void OnBlueprintCompiled(UBlueprint* InBlueprint);
+	void OnBlueprintReinstanced();
 
 	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
 
@@ -145,6 +142,22 @@ private:
 	void BeginTransaction(const FText& SessionName);
 	bool InTransaction() const;
 	void EndTransaction(bool bCancel);
+
+private:
+	struct FWidgetHitResult
+	{
+	public:
+		FWidgetReference Widget;
+		FArrangedWidget WidgetArranged;
+
+		FName NamedSlot;
+
+	public:
+		FWidgetHitResult();
+	};
+
+	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
+	bool FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FWidgetHitResult& HitResult);
 
 private:
 	FReply HandleZoomToFitClicked();

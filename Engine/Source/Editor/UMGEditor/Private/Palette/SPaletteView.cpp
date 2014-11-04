@@ -172,7 +172,7 @@ public:
 void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor)
 {
 	// Register for events that can trigger a palette rebuild
-	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.AddSP(this, &SPaletteView::HandleOnBlueprintCompiled);
+	GEditor->OnBlueprintReinstanced().AddRaw(this, &SPaletteView::OnBlueprintReinstanced);
 	FEditorDelegates::OnAssetsDeleted.AddSP(this, &SPaletteView::HandleOnAssetsDeleted);
 	IHotReloadModule::Get().OnHotReload().AddSP(this, &SPaletteView::HandleOnHotReload);
 	
@@ -242,7 +242,7 @@ SPaletteView::~SPaletteView()
 		FilterHandler->RefreshAndFilterTree();
 	}
 
-	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.RemoveAll(this);
+	GEditor->OnBlueprintReinstanced().RemoveAll(this);
 	FEditorDelegates::OnAssetsDeleted.RemoveAll(this);
 	IHotReloadModule::Get().OnHotReload().RemoveAll(this);
 	GEditor->OnObjectsReplaced().RemoveAll( this );
@@ -356,14 +356,19 @@ void SPaletteView::BuildClassWidgetList()
 				continue;
 			}
 
+			// Don't include skeleton classes or the same class as the widget being edited
+			const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+			const bool bIsSameClass = WidgetClass->GetFName() == ActiveWidgetBlueprintClassName;
+
+			// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
+			if ( bIsSkeletonClass || bIsSameClass )
+			{
+				continue;
+			}
+
 			if (WidgetClass->IsChildOf(UUserWidget::StaticClass()))
 			{
-				// Don't include skeleton classes or the same class as the widget being edited
-				const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
-				const bool bIsSameClass = WidgetClass->GetFName() == ActiveWidgetBlueprintClassName;
-
-				// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
-				if ( !(bIsSkeletonClass || bIsSameClass) && WidgetClass->ClassGeneratedBy )
+				if ( WidgetClass->ClassGeneratedBy )
 				{
 					// Track the widget blueprint classes that are already loaded
 					LoadedWidgetBlueprintClassesByName.Add(WidgetClass->ClassGeneratedBy->GetFName()) = WidgetClass;
@@ -475,13 +480,10 @@ void SPaletteView::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replacement
 	//bRebuildRequested = true;
 }
 
-void SPaletteView::HandleOnBlueprintCompiled(UBlueprint* Blueprint)
+void SPaletteView::OnBlueprintReinstanced()
 {
-	if (Blueprint->IsA<UWidgetBlueprint>())
-	{
-		bRebuildRequested = true;
-		bRefreshRequested = true;
-	}
+	bRebuildRequested = true;
+	bRefreshRequested = true;
 }
 
 void SPaletteView::HandleOnHotReload(bool bWasTriggeredAutomatically)

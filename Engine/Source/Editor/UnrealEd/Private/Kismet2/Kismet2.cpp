@@ -420,6 +420,12 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		static const FBoolConfigValueHelper ReinstanceOnlyWhenNecessary(TEXT("Kismet"), TEXT("bReinstanceOnlyWhenNecessary"), GEngineIni);
 		ReinstanceHelper.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 
+		// Notify everyone a blueprint has been compiled and reinstanced, but before GC so they can perform any final cleanup.
+		if ( GEditor )
+		{
+			GEditor->BroadcastBlueprintReinstanced();
+		}
+
 		if (!bSkipGarbageCollection)
 		{
 			BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Garbage Collection"));

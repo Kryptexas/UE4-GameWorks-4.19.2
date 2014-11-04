@@ -45,6 +45,25 @@
 
 const float HoveredAnimationTime = 0.150f;
 
+
+struct FWidgetHitResult
+{
+public:
+	FWidgetReference Widget;
+	FArrangedWidget WidgetArranged;
+
+	UNamedSlot* NamedSlot;
+	FArrangedWidget NamedSlotArranged;
+
+public:
+	FWidgetHitResult()
+		: WidgetArranged(SNullWidget::NullWidget, FGeometry())
+		, NamedSlotArranged(SNullWidget::NullWidget, FGeometry())
+	{
+	}
+};
+
+
 class FSelectedWidgetDragDropOp : public FDecoratedDragDropOp
 {
 public:
@@ -167,7 +186,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 	Register(MakeShareable(new FUniformGridSlotExtension()));
 	Register(MakeShareable(new FGridSlotExtension()));
 
-	FWidgetBlueprintCompiler::OnWidgetBlueprintCompiled.AddSP( this, &SDesignerView::OnBlueprintCompiled );
+	GEditor->OnBlueprintReinstanced().AddRaw(this, &SDesignerView::OnBlueprintReinstanced);
 
 	BindCommands();
 
@@ -292,7 +311,7 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("Resolution", "Resolution"))
+						.Text(LOCTEXT("PreviewSize", "Preview Size"))
 						.TextStyle(FEditorStyle::Get(), "ViewportMenu.Label")
 					]
 				]
@@ -435,6 +454,11 @@ SDesignerView::~SDesignerView()
 	if ( BlueprintEditor.IsValid() )
 	{
 		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
+	}
+
+	if ( GEditor )
+	{
+		GEditor->OnBlueprintReinstanced().RemoveAll(this);
 	}
 }
 
@@ -827,7 +851,7 @@ void SDesignerView::Register(TSharedRef<FDesignerExtension> Extension)
 	DesignerExtensions.Add(Extension);
 }
 
-void SDesignerView::OnBlueprintCompiled(UBlueprint* InBlueprint)
+void SDesignerView::OnBlueprintReinstanced()
 {
 	// Because widget blueprints can contain other widget blueprints, the safe thing to do is to have all
 	// designers jettison their previews on the compilation of any widget blueprint.  We do this to prevent
@@ -838,7 +862,14 @@ void SDesignerView::OnBlueprintCompiled(UBlueprint* InBlueprint)
 	PreviewSurface->SetContent(SNullWidget::NullWidget);
 }
 
-FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
+SDesignerView::FWidgetHitResult::FWidgetHitResult()
+	: Widget()
+	, WidgetArranged(SNullWidget::NullWidget, FGeometry())
+	, NamedSlot(NAME_None)
+{
+}
+
+bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FWidgetHitResult& HitResult)
 {
 	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
@@ -850,37 +881,54 @@ FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, c
 
 	PreviewHitTestRoot->SetVisibility(EVisibility::HitTestInvisible);
 
-	UUserWidget* WidgetActor = BlueprintEditor.Pin()->GetPreview();
-	if ( WidgetActor )
-	{
-		UWidget* Preview = nullptr;
+	HitResult.Widget = FWidgetReference();
+	HitResult.NamedSlot = NAME_None;
 
+	UUserWidget* PreviewUserWidget = BlueprintEditor.Pin()->GetPreview();
+	if ( PreviewUserWidget )
+	{
+		UWidget* WidgetUnderCursor = nullptr;
+
+		// We loop through each hit slate widget until we arrive at one that we can access from the root widget.
 		for ( int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; ChildIndex-- )
 		{
 			FArrangedWidget& Child = Children.GetInternalArray()[ChildIndex];
-			Preview = WidgetActor->GetWidgetHandle(Child.Widget);
+			WidgetUnderCursor = PreviewUserWidget->GetWidgetHandle(Child.Widget);
 			
 			// Ignore the drop preview widget when doing widget picking
-			if (Preview == DropPreviewWidget)
+			if ( WidgetUnderCursor == DropPreviewWidget )
 			{
-				Preview = nullptr;
+				WidgetUnderCursor = nullptr;
 				continue;
 			}
 			
-			if ( Preview )
+			// We successfully found a widget that's accessible from the root.
+			if ( WidgetUnderCursor )
 			{
-				ArrangedWidget = Child;
-				break;
-			}
-		}
+				HitResult.Widget = BlueprintEditor.Pin()->GetReferenceFromPreview(WidgetUnderCursor);
+				HitResult.WidgetArranged = Child;
 
-		if ( Preview )
-		{
-			return BlueprintEditor.Pin()->GetReferenceFromPreview(Preview);
+				if ( UUserWidget* UserWidgetUnderCursor = Cast<UUserWidget>(WidgetUnderCursor) )
+				{
+					// Find the named slot we're over, if any
+					for ( int32 SubChildIndex = Children.Num() - 1; SubChildIndex > ChildIndex; SubChildIndex-- )
+					{
+						FArrangedWidget& SubChild = Children.GetInternalArray()[SubChildIndex];
+						UNamedSlot* NamedSlot = Cast<UNamedSlot>(UserWidgetUnderCursor->GetWidgetHandle(SubChild.Widget));
+						if ( NamedSlot )
+						{
+							HitResult.NamedSlot = NamedSlot->GetFName();
+							break;
+						}
+					}
+				}
+
+				return true;
+			}
 		}
 	}
 
-	return FWidgetReference();
+	return false;
 }
 
 void SDesignerView::ResolvePendingSelectedWidgets()
@@ -900,19 +948,18 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 	SDesignSurface::OnMouseButtonDown(MyGeometry, MouseEvent);
 
 	//TODO UMG Undoable Selection
-	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-	FWidgetReference NewSelectedWidget = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
-	SelectedWidgetContextMenuLocation = ArrangedWidget.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-
-	if ( NewSelectedWidget.IsValid() )
+	FWidgetHitResult HitResult;
+	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, HitResult) )
 	{
-		PendingSelectedWidget = NewSelectedWidget;
+		SelectedWidgetContextMenuLocation = HitResult.WidgetArranged.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+		PendingSelectedWidget = HitResult.Widget;
 
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
 			const bool bResolvePendingSelectionImmediately =
 				!GetSelectedWidget().IsValid() ||
-				!NewSelectedWidget.GetTemplate()->IsChildOf(GetSelectedWidget().GetTemplate()) ||
+				!PendingSelectedWidget.GetTemplate()->IsChildOf(GetSelectedWidget().GetTemplate()) ||
 				GetSelectedWidget().GetTemplate()->GetParent() == nullptr;
 
 			// If the newly clicked item is a child of the active selection, add it to the pending set of selected 
@@ -979,7 +1026,7 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 		{
 			if ( TransformMode == ETransformMode::Layout )
 			{
-				const bool bIsRootWidget = SelectedWidget.GetTemplate()->GetParent() == NULL;
+				const bool bIsRootWidget = SelectedWidget.GetTemplate()->GetParent() == nullptr;
 				if ( !bIsRootWidget )
 				{
 					bMovingExistingWidget = true;
@@ -1015,9 +1062,11 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 	}
 	
 	// Update the hovered widget under the mouse
-	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-	FWidgetReference NewHoveredWidget = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
-	BlueprintEditor.Pin()->SetHoveredWidget(NewHoveredWidget);
+	FWidgetHitResult HitResult;
+	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, HitResult) )
+	{
+		BlueprintEditor.Pin()->SetHoveredWidget(HitResult.Widget);
+	}
 
 	return FReply::Unhandled();
 }
@@ -1325,21 +1374,21 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 		DropPreviewWidget = nullptr;
 	}
 
-	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-	FWidgetReference WidgetUnderCursor = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
-
-	FGeometry WidgetUnderCursorGeometry = ArrangedWidget.Geometry;
 
 	UWidget* Target = nullptr;
-	if ( WidgetUnderCursor.IsValid() )
+
+	FWidgetHitResult HitResult;
+	if ( FindWidgetUnderCursor(MyGeometry, DragDropEvent, HitResult) )
 	{
-		Target = bIsPreview ? WidgetUnderCursor.GetPreview() : WidgetUnderCursor.GetTemplate();
+		Target = bIsPreview ? HitResult.Widget.GetPreview() : HitResult.Widget.GetTemplate();
 	}
+
+	FGeometry WidgetUnderCursorGeometry = HitResult.WidgetArranged.Geometry;
 
 	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( TemplateDragDropOp.IsValid() )
 	{
-		BlueprintEditor.Pin()->SetHoveredWidget(WidgetUnderCursor);
+		BlueprintEditor.Pin()->SetHoveredWidget(HitResult.Widget);
 
 		TemplateDragDropOp->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
@@ -1835,7 +1884,7 @@ UUserWidget* SDesignerView::GetDefaultWidget() const
 TSharedRef<SWidget> SDesignerView::GetAspectMenu()
 {
 	const ULevelEditorPlaySettings* PlaySettings = GetDefault<ULevelEditorPlaySettings>();
-	FMenuBuilder MenuBuilder(true, NULL);
+	FMenuBuilder MenuBuilder(true, nullptr);
 
 	// Add custom option
 	FExecuteAction OnResolutionSelected = FExecuteAction::CreateRaw(this, &SDesignerView::HandleOnCustomResolutionSelected);

@@ -29,7 +29,7 @@ public:
 UCLASS()
 class UMG_API UWidgetNavigation : public UObject
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 	
 public:
 	/**  */

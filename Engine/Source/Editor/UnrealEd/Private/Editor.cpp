@@ -375,35 +375,35 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UEngine::Init(InEngineLoop);
 
 	// Specify "-ForceLauncher" on the command-line to always open the launcher, even in unusual cases.  This is useful for debugging the Launcher startup.
-	const bool bForceLauncherToOpen = FParse::Param( FCommandLine::Get(),TEXT( "ForceLauncher" ) );
+	const bool bForceLauncherToOpen = FParse::Param(FCommandLine::Get(), TEXT("ForceLauncher"));
 
-	if( bForceLauncherToOpen ||
+	if ( bForceLauncherToOpen ||
 		( !FEngineBuildSettings::IsInternalBuild() &&
-		  !FEngineBuildSettings::IsPerforceBuild() && 
-		  !FPlatformMisc::IsDebuggerPresent() &&	// Don't spawn launcher while running in the Visual Studio debugger by default
-		  !FApp::IsBenchmarking() &&
-		  !GIsDemoMode && 
-		  !IsRunningCommandlet() &&
-		  !FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher") ) &&
-		  !FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher") ) ) )
+		!FEngineBuildSettings::IsPerforceBuild() &&
+		!FPlatformMisc::IsDebuggerPresent() &&	// Don't spawn launcher while running in the Visual Studio debugger by default
+		!FApp::IsBenchmarking() &&
+		!GIsDemoMode &&
+		!IsRunningCommandlet() &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher")) &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher")) ) )
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if( DesktopPlatform != NULL )
+		if ( DesktopPlatform != NULL )
 		{
-			DesktopPlatform->OpenLauncher( false, TEXT("") );
+			DesktopPlatform->OpenLauncher(false, TEXT(""));
 		}
 	}
-	
+
 	// Create selection sets.
 	PrivateInitSelectedSets();
-	
+
 	// Set slate options
 	FMultiBoxSettings::UseSmallToolBarIcons = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&GetSmallToolBarIcons));
 	FMultiBoxSettings::DisplayMultiboxHooks = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&GetDisplayMultiboxHooks));
-	
-	if (FSlateApplication::IsInitialized())
+
+	if ( FSlateApplication::IsInitialized() )
 	{
-		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)(GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue()));
+		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)( GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue() ));
 		FSlateApplication::Get().EnableMenuAnimations(GetDefault<UEditorStyleSettings>()->bEnableWindowAnimations);
 	}
 
@@ -416,17 +416,17 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	GEngine->SelectionHighlightIntensity = ViewportSettings->SelectionHighlightIntensity;
 	GEngine->BSPSelectionHighlightIntensity = ViewportSettings->BSPSelectionHighlightIntensity;
 	GEngine->HoverHighlightIntensity = ViewportSettings->HoverHighlightIntensity;
-	
+
 	// Set navigation system property indicating whether navigation is supposed to rebuild automatically 
 	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
+	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
 
 	// Allocate temporary model.
-	TempModel = new UModel( FObjectInitializer(),NULL, 1 );
-	ConversionTempModel = new UModel( FObjectInitializer(),NULL, 1 );
+	TempModel = new UModel(FObjectInitializer(), NULL, 1);
+	ConversionTempModel = new UModel(FObjectInitializer(), NULL, 1);
 
 	// create the timer manager
-	TimerManager = MakeShareable( new FTimerManager() );
+	TimerManager = MakeShareable(new FTimerManager());
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -446,6 +446,14 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 	// Load any modules that might be required by commandlets
 	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+
+	// Setup a delegate to handle requests for opening assets
+	FSlateApplication::Get().SetWidgetReflectorAssetAccessDelegate(FAccessAsset::CreateUObject(this, &UEditorEngine::HandleOpenAsset));
+}
+
+bool UEditorEngine::HandleOpenAsset(UObject* Asset)
+{
+	return FAssetEditorManager::Get().OpenEditorForAsset(Asset);
 }
 
 void UEditorEngine::HandleSettingChanged( FName Name )
@@ -3992,26 +4000,26 @@ bool UEditorEngine::AttachActorToComponent(AActor* ParentActor, AActor* ChildAct
 
 	if(SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
 	{
-	    USkeletalMeshSocket const* const Socket = SkeletalMeshComponent->SkeletalMesh->FindSocket(SocketName);
-	    if (Socket)
-	    {
-		    bAttachedToSocket = Socket->AttachActor(ChildActor, SkeletalMeshComponent);
-	    }
-	    else
-	    {
-		    // now search bone, if bone exists, snap to the bone
-		    int32 BoneIndex = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(SocketName);
-		    if (BoneIndex != INDEX_NONE)
-		    {
-			    ChildActor->GetRootComponent()->SnapTo(ParentActor->GetRootComponent(), SocketName);
-			    bAttachedToSocket = true;
-    
-    #if WITH_EDITOR
-			    ChildActor->PreEditChange(NULL);
-			    ChildActor->PostEditChange();
-    #endif // WITH_EDITOR
-		    }
-	    }
+		USkeletalMeshSocket const* const Socket = SkeletalMeshComponent->SkeletalMesh->FindSocket(SocketName);
+		if (Socket)
+		{
+			bAttachedToSocket = Socket->AttachActor(ChildActor, SkeletalMeshComponent);
+		}
+		else
+		{
+			// now search bone, if bone exists, snap to the bone
+			int32 BoneIndex = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(SocketName);
+			if (BoneIndex != INDEX_NONE)
+			{
+				ChildActor->GetRootComponent()->SnapTo(ParentActor->GetRootComponent(), SocketName);
+				bAttachedToSocket = true;
+	
+	#if WITH_EDITOR
+				ChildActor->PreEditChange(NULL);
+				ChildActor->PostEditChange();
+	#endif // WITH_EDITOR
+			}
+		}
 	}
 
 	return bAttachedToSocket;
@@ -4023,11 +4031,11 @@ bool UEditorEngine::AttachActorToComponent(AActor* ChildActor, UStaticMeshCompon
 
 	if(StaticMeshComponent && StaticMeshComponent->StaticMesh)
 	{
-	    UStaticMeshSocket const* const Socket = StaticMeshComponent->StaticMesh->FindSocket(SocketName);
-	    if (Socket)
-	    {
-		    bAttachedToSocket = Socket->AttachActor(ChildActor, StaticMeshComponent);
-	    }
+		UStaticMeshSocket const* const Socket = StaticMeshComponent->StaticMesh->FindSocket(SocketName);
+		if (Socket)
+		{
+			bAttachedToSocket = Socket->AttachActor(ChildActor, StaticMeshComponent);
+		}
 	}
 
 	return bAttachedToSocket;
