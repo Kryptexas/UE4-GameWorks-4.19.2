@@ -105,54 +105,24 @@ FAttributeMetaData::FAttributeMetaData()
 
 }
 
-void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides)
-{
-	static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
-
-	// We are a static value, so do nothing.
-	if (Curve.RowName == NAME_None)
-	{
-		return;
-	}
-
-	// Tied to an explicit table, so bind now.
-	if (Curve.CurveTable != NULL)
-	{
-		FinalCurve = Curve.GetCurve(ContextString);
-		return;
-	}
-
-	// We have overrides
-	if (GlobalOverrides)
-	{
-		for (UCurveTable* OverrideTable : GlobalOverrides->Overrides)
-		{
-			FinalCurve = OverrideTable->FindCurve(Curve.RowName, ContextString, false);
-			if (FinalCurve)
-			{
-				return;
-			}
-		}
-	}
-
-	// Look at global defaults
-	const UCurveTable* GlobalTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
-	if (GlobalTable)
-	{
-		FinalCurve = GlobalTable->FindCurve(Curve.RowName, ContextString, false);
-	}
-
-	if (!FinalCurve)
-	{
-		ABILITY_LOG(Warning, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
-	}
-}
-
 float FScalableFloat::GetValueAtLevel(float Level) const
 {
-	if (FinalCurve)
+	if (Curve.CurveTable != nullptr)
 	{
-		return Value * FinalCurve->Eval(Level);
+		if (FinalCurve == nullptr)
+		{
+			static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
+			FinalCurve = Curve.GetCurve(ContextString);
+		}
+
+		if (FinalCurve != nullptr)
+		{
+			return Value * FinalCurve->Eval(Level);
+		}
+		else
+		{
+			ABILITY_LOG(Error, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
+		}
 	}
 
 	return Value;

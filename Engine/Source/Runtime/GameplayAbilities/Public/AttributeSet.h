@@ -169,16 +169,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=ScalableFloat)
 	FCurveTableRowHandle	Curve;
 
-	void FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides);
-
 	float GetValueAtLevel(float Level) const;
-
-	FScalableFloat MakeFinalizedCopy(const FGlobalCurveDataOverride *GlobalOverrides) const
-	{
-		FScalableFloat Copy(*this);
-		Copy.FinalizeCurveData(GlobalOverrides);
-		return Copy;
-	}
 
 	bool IsStatic() const
 	{
@@ -227,7 +218,8 @@ public:
 
 private:
 
-	FRichCurve * FinalCurve;
+	// Cached direct pointer to RichCurve we should evaluate
+	mutable FRichCurve* FinalCurve;
 };
 
 /**
