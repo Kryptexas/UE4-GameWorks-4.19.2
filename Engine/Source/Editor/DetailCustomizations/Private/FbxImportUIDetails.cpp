@@ -309,7 +309,15 @@ void FFbxImportUIDetails::ImportMeshToggleChanged()
 {
 	if(CachedDetailBuilder)
 	{
-		ImportUI->MeshTypeToImport = ImportUI->bImportMesh ? FBXIT_SkeletalMesh: FBXIT_Animation;
+		if(ImportUI->bImportMesh)
+		{
+			ImportUI->MeshTypeToImport = ImportUI->bImportAsSkeletal ? FBXIT_SkeletalMesh : FBXIT_StaticMesh;
+		}
+		else
+		{
+			ImportUI->MeshTypeToImport = FBXIT_Animation;
+		}
+
 		CachedDetailBuilder->ForceRefreshDetails();
 	}
 }
