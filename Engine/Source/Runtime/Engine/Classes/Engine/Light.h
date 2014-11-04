@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Components/LightComponent.h"
 #include "Light.generated.h"
 
 UCLASS(Abstract, ClassGroup=Lights, hidecategories=(Input,Collision,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), ConversionRoot, meta=(ChildCanTick))

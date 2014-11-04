@@ -3,6 +3,7 @@
 #pragma once
 #include "GameFramework/Actor.h"
 #include "CameraTypes.h"
+#include "CameraShake.h"
 #include "PlayerCameraManager.generated.h"
 
 class APawn;
@@ -420,7 +421,7 @@ public:
 	 * @param Falloff - Affects falloff of effect as it nears OuterRadius
 	 * @param bOrientShakeTowardsEpicenter - Changes the rotation of shake to point towards epicenter instead of forward
 	 */
-	static void PlayWorldCameraShake(UWorld* InWorld, TSubclassOf<class UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff, bool bOrientShakeTowardsEpicenter = false );
+	static void PlayWorldCameraShake(UWorld* InWorld, TSubclassOf<UCameraShake> Shake, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff, bool bOrientShakeTowardsEpicenter = false );
 
 protected:
 	/** Internal.  Returns intensity scalar in the range [0..1] for a shake originating at Epicenter. */

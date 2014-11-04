@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Tickable.h"
+#include "NavPathObserverInterface.h"
 #include "NavigationTestingActor.generated.h"
 
 struct FNavTestTickHelper : FTickableGameObject

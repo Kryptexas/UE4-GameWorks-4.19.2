@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "RenderUtils.h"
 #include "DDSLoader.h"
+#include "Engine/TextureCube.h"
 
 UTextureCube::UTextureCube(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

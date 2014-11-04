@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Curves/CurveVector.h"
 
 
 UCurveVector::UCurveVector(const FObjectInitializer& ObjectInitializer)

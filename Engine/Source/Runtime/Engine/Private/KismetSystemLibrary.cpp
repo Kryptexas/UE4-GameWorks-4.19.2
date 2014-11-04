@@ -9,6 +9,8 @@
 #include "Advertising.h"
 #include "Online.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary

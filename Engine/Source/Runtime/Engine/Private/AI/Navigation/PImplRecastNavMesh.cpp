@@ -18,6 +18,7 @@
 
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 
 
 //----------------------------------------------------------------------//

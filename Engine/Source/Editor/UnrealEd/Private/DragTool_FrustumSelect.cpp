@@ -7,6 +7,8 @@
 #include "ActorEditorUtils.h"
 #include "ScopedTransaction.h"
 #include "HModel.h"
+#include "Components/DrawSphereComponent.h"
+#include "AI/Navigation/NavLinkRenderingComponent.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //

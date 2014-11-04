@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 UPhysicsConstraintTemplate::UPhysicsConstraintTemplate(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

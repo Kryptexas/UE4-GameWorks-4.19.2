@@ -18,6 +18,7 @@
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "UnrealExporter.h"
+#include "Engine/Polys.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 

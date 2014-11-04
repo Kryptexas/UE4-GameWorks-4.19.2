@@ -21,6 +21,9 @@
 #include "DerivedDataCacheInterface.h"
 #include "UObjectAnnotation.h"
 #endif // #if WITH_EDITOR
+#include "Engine/StaticMeshSocket.h"
+#include "EditorFramework/AssetImportData.h"
+#include "AI/Navigation/NavCollision.h"
 
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
 

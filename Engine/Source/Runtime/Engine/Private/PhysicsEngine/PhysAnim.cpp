@@ -7,10 +7,12 @@
 #include "EnginePrivate.h"
 #include "AnimTree.h"
 #include "SkeletalRenderPublic.h"
-
+#include "Components/LineBatchComponent.h"
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 
 /** Used for drawing pre-phys skeleton if bShowPrePhysBones is true */

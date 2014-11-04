@@ -8,6 +8,7 @@
 #endif // WITH_RECAST
 #include "AI/NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/NavCollision.h"
 
 namespace NavigationHelper
 {

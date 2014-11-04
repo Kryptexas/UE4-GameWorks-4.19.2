@@ -12,6 +12,8 @@
 	#include "SNotificationList.h"
 	#include "NotificationManager.h"
 #endif
+#include "Engine/LevelStreamingKismet.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 

@@ -10,6 +10,8 @@
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
 #endif // WITH_PHYSX
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(

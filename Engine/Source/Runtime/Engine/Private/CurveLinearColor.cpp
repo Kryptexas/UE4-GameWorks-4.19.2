@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Curves/CurveLinearColor.h"
 
 FLinearColor FRuntimeCurveLinearColor::GetLinearColorValue(float InTime) const
 {

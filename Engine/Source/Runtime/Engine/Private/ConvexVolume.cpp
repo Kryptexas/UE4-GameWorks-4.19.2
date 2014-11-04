@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/Polys.h"
 
 /**
  * Builds the permuted planes for SIMD fast clipping

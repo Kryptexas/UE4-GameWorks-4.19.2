@@ -12,6 +12,7 @@
 	#include "PhysXSupport.h"
 	#include "../Vehicles/PhysXVehicleManager.h"
 #endif // WITH_PHYSX
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 UDEPRECATED_PhysicalMaterialPropertyBase::UDEPRECATED_PhysicalMaterialPropertyBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

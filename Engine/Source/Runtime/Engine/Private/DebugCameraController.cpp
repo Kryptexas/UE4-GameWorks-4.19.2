@@ -11,6 +11,9 @@
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/DebugCameraHUD.h"
 #include "LightMap.h"
+#include "Engine/DebugCameraController.h"
+#include "Components/DrawFrustumComponent.h"
+#include "GameFramework/PlayerInput.h"
 
 
 /** The currently selected actor. */

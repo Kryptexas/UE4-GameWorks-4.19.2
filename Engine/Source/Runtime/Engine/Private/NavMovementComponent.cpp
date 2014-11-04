@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "GameFramework/NavMovementComponent.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Components/CapsuleComponent.h"
 
 //----------------------------------------------------------------------//
 // FNavAgentProperties

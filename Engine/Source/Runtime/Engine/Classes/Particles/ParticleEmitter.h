@@ -8,7 +8,10 @@
 #pragma once
 #include "Components/SceneComponent.h"
 #include "ParticleEmitterInstances.h"
+#include "Scalability.h"
 #include "ParticleEmitter.generated.h"
+
+class UInterpCurveEdSetup;
 
 //=============================================================================
 //	Burst emissions

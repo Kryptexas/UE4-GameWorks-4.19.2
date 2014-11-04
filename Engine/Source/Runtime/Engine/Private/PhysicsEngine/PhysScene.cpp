@@ -16,7 +16,10 @@
 #endif
 
 #include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
-
+#include "PhysicsEngine/PhysicsCollisionHandler.h"
+#include "Components/DestructibleComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE			1
 #define USE_SPECIAL_FRICTION_MODEL_FOR_ASYNC_SCENE	0

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/BrushComponent.h"
 
 #if WITH_EDITOR
 /** Define static delegate */

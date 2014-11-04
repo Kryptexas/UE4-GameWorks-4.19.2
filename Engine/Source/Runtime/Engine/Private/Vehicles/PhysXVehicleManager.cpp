@@ -9,6 +9,7 @@
 
 #include "../PhysicsEngine/PhysXSupport.h"
 #include "PhysXVehicleManager.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 DEFINE_LOG_CATEGORY(LogVehicles);
 

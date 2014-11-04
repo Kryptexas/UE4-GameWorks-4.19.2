@@ -22,6 +22,7 @@
 #include "DetourTileCache.h"
 #include "DetourTileCacheBuilder.h"
 #include "RecastHelpers.h"
+#include "NavigationSystemHelpers.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1
 

@@ -6,6 +6,8 @@
 #include "EdGraph/EdGraph.h"
 #include "EdGraphSchema_K2.h"
 
+class USCS_Node;
+
 /** 
   * Flags describing how to handle graph removal
   */

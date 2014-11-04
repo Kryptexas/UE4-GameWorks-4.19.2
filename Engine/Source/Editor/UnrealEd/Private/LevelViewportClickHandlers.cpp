@@ -12,6 +12,7 @@
 #include "MessageLog.h"
 #include "ActorEditorUtils.h"
 #include "Editor/ActorPositioning.h"
+#include "Engine/PointLight.h"
 
 #define LOCTEXT_NAMESPACE "ClickHandlers"
 

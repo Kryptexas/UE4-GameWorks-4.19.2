@@ -4,6 +4,8 @@
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "RendererInterface.h"
+#include "Engine/LevelBounds.h"
+
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

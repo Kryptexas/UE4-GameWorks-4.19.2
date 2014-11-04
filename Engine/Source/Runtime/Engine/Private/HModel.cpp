@@ -8,6 +8,7 @@
 #include "Model.h"
 #include "HModel.h"
 #include "Raster.h"
+#include "Engine/Polys.h"
 
 IMPLEMENT_HIT_PROXY(HModel,HHitProxy);
 

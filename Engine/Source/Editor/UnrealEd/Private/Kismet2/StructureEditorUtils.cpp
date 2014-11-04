@@ -12,6 +12,7 @@
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "Editor/DataTableEditor/Public/IDataTableEditor.h"
+#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "Structure"
 

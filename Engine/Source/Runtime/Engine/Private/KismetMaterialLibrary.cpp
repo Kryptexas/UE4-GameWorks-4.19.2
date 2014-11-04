@@ -4,6 +4,8 @@
 #include "Kismet/KismetMaterialLibrary.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetMaterialLibrary

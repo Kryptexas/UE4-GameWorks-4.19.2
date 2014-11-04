@@ -23,6 +23,12 @@
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 #include "BufferVisualizationData.h"
 #include "RendererInterface.h"
+#include "GameFramework/InputSettings.h"
+#include "Components/LineBatchComponent.h"
+#include "Debug/DebugDrawService.h"
+#include "Components/BrushComponent.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/GameUserSettings.h"
 
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;

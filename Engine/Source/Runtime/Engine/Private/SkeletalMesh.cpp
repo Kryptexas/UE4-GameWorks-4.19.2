@@ -25,6 +25,7 @@
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "ComponentReregisterContext.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -37,6 +38,9 @@
 #include "PhysicsEngine/PhysXSupport.h"
 #endif// #if WITH_APEX
 
+#include "EditorFramework/AssetImportData.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Components/BrushComponent.h"
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
 
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);

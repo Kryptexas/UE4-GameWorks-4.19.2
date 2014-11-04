@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Camera/CameraAnimInst.h"
+#include "Camera/CameraModifier_CameraShake.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UCameraModifier_CameraShake

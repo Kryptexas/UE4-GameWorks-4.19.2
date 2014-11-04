@@ -9,11 +9,15 @@
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/HUD.h"
+#include "GameFramework/PlayerInput.h"
 #include "Engine/GameInstance.h"
 
 #include "RenderCore.h"
 #include "ColorList.h"
 #include "SlateBasics.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/GameState.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer

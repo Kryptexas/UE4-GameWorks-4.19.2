@@ -8,6 +8,7 @@
 #include "SCurveEditorViewport.h"
 #include "CurveEditorViewportClient.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 FCurveEditorViewportClient::FCurveEditorViewportClient(TWeakPtr<SDistributionCurveEditor> InCurveEditor, TWeakPtr<SCurveEditorViewport> InCurveEditorViewport)
 	: CurveEditorPtr(InCurveEditor)

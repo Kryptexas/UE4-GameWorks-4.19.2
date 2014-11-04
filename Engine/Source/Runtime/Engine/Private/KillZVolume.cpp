@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/KillZVolume.h"
+#include "GameFramework/DamageType.h"
 
 AKillZVolume::AKillZVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

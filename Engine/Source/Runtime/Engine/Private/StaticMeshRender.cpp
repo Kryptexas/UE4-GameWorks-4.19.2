@@ -12,6 +12,8 @@
 #include "ShadowMap.h"
 #include "DistanceFieldAtlas.h"
 #include "ComponentReregisterContext.h"
+#include "Components/BrushComponent.h"
+#include "AI/Navigation/NavCollision.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;

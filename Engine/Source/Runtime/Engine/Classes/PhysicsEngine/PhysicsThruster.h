@@ -3,6 +3,7 @@
 
 
 #pragma once
+#include "RigidBodyBase.h"
 #include "PhysicsThruster.generated.h"
 
 /** 

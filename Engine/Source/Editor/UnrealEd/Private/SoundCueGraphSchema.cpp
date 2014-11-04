@@ -14,6 +14,7 @@
 #include "SoundCueEditorUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
+#include "Sound/SoundCue.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueSchema"
 

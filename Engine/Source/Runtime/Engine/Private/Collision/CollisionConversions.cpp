@@ -7,6 +7,8 @@
 #include "PhysXCollision.h"
 #include "CollisionDebugDrawing.h"
 #include "CollisionConversions.h"
+#include "Components/DestructibleComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 // Sentinel for invalid query results.
 static const PxQueryHit InvalidQueryHit;

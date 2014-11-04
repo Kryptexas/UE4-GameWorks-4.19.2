@@ -31,7 +31,7 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/SkeletalMeshActor.h"
-
+#include "Engine/SkeletalMeshSocket.h"
 UParticleModuleLocationBase::UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

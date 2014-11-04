@@ -5,6 +5,8 @@
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataBeam2.generated.h"
 
+class UInterpCurveEdSetup;
+
 UENUM()
 enum EBeam2Method
 {

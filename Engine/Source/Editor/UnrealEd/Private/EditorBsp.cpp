@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 #include "BSPOps.h"
+#include "Engine/Polys.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBsp, Log, All);
 

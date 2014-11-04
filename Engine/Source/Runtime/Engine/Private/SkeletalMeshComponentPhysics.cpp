@@ -30,6 +30,8 @@
 #endif// #if WITH_APEX_CLOTHING
 
 #endif//#if WITH_APEX
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 

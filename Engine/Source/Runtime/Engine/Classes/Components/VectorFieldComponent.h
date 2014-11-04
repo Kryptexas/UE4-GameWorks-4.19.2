@@ -3,6 +3,7 @@
 
 
 #pragma once
+#include "PrimitiveComponent.h"
 #include "VectorFieldComponent.generated.h"
 
 /** 

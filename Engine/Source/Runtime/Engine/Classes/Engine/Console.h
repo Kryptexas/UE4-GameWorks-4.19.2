@@ -4,7 +4,7 @@
 // Console - A quick little command line console that accepts most commands.
 //=============================================================================
 #pragma once
-
+#include "ConsoleSettings.h"
 #include "Console.generated.h"
 
 

@@ -6,6 +6,7 @@
 
 #ifndef __PointLightSceneProxy_H__
 #define __PointLightSceneProxy_H__
+#include "Components/PointLightComponent.h"
 
 /**
  * Compute the screen bounds of a point light along one axis.

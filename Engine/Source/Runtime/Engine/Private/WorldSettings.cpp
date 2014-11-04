@@ -11,6 +11,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "Particles/ParticleEventManager.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

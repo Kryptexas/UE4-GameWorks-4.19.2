@@ -4,6 +4,8 @@
 #include "PhysicsPublic.h"
 #include "PhysXSupport.h"
 #include "DynamicMeshBuilder.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 static const int32 DrawCollisionSides = 16;
 static const int32 DrawConeLimitSides = 40;

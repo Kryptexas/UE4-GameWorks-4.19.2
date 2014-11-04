@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
+#include "Components/DrawFrustumComponent.h"
 
 
 /** Represents a draw frustum to the scene manager. */

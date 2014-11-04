@@ -13,6 +13,9 @@
 #include "ComponentInstanceDataCache.h"
 #include "TargetPlatform.h"
 #include "ComponentReregisterContext.h"
+#include "Components/PointLightComponent.h"
+#include "Components/LightComponent.h"
+#include "Components/DirectionalLightComponent.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {

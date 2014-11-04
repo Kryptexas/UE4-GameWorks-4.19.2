@@ -31,6 +31,10 @@
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"
 #include "SDPIScaler.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/GameUserSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

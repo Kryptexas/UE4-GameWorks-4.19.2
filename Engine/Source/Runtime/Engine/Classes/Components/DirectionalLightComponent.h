@@ -4,6 +4,7 @@
 
 #include "Engine/EngineTypes.h"
 
+#include "LightComponent.h"
 #include "DirectionalLightComponent.generated.h"
 
 /**

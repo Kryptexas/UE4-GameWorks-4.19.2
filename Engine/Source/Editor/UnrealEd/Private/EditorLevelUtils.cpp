@@ -20,6 +20,7 @@
 #include "PackageTools.h"
 
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "Engine/LevelStreamingVolume.h"
 
 DEFINE_LOG_CATEGORY(LogLevelTools);
 

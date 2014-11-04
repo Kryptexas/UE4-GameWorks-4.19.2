@@ -17,6 +17,9 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"
 
+#include "GameFramework/PlayerState.h"
+#include "Components/CapsuleComponent.h"
+
 DEFINE_LOG_CATEGORY(LogPath);
 
 

@@ -19,6 +19,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 UParticleModuleColorBase::UParticleModuleColorBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

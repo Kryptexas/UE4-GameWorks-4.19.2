@@ -5,8 +5,10 @@
 #include "ParticleHelper.h"
 #include "ParticleModule.generated.h"
 
+class UInterpCurveEdSetup;
 class UParticleEmitter;
 class UParticleLODLevel;
+struct FCurveEdEntry;
 struct FParticleEmitterInstance;
 
 /** ModuleType

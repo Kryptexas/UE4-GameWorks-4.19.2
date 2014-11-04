@@ -28,6 +28,13 @@
 #include "GenericPlatform/IForceFeedbackSystem.h"
 #include "Engine/InputDelegateBinding.h"
 #include "SVirtualJoystick.h"
+#include "GameFramework/LocalMessage.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/InputSettings.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameState.h"
+#include "Engine/ChildConnection.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 

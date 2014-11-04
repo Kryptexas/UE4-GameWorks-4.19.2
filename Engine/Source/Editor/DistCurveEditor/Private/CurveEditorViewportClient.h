@@ -5,7 +5,7 @@
 class SDistributionCurveEditor;
 class SCurveEditorViewport;
 class FCurveEditorSharedData;
-
+struct FCurveEdEntry;
 
 /*-----------------------------------------------------------------------------
    FCurveEditorViewportClient

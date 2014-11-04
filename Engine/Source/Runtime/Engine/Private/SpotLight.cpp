@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/SpotLight.h"
+#include "Components/SpotLightComponent.h"
 
 ASpotLight::ASpotLight(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<USpotLightComponent>(TEXT("LightComponent0")))

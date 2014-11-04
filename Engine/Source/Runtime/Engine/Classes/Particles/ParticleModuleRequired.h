@@ -7,6 +7,8 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "ParticleModuleRequired.generated.h"
 
+class UInterpCurveEdSetup;
+
 UENUM()
 enum EParticleSortMode
 {

@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "VertexSnapping.h"
 #include "StaticMeshResources.h"
+#include "Components/BrushComponent.h"
 
 namespace VertexSnappingConstants
 {

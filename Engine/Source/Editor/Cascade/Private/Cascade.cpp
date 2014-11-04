@@ -40,6 +40,7 @@
 #include "SNumericEntryBox.h"
 #include "STextEntryPopup.h"
 #include "GenericCommands.h"
+#include "Components/VectorFieldComponent.h"
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");

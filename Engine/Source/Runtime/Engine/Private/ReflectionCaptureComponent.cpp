@@ -18,6 +18,9 @@
 #include "Engine/PlaneReflectionCapture.h"
 #include "Engine/BoxReflectionCapture.h"
 #include "Components/PlaneReflectionCaptureComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Components/BoxComponent.h"
+#include "Components/SkyLightComponent.h"
 
 /** 
  * Size of all reflection captures.

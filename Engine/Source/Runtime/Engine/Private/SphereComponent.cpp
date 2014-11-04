@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Components/SphereComponent.h"
 
 USphereComponent::USphereComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

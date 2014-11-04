@@ -4,6 +4,7 @@
 #include "Runtime/Engine/Classes/Debug/LogVisualizerCameraController.h"
 #include "Runtime/Engine/Classes/Debug/LogVisualizerHUD.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerInput.h"
 
 
 //----------------------------------------------------------------------//

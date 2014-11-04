@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/BrushComponent.h"
+#include "Engine/Polys.h"
 #include "Model.h"
 #include "LevelUtils.h"
 #if WITH_EDITOR

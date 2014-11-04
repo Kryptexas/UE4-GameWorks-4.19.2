@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
 #include "LocalVertexFactory.h"
+#include "Components/MaterialBillboardComponent.h"
 
 /** A material sprite vertex. */
 struct FMaterialSpriteVertex

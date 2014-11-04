@@ -7,6 +7,7 @@
 // Engine includes.
 #include "EnginePrivate.h"
 #include "Model.h"
+#include "UnrealExporter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogExporter, Log, All);
 

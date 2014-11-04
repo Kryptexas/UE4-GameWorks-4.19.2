@@ -15,6 +15,7 @@
 #include "MapErrors.h"
 #include "ComponentInstanceDataCache.h"
 #include "ShaderCompiler.h"
+#include "Components/SkyLightComponent.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 

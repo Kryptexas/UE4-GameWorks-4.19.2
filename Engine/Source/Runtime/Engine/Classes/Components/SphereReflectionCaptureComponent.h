@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ReflectionCaptureComponent.h"
 #include "SphereReflectionCaptureComponent.generated.h"
 
 	// -> will be exported to EngineDecalClasses.h

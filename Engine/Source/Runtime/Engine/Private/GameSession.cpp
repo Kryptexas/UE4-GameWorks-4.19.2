@@ -8,6 +8,8 @@
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameSession.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 

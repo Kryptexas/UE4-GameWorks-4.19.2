@@ -14,6 +14,9 @@
 #include "Sound/SoundNode.h"
 
 #include "Particles/ParticleModule.h"
+#include "Distributions/DistributionFloatUniformCurve.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
+#include "Distributions/DistributionFloatParameterBase.h"
 
 // Moving UDistributions to PostInitProps to not be default sub-objects:
 // Small enough value to be rounded to 0.0 in the editor 

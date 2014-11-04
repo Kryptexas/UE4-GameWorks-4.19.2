@@ -8,6 +8,7 @@
 #include "SceneUtils.h"
 #include "MeshBatch.h"
 #include "RendererInterface.h"
+#include "Engine/LightMapTexture2D.h"
 
 /** Emits draw events for a given FMeshBatch and the FPrimitiveSceneProxy corresponding to that mesh element. */
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

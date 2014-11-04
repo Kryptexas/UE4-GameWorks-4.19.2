@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "GenericPlatformMemoryPoolStats.h"
 #include "AudioStreaming.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContentStreaming, Log, All);
 

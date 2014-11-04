@@ -7,6 +7,7 @@
 #include "UnrealEd.h"
 #include "TexAlignTools.h"
 #include "BSPOps.h"
+#include "Engine/Polys.h"
 
 FTexAlignTools GTexAlignTools;
 

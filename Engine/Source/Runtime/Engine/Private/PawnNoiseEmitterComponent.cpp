@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Components/PawnNoiseEmitterComponent.h"
 
 
 

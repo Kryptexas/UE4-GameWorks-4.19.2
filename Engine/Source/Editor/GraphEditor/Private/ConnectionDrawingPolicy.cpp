@@ -15,6 +15,7 @@
 #include "Sound/SoundNode.h"
 #include "K2Node_Knot.h"
 #include "BlueprintEditorSettings.h"
+#include "Sound/SoundCue.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 

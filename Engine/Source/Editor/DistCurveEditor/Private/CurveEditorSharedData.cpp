@@ -4,7 +4,7 @@
 #include "SDistributionCurveEditor.h"
 #include "CurveEditorSharedData.h"
 #include "CurveEditorHitProxies.h"
-
+#include "Engine/InterpCurveEdSetup.h"
 
 FCurveEditorSharedData::FCurveEditorSharedData(UInterpCurveEdSetup* InEdSetup)
 	: LabelEntryHeight(36)

@@ -19,6 +19,10 @@
 #include "PhysicsEngine/BodySetup2D.h"
 #include "PhysicsEngine/AggregateGeometry2D.h"
 #endif	//WITH_BOX2D
+#include "Components/ModelComponent.h"
+#include "Components/BrushComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse

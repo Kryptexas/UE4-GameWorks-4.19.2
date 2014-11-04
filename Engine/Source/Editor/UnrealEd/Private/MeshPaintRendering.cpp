@@ -10,6 +10,7 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 #include "RHIStaticStates.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 namespace MeshPaintRendering
 {

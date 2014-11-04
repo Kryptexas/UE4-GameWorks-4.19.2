@@ -10,6 +10,8 @@
 #if WITH_PHYSX
 
 #include "PhysXSupport.h"
+#include "Components/DestructibleComponent.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 PxFoundation*			GPhysXFoundation = NULL;
 PxProfileZoneManager*	GPhysXProfileZoneManager = NULL;

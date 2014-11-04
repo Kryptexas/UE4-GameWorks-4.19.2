@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "OnlineSubsystemUtils.h"
+#include "GameFramework/GameSession.h"
+#include "GameFramework/PlayerState.h"
 
 static inline void AddIdToMuteList(TArray< TSharedRef<class FUniqueNetId> >& MuteList, const TSharedPtr<FUniqueNetId>& UniqueIdToAdd)
 {

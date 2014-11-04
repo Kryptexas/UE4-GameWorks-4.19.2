@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "Engine/InputDelegateBinding.h"
+#include "Engine/TimelineTemplate.h"
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"

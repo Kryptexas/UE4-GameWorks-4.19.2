@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "Engine/LevelBounds.h"
 
 ULevelThumbnailRenderer::ULevelThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

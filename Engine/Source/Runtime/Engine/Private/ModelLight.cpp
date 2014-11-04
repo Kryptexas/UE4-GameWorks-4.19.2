@@ -12,6 +12,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "ComponentReregisterContext.h"
+#include "Components/ModelComponent.h"
 
 //
 //	Static vars

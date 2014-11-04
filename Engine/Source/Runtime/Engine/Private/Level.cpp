@@ -28,7 +28,11 @@ Level.cpp: Level-related functions
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
 #include "Foliage/InstancedFoliageActor.h"
-
+#include "Engine/NavigationObjectBase.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "Components/ModelComponent.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Components/LineBatchComponent.h"
 DEFINE_LOG_CATEGORY(LogLevel);
 
 /*-----------------------------------------------------------------------------

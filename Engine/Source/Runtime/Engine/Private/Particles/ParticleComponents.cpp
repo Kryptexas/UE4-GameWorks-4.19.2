@@ -48,6 +48,9 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystemReplay.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "GameFramework/GameState.h"
 
 
 #define LOCTEXT_NAMESPACE "ParticleComponents"

@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/PainCausingVolume.h"
+#include "GameFramework/DamageType.h"
 
 APainCausingVolume::APainCausingVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

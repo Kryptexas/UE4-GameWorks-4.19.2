@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "PrimitiveSceneProxy.h"
+#include "Components/BrushComponent.h"
 
 FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponent, FName InResourceName)
 :	WireframeColor(FLinearColor::White)

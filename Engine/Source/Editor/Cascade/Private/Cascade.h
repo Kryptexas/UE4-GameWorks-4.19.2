@@ -13,6 +13,7 @@ class SCascadePreviewViewport;
 class SCascadeEmitterCanvas;
 class UCascadeParticleSystemComponent;
 class UCascadeConfiguration;
+class UVectorFieldComponent;
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCascade, Log, All);

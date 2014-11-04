@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "Engine/TextureRenderTargetCube.h"
 #include "DDSLoader.h"
+#include "Engine/TextureCube.h"
 
 /*-----------------------------------------------------------------------------
 	UTextureRenderTargetCube

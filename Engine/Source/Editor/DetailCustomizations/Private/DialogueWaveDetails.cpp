@@ -4,6 +4,7 @@
 #include "SoundDefinitions.h"
 #include "DialogueWaveDetails.h"
 #include "DialogueWaveWidgets.h"
+#include "Sound/DialogueWave.h"
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 

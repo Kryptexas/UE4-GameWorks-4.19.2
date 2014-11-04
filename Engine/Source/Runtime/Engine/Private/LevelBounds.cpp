@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LevelBounds.h"
+#include "Components/BoxComponent.h"
 
 // Default size of the box (scale)
 static const FVector DefaultLevelSize = FVector(1000.f);

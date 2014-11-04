@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "ComponentInstanceDataCache.h"
+#include "Components/ChildActorComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 

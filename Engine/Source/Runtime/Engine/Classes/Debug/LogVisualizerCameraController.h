@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/DebugCameraController.h"
 #include "LogVisualizerCameraController.generated.h"
 
 UCLASS(config=Input, hidedropdown)

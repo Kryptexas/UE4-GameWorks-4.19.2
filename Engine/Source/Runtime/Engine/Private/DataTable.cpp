@@ -4,6 +4,7 @@
 #include "Json.h"
 #include "CsvParser.h"
 #include "Engine/DataTable.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 

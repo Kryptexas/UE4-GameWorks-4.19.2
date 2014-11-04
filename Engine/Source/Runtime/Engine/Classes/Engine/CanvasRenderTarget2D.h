@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "TextureRenderTarget2D.h"
 #include "CanvasRenderTarget2D.generated.h"
 
 class UCanvas;

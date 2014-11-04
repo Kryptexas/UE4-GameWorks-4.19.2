@@ -7,6 +7,7 @@
 #include "AssetRegistryModule.h"
 #include "PackageHelperFunctions.h"
 #include "InternationalizationMetadata.h"
+#include "Sound/DialogueWave.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromAssetsCommandlet, Log, All);
 

@@ -6,6 +6,8 @@
 #include "AssetRegistryModule.h"
 #include "SlateGameResources.h"
 #include "MessageLog.h"
+#include "Curves/CurveVector.h"
+#include "Curves/CurveLinearColor.h"
 
 TSharedRef<FSlateGameResources> FSlateGameResources::New( const FName& InStyleSetName, const FString& ScopeToDirectory, const FString& InBasePath )
 {

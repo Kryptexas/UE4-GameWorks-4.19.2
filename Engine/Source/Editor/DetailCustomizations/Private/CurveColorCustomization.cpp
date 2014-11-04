@@ -7,6 +7,7 @@
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
 #include "SCurveEditor.h"
+#include "Curves/CurveLinearColor.h"
 
 #define LOCTEXT_NAMESPACE "CurveColorCustomization"
 

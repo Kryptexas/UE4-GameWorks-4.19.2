@@ -7,6 +7,7 @@
 #include "Editor/LevelEditor/Public/LevelEditorActions.h"
 #include "VertexSnapping.h"
 #include "ViewportSnappingModule.h"
+#include "GameFramework/PhysicsVolume.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FEditorViewportSnapping

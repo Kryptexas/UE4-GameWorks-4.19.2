@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "Engine/UserDefinedEnum.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFixupRedirectsCommandlet, Log, All);
 

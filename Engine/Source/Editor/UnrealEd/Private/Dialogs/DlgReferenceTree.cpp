@@ -6,6 +6,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "ObjectTools.h"
 #include "AssetSelection.h"
+#include "Engine/Polys.h"
 
 FArchiveGenerateReferenceGraph::FArchiveGenerateReferenceGraph( FReferenceGraph& OutGraph ) 
 	: CurrentObject(NULL),

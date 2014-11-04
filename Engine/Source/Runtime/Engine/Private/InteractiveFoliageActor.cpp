@@ -4,6 +4,7 @@
 
 #include "Engine/InteractiveFoliageActor.h"
 #include "Components/InteractiveFoliageComponent.h"
+#include "Components/CapsuleComponent.h"
 
 AInteractiveFoliageActor::AInteractiveFoliageActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer

@@ -16,6 +16,10 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "AI/Navigation/NavCollision.h"
+#include "Engine/StaticMeshSocket.h"
+#include "NavigationSystemHelpers.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 

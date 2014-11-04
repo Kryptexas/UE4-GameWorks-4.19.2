@@ -14,6 +14,8 @@
 #include "../Collision/PhysXCollision.h"
 #include "PhysXVehicleManager.h"
 #endif //WITH_PHYSX
+#include "AI/Navigation/AvoidanceManager.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 

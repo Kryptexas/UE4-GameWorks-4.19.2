@@ -9,6 +9,7 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "SNumericEntryBox.h"
 #include "STextComboBox.h"
+#include "Engine/StaticMeshActor.h"
 
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 

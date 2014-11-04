@@ -6,6 +6,7 @@
 #include "GameFramework/PhysicsVolume.h"
 #include "Components/SceneComponent.h"
 #include "MessageLog.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "MovementComponent"
 DEFINE_LOG_CATEGORY_STATIC(LogMovement, Log, All);

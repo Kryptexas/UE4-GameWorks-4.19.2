@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "NavAreas/NavArea.h"
 #include "NavLinkDefinition.generated.h"
 
 UENUM()

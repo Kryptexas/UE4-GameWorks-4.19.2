@@ -37,7 +37,10 @@
 #include "Camera/CameraActor.h"
 #include "Engine/DemoNetDriver.h"
 #include "Layers/Layer.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/PlayerState.h"
 
+#include "Materials/MaterialParameterCollectionInstance.h"
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -55,6 +58,19 @@
 #include "DataChannel.h"
 #include "ShaderCompiler.h"
 #include "Engine/LevelStreamingPersistent.h"
+#include "AI/Navigation/AvoidanceManager.h"
+#include "GeneralProjectSettings.h"
+#include "PhysicsEngine/PhysicsConstraintActor.h"
+#include "PhysicsEngine/PhysicsCollisionHandler.h"
+#include "Engine/GameEngine.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "Components/BrushComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "Components/ModelComponent.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Engine/Polys.h"
+#include "Engine/LightMapTexture2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);

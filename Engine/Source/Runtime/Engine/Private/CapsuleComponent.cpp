@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Components/CapsuleComponent.h"
 
 
 UCapsuleComponent::UCapsuleComponent(const FObjectInitializer& ObjectInitializer)

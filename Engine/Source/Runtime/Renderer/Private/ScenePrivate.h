@@ -9,6 +9,7 @@
 
 class SceneRenderingAllocator;
 class USceneCaptureComponent;
+class UTextureRenderTarget;
 
 class SceneRenderingBitArrayAllocator
 	: public TInlineAllocator<4,SceneRenderingAllocator>

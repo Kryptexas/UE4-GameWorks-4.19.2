@@ -88,6 +88,13 @@
 #include "STestSuite.h"
 #include "Engine/DemoNetDriver.h"
 #include "SThrobber.h"
+#include "Engine/TextureCube.h"
+#include "AI/Navigation/AvoidanceManager.h"
+#include "Engine/GameEngine.h"
+#include "PhysicsEngine/PhysicsCollisionHandler.h"
+#include "Components/BrushComponent.h"
+#include "GameFramework/GameUserSettings.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

@@ -4,6 +4,8 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Camera/CameraComponent.h"
+#include "Components/DrawFrustumComponent.h"
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 

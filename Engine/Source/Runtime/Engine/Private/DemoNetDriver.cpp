@@ -11,6 +11,8 @@
 #include "Engine/ActorChannel.h"
 #include "RepLayout.h"
 #include "GameFramework/SpectatorPawn.h"
+#include "Engine/LevelStreamingKismet.h"
+#include "GameFramework/PlayerStart.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 

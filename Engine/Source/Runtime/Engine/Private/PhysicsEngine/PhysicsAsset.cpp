@@ -5,11 +5,13 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
 #endif // WITH_PHYSX
+#include "PhysicsEngine/PhysicsAsset.h"
 
 
 ///////////////////////////////////////	

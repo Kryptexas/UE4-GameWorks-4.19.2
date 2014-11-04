@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "VectorField/VectorFieldVolume.h"
+#include "Components/VectorFieldComponent.h"
+#include "Components/BillboardComponent.h"
 
 AVectorFieldVolume::AVectorFieldVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

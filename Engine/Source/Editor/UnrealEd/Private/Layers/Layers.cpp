@@ -4,6 +4,7 @@
 
 #include "Layers.h"
 #include "ActorEditorUtils.h"
+#include "Layers/Layer.h"
 
 
 FLayers::FLayers( const TWeakObjectPtr< UEditorEngine >& InEditor )

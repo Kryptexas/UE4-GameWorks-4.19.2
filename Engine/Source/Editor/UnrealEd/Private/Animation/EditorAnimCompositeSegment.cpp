@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "UnrealEd.h"
+#include "Animation/AnimComposite.h"
 
 
 

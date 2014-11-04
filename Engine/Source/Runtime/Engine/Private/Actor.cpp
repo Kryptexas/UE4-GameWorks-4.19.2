@@ -18,6 +18,13 @@
 #include "VisualLogger/VisualLogger.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/DemoNetDriver.h"
+#include "GameFramework/Pawn.h"
+#include "Components/PawnNoiseEmitterComponent.h"
+#include "Components/TimelineComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/DamageType.h"
+#include "Kismet/GameplayStatics.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);

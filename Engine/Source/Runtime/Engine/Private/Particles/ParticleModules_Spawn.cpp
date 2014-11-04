@@ -11,6 +11,7 @@
 #include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 UParticleModuleSpawnBase::UParticleModuleSpawnBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

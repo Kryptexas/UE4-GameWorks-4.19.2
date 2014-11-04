@@ -5,7 +5,10 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/TimelineComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTimeline, Log, All);
 

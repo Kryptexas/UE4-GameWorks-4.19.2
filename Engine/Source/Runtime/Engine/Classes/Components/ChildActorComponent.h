@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "SceneComponent.h"
 #include "ChildActorComponent.generated.h"
 
 class FChildActorComponentInstanceData;

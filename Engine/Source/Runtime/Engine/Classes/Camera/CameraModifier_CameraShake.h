@@ -8,6 +8,8 @@
 #include "Camera/CameraModifier.h"
 #include "CameraModifier_CameraShake.generated.h"
 
+struct FFOscillator;
+
 USTRUCT()
 struct ENGINE_API FCameraShakeInstance
 {

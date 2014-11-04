@@ -5,6 +5,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/PlayerStart.h"
 #include "PlayerStartPIE.generated.h"
 
 UCLASS(notplaceable,MinimalAPI)

@@ -12,6 +12,7 @@
 #if WITH_BOX2D
 	#include "../PhysicsEngine2D/Box2DIntegration.h"
 #endif
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #ifndef APEX_STATICALLY_LINKED
 	#define APEX_STATICALLY_LINKED	0

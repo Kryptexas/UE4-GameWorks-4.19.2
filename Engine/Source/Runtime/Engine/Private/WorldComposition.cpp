@@ -6,6 +6,7 @@
 #include "EnginePrivate.h"
 #include "Engine/WorldComposition.h"
 #include "LevelUtils.h"
+#include "Engine/LevelStreamingKismet.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorldComposition, Log, All);
 

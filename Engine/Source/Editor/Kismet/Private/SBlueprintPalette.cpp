@@ -33,6 +33,7 @@
 #include "TutorialMetaData.h"
 #include "BlueprintEditorSettings.h" // for bShowActionMenuItemSignatures
 #include "SInlineEditableTextBlock.h"
+#include "Engine/SimpleConstructionScript.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 

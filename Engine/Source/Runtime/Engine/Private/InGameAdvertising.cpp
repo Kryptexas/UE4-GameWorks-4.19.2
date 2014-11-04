@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Engine/InGameAdManager.h"
 
 UInGameAdManager::UInGameAdManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

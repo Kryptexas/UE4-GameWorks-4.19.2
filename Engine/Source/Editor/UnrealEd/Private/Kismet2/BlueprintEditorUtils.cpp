@@ -38,6 +38,10 @@
 #include "Runtime/Engine/Classes/Engine/UserDefinedStruct.h"
 #include "UnrealExporter.h"
 
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/TimelineTemplate.h"
+
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);

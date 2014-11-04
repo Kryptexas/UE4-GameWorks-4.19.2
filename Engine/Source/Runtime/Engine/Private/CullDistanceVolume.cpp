@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/CullDistanceVolume.h"
+#include "Components/BrushComponent.h"
 
 ACullDistanceVolume::ACullDistanceVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

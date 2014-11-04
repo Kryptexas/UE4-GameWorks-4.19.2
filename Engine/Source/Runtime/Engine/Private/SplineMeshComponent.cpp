@@ -4,6 +4,8 @@
 #include "Components/SplineMeshComponent.h"
 #include "SplineMeshSceneProxy.h"
 #include "ShaderParameterUtils.h"
+#include "NavigationSystemHelpers.h"
+#include "AI/Navigation/NavCollision.h"
 
 
 //////////////////////////////////////////////////////////////////////////

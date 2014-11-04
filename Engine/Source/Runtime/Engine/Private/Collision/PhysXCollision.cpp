@@ -4,6 +4,8 @@
 #include "PhysicsPublic.h"
 #include "Collision.h"
 #include "CollisionDebugDrawingPublic.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_BOX2D
 #include "../PhysicsEngine2D/Box2DIntegration.h"

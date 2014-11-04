@@ -14,6 +14,7 @@
 #include "MaterialShaderType.h"
 #include "TargetPlatform.h"
 #include "Engine/Font.h"
+#include "Engine/SubsurfaceProfile.h"
 
 /**
  * Cache uniform expressions for the given material.

@@ -3,6 +3,8 @@
 
 #include "UnrealEd.h"
 #include "BSPOps.h"
+#include "Engine/Polys.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBSPOps, Log, All);
 

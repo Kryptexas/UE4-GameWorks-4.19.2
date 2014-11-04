@@ -17,6 +17,7 @@
 #include "GenericCommands.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/TimelineTemplate.h"
 
 #define LOCTEXT_NAMESPACE "STimelineEditor"
 

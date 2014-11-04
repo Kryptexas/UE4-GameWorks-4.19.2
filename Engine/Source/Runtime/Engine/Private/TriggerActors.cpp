@@ -9,6 +9,9 @@
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TriggerSphere.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 namespace
 {
 	static const FColor TriggerBaseColor(100, 255, 100, 255);

@@ -7,6 +7,8 @@
 #include "ShowFlags.h"
 #include "ConvexVolume.h"
 #endif
+#include "AI/Navigation/NavLinkHostInterface.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 
 //----------------------------------------------------------------------//
 // UNavLinkRenderingComponent

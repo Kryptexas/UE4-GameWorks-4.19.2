@@ -5,6 +5,7 @@
 #include "Net/UnrealNetwork.h"
 #include "PhysicsEngine/RadialForceComponent.h"
 #include "PhysicsEngine/RadialForceActor.h"
+#include "Components/DestructibleComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT

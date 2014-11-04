@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "SoundPreviewThread.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundWave.h"
 
 /**
  *

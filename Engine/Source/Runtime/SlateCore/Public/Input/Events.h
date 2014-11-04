@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "InputCoreTypes.h"
 #include "Events.generated.h"
 
 

@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "AudioDevice.h"
+#include "Components/BrushComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Sound/ReverbEffect.h"
 

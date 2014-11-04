@@ -15,6 +15,8 @@
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/Light.h"
+#include "Engine/Note.h"
+#include "Engine/Polys.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

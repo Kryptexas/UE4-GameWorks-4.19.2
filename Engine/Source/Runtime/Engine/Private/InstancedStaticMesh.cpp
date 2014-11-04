@@ -48,6 +48,9 @@
 #include "ShadowMap.h"
 #include "Logging/MessageLog.h"
 #endif
+#include "NavigationSystemHelpers.h"
+#include "AI/Navigation/NavCollision.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 // This must match the maximum a user could specify in the material (see 
 // FHLSLMaterialTranslator::TextureCoordinate), otherwise the material will attempt 

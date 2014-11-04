@@ -6,6 +6,7 @@
 #include "PreviewScene.h"
 
 class FSceneViewFamily;
+class USCS_Node;
 
 class UNREALED_API FThumbnailPreviewScene : public FPreviewScene
 {

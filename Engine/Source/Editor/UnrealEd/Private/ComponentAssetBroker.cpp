@@ -9,6 +9,8 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "Engine/DestructibleMesh.h"
+#include "Components/DestructibleComponent.h"
+#include "Sound/SoundBase.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker

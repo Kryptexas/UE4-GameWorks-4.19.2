@@ -11,6 +11,7 @@
 #include "MapErrors.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType_InstancedStaticMesh.h"
+#include "Components/ModelComponent.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 

@@ -25,6 +25,8 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "CollisionDebugDrawingPublic.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/DamageType.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 

@@ -8,6 +8,7 @@
 
 #include "EnginePrivate.h"
 #include "DebugRenderSceneProxy.h"
+#include "Debug/DebugDrawService.h"
 
 // FPrimitiveSceneProxy interface.
 

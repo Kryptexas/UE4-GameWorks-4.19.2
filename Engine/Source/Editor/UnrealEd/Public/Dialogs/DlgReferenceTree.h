@@ -4,6 +4,8 @@
 #ifndef __DLGREFERENCETREE_H__
 #define __DLGREFERENCETREE_H__
 
+#include "Engine/Polys.h"
+
 /**
  * A struct representing a node in the reference graph
  */

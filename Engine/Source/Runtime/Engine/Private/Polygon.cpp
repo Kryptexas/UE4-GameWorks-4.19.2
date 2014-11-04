@@ -10,6 +10,7 @@
 #if WITH_EDITOR
 #include "GeomTools.h"
 #endif
+#include "Engine/Polys.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogPolygon, Log, All);

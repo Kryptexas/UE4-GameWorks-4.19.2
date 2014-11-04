@@ -8,6 +8,7 @@
 #include "TargetPlatform.h"
 #include "StaticLighting.h"
 #include "LightMap.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 

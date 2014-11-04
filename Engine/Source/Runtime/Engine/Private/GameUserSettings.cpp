@@ -4,6 +4,8 @@
 #include "SlateBasics.h"
 #include "AudioDevice.h"
 #include "Scalability.h"
+#include "GameFramework/GameUserSettings.h"
+#include "Engine/GameEngine.h"
 
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 

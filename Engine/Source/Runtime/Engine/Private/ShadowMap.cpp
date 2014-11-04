@@ -6,6 +6,9 @@
 #include "TargetPlatform.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/LightComponent.h"
 
 #if WITH_EDITOR
 	// NOTE: We're only counting the top-level mip-map for the following variables.

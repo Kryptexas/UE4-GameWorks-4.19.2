@@ -23,6 +23,8 @@
 #include "Collision.h"
 #include "ConvexVolume.h"
 #endif
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 0, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 

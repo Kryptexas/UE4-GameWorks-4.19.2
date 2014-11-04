@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "LightComponent.h"
 #include "PointLightComponent.generated.h"
 
 /**

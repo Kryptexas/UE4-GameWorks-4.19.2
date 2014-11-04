@@ -8,6 +8,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "Components/DestructibleComponent.h"
 
 ADestructibleActor::ADestructibleActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

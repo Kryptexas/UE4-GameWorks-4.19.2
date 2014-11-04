@@ -91,6 +91,8 @@
 #include "HotReloadInterface.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/GameEngine.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 

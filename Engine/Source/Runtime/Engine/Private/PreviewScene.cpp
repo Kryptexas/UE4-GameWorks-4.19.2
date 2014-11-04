@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "PreviewScene.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/LineBatchComponent.h"
 
 FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	: PreviewWorld(NULL)

@@ -8,6 +8,8 @@
 //#include "Toolkits/IToolkitHost.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "SDockTab.h"
+#include "Curves/CurveVector.h"
+#include "Curves/CurveLinearColor.h"
 
 #define LOCTEXT_NAMESPACE "CurveAssetEditor"
 

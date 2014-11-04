@@ -9,6 +9,7 @@
 #include "Engine/MicroTransactionBase.h"
 #include "Engine/PlatformInterfaceWebResponse.h"
 #include "Engine/TwitterIntegrationBase.h"
+#include "Engine/InGameAdManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogScriptPlatformInterface, Log, All);
 

@@ -14,6 +14,7 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/Rig.h"
+#include "EditorFramework/AssetImportData.h"
 
 #define USE_SLERP 0
 

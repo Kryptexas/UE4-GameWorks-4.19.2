@@ -10,6 +10,7 @@
 #include "AssetSelection.h"
 #include "ClassIconFinder.h"
 #include "ScopedTransaction.h"
+#include "Engine/StaticMeshActor.h"
 
 #define LOCTEXT_NAMESPACE "BrushDetails"
 

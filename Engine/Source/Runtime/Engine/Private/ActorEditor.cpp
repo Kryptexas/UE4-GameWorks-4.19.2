@@ -9,6 +9,7 @@
 #include "MapErrors.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "Engine/LevelBounds.h"
+#include "Components/ChildActorComponent.h"
 
 #if WITH_EDITOR
 

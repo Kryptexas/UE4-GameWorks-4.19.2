@@ -15,6 +15,7 @@
 
 
 #include "PhysDerivedData.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_PHYSX
 	namespace

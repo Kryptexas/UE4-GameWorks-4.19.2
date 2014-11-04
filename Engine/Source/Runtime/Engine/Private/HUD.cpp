@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"

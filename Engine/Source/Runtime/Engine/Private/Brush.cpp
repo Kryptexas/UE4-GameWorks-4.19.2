@@ -5,10 +5,12 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/Polys.h"
 #include "Net/UnrealNetwork.h"
 #include "Model.h"
 #include "Engine/BrushBuilder.h"
 #include "ActorEditorUtils.h"
+#include "Components/BrushComponent.h"
 
 #if WITH_EDITOR
 /** Define static delegate */

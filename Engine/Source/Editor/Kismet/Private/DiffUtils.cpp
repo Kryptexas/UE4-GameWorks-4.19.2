@@ -5,6 +5,8 @@
 #include "DiffUtils.h"
 #include "EditorCategoryUtils.h"
 #include "ObjectEditorUtils.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
 
 static const UProperty* Resolve( const UStruct* Class, FName PropertyName )
 {

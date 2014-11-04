@@ -5,6 +5,7 @@
 #if WITH_EDITOR
 #include "StructureEditorUtils.h"
 #endif //WITH_EDITOR
+#include "Engine/UserDefinedStruct.h"
 
 UUserDefinedStruct::UUserDefinedStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

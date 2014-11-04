@@ -14,6 +14,7 @@
 #include "RendererInterface.h"
 #include "BufferVisualizationData.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
+#include "Engine/TextureCube.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 

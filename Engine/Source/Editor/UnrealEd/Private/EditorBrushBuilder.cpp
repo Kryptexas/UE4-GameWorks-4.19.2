@@ -10,6 +10,7 @@
 #include "SnappingUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Polys.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 

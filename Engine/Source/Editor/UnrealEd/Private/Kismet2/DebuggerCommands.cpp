@@ -26,6 +26,8 @@
 
 #include "EditorAnalytics.h"
 #include "MessageLog.h"
+#include "GameFramework/PlayerStart.h"
+#include "Components/CapsuleComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "DebuggerCommands"

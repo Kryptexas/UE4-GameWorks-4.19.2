@@ -10,6 +10,7 @@
 #include "HModel.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "Components/ModelComponent.h"
 
 namespace
 {

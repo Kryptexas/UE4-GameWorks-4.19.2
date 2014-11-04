@@ -8,6 +8,7 @@
 #include "StaticMeshResources.h"
 #include "StaticLightingPrivate.h"
 #include "LightMap.h"
+#include "Components/ModelComponent.h"
 
 /** Information about the texel that is selected */
 FSelectedLightmapSample GCurrentSelectedLightmapSample;

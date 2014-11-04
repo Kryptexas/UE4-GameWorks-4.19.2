@@ -8,6 +8,8 @@
 #pragma once
 #include "ParticleLODLevel.generated.h"
 
+class UInterpCurveEdSetup;
+
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleLODLevel : public UObject
 {

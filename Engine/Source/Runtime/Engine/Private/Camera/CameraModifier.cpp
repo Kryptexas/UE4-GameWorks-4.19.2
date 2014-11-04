@@ -4,6 +4,7 @@
 #include "ParticleDefinitions.h"
 
 #include "Net/UnrealNetwork.h"
+#include "Camera/CameraModifier.h"
 
 //////////////////////////////////////////////////////////////////////////
 

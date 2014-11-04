@@ -21,6 +21,7 @@
 #include "MaterialCompiler.h"
 #include "MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
+#include "Materials/MaterialParameterCollection.h"
 
 /** @return the number of components in a vector type. */
 uint32 GetNumComponents(EMaterialValueType Type)

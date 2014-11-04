@@ -9,6 +9,8 @@
 #include "Engine/LevelScriptActor.h"
 #include "SlateBasics.h"
 #include "DefaultValueHelper.h"
+#include "ConsoleSettings.h"
+#include "GameFramework/InputSettings.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 

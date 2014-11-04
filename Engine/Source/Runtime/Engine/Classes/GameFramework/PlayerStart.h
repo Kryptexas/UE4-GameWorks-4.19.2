@@ -5,6 +5,7 @@
 //=============================================================================
 
 #pragma once
+#include "Engine/NavigationObjectBase.h"
 #include "PlayerStart.generated.h"
 
 UCLASS(ClassGroup=Common, hidecategories=Collision)

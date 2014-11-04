@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
+#include "Components/BrushComponent.h"
 
 ANavMeshBoundsVolume::ANavMeshBoundsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

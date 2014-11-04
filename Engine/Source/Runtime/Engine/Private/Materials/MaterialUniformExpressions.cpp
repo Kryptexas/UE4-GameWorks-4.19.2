@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "MaterialUniformExpressions.h"
+#include "Materials/MaterialParameterCollection.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()
 {

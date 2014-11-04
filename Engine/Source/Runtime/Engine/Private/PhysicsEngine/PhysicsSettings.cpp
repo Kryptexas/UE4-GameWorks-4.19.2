@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

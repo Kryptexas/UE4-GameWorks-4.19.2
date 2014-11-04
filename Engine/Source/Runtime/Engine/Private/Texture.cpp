@@ -13,6 +13,7 @@
 #if WITH_EDITORONLY_DATA
 #include "DDSLoader.h"
 #endif
+#include "Engine/TextureCube.h"
 
 DEFINE_LOG_CATEGORY(LogTexture);
 

@@ -7,6 +7,7 @@
 
 
 #include "EnginePrivate.h"
+#include "HardwareInfo.h"
 
 
 static TMap< FName, FString > HardwareDetailsMap;

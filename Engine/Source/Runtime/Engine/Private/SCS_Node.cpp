@@ -8,6 +8,7 @@
 #endif
 #include "DeferRegisterComponents.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USCS_Node

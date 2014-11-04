@@ -10,6 +10,7 @@
 #include "PhysxUserData.h"
 #include "DynamicMeshBuilder.h"
 #include "LocalVertexFactory.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 /**
  * Physics stats
  */

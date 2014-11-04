@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "PointLightSceneProxy.h"
+#include "Components/SpotLightComponent.h"
 
 
 /**

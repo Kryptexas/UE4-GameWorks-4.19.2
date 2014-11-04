@@ -7,6 +7,7 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "ContentStreaming.h"
+#include "Components/DirectionalLightComponent.h"
 
 /*
 ***************************************************************

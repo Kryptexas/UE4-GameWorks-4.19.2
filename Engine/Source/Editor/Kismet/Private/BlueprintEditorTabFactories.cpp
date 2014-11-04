@@ -14,6 +14,8 @@
 #include "SBlueprintPalette.h"
 #include "FindInBlueprints.h"
 #include "SMyBlueprint.h"
+#include "Engine/Blueprint.h"
+#include "Engine/TimelineTemplate.h"
 
 
 

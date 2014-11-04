@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "GameFramework/DamageType.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProjectileMovement, Log, All);
 

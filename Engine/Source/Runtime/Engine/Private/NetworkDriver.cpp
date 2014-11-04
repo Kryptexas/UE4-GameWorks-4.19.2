@@ -16,6 +16,7 @@
 #include "NetworkingDistanceConstants.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "GameFramework/PlayerState.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);

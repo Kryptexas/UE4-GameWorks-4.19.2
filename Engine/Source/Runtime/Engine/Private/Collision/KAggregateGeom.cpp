@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Collision.h"
+#include "Engine/Polys.h"
 
 #define MIN_HULL_VERT_DISTANCE		(0.1f)
 #define MIN_HULL_VALID_DIMENSION	(0.5f)

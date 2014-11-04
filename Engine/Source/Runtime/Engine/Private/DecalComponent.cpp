@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
+#include "Components/DecalComponent.h"
 
 FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 {

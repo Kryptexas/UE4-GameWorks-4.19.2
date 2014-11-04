@@ -14,6 +14,9 @@
 #include "Sound/SoundCue.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/SaveGame.h"
+#include "GameFramework/DamageType.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Components/DecalComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "RigidBodyBase.h"
 #include "RadialForceActor.generated.h"
 
 UCLASS(MinimalAPI, hidecategories=(Collision, Input), showcategories=("Input|MouseInput", "Input|TouchInput"))

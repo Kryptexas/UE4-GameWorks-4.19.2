@@ -29,6 +29,7 @@
 #include "PackageName.h"
 #include "PackageHelperFunctions.h" // for NORMALIZE_ExcludeMapPackages
 #include "K2Node_FunctionEntry.h"
+#include "Engine/LevelScriptActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 

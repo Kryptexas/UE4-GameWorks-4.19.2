@@ -20,6 +20,7 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleModuleRequired.h"
+#include "Scalability.h"
 /** trail stats */
 
 

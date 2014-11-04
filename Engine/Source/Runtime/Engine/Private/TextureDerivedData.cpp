@@ -22,6 +22,7 @@ enum
 #include "TargetPlatform.h"
 #include "TextureCompressorModule.h"
 #include "ImageCore.h"
+#include "Engine/TextureCube.h"
 
 /*------------------------------------------------------------------------------
 	Versioning for texture derived data.

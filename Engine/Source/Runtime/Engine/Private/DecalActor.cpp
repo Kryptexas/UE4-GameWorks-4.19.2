@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "Engine/DecalActor.h"
+#include "Components/DecalComponent.h"
+#include "Components/BoxComponent.h"
 
 
 #if WITH_EDITOR

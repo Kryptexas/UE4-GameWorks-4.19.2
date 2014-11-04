@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Components/BoxComponent.h"
 
 UBoxComponent::UBoxComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

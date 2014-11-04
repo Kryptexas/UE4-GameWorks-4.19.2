@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "Engine/NavigationObjectBase.h"
+#include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNavigationPoint, Log, All);
 
