@@ -3457,13 +3457,9 @@ void FMeshUtilities::MergeActors(
 	struct FRawMeshExt
 	{
 		FRawMeshExt() 
-			: LightMapCoordinateIndex(0)
-			, LightMapRes(32)
 		{}
 		
 		FRawMesh	Mesh;
-		int32		LightMapCoordinateIndex;
-		int32		LightMapRes;
 		FString		AssetPackageName;
 		FVector		Pivot;	
 	};
@@ -3486,12 +3482,7 @@ void FMeshUtilities::MergeActors(
 		{
 			MaterialMap.Add(MeshId, MeshMaterialMap);
 
-			// Store mesh lightmap info
-			FIntPoint ActorLightMapRes; 
-			MeshComponent->GetLightMapResolution(ActorLightMapRes.X, ActorLightMapRes.Y);
-			SourceMeshes[MeshId].LightMapRes = ActorLightMapRes.X;
-			SourceMeshes[MeshId].LightMapCoordinateIndex = MeshComponent->StaticMesh->LightMapCoordinateIndex;
-			
+
 			// Store component location
 			SourceMeshes[MeshId].Pivot = MeshComponent->ComponentToWorld.GetLocation();
 			
@@ -3537,10 +3528,6 @@ void FMeshUtilities::MergeActors(
 	}
 
 	FRawMeshExt MergedMesh;
-
-	// Attempt to pack lightmaps
-	float MergedLightMapScale = 1.f;
-	bool bCreateLightMapChannel = false;
 
 	// Use first mesh for naming and pivot
 	MergedMesh.AssetPackageName = SourceMeshes[0].AssetPackageName;
@@ -3593,12 +3580,6 @@ void FMeshUtilities::MergeActors(
 		// Merge all other UV channels 
 		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 		{
-			// Skip Lightmap channel if any
-			if (bCreateLightMapChannel && ChannelIdx == MergedMesh.LightMapCoordinateIndex)
-			{
-				continue;
-			}
-			
 			// Whether this channel has data
 			if (bOcuppiedUVChannels[ChannelIdx])
 			{
@@ -3660,8 +3641,9 @@ void FMeshUtilities::MergeActors(
 		SrcModel->BuildSettings.bRecomputeTangents = false;
 		SrcModel->BuildSettings.bRemoveDegenerates = false;
 		SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
-		SrcModel->BuildSettings.bGenerateLightmapUVs = InSettings.bGenerateAtlasedLightMapUV;
-		SrcModel->BuildSettings.SrcLightmapIndex = InSettings.TargetLightMapUVChannel;
+		SrcModel->BuildSettings.bGenerateLightmapUVs = InSettings.bGenerateLightMapUV;
+		SrcModel->BuildSettings.MinLightmapResolution = InSettings.TargetLightMapResolution;
+		SrcModel->BuildSettings.SrcLightmapIndex = 0;
 		SrcModel->BuildSettings.DstLightmapIndex = InSettings.TargetLightMapUVChannel;
 
 		SrcModel->RawMeshBulkData->SaveRawMesh(MergedMesh.Mesh);
