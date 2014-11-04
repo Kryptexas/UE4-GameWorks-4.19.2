@@ -56,7 +56,7 @@ static TAutoConsoleVariable<int32> CVarVisualizeTexturePool(
 /**  */
 static TAutoConsoleVariable<int32> CVarUseGetMeshElements(
 	TEXT("r.UseGetMeshElements"),
-	0,
+	1,
 	TEXT("Whether to use the GetMeshElements path or the legacy DrawDynamicElements"),
 	ECVF_RenderThreadSafe
 	);
