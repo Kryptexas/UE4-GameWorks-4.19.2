@@ -3651,6 +3651,11 @@ void FMeshUtilities::MergeActors(
 		// Assign materials
 		for (UMaterialInterface* Material : UniqueMaterials)
 		{
+			if (Material && !Material->IsAsset())
+			{
+				Material = nullptr; // do not save non-asset materials
+			}
+
 			StaticMesh->Materials.Add(Material);
 		}
 		
