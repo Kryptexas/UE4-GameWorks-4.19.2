@@ -13,7 +13,8 @@ namespace CCT
 		OutputFile(""),
 		BackEnd(BE_Invalid),
 		bRunCPP(true),
-		bUseNew(false)
+		bUseNew(false),
+		bList(false)
 	{
 	}
 
@@ -247,6 +248,10 @@ namespace CCT
 			else if (Switch.StartsWith(TEXT("new")))
 			{
 				bUseNew = true;
+			}
+			else if (Switch.StartsWith(TEXT("list")))
+			{
+				bList = true;
 			}
 		}
 

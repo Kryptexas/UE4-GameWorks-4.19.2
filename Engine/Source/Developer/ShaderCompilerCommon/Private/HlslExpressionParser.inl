@@ -81,11 +81,24 @@ namespace CrossCompiler
 		FInfo& Info;
 	};
 
-	EParseResult ParseBasicType(EHlslToken Token)
+	enum ETypeFlags
+	{
+		ETF_VOID					= 0x0001,
+		ETF_BUILTIN_NUMERIC			= 0x0002,
+		ETF_SAMPLER_TEXTURE_BUFFER	= 0x0004,
+		ETF_USER_TYPES				= 0x0008,
+	};
+
+	EParseResult ParseGeneralType(EHlslToken Token, int32 TypeFlags)
 	{
 		switch (Token)
 		{
 		case EHlslToken::Void:
+			if (TypeFlags & ETF_VOID)
+			{
+				return EParseResult::Matched;
+			}
+			break;
 
 		case EHlslToken::Bool:
 		case EHlslToken::Bool1:
@@ -196,24 +209,70 @@ namespace CrossCompiler
 		case EHlslToken::Float4x2:
 		case EHlslToken::Float4x3:
 		case EHlslToken::Float4x4:
-			return EParseResult::Matched;
+			if (TypeFlags & ETF_BUILTIN_NUMERIC)
+			{
+				return EParseResult::Matched;
+			}
+			break;
 
-		default:
+		case EHlslToken::Texture:
+		case EHlslToken::Texture1D:
+		case EHlslToken::Texture1DArray:
+		case EHlslToken::Texture2D:
+		case EHlslToken::Texture2DArray:
+		case EHlslToken::Texture2DMS:
+		case EHlslToken::Texture2DMSArray:
+		case EHlslToken::Texture3D:
+		case EHlslToken::TextureCube:
+		case EHlslToken::TextureCubeArray:
+
+		case EHlslToken::Buffer:
+		case EHlslToken::AppendStructuredBuffer:
+		case EHlslToken::ByteAddressBuffer:
+		case EHlslToken::ConsumeStructuredBuffer:
+		case EHlslToken::RWBuffer:
+		case EHlslToken::RWByteAddressBuffer:
+		case EHlslToken::RWStructuredBuffer:
+		case EHlslToken::RWTexture1D:
+		case EHlslToken::RWTexture1DArray:
+		case EHlslToken::RWTexture2D:
+		case EHlslToken::RWTexture2DArray:
+		case EHlslToken::RWTexture3D:
+		case EHlslToken::StructuredBuffer:
+
+		case EHlslToken::Sampler:
+		case EHlslToken::Sampler1D:
+		case EHlslToken::Sampler2D:
+		case EHlslToken::Sampler3D:
+		case EHlslToken::SamplerCube:
+		case EHlslToken::SamplerState:
+		case EHlslToken::SamplerComparisonState:
+			if (TypeFlags & ETF_SAMPLER_TEXTURE_BUFFER)
+			{
+				return EParseResult::Matched;
+			}
 			break;
 		}
-
+		
 		return EParseResult::NotMatched;
 	}
 
-	EParseResult ParseBasicType(FHlslScanner& Scanner)
+	EParseResult ParseGeneralType(const FHlslToken* Token, int32 TypeFlags, FSymbolScope* SymbolScope)
 	{
-		auto* Token = Scanner.PeekToken();
 		if (Token)
 		{
-			if (ParseBasicType(Token->Token) == EParseResult::Matched)
+			if (ParseGeneralType(Token->Token, TypeFlags) == EParseResult::Matched)
 			{
-				Scanner.Advance();
 				return EParseResult::Matched;
+			}
+
+			if (TypeFlags & ETF_USER_TYPES)
+			{
+				check(SymbolScope);
+				if (Token->Token == EHlslToken::Identifier && SymbolScope->FindType(Token->String))
+				{
+					return EParseResult::Matched;
+				}
 			}
 
 			return EParseResult::NotMatched;
@@ -222,87 +281,10 @@ namespace CrossCompiler
 		return EParseResult::Error;
 	}
 
-	EParseResult ParseTextureOrBufferType(FHlslScanner& Scanner)
+	EParseResult ParseGeneralType(FHlslScanner& Scanner, int32 TypeFlags, FSymbolScope* SymbolScope = nullptr)
 	{
 		auto* Token = Scanner.PeekToken();
-		if (Token)
-		{
-			switch (Token->Token)
-			{
-			case EHlslToken::Texture:
-			case EHlslToken::Texture1D:
-			case EHlslToken::Texture1DArray:
-			case EHlslToken::Texture2D:
-			case EHlslToken::Texture2DArray:
-			case EHlslToken::Texture3D:
-			case EHlslToken::TextureCube:
-			case EHlslToken::TextureCubeArray:
-
-			case EHlslToken::Buffer:
-			case EHlslToken::AppendStructuredBuffer:
-			case EHlslToken::ByteAddressBuffer:
-			case EHlslToken::ConsumeStructuredBuffer:
-			case EHlslToken::RWBuffer:
-			case EHlslToken::RWByteAddressBuffer:
-			case EHlslToken::RWStructuredBuffer:
-			case EHlslToken::RWTexture1D:
-			case EHlslToken::RWTexture1DArray:
-			case EHlslToken::RWTexture2D:
-			case EHlslToken::RWTexture2DArray:
-			case EHlslToken::RWTexture3D:
-			case EHlslToken::StructuredBuffer:
-
-			case EHlslToken::Sampler:
-			case EHlslToken::Sampler1D:
-			case EHlslToken::Sampler2D:
-			case EHlslToken::Sampler3D:
-			case EHlslToken::SamplerCube:
-			case EHlslToken::SamplerState:
-			case EHlslToken::SampleComparisonState:
-				Scanner.Advance();
-				return EParseResult::Matched;
-
-			default:
-				break;
-			}
-
-			return EParseResult::NotMatched;
-		}
-		else
-		{
-			return EParseResult::Error;
-		}
-	}
-
-	EParseResult ParseTypeToken(const FHlslToken* Token, FSymbolScope* SymbolScope)
-	{
-		if (Token == nullptr)
-		{
-			return EParseResult::NotMatched;
-		}
-
-		if (ParseBasicType(Token->Token) == EParseResult::Matched)
-		{
-			return EParseResult::Matched;
-		}
-		else if (Token->Token == EHlslToken::Identifier && SymbolScope->FindType(Token->String))
-		{
-			return EParseResult::Matched;
-		}
-
-		return EParseResult::NotMatched;
-	}
-
-
-	EParseResult ParseTypeToken(FHlslScanner& Scanner, FSymbolScope* SymbolScope)
-	{
-		if (ParseBasicType(Scanner/*, Info*/) == EParseResult::Matched)
-		{
-			return EParseResult::Matched;
-		}
-
-		const auto* Token = Scanner.GetCurrentToken();
-		if (Token && Token->Token == EHlslToken::Identifier && SymbolScope->FindType(Token->String))
+		if (ParseGeneralType(Token, TypeFlags, SymbolScope) == EParseResult::Matched)
 		{
 			Scanner.Advance();
 			return EParseResult::Matched;
@@ -360,6 +342,7 @@ namespace CrossCompiler
 				Scanner.Advance();
 				break;
 
+			case EHlslToken::BoolConstant:
 			case EHlslToken::UnsignedIntegerConstant:
 				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Atom Int %d\n"), Token->UnsignedInteger);
 				Scanner.Advance();
@@ -386,7 +369,7 @@ namespace CrossCompiler
 
 				const auto* Peek1 = Scanner.PeekToken(0);
 				const auto* Peek2 = Scanner.PeekToken(1);
-				if (Peek1 && ParseTypeToken(Peek1, SymbolScope) == EParseResult::Matched && Peek2 && Peek2->Token == EHlslToken::RightParenthesis)
+				if (Peek1 && ParseGeneralType(Peek1, ETF_BUILTIN_NUMERIC | ETF_USER_TYPES, SymbolScope) == EParseResult::Matched && Peek2 && Peek2->Token == EHlslToken::RightParenthesis)
 				{
 					// Cast
 					Info.PrintWithTabs(FString::Printf(TEXT("Cast %s\n"), *Peek1->String));
@@ -438,14 +421,14 @@ namespace CrossCompiler
 				break;
 			default:
 				// Grrr handle Sampler as a variable name
-				if (ParseTextureOrBufferType(Scanner) == EParseResult::Matched)
+				if (ParseGeneralType(Scanner, ETF_SAMPLER_TEXTURE_BUFFER) == EParseResult::Matched)
 				{
 					bFoundUnary = false;
 					bFoundNonUnary = true;
 					break;
 				}
 				// Handle float3(x,y,z)
-				else if (ParseBasicType(Scanner) == EParseResult::Matched)
+				else if (ParseGeneralType(Scanner, ETF_BUILTIN_NUMERIC) == EParseResult::Matched)
 				{
 					bFoundUnary = false;
 					//bFoundTypeInitializerList = true;

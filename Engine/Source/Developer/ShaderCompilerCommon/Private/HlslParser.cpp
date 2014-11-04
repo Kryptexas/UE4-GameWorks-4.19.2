@@ -67,14 +67,25 @@ namespace CrossCompiler
 		return EParseResult::NotMatched;
 	}
 
-	EParseResult ParseArrayBracketsAndIndex(FHlslParser& Parser)
+	EParseResult ParseArrayBracketsAndIndex(FHlslParser& Parser, bool bNeedsDimension)
 	{
 		if (Parser.Scanner.MatchToken(EHlslToken::LeftSquareBracket))
 		{
-			if (ParseExpression(Parser.Scanner, Parser.CurrentScope) != EParseResult::Matched)
+			if (bNeedsDimension)
 			{
-				Parser.Scanner.SourceError(TEXT("Expected expression!"));
-				return EParseResult::Error;
+				if (ParseExpression(Parser.Scanner, Parser.CurrentScope) != EParseResult::Matched)
+				{
+					Parser.Scanner.SourceError(TEXT("Expected expression!"));
+					return EParseResult::Error;
+				}
+			}
+			else
+			{
+				if (ParseExpression(Parser.Scanner, Parser.CurrentScope) == EParseResult::Error)
+				{
+					Parser.Scanner.SourceError(TEXT("Expected expression!"));
+					return EParseResult::Error;
+				}
 			}
 
 			if (!Parser.Scanner.MatchToken(EHlslToken::RightSquareBracket))
@@ -89,12 +100,12 @@ namespace CrossCompiler
 		return EParseResult::NotMatched;
 	}
 
-	EParseResult ParseMultiArrayBracketsAndIndex(FHlslParser& Parser)
+	EParseResult ParseMultiArrayBracketsAndIndex(FHlslParser& Parser, bool bNeedsDimension)
 	{
 		bool bFoundOne = false;
 		do
 		{
-			auto Result = ParseArrayBracketsAndIndex(Parser);
+			auto Result = ParseArrayBracketsAndIndex(Parser, bNeedsDimension);
 			if (Result == EParseResult::Error)
 			{
 				return EParseResult::Error;
@@ -114,11 +125,40 @@ namespace CrossCompiler
 	EParseResult ParseTextureOrBufferSimpleDeclaration(FHlslParser& Parser, bool bMultiple)
 	{
 		auto OriginalToken = Parser.Scanner.GetCurrentTokenIndex();
-		if (ParseTextureOrBufferType(Parser.Scanner) == EParseResult::Matched)
+		if (ParseGeneralType(Parser.Scanner, ETF_SAMPLER_TEXTURE_BUFFER) != EParseResult::Matched)
+		{
+			goto Unmatched;
+		}
+
+		if (Parser.Scanner.MatchToken(EHlslToken::Lower))
+		{
+			auto Result = ParseGeneralType(Parser.Scanner, ETF_BUILTIN_NUMERIC | ETF_USER_TYPES, Parser.CurrentScope);
+			if (Result != EParseResult::Matched)
+			{
+				Parser.Scanner.SourceError(TEXT("Expected type!"));
+				return EParseResult::Error;
+			}
+
+			if (Parser.Scanner.MatchToken(EHlslToken::Comma))
+			{
+				if (!Parser.Scanner.MatchToken(EHlslToken::UnsignedIntegerConstant))
+				{
+					Parser.Scanner.SourceError(TEXT("Expected constant!"));
+					return EParseResult::Error;
+				}
+			}
+
+			if (!Parser.Scanner.MatchToken(EHlslToken::Greater))
+			{
+				Parser.Scanner.SourceError(TEXT("Expected '>'!"));
+				return EParseResult::Error;
+			}
+		}
+
 		{
 NextParameter:
 			// Handle 'Sampler2D Sampler'
-			if (ParseTextureOrBufferType(Parser.Scanner) == EParseResult::Matched)
+			if (ParseGeneralType(Parser.Scanner, ETF_SAMPLER_TEXTURE_BUFFER) == EParseResult::Matched)
 			{
 				//...
 			}
@@ -128,7 +168,7 @@ NextParameter:
 				return EParseResult::Error;
 			}
 
-			if (ParseMultiArrayBracketsAndIndex(Parser) == EParseResult::Error)
+			if (ParseMultiArrayBracketsAndIndex(Parser, true) == EParseResult::Error)
 			{
 				return EParseResult::Error;
 			}
@@ -141,6 +181,7 @@ NextParameter:
 			return EParseResult::Matched;
 		}
 
+Unmatched:
 		Parser.Scanner.SetCurrentTokenIndex(OriginalToken);
 		return EParseResult::NotMatched;
 	}
@@ -149,7 +190,7 @@ NextParameter:
 	enum EDeclarationFlags
 	{
 		//EDF_ROLLBACK_IF_NO_MATCH		= 0x0001,
-		EDF_CONST						= 0x0002,
+		EDF_CONST_ROW_MAJOR				= 0x0002,
 		EDF_STATIC						= 0x0004,
 		EDF_TEXTURE_SAMPLER_OR_BUFFER	= 0x0008,
 		EDF_INITIALIZER					= 0x0010,
@@ -158,6 +199,9 @@ NextParameter:
 		EDF_SEMICOLON					= 0x0080,
 		EDF_IN_OUT						= 0x0100,
 		EDF_MULTIPLE					= 0x0200,
+		EDF_PRIMITIVE_DATA_TYPE			= 0x0400,
+		EDF_SHARED						= 0x0800,
+		EDF_NOINTERPOLATION				= 0x1000,
 	};
 
 	EParseResult ParseInitializer(FHlslParser& Parser, bool bAllowLists)
@@ -167,6 +211,10 @@ NextParameter:
 			bool bFoundExpr = false;
 			while (Parser.Scanner.HasMoreTokens())
 			{
+				if (Parser.Scanner.MatchToken(EHlslToken::RightBrace))
+				{
+					return EParseResult::Matched;
+				}
 				auto Result = ParseExpression(Parser.Scanner, Parser.CurrentScope);
 				if (Result == EParseResult::Error)
 				{
@@ -188,6 +236,9 @@ NextParameter:
 				{
 					return EParseResult::Matched;
 				}
+				
+				Parser.Scanner.SourceError(TEXT("Expected ','\n"));
+				break;
 			}
 
 			Parser.Scanner.SourceError(TEXT("Expected '}'\n"));
@@ -212,10 +263,30 @@ NextParameter:
 		auto OriginalToken = Parser.Scanner.GetCurrentTokenIndex();
 
 		int32 StaticFound = 0;
+		int32 SharedFound = 0;
 		int32 ConstFound = 0;
+		int32 RowMajorFound = 0;
 		int32 InFound = 0;
 		int32 OutFound = 0;
 		int32 InOutFound = 0;
+		int32 PrimitiveFound = 0;
+
+		if (Flags & EDF_PRIMITIVE_DATA_TYPE)
+		{
+			const auto* Token = Parser.Scanner.GetCurrentToken();
+			if (Token && Token->Token == EHlslToken::Identifier)
+			{
+				if (Token->String == TEXT("point") ||
+					Token->String == TEXT("line") ||
+					Token->String == TEXT("triangle") ||
+					Token->String == TEXT("lineadj") ||
+					Token->String == TEXT("triangleadj"))
+				{
+					Parser.Scanner.Advance();
+					++PrimitiveFound;
+				}
+			}
+		}
 
 		while (Parser.Scanner.HasMoreTokens())
 		{
@@ -228,12 +299,36 @@ NextParameter:
 					Parser.Scanner.SourceError(TEXT("'static' found more than once!\n"));
 				}
 			}
-			else if ((Flags & EDF_CONST) && Parser.Scanner.MatchToken(EHlslToken::Const))
+			else if ((Flags & EDF_NOINTERPOLATION) && Parser.Scanner.MatchToken(EHlslToken::NoInterpolation))
+			{
+				++SharedFound;
+				if (SharedFound > 1)
+				{
+					Parser.Scanner.SourceError(TEXT("'groupshared' found more than once!\n"));
+				}
+			}
+			else if ((Flags & EDF_SHARED) && Parser.Scanner.MatchToken(EHlslToken::GroupShared))
+			{
+				++SharedFound;
+				if (SharedFound > 1)
+				{
+					Parser.Scanner.SourceError(TEXT("'groupshared' found more than once!\n"));
+				}
+			}
+			else if ((Flags & EDF_CONST_ROW_MAJOR) && Parser.Scanner.MatchToken(EHlslToken::Const))
 			{
 				++ConstFound;
 				if (ConstFound > 1)
 				{
 					Parser.Scanner.SourceError(TEXT("'const' found more than once!\n"));
+				}
+			}
+			else if ((Flags & EDF_CONST_ROW_MAJOR) && Parser.Scanner.MatchToken(EHlslToken::RowMajor))
+			{
+				++RowMajorFound;
+				if (RowMajorFound > 1)
+				{
+					Parser.Scanner.SourceError(TEXT("'row_major' found more than once!\n"));
 				}
 			}
 			else if ((Flags & EDF_IN_OUT) && Parser.Scanner.MatchToken(EHlslToken::In))
@@ -266,7 +361,48 @@ NextParameter:
 			}
 		}
 
-		bool bCanBeUnmatched = (ConstFound + InFound + OutFound + InOutFound + StaticFound) == 0;
+		bool bCanBeUnmatched = (ConstFound + RowMajorFound + InFound + OutFound + InOutFound + StaticFound + SharedFound + PrimitiveFound) == 0;
+
+		if (PrimitiveFound == 0 && (Flags & EDF_PRIMITIVE_DATA_TYPE))
+		{
+			const auto* Token = Parser.Scanner.GetCurrentToken();
+			if (Token && Token->Token == EHlslToken::Identifier)
+			{
+				if (Token->String == TEXT("PointStream") ||
+					Token->String == TEXT("LineStream") ||
+					Token->String == TEXT("TriangleStream"))
+				{
+					Parser.Scanner.Advance();
+					bCanBeUnmatched = false;
+
+					if (!Parser.Scanner.MatchToken(EHlslToken::Lower))
+					{
+						Parser.Scanner.SourceError(TEXT("Expected '<'!"));
+						return EParseResult::Error;
+					}
+
+					if (ParseGeneralType(Parser.Scanner, ETF_BUILTIN_NUMERIC | ETF_USER_TYPES, Parser.CurrentScope) != EParseResult::Matched)
+					{
+						Parser.Scanner.SourceError(TEXT("Expected type!"));
+						return EParseResult::Error;
+					}
+
+					if (!Parser.Scanner.MatchToken(EHlslToken::Greater))
+					{
+						Parser.Scanner.SourceError(TEXT("Expected '>'!"));
+						return EParseResult::Error;
+					}
+
+					if (!Parser.Scanner.MatchToken(EHlslToken::Identifier))
+					{
+						Parser.Scanner.SourceError(TEXT("Expected identifier!"));
+						return EParseResult::Error;
+					}
+
+					return EParseResult::Matched;
+				}
+			}
+		}
 
 		bool bTryBasicType = true;
 		if (Flags & EDF_TEXTURE_SAMPLER_OR_BUFFER)
@@ -284,7 +420,8 @@ NextParameter:
 		
 		if (bTryBasicType)
 		{
-			if (ParseTypeToken(Parser.Scanner, Parser.CurrentScope) == EParseResult::Matched)
+			auto Result = ParseGeneralType(Parser.Scanner, ETF_BUILTIN_NUMERIC | ETF_USER_TYPES, Parser.CurrentScope);
+			if (Result == EParseResult::Matched)
 			{
 				bool bMatched = false;
 				do
@@ -295,11 +432,12 @@ NextParameter:
 						return EParseResult::NotMatched;
 					}
 
-					if (ParseMultiArrayBracketsAndIndex(Parser) == EParseResult::Error)
+					if (ParseMultiArrayBracketsAndIndex(Parser, false) == EParseResult::Error)
 					{
 						return EParseResult::Error;
 					}
 
+					bool bSemanticFound = false;
 					if (Flags & EDF_SEMANTIC)
 					{
 						if (Parser.Scanner.MatchToken(EHlslToken::Colon))
@@ -309,9 +447,12 @@ NextParameter:
 								Parser.Scanner.SourceError(TEXT("Expected identifier for semantic!"));
 								return EParseResult::Error;
 							}
+
+							bSemanticFound = true;
 						}
 					}
-					else if (Flags & EDF_INITIALIZER)
+					
+					if ((Flags & EDF_INITIALIZER) && !bSemanticFound)
 					{
 						if (Parser.Scanner.MatchToken(EHlslToken::Equal))
 						{
@@ -325,15 +466,11 @@ NextParameter:
 				}
 				while ((Flags & EDF_MULTIPLE) == EDF_MULTIPLE && Parser.Scanner.MatchToken(EHlslToken::Comma));
 			}
-/*
+			else if (bCanBeUnmatched && Result == EParseResult::NotMatched)
 			{
-				if (bCanBeUnmatched)
-				{
-					Parser.Scanner.SetCurrentTokenIndex(OriginalToken);
-					return EParseResult::NotMatched;
-				}
+				Parser.Scanner.SetCurrentTokenIndex(OriginalToken);
+				return EParseResult::NotMatched;
 			}
-*/
 		}
 
 		if (Flags & EDF_SEMICOLON)
@@ -358,19 +495,18 @@ NextParameter:
 			bool bFoundRightBrace = false;
 			while (Parser.Scanner.HasMoreTokens())
 			{
-				auto Result = ParseGeneralDeclaration(Parser, EDF_CONST | EDF_SEMICOLON | EDF_TEXTURE_SAMPLER_OR_BUFFER);
-				if (Result == EParseResult::Error)
-				{
-					return EParseResult::Error;
-				}
-
 				if (Parser.Scanner.MatchToken(EHlslToken::RightBrace))
 				{
 					bFoundRightBrace = true;
 					break;
 				}
 
-				if (Result == EParseResult::NotMatched)
+				auto Result = ParseGeneralDeclaration(Parser, EDF_CONST_ROW_MAJOR | EDF_SEMICOLON | EDF_TEXTURE_SAMPLER_OR_BUFFER);
+				if (Result == EParseResult::Error)
+				{
+					return EParseResult::Error;
+				}
+				else if (Result == EParseResult::NotMatched)
 				{
 					break;
 				}
@@ -394,6 +530,15 @@ NextParameter:
 			Parser.CurrentScope->Add(Name->String);
 		}
 
+		if (Parser.Scanner.MatchToken(EHlslToken::Colon))
+		{
+			if (!Parser.Scanner.MatchToken(EHlslToken::Identifier))
+			{
+				Parser.Scanner.SourceError(TEXT("Identifier expected!\n"));
+				return EParseResult::Error;
+			}
+		}
+
 		if (!Parser.Scanner.MatchToken(EHlslToken::LeftBrace))
 		{
 			Parser.Scanner.SourceError(TEXT("Expected '{'!"));
@@ -403,19 +548,18 @@ NextParameter:
 		bool bFoundRightBrace = false;
 		while (Parser.Scanner.HasMoreTokens())
 		{
-			auto Result = ParseGeneralDeclaration(Parser, EDF_CONST | EDF_SEMICOLON | EDF_SEMANTIC | EDF_TEXTURE_SAMPLER_OR_BUFFER);
-			if (Result == EParseResult::Error)
-			{
-				return EParseResult::Error;
-			}
-
 			if (Parser.Scanner.MatchToken(EHlslToken::RightBrace))
 			{
 				bFoundRightBrace = true;
 				break;
 			}
 
-			if (Result == EParseResult::NotMatched)
+			auto Result = ParseGeneralDeclaration(Parser, EDF_CONST_ROW_MAJOR | EDF_SEMICOLON | EDF_SEMANTIC | EDF_TEXTURE_SAMPLER_OR_BUFFER | EDF_NOINTERPOLATION);
+			if (Result == EParseResult::Error)
+			{
+				return EParseResult::Error;
+			}
+			else if (Result == EParseResult::NotMatched)
 			{
 				break;
 			}
@@ -442,19 +586,19 @@ NextParameter:
 
 		while (Parser.Scanner.HasMoreTokens())
 		{
-			auto Result = ParseGeneralDeclaration(Parser, EDF_CONST | EDF_IN_OUT | EDF_TEXTURE_SAMPLER_OR_BUFFER | EDF_INITIALIZER);
+			auto Result = ParseGeneralDeclaration(Parser, EDF_CONST_ROW_MAJOR | EDF_IN_OUT | EDF_TEXTURE_SAMPLER_OR_BUFFER | EDF_INITIALIZER | EDF_SEMANTIC | EDF_PRIMITIVE_DATA_TYPE | EDF_NOINTERPOLATION);
 			if (Result == EParseResult::Error)
 			{
 				return EParseResult::Error;
 			}
-
-			if (Parser.Scanner.MatchToken(EHlslToken::Comma))
-			{
-				bStrictCheck = true;
-			}
-			else
+			else if (!Parser.Scanner.MatchToken(EHlslToken::Comma))
 			{
 				break;
+			}
+			else if (Result == EParseResult::NotMatched)
+			{
+				Parser.Scanner.SourceError(TEXT("Internal error on function parameter!\n"));
+				return EParseResult::Error;
 			}
 		}
 
@@ -464,9 +608,7 @@ NextParameter:
 	EParseResult ParseFunctionDeclarator(FHlslParser& Parser)
 	{
 		auto OriginalToken = Parser.Scanner.GetCurrentTokenIndex();
-
-		//FInfo Info;
-		auto Result = ParseBasicType(Parser.Scanner/*, Info*/);
+		auto Result = ParseGeneralType(Parser.Scanner, ETF_BUILTIN_NUMERIC | ETF_SAMPLER_TEXTURE_BUFFER | ETF_USER_TYPES | ETF_VOID, Parser.CurrentScope);
 		if (Result == EParseResult::NotMatched)
 		{
 			Parser.Scanner.SetCurrentTokenIndex(OriginalToken);
@@ -592,12 +734,12 @@ NextParameter:
 
 	EParseResult ParseLocalDeclaration(FHlslParser& Parser)
 	{
-		return ParseGeneralDeclaration(Parser, EDF_CONST | EDF_INITIALIZER | EDF_INITIALIZER_LIST | EDF_SEMICOLON | EDF_MULTIPLE);
+		return ParseGeneralDeclaration(Parser, EDF_CONST_ROW_MAJOR | EDF_INITIALIZER | EDF_INITIALIZER_LIST | EDF_SEMICOLON | EDF_MULTIPLE);
 	}
 
 	EParseResult ParseGlobalVariableDeclaration(FHlslParser& Parser)
 	{
-		return ParseGeneralDeclaration(Parser, EDF_CONST | EDF_STATIC | EDF_TEXTURE_SAMPLER_OR_BUFFER | EDF_INITIALIZER | EDF_INITIALIZER_LIST | EDF_SEMICOLON | EDF_MULTIPLE);
+		return ParseGeneralDeclaration(Parser, EDF_CONST_ROW_MAJOR | EDF_STATIC | EDF_SHARED | EDF_TEXTURE_SAMPLER_OR_BUFFER | EDF_INITIALIZER | EDF_INITIALIZER_LIST | EDF_SEMICOLON | EDF_MULTIPLE);
 	}
 
 	EParseResult ParseReturnStatement(FHlslParser& Parser)
@@ -694,7 +836,7 @@ NextParameter:
 			return EParseResult::Error;
 		}
 
-		auto Result = ParseGeneralDeclaration(Parser, EDF_CONST | EDF_INITIALIZER);
+		auto Result = ParseGeneralDeclaration(Parser, EDF_CONST_ROW_MAJOR | EDF_INITIALIZER);
 		if (Result == EParseResult::Error)
 		{
 			Parser.Scanner.SourceError(TEXT("Expected expression or declaration!\n"));
@@ -793,6 +935,30 @@ NextParameter:
 				return EParseResult::Error;
 			}
 
+			if (Parser.Scanner.MatchToken(EHlslToken::LeftParenthesis))
+			{
+				do
+				{
+					if (ParseExpression(Parser.Scanner, Parser.CurrentScope) != EParseResult::Matched)
+					{
+						Parser.Scanner.SourceError(TEXT("Incorrect attribute! Expected expression.\n"));
+						return EParseResult::Error;
+					}
+
+					if (!Parser.Scanner.MatchToken(EHlslToken::Comma))
+					{
+						break;
+					}
+				}
+				while (Parser.Scanner.HasMoreTokens());
+
+				if (!Parser.Scanner.MatchToken(EHlslToken::RightParenthesis))
+				{
+					Parser.Scanner.SourceError(TEXT("Incorrect attribute! Expected ')'.\n"));
+					return EParseResult::Error;
+				}
+			}
+
 			if (!Parser.Scanner.MatchToken(EHlslToken::RightSquareBracket))
 			{
 				Parser.Scanner.SourceError(TEXT("Incorrect attribute\n"));
@@ -870,7 +1036,7 @@ NextParameter:
 			{
 				break;
 			}
-			else if (Peek->Token == EHlslToken::RightBrace)
+			else if (Parser.Scanner.MatchToken(EHlslToken::RightBrace))
 			{
 				return EParseResult::Matched;
 			}
@@ -937,7 +1103,7 @@ NextParameter:
 
 			RulesTranslationUnit.Add(FRulePair(EHlslToken::Struct, ParseStruct));
 			RulesTranslationUnit.Add(FRulePair(EHlslToken::CBuffer, ParseCBuffer));
-			RulesTranslationUnit.Add(FRulePair(EHlslToken::Invalid, ParseFunctionDeclaration));
+			RulesTranslationUnit.Add(FRulePair(EHlslToken::Invalid, ParseFunctionDeclaration, TryParseAttribute));
 			RulesTranslationUnit.Add(FRulePair(EHlslToken::Invalid, ParseGlobalVariableDeclaration));
 
 			RulesStatements.Add(FRulePair(EHlslToken::LeftBrace, ParseStatementBlock));
@@ -963,10 +1129,10 @@ NextParameter:
 
 	namespace Parser
 	{
-		bool Parse(const FString& Input)
+		bool Parse(const FString& Input, const FString& Filename)
 		{
 			FHlslParser Parser;
-			if (!Parser.Scanner.Lex(Input))
+			if (!Parser.Scanner.Lex(Input, Filename))
 			{
 				return false;
 			}

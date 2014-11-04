@@ -19,6 +19,6 @@ namespace CrossCompiler
 
 	namespace Parser
 	{
-		bool Parse(const FString& Input);
+		bool Parse(const FString& Input, const FString& Filename);
 	}
 }

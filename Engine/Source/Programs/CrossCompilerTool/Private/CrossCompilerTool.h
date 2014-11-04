@@ -25,6 +25,7 @@ namespace CCT
 		EBackend BackEnd;
 		bool bRunCPP;
 		bool bUseNew;
+		bool bList;
 		//bool bCPPOnly;
 
 		FRunInfo();

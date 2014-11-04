@@ -191,6 +191,8 @@ namespace CrossCompiler
 		Texture1DArray,
 		Texture2D,
 		Texture2DArray,
+		Texture2DMS,
+		Texture2DMSArray,
 		Texture3D,
 		TextureCube,
 		TextureCubeArray,
@@ -201,7 +203,7 @@ namespace CrossCompiler
 		Sampler3D,
 		SamplerCube,
 		SamplerState,
-		SampleComparisonState,
+		SamplerComparisonState,
 
 		Buffer,
 		AppendStructuredBuffer,
@@ -235,6 +237,8 @@ namespace CrossCompiler
 		Struct,
 		CBuffer,
 		GroupShared,
+		NoInterpolation,
+		RowMajor,
 
 		Identifier,
 		UnsignedIntegerConstant,
@@ -267,7 +271,7 @@ namespace CrossCompiler
 		virtual ~FHlslScanner();
 
 		// Processing
-		bool Lex(const FString& String);
+		bool Lex(const FString& String, const FString& Filename);
 		void Dump();
 
 		// Iterating after Processing
@@ -296,6 +300,6 @@ namespace CrossCompiler
 		// Tokens point their source filenames here
 		TIndirectArray<FString> SourceFilenames;
 
-		void Clear();
+		void Clear(const FString& Filename);
 	};
 }

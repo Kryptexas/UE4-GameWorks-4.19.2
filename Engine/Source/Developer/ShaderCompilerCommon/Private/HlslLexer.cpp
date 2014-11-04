@@ -334,6 +334,8 @@ namespace CrossCompiler
 		InsertToken(TEXT("Texture1DArray"), EHlslToken::Texture1DArray);
 		InsertToken(TEXT("Texture2D"), EHlslToken::Texture2D);
 		InsertToken(TEXT("Texture2DArray"), EHlslToken::Texture2DArray);
+		InsertToken(TEXT("Texture2DMS"), EHlslToken::Texture2DMS);
+		InsertToken(TEXT("Texture2DMSArray"), EHlslToken::Texture2DMSArray);
 		InsertToken(TEXT("Texture3D"), EHlslToken::Texture3D);
 		InsertToken(TEXT("TextureCube"), EHlslToken::TextureCube);
 		InsertToken(TEXT("TextureCubeArray"), EHlslToken::TextureCubeArray);
@@ -344,7 +346,7 @@ namespace CrossCompiler
 		InsertToken(TEXT("Sampler3D"), EHlslToken::Sampler3D);
 		InsertToken(TEXT("SamplerCube"), EHlslToken::SamplerCube);
 		InsertToken(TEXT("SamplerState"), EHlslToken::SamplerState);
-		InsertToken(TEXT("SampleComparisonState"), EHlslToken::SampleComparisonState);
+		InsertToken(TEXT("SamplerComparisonState"), EHlslToken::SamplerComparisonState);
 
 		InsertToken(TEXT("Buffer"), EHlslToken::Buffer);
 		InsertToken(TEXT("AppendStructuredBuffer"), EHlslToken::AppendStructuredBuffer);
@@ -378,6 +380,8 @@ namespace CrossCompiler
 		InsertToken(TEXT("struct"), EHlslToken::Struct);
 		InsertToken(TEXT("cbuffer"), EHlslToken::CBuffer);
 		InsertToken(TEXT("groupshared"), EHlslToken::GroupShared);
+		InsertToken(TEXT("nointerpolation"), EHlslToken::NoInterpolation);
+		InsertToken(TEXT("row_major"), EHlslToken::RowMajor);
 	}
 
 	struct FTokenizer
@@ -515,11 +519,16 @@ namespace CrossCompiler
 			{
 				auto Char = Peek();
 				++Current;
-				if (Char == '\n')
+				if (Char == '\r' && Peek() == '\n')
 				{
+					++Current;
 					break;
 				}
-				check(Char != '\r');
+				else if (Char == '\n')
+				{
+
+					break;
+				}
 			}
 
 			++Line;
@@ -882,16 +891,16 @@ namespace CrossCompiler
 		Tokens[TokenIndex].SourceColumn = (int32)(Tokenizer.Current - Tokenizer.CurrentLineStart) + 1;
 	}
 
-	void FHlslScanner::Clear()
+	void FHlslScanner::Clear(const FString& Filename)
 	{
 		Tokens.Empty();
-		new (SourceFilenames) FString(TEXT(""));
+		new (SourceFilenames) FString(Filename);
 	}
 
-	bool FHlslScanner::Lex(const FString& String)
+	bool FHlslScanner::Lex(const FString& String, const FString& Filename)
 	{
-		Clear();
-
+		Clear(Filename);
+		
 		// Simple heuristic to avoid reallocating
 		Tokens.Reserve(String.Len() / 4);
 

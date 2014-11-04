@@ -57,12 +57,39 @@ namespace CCT
 
 		if (RunInfo.bUseNew)
 		{
+
 			// Assume it's preprocessed
 			////Parser.Parse(TEXT("+-1 * 2 + (3 + -4) + F(5) + G(6,7) + A++ - --B"));
 			//Parser.Parse(TEXT("void X() { a += (b ? 1 : 0); }"));
 			//Parser.Parse(TEXT("void X() { return 5 * 3 + 2; }"));
-			CrossCompiler::Parser::Parse(HLSLShaderSource);
+			if (RunInfo.bList)
+			{
+				TArray<FString> List;
+				FString Temp;
+				while (HLSLShaderSource.Split(TEXT("\r\n"), &Temp, &HLSLShaderSource))
+				{
+					List.Add(Temp);
+				}
+
+				for (auto& File : List)
+				{
+					FString HLSLShader;
+					if (!FFileHelper::LoadFileToString(HLSLShader, *File))
+					{
+						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+						return 1;
+					}
+					UE_LOG(LogCrossCompilerTool, Log, TEXT("%s!"), *File);
+
+					CrossCompiler::Parser::Parse(HLSLShader, File);
+				}
+			}
+			else
+			{
+				CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile);
+			}
 			//Scanner.Dump();
+			return 1;
 		}
 
 		ANSICHAR* ShaderSource = 0;
