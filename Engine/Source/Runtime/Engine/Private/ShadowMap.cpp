@@ -427,9 +427,10 @@ FShadowMap2D* FShadowMap2D::AllocateShadowMap(
 
 		// Track the size of pending light-maps.
 		PendingShadowMapSize += Allocation->TotalSizeX * Allocation->TotalSizeY;
-		// Assumes bAlignByFour
-		AllocationGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
 	}
+
+	// Assumes bAlignByFour
+	AllocationGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
 
 	AllocationGroup.Allocations.Add(MoveTemp(Allocation));
 
@@ -620,9 +621,10 @@ FShadowMap2D* FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshCompo
 
 			// Track the size of pending light-maps.
 			PendingShadowMapSize += Allocation->TotalSizeX * Allocation->TotalSizeY;
-			// Assumes bAlignByFour
-			AllocationGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
 		}
+
+		// Assumes bAlignByFour
+		AllocationGroup.TotalTexels += ((Allocation->MappedRect.Width() + 3) & ~3) * ((Allocation->MappedRect.Height() + 3) & ~3);
 
 		AllocationGroup.Allocations.Add(MoveTemp(Allocation));
 	}
