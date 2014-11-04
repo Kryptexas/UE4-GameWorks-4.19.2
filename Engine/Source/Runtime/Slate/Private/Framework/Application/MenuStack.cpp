@@ -171,7 +171,7 @@ TSharedRef<SWindow> FMenuStack::PushMenu( const TSharedRef<SWindow>& ParentWindo
 		.InitialOpacity(InitialWindowOpacity)
 		.SupportsTransparency( bUseTransparency )
 		.FocusWhenFirstShown( bFocusImmediately )
-		.ActivateWhenFirstShown( true )
+		.ActivateWhenFirstShown( bFocusImmediately )
 		[
 			WrappedContent
 		];
