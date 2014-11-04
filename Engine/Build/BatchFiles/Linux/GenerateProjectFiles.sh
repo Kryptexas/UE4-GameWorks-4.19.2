@@ -175,5 +175,5 @@ xbuild Source/Programs/AutomationTool/HTML5/HTML5.Automation.csproj \
   /p:Configuration="Development"
 
 # pass all parameters to UBT
-mono Binaries/DotNET/UnrealBuildTool.exe -makefile "$@"
+mono Binaries/DotNET/UnrealBuildTool.exe -makefile -qmakefile -cmakefile "$@"
 set +x

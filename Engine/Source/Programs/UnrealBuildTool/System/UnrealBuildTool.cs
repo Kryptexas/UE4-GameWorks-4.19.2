@@ -541,8 +541,16 @@ namespace UnrealBuildTool
             }
             else if (LowercaseArg.StartsWith("-project="))
             {
-                UProjectFile = InArg.Substring(9);
-                bSetupProject = true;
+				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux) 
+				{
+					UProjectFile = InArg.Substring(9).Trim(new Char[] { ' ', '"', '\'' });
+				}
+				else 
+				{
+					UProjectFile = InArg.Substring(9);
+				}
+
+				bSetupProject = true;
             }
             else if (LowercaseArg.EndsWith(".uproject"))
             {
@@ -759,6 +767,8 @@ namespace UnrealBuildTool
                     var bGenerateVCProjectFiles = false;
                     var bGenerateXcodeProjectFiles = false;
                     var bGenerateMakefiles = false;
+					var bGenerateCMakefiles = false;
+					var bGenerateQMakefiles = false;
                     var bValidPlatformsOnly = false;
                     var bSpecificModulesOnly = false;
 
@@ -818,6 +828,16 @@ namespace UnrealBuildTool
                             bGenerateMakefiles = true;
                             ProjectFileGenerator.bGenerateProjectFiles = true;
                         }
+						else if (LowercaseArg.StartsWith("-cmakefile"))
+						{
+							bGenerateCMakefiles = true;
+							ProjectFileGenerator.bGenerateProjectFiles = true;
+						}
+						else if (LowercaseArg.StartsWith("-qmakefile"))
+						{
+							bGenerateQMakefiles = true;
+							ProjectFileGenerator.bGenerateProjectFiles = true;
+						}
                         else if (LowercaseArg.StartsWith("-projectfile"))
                         {
                             bGenerateVCProjectFiles = true;
@@ -984,6 +1004,7 @@ namespace UnrealBuildTool
                     }
 
                     // Send an event with basic usage dimensions
+                    // [RCL] 2014-11-03 FIXME: this is incorrect since we can have more than one action
                     Telemetry.SendEvent("CommonAttributes.2",
                         // @todo No platform independent way to do processor speed and count. Defer for now. Mono actually has ways to do this but needs to be tested.
                         "ProcessorCount", Environment.ProcessorCount.ToString(),
@@ -997,11 +1018,15 @@ namespace UnrealBuildTool
                                 ? "GenerateXcodeProjectFiles" 
                                 : bRunCopyrightVerification
                                     ? "RunCopyrightVerification"
-                                        : bGenerateMakefiles
+                                    : bGenerateMakefiles
                                         ? "GenerateMakefiles"
-                                            : bValidatePlatforms 
-                                                ? "ValidatePlatfomrs"
-                                                : "Build",
+										: bGenerateCMakefiles
+										    ? "GenerateCMakeFiles"
+											: bGenerateQMakefiles
+											    ? "GenerateQMakefiles"
+												: bValidatePlatforms 
+                                                    ? "ValidatePlatfomrs"
+                                                	: "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
                         "IsRocket", bRunningRocket.ToString(),
@@ -1034,7 +1059,7 @@ namespace UnrealBuildTool
                         JunkDeleter.DeleteJunk();
                     }
 
-                    if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles)
+					if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles)
                     {
                         bool bGenerationSuccess = true;
                         if (bGenerateVCProjectFiles)
@@ -1049,6 +1074,14 @@ namespace UnrealBuildTool
                         {
                             bGenerationSuccess &= GenerateProjectFiles(new MakefileGenerator(), Arguments);
                         }
+						if (bGenerateCMakefiles)
+						{
+							bGenerationSuccess &= GenerateProjectFiles(new CMakefileGenerator(), Arguments);
+						}
+						if (bGenerateQMakefiles)
+						{
+							bGenerationSuccess &= GenerateProjectFiles(new QMakefileGenerator(), Arguments);
+						}
 
                         if(!bGenerationSuccess)
                         {
