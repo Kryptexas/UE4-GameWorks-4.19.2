@@ -229,7 +229,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.Label()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("Time", "Time"))
+								.Text(InArgs._XAxisName.IsSet() ? FText::FromString(InArgs._XAxisName.GetValue()) : LOCTEXT("Time", "Time"))
 							]
 						]
 					]
@@ -261,7 +261,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.Label()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("Value", "Value"))
+								.Text(InArgs._YAxisName.IsSet() ? FText::FromString(InArgs._YAxisName.GetValue()) : LOCTEXT("Value", "Value"))
 							]
 						]
 					]

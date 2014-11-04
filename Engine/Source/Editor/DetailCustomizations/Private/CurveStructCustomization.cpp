@@ -43,6 +43,21 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 
 	if (StructPtrs.Num() == 1)
 	{
+		static const FName XAxisName(TEXT("XAxisName"));
+		static const FName YAxisName(TEXT("YAxisName"));
+
+		TOptional<FString> XAxisString;
+		if ( InStructPropertyHandle->HasMetaData(XAxisName) )
+		{
+			XAxisString = InStructPropertyHandle->GetMetaData(XAxisName);
+		}
+
+		TOptional<FString> YAxisString;
+		if ( InStructPropertyHandle->HasMetaData(YAxisName) )
+		{
+			YAxisString = InStructPropertyHandle->GetMetaData(YAxisName);
+		}
+
 		RuntimeCurve = reinterpret_cast<FRuntimeFloatCurve*>(StructPtrs[0]);
 
 		if (OuterObjects.Num() == 1)
@@ -68,6 +83,8 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 					.ViewMaxInput(this, &FCurveStructCustomization::GetViewMaxInput)
 					.TimelineLength(this, &FCurveStructCustomization::GetTimelineLength)
 					.OnSetInputViewRange(this, &FCurveStructCustomization::SetInputViewRange)
+					.XAxisName(XAxisString)
+					.YAxisName(YAxisString)
 					.HideUI(false)
 					.DesiredSize(FVector2D(300, 150))
 				]

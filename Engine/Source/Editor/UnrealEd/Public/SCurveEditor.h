@@ -141,6 +141,8 @@ public:
 		, _ZoomToFitVertical(true)
 		, _ZoomToFitHorizontal(true)
 		, _ShowZoomButtons(true)
+		, _XAxisName()
+		, _YAxisName()
 		{}
 
 		SLATE_ATTRIBUTE( float, ViewMinInput )
@@ -161,6 +163,8 @@ public:
 		SLATE_ARGUMENT( bool, ZoomToFitVertical )
 		SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
 		SLATE_ARGUMENT( bool, ShowZoomButtons )
+		SLATE_ARGUMENT( TOptional<FString>, XAxisName )
+		SLATE_ARGUMENT( TOptional<FString>, YAxisName )
 		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 		SLATE_EVENT( FOnSetOutputViewRange, OnSetOutputViewRange )
 		SLATE_EVENT( FSimpleDelegate, OnCreateAsset )

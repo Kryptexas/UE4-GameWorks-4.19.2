@@ -43,7 +43,9 @@ public:
 
 	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=(
 		DisplayName="DPI Curve",
-		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule" ))
+		ToolTip="Controls how the UI is scaled at different resolutions based on the DPI Scale Rule",
+		XAxisName="Resolution",
+		YAxisName="Scale"))
 	FRuntimeFloatCurve UIScaleCurve;
 
 public:
