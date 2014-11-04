@@ -89,6 +89,5 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					} );
 			}
 		}
-		/// // @TODO yrx 2014-07-28 Grab build versions from the database?
 	}
 }
