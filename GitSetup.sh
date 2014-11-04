@@ -11,10 +11,10 @@ if [ ! -f Engine/Binaries/DotNET/GitDependencies.exe ]; then
 	exit 1
 fi 
 
-if [ "$(uname)" = "Darwin" ]; then
-	cd Engine/Build/BatchFiles/Mac
-	source SetupMono.sh "`pwd`"
-	cd ../../../..
-fi
+#if [ "$(uname)" = "Darwin" ]; then
+#	cd Engine/Build/BatchFiles/Mac
+#	source SetupMono.sh "`pwd`"
+#	cd ../../../..
+#fi
 
 mono Engine/Binaries/DotNET/GitDependencies.exe "$@"
