@@ -955,7 +955,7 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 	}
 }
 
-void FSceneView::EndFinalPostprocessSettings(FSceneViewInitOptions ViewInitOptions)
+void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions)
 {
 	{
 		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));

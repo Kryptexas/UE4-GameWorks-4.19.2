@@ -442,7 +442,7 @@ public:
 	void OverridePostProcessSettings(const FPostProcessSettings& Src, float Weight);
 
 	/** applied global restrictions from show flags */
-	void EndFinalPostprocessSettings(FSceneViewInitOptions ViewInitOptions);
+	void EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions);
 
 	/** Configure post process settings for the buffer visualization system */
 	void ConfigureBufferVisualizationSettings();
