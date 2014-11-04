@@ -43,6 +43,7 @@
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin/**
 
 # ...and GitDependencies.exe
+!/Engine/Binaries/DotNET
 !/Engine/Binaries/DotNET/GitDependencies.exe
 !/Engine/Binaries/DotNET/GitDependencies.exe.config
 
