@@ -19,6 +19,7 @@ public class CrashReportClient : ModuleRules
 			new string[] 
 			{
 				"Core",
+				"CoreUObject",
 				"CrashDebugHelper",
 				"HTTP",
 				"Json",

@@ -76,7 +76,7 @@ public class CrashReportClientTarget : TargetRules
 
 		// CrashReportClient doesn't ever compile with the engine linked in
 		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 		UEBuildConfiguration.bUseLoggingInShipping = true;
 		UEBuildConfiguration.bCompileSteamOSS = false;
 
