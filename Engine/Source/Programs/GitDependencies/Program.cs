@@ -438,8 +438,8 @@ namespace GitDependencies
 				WorkerThreads[Idx].Start();
 			}
 
-			// Tick the status message until we've finished or ended with an error. Use a circ
-			long[] NumBytesReadBuffer = new long[10];
+			// Tick the status message until we've finished or ended with an error. Use a circular buffer to average out the speed over time.
+			long[] NumBytesReadBuffer = new long[40];
 			for(int BufferIdx = 0; State.NumFilesRead < NumFilesTotal && State.ErrorMessage == null; BufferIdx = (BufferIdx + 1) % NumBytesReadBuffer.Length)
 			{
 				const int TickInterval = 100;
