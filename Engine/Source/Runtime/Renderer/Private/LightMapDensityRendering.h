@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Engine/LightMapTexture2D.h"
 
 /**
  * The base shader type for vertex shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.

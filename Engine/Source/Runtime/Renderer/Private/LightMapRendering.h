@@ -7,6 +7,8 @@
 #ifndef __LIGHTMAPRENDERING_H__
 #define __LIGHTMAPRENDERING_H__
 
+#include "Engine/ShadowMapTexture2D.h"
+
 extern ENGINE_API bool GShowDebugSelectedLightmap;
 extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 extern bool GVisualizeMipLevels;

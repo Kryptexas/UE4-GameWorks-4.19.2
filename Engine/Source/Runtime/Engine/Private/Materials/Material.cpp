@@ -29,7 +29,7 @@
 #include "TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "ShaderCompiler.h"
-
+#include "Materials/MaterialParameterCollection.h"
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #include "SlateBasics.h"  // For AddNotification

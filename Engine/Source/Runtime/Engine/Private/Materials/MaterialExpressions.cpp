@@ -126,6 +126,7 @@
 #include "Materials/MaterialExpressionViewSize.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
@@ -140,6 +141,8 @@
 #include "Engine/Font.h"
 #include "Engine/Texture2DDynamic.h"
 #include "Engine/TextureRenderTargetCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureCube.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 

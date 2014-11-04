@@ -9,6 +9,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "GameFramework/InputSettings.h"
 
 UInputSettings::UInputSettings(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

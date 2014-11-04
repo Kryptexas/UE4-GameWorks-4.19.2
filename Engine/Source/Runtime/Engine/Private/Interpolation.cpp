@@ -76,6 +76,9 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "GameFramework/GameState.h"
+#include "Engine/Light.h"
+#include "Components/DecalComponent.h"
 
 DEFINE_LOG_CATEGORY(LogMatinee);
 

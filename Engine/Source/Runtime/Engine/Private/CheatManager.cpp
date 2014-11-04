@@ -12,6 +12,11 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "GameFramework/CheatManager.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/DebugCameraController.h"
+#include "GameFramework/PlayerState.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 

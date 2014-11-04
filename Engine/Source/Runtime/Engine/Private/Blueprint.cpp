@@ -17,6 +17,7 @@
 #include "Editor/UnrealEd/Classes/Settings/EditorLoadingSavingSettings.h"
 #include "BlueprintEditorUtils.h"
 #endif
+#include "Components/TimelineComponent.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
 

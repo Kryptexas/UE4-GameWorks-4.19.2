@@ -12,6 +12,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "Engine/GameEngine.h"
 
 
 UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
