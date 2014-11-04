@@ -2356,6 +2356,8 @@ void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
 		}
 
 		CentroidLocation/= ViewFamily.Views.Num();
+		// Consider only XY plane
+		CentroidLocation.Z = 0.f;
 	
 		// Request to shift world in case current view is quite far from current origin
 		if (CentroidLocation.Size() > HALF_WORLD_MAX1*0.5f)
