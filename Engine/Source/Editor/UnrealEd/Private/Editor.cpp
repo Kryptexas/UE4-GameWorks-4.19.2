@@ -447,8 +447,11 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	// Load any modules that might be required by commandlets
 	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
-	// Setup a delegate to handle requests for opening assets
-	FSlateApplication::Get().SetWidgetReflectorAssetAccessDelegate(FAccessAsset::CreateUObject(this, &UEditorEngine::HandleOpenAsset));
+	if ( FSlateApplication::IsInitialized() )
+	{
+		// Setup a delegate to handle requests for opening assets
+		FSlateApplication::Get().SetWidgetReflectorAssetAccessDelegate(FAccessAsset::CreateUObject(this, &UEditorEngine::HandleOpenAsset));
+	}
 }
 
 bool UEditorEngine::HandleOpenAsset(UObject* Asset)
