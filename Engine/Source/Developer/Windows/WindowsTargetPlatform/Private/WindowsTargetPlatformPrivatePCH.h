@@ -7,6 +7,7 @@
  *****************************************************************************/
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "WindowsPlatformProperties.h"
 
 #if WITH_ENGINE
