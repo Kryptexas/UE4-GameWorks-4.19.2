@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayEffectTypes.h"
 #include "GameplayEffectCalculation.generated.h"
 
 struct FGameplayEffectSpec;

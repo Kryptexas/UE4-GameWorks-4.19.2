@@ -4,6 +4,7 @@
 
 #include "GameplayEffectCalculation.h"
 #include "GameplayEffectAggregator.h"
+#include "GameplayEffect.h"
 #include "GameplayEffectExecutionCalculation.generated.h"
 
 struct FGameplayEffectSpec;
