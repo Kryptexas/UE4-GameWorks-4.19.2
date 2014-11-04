@@ -530,6 +530,26 @@ struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
 	FSlateBrush VerticalBackgroundImage;
 	FScrollBarStyle& SetVerticalBackgroundImage( const FSlateBrush& InVerticalBackgroundImage ){ VerticalBackgroundImage = InVerticalBackgroundImage; return *this; }
 
+	/** The image to use to represent the track above the thumb when the scrollbar is oriented vertically */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush VerticalTopSlotImage;
+	FScrollBarStyle& SetVerticalTopSlotImage(const FSlateBrush& Value){ VerticalTopSlotImage = Value; return *this; }
+
+	/** The image to use to represent the track above the thumb when the scrollbar is oriented horizontally */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush HorizontalTopSlotImage;
+	FScrollBarStyle& SetHorizontalTopSlotImage(const FSlateBrush& Value){ HorizontalTopSlotImage = Value; return *this; }
+
+	/** The image to use to represent the track below the thumb when the scrollbar is oriented vertically */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush VerticalBottomSlotImage;
+	FScrollBarStyle& SetVerticalBottomSlotImage(const FSlateBrush& Value){ VerticalBottomSlotImage = Value; return *this; }
+
+	/** The image to use to represent the track below the thumb when the scrollbar is oriented horizontally */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush HorizontalBottomSlotImage;
+	FScrollBarStyle& SetHorizontalBottomSlotImage(const FSlateBrush& Value){ HorizontalBottomSlotImage = Value; return *this; }
+
 	/** Image to use when the scrollbar thumb is in its normal state */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush NormalThumbImage;

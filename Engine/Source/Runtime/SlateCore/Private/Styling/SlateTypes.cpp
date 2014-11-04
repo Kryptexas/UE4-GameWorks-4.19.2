@@ -287,6 +287,15 @@ const FProgressBarStyle& FProgressBarStyle::GetDefault()
 
 
 FScrollBarStyle::FScrollBarStyle()
+	: HorizontalBackgroundImage(FSlateNoResource())
+	, VerticalBackgroundImage(FSlateNoResource())
+	, VerticalTopSlotImage(FSlateNoResource())
+	, HorizontalTopSlotImage(FSlateNoResource())
+	, VerticalBottomSlotImage(FSlateNoResource())
+	, HorizontalBottomSlotImage(FSlateNoResource())
+	, NormalThumbImage(FSlateNoResource())
+	, HoveredThumbImage(FSlateNoResource())
+	, DraggedThumbImage(FSlateNoResource())
 {
 }
 
@@ -294,6 +303,10 @@ void FScrollBarStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) c
 {
 	OutBrushes.Add( &HorizontalBackgroundImage );
 	OutBrushes.Add( &VerticalBackgroundImage );
+	OutBrushes.Add( &VerticalTopSlotImage);
+	OutBrushes.Add( &HorizontalTopSlotImage);
+	OutBrushes.Add( &VerticalBottomSlotImage);
+	OutBrushes.Add( &HorizontalBottomSlotImage);
 	OutBrushes.Add( &NormalThumbImage );
 	OutBrushes.Add( &HoveredThumbImage );
 	OutBrushes.Add( &DraggedThumbImage );
