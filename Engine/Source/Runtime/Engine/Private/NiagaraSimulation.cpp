@@ -16,8 +16,13 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps)
 }
 
 FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIFeatureLevel::Type InFeatureLevel)
-:FNiagaraSimulation(InProps)
+	: Age(0.0f)
+	, bIsEnabled(true)
+	, SpawnRemainder(0.0f)
+	, CachedBounds(ForceInit)
+	, EffectRenderer(nullptr)
 {
+	Props = InProps;
 	SetRenderModuleType(InProps->RenderModuleType, InFeatureLevel);
 }
 
