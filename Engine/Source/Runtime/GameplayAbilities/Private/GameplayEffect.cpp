@@ -227,12 +227,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	SetContext(InEffectContext);
 
 	// Init our ModifierSpecs
-	Modifiers.Reserve(Def->Modifiers.Num());
-	for (const FGameplayModifierInfo &ModInfo : Def->Modifiers)
-	{
-		// This creates a new FModifierSpec that we own.
-		new (Modifiers)FModifierSpec(ModInfo);
-	}
+	Modifiers.SetNum(Def->Modifiers.Num());
 
 	// Prep the spec with all of the attribute captures it will need to perform
 	SetupAttributeCaptureDefinitions();
@@ -253,10 +248,14 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
 {
 	// Gather all capture definitions from modifiers
-	for (const FModifierSpec& CurModSpec : Modifiers)
+
+	for (int32 ModIdx = 0; ModIdx < Modifiers.Num(); ++ModIdx)
 	{
+		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
+		const FModifierSpec& ModSpec = Modifiers[ModIdx];
+
 		TArray<FGameplayEffectAttributeCaptureDefinition> CalculationCaptureDefs;
-		CurModSpec.Info.ModifierMagnitude.GetAttributeCaptureDefinitions(CalculationCaptureDefs);
+		ModDef.ModifierMagnitude.GetAttributeCaptureDefinitions(CalculationCaptureDefs);
 		
 		for (const FGameplayEffectAttributeCaptureDefinition& CurCaptureDef : CalculationCaptureDefs)
 		{
@@ -337,34 +336,37 @@ float FGameplayEffectSpec::GetChanceToExecuteOnGameplayEffect() const
 	return ChanceToExecuteOnGameplayEffect;
 }
 
-float FGameplayEffectSpec::GetModifierMagnitude(const FModifierSpec& ModSpec) const
-{
-	return ModSpec.EvaluatedMagnitude;
-}
-
 void FGameplayEffectSpec::CalculateModifierMagnitudes()
 {
-	for (FModifierSpec& Mod : Modifiers)
+	for(int32 ModIdx = 0; ModIdx < Modifiers.Num(); ++ModIdx)
 	{
-		Mod.CalculateMagnitude(*this);
+		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
+		FModifierSpec& ModSpec = Modifiers[ModIdx];
+
+		if (ModDef.ModifierMagnitude.AttemptCalculateMagnitude(*this, ModSpec.EvaluatedMagnitude) == false)
+		{
+			ModSpec.EvaluatedMagnitude = 0.f;
+			ABILITY_LOG(Warning, TEXT("Modifier on spec: %s was asked to CalculateMagnitude and failed, falling back to 0."), *ToSimpleString());
+		}
 	}
 }
 
 float FGameplayEffectSpec::GetMagnitude(const FGameplayAttribute &Attribute) const
 {
-	float CurrentMagnitude = 0.f;
-	for (const FModifierSpec &Mod : Modifiers)
-	{		
-		if (Mod.Info.Attribute != Attribute)
+	for (int32 ModIdx = 0; ModIdx < Modifiers.Num(); ++ModIdx)
+	{
+		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
+		const FModifierSpec& ModSpec = Modifiers[ModIdx];
+	
+		if (ModDef.Attribute != Attribute)
 		{
 			continue;
 		}
 
-		CurrentMagnitude = GetModifierMagnitude(Mod);
-		break;
+		return ModSpec.EvaluatedMagnitude;
 	}
 
-	return CurrentMagnitude;
+	return 0.f;
 }
 
 bool FGameplayEffectSpec::HasValidCapturedAttributes(const TArray<FGameplayEffectAttributeCaptureDefinition>& InCaptureDefsToCheck) const
@@ -442,30 +444,9 @@ void FGameplayEffectSpec::SetContext(FGameplayEffectContextHandle NewEffectConte
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
-//	FModifierSpec
+//	FGameplayEffectAttributeCaptureSpec
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
-
-FModifierSpec::FModifierSpec(const FGameplayModifierInfo& InInfo)
-	: Info(InInfo)
-	, EvaluatedMagnitude(0.f)
-{
-
-}
-
-float FModifierSpec::GetEvaluatedMagnitude() const
-{
-	return EvaluatedMagnitude;
-}
-
-void FModifierSpec::CalculateMagnitude(OUT FGameplayEffectSpec& OwnerSpec)
-{	
-	if (!Info.ModifierMagnitude.AttemptCalculateMagnitude(OwnerSpec, EvaluatedMagnitude))
-	{
-		EvaluatedMagnitude = 0.f;
-		ABILITY_LOG(Warning, TEXT("Modifier on spec: %s was asked to CalculateMagnitude and failed, falling back to 0."), *OwnerSpec.ToSimpleString());
-	}
-}
 
 FGameplayEffectAttributeCaptureSpec::FGameplayEffectAttributeCaptureSpec()
 {
@@ -653,11 +634,7 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 				for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 				{
 					const FModifierSpec &Mod = Spec.Modifiers[ModIdx];
-					
-					ABILITY_LOG_SCOPE(TEXT("Applying Attribute Mod %s to property"), *Mod.ToSimpleString());
-
-					FAggregator* Aggregator = OwningContainer.FindOrCreateAttributeAggregator(Mod.Info.Attribute).Get();
-
+					FAggregator* Aggregator = OwningContainer.FindOrCreateAttributeAggregator(Spec.Def->Modifiers[ModIdx].Attribute).Get();
 					Aggregator->RemoveMod(Handle);
 				}
 			}
@@ -670,15 +647,13 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 				for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 				{
 					const FModifierSpec &Mod = Spec.Modifiers[ModIdx];
+					const FGameplayModifierInfo &ModInfo = Spec.Def->Modifiers[ModIdx];
+
+					// Note we assume the EvaluatedMagnitude is up to do. There is no case currently where we should recalculate magnitude based on
+					// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
 					
-					ABILITY_LOG_SCOPE(TEXT("Applying Attribute Mod %s to property"), *Mod.ToSimpleString());
-
-					FAggregator* Aggregator = OwningContainer.FindOrCreateAttributeAggregator(Mod.Info.Attribute).Get();
-
-					// GE_FIXME: Figure this out - when does EvaluatedData get calculated (here? Before and stored off?)
-					float EvaluatedData = Spec.GetModifierMagnitude(Mod);
-
-					Aggregator->AddMod(EvaluatedData, Mod.Info.ModifierOp, &Mod.Info.SourceTags, &Mod.Info.TargetTags, Handle);
+					FAggregator* Aggregator = OwningContainer.FindOrCreateAttributeAggregator(Spec.Def->Modifiers[ModIdx].Attribute).Get();
+					Aggregator->AddMod(Mod.GetEvaluatedMagnitude(), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Handle);
 				}
 			}
 		}
@@ -809,9 +784,12 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	//		These will modify the base value of attributes
 	// ------------------------------------------------------
 
-	for (const FModifierSpec &Mod : Spec.Modifiers)
+	for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 	{
-		FGameplayModifierEvaluatedData EvalData(Mod.Info.Attribute, Mod.Info.ModifierOp, Mod.GetEvaluatedMagnitude());
+		const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
+		const FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
+
+		FGameplayModifierEvaluatedData EvalData(ModDef.Attribute, ModDef.ModifierOp, ModSpec.GetEvaluatedMagnitude());
 		InvokeGameplayCueExecute |= InternalExecuteMod(Spec, EvalData);
 	}
 
@@ -957,11 +935,14 @@ float FActiveGameplayEffectsContainer::GetGameplayEffectMagnitude(FActiveGamepla
 	{
 		if (Effect.Handle == Handle)
 		{
-			for (const FModifierSpec &Mod : Effect.Spec.Modifiers)
+			for(int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
 			{
-				if (Mod.Info.Attribute == Attribute)
+				const FGameplayModifierInfo& ModDef = Effect.Spec.Def->Modifiers[ModIdx];
+				const FModifierSpec& ModSpec = Effect.Spec.Modifiers[ModIdx];
+			
+				if (ModDef.Attribute == Attribute)
 				{
-					return Effect.Spec.GetModifierMagnitude(Mod);
+					return ModSpec.GetEvaluatedMagnitude();
 				}
 			}
 		}
@@ -1507,8 +1488,8 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 						{
 						case EGameplayEffectStackingPolicy::Highest:
 						{
-							float BestSpecMagnitude = StackedEffect->Spec.GetMagnitude(StackedEffect->Spec.Modifiers[0].Info.Attribute);
-							float CurrSpecMagnitude = Effect.Spec.GetMagnitude(Effect.Spec.Modifiers[0].Info.Attribute);
+							float BestSpecMagnitude = StackedEffect->Spec.GetMagnitude(StackedEffect->Spec.Def->Modifiers[0].Attribute);
+							float CurrSpecMagnitude = Effect.Spec.GetMagnitude(Effect.Spec.Def->Modifiers[0].Attribute);
 							if (BestSpecMagnitude < CurrSpecMagnitude)
 							{
 								StackedEffect = &Effect;
@@ -1517,8 +1498,8 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 						}
 						case EGameplayEffectStackingPolicy::Lowest:
 						{
-							float BestSpecMagnitude = StackedEffect->Spec.GetMagnitude(StackedEffect->Spec.Modifiers[0].Info.Attribute);
-							float CurrSpecMagnitude = Effect.Spec.GetMagnitude(Effect.Spec.Modifiers[0].Info.Attribute);
+							float BestSpecMagnitude = StackedEffect->Spec.GetMagnitude(StackedEffect->Spec.Def->Modifiers[0].Attribute);
+							float CurrSpecMagnitude = Effect.Spec.GetMagnitude(Effect.Spec.Def->Modifiers[0].Attribute);
 							if (BestSpecMagnitude > CurrSpecMagnitude)
 							{
 								StackedEffect = &Effect;
@@ -1578,20 +1559,25 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 	}
 }
 
-bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
+bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect* GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
 
 	FGameplayEffectSpec	Spec(GameplayEffect, EffectContext, Level);
+
+	Spec.CalculateModifierMagnitudes();
 	
-	for (const FModifierSpec& Mod : Spec.Modifiers)
+	for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 	{
+		const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
+		const FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
+	
 		// It only makes sense to check additive operators
-		if (Mod.Info.ModifierOp == EGameplayModOp::Additive)
+		if (ModDef.ModifierOp == EGameplayModOp::Additive)
 		{
-			const UAttributeSet* Set = Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass());
-			float CurrentValue = Mod.Info.Attribute.GetNumericValueChecked(Set);
-			float CostValue = Spec.GetModifierMagnitude(Mod);
+			const UAttributeSet* Set = Owner->GetAttributeSubobject(ModDef.Attribute.GetAttributeSetClass());
+			float CurrentValue = ModDef.Attribute.GetNumericValueChecked(Set);
+			float CostValue = ModSpec.GetEvaluatedMagnitude();
 
 			if (CurrentValue + CostValue < 0.f)
 			{
@@ -1751,9 +1737,13 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 	if (ModifyingAttribute.IsValid())
 	{
 		bool FailedModifyingAttributeCheck = true;
-		for (const FModifierSpec& Modifier : Effect.Spec.Modifiers)
+
+		for(int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
 		{
-			if (Modifier.Info.Attribute == ModifyingAttribute)
+			const FGameplayModifierInfo& ModDef = Effect.Spec.Def->Modifiers[ModIdx];
+			const FModifierSpec& ModSpec = Effect.Spec.Modifiers[ModIdx];
+
+			if (ModDef.Attribute == ModifyingAttribute)
 			{
 				FailedModifyingAttributeCheck = false;
 				break;

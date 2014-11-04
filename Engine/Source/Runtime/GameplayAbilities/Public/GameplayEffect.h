@@ -468,10 +468,6 @@ public:
 
 	void ValidateGameplayEffect();
 
-	/** Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
-	FGameplayTagContainer ClearTagsContainer;
-
 	virtual void PostLoad() override;
 
 	// ----------------------------------------------
@@ -498,10 +494,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Stacking)
 	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
 
-
-
 	// ----------------------------------------------------------------------
-	//		Tag pass: properties that make sense "right now" (remove this comment DaveR/BillyB)
+	//	Tag Containers
 	// ----------------------------------------------------------------------
 	
 	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
@@ -520,36 +514,31 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
 	FGameplayTagRequirements ApplicationTagRequirements;
 
+	// Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be.
+	/** CURRENTLY NOT IMPLEMENTED */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
+	FGameplayTagContainer ClearTagsContainer;
+
 };
 
-/**
- * Modifier Specification
- *	-Const data (FGameplayModifierInfo) tells us what we modify, what we can modify
- *	-Mutable Aggregated data tells us how we modify (magnitude).
- *  
- * Modifiers can be modified. A modifier spec holds these modifications along with a reference to the const data about the modifier.
- * 
- */
+/** Holds evaluated magnitude from a GameplayEffect modifier */
+USTRUCT()
 struct FModifierSpec
 {
-	FModifierSpec(const FGameplayModifierInfo& InInfo);
+	GENERATED_USTRUCT_BODY()
 
-	// @todo: Need a way to indicate whether the magnitude was properly calculated or not. Asking for a value early (before target is available, etc.
-	// will just result in incorrect values)
-	float GetEvaluatedMagnitude() const;
-	void CalculateMagnitude(OUT struct FGameplayEffectSpec& OwnerSpec);
+	FModifierSpec() : EvaluatedMagnitude(0.f) { }
 
-	// Hard Ref to what we modify, this stuff is const and never changes
-	const FGameplayModifierInfo& Info;
+	float GetEvaluatedMagnitude() const { return EvaluatedMagnitude; }
+
+private:
 
 	// @todo: Probably need to make the modifier info private so people don't go gunking around in the magnitude
 	/** In the event that the modifier spec requires custom magnitude calculations, this is the authoritative, last evaluated value of the magnitude */
+	UPROPERTY()
 	float EvaluatedMagnitude;
 
-	FString ToSimpleString() const
-	{
-		return Info.ToSimpleString();
-	}
+	friend struct FGameplayEffectSpec;
 };
 
 /** Saves list of modified attributes, to use for gameplay cues or later processing */
@@ -628,7 +617,7 @@ struct FGameplayEffectAttributeCaptureSpec
 	 *
 	 * @param OutAggregatorSnapshot	[OUT] Snapshotted aggregator, if possible
 	 *
- 	 * @return True if the aggregator was successfully snapshotted, false if it was not
+	 * @return True if the aggregator was successfully snapshotted, false if it was not
 	 */
 	bool AttemptGetAttributeAggregatorSnapshot(OUT FAggregator& OutAggregatorSnapshot) const;
 
@@ -638,7 +627,7 @@ struct FGameplayEffectAttributeCaptureSpec
 	 *
 	 * @param OutAggregatorToAddTo	[OUT] Aggregator with mods appended, if possible
 	 *
- 	 * @return True if the aggregator had mods successfully added to it, false if it did not
+	 * @return True if the aggregator had mods successfully added to it, false if it did not
 	 */
 	bool AttemptAddAggregatorModsToAggregator(OUT FAggregator& OutAggregatorToAddTo) const;
 	
@@ -829,22 +818,21 @@ struct FGameplayEffectSpec
 	UPROPERTY()
 	FTagContainerAggregator	CapturedTargetTags;
 	
+	UPROPERTY()
 	TArray<FModifierSpec> Modifiers;
 	
-	// GE_REMOVE: this feels strange but need to start standardizing how people get this info.
-	float GetModifierMagnitude(const FModifierSpec& ModSpec) const;
 	void CalculateModifierMagnitudes();
-
-	FString ToSimpleString() const
-	{
-		return FString::Printf(TEXT("%s"), *Def->GetName());
-	}
 
 	void SetLevel(float InLevel);
 
 	float GetLevel() const;
 
 	void PrintAll() const;
+
+	FString ToSimpleString() const
+	{
+		return FString::Printf(TEXT("%s"), *Def->GetName());
+	}
 
 private:
 

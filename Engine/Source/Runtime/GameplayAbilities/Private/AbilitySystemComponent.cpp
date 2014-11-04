@@ -412,9 +412,9 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	// Check AttributeSet requirements: do we have everything this GameplayEffectSpec expects?
 	// We may want to cache this off in some way to make the runtime check quicker.
 	// We also need to handle things in the execution list
-	for (const FModifierSpec& Mod : Spec.Modifiers)
+	for (const FGameplayModifierInfo& Mod : Spec.Def->Modifiers)
 	{
-		if (HasAttributeSetForAttribute(Mod.Info.Attribute) == false)
+		if (HasAttributeSetForAttribute(Mod.Attribute) == false)
 		{
 			return FActiveGameplayEffectHandle();
 		}
