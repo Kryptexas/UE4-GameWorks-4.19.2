@@ -1231,12 +1231,16 @@ void UConsole::FakeGotoState(FName NextStateName)
 	if (NextStateName == NAME_Typing)
 	{
 		BeginState_Typing(ConsoleState);
+		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
 		FSlateApplication::Get().ResetToDefaultInputSettings();
+		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
 	}
 	else if (NextStateName == NAME_Open)
 	{
 		BeginState_Open(ConsoleState);
+		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
 		FSlateApplication::Get().ResetToDefaultInputSettings();
+		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
 	}
 	else if( NextStateName == NAME_None )
 	{
