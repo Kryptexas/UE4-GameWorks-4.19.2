@@ -501,6 +501,10 @@ public:
 		{
 			Flags |= O_APPEND;
 		}
+		else
+		{
+			Flags |= O_TRUNC;
+		}
 		if (bAllowRead)
 		{
 			Flags |= O_RDWR;
