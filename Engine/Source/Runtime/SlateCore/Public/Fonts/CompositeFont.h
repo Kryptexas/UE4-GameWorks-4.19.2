@@ -138,6 +138,12 @@ struct SLATECORE_API FCompositeSubFont
 	/** Amount to scale this sub-font so that it better matches the size of the default font */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Font)
 	float ScalingFactor;
+
+#if WITH_EDITORONLY_DATA
+	/** Name of this sub-font. Only used by the editor UI as a convenience to let you state the purpose of the font family. */
+	UPROPERTY()
+	FName EditorName;
+#endif
 };
 
 USTRUCT(BlueprintType)

@@ -251,15 +251,11 @@ TSharedRef<ITableRow> SCompositeFontEditor::MakeSubTypefaceEntryWidget(FSubTypef
 	}
 	else
 	{
-		const int32 SubFontIndex = SubTypefaceEntries.IndexOfByKey(InSubTypefaceEntry);
-		const FText SubFontFamilyName = FText::Format(LOCTEXT("SubFontFamilyNameFmt", "Sub-Font Family #{0}"), FText::AsNumber(SubFontIndex + 1));
-
 		EntryWidget = SNew(SSubTypefaceEditor)
 		.CompositeFontEditor(this)
 		.SubTypeface(InSubTypefaceEntry)
 		.ParentTypeface(this, &SCompositeFontEditor::GetConstDefaultTypeface)
-		.OnDeleteSubFontFamily(this, &SCompositeFontEditor::OnDeleteSubFontFamily)
-		.TypefaceDisplayName(SubFontFamilyName);
+		.OnDeleteSubFontFamily(this, &SCompositeFontEditor::OnDeleteSubFontFamily);
 	}
 
 	return
@@ -327,9 +323,12 @@ void STypefaceEditor::Construct(const FArguments& InArgs)
 
 				+SHorizontalBox::Slot()
 				[
-					SNew(STextBlock)
+					SNew(SInlineEditableTextBlock)
 					.Text(InArgs._TypefaceDisplayName)
+					.ToolTipText((InArgs._OnDisplayNameCommitted.IsBound()) ? LOCTEXT("FontFamilyNameTooltip", "The name of this font family (click to edit)") : FText::GetEmpty())
 					.Font(FEditorStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+					.OnTextCommitted(InArgs._OnDisplayNameCommitted)
+					.IsReadOnly(!InArgs._OnDisplayNameCommitted.IsBound())
 				]
 
 				+SHorizontalBox::Slot()
@@ -848,7 +847,8 @@ void SSubTypefaceEditor::Construct(const FArguments& InArgs)
 		SAssignNew(TypefaceEditor, STypefaceEditor)
 		.CompositeFontEditor(InArgs._CompositeFontEditor)
 		.Typeface(this, &SSubTypefaceEditor::GetTypeface)
-		.TypefaceDisplayName(InArgs._TypefaceDisplayName)
+		.TypefaceDisplayName(this, &SSubTypefaceEditor::GetDisplayName)
+		.OnDisplayNameCommitted(this, &SSubTypefaceEditor::OnDisplayNameCommitted)
 		.HeaderContent()
 		[
 			SNew(SBox)
@@ -930,6 +930,41 @@ FTypeface* SSubTypefaceEditor::GetTypeface() const
 {
 	FCompositeSubFont* const SubTypefaceEntryPtr = SubTypeface->GetSubTypefaceEntry();
 	return (SubTypefaceEntryPtr) ? &SubTypefaceEntryPtr->Typeface : nullptr;
+}
+
+FText SSubTypefaceEditor::GetDisplayName() const
+{
+	const FCompositeSubFont* const SubTypefaceEntryPtr = SubTypeface->GetSubTypefaceEntry();
+	
+	if(SubTypefaceEntryPtr)
+	{
+		return (SubTypefaceEntryPtr->EditorName.IsNone()) 
+			? FText::Format(LOCTEXT("SubFontFamilyNameFmt", "Sub-Font Family #{0}"), FText::AsNumber(SubTypeface->SubTypefaceEntryIndex + 1))
+			: FText::FromName(SubTypefaceEntryPtr->EditorName);
+	}
+
+	return FText::GetEmpty();
+}
+
+void SSubTypefaceEditor::OnDisplayNameCommitted(const FText& InNewName, ETextCommit::Type InCommitType)
+{
+	FCompositeSubFont* const SubTypefaceEntryPtr = SubTypeface->GetSubTypefaceEntry();
+	
+	if(SubTypefaceEntryPtr)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("SetFontFamilyDisplayName", "Set Font Family Display Name"));
+		CompositeFontEditorPtr->GetFontObject()->Modify();
+
+		const FText DefaultText = FText::Format(LOCTEXT("SubFontFamilyNameFmt", "Sub-Font Family #{0}"), FText::AsNumber(SubTypeface->SubTypefaceEntryIndex + 1));
+		if(InNewName.ToString().Equals(DefaultText.ToString()))
+		{
+			SubTypefaceEntryPtr->EditorName = NAME_None;
+		}
+		else
+		{
+			SubTypefaceEntryPtr->EditorName = *InNewName.ToString();
+		}
+	}
 }
 
 EVisibility SSubTypefaceEditor::GetAddFontOverrideVisibility() const
