@@ -207,7 +207,7 @@ UEditorEngine::UEditorEngine(const class FObjectInitializer& ObjectInitializer)
 				, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
 				, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
 				, EditorCylinderMesh(TEXT("/Engine/EditorMeshes/EditorCylinder"))
-				, SmallFont(TEXT("/Engine/EditorResources/SmallFont"))
+				, SmallFont(TEXT("/Engine/EngineFonts/Roboto"))
 			{
 			}
 		};
