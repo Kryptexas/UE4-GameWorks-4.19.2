@@ -9,7 +9,9 @@
 #include "GameFramework/PhysicsVolume.h"
 #include "PainCausingVolume.generated.h"
 
-
+/**
+ * Volume that causes damage over time to any Actor that overlaps its collision.
+ */
 UCLASS()
 class ENGINE_API APainCausingVolume : public APhysicsVolume
 {

@@ -10,6 +10,9 @@
 
 #include "GameEngine.generated.h"
 
+/**
+ * Engine that manages core systems that enable a game.
+ */
 UCLASS(config=Engine, transient)
 class ENGINE_API UGameEngine : public UEngine
 {

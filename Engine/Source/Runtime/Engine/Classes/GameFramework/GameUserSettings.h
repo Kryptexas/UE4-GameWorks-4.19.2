@@ -4,6 +4,9 @@
 #include "Scalability.h"
 #include "GameUserSettings.generated.h"
 
+/**
+ * Stores user settings for a game (for example graphics and sound settings), with the ability to save and load to and from a file.
+ */
 UCLASS(config=GameUserSettings, configdonotcheckdefaults)
 class ENGINE_API UGameUserSettings : public UObject
 {
