@@ -34,13 +34,13 @@ private:
 	FReply OnMergeClicked();
 
 	/**  */
-	ESlateCheckBoxState::Type GetAtlasLightmapUV() const;
-	void SetAtlasLightmapUV(ESlateCheckBoxState::Type NewValue);
+	ESlateCheckBoxState::Type GetGenerateLightmapUV() const;
+	void SetGenerateLightmapUV(ESlateCheckBoxState::Type NewValue);
 
 	/** Target lightmap channel */
 	bool IsLightmapChannelEnabled() const;
 	void SetTargetLightMapChannel(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-	void SetMaxLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+	void SetTargetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 		
 	/**  */
 	ESlateCheckBoxState::Type GetImportVertexColors() const;
