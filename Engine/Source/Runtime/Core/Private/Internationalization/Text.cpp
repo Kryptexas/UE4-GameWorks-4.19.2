@@ -192,12 +192,12 @@ FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value )
 
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
 FNumberFormattingOptions::FNumberFormattingOptions()
-	:   UseGrouping(true),
-		RoundingMode(ERoundingMode::HalfToEven),
-		MinimumIntegralDigits(1),
-		MaximumIntegralDigits(DBL_MAX_10_EXP + DBL_DIG + 1),
-		MinimumFractionalDigits(0),
-		MaximumFractionalDigits(3)
+	: UseGrouping(true)
+	, RoundingMode(ERoundingMode::HalfToEven)
+	, MinimumIntegralDigits(1)
+	, MaximumIntegralDigits(DBL_MAX_10_EXP + DBL_DIG + 1)
+	, MinimumFractionalDigits(0)
+	, MaximumFractionalDigits(3)
 {
 
 }

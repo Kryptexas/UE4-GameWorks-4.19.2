@@ -461,7 +461,16 @@ public:
 	FText GetDisplayName() const { return DisplayText; }	
 	FText GetInclusiveAvgMsText() const { return InclusiveAvgMsText; }
 	float GetInclusiveAvgMs() const { return InclusiveAvgMs; }
-	void UpdateInclusiveAvgMs( float InMs ){ InclusiveAvgMs = InMs; InclusiveAvgMsText = FText::AsNumber(InMs); }
+	void UpdateInclusiveAvgMs( float InMs )
+	{
+		static const auto FormattingOptions = FNumberFormattingOptions()
+			.SetMinimumIntegralDigits(1)
+			.SetMinimumFractionalDigits(3)
+			.SetMaximumFractionalDigits(3);
+
+		InclusiveAvgMs = InMs;
+		InclusiveAvgMsText = FText::AsNumber(InMs, &FormattingOptions);
+	}
 
 private:
 
@@ -610,6 +619,7 @@ TSharedRef<ITableRow> SWidgetReflector::GenerateStatRow( TSharedRef<FStatItem> S
 				.Padding(FMargin(5,0))
 				[
 					SNew(STextBlock)
+					.TextStyle(FCoreStyle::Get(), "MonospacedText")
 					.Text( this, &SStatTableRow::GetInclusiveAvgMsText )
 				];
 			}

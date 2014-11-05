@@ -95,11 +95,22 @@ struct CORE_API FNumberFormattingOptions
 	FNumberFormattingOptions();
 
 	bool UseGrouping;
+	FNumberFormattingOptions& SetUseGrouping( bool InValue ){ UseGrouping = InValue; return *this; }
+
 	ERoundingMode RoundingMode;
+	FNumberFormattingOptions& SetRoundingMode( ERoundingMode InValue ){ RoundingMode = InValue; return *this; }
+
 	int32 MinimumIntegralDigits;
+	FNumberFormattingOptions& SetMinimumIntegralDigits( int32 InValue ){ MinimumIntegralDigits = InValue; return *this; }
+
 	int32 MaximumIntegralDigits;
+	FNumberFormattingOptions& SetMaximumIntegralDigits( int32 InValue ){ MaximumIntegralDigits = InValue; return *this; }
+
 	int32 MinimumFractionalDigits;
+	FNumberFormattingOptions& SetMinimumFractionalDigits( int32 InValue ){ MinimumFractionalDigits = InValue; return *this; }
+
 	int32 MaximumFractionalDigits;
+	FNumberFormattingOptions& SetMaximumFractionalDigits( int32 InValue ){ MaximumFractionalDigits = InValue; return *this; }
 
 	friend FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value);
 };
