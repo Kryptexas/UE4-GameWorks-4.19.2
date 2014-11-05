@@ -1111,7 +1111,7 @@ namespace UnrealBuildTool
 
 					// if the project is not an engine project check to make sure we have the correct name
 					string DisplayName = TargetName;
-					if (!IsEngineTarget && TargetRulesObject.Type != TargetRules.TargetType.Program)
+					if (!IsEngineTarget && TargetRulesObject.Type != TargetRules.TargetType.Program && TargetRulesObject.Type != TargetRules.TargetType.Client)
 					{
 						List<UProjectInfo> AllGames = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
 						UProjectInfo ProjectInfo = FindGameContainingFile (AllGames, TargetFilePath);
