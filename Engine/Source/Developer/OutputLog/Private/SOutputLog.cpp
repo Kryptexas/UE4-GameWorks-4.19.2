@@ -491,11 +491,6 @@ void SConsoleInputBox::SetSuggestions(TArray<FString>& Elements, bool bInHistory
 		// Ideally if the selection box is open the output window is not changing it's window title (flickers)
 		SuggestionBox->SetIsOpen(true, false);
 		SuggestionListView->RequestScrollIntoView(Suggestions.Last());
-
-		// Force the textbox back into focus.
-		FWidgetPath WidgetToFocusPath;
-		FSlateApplication::Get().GeneratePathToWidgetUnchecked( InputText.ToSharedRef(), WidgetToFocusPath );
-		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
 	}
 	else
 	{
