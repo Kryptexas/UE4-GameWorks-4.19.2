@@ -521,6 +521,21 @@ public:
 	}
 
 	/**
+	 * Convert variant data to json object with "type,value" fields
+	 *
+	 * @return json object representation
+	 */
+	TSharedRef<class FJsonObject> ToJson() const;
+	
+	/**
+	 * Convert json object to variant data from "type,value" fields
+	 *
+	 * @param JsonObject json to convert from
+	 * @return true if conversion was successful
+	 */
+	bool FromJson(const TSharedRef<class FJsonObject>& JsonObject);
+
+	/**
 	* Comparison of two settings data classes
 	*
 	* @param Other the other settings data to compare against
