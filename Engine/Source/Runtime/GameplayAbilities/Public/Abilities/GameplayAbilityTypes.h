@@ -328,7 +328,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec
 	UPROPERTY()
 	TArray<UGameplayAbility*> ReplicatedInstances;
 
-	TArray<UGameplayAbility*> GetAbilityInstances()
+	TArray<UGameplayAbility*> GetAbilityInstances() const
 	{
 		TArray<UGameplayAbility*> Abilities;
 		Abilities.Append(ReplicatedInstances);
