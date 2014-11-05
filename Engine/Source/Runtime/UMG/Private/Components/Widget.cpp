@@ -2,7 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
-#include "ReflectionMetaData.h"
+#include "ReflectionMetadata.h"
 
 /////////////////////////////////////////////////////
 // UWidget

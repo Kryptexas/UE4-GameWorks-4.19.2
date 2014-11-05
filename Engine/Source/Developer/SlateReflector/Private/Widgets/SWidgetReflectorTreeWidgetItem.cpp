@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateReflectorPrivatePCH.h"
-#include "ReflectionMetaData.h"
+#include "ReflectionMetadata.h"
 #include "SWidgetReflectorTreeWidgetItem.h"
 #include "SHyperlink.h"
 
