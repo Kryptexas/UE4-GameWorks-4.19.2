@@ -228,6 +228,7 @@ protected:
 
 	// @hack: @todo: This is temporary to aid in post-load fix-up w/o exposing members publicly
 	friend class UGameplayEffect;
+	friend class FGameplayEffectModifierMagnitudeDetails;
 };
 
 /** 

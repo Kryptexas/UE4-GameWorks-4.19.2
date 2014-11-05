@@ -8,6 +8,7 @@
 #include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayEffectExecutionCalculation.h"
+#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectExecutionDefinitionDetailsCustomization"
 
