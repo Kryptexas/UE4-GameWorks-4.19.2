@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 		/// Android settings.
 		/// </summary>
 		[XmlConfig]
-		public static string AndroidNdkApiTarget = "latest";
+		public static string AndroidNdkApiTarget = "android-19";
 		[XmlConfig]
 		public static string AndroidSdkApiTarget = "latest";
 

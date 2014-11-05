@@ -579,7 +579,7 @@ namespace UnrealBuildTool
 
 			if (!bHasPrintedApiLevel)
 			{
-				Console.WriteLine("Compiling with NDK API '{0}'", GetNdkApiLevel());
+				Console.WriteLine("Compiling Native code with NDK API '{0}'", GetNdkApiLevel());
 				bHasPrintedApiLevel = true;
 			}
 
