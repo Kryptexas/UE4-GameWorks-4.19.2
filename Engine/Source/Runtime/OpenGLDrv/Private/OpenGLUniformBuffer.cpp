@@ -537,7 +537,7 @@ FUniformBufferRHIRef FOpenGLDynamicRHI::RHICreateUniformBuffer(const void* Conte
 		}
 		else
 		{
-			glBufferSubData(GL_UNIFORM_BUFFER, 0, Layout.ConstantBufferSize, Contents);
+			FOpenGL::BufferSubData(GL_UNIFORM_BUFFER, 0, Layout.ConstantBufferSize, Contents);
 		}
 	}
 

@@ -64,7 +64,7 @@ class TOpenGLBuffer : public BaseType
 			{
 				const uint32 Size = FMath::Min<uint32>( BlockSize, InSize);
 			
-				glBufferSubData( Type, InOffset, Size, Data);
+				FOpenGL::BufferSubData( Type, InOffset, Size, Data);
 
 				InOffset += Size;
 				InSize -= Size;
@@ -73,7 +73,7 @@ class TOpenGLBuffer : public BaseType
 		}
 		else
 		{
-			glBufferSubData( Type, InOffset, InSize, InData);
+			FOpenGL::BufferSubData( Type, InOffset, InSize, InData);
 		}
 	}
 
@@ -118,7 +118,7 @@ public:
 				Resource = ResourceToUse;
 				check( Type != GL_UNIFORM_BUFFER || !IsUniformBufferBound(Resource) );
 				Bind();
-				glBufferSubData(Type, 0, InSize, InData);
+				FOpenGL::BufferSubData(Type, 0, InSize, InData);
 			}
 			else
 			{
@@ -135,7 +135,7 @@ public:
 					else
 					{
 						glBufferData(Type, RealSize, NULL, GetAccess());
-						glBufferSubData(Type, 0, InSize, InData);
+						FOpenGL::BufferSubData(Type, 0, InSize, InData);
 					}
 #else
 					glBufferData(Type, RealSize, NULL, GetAccess());
@@ -313,7 +313,7 @@ public:
 					else
 					{
 						// Only updating a subset of the data
-						glBufferSubData(Type, LockOffset, LockSize, LockBuffer);
+						FOpenGL::BufferSubData(Type, LockOffset, LockSize, LockBuffer);
 						check( LockBuffer != NULL );
 					}
 #else
@@ -338,7 +338,7 @@ public:
 		VERIFY_GL_SCOPE();
 		Bind();
 #if !RESTRICT_SUBDATA_SIZE
-		glBufferSubData(Type, InOffset, InSize, InData);
+		FOpenGL::BufferSubData(Type, InOffset, InSize, InData);
 #else
 		LoadData( InOffset, InSize, InData);
 #endif
