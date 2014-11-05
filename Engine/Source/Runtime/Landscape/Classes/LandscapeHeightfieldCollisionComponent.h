@@ -108,6 +108,12 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 
 	/*  Cooked editor specific heightfield data, never serialized  */
 	TArray<uint8>								CookedCollisionDataEd;
+
+	/** 
+	 *	Flag to indicate that the next time we cook data, we should save it to the DDC.
+	 *	Used to ensure DDC is populated when loading content for the first time. 
+	 */
+	mutable bool								bShouldSaveCookedDataToDDC;
 #endif //WITH_EDITORONLY_DATA
 
 	/** 
@@ -174,7 +180,7 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	/** 
 	 * Cooks raw height data into collision object binary stream
 	 */
-	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterails) const;
+	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const;
 
 	/** Modify a sub-region of the PhysX heightfield. Note that this does not update the physical material */
 	void UpdateHeightfieldRegion(int32 ComponentX1, int32 ComponentY1, int32 ComponentX2, int32 ComponentY2);
