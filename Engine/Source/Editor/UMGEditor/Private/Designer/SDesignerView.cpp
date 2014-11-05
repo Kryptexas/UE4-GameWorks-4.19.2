@@ -40,6 +40,7 @@
 #include "ScopedTransaction.h"
 #include "Settings/WidgetDesignerSettings.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/NamedSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
