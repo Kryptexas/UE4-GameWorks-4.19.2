@@ -6,6 +6,7 @@
 #include "SInlineEditableTextBlock.h"
 #include "SNumericEntryBox.h"
 #include "ScopedTransaction.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 
