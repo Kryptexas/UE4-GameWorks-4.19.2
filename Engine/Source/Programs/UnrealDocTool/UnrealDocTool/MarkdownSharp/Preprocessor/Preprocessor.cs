@@ -75,7 +75,7 @@ namespace MarkdownSharp.Preprocessor
             }
         }
 
-        public string Preprocess(string text, TransformationData transData, PreprocessedData data, string relativePathToLinkedFile = null)
+        public string Preprocess(string text, TransformationData transData, PreprocessedData data, string relativePathToLinkedFile = null, bool full = true)
         {
             var relPath = relativePathToLinkedFile ?? transData.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf;
 
@@ -87,7 +87,7 @@ namespace MarkdownSharp.Preprocessor
 
             text = DoCodeSpans(text, data.TextMap);
 
-            text = data.Metadata.ParseMetadata(text, transData, data);
+            text = data.Metadata.ParseMetadata(text, transData, data, full);
 
             text = filter.FilterOut(text, transData, data);
 

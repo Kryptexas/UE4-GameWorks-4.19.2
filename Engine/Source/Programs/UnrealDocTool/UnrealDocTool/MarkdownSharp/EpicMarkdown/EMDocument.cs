@@ -93,7 +93,7 @@ namespace MarkdownSharp.EpicMarkdown
 
         public static EMDocument Empty = new EMDocument();
 
-        public void Parse(string text, bool preprocessOnly = false)
+        public void Parse(string text, bool preprocessOnly = false, bool full = true)
         {
             Text = text;
 
@@ -104,7 +104,7 @@ namespace MarkdownSharp.EpicMarkdown
                 relativePath = GetAbsoluteMarkdownPath();
             }
 
-            preprocessedText = TransformationData.Markdown.Preprocessor.Preprocess(text, TransformationData, preprocessedData, relativePath);
+            preprocessedText = TransformationData.Markdown.Preprocessor.Preprocess(text, TransformationData, preprocessedData, relativePath, full);
             publish = Markdown.CheckAvailability(TransformationData);
 
             if (!publish)
