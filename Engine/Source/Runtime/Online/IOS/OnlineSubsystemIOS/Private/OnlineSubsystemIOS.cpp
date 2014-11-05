@@ -117,6 +117,11 @@ IOnlinePresencePtr FOnlineSubsystemIOS::GetPresenceInterface() const
 	return NULL;
 }
 
+IOnlineChatPtr FOnlineSubsystemIOS::GetChatInterface() const
+{
+	return NULL;
+}
+
 bool FOnlineSubsystemIOS::Init() 
 {
 	bool bSuccessfullyStartedUp = true;

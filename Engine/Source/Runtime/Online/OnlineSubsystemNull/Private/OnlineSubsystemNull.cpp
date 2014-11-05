@@ -108,6 +108,11 @@ IOnlinePresencePtr FOnlineSubsystemNull::GetPresenceInterface() const
 	return NULL;
 }
 
+IOnlineChatPtr FOnlineSubsystemNull::GetChatInterface() const
+{
+	return NULL;
+}
+
 bool FOnlineSubsystemNull::Tick(float DeltaTime)
 {
 	if (OnlineAsyncTaskThreadRunnable)

@@ -50,6 +50,7 @@ typedef TSharedPtr<class IOnlineUser, ESPMode::ThreadSafe> IOnlineUserPtr;
 typedef TSharedPtr<class IOnlineMessage, ESPMode::ThreadSafe> IOnlineMessagePtr;
 typedef TSharedPtr<class IOnlinePresence, ESPMode::ThreadSafe> IOnlinePresencePtr;
 typedef TSharedPtr<class IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
+typedef TSharedPtr<class IOnlineChat, ESPMode::ThreadSafe> IOnlineChatPtr;
 
 /**
  * Called when the connection state as reported by the online platform changes
@@ -239,6 +240,11 @@ public:
 	 */
 	virtual IOnlinePresencePtr GetPresenceInterface() const = 0;
 
+	/** 
+	 * Get the interface for user-user and user-room chat functionality
+	 * @return Interface pointer for the appropriate online user service
+	 */
+	virtual IOnlineChatPtr GetChatInterface() const = 0;
 	/**
 	 * Get custom UObject data preserved by the online subsystem
 	 *

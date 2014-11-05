@@ -116,6 +116,11 @@ IOnlinePartyPtr FOnlineSubsystemFacebook::GetPartyInterface() const
 	return NULL;
 }
 
+IOnlineChatPtr FOnlineSubsystemFacebook::GetChatInterface() const
+{
+	return NULL;
+}
+
 bool FOnlineSubsystemFacebook::Init() 
 {
 	bool bSuccessfullyStartedUp = true;
