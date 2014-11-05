@@ -284,7 +284,7 @@ FVector2D SCommentBubble::GetOffset() const
 
 FVector2D SCommentBubble::GetSize() const
 {
-	return GetDesiredSize() + FVector2D( 20.f, 0.f );
+	return GetDesiredSize();
 }
 
 bool SCommentBubble::IsBubbleVisible() const

@@ -337,7 +337,7 @@ public:
 					const float GeometryScale = CurChild.AllowScale.Get() ? 1.f : 1.f / AllottedGeometry.Scale;
 					FVector2D Size;
 
-					if( CurChild.Size.IsBound() )
+					if( CurChild.Size.IsSet() )
 					{
 						Size = CurChild.Size.Get();
 					}

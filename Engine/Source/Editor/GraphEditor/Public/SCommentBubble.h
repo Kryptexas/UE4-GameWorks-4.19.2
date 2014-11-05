@@ -74,10 +74,10 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	/** Called when a node's comment bubble pinned state is changed */
 	void OnPinStateToggle( ESlateCheckBoxState::Type State ) const;
 
-protected:
-
 	/** Called to update the bubble widget layout */
 	void UpdateBubble();
+
+protected:
 
 	/** Returns the current comment text, converting from FString into FText */
 	FText GetCommentText() const;
@@ -96,9 +96,6 @@ protected:
 
 	/** Called when the comment text is committed */
 	void OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
-
-	/** Called when a node's comment bubble visibility state is changed */
-	void OnNodeBubbleVisibilityChange( UEdGraphNode* NodeBeingChanged, bool bIsVisible );
 
 protected:
 
