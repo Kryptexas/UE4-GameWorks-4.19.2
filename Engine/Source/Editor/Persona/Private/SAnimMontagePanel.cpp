@@ -840,6 +840,9 @@ void SAnimMontagePanel::OnSlotNameChanged(TSharedPtr<FString> NewSelection, ESel
 			}
 			
 			UpdateSlotGroupWarningVisibility();
+
+			// Clear selection, so Details panel for AnimNotifies doesn't show outdated information.
+			ClearSelected();
 		}
 	}
 }

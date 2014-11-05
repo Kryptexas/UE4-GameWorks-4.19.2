@@ -109,7 +109,7 @@ void FAnimLinkableElement::OnChanged(float NewMontageTime)
 		return;
 	}
 
-	SlotIndex = FMath::Clamp(SlotIndex, 0, LinkedMontage->SlotAnimTracks.Num());
+	SlotIndex = FMath::Clamp(SlotIndex, 0, LinkedMontage->SlotAnimTracks.Num()-1);
 
 	// If the link method changed, transform the link value
 	if(CachedLinkMethod != LinkMethod)
