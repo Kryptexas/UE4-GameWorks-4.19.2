@@ -2753,6 +2753,7 @@ ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 	BufferLevel->AddToRoot();
 	BufferLevel->OwningWorld = InWorld;
 	BufferLevel->Model = new( BufferLevel ) UModel( FObjectInitializer(), NULL, true );
+	BufferLevel->bIsVisible = true;
 		
 	BufferLevel->SetFlags( RF_Transactional );
 	BufferLevel->Model->SetFlags( RF_Transactional );

@@ -565,7 +565,9 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 
 	
 	// Remove each level!
-	for(auto It = InLevelList.CreateConstIterator(); It; ++It)
+	// Take a copy of the list rather than using a reference to the selected levels list, as this will be modified in the loop below
+	const FLevelModelList LevelListCopy = InLevelList;
+	for (auto It = LevelListCopy.CreateConstIterator(); It; ++It)
 	{
 		TSharedPtr<FLevelModel> LevelModel = (*It);
 		ULevel* Level = LevelModel->GetLevelObject();

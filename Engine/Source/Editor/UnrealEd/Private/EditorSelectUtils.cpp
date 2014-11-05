@@ -443,10 +443,10 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 		return false;
 	}
 
-	bool bSelectionAllowed = false;
-
+	// Allow active modes to determine whether the selection is allowed. If there are no active modes, allow selection anyway.
 	TArray<FEdMode*> ActiveModes;
 	GLevelEditorModeTools().GetActiveModes( ActiveModes );
+	bool bSelectionAllowed = (ActiveModes.Num() == 0);
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		bSelectionAllowed |= ActiveModes[ModeIndex]->IsSelectionAllowed( Actor, bInSelected );
