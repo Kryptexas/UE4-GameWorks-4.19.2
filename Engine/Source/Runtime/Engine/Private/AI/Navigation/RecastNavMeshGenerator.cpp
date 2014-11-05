@@ -1824,11 +1824,9 @@ bool FRecastTileGenerator::GenerateTile()
 
 	if (bRegenerateCompressedLayers)
 	{
-		DEC_MEMORY_STAT_BY(STAT_Navigation_TileCacheMemory, GetTileCacheSizeHelper(CompressedLayers));
 		CompressedLayers.Reset();
 		
 		bSuccess = GenerateCompressedLayers(BuildContext);
-		INC_MEMORY_STAT_BY(STAT_Navigation_TileCacheMemory, GetTileCacheSizeHelper(CompressedLayers));
 
 		if (bSuccess)
 		{
@@ -2714,7 +2712,6 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(class ARecastNavMesh* InDestNav
 	, Version(0)
 {
 	INC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
-	SET_MEMORY_STAT(STAT_Navigation_TileCacheMemory, 0);
 
 	check(InDestNavMesh);
 	Init();
@@ -2726,7 +2723,6 @@ FRecastNavMeshGenerator::~FRecastNavMeshGenerator()
 	DiscardCurrentBuildingTasks();
 	
 	DEC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
-	SET_MEMORY_STAT(STAT_Navigation_TileCacheMemory, 0);
 }
 
 void FRecastNavMeshGenerator::Init()
@@ -2835,7 +2831,10 @@ void FRecastNavMeshGenerator::UpdateNavigationBounds()
 bool FRecastNavMeshGenerator::ConstructTiledNavMesh() 
 {
 	bool bSuccess = false;
-	
+
+	// There is should not be any active build tasks
+	CancelBuild();
+
 	// create new Detour navmesh instance
 	dtNavMesh* DetourMesh = dtAllocNavMesh();	
 	if (DetourMesh)
@@ -2957,7 +2956,6 @@ void FRecastNavMeshGenerator::CancelBuild()
 	RunningDirtyTiles.Empty();
 	PendingDirtyTiles.Empty();
 	IntermediateLayerDataMap.Empty();
-	SET_MEMORY_STAT(STAT_Navigation_TileCacheMemory, 0);
 
 #if	WITH_EDITOR	
 	RecentlyBuiltTiles.Empty();
