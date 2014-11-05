@@ -195,7 +195,7 @@ struct FGameplayModifierEvaluatedData
 
 /** Struct defining gameplay attribute capture options for gameplay effects */
 USTRUCT()
-struct FGameplayEffectAttributeCaptureDefinition
+struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
 {
 	GENERATED_USTRUCT_BODY()
 
