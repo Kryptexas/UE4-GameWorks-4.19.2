@@ -331,7 +331,7 @@ void USoundCue::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstance
 {
 	if (FirstNode)
 	{
-		FirstNode->ParseNodes(AudioDevice,NodeWaveInstanceHash,ActiveSound,ParseParams,WaveInstances);
+		FirstNode->ParseNodes(AudioDevice,(UPTRINT)FirstNode,ActiveSound,ParseParams,WaveInstances);
 	}
 }
 
