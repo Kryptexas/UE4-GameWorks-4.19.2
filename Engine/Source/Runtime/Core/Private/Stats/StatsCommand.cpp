@@ -428,6 +428,12 @@ static bool HandleCommandBroadcast(const FName& InStatName, bool& bOutCurrentEna
 
 #if STATS
 
+void FHUDGroupGameThreadRenderer::NewData(FGameThreadHudData* Data)
+{
+	delete Latest;
+	Latest = Data;
+}
+
 FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
 {
 	static FHUDGroupGameThreadRenderer Singleton;

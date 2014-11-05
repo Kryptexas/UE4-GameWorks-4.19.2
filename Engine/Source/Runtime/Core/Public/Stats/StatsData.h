@@ -793,11 +793,7 @@ struct CORE_API FHUDGroupGameThreadRenderer
 		Latest = nullptr;
 	}
 
-	void NewData(FGameThreadHudData* Data)
-	{
-		delete Latest;
-		Latest = Data;
-	}
+	void NewData(FGameThreadHudData* Data);
 
 	static FHUDGroupGameThreadRenderer& Get();
 };
