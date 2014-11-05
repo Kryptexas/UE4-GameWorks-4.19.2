@@ -232,8 +232,11 @@ FVector2D UEdGraph::GetGoodPlaceForNewNode()
 		for(int32 i=1; i<Nodes.Num(); i++)
 		{
 			Node = Nodes[i];
-			BottomLeft.X = FMath::Min<float>(BottomLeft.X, Node->NodePosX);
-			BottomLeft.Y = FMath::Max<float>(BottomLeft.Y, Node->NodePosY);
+			if ( Node )
+			{
+				BottomLeft.X = FMath::Min<float>(BottomLeft.X, Node->NodePosX);
+				BottomLeft.Y = FMath::Max<float>(BottomLeft.Y, Node->NodePosY);
+			}
 		}
 	}
 
