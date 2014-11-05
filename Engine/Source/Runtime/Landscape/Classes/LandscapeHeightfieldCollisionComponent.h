@@ -99,20 +99,25 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 		virtual ~FPhysXHeightfieldRef();
 	};
 	
+#if WITH_EDITORONLY_DATA
 	/** The collision height values. Stripped from cooked content */
 	FWordBulkData								CollisionHeightData;
 
 	/** Indices into the ComponentLayers array for the per-vertex dominant layer. Stripped from cooked content */
 	FByteBulkData								DominantLayerData;
 
+	/*  Cooked editor specific heightfield data, never serialized  */
+	TArray<uint8>								CookedCollisionDataEd;
+#endif //WITH_EDITORONLY_DATA
+
 	/** 
 	 *	Cooked HeightField data. Serialized only with cooked content 
 	 *	Stored as array instead of BulkData to take advantage of precaching during async loading
 	 */
 	TArray<uint8>								CookedCollisionData;
-
-	/** This is a list of physical materials that is actually used by a cooked HeightField. Serialized only with cooked content */
-	UPROPERTY(transient)
+	
+	/** This is a list of physical materials that is actually used by a cooked HeightField */
+	UPROPERTY()
 	TArray<UPhysicalMaterial*>					CookedPhysicalMaterials;
 	
 	/** Physics engine version of heightfield data. */
@@ -152,6 +157,7 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
+	virtual void PreSave() override;
 #if WITH_EDITOR
 	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;

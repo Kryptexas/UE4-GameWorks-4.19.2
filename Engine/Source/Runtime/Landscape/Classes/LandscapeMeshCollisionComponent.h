@@ -60,8 +60,10 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 		virtual ~FPhysXMeshRef();
 	};
 
+#if WITH_EDITORONLY_DATA
 	/** The collision mesh values. */
 	FWordBulkData								CollisionXYOffsetData; //  X, Y Offset in raw format...
+#endif //WITH_EDITORONLY_DATA
 
 	/** Physics engine version of heightfield data. */
 	TRefCountPtr<struct FPhysXMeshRef>			MeshRef;
