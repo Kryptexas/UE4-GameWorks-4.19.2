@@ -342,8 +342,6 @@ void FReplaceVectorWithLinearColorBuilder::AddColorChildProperty(const TSharedPt
 			.OnBeginSliderMovement(this, &FReplaceVectorWithLinearColorBuilder::OnBeginSliderMovement)
 			.OnEndSliderMovement(this, &FReplaceVectorWithLinearColorBuilder::OnEndSliderMovement)
 			.AllowSpin(true)
-			.MinValue(0.0f)
-			.MaxValue(1.0f)
 			.MinSliderValue(0.0f)
 			.MaxSliderValue(1.0f)
 		];
