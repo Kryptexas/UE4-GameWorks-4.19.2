@@ -49,6 +49,7 @@
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
 	#include "ISlateRHIRendererModule.h"
+	#include "EngineFontServices.h"
 #endif
 
 	#include "MoviePlayer.h"
@@ -1246,6 +1247,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FCoreStyle::ResetToDefault();
 	}
 
+#if !UE_SERVER
+	FEngineFontServices::Create();
+#endif
 	
 	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
 
@@ -2002,6 +2006,10 @@ void FEngineLoop::Exit()
 	{
 		GEngine->PreExit();
 	}
+
+#if !UE_SERVER
+	FEngineFontServices::Destroy();
+#endif
 
 	// close all windows
 	FSlateApplication::Shutdown();

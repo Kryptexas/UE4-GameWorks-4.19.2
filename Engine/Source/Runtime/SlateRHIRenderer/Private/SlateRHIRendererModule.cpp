@@ -54,6 +54,11 @@ public:
 		return MakeShareable( new FSlate3DRenderer( ResourceManager, FontCache ) );
 	}
 
+	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override
+	{
+		return MakeShareable(new FSlateRHIFontAtlasFactory);
+	}
+
 	virtual void StartupModule( ) override { }
 	virtual void ShutdownModule( ) override { }
 

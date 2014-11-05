@@ -68,6 +68,9 @@ const FFontData& FLegacySlateFontInfoCache::GetFallbackFont()
 {
 	const FName FallbackFontName = *(FPaths::EngineContentDir() / TEXT("Slate/Fonts/") / (NSLOCTEXT("Slate", "FallbackFont", "DroidSansFallback").ToString() + TEXT(".ttf")));
 
+	// GetFallbackFont is called directly from the font cache, so may be called from multiple threads at once
+	FScopeLock Lock(&FallbackFontCS);
+
 	{
 		TSharedPtr<const FFontData>* const ExistingFallbackFont = FallbackFonts.Find(FallbackFontName);
 		if(ExistingFallbackFont)
@@ -84,11 +87,15 @@ const FFontData& FLegacySlateFontInfoCache::GetFallbackFont()
 
 const FFontData& FLegacySlateFontInfoCache::GetLastResortFont()
 {
+	// GetLastResortFont is called directly from the font cache, so may be called from multiple threads at once
+	FScopeLock Lock(&LastResortFontCS);
+
 	if (!LastResortFont.IsValid())
 	{
 		const FString LastResortFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/LastResort.ttf");
 		LastResortFont = MakeShareable(new FFontData(LastResortFontPath, new UFontBulkData(LastResortFontPath), EFontHinting::Default));
 	}
+
 	return *LastResortFont;
 }
 

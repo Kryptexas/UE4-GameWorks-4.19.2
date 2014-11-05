@@ -50,7 +50,8 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::AddTexture( uint32 TextureWidth, 
 
 void FSlateTextureAtlas::MarkTextureDirty()
 {
-	check( IsThreadSafeForSlateRendering() );
+	//check( IsThreadSafeForSlateRendering() );
+	check( (GSlateLoadingThreadId != 0) || FPlatformTLS::GetCurrentThreadId() == AtlasOwnerThreadId );
 	bNeedsUpdate = true;
 }
 	
@@ -83,6 +84,8 @@ void FSlateTextureAtlas::InitAtlasData()
 	RootNode = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, PaddingStyle == NoPadding ? 0 : 1);
 	AtlasData.Reserve(AtlasWidth * AtlasHeight * Stride);
 	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * Stride);
+
+	AtlasOwnerThreadId = FPlatformTLS::GetCurrentThreadId();
 
 	INC_MEMORY_STAT_BY(STAT_SlateTextureAtlasMemory, AtlasData.GetAllocatedSize());
 }

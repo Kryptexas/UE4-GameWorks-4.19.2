@@ -6,6 +6,7 @@
 #include "SlateCore.h"
 
 class ISlate3DRenderer;
+class ISlateFontAtlasFactory;
 
 /**
  * Interface for the Slate RHI Renderer module.
@@ -23,4 +24,6 @@ public:
 	virtual TSharedRef<FSlateRenderer> CreateSlateRHIRenderer( ) = 0;
 
 	virtual TSharedRef<ISlate3DRenderer> CreateSlate3DRenderer() = 0;
+
+	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() = 0;
 };
