@@ -540,5 +540,5 @@ protected:
 	/** Unregister all TickDispatch, TickFlush, PostTickFlush to tick in World */
 	ENGINE_API void UnregisterTickEvents(class UWorld* InWorld) const;
 	/** Returns true if this actor is considered to be in a loaded level */
-	bool IsLevelInitializedForActor(class AActor* InActor, class UNetConnection* InConnection);
+	bool IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const;
 };

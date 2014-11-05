@@ -53,7 +53,7 @@ public:
 	FNetGUIDCache( UNetDriver * InDriver );
 
 	void			CleanReferences();
-	bool			SupportsObject( const UObject* Object );
+	bool			SupportsObject( const UObject* Object ) const;
 	bool			IsDynamicObject( const UObject* Object );
 	bool			IsNetGUIDAuthority() const;
 	FNetworkGUID	GetOrAssignNetGUID( const UObject* Object );

@@ -825,7 +825,7 @@ void UDemoNetConnection::HandleClientPlayer( APlayerController* PC, UNetConnecti
 	}
 }
 
-bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
+bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject) const
 {
 	// We save all currently streamed levels into the demo stream so we can force the demo playback client
 	// to stay in sync with the recording server

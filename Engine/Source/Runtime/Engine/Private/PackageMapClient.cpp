@@ -1357,7 +1357,7 @@ void FNetGUIDCache::CleanReferences()
 	UE_LOG( LogNetPackageMap, Warning, TEXT( "FNetGUIDCache::CleanReferences: ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), ObjectLookup.Num(), NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
 }
 
-bool FNetGUIDCache::SupportsObject( const UObject* Object )
+bool FNetGUIDCache::SupportsObject( const UObject* Object ) const
 {
 	// NULL is always supported
 	if ( !Object )

@@ -375,7 +375,7 @@ void UNetConnection::SendPackageMap()
 {
 }
 
-bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
+bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject) const
 {
 	check(Driver);
 	checkSlow(Driver->IsServer());

@@ -484,7 +484,7 @@ public:
 	 * returns whether the client has initialized the level required for the given object
 	 * @return true if the client has initialized the level the object is in or the object is not in a level, false otherwise
 	 */
-	ENGINE_API virtual bool ClientHasInitializedLevelFor(const UObject* TestObject);
+	ENGINE_API virtual bool ClientHasInitializedLevelFor(const UObject* TestObject) const;
 
 	/**
 	 * Allows the connection to process the raw data that was received

@@ -596,7 +596,7 @@ void UNetDriver::TickDispatch( float DeltaTime )
 	}
 }
 
-bool UNetDriver::IsLevelInitializedForActor(class AActor* InActor, class UNetConnection* InConnection)
+bool UNetDriver::IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const
 {
 	check(InActor);
     check(InConnection);
