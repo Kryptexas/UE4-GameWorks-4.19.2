@@ -63,7 +63,7 @@
 			new(GEngine->DeferredCommands) FString(Ch.GetData());
 		}
 
-		uint32 ExistingCommand = [self.ConsoleHistoryValues indexOfObjectPassingTest:
+		NSUInteger ExistingCommand = [self.ConsoleHistoryValues indexOfObjectPassingTest:
 			^ BOOL (id obj, NSUInteger idx, BOOL *stop)
 			{ 
 				return [obj caseInsensitiveCompare:ConsoleCommand] == NSOrderedSame; 
