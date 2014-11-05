@@ -1085,6 +1085,9 @@ PFNGLLABELOBJECTEXTPROC FMacOpenGL::glLabelObjectEXT = NULL;
 PFNGLPUSHGROUPMARKEREXTPROC FMacOpenGL::glPushGroupMarkerEXT = NULL;
 PFNGLPOPGROUPMARKEREXTPROC FMacOpenGL::glPopGroupMarkerEXT = NULL;
 PFNGLPATCHPARAMETERIPROC FMacOpenGL::glPatchParameteri = NULL;
+bool FMacOpenGL::bSupportsDrawIndirect = false;
+PFNGLDRAWARRAYSINDIRECTPROC FMacOpenGL::glDrawArraysIndirect = nullptr;
+PFNGLDRAWELEMENTSINDIRECTPROC FMacOpenGL::glDrawElementsIndirect = nullptr;
 
 uint64 FMacOpenGL::GetVideoMemorySize()
 {
@@ -1196,6 +1199,13 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	if(ExtensionsString.Contains(TEXT("GL_ARB_tessellation_shader")))
 	{
 		glPatchParameteri = (PFNGLPATCHPARAMETERIPROC)dlsym(RTLD_SELF, "glPatchParameteri");
+	}
+	
+	if(ExtensionsString.Contains(TEXT("GL_ARB_draw_indirect")))
+	{
+		bSupportsDrawIndirect = true;
+		glDrawArraysIndirect = (PFNGLDRAWARRAYSINDIRECTPROC)dlsym(RTLD_SELF, "glDrawArraysIndirect");
+		glDrawElementsIndirect = (PFNGLDRAWELEMENTSINDIRECTPROC)dlsym(RTLD_SELF, "glDrawElementsIndirect");
 	}
 }
 
