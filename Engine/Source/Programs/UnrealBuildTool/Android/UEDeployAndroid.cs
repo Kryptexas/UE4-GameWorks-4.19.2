@@ -205,7 +205,16 @@ namespace UnrealBuildTool.Android
 			}
 			
 			// delete all files in here
-			string[] Files = Directory.GetFiles(InPath);
+            string[] Files;
+            try
+            {
+                Files = Directory.GetFiles(InPath);
+            }
+            catch (Exception)
+            {
+                // directory doesn't exist so all is good
+                return;
+            }
 			foreach (string Filename in Files)
 			{
 				try
