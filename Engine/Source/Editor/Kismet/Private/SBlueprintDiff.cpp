@@ -36,7 +36,6 @@ public:
 	FSCSDiffControl(
 					const UBlueprint* InOldBlueprint
 					, const UBlueprint* InNewBlueprint
-					, TArray< FSCSDiffEntry > InDifferingProperties
 					);
 
 
@@ -52,7 +51,7 @@ private:
 
 	void HighlightCurrentDifference();
 
-	TArray< FSCSDiffEntry > DifferingProperties;
+	FSCSDiffRoot DifferingProperties;
 	int CurrentDifference;
 
 	FSCSDiff OldSCS;
@@ -62,13 +61,15 @@ private:
 FSCSDiffControl::FSCSDiffControl(
 		const UBlueprint* InOldBlueprint
 		, const UBlueprint* InNewBlueprint
-		, TArray< FSCSDiffEntry > InDifferingProperties
 	)
-	: DifferingProperties(InDifferingProperties)
+	: DifferingProperties()
 	, CurrentDifference(-1)
 	, OldSCS( InOldBlueprint )
 	, NewSCS( InNewBlueprint )
 {
+	TArray< FSCSResolvedIdentifier > OldHierarchy = OldSCS.GetDisplayedHierarchy();
+	TArray< FSCSResolvedIdentifier > NewHierarchy = NewSCS.GetDisplayedHierarchy();
+	DiffUtils::CompareUnrelatedSCS(InOldBlueprint, OldHierarchy, InNewBlueprint, NewHierarchy, DifferingProperties);
 }
 
 void FSCSDiffControl::NextDiff()
@@ -85,18 +86,18 @@ void FSCSDiffControl::PrevDiff()
 
 bool FSCSDiffControl::HasNextDifference() const
 {
-	return DifferingProperties.IsValidIndex(CurrentDifference + 1);
+	return DifferingProperties.Entries.IsValidIndex(CurrentDifference + 1);
 }
 
 bool FSCSDiffControl::HasPrevDifference() const
 {
-	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
+	return DifferingProperties.Entries.IsValidIndex(CurrentDifference - 1);
 }
 
 void FSCSDiffControl::HighlightCurrentDifference()
 {
-	OldSCS.HighlightProperty(DifferingProperties[CurrentDifference]);
-	NewSCS.HighlightProperty(DifferingProperties[CurrentDifference]);
+	OldSCS.HighlightProperty(DifferingProperties.Entries[CurrentDifference].TreeIdentifier.Name, FPropertyPath());
+	NewSCS.HighlightProperty(DifferingProperties.Entries[CurrentDifference].TreeIdentifier.Name, FPropertyPath());
 }
 
 class FCDODiffControl	: public TSharedFromThis<FCDODiffControl>
@@ -1284,10 +1285,7 @@ TSharedRef<SWidget> SBlueprintDiff::GenerateDefaultsPanel()
 TSharedRef<SWidget> SBlueprintDiff::GenerateComponentsPanel()
 {
 	//Splitter for left and right blueprint. Current convention is for the local (probably newer?) blueprint to be on the right:
-	TArray< FSCSDiffEntry > Differences;
-	DiffUtils::CompareUnrelatedSCS( PanelOld.Blueprint, PanelNew.Blueprint, Differences );
-
-	auto NewDiffControl = TSharedPtr<FSCSDiffControl>(new FSCSDiffControl(PanelOld.Blueprint, PanelNew.Blueprint, Differences));
+	auto NewDiffControl = TSharedPtr<FSCSDiffControl>(new FSCSDiffControl(PanelOld.Blueprint, PanelNew.Blueprint) );
 	DiffControl = NewDiffControl;
 	return SNew(SSplitter)
 		+ SSplitter::Slot()

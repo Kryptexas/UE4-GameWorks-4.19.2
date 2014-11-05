@@ -25,26 +25,42 @@ FSCSDiff::FSCSDiff(const UBlueprint* InBlueprint)
 		];
 }
 
-void FSCSDiff::HighlightProperty(FSCSDiffEntry Property)
+void FSCSDiff::HighlightProperty(FName VarName, FPropertySoftPath Property)
 {
-	check( Property.TreeNodeName != FName() );
-	if( const USimpleConstructionScript* SCS = SCSEditor->SCS )
-	{
-		TArray<USCS_Node*> Nodes = SCS->GetAllNodes();
-		for( auto Node : Nodes )
-		{
-			if( Node->VariableName == Property.TreeNodeName )
-			{
-				SCSEditor->HighlightTreeNode( Node, Property.PropertyName );
-				return;
-			}
-		}
-	}
-
-	SCSEditor->ClearSelection();
+	check( VarName != FName() );
+	SCSEditor->HighlightTreeNode( VarName, FPropertyPath() );
 }
 
 TSharedRef< SWidget > FSCSDiff::TreeWidget()
 {
 	return ContainerWidget.ToSharedRef();
 }
+
+void GetDisplayedHierarchyRecursive(TArray< int32 >& TreeAddress, const FSCSEditorTreeNode& Node, TArray< FSCSResolvedIdentifier >& OutResult)
+{
+	FSCSIdentifier Identifier = { Node.GetVariableName(), TreeAddress };
+	FSCSResolvedIdentifier ResolvedIdentifier = { Identifier, Node.GetComponentTemplate() };
+	OutResult.Push(ResolvedIdentifier);
+	const auto& Children = Node.GetChildren();
+	for (int32 Iter = 0; Iter != Children.Num(); ++Iter)
+	{
+		TreeAddress.Push(Iter);
+		GetDisplayedHierarchyRecursive(TreeAddress, *Children[Iter], OutResult);
+		TreeAddress.Pop();
+	}
+}
+
+TArray< FSCSResolvedIdentifier > FSCSDiff::GetDisplayedHierarchy() const
+{
+	TArray< FSCSResolvedIdentifier > Ret;
+
+	for (int32 Iter = 0; Iter != SCSEditor->RootNodes.Num(); ++Iter)
+	{
+		TArray< int32 > TreeAddress;
+		TreeAddress.Push(Iter);
+		GetDisplayedHierarchyRecursive(TreeAddress, *SCSEditor->RootNodes[Iter], Ret);
+	}
+
+	return Ret;
+}
+

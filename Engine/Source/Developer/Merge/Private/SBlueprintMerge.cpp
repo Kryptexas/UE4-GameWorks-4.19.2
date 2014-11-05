@@ -57,6 +57,7 @@ void SBlueprintMerge::Construct(const FArguments InArgs, const FBlueprintMergeDa
 	auto TreeView = SNew(SMergeTreeView, InData);
 	TreeControl.Widget = TreeView;
 	TreeControl.DiffControl = &TreeView.Get();
+	TreeControl.MergeControl = &TreeView.Get();
 
 	auto DetailsView = SNew(SMergeDetailsView, InData);
 	DetailsControl.Widget = DetailsView;

@@ -103,94 +103,60 @@ void DiffUtils::CompareUnrelatedObjects(const UObject* A, UObject const* B, TArr
 	}
 }
 
-void DiffUtils::CompareUnrelatedSCS(const UBlueprint* A, const UBlueprint* B, TArray< FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys)
+void DiffUtils::CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSResolvedIdentifier >& OldHierarchy, const UBlueprint* New, const TArray< FSCSResolvedIdentifier >& NewHierarchy, FSCSDiffRoot& OutDifferingEntries )
 {
-	const auto FindObjectPropertyByName = [](const UObject* Instance, FName Name) -> UObject const*
+	const auto FindEntry = [](TArray< FSCSResolvedIdentifier > const& InArray, const FSCSIdentifier* Value) -> const FSCSResolvedIdentifier*
 	{
-		for (TFieldIterator<UProperty> PropertyIter(Instance->GetClass()); PropertyIter; ++PropertyIter)
+		for (const auto& Node : InArray)
 		{
-			if (PropertyIter->GetFName() == Name)
+			if (Node.Identifier.Name == Value->Name )
 			{
-				const UObject* const* SCS = PropertyIter->ContainerPtrToValuePtr<const UObject*>(Instance);
-				return SCS ? *SCS : nullptr;
+				return &Node;
 			}
 		}
 		return nullptr;
 	};
 
-	FName SCS = TEXT("SimpleConstructionScript");
-	UObject const* SCSA = FindObjectPropertyByName(A, SCS);
-	UObject const* SCSB = FindObjectPropertyByName(B, SCS);
-
-	// we get bitten by const shallowness here, avoid mutation:
-	const TArray<USCS_Node*> NodesInA = A && A->SimpleConstructionScript ? A->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
-	const TArray<USCS_Node*> NodesInB = B && B->SimpleConstructionScript ? B->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
-
-	const auto FindByName = [](const TArray<USCS_Node*>& NodeList, FName Name) -> USCS_Node*
+	for (const auto& OldNode : OldHierarchy)
 	{
-		for (auto Node : NodeList)
-		{
-			if (Node->VariableName == Name)
-			{
-				return Node;
-			}
-		}
-		return nullptr;
-	};
+		const FSCSResolvedIdentifier* NewEntry = FindEntry(NewHierarchy, &OldNode.Identifier);
 
-	int32 SortKey = 0;
-	for (auto NodeInA : NodesInA)
-	{
-		auto NodeInB = FindByName(NodesInB, NodeInA->VariableName);
-		if (NodeInB)
+		if (NewEntry != nullptr)
 		{
-			// diff NodeA vs NodeB:
+			// @todo doc: did properties change?
 			TArray<FPropertySoftPath> DifferingProperties;
-
-			DiffUtils::CompareUnrelatedObjects(A, B, DifferingProperties);
-			for (auto Property : DifferingProperties)
+			DiffUtils::CompareUnrelatedObjects(OldNode.Object, NewEntry->Object, DifferingProperties);
+			for (const auto& Property : DifferingProperties)
 			{
-				FSCSDiffEntry Diff = { NodeInA->VariableName, Property.LastPropertyName() };
-				OutDifferingEntries.Push(Diff);
-
-				if (OptionalOutSortKeys)
-				{
-					OptionalOutSortKeys->Push(SortKey);
-				}
+				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_PROPERTY_CHANGED, Property };
+				OutDifferingEntries.Entries.Push(Diff);
 			}
+
+			// did it move?
+
+
+			// no change! Do nothing.
 		}
 		else
 		{
-			// Node A was added (removed from node B):
-			FSCSDiffEntry Diff = { NodeInA->VariableName, FName() };
-			OutDifferingEntries.Push(Diff);
-
-			if (OptionalOutSortKeys)
-			{
-				OptionalOutSortKeys->Push(SortKey);
-			}
+			// not found in the new data, must have been deleted:
+			FSCSDiffEntry Entry = { OldNode.Identifier, ETreeDiffType::NODE_REMOVED, FPropertySoftPath() };
+			OutDifferingEntries.Entries.Push( Entry );
 		}
-
-		++SortKey;
 	}
 
-	// add nodes that were added in B:
-	for (auto NodeInB : NodesInB)
+	for (const auto& NewNode : NewHierarchy)
 	{
-		if (FindByName(NodesInA, NodeInB->VariableName) == nullptr)
+		const FSCSResolvedIdentifier* OldEntry = FindEntry(OldHierarchy, &NewNode.Identifier);
+
+		if (OldEntry == nullptr)
 		{
-			// Node B was added:
-			FSCSDiffEntry Diff = { NodeInB->VariableName, FName() };
-			OutDifferingEntries.Push(Diff);
-
-			if (OptionalOutSortKeys)
-			{
-				OptionalOutSortKeys->Push(SortKey);
-			}
+			FSCSDiffEntry Entry = { NewNode.Identifier, ETreeDiffType::NODE_ADDED, FPropertySoftPath() };
+			OutDifferingEntries.Entries.Push( Entry );
 		}
-
-		++SortKey;
 	}
+
+
 }
 
 bool DiffUtils::Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp)

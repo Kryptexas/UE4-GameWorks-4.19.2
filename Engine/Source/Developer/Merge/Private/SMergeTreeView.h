@@ -7,6 +7,7 @@
 
 class SMergeTreeView	: public SCompoundWidget
 						, public IDiffControl
+						, public IMergeControl
 {
 public:
 	virtual ~SMergeTreeView() {}
@@ -23,6 +24,13 @@ private:
 	bool HasNextDifference() const override;
 	bool HasPrevDifference() const override;
 
+	/** Implementation of IMergeControl: */
+	void HighlightNextConflict() override;
+	void HighlightPrevConflict() override;
+	bool HasNextConflict() const override;
+	bool HasPrevConflict() const override;
+
+	void HighlightCurrentConflict();
 	void HighlightCurrentDifference();
 	FSCSDiff& GetRemoteView();
 	FSCSDiff& GetBaseView();
@@ -31,6 +39,9 @@ private:
 	FBlueprintMergeData Data;
 	TArray< FSCSDiff > SCSViews;
 
-	TArray< FSCSDiffEntry > DifferingProperties;
+	FSCSDiffRoot MergeConflicts;
+	int CurrentMergeConflict;
+
+	FSCSDiffRoot DifferingProperties;
 	int CurrentDifference;
 };

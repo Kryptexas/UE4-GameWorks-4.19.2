@@ -8,8 +8,10 @@ class KISMET_API FSCSDiff
 public:
 	FSCSDiff(const class UBlueprint* InBlueprint);
 
-	void HighlightProperty(FSCSDiffEntry Property);
+	void HighlightProperty(FName VarName, FPropertySoftPath Property);
 	TSharedRef< SWidget > TreeWidget();
+
+	TArray< FSCSResolvedIdentifier > GetDisplayedHierarchy() const;
 private:
 	TSharedPtr< class SWidget > ContainerWidget;
 	TSharedPtr< class SSCSEditor > SCSEditor;

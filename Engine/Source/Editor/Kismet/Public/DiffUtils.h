@@ -35,6 +35,10 @@ struct FResolvedProperty
  */
 struct FPropertySoftPath
 {
+	FPropertySoftPath()
+	{
+	}
+
 	FPropertySoftPath(TArray<FName> InPropertyChain)
 		: PropertyChain(InPropertyChain)
 	{
@@ -56,10 +60,37 @@ struct FPropertySoftPath
 	{
 		return PropertyChain == RHS.PropertyChain;
 	}
+
+	inline bool operator!=(FPropertySoftPath const& RHS ) const
+	{
+		return !(*this == RHS);
+	}
 private:
 	friend uint32 GetTypeHash( FPropertySoftPath const& Path );
 	TArray<FName> PropertyChain;
 };
+
+struct FSCSIdentifier
+{
+	FName Name;
+	TArray< int32 > TreeLocation;
+};
+
+struct FSCSResolvedIdentifier
+{
+	FSCSIdentifier Identifier;
+	const UObject* Object;
+};
+
+FORCEINLINE bool operator==( const FSCSIdentifier& A, const FSCSIdentifier& B )
+{
+	return A.Name == B.Name && A.TreeLocation == B.TreeLocation;
+}
+
+FORCEINLINE bool operator!=(const FSCSIdentifier& A, const FSCSIdentifier& B)
+{
+	return !(A == B);
+}
 
 FORCEINLINE FName FPropertySoftPath::LastPropertyName() const
 {
@@ -83,22 +114,37 @@ FORCEINLINE uint32 GetTypeHash( FPropertySoftPath const& Path )
 // Trying to restrict us to this typedef because I'm a little skeptical about hashing FPropertySoftPath safely
 typedef TSet< FPropertySoftPath > FPropertySoftPathSet;
 
+namespace ETreeDiffType
+{
+	enum Type
+	{
+		UNKNOWN,
+		NODE_ADDED,
+		NODE_REMOVED,
+		NODE_PROPERTY_CHANGED,
+		NODE_MOVED,
+		/** We could potentially try to identify hierarchy reorders separately from add/remove */
+	};
+}
+
 struct FSCSDiffEntry
 {
-	FName TreeNodeName;
-	FName PropertyName;
+	FSCSIdentifier TreeIdentifier;
+	ETreeDiffType::Type DiffType;
+	FPropertySoftPath PropertyIdentifier;
 };
 
-inline bool operator ==(const FSCSDiffEntry A, const FSCSDiffEntry B)
+struct FSCSDiffRoot
 {
-	return A.TreeNodeName == B.TreeNodeName && A.PropertyName == B.PropertyName;
-}
+	// use indices in FSCSIdentifier::TreeLocation to find hierarchy..
+	TArray< FSCSDiffEntry > Entries;
+};
 
 namespace DiffUtils
 {
 	KISMET_API const UObject* GetCDO(const UBlueprint* ForBlueprint);
 	KISMET_API void CompareUnrelatedObjects(const UObject* A, const UObject* B, TArray<FPropertySoftPath>& OutDifferingProperties);
-	KISMET_API void CompareUnrelatedSCS(const UBlueprint* Old, const UBlueprint* New, TArray< FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys = nullptr);
+	KISMET_API void CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSResolvedIdentifier >& OldHierarchy, const UBlueprint* New, const TArray< FSCSResolvedIdentifier >& NewHierarchy, FSCSDiffRoot& OutDifferingEntries );
 	KISMET_API bool Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp);
 	TArray<FPropertySoftPath> GetVisiblePropertiesInOrderDeclared(const UObject* ForObj, const TArray<FName>& Scope = TArray<FName>());
 

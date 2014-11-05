@@ -198,63 +198,8 @@ static TArray< TSharedPtr<FMergeGraphRowEntry> > GenerateDiffListItems(const FBl
 
 							OutMergeConflicts.Push(MakeShareable( new FGraphMergeConflict( GraphName, RemoteDifference, *ConflictingDifference)) );
 						}
-						else
-						{
-							// no conflict, we want to be able to automatically apply this remote change
-							// to the local revision:
-							switch (RemoteDifference.Diff)
-							{
-							case EDiffType::NODE_REMOVED:
-								{
-									// Find the corresponding object in the local graph:
-							
-									const UEdGraphNode* TargetNode = FindNodeInUnrelatedGraph(*LocalGraph, RemoteDifference.Node1);
-									check(TargetNode); // should have been a conflict!
-								}
-								break;
-							case EDiffType::NODE_ADDED:
-
-
-								break;
-							case EDiffType::PIN_LINKEDTO_NUM_DEC:
-								
-								break;
-							case EDiffType::PIN_LINKEDTO_NUM_INC:
-								break;
-							case EDiffType::PIN_DEFAULT_VALUE:
-								break;
-							case EDiffType::PIN_TYPE_CATEGORY:
-								break;
-							case EDiffType::PIN_TYPE_SUBCATEGORY:
-								break;
-							case EDiffType::PIN_TYPE_SUBCATEGORY_OBJECT:
-								break;
-							case EDiffType::PIN_TYPE_IS_ARRAY:
-								break;
-							case EDiffType::PIN_TYPE_IS_REF:
-								break;
-							case EDiffType::PIN_LINKEDTO_NODE:
-								break;
-							case EDiffType::NODE_MOVED:
-
-								break;
-							case EDiffType::TIMELINE_LENGTH:
-							case EDiffType::TIMELINE_AUTOPLAY:
-							case EDiffType::TIMELINE_LOOP:
-							case EDiffType::TIMELINE_NUM_TRACKS:
-							case EDiffType::TIMELINE_TRACK_MODIFIED:
-								check(false); // doesn't apply to blueprint
-								break;
-							case EDiffType::NODE_PIN_COUNT:
-								break;
-							case EDiffType::NODE_COMMENT:
-								break;
-							case EDiffType::NODE_PROPERTY:
-								break;
-							case EDiffType::NO_DIFFERENCE:
-								check(false);
-							}
-						}
+						// else: no conflict, we want to be able to automatically apply this remote change
+						// to the local revision:
 					}
 				}
 
@@ -602,7 +547,7 @@ bool SMergeGraphView::HasNextConflict() const
 	// return true if we have one conflict so that users can reselect the conflict if they desire. If we 
 	// return false when we already have selected this one and only conflict then there will be no way
 	// to reselect it if the user wants to.
-	return  MergeConflicts.Num() != 0 && (MergeConflicts.Num() == 1 || CurrentMergeConflict < MergeConflicts.Num());
+	return  MergeConflicts.Num() != 0 && (MergeConflicts.Num() == 1 || CurrentMergeConflict + 1 < MergeConflicts.Num());
 }
 
 bool SMergeGraphView::HasPrevConflict() const

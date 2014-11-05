@@ -467,7 +467,15 @@ public:
 
 	/** Select the given tree node */
 	void SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCntrlDown);
-	
+
+	/**
+	 * Highlight a tree node and, optionally, a property with in it
+	 *
+	 * @param TreeNodeName		Name of the treenode to be highlighted
+	 * @param Property	The name of the property to be highlighted in the details view
+	 * @return True if the node was found in this Editor, otherwise false
+	 */
+	void HighlightTreeNode( FName TreeNodeName, const class FPropertyPath& Property );
 	/**
 	 * Highlight a tree node and, optionally, a property with in it
 	 *

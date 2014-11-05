@@ -2481,6 +2481,48 @@ void SSCSEditor::SelectNode(FSCSEditorTreeNodePtrType InNodeToSelect, bool IsCnt
 	}
 }
 
+static FSCSEditorTreeNode* FindRecursive( FSCSEditorTreeNode* Node, FName Name )
+{
+	if (Node->GetVariableName() == Name)
+	{
+		return Node;
+	}
+	else
+	{
+		for (const auto& Child : Node->GetChildren())
+		{
+			if (auto Result = FindRecursive(Child.Get(), Name))
+			{
+				return Result;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+void SSCSEditor::HighlightTreeNode(FName TreeNodeName, const FPropertyPath& Property)
+{
+	for( const auto& Node : RootNodes )
+	{
+		if( auto FoundNode = FindRecursive( Node.Get(), TreeNodeName ) )
+		{
+			SelectNode(FoundNode->AsShared(), false);
+
+			if (Property != FPropertyPath())
+			{
+				auto KismetInspectorSPtr = KismetInspectorPtr.Pin();
+				check(KismetInspectorSPtr.IsValid());
+				KismetInspectorSPtr->GetPropertyView()->HighlightProperty(Property);
+			}
+
+			return;
+		}
+	}
+	
+	ClearSelection();
+}
+
 void SSCSEditor::HighlightTreeNode(const USCS_Node* Node, FName Property)
 {
 	check(Node);
