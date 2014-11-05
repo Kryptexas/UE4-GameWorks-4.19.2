@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/**
- * Handles game-specific networking management (cheat detection, bandwidth management, etc.).
- */
-
 #pragma once
 #include "GameNetworkManager.generated.h"
 
@@ -16,6 +12,11 @@ enum EStandbyType
 	STDBY_BadPing,
 	STDBY_MAX,
 };
+
+
+/**
+ * Handles game-specific networking management (cheat detection, bandwidth management, etc.).
+ */
 
 UCLASS(config=Game, notplaceable)
 class ENGINE_API AGameNetworkManager : public AInfo

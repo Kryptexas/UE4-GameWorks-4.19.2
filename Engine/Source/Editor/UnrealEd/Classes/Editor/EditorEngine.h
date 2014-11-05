@@ -198,6 +198,10 @@ private:
 	TSet<FString> ActorLabels;
 };
 
+/**
+ * Engine that drives the Editor.
+ * Separate from UGameEngine because it may have much different functionality than desired for an instance of a game itself.
+ */
 UCLASS(config=Engine, transient)
 class UNREALED_API UEditorEngine : public UEngine
 {

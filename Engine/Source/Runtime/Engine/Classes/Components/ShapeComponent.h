@@ -4,6 +4,9 @@
 #include "Components/PrimitiveComponent.h"
 #include "ShapeComponent.generated.h"
 
+/**
+ * ShapeComponent is a PrimitiveComponent that is represented by a simple geometrical shape (sphere, capsule, box, etc).
+ */
 UCLASS(abstract, hidecategories=(Object,LOD,Lighting,TextureStreaming,Activation,"Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), showcategories=(Mobility))
 class ENGINE_API UShapeComponent : public UPrimitiveComponent
 {
