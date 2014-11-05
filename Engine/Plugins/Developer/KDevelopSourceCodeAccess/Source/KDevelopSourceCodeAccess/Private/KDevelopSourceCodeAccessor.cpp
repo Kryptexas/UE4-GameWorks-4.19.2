@@ -142,7 +142,6 @@ FString FKDevelopSourceCodeAccessor::GetSolutionPath() const
 			CachedSolutionPath = FPaths::ConvertRelativePathToFull(SolutionPath);
 		}
 	}
-	checkf(CachedSolutionPath.Len() > 0, TEXT("Solution path is empty (not cached properly?)"));
 	return CachedSolutionPath;
 }
 
