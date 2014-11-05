@@ -593,7 +593,7 @@ bool SMergeGraphView::HasNoDifferences() const
 {
 	auto RemoteDiffResultListPtr = RemoteDiffResultList.Pin();
 	auto LocalDiffResultListPtr = LocalDiffResultList.Pin();
-	return	(!RemoteDiffResultListPtr.IsValid() || RemoteDiffResultListPtr->GetNumItemsBeingObserved() == 0) ||
+	return	(!RemoteDiffResultListPtr.IsValid() || RemoteDiffResultListPtr->GetNumItemsBeingObserved() == 0) &&
 			(!LocalDiffResultListPtr.IsValid() || LocalDiffResultListPtr->GetNumItemsBeingObserved() == 0);
 }
 
