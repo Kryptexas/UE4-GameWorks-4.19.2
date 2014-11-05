@@ -480,6 +480,7 @@ public class IOSPlatform : Platform
 		Arguments += GameName;
 		Arguments += " - iOS'";
 		Arguments += " -configuration " + TargetConfig.ToString();
+		Arguments += " -sdk iphoneos";
 		Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
 		ProcessResult Result = Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
 		if (bWasGenerated)
