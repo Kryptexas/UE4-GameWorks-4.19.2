@@ -188,4 +188,7 @@ protected:
 
 	/** True if this texture needs to have its rendering resources updated */
 	bool bNeedsUpdate;
+
+	/** ID of the thread that owns this atlas - this is the only thread that can safely update it */
+	uint32 AtlasOwnerThreadId;
 };

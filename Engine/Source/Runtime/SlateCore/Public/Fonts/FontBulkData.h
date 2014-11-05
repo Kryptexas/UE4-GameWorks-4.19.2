@@ -31,4 +31,7 @@ public:
 private:
 	/** Internal bulk data */
 	FByteBulkData BulkData;
+
+	/** Critical section to prevent concurrent access when locking the internal bulk data */
+	mutable FCriticalSection CriticalSection;
 };

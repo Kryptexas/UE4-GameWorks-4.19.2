@@ -80,5 +80,8 @@ private:
 	TMap<FName, TSharedPtr<const FFontData>> FallbackFonts;
 	TSharedPtr<const FFontData> LastResortFont;
 
+	FCriticalSection FallbackFontCS;
+	FCriticalSection LastResortFontCS;
+
 	static TSharedPtr<FLegacySlateFontInfoCache> Singleton;
 };

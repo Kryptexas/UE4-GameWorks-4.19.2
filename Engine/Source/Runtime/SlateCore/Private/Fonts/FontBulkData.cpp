@@ -40,6 +40,7 @@ UFontBulkData::UFontBulkData(const void* const InFontData, const int32 InFontDat
 
 const void* UFontBulkData::Lock(int32& OutFontDataSizeBytes) const
 {
+	CriticalSection.Lock();
 	OutFontDataSizeBytes = BulkData.GetBulkDataSize();
 	return BulkData.LockReadOnly();
 }
@@ -47,6 +48,7 @@ const void* UFontBulkData::Lock(int32& OutFontDataSizeBytes) const
 void UFontBulkData::Unlock() const
 {
 	BulkData.Unlock();
+	CriticalSection.Unlock();
 }
 
 void UFontBulkData::Serialize(FArchive& Ar)

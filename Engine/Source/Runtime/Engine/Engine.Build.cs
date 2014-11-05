@@ -84,6 +84,21 @@ public class Engine : ModuleRules
 			}
 		);
 
+		if (Target.Type != TargetRules.TargetType.Server)
+		{
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] { 
+					"SlateRHIRenderer",
+				}
+			);
+
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"SlateRHIRenderer",
+				}
+			);
+		};
+
 		if (UEBuildConfiguration.bBuildDeveloperTools)
 		{
 			// Add "BlankModule" so that it gets compiled as an example and will be maintained and tested.  This can be removed

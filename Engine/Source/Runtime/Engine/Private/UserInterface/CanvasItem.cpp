@@ -10,6 +10,7 @@
 #include "RHIStaticStates.h"
 #include "Internationalization.h"
 #include "SlateBasics.h"
+#include "EngineFontServices.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("CanvasTileTextureItem Time"),STAT_Canvas_TileTextureItemTime,STATGROUP_Canvas);
@@ -1027,8 +1028,12 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 		return;
 	}
 
-	TSharedRef<FSlateFontCache> FontCache = FSlateApplication::Get().GetRenderer()->GetFontCache();
-	
+	TSharedPtr<FSlateFontCache> FontCache = FEngineFontServices::Get().GetFontCache();
+	if( !FontCache.IsValid() )
+	{
+		return;
+	}
+
 	const float FontScale = 1.0f;
 	const FSlateFontInfo LegacyFontInfo = (SlateFontInfo.IsSet()) ? SlateFontInfo.GetValue() : Font->GetLegacySlateFontInfo();
 	FCharacterList& CharacterList = FontCache->GetCharacterList( LegacyFontInfo, FontScale );
