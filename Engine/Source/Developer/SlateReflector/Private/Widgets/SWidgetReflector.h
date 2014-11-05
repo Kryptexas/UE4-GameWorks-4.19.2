@@ -198,4 +198,14 @@ private:
 
 	bool bShowFocus;
 	bool bIsPicking;
+
+private:
+	// STATS
+	TSharedPtr<SBorder> StatsBorder;
+	TArray< TSharedRef<class FStatItem> > StatsItems;
+	TSharedPtr< SListView< TSharedRef< FStatItem > > > StatsList;
+
+	TSharedRef<SWidget> MakeStatViewer();
+	void UpdateStats();
+	TSharedRef<ITableRow> GenerateStatRow( TSharedRef<FStatItem> StatItem, const TSharedRef<STableViewBase>& OwnerTable );
 };
