@@ -26,7 +26,7 @@ class UDistributionVectorParameterBase : public UDistributionVectorConstant
 	FVector MaxOutput;
 
 	UPROPERTY(EditAnywhere, Category=DistributionVectorParameterBase)
-	TEnumAsByte<enum DistributionParamMode> ParamModes[3];
+	TEnumAsByte<DistributionParamMode> ParamModes[3];
 
 
 	//Begin UDistributionVector Interface

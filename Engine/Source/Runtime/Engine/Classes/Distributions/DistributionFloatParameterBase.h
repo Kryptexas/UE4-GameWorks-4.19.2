@@ -5,15 +5,6 @@
 #include "Distributions/DistributionFloatConstant.h"
 #include "DistributionFloatParameterBase.generated.h"
 
-UENUM()
-enum DistributionParamMode
-{
-	DPM_Normal,
-	DPM_Abs,
-	DPM_Direct,
-	DPM_MAX,
-};
-
 UCLASS(abstract, collapsecategories, hidecategories=Object, editinlinenew)
 class UDistributionFloatParameterBase : public UDistributionFloatConstant
 {

@@ -5,6 +5,15 @@
 #include "Math/CurveEdInterface.h"
 #include "Distribution.generated.h"
 
+UENUM()
+enum DistributionParamMode
+{
+	DPM_Normal,
+	DPM_Abs,
+	DPM_Direct,
+	DPM_MAX,
+};
+
 /** Lookup table for distributions. */
 #if !CPP      //noexport struct
 USTRUCT(noexport)
