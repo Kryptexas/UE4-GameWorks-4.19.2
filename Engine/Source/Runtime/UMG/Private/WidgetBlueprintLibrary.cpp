@@ -40,7 +40,7 @@ UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController*const& Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)
+void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)
 {
 	if (Target != nullptr)
 	{
@@ -55,7 +55,7 @@ void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController*const& Targe
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController*const& Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
+void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport, bool bHideCursorDuringCapture)
 {
 	if (Target != nullptr)
 	{
@@ -71,7 +71,7 @@ void UWidgetBlueprintLibrary::SetInputMode_GameAndUI(APlayerController*const& Ta
 	}
 }
 
-void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController*const& Target)
+void UWidgetBlueprintLibrary::SetInputMode_GameOnly(APlayerController* Target)
 {
 	if (Target != nullptr)
 	{
