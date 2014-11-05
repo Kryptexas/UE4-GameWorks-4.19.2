@@ -731,7 +731,7 @@ FTransform UAnimSequence::ExtractRootTrackTransform(float Pos, const FBoneContai
 	return FTransform::Identity;
 }
 
-FTransform UAnimSequence::ExtractRootMotion(const float & StartTime, const float & DeltaTime, const float bAllowLooping) const
+FTransform UAnimSequence::ExtractRootMotion(float StartTime, float DeltaTime, bool bAllowLooping) const
 {
 	FRootMotionMovementParams RootMotionParams;
 
@@ -780,8 +780,8 @@ FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, f
 
 	// Transform to Component Space Rotation (inverse root transform from first frame)
 	const FTransform RootToComponentRot = FTransform(InitialTransform.GetRotation().Inverse());
-	StartTransform = RootToComponentRot * StartTransform;
-	EndTransform = RootToComponentRot * EndTransform;
+	StartTransform = StartTransform * RootToComponentRot;
+	EndTransform = EndTransform * RootToComponentRot;
 
 	return EndTransform.GetRelativeTransform(StartTransform);
 }

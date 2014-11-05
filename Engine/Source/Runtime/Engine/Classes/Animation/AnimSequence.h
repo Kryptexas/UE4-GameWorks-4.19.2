@@ -567,7 +567,7 @@ class UAnimSequence : public UAnimSequenceBase
 	// End UAnimSequenceBase interface
 
 	// Extract Root Motion transform from the animation
-	FTransform ExtractRootMotion(const float & StartTime, const float & DeltaTime, const float bAllowLooping) const;
+	FTransform ExtractRootMotion(float StartTime, float DeltaTime, bool bAllowLooping) const;
 
 	// Extract Root Motion transform from a contiguous position range (no looping)
 	FTransform ExtractRootMotionFromRange(float StartTrackPosition, float EndTrackPosition) const;
