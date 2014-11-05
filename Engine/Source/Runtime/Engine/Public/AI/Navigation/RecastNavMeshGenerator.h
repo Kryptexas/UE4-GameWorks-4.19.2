@@ -112,7 +112,7 @@ class ENGINE_API FRecastTileGenerator : public FNonAbandonableTask
 {
 public:
 	FRecastTileGenerator(
-		const FRecastNavMeshGenerator* ParentGenerator,
+		FRecastNavMeshGenerator* ParentGenerator,
 		const int32 X, 
 		const int32 Y,
 		TArray<FBox> DirtyAreas
@@ -346,8 +346,8 @@ public:
 
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
 
-	/**  */
-	TArray<FNavMeshTileData> GetIntermediateLayersData(FIntPoint GridCoord) const;
+	/** Transfers ownership if tile cache data to the caller */
+	TArray<FNavMeshTileData> TakeIntermediateLayersData(FIntPoint GridCoord);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	virtual void ExportNavigationData(const FString& FileName) const;
