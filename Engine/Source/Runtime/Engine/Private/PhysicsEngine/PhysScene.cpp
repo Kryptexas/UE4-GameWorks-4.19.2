@@ -768,6 +768,7 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 #if WITH_APEX
 	if (ActiveDestructibleActors[SceneType].Num())
 	{
+		SCOPED_SCENE_READ_LOCK(GetPhysXScene(SceneType));
 		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
