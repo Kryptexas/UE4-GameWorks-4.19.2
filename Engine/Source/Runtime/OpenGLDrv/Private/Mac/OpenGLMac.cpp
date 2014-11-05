@@ -11,6 +11,7 @@
 #include "CocoaThread.h"
 #include "CocoaWindow.h"
 #include <IOKit/IOKitLib.h>
+#include <mach-o/dyld.h>
 
 /*------------------------------------------------------------------------------
  OpenGL static variables.
@@ -1071,6 +1072,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 	return NULL;
 }
 
+bool FMacOpenGL::bUsingApitrace = false;
 bool FMacOpenGL::bSupportsTextureCubeMapArray = false;
 PFNGLTEXSTORAGE2DPROC FMacOpenGL::glTexStorage2D = NULL;
 PFNGLTEXSTORAGE3DPROC FMacOpenGL::glTexStorage3D = NULL;
@@ -1137,6 +1139,18 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
 	ProcessQueryGLInt();
 	FOpenGL3::ProcessExtensions(ExtensionsString);
+	
+	// Check for Apitrace, which doesn't understand some Apple extensions.
+	uint32 ModuleCount = _dyld_image_count();
+	for(uint32 Index = 0; Index < ModuleCount; Index++)
+	{
+		ANSICHAR const* ModulePath = (ANSICHAR const*)_dyld_get_image_name(Index);
+		if(FCStringAnsi::Strstr(ModulePath, "OpenGL.framework/Versions/A/OpenGL") && FCStringAnsi::Strcmp(ModulePath, "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"))
+		{
+			bUsingApitrace = true;
+			break;
+		}
+	}
 	
 	if(GIsEmulatingTimestamp)
 	{

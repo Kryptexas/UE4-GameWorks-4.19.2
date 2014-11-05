@@ -227,8 +227,8 @@ struct FMacOpenGL : public FOpenGL3
 	}
 	
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
-	static FORCEINLINE bool SupportsClientStorage()						{ return true; }
-	static FORCEINLINE bool SupportsTextureRange()						{ return true; }
+	static FORCEINLINE bool SupportsClientStorage()						{ return !bUsingApitrace; }
+	static FORCEINLINE bool SupportsTextureRange()						{ return !bUsingApitrace; }
 	
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
 	{
@@ -256,6 +256,8 @@ struct FMacOpenGL : public FOpenGL3
 	static void ProcessExtensions(const FString& ExtensionsString);
 	
 private:
+	/** Detects apitrace interception library & equivalents */
+	static bool bUsingApitrace;
 	/** GL_ARB_texture_cube_map_array */
 	static bool bSupportsTextureCubeMapArray;
 	/** GL_ARB_texture_storage */
