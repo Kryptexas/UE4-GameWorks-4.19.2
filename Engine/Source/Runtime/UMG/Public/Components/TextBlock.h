@@ -43,8 +43,8 @@ public:
 
 public:
 	/** The text block style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
-	FTextBlockStyle WidgetStyle;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	//FTextBlockStyle WidgetStyle;
 
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
