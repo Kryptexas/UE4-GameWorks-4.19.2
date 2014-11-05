@@ -9,6 +9,7 @@
 #include "GameplayEffectTypes.h"
 #include "GameplayEffectExecutionCalculation.h"
 #include "DetailLayoutBuilder.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectExecutionDefinitionDetailsCustomization"
 
@@ -42,7 +43,7 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 		{
 			CalculationClassPropHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::OnCalculationClassChanged));
 			StructBuilder.AddChildProperty(CalculationClassPropHandle.ToSharedRef());
-			UpdateCalculationModifiers();
+			StructCustomizationUtils.GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::UpdateCalculationModifiers));
 		}
 
 		if (CalculationModifiersArrayPropHandle.IsValid())
