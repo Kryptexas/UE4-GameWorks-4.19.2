@@ -801,6 +801,7 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 	if (GetFontCacheType() == EFontCacheType::Runtime)
 	{
 		// The runtime font cache uses an alpha-only texture, so we have to force this blend mode so we use the correct shader
+		check(BlendMode == SE_BLEND_Translucent || BlendMode == SE_BLEND_TranslucentAlphaOnly);
 		BlendMode = SE_BLEND_TranslucentAlphaOnly;
 	}
 

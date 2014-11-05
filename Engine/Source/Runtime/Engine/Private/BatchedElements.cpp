@@ -365,6 +365,7 @@ FGlobalBoundShaderState FBatchedElements::DistanceFieldBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::HitTestingBoundShaderState;
 FGlobalBoundShaderState FBatchedElements::ColorChannelMaskShaderState;
 FGlobalBoundShaderState FBatchedElements::AlphaOnlyShaderState;
+FGlobalBoundShaderState FBatchedElements::GammaAlphaOnlyShaderState;
 
 /** Global alpha ref test value for rendering masked batched elements */
 float GBatchedElementAlphaRefVal = 128.f;
@@ -552,12 +553,24 @@ void FBatchedElements::PrepareShaders(
 			{
 				SetBlendState(RHICmdList, BlendMode);
 
-				TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-					*VertexShader, *AlphaOnlyPixelShader);
+				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
+			    {
+					TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, *AlphaOnlyPixelShader);
 
-				AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
-				AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+					AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
+					AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+			    }
+			    else
+			    {
+					TShaderMapRef<FSimpleElementGammaAlphaOnlyPS> GammaAlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+						*VertexShader, *GammaAlphaOnlyPixelShader);
+
+					GammaAlphaOnlyPixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
+					GammaAlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
+			    }
 			}
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{

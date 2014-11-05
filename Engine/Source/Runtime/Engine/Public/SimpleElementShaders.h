@@ -119,6 +119,20 @@ public:
 };
 
 /**
+ * Simple pixel shader that just reads from an alpha-only texture and gamma corrects the output
+ */
+class FSimpleElementGammaAlphaOnlyPS : public FSimpleElementGammaBasePS
+{
+	DECLARE_SHADER_TYPE(FSimpleElementGammaAlphaOnlyPS, Global);
+public:
+
+	FSimpleElementGammaAlphaOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FSimpleElementGammaBasePS(Initializer) {}
+	FSimpleElementGammaAlphaOnlyPS() {}
+
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+};
+
+/**
  * A pixel shader for rendering a masked texture on a simple element.
  */
 class FSimpleElementMaskedGammaBasePS : public FSimpleElementGammaBasePS

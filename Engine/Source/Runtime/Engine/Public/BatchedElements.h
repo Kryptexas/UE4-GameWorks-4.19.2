@@ -311,6 +311,8 @@ private:
 	static FGlobalBoundShaderState ColorChannelMaskShaderState;
 	/** bound shader state for alpha only fonts */
 	static FGlobalBoundShaderState AlphaOnlyShaderState;
+	/** bound shader state for gamma corrected alpha only fonts */
+	static FGlobalBoundShaderState GammaAlphaOnlyShaderState;
 
 	/**
 	 * Sets the appropriate vertex and pixel shader.
