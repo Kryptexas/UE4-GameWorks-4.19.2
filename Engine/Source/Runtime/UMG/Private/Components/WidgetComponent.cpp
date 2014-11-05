@@ -381,6 +381,8 @@ void UWidgetComponent::OnRegister()
 		}
 	}
 
+#if !UE_SERVER
+
 	if( !MaterialInstance )
 	{
 		UMaterialInterface* Parent = nullptr;
@@ -398,11 +400,11 @@ void UWidgetComponent::OnRegister()
 
 	UpdateWidget();
 
-#if !UE_SERVER
 	if( !Renderer.IsValid() )
 	{
 		Renderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
 	}
+
 #endif // !UE_SERVER
 }
 
@@ -447,6 +449,7 @@ void UWidgetComponent::DestroyComponent()
 void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 #if !UE_SERVER
+
 	const float RenderTimeThreshold = .5f;
 	if( IsVisible() && GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold ) // Don't bother ticking if it hasn't been rendered recently
 	{
@@ -492,6 +495,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 			});
 
 	}
+
 #endif // !UE_SERVER
 }
 
@@ -687,6 +691,11 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		BoxElem->Y = DrawSize.Y;
 		BoxElem->Z = 1.0f;
 	}	
+}
+
+UUserWidget* UWidgetComponent::GetUserWidgetObject() const
+{
+	return Widget;
 }
 
 TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus  )
