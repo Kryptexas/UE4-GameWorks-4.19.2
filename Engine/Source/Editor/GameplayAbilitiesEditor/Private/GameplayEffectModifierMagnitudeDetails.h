@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "GameplayEffect.h"
 
 class IPropertyHandle;
 class FDetailWidgetRow;

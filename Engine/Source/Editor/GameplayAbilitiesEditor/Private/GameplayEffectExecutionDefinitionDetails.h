@@ -5,6 +5,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 
 class IPropertyHandle;
+class IPropertyHandleArray;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 
