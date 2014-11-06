@@ -86,11 +86,7 @@ namespace FAITestHelpers
 //----------------------------------------------------------------------//
 FAITestBase::~FAITestBase()
 {
-	for (auto AutoDestroyedObject : SpawnedObjects)
-	{
-		AutoDestroyedObject->RemoveFromRoot();
-	}
-	SpawnedObjects.Reset();
+	check(bTearedDown && "Super implementation of TearDown not called!");
 }
 
 void FAITestBase::Test(const FString& Description, bool bValue)
@@ -104,21 +100,33 @@ void FAITestBase::Test(const FString& Description, bool bValue)
 #endif // ENSURE_FAILED_TESTS
 }
 
+void FAITestBase::TearDown()
+{
+	bTearedDown = true;
+	for (auto AutoDestroyedObject : SpawnedObjects)
+	{
+		AutoDestroyedObject->RemoveFromRoot();
+	}
+	SpawnedObjects.Reset();
+}
+
 //----------------------------------------------------------------------//
 // FAITest_SimpleBT
 //----------------------------------------------------------------------//
 FAITest_SimpleBT::FAITest_SimpleBT()
 {
-	AIBTUser = NewAutoDestroyObject<UMockAI_BT>();
-	BTAsset = &FBTBuilder::CreateBehaviorTree();
-
-	UMockAI_BT::ExecutionLog.Reset();
-
 	bUseSystemTicking = false;
 }
 
 void FAITest_SimpleBT::SetUp()
 {
+	FAITestBase::SetUp();
+
+	AIBTUser = NewAutoDestroyObject<UMockAI_BT>();
+	BTAsset = &FBTBuilder::CreateBehaviorTree();
+
+	UMockAI_BT::ExecutionLog.Reset();
+
 	if (AIBTUser && BTAsset)
 	{
 		AIBTUser->RunBT(*BTAsset, EBTExecutionMode::SingleRun);

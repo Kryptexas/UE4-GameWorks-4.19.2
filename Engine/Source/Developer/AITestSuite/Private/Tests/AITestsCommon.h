@@ -40,10 +40,11 @@ struct FAITestBase
 private:
 	// internals
 	TArray<UObject*> SpawnedObjects;	
+	uint32 bTearedDown : 1;
 protected:
 	FAutomationTestBase* TestRunner;
 
-	FAITestBase() : TestRunner(nullptr)
+	FAITestBase() : TestRunner(nullptr), bTearedDown(false)
 	{}
 
 	template<typename ClassToSpawn>
@@ -74,7 +75,8 @@ public:
 	virtual void SetUp() {}
 	virtual bool Update() { return true; }
 	virtual void InstantTest() {}
-	virtual void TearDown() {}
+	// must be called!
+	virtual void TearDown();
 };
 
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_SetUpTest, FAITestBase*, AITest);
