@@ -18,11 +18,31 @@ public:
 	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const struct FFriendsAndChatStyle* InStyle ) = 0;
 
 	/**
+	 * Set the FriendsAndChatUserSettings.
+	 *
+	 * @param UserSettings - The Friends and chat user settings
+	 */
+	virtual void SetUserSettings(FFriendsAndChatSettings UserSettings) = 0;
+
+	/**
 	 * Create the a friends list widget without a container.
 	 * @param InStyle The style to use to create the widgets.
 	 * @return The Friends List widget.
 	 */
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const struct FFriendsAndChatStyle* InStyle ) = 0;
+
+	/**
+	 * Generate a chat widget.
+	 * @param InStyle The style to use to create the widgets.
+	 * @return The chat widget.
+	 */
+	virtual TSharedPtr< SWidget > GenerateChatWidget( const FFriendsAndChatStyle* InStyle ) = 0;
+
+	/**
+	 * Insert a network chat message.
+	 * @param InMessage The chat message.
+	 */
+	virtual void InsertNetworkChatMessage(const FString InMessage) = 0;
 
 	/**
 	 * Set that we are in a session, so can send join game requests.
@@ -39,6 +59,15 @@ public:
 
 	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationEvent, const bool /*Show or Clear */)
 	virtual FOnFriendsNotificationEvent& OnFriendsNotification() = 0;
+
+	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationActionEvent, TSharedRef<FFriendsAndChatMessage> /*Chat notification*/)
+	virtual FOnFriendsNotificationActionEvent& OnFriendsActionNotification() = 0;
+
+	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsUserSettingsUpdatedEvent, /*struct*/ FFriendsAndChatSettings& /* New Options */)
+	virtual FOnFriendsUserSettingsUpdatedEvent& OnFriendsUserSettingsUpdated() = 0;
+
+	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsSendNetworkMessageEvent, /*struct*/ FString& /* the message */)
+	virtual FOnFriendsSendNetworkMessageEvent& OnFriendsSendNewtworkMessage() = 0;
 
 public:
 

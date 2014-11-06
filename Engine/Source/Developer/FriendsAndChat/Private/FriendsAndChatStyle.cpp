@@ -32,15 +32,28 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListOpenButtonStyle(const 
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListClosedButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListCloseButtonStyle = ButtonStyle;
+	return *this;
+}
+
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListActionButtonStyle = ButtonStyle;
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListClosedButtonStyle(const FButtonStyle& ButtonStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListCriticalButtonStyle(const FButtonStyle& ButtonStyle)
 {
-	FriendListCloseButtonStyle = ButtonStyle;
+	FriendListCriticalButtonStyle = ButtonStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListItemButtonStyle = ButtonStyle;
 	return *this;
 }
 
@@ -55,6 +68,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetTitleBarBrush(const FSlateBrush& 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendImageBrush(const FSlateBrush& Brush)
 {
 	FriendImageBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFortniteImageBrush(const FSlateBrush& Brush)
+{
+	FortniteImageBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetLauncherImageBrush(const FSlateBrush& Brush)
+{
+	LauncherImageBrush = Brush;
 	return *this;
 }
 
@@ -78,13 +103,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetOnlineBrush(const FSlateBrush& In
 	return *this; 
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAwayBrush(const FSlateBrush& InAwayBrush)
+{
+	AwayBrush = InAwayBrush; 
+	return *this; 
+}
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetBackgroundBrush(const FSlateBrush& InBackground)
 {
 	Background = InBackground;
 	return *this;
 }
-
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetTextStyle(const FTextBlockStyle& InTextStle)
 {
@@ -105,27 +135,29 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleSmall(const FSlateFontIn
 	return *this;
 }
 
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetMenuSetColor(const FLinearColor& InSetColor)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetDefaultFontColor(const FLinearColor& InFontColor)
 {
-	MenuSetColor = InSetColor;
+	DefaultFontColor = InFontColor;
 	return *this;
 }
 
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetMenuUnsetColor(const FLinearColor& InUnsetColor)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetDefaultChatColor(const FLinearColor& InFontColor)
 {
-	MenuUnsetColor = InUnsetColor;
+	DefaultChatColor = InFontColor;
 	return *this;
 }
 
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendItemStyle(const FComboButtonStyle& InFriendItemStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetWhisplerChatColor(const FLinearColor& InFontColor)
 {
-	FriendItemStyle = InFriendItemStyle;
+	WhisplerChatColor = InFontColor;
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetPartyChatColor(const FLinearColor& InFontColor)
+{
+	PartyChatColor = InFontColor;
+	return *this;
+}
 
 const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 {

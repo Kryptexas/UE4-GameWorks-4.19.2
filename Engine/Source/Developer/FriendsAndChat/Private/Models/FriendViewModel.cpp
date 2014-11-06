@@ -20,20 +20,20 @@ public:
 			{
 				case EInviteStatus::Accepted :
 				{
-					Actions.Add(EFriendActionType::RemoveFriend);
-					if( FFriendsAndChatManager::Get()->IsInSession())
-					{
-						Actions.Add(EFriendActionType::InviteToGame);
-					}
-
 					if(FriendItem->IsOnline())
 					{
 						Actions.Add(EFriendActionType::JoinGame);
 					}
 
+					if( FFriendsAndChatManager::Get()->IsInSession())
+					{
+						Actions.Add(EFriendActionType::InviteToGame);
+					}
+
 					// TODO. Move to user is online. Here for testing until Chat is ready
 					Actions.Add(EFriendActionType::Chat);
 
+					Actions.Add(EFriendActionType::RemoveFriend);
 				}
 				break;
 				case EInviteStatus::PendingInbound :
@@ -44,7 +44,7 @@ public:
 				break;
 				case EInviteStatus::PendingOutbound :
 				{
-					// Do Nothing
+					Actions.Add(EFriendActionType::CancelFriendRequest);
 				}
 				break;
 			default:
@@ -63,6 +63,7 @@ public:
 			case EFriendActionType::IgnoreFriendRequest :
 			case EFriendActionType::BlockFriend :
 			case EFriendActionType::RejectFriendRequest:
+			case EFriendActionType::CancelFriendRequest:
 			{
 				RemoveFriend();
 			}
@@ -93,6 +94,7 @@ public:
 	{
 		return FriendItem.IsValid() ? FriendItem->IsOnline() : false;
 	}
+
 private:
 
 	void RemoveFriend() const
@@ -117,7 +119,7 @@ private:
 	{
 		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
 		{
-			FFriendsMessageManager::Get()->InviteFriendToGame( FriendItem->GetOnlineFriend()->GetUserId() );
+			//FFriendsMessageManager::Get()->InviteFriendToGame( FriendItem->GetOnlineFriend()->GetUserId() );
 		}
 	}
 
@@ -125,7 +127,7 @@ private:
 	{
 		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
 		{
-			FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
+			//FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
 		}
 	}
 

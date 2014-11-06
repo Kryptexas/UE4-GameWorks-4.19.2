@@ -19,59 +19,65 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SAssignNew(Anchor, SMenuAnchor)
-			.Method(InArgs._Method)
-			.OnGetMenuContent(this, &SFriendItemImpl::GetMenuContent)
-			.Placement(MenuMethod == SMenuAnchor::UseCurrentWindow ? MenuPlacement_MenuLeft : MenuPlacement_MenuRight)
-			.Content()
+			SNew(SOverlay)
+			+SOverlay::Slot()
 			[
-				SNew(SBorder)
-				.BorderImage(&FriendStyle.TitleBarBrush)
-				.BorderBackgroundColor(this, &SFriendItemImpl::GetItemBackgroundColor)
+				SAssignNew(ConfirmationAnchor, SMenuAnchor)
+				.Method(InArgs._Method)
+				.OnGetMenuContent(this, &SFriendItemImpl::GetRemoveConfirmationContent)
+				.Placement(MenuMethod == SMenuAnchor::UseCurrentWindow ? MenuPlacement_MenuLeft : MenuPlacement_MenuRight)
+			]
+			+SOverlay::Slot()
+			[
+				SAssignNew(Anchor, SMenuAnchor)
+				.Method(InArgs._Method)
+				.OnGetMenuContent(this, &SFriendItemImpl::GetMenuContent)
+				.Placement(MenuMethod == SMenuAnchor::UseCurrentWindow ? MenuPlacement_MenuLeft : MenuPlacement_MenuRight)
+				.Content()
 				[
-					SNew( SHorizontalBox )
-					+SHorizontalBox::Slot()
-					.Padding( 10, 0 )
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Left)
+					SNew(SButton)
+					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
+					.OnClicked(this, &SFriendItemImpl::HandleItemClicked)
 					[
-						SNew(SImage)
-						.Image(&FriendStyle.FriendImageBrush)
-					]
-					+SHorizontalBox::Slot()
-					[
-						SNew(SVerticalBox)
-						+ SVerticalBox::Slot()
-						[
-							SNew(STextBlock)
-							.Font(FriendStyle.FriendsFontStyle)
-							.Text(ViewModel->GetFriendName())
-						]
-						+ SVerticalBox::Slot()
-						.HAlign(HAlign_Left)
+						SNew( SHorizontalBox )
+						+SHorizontalBox::Slot()
+						.Padding( 10, 0 )
+						.AutoWidth()
 						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Left)
 						[
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
+							SNew(SOverlay)
+							+SOverlay::Slot()
 							[
 								SNew(SImage)
-								.Visibility(this, &SFriendItemImpl::GetStatusVisibility, true)
-								.Image(&FriendStyle.OnlineBrush)
+								.Image(this, &SFriendItemImpl::GetPresenceBrush)
+
 							]
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
+							+SOverlay::Slot()
+							.VAlign(VAlign_Top)
+							.HAlign(HAlign_Right)
 							[
 								SNew(SImage)
-								.Visibility(this, &SFriendItemImpl::GetStatusVisibility, false)
-								.Image(&FriendStyle.OfflineBrush)
+								.Image(this, &SFriendItemImpl::GetStatusBrush)
 							]
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
+						]
+						+SHorizontalBox::Slot()
+						[
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							[
+								SNew(STextBlock)
+								.Font(FriendStyle.FriendsFontStyle)
+								.ColorAndOpacity(FriendStyle.DefaultFontColor)
+								.Text(ViewModel->GetFriendName())
+							]
+							+ SVerticalBox::Slot()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
 								.Font(FriendStyle.FriendsFontStyleSmall)
+								.ColorAndOpacity(FriendStyle.DefaultFontColor)
 								.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
 							]
 						]
@@ -82,12 +88,23 @@ public:
 	}
 
 private:
+
+	const FSlateBrush* GetPresenceBrush() const
+	{
+		return ViewModel->IsOnline() == true ?  &FriendStyle.FortniteImageBrush : &FriendStyle.FriendImageBrush;
+	}
+
+	const FSlateBrush* GetStatusBrush() const
+	{
+		return ViewModel->IsOnline() == true ? &FriendStyle.OnlineBrush : &FriendStyle.OfflineBrush;
+	}
+
 	TSharedRef<SWidget> GetMenuContent()
 	{
 		TSharedPtr<SVerticalBox> ActionListBox;
 		TSharedRef<SWidget> Contents =
 			SNew(SBorder)
-			.BorderBackgroundColor(FLinearColor::White)
+			.BorderImage(&FriendStyle.Background)
 			.Padding(10)
 			[
 				SAssignNew(ActionListBox, SVerticalBox)
@@ -100,13 +117,16 @@ private:
 		for(const auto& FriendAction : Actions)
 		{
 			ActionListBox->AddSlot()
+			.Padding(5)
 			[
 				SNew(SButton)
 				.OnClicked(this, &SFriendItemImpl::HandleActionClicked, FriendAction)
 				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
-					.ColorAndOpacity(FLinearColor::White)
+					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 					.Font(FriendStyle.FriendsFontStyle)
 					.Text(EFriendActionType::ToText(FriendAction))
 				]
@@ -117,22 +137,91 @@ private:
 		return Contents;
 	}
 
-	FReply HandleActionClicked(const EFriendActionType::Type FriendAction) const
+	TSharedRef<SWidget> GetRemoveConfirmationContent()
 	{
-		Anchor->SetIsOpen(false);
-		ViewModel->PerformAction(FriendAction);
+		TSharedRef<SWidget> Contents =
+			SNew(SBorder)
+			.BorderImage(&FriendStyle.Background)
+			.Padding(10)
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Padding(5)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Are you sure?"))
+					.Font(FriendStyle.FriendsFontStyle)
+					.ColorAndOpacity(FriendStyle.DefaultFontColor)
+				]
+				+SVerticalBox::Slot()
+				.Padding(5)
+				[
+					SNew(SButton)
+					.OnClicked(this, &SFriendItemImpl::HandleRemoveClicked, true)
+					.ButtonStyle(&FriendStyle.FriendListCriticalButtonStyle)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(FText::FromString("Remove"))
+					]
+				]
+				+SVerticalBox::Slot()
+				.Padding(5)
+				[
+					SNew(SButton)
+					.OnClicked(this, &SFriendItemImpl::HandleRemoveClicked, false)
+					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(FText::FromString("Cancel"))
+					]
+				]
+			];
+
+		MenuContent = Contents;
+		return Contents;
+	}
+
+	FReply HandleActionClicked(const EFriendActionType::Type FriendAction)
+	{
+		if( FriendAction == EFriendActionType::RemoveFriend)
+		{
+			Anchor->SetIsOpen(false);
+			ConfirmationAnchor->SetIsOpen(true);
+		}
+		else
+		{
+			Anchor->SetIsOpen(false);
+			ViewModel->PerformAction(FriendAction);
+		}
 		return FReply::Handled();
 	}
 
-	EVisibility GetStatusVisibility(bool bOnlineCheck) const
+	FReply HandleRemoveClicked(bool bConfirm)
 	{
-		return (ViewModel.IsValid() && ViewModel->IsOnline()) == bOnlineCheck ? EVisibility::Visible : EVisibility::Collapsed;
+		ConfirmationAnchor->SetIsOpen(false);
+		if(bConfirm)
+		{
+			ViewModel->PerformAction(EFriendActionType::RemoveFriend);
+		}
+		return FReply::Handled();
 	}
 
-	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	FReply HandleItemClicked()
 	{
 		Anchor->SetIsOpen(true);
 		OpenTime = 0.2f;
+		return FReply::Handled();
 	}
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
@@ -154,16 +243,6 @@ private:
 		}
 	}
 
-	FSlateColor GetItemBackgroundColor() const
-	{
-		// TODO Move color selection into style
-		if (Anchor.IsValid() && Anchor->IsOpen())
-		{
-			return FLinearColor(0.1f,0.05f,0.05f);
-		}
-		return FLinearColor(1.0f,1.0f,1.0f,0);
-	}
-
 private:
 
 	TSharedPtr<FFriendViewModel> ViewModel;
@@ -172,6 +251,7 @@ private:
 	FFriendsAndChatStyle FriendStyle;
 
 	TSharedPtr<SMenuAnchor> Anchor;
+	TSharedPtr<SMenuAnchor> ConfirmationAnchor;
 
 	TSharedPtr<SWidget> MenuContent;
 

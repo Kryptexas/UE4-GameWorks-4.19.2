@@ -19,6 +19,7 @@
  *****************************************************************************/
 
 #include "FriendsAndChatMessage.h"
+#include "FriendsAndChatUserSettings.h"
 #include "IFriendsAndChatManager.h"
 #include "IFriendsAndChatModule.h"
 #include "FriendsAndChatStyle.h"

@@ -4,6 +4,7 @@
 #include "SFriendsList.h"
 #include "FriendsViewModel.h"
 #include "FriendListViewModel.h"
+#include "SFriendItem.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsList"
 

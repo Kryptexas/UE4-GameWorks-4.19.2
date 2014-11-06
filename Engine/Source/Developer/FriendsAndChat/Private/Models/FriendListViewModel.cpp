@@ -25,6 +25,11 @@ public:
 		return FText::AsNumber(FriendsList.Num());
 	}
 
+	virtual int32 GetListCount() const override
+	{
+		return FriendsList.Num();
+	}
+
 	virtual const FText GetListName() const override
 	{
 		return EFriendsDisplayLists::ToFText(ListType);
@@ -33,6 +38,11 @@ public:
 	virtual const EFriendsDisplayLists::Type GetListType() const override
 	{
 		return ListType;
+	}
+
+	virtual EVisibility GetListVisibility() const override
+	{
+		return FriendsList.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	DECLARE_DERIVED_EVENT(FFriendListViewModelImpl , FFriendListViewModel::FFriendsListUpdated, FFriendsListUpdated);
@@ -56,6 +66,9 @@ private:
 	{
 		FriendsList.Empty();
 
+		TArray< TSharedPtr< FFriendStuct > > OnlineFriendsList;
+		TArray< TSharedPtr< FFriendStuct > > OfflineFriendsList;
+
 		TArray< TSharedPtr< FFriendStuct > > FriendItemList;
 		FFriendsAndChatManager::Get()->GetFilteredFriendsList( FriendItemList );
 		for( const auto& FriendItem : FriendItemList)
@@ -66,7 +79,14 @@ private:
 				{
 					if(FriendItem->GetInviteStatus() == EInviteStatus::Accepted)
 					{
-						FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+						if(FriendItem->IsOnline())
+						{
+							OnlineFriendsList.Add(FriendItem);
+						}
+						else
+						{
+							OfflineFriendsList.Add(FriendItem);
+						}
 					}
 				}
 				break;
@@ -78,12 +98,44 @@ private:
 				{
 					if( FriendItem->GetInviteStatus() == EInviteStatus::PendingInbound)
 					{
-						FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+						OfflineFriendsList.Add(FriendItem.ToSharedRef());
+					}
+				}
+				break;
+				case EFriendsDisplayLists::OutgoingFriendInvitesDisplay :
+				{
+					if( FriendItem->GetInviteStatus() == EInviteStatus::PendingOutbound)
+					{
+						OfflineFriendsList.Add(FriendItem.ToSharedRef());
 					}
 				}
 				break;
 			}
 		}
+
+		/** Functor for sorting friends list */
+		struct FCompareGroupByName
+		{
+			FORCEINLINE bool operator()( const TSharedPtr< FFriendStuct > A, const TSharedPtr< FFriendStuct > B ) const
+			{
+				check( A.IsValid() );
+				check ( B.IsValid() );
+				return ( A->GetName() < B->GetName() );
+			}
+		};
+
+		OnlineFriendsList.Sort(FCompareGroupByName());
+		OfflineFriendsList.Sort(FCompareGroupByName());
+
+		for(const auto& FriendItem : OnlineFriendsList)
+		{
+			FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+		}
+		for(const auto& FriendItem : OfflineFriendsList)
+		{
+			FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+		}
+
 		FriendsListUpdatedEvent.Broadcast();
 	}
 

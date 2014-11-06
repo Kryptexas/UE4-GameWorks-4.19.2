@@ -7,6 +7,7 @@
 #include "SFriendsContainer.h"
 #include "SFriendRequest.h"
 #include "SFriendsStatus.h"
+#include "SFriendsUserSettings.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsContainer"
 
@@ -110,10 +111,8 @@ public:
 				]
 			]
 			+SVerticalBox::Slot()
+			.VAlign(VAlign_Top)
 			.AutoHeight()
-			.Padding(FMargin(0,5))
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
@@ -149,9 +148,12 @@ public:
 				+ SHorizontalBox::Slot()
 				.HAlign(HAlign_Right)
 				.VAlign(VAlign_Center)
+				.Padding(5.f)
 				.AutoWidth()
 				[
-					SNew(SButton)
+					SNew(SFriendsUserSettings, ViewModel->GetUserSettingsViewModel())
+					.FriendStyle(&FriendStyle)
+					.Method(MenuMethod)
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -166,14 +168,23 @@ public:
 			.VAlign(VAlign_Top)
 			[
 				SNew(SHorizontalBox)
-				.Visibility(this, &SFriendsContainerImpl::FriendsDisplayVisibility)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(FMargin(5,0))
+				[
+					SAssignNew(FriendNameTextBox, SEditableTextBox)
+					.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email address"))
+					.Font(FriendStyle.FriendsFontStyle)
+					.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
+				.Padding(5.f)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SButton)
 					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-					.OnClicked(this, &SFriendsContainerImpl::HandleActionButtonClicked)
+					.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
 					[
 						SNew(STextBlock)
 						.ColorAndOpacity(FLinearColor::White)
@@ -181,59 +192,63 @@ public:
 						.Text(FText::FromString("Add"))
 					]
 				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5,0))
-				[
-					SNew(SEditableTextBox)
-					.HintText(LOCTEXT("FriendsListSearch", "Search"))
-				]
 			]
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(0,5))
 			[
 				SNew(SBorder)
-				.Visibility(this, &SFriendsContainerImpl::FriendsDisplayVisibility)
 				[
 					SNew(SScrollBox)
 					+SScrollBox::Slot()
 					[
-						SAssignNew(FriendsDisplayContainer, SVerticalBox)
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+						[
+							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::FriendRequestsDisplay))
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+						[
+							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+						[
+							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+						[
+							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::RecentPlayersDisplay))
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+						[
+							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::OutgoingFriendInvitesDisplay))
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
 					]
 				]
 			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SAssignNew(ActionDisplayContainer, SVerticalBox)
-				.Visibility(this, &SFriendsContainerImpl::ActionDisplayVisibility)
-			]
 		]);
-
-		GenerateActionDisplay();
-		GenerateFriendsDisplay();
 	}
 
 private:
-
-	FReply SearchFriend_OnClicked()
-	{
-		if ( FriendNameTextBox.IsValid() )
-		{
-			FFriendsAndChatManager::Get()->RequestFriend( FriendNameTextBox->GetText() );
-		}
-		FriendNameTextBox->SetText( FText::GetEmpty() );
-		return FReply::Handled();
-	}
-
-	void HandleFriendEntered(const FText& CommentText, ETextCommit::Type CommitInfo)
-	{
-		if (CommitInfo == ETextCommit::OnEnter)
-		{
-			SearchFriend_OnClicked();
-		}
-	}
 
 	FReply CloseButton_OnClicked()
 	{
@@ -253,67 +268,19 @@ private:
 		return FReply::Handled();
 	}
 
-	EVisibility FriendsDisplayVisibility() const
+	FReply HandleAddFriendButtonClicked()
 	{
-		return ViewModel->IsPerformingAction() ? EVisibility::Collapsed : EVisibility::Visible;
-	}
-
-	EVisibility ActionDisplayVisibility() const
-	{
-		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-
-	void GenerateActionDisplay()
-	{
-		ActionDisplayContainer->ClearChildren();
-		ActionDisplayContainer->AddSlot()
-		.AutoHeight()
-		.VAlign(VAlign_Top)
-		[
-			SNew(SFriendRequest, ViewModel.ToSharedRef())
-			.FriendStyle(&FriendStyle)
-		];
-	}
-
-	void GenerateFriendsDisplay()
-	{
-		FriendsDisplayContainer->ClearChildren();
-		FriendsDisplayContainer->AddSlot()
-		.AutoHeight()
-		.VAlign(VAlign_Top)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::RecentPlayersDisplay))
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::FriendRequestsDisplay))
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
-			]
-		];
-	}
-
-	FReply HandleActionButtonClicked() const
-	{
-		ViewModel->PerformAction();
+		ViewModel->RequestFriend(FriendNameTextBox->GetText());
+		FriendNameTextBox->SetText(FText::GetEmpty());
 		return FReply::Handled();
+	}
+
+	void HandleFriendEntered(const FText& CommentText, ETextCommit::Type CommitInfo)
+	{
+		if (CommitInfo == ETextCommit::OnEnter)
+		{
+			HandleAddFriendButtonClicked();
+		}
 	}
 
 private:
@@ -342,9 +309,6 @@ private:
 	/** Holds the delegate for when the minimize button is clicked. */
 	FOnClicked OnMinimizeClicked;
 
-	/** Holds the text box used to enter the name of friend to search for. */
-	TSharedPtr< SEditableTextBox > FriendNameTextBox;
-
 	/** Holds the recent players check box. */
 	TSharedPtr< SCheckBox > RecentPlayersButton;
 
@@ -354,13 +318,9 @@ private:
 	/** Holds the default friends check box. */
 	TSharedPtr< SCheckBox > DefaultPlayersButton;
 
-	/** Holds the default list name. */
-	EFriendsDisplayLists::Type CurrentList;
+	// Holds the Friends add text box
+	TSharedPtr< SEditableTextBox > FriendNameTextBox;
 
-	/** Holds the friends list display box. */
-	TSharedPtr< SVerticalBox > FriendsDisplayContainer;
-
-	TSharedPtr< SVerticalBox > ActionDisplayContainer;
 };
 
 TSharedRef<SFriendsContainer> SFriendsContainer::New()

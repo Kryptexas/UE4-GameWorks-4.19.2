@@ -9,8 +9,10 @@ public:
 	virtual ~FFriendListViewModel() {}
 	virtual const TArray< TSharedPtr< class FFriendViewModel > >& GetFriendsList() const = 0;
 	virtual FText GetListCountText() const = 0;
+	virtual int32 GetListCount() const = 0;
 	virtual const FText GetListName() const = 0;
 	virtual const EFriendsDisplayLists::Type GetListType() const = 0;
+	virtual EVisibility GetListVisibility() const = 0;
 
 	DECLARE_EVENT(FFriendListViewModel, FFriendsListUpdated)
 	virtual FFriendsListUpdated& OnFriendsListUpdated() = 0;

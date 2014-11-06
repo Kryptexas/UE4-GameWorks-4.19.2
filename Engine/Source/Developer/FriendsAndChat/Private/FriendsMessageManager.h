@@ -2,26 +2,44 @@
 
 #pragma once
 
-
-// Enum holding the state of the Friends manager
-namespace EFriendsMessageManagerState
+/**
+ * Enum for the chat message type.
+ */
+namespace EChatMessageType
 {
-	enum Type
+	enum Type : uint8
 	{
-		Idle,					// Manager is idle
-		EnumeratingMessages,	// Enumerating messages
-		ReadingMessages,		// Reading messages
-		DeletingMessages,		// Deleting read messages
-		SendingMessages,		// Sending messages
-		SendingGameInvite,		// Sending game invite messages
-		SendingJoinGameRequest,	// Sending join game messages
+		// Person whisper Item
+		Whisper,
+		// Party Chat Item
+		Party,
+		// Global Chat Item
+		Global,
 	};
+
+	/** @return the FTextified version of the enum passed in */
+	inline FText ToText(EChatMessageType::Type Type)
+	{
+		switch (Type)
+		{
+			case Global: return NSLOCTEXT("FriendsList","Global", "Global");
+			case Whisper: return NSLOCTEXT("FriendsList","Whisper", "Whisper");
+			case Party: return NSLOCTEXT("FriendsList","Party", "Party");
+
+			default: return FText::GetEmpty();
+		}
+	}
 };
 
-
-/** Delegate type for FriendsList updated. */
-DECLARE_MULTICAST_DELEGATE( FOnMessagesUpdated )
-
+// Stuct for holding chat message information. Will probably be replaced by OSS version
+struct FFriendChatMessage
+{
+	EChatMessageType::Type MessageType;
+	FText FriendID;
+	FText Message;
+	FText MessageTimeText;
+	bool bIsFromSelf;
+};
 
 /**
  * Implement the Friend and Chat manager
@@ -29,248 +47,23 @@ DECLARE_MULTICAST_DELEGATE( FOnMessagesUpdated )
 class FFriendsMessageManager
 	: public TSharedFromThis<FFriendsMessageManager>
 {
-	// Stuct for outgoing chat messages
-	struct FOutGoingChatMessage
-	{
-		FOutGoingChatMessage( TSharedRef< FUniqueNetId > InFriendID,  const FText& InMessage )
-			: FriendID( InFriendID )
-			, Message( InMessage )
-		{}
-
-		// Holds the Friend net ID
-		TSharedRef< FUniqueNetId > FriendID;
-		// Holds the message to send
-		const FText& Message;
-	};
-
-
 public:
 
-	/** Default constructor. */
-	FFriendsMessageManager();
-	
 	/** Destructor. */
-	~FFriendsMessageManager();
+	virtual ~FFriendsMessageManager( ) {};
 
-public:
+	virtual void LogIn() = 0;
+	virtual void LogOut() = 0;
+	virtual void SendMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) = 0;
 
-	/** */
-	void StartupManager();
+	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatMessageReceivedEvent, const TSharedRef<FFriendChatMessage> /*The chat message*/)
+	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() = 0;
 
-	/**
-	 * Init the manager
-	 *
-	 * @param bInAllowLaunchGame Can this app join a game directly.
-	 */
-	void Init(bool bInAllowLaunchGame);
-
-	/**
-	 * Start or stop message polling for messages.
-	 *
-	 * @param bStart true for start, false for stop.
-	 */
-	void SetMessagePolling( bool bStart );
-
-	/** Logout and close any Friends windows. */
-	void Logout();
-
-	/**
-	 * Request a friend to be invited to a game.
-	 *
-	 * @param FriendID The friend ID.
-	 */
-	void InviteFriendToGame( TSharedRef< FUniqueNetId > FriendID );
-
-	/**
-	 * Request to join a friends game.
-	 *
-	 * @param FriendID The friend ID.
-	 */
-	void RequestJoinAGame( TSharedRef< FUniqueNetId > FriendID );
-
-	/**
-	 * Send a chat message.
-	 *
-	 * @param FriendID Friend to send a message to.
- 	 * @param Message The message content.
-	 */
-	void SendMessage( TSharedPtr< FFriendStuct > FriendID, const FText& Message );
-
-	/** Clear game invites. */
-	void ClearGameInvites();
-	
-	/**
-	 * Set an unhandled notification. We will try again later.
-	 *
-	 * @param NetID The NetID of the failed notification.
-	 */
-	void SetUnhandledNotification( TSharedRef< FUniqueNetId > NetID );
-
-	/**
-	 * Get the manager state.
-	 *
-	 * @return The manager state.
-	 */
-	EFriendsMessageManagerState::Type GetState();
-
-	/**
-	 * Get current chat messages.
-	 *
-	 * @return A list of chat messages.
-	 */
-	TArray< TSharedPtr< FFriendsAndChatMessage > > GetChatMessages();
-
-	/**
-	 * Accessor for the Friends List updated delegate.
-	 *
-	 * @return The delegate.
-	 */
-	FOnMessagesUpdated& OnChatListUpdated();
-
-private:
-
-	/**
-	 * A ticker used to perform updates on the main thread.
-	 *
-	 * @param Delta The tick delta.
-	 * @return true to continue ticking.
-	 */
-	bool Tick( float Delta );
-
-	/**
-	 * Set the manager state.
-	 *
-	 * @param NewState The new manager state.
-	 */
-	void SetState( EFriendsMessageManagerState::Type NewState );
-
-	/** Enumerate messages. */
-	void RequestEnumerateMessages();
-
-	/** Send a game invite request. */
-	void SendGameInviteRequest();
-
-	/** Send join game request. */
-	void SendGameJoinRequest();
-
-	/** Send a chat message. */
-	void SendChatMessageRequest();
-
-	/**
-	 * Delegate used when enumeration of messages is complete.
-	 *
-	 * @param LocalPlayer The controller number of the associated user that made the request.
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error.
-	 * @param ErrorStr String representing the error condition.
-	 */
-	void OnEnumerateMessagesComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ErrorStr);
-
-	/**
-	 * Delegate used when a read message is complete.
-	 *
-	 * @param LocalPlayer The controller number of the associated user that made the request.
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error.
-	 * @param MessageId The message ID.
-	 * @param ErrorStr String representing the error condition.
-	 */
-	void OnReadMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr);
-
-	/**
-	 * Delegate used when an send message has completed.
-	 *
-	 * @param LocalPlayer The controller number of the associated user that made the request.
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error.
-	 * @param ErrorStr String representing the error condition.
-	 */
-	void OnSendMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ErrorStr);
-
-	/**
-	 * Delegate used when a delete message has completed.
-	 *
-	 * @param LocalPlayer The controller number of the associated user that made the request.
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error.
-	 * @param MessageId The message ID.
-	 * @param ErrorStr String representing the error condition.
-	 */
-	void OnDeleteMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr);
-
-	/**
-	 * Handle an accept message accepted from a notification.
-	 *
-	 * @param MessageNotification The message responded to.
-	 */
-	FReply HandleMessageAccepted( TSharedPtr< FFriendsAndChatMessage > MessageNotification );
-
-	/**
-	 * Handle an accept message accepted from a notification.
-	 *
-	 * @param MessageNotification The message responded to.
-	 */
-	FReply HandleMessageDeclined( TSharedPtr< FFriendsAndChatMessage > MessageNotification );
-
-	/** Resend a failed notification message. */
-	void ResendMessage();
-
-private:
-
-	// Delegate to use for enumerating messages for a user
-	FOnEnumerateMessagesCompleteDelegate OnEnumerateMessagesCompleteDelegate;
-	// Delegate to use for downloading messages for a user
-	FOnReadMessageCompleteDelegate OnReadMessageCompleteDelegate;
-	// Delegate to use for sending messages for a user
-	FOnSendMessageCompleteDelegate OnSendMessageCompleteDelegate;
-	// Delegate to use for deleting messages for a user
-	FOnDeleteMessageCompleteDelegate OnDeleteMessageCompleteDelegate;
-	// Holds the delegate to call when the friends list gets updated - refresh the UI
-	FOnMessagesUpdated OChatListUpdatedDelegate;
-	// Holds the array of outgoing chat messages
-	TArray< FOutGoingChatMessage > ChatMessagesToSend;
-
-	// Holds array of outgoing Game Invites.
-	TArray< TSharedRef< FUniqueNetId > > GameInvitesToSend;
-	// Holds array of outgoing Join Game requests.
-	TArray< TSharedRef< FUniqueNetId > > GameJoingRequestsToSend;
-	// Holds list of messages to download
-	TArray<TSharedRef< FUniqueMessageId > > MessagesToRead;
-	// Holds list of messages to delete
-	TArray< FUniqueMessageId* > MessagesToDelete;
-	// Holds list of incoming chat messages
-	TArray<TSharedPtr< FFriendsAndChatMessage > > ChatMessages;
-	// Holds list of incoming notifications messages
-	TArray<TSharedPtr< FFriendsAndChatMessage > > NotficationMessages;
-	// Holds a message that will be responded to later on
-	FString LatentMessage;
-	// Holds a message that should be acted on
-	FString GameLaunchMessageID;
-	// Holds if can join a game;
-	bool bCanJoinGame;
-	// Holds should clear invites;
-	bool bClearInvites;
-	// Holds the manager state
-	EFriendsMessageManagerState::Type ManagerState;
-	// Holds the unhandled notification Net ID to resend
-	TSharedPtr< FUniqueNetId > UnhandledNetID;
-
-	// current time in seconds remaining before pinging mcp services again
-	float PingMcpCountdown;
-	// interval in seconds before pinging mcp services
-	const float PingMcpInterval;
-	// Holds the online subsystem MCP
-	FOnlineSubsystemMcp* OnlineSubMcp;
-	// Holds if we should be polling for messages
-	bool bPollForMessages;
-
-	// Holds the user display name
-	FString DisplayName;
-	// Holds the ticker delegate
-	FTickerDelegate UpdateMessagesTickerDelegate;
-
-public:
-
-	static TSharedRef< FFriendsMessageManager > Get();
-	static void Shutdown();
-
-private:
-
-	static TSharedPtr< FFriendsMessageManager > SingletonInstance;
 };
+
+/**
+ * Creates the implementation of a chat manager.
+ *
+ * @return the newly created FriendViewModel implementation.
+ */
+FACTORY(TSharedRef< FFriendsMessageManager >, FFriendsMessageManager);

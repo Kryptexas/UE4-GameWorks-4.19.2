@@ -29,17 +29,7 @@ public:
 			.AutoWidth()
 			[
 				SNew(SImage)
-				.Visibility(this, &SFriendsStatusImpl::StatusVisibility, true)
-				.Image(&FriendStyle.OnlineBrush)
-			]
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(SImage)
-				.Visibility(this, &SFriendsStatusImpl::StatusVisibility, false)
-				.Image(&FriendStyle.OfflineBrush)
+				.Image(this, &SFriendsStatusImpl::GetStatusBrush)
 			]
 			+ SHorizontalBox::Slot()
 			.HAlign(HAlign_Left)
@@ -104,13 +94,25 @@ private:
 				[
 					SNew(SButton)
 					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, true)
-					.Text(FText::FromString("Online"))
+					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FLinearColor::White)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(FText::FromString("Online"))
+					]
 				]
 				+ SVerticalBox::Slot()
 				[
 					SNew(SButton)
 					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, false)
-					.Text(FText::FromString("Away"))
+					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FLinearColor::White)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(FText::FromString("Away"))
+					]
 				]
 			];
 	}
@@ -122,9 +124,10 @@ private:
 		return FReply::Handled();
 	}
 
-	EVisibility StatusVisibility(bool bOnline) const
+
+	const FSlateBrush* GetStatusBrush() const
 	{
-		return ViewModel->GetOnlineStatus() == bOnline ? EVisibility::Visible : EVisibility::Collapsed;
+		return ViewModel->GetOnlineStatus() == true ? &FriendStyle.OnlineBrush : &FriendStyle.OfflineBrush;
 	}
 
 private:

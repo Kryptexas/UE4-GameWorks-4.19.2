@@ -15,13 +15,9 @@ namespace EFriendsAndManagerState
 		RequestingFriendName,				// Requesting a friend add
 		DeletingFriends,					// Deleting a friend
 		AcceptingFriendRequest,				// Accepting a friend request
+		OffLine,							// No logged in
 	};
 };
-
-
-/** Delegate type for FriendsList updated. */
-DECLARE_MULTICAST_DELEGATE(FOnFriendsUpdated)
-
 
 /**
  * Implement the Friend and Chat manager
@@ -40,34 +36,15 @@ public:
 
 public:
 
-	/** Logout and close any Friends windows. */
+	// IFriendsAndChatManager
 	virtual void Logout() override;
-
-	/** Login and start checking for Friends updates. */
 	virtual void Login() override;
-
-	/**
-	 * Create the friends list window.
-	 *
-	 * @param ParentWindow The holding window.
-	 * @param InStyle The style used to create the widgets.
-	 */
 	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const FFriendsAndChatStyle* InStyle ) override;
-
-	/**
-	 * Create the friends list widget without a holder
-	 *
-	 * @param InStyle The style used to create the widgets.
-	 * @return The generated widget.
-	 */
+	virtual void SetUserSettings(FFriendsAndChatSettings UserSettings) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
-
-	/**
-	 * Set if the player is in a session.
-	 *
-	 * @param bInSession Whether we are in a game session.
-	 */
+	virtual TSharedPtr< SWidget > GenerateChatWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetInSession( bool bInSession ) override;
+	virtual void InsertNetworkChatMessage(const FString InMessage) override;
 
 	/**
 	 * Get if the player is in a session.
@@ -128,23 +105,6 @@ public:
 	void DeleteFriend( TSharedPtr< FFriendStuct > FriendItem );
 
 	/**
-	 * Accessor for the Friends List updated delegate.
-	 *
-	 * @return The delegate.
-	 */
-	FOnFriendsUpdated& OnFriendsListUpdated()
-	{
-		return OnFriendsListUpdatedDelegate;
-	}
-
-	/**
-	 * Get the manager state.
-	 *
-	 * @return The manager state.
-	 */
-	EFriendsAndManagerState::Type GetManagerState();
-
-	/**
 	 * Find a user ID.
 	 *
 	 * @param InUserName The user name to find.
@@ -153,12 +113,18 @@ public:
 	TSharedPtr< FUniqueNetId > FindUserID( const FString& InUsername );
 
 	/**
-	 * Is this user pending an invite.
+	 * Is the owner online
 	 *
-	 * @param InUserName The user name to find.
-	 * @return True if pending an invite.
-	 */	
-	bool IsPendingInvite( const FString& InUsername );
+	 * @return true if online
+	 */
+	bool GetUserIsOnline();
+
+	/**
+	 * Set the user online status
+	 *
+	 * @param bIsOnline - the online state
+	 */
+	void SetUserIsOnline(bool bIsOnline);
 
 	/**
 	 * Find a user.
@@ -166,12 +132,39 @@ public:
 	 * @param InUserName The user name to find.
 	 * @return The Friend ID.
 	 */
-	TSharedPtr< FFriendStuct > FindUser( TSharedRef<FUniqueNetId> InUserID);
+	TSharedPtr< FFriendStuct > FindUser(const FUniqueNetId& InUserID);
 
+	// External events
 	DECLARE_DERIVED_EVENT(FFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsNotificationEvent, FOnFriendsNotificationEvent)
 	virtual FOnFriendsNotificationEvent& OnFriendsNotification() override
 	{
 		return FriendsListNotificationDelegate;
+	}
+
+	DECLARE_DERIVED_EVENT(FFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsNotificationActionEvent, FOnFriendsNotificationActionEvent)
+	virtual FOnFriendsNotificationActionEvent& OnFriendsActionNotification() override
+	{
+		return FriendsListActionNotificationDelegate;
+	}
+
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsUserSettingsUpdatedEvent, FOnFriendsUserSettingsUpdatedEvent)
+	virtual FOnFriendsUserSettingsUpdatedEvent& OnFriendsUserSettingsUpdated() override
+	{
+		return FriendsUserSettingsUpdatedDelegate;
+	}
+
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsSendNetworkMessageEvent, FOnFriendsSendNetworkMessageEvent)
+	virtual FOnFriendsSendNetworkMessageEvent& OnFriendsSendNewtworkMessage() override
+	{
+		return FriendsSendNetworkMessageEvent;
+	}
+
+	// Internal events
+
+	DECLARE_EVENT(FFriendsAndChatManager, FOnFriendsUpdated)
+	virtual FOnFriendsUpdated& OnFriendsListUpdated()
+	{
+		return OnFriendsListUpdatedDelegate;
 	}
 
 private:
@@ -179,11 +172,20 @@ private:
 	/** Process the friends list to send out invites */
 	void SendFriendRequests();
 
+	/**
+	 * Request a list read
+	 */
+	void RequestListRefresh();
+
+	/**
+	 * Pre process the friends list - find missing names etc
+	 *
+	 * @param ListName - the list name
+	 */
+	void PreProcessList(const FString& ListName);
+
 	/** Refresh the data lists */
 	void RefreshList();
-
-	/** Build the friends list used in the UI. */
-	void BuildFriendsList();
 
 	/** Build the friends UI. */
 	void BuildFriendsUI();
@@ -197,6 +199,9 @@ private:
 
 	/** Send a friend invite notification. */
 	void SendFriendInviteNotification();
+
+	/** Send a friend invite accepted notification. */
+	void SendInviteAcceptedNotification(TSharedPtr< FFriendStuct > Friend);
 
 	/** Called when singleton is released. */
 	void ShutdownManager();
@@ -274,6 +279,51 @@ private:
 	void OnPresenceReceived( const class FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence);
 
 	/**
+	 * Delegate used when a users presence is updated.
+	 *
+	 * @param UserId		The user ID.
+	 * @param Presence	The user presence.
+	 */
+	void OnPresenceUpdated(const class FUniqueNetId& UserId, const bool bWasSuccessful);
+
+	/**
+	 * Delegate called when the friends list changes.
+	 */
+	void OnFriendsListChanged();
+
+	/**
+	 * Delegate called when an invite is received.
+	 *
+	 * @param UserId		The user ID.
+	 * @param FriendId	The friend ID.
+	 */
+	void OnFriendInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FriendId);
+
+	/**
+	 * Delegate used when a friend is removed.
+	 *
+	 * @param UserId		The user ID.
+	 * @param FriendId	The friend ID.
+	 */
+	void OnFriendRemoved(const FUniqueNetId& UserId, const FUniqueNetId& FriendId);
+
+	/**
+	 * Delegate used when an invite is rejected.
+	 *
+	 * @param UserId		The user ID.
+	 * @param FriendId	The friend ID.
+	 */
+	void OnInviteRejected(const FUniqueNetId& UserId, const FUniqueNetId& FriendId);
+
+	/**
+	 * Delegate used when an invite is accepted.
+	 *
+	 * @param UserId		The user ID.
+	 * @param FriendId	The friend ID.
+	 */
+	void OnInviteAccepted(const FUniqueNetId& UserId, const FUniqueNetId& FriendId);
+
+	/**
 	 * Handle an accept message accepted from a notification.
 	 *
 	 * @param MessageNotification The message responded to.
@@ -286,7 +336,7 @@ private:
 	 *
 	 * @return True if the list has changes and the UI needs refreshing.
 	 */
-	bool UpdateFriendsList();
+	bool ProcessFriendsList();
 
 	/**
 	 * A ticker used to perform updates on the main thread.
@@ -309,6 +359,9 @@ private:
 
 	/** Minimize button clicked. */
 	FReply OnChatMinimizeClicked();
+
+	/** Add a friend toast. */
+	void AddFriendsToast(const FText Message);
 
 private:
 
@@ -361,11 +414,31 @@ private:
 	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate;
 	// Delegate to use for querying user presence
 	FOnPresenceReceivedDelegate OnPresenceReceivedCompleteDelegate;
+	// Delegate to owner presence updated
+	IOnlinePresence::FOnPresenceTaskCompleteDelegate OnPresenceUpdatedCompleteDelegate;
+	// Delegate for friends list changing
+	FOnFriendsChangeDelegate OnFriendsListChangedDelegate;
+	// Delegate for an invite received
+	FOnInviteReceivedDelegate OnFriendInviteReceivedDelegate;
+	// Delegate for friend removed
+	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
+	// Delegate for friend invite rejected
+	FOnInviteRejectedDelegate	OnFriendInviteRejected;
+	// Delegate for friend invite accepted
+	FOnInviteAcceptedDelegate	OnFriendInviteAccepted;
 
-	// Holds the delegate to call when the friends list gets updated - refresh the UI
-	FOnFriendsUpdated OnFriendsListUpdatedDelegate;
 	// Holds the Friends list notification delegate
 	FOnFriendsNotificationEvent FriendsListNotificationDelegate;
+	// Holds the Friends Action notification delegate
+	FOnFriendsNotificationActionEvent FriendsListActionNotificationDelegate;
+	// Holds the Options Updated event notification delegate
+	FOnFriendsUserSettingsUpdatedEvent FriendsUserSettingsUpdatedDelegate;
+	// Holds the network chat message sent delegate
+	FOnFriendsSendNetworkMessageEvent FriendsSendNetworkMessageEvent;
+
+	// Internal events
+	// Holds the delegate to call when the friends list gets updated - refresh the UI
+	FOnFriendsUpdated OnFriendsListUpdatedDelegate;
 
 	/* Identity stuff
 	*****************************************************************************/
@@ -377,15 +450,14 @@ private:
 	// Holds the Online Subsystem
 	FOnlineSubsystemMcp* OnlineSubMcp;
 
+	TSharedPtr<class FFriendsMessageManager> MessageManager;
+	TSharedPtr<class FChatViewModel> ChatViewModel;
+
 	/* Manger state
 	*****************************************************************************/
 
 	// Holds the manager state
 	EFriendsAndManagerState::Type ManagerState;
-	// Holds the update interval
-	const float UpdateTimeInterval;
-	// Holds the update timer
-	float UpdateTimer;
 
 	/* UI
 	*****************************************************************************/
@@ -395,6 +467,8 @@ private:
 	TSharedPtr< SWindow > FriendWindow;
 	// Holds the Friends List widget
 	TSharedPtr< SWidget > FriendListWidget;
+	// Holds the chat widget
+	TSharedPtr< SWidget > ChatWidget;
 	// Holds the chat window
 	TSharedPtr< SWindow > ChatWindow;
 	// Holds the style used to create the Friends List widget
@@ -403,6 +477,11 @@ private:
 	bool bIsInSession;
 	// Holds if the Friends list is inited
 	bool bIsInited;
+	// Holds the Friends system user settings
+	FFriendsAndChatSettings UserSettings;
+	bool bRequiresListRefresh;
+	// Holds the toast notification
+	TSharedPtr<SNotificationList> FriendsNotificationBox;
 
 public:
 

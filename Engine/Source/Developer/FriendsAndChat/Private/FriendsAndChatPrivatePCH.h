@@ -22,15 +22,8 @@
 #include "OnlinePersonaMcp.h"
 #include "OnlineUserInterface.h"
 #include "OnlineMessageInterface.h"
+#include "OnlinePresenceInterface.h"
 #include "FriendListItems.h"
-
-/* Private UI includes
-*****************************************************************************/
-
-#include "SFriendsItem.h"
-#include "SFriendsListContextMenu.h"
-#include "SChatWindow.h"
-#include "SFriendItem.h"
 
 /* Private Class includes
 *****************************************************************************/

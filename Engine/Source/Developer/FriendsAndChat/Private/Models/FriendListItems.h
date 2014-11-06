@@ -18,11 +18,15 @@ public:
 	 * @param InListType The list type.
 	 */
 	FFriendStuct( TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType )
-		: GroupName(TEXT(""))
+		: bIsUpdated(true)
+		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
 		, OnlineUser( InOnlineUser )
 		, UniqueID( InOnlineUser->GetUserId() )
 		, ListType( InListType )
+		, bIsPendingAccepted(false)
+		, bIsPendingInvite(false)
+		, bIsPendingDelete(false)
 	{ }
 
 	/**

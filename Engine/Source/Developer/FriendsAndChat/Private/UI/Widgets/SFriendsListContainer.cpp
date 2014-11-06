@@ -27,6 +27,7 @@ public:
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
+			.Visibility(ViewModelPtr, &FFriendListViewModel::GetListVisibility)
 			+ SVerticalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoHeight()
@@ -119,7 +120,7 @@ private:
 private:
 	TSharedRef<SWidget> CreateList()
 	{
-		if(ViewModel->GetListType() == EFriendsDisplayLists::FriendRequestsDisplay)
+		if(ViewModel->GetListType() == EFriendsDisplayLists::FriendRequestsDisplay || ViewModel->GetListType() == EFriendsDisplayLists::OutgoingFriendInvitesDisplay)
 		{
 			return SNew(SInvitesList, ViewModel.ToSharedRef())
 			.FriendStyle(&FriendStyle);

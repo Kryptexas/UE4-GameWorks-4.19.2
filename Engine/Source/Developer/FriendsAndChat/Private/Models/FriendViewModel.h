@@ -10,6 +10,7 @@ namespace EFriendActionType
 		AcceptFriendRequest,		// Accept an incoming Friend request
 		IgnoreFriendRequest,		// Ignore an incoming Friend request
 		RejectFriendRequest,		// Reject an incoming Friend request
+		CancelFriendRequest,		// Cancel a friend request
 		BlockFriend,				// Block a friend
 		RemoveFriend,				// Remove a friend
 		JoinGame,					// Join a Friends game
@@ -26,6 +27,7 @@ namespace EFriendActionType
 			case AcceptFriendRequest: return NSLOCTEXT("FriendsList","AcceptFriendRequest", "Accept");
 			case IgnoreFriendRequest: return NSLOCTEXT("FriendsList","IgnoreFriendRequest", "Ignore");
 			case RejectFriendRequest: return NSLOCTEXT("FriendsList","RejectFriendRequest", "Reject");
+			case CancelFriendRequest: return NSLOCTEXT("FriendsList","CancelRequest", "Cancel");
 			case BlockFriend: return NSLOCTEXT("FriendsList","BlockFriend", "Block");
 			case RemoveFriend: return NSLOCTEXT("FriendsList","RemoveFriend", "Remove");
 			case JoinGame: return NSLOCTEXT("FriendsList","JoingGame", "Join Game");

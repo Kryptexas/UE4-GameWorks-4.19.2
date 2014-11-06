@@ -2,16 +2,12 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatItemViewModel.h"
+#include "ChatViewModel.h"
 
 class FChatItemViewModelImpl
 	: public FChatItemViewModel
 {
 public:
-
-	~FChatItemViewModelImpl()
-	{
-		Uninitialize();
-	}
 
 	virtual FText GetMessage() override
 	{
@@ -38,51 +34,36 @@ public:
 		return ChatMessage->MessageTimeText;
 	}
 
-	virtual FSlateColor GetDisplayColor() override
-	{
-		// TODO: Add chat colors to style
-		switch(ChatMessage->MessageType)
-		{
-			case EChatMessageType::Global: return FLinearColor::White; break;
-			case EChatMessageType::Whisper: return FLinearColor::Yellow; break;
-			case EChatMessageType::Party: return FLinearColor::Green; break;
-			default:
-			return FLinearColor::Gray;
-		}
-	}
-
 	const bool IsFromSelf() const override
 	{
 		return ChatMessage->bIsFromSelf;
 	}
 
+	virtual const float GetFadeAmountColor() const override
+	{
+		return Owner->GetTimeTransparency();
+	}
+
 private:
-	void Initialize()
-	{
-		
-	}
 
-	void Uninitialize()
-	{
-	}
-
-	FChatItemViewModelImpl(TSharedRef<FChatMessage> ChatMessage)
+	FChatItemViewModelImpl(TSharedRef<FFriendChatMessage> ChatMessage, TSharedPtr<FChatViewModel> Owner)
 	: ChatMessage(ChatMessage)
+	, Owner(Owner)
 	{
 	}
 
 private:
-	TSharedRef<FChatMessage> ChatMessage;
-
+	TSharedRef<FFriendChatMessage> ChatMessage;
+	TSharedPtr<FChatViewModel> Owner;
 
 private:
 	friend FChatItemViewModelFactory;
 };
 
 TSharedRef< FChatItemViewModel > FChatItemViewModelFactory::Create(
-	const TSharedRef<FChatMessage>& ChatMessage)
+	const TSharedRef<FFriendChatMessage>& ChatMessage
+	, TSharedRef<FChatViewModel> Owner)
 {
-	TSharedRef< FChatItemViewModelImpl > ViewModel(new FChatItemViewModelImpl(ChatMessage));
-	ViewModel->Initialize();
+	TSharedRef< FChatItemViewModelImpl > ViewModel(new FChatItemViewModelImpl(ChatMessage, Owner));
 	return ViewModel;
 }

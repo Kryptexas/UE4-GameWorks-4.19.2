@@ -4,6 +4,7 @@
 #include "FriendsViewModel.h"
 #include "FriendViewModel.h"
 #include "FriendsStatusViewModel.h"
+#include "FriendsUserSettingsViewModel.h"
 #include "FriendListViewModel.h"
 
 class FFriendsViewModelImpl
@@ -26,6 +27,11 @@ public:
 		return FFriendsStatusViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
 	}
 
+	virtual TSharedRef< FFriendsUserSettingsViewModel > GetUserSettingsViewModel() override
+	{
+		return FFriendsUserSettingsViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
+	}
+
 	virtual TSharedRef< FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) override
 	{
 		return FFriendListViewModelFactory::Create(SharedThis(this), ListType);
@@ -45,9 +51,6 @@ public:
 	}
 
 private:
-	void Initialize()
-	{
-	}
 
 	void Uninitialize()
 	{
@@ -78,7 +81,5 @@ TSharedRef< FFriendsViewModel > FFriendsViewModelFactory::Create(
 	)
 {
 	TSharedRef< FFriendsViewModelImpl > ViewModel(new FFriendsViewModelImpl(FriendsAndChatManager));
-	ViewModel->Initialize();
-
 	return ViewModel;
 }

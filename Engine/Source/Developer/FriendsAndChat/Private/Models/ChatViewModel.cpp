@@ -14,16 +14,15 @@ public:
 		return FilteredChatLists;
 	}
 
-	virtual void HandleSelectionChanged(TSharedPtr<FChatItemViewModel> ItemSelected, ESelectInfo::Type SelectInfo) override
+	virtual FReply  HandleSelectionChanged(TSharedRef<FChatItemViewModel> ItemSelected) override
 	{
-		if( ItemSelected.IsValid())
+		SetChatChannel(ItemSelected->GetMessageType(), ItemSelected->GetFriendID().ToString());
+		if(SelectedChatChannel == EChatMessageType::Whisper)
 		{
-			SetChatChannel(ItemSelected->GetMessageType());
-			if(SelectedChatChannel == EChatMessageType::Whisper)
-			{
-				SelectedFriend = ItemSelected->GetFriendID();
-			}
+			RecentPlayerList.AddUnique(ItemSelected->GetFriendID().ToString());
 		}
+
+		return FReply::Handled();
 	}
 
 	virtual FText GetViewGroupText() const override
@@ -33,7 +32,7 @@ public:
 
 	virtual FText GetChatGroupText() const override
 	{
-		return SelectedChatChannel == EChatMessageType::Whisper ? SelectedFriend : EChatMessageType::ToText(SelectedChatChannel);
+		return SelectedChatChannel == EChatMessageType::Whisper && SelectedFriend.IsValid() ? FText::FromString(SelectedFriend->GetName()) : EChatMessageType::ToText(SelectedChatChannel);
 	}
 
 	virtual void EnumerateChatChannelOptionsList(TArray<EChatMessageType::Type>& OUTChannelType) override
@@ -42,8 +41,10 @@ public:
 		OUTChannelType.Add(EChatMessageType::Party);
 	}
 
-	virtual void SetChatChannel(const EChatMessageType::Type NewOption) override
+	virtual void SetChatChannel(const EChatMessageType::Type NewOption, FString InSelectedFriend) override
 	{
+		// To Do - set the chat channel. Disabled for now
+//		SelectedFriend = FText::FromString(InSelectedFriend);
 		SelectedChatChannel = NewOption;
 	}
 
@@ -56,14 +57,53 @@ public:
 
 	virtual void SendMessage(const FText NewMessage) override
 	{
-		TSharedPtr< FChatMessage > FriendItem = MakeShareable(new FChatMessage());
-		FriendItem->FriendID = SelectedFriend;
-		FriendItem->Message = NewMessage;
-		FriendItem->MessageType = SelectedChatChannel;
-		FriendItem->MessageTimeText = FText::AsTime(FDateTime::Now());
-		FriendItem->bIsFromSelf = true;
-		ChatLists.Add(FChatItemViewModelFactory::Create(FriendItem.ToSharedRef()));
+		if(SelectedChatChannel == EChatMessageType::Whisper)
+		{
+			MessageManager.Pin()->SendMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
+		}
+
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+		if(SelectedFriend.IsValid())
+		{
+			ChatItem->FriendID = FText::FromString(SelectedFriend->GetName());
+		}
+		else
+		{
+			ChatItem->FriendID = FText::FromString("Unknown");
+		}
+
+		ChatItem->Message = NewMessage;
+		ChatItem->MessageType = SelectedChatChannel;
+		ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+		ChatItem->bIsFromSelf = true;
+		ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
 		FilterChatList();
+	}
+
+	virtual void SetTimeDisplayTransparency(const float TimeTransparency)
+	{
+		TimeDisplayTransaprency = TimeTransparency;
+	}
+
+	virtual const float GetTimeTransparency() const
+	{
+		return TimeDisplayTransaprency;
+	}
+
+	virtual EChatMessageType::Type GetChatChannelType() const
+	{
+		return SelectedChatChannel;
+	}
+	
+	virtual const TArray<FString>& GetRecentOptions() const override
+	{
+		return RecentPlayerList;
+	}
+
+	virtual void SetChatFriend(TSharedPtr<FFriendStuct> ChatFriend) override
+	{
+		SelectedFriend = ChatFriend;
+		SelectedChatChannel = EChatMessageType::Whisper;
 	}
 
 	DECLARE_DERIVED_EVENT(FChatViewModelImpl , FChatViewModel::FChatListUpdated, FChatListUpdated);
@@ -72,83 +112,55 @@ public:
 		return ChatListUpdatedEvent;
 	}
 
-	~FChatViewModelImpl()
-	{
-		Uninitialize();
-	}
-
-
 private:
 	void Initialize()
 	{
-		// Create some fake data. TODO: Hook up to chat message discovery once OSS system is ready. Probably just registed for callbacks
-		TSharedPtr< FChatMessage > FriendItem = MakeShareable(new FChatMessage());
-		FriendItem->FriendID = FText::FromString("Bob");
-		FriendItem->Message = FText::FromString("How are you");
-		FriendItem->MessageType = EChatMessageType::Whisper;
-		FriendItem->MessageTimeText = FText::AsTime(FDateTime::Now());
-		FriendItem->bIsFromSelf = false;
-		ChatLists.Add(FChatItemViewModelFactory::Create(FriendItem.ToSharedRef()));
-
-		TSharedPtr< FChatMessage > FriendItem1 = MakeShareable(new FChatMessage());
-		FriendItem1->FriendID = FText::FromString("Dave");
-		FriendItem1->Message = FText::FromString("Join the game test test test test test test test!");
-		FriendItem1->MessageType = EChatMessageType::Party;
-		FriendItem1->MessageTimeText = FText::AsTime(FDateTime::Now());
-		FriendItem1->bIsFromSelf = false;
-		ChatLists.Add(FChatItemViewModelFactory::Create(FriendItem1.ToSharedRef()));
-
-		TSharedPtr< FChatMessage > FriendItem2 = MakeShareable(new FChatMessage());
-		FriendItem2->FriendID = FText::FromString("JB");
-		FriendItem2->Message = FText::FromString("Hello");
-		FriendItem2->MessageType = EChatMessageType::Global;
-		FriendItem2->MessageTimeText = FText::AsTime(FDateTime::Now());
-		FriendItem2->bIsFromSelf = false;
-		ChatLists.Add(FChatItemViewModelFactory::Create(FriendItem2.ToSharedRef()));
-
+		MessageManager.Pin()->OnChatMessageRecieved().AddSP(this, &FChatViewModelImpl::HandleMessageReceived);
 		FilterChatList();
 	}
 
-	void Uninitialize()
-	{
-	}
-
-
 	void FilterChatList()
 	{
-		FilteredChatLists.Empty();
-		for (const auto& ChatItem : ChatLists)
-		{
-			if(ChatItem->GetMessageType() <= SelectedViewChannel)
-			{
-				FilteredChatLists.Add(ChatItem);
-			}
-		}
+		FilteredChatLists = ChatLists;
 		ChatListUpdatedEvent.Broadcast();
 	}
 
-	FChatViewModelImpl()
+
+	void HandleMessageReceived( const TSharedRef<FFriendChatMessage> NewMessage)
+	{
+		ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
+		FilterChatList();
+	}
+
+	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager)
 		: SelectedViewChannel(EChatMessageType::Global)
 		, SelectedChatChannel(EChatMessageType::Global)
-		, SelectedFriend(FText::GetEmpty())
+		, MessageManager(MessageManager)
+		, TimeDisplayTransaprency(0.f)
 	{
 	}
 
 private:
-	friend FChatViewModelFactory;
-
 	TArray<TSharedRef<FChatItemViewModel> > ChatLists;
 	TArray<TSharedRef<FChatItemViewModel> > FilteredChatLists;
 	FChatListUpdated ChatListUpdatedEvent;
+	TArray<FString> RecentPlayerList;
+	TSharedPtr<FFriendStuct> SelectedFriend;
 
 	EChatMessageType::Type SelectedViewChannel;
 	EChatMessageType::Type SelectedChatChannel;
-	FText SelectedFriend;
+	TWeakPtr<FFriendsMessageManager> MessageManager;
+	float TimeDisplayTransaprency;
+
+private:
+	friend FChatViewModelFactory;
 };
 
-TSharedRef< FChatViewModel > FChatViewModelFactory::Create()
+TSharedRef< FChatViewModel > FChatViewModelFactory::Create(
+	const TSharedRef<FFriendsMessageManager>& MessageManager
+	)
 {
-	TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl());
+	TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(MessageManager));
 	ViewModel->Initialize();
 	return ViewModel;
 }

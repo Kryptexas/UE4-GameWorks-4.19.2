@@ -9,14 +9,12 @@ class FFriendsStatusViewModelImpl
 public:
 	virtual bool GetOnlineStatus() const override
 	{
-		// Hook into online state here
-		return bOnline;
+		return FriendsAndChatManager.Pin()->GetUserIsOnline();
 	}
 
 	virtual void SetOnlineStatus(const bool bOnlineStatus) override
 	{
-		// Hook up setting online here
-		bOnline = bOnlineStatus;
+		FriendsAndChatManager.Pin()->SetUserIsOnline(bOnlineStatus);
 	}
 
 	virtual TArray<TSharedRef<FText> > GetStatusList() const override
@@ -26,7 +24,7 @@ public:
 
 	virtual FText GetStatusText() const override
 	{
-		return bOnline ? FText::FromString("Online") : FText::FromString("Away");
+		return FriendsAndChatManager.Pin()->GetUserIsOnline() ? FText::FromString("Online") : FText::FromString("Away");
 	}
 
 private:
@@ -34,7 +32,6 @@ private:
 		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
 		)
 		: FriendsAndChatManager(FriendsAndChatManager)
-		, bOnline(true)
 	{
 		OnlineStateArray.Add(MakeShareable(new FText(NSLOCTEXT("OnlineState", "OnlineState_Online", "Online"))));
 		OnlineStateArray.Add(MakeShareable(new FText(NSLOCTEXT("OnlineState", "OnlineState_Away", "Away"))));
@@ -43,7 +40,6 @@ private:
 private:
 	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	TArray<TSharedRef<FText> > OnlineStateArray;
-	bool bOnline;
 
 private:
 	friend FFriendsStatusViewModelFactory;

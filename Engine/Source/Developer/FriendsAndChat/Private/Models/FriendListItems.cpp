@@ -76,7 +76,7 @@ const bool FFriendStuct::IsOnline() const
 {
 	if(OnlineFriend.IsValid())
 	{
-		return OnlineFriend->GetPresence().bIsOnline;
+		return OnlineFriend->GetPresence().Status.State == EOnlinePresenceState::Online ? true : false;
 	}
 	return false;
 }

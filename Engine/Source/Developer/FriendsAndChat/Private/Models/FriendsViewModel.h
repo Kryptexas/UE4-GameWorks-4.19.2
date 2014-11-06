@@ -10,6 +10,7 @@ public:
 	virtual bool IsPerformingAction() const = 0;
 	virtual void PerformAction() = 0;
 	virtual TSharedRef< class FFriendsStatusViewModel > GetStatusViewModel() = 0;
+	virtual TSharedRef< class FFriendsUserSettingsViewModel > GetUserSettingsViewModel() = 0;
 	virtual TSharedRef< class FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) = 0;
 	virtual void RequestFriend(const FText& FriendName) const = 0;
 };

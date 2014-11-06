@@ -42,43 +42,40 @@ public:
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.Padding(3)
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.ContentPadding(FMargin(15.0f, 0.f))
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::AcceptFriendRequest)
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::AcceptFriendRequest))
-						]
-					]
-					+ SHorizontalBox::Slot()
-					.Padding(3)
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ContentPadding(FMargin(15.0f, 0.f))
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::RejectFriendRequest)
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::RejectFriendRequest))
-						]
-					]
+					SAssignNew(OptionContainer, SHorizontalBox)
 				]
 			]
 		]);
+
+		CreateOptions();
 	}
 
 private:
+
+	void CreateOptions()
+	{
+		TArray<EFriendActionType::Type> Actions;
+		ViewModel->EnumerateActions(Actions);
+
+		for(const auto& FriendAction : Actions)
+		{
+			OptionContainer->AddSlot()
+			.Padding(5)
+			[
+				SNew(SButton)
+				.OnClicked(this, &SInviteItemImpl::PerformAction, FriendAction)
+				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.ColorAndOpacity(FriendStyle.DefaultFontColor)
+					.Font(FriendStyle.FriendsFontStyle)
+					.Text(EFriendActionType::ToText(FriendAction))
+				]
+			];
+		}
+	}
 
 	FReply PerformAction(EFriendActionType::Type FriendAction)
 	{
@@ -89,6 +86,7 @@ private:
 private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
+	TSharedPtr<SHorizontalBox> OptionContainer;
 	TSharedPtr<FFriendViewModel> ViewModel;
 };
 

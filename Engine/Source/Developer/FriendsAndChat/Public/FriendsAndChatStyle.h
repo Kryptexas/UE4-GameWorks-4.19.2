@@ -65,6 +65,15 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle FriendListActionButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle);
 
+	/** Friends List Critical Button style */
+	UPROPERTY()
+	FButtonStyle FriendListCriticalButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListCriticalButtonStyle(const FButtonStyle& ButtonStyle);
+
+	UPROPERTY()
+	FButtonStyle FriendListItemButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle);
+
 	/** Friends List Close button style */
 	UPROPERTY()
 	FButtonStyle FriendListCloseButtonStyle;
@@ -80,6 +89,16 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FSlateBrush FriendImageBrush;
 	FFriendsAndChatStyle& SetFriendImageBrush(const FSlateBrush& BrushStyle);
 
+	/** Fortnite Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FortniteImageBrush;
+	FFriendsAndChatStyle& SetFortniteImageBrush(const FSlateBrush& BrushStyle);
+
+	/** Launcher Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush LauncherImageBrush;
+	FFriendsAndChatStyle& SetLauncherImageBrush(const FSlateBrush& BrushStyle);
+
 	/** Friend combo dropdown Image */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush FriendsComboDropdownImageBrush;
@@ -94,6 +113,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush OnlineBrush;
 	FFriendsAndChatStyle& SetOnlineBrush(const FSlateBrush& InOnLine);
+
+	/** Away brush style */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush AwayBrush;
+	FFriendsAndChatStyle& SetAwayBrush(const FSlateBrush& AwayBrush);
 
 	/** Window background style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
@@ -115,16 +139,20 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FSlateFontInfo FriendsFontStyleSmall;
 	FFriendsAndChatStyle& SetFontStyleSmall(const FSlateFontInfo& InFontStyle);
 
-	/** Menu set color */
+	/** Default Font Color */
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor MenuSetColor;
-	FFriendsAndChatStyle& SetMenuSetColor(const FLinearColor& InSetColor);
+	FLinearColor DefaultFontColor;
+	FFriendsAndChatStyle& SetDefaultFontColor(const FLinearColor& InFontColor);
 
-	/** Menu Unset color */
-	FLinearColor MenuUnsetColor;
-	FFriendsAndChatStyle& SetMenuUnsetColor(const FLinearColor& InUnsetColor);
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor DefaultChatColor;
+	FFriendsAndChatStyle& SetDefaultChatColor(const FLinearColor& InFontColor);
 
-	/** Friend List Item Style */
-	FComboButtonStyle FriendItemStyle;
-	FFriendsAndChatStyle& SetFriendItemStyle(const FComboButtonStyle& InFriendItemStyle);
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor WhisplerChatColor;
+	FFriendsAndChatStyle& SetWhisplerChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor PartyChatColor;
+	FFriendsAndChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
 };
