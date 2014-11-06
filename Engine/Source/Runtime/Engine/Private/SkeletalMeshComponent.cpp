@@ -649,8 +649,8 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 #endif
 		FTransform::Multiply(SpaceBasesData + BoneIndex, LocalTransformsData + BoneIndex, SpaceBasesData + ParentIndex);
 
-		checkSlow( SpaceBases[BoneIndex].IsRotationNormalized() );
-		checkSlow( !SpaceBases[BoneIndex].ContainsNaN() );
+		checkSlow(DestSpaceBases[BoneIndex].IsRotationNormalized());
+		checkSlow(!DestSpaceBases[BoneIndex].ContainsNaN());
 	}
 
 	/**
