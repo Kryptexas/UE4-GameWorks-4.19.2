@@ -500,16 +500,26 @@ bool FTestSessionInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 			}
 			else
 			{
-				TCHAR FriendNameStr[256];
-				if (FParse::Token(Cmd, FriendNameStr, ARRAY_COUNT(FriendNameStr), true))
+				FString FriendStr = FParse::Token(Cmd, true);
+				if (!FriendStr.IsEmpty())
 				{
-					for (int32 FriendIdx=0; FriendIdx<FriendsCache.Num(); FriendIdx++)
+					bool bFound = false;
+					for (auto Friend : FriendsCache)
 					{
-						const FOnlineFriend& Friend = *FriendsCache[FriendIdx];
-						if (Friend.GetDisplayName() == FriendNameStr)
+						if (Friend->GetDisplayName() == FriendStr)
 						{
-							SessionInt->SendSessionInviteToFriend(LocalUserNum, SessionName, *Friend.GetUserId());
+							SessionInt->SendSessionInviteToFriend(LocalUserNum, SessionName, *Friend->GetUserId());
+							bFound = true;
 							break;
+						}
+					}
+					if (!bFound)
+					{
+						// use friend str as id instead of display name
+						TSharedPtr<FUniqueNetId> UserId = Identity->CreateUniquePlayerId(FriendStr);
+						if (UserId.IsValid())
+						{	
+							SessionInt->SendSessionInviteToFriend(LocalUserNum, SessionName, *UserId);
 						}
 					}
 				}
