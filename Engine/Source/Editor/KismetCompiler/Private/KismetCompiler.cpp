@@ -3605,7 +3605,8 @@ void FKismetCompilerContext::Compile()
 		// TODO What do we do if validation fails?
 	}
 
-	if (bIsFullCompile)
+	static const FBoolConfigValueHelper ChangeDefaultValueWithoutReinstancing(TEXT("Kismet"), TEXT("bChangeDefaultValueWithoutReinstancing"), GEngineIni);
+	if (bIsFullCompile && !ChangeDefaultValueWithoutReinstancing)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChecksumCDO);
 		UObject* NewCDO = NewClass->GetDefaultObject(false);

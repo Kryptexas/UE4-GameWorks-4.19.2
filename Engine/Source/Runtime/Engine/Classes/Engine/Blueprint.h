@@ -436,7 +436,7 @@ public:
 	UPROPERTY(transient)
 	uint32 bBeingCompiled:1;
 
-	/** CRC for CDO calculated right after the latest compilation */
+	/** CRC for CDO calculated right after the latest compilation used by Reinstancer to check if default values were changed */
 	UPROPERTY(transient, duplicatetransient)
 	uint32 CrcPreviousCompiledCDO;
 
