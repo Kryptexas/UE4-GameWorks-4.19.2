@@ -863,14 +863,9 @@ void USkeletalMeshComponent::TermArticulated()
 	{
 		check( Bodies[i] );
 		Bodies[i]->TermBody();
-	}
-	
-	for(int32 i=0; i<Bodies.Num(); i++)
-	{
-		check( Bodies[i] );
 		delete Bodies[i];
 	}
-
+	
 	Bodies.Empty();
 
 #if WITH_PHYSX
@@ -1315,6 +1310,8 @@ void USkeletalMeshComponent::DestroyPhysicsState()
 {
 	if (bEnablePerPolyCollision == false)
 	{
+		UnWeldFromParent();
+		UnWeldChildren();
 		TermArticulated();
 	}
 

@@ -428,6 +428,10 @@ void UPrimitiveComponent::SendPhysicsTransform(bool bTeleport)
 
 void UPrimitiveComponent::DestroyPhysicsState()
 {
+	// we remove welding related to this component
+	UnWeldFromParent();
+	UnWeldChildren();
+
 	// clean up physics engine representation
 	if(BodyInstance.IsValidBodyInstance())
 	{

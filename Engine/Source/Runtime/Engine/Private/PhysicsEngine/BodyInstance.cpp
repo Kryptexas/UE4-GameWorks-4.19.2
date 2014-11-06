@@ -1503,28 +1503,6 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
  */
 void FBodyInstance::TermBody()
 {
-	if (UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
-	{
-		OwnerComponentInst->UnWeldFromParent();
-
-		for (USceneComponent * Child : OwnerComponentInst->AttachChildren)
-		{
-			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
-			{
-				if (FBodyInstance* ChildBI = PrimChild->GetBodyInstance())
-				{
-					if (ChildBI->bWelded)
-					{
-						if (ChildBI->OwnerComponent.IsValid())
-						{
-							ChildBI->OwnerComponent->UnWeldFromParent();
-						}
-					}
-				}
-			}
-		}
-	}
-
 #if WITH_BOX2D
 	if (BodyInstancePtr != NULL)
 	{
@@ -1567,7 +1545,7 @@ void FBodyInstance::TermBody()
 	{
 		DOFConstraint->TermConstraint();
 		FConstraintInstance::Free(DOFConstraint);
-		DOFConstraint = NULL;
+			DOFConstraint = NULL;
 	}
 	
 

@@ -1128,6 +1128,11 @@ public:
 	virtual void UnWeldFromParent();
 
 	/**
+	*   Unwelds the children of this component. Attachment is maintained
+	*/
+	virtual void UnWeldChildren();
+
+	/**
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
 	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);

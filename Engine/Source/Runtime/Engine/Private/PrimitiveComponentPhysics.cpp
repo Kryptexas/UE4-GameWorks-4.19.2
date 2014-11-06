@@ -703,6 +703,17 @@ void UPrimitiveComponent::UnWeldFromParent()
 	}
 }
 
+void UPrimitiveComponent::UnWeldChildren()
+{
+	for (USceneComponent* ChildComponent : AttachChildren)
+	{
+		if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(ChildComponent))
+		{
+			PrimComp->UnWeldFromParent();
+		}
+	}
+}
+
 FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWelded) const
 {
 	if (bGetWelded && BodyInstance.bWelded)
