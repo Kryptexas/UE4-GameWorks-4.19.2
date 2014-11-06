@@ -13,13 +13,13 @@ FSCSDiff::FSCSDiff(const UBlueprint* InBlueprint)
 		.ViewIdentifier(FName("BlueprintInspector"))
 		.IsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return false; }));
 
-	ContainerWidget = SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
+	ContainerWidget = SNew(SSplitter)
+		.Orientation(Orient_Vertical)
+		+ SSplitter::Slot()
 		[
 			SAssignNew(SCSEditor, SSCSEditor, TSharedPtr<FBlueprintEditor>(), InBlueprint->SimpleConstructionScript, const_cast<UBlueprint*>(InBlueprint), Inspector)
 		]
-	+ SVerticalBox::Slot()
+		+ SSplitter::Slot()
 		[
 			Inspector
 		];
