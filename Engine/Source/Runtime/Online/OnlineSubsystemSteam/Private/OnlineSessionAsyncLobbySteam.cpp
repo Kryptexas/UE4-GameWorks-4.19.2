@@ -350,7 +350,7 @@ bool FillSessionFromLobbyData(FUniqueNetIdSteam& LobbyId, FOnlineSession& Sessio
 	// Verify success with all required keys found
 	if (bSuccess && (KeysFound == STEAMKEY_NUMREQUIREDLOBBYKEYS) && (HostKeysFound == 2 || SteamAddrKeysFound == 2))
 	{
-		uint32 BuildUniqueId = GetBuildUniqueId();
+		int32 BuildUniqueId = GetBuildUniqueId();
 		if (Session.SessionSettings.BuildUniqueId != 0 && Session.SessionSettings.BuildUniqueId == BuildUniqueId)
 		{
 			if (HostKeysFound == 2)

@@ -217,7 +217,7 @@ public:
 	/** Whether the server employs anti-cheat (punkbuster, vac, etc) */
 	bool bAntiCheatProtected;
 	/** Used to keep different builds from seeing each other during searches */
-	uint32 BuildUniqueId;
+	int32 BuildUniqueId;
 	/** Array of custom session settings */
 	FSessionSettings Settings;
 

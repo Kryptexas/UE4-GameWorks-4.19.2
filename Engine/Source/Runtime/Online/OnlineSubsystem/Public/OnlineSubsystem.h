@@ -370,7 +370,7 @@ public:
  *
  * @return the unique number from the current engine package
  */
-ONLINESUBSYSTEM_API uint32 GetBuildUniqueId();
+ONLINESUBSYSTEM_API int32 GetBuildUniqueId();
 
 /**
  * Common implementation for finding a player in a session

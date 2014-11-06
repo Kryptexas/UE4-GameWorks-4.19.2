@@ -18,7 +18,7 @@ ONLINESUBSYSTEM_API DEFINE_STAT(STAT_Session_Interface);
 ONLINESUBSYSTEM_API DEFINE_STAT(STAT_Voice_Interface);
 #endif
 
-uint32 GetBuildUniqueId()
+int32 GetBuildUniqueId()
 {
 	static bool bStaticCheck = false;
 	static bool bUseBuildIdOverride = false;
@@ -47,7 +47,7 @@ uint32 GetBuildUniqueId()
 		bStaticCheck = true;
 	}
 
-	uint32 Crc = 0;
+	int32 Crc = 0;
 	if (bUseBuildIdOverride == false)
 	{
 		/** Engine package CRC doesn't change, can't be used as the version - BZ */
@@ -55,11 +55,11 @@ uint32 GetBuildUniqueId()
 		// Serialize to a NBO buffer for consistent CRCs across platforms
 		Buffer << GEngineNetVersion;
 		// Now calculate the CRC
-		Crc = FCrc::MemCrc_DEPRECATED((uint8*)Buffer, Buffer.GetByteCount());
+		Crc = static_cast<int32>(FCrc::MemCrc_DEPRECATED((uint8*)Buffer, Buffer.GetByteCount()));
 	}
 	else
 	{
-		Crc = (uint32)BuildIdOverride;
+		Crc = BuildIdOverride;
 	}
 
 	UE_LOG_ONLINE(Verbose, TEXT("GetBuildUniqueId: GEngineNetVersion %d bUseBuildIdOverride %d BuildIdOverride %d Crc %d"),
