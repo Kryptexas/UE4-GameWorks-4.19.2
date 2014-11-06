@@ -1122,6 +1122,10 @@ namespace UnrealBuildTool
 							{
 								DisplayName += "Editor";
 							}
+							else if (TargetName.Contains("Server"))
+							{
+								DisplayName += "Server";
+							}
 						}
 					}
 
