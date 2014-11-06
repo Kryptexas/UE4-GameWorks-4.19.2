@@ -1262,7 +1262,7 @@ FText SColorPicker::HandleHexBoxText() const
 
 void SColorPicker::HandleHexInputTextCommitted( const FText& Text, ETextCommit::Type CommitType )
 {
-	if ((CommitType == ETextCommit::OnEnter) || (CommitType == ETextCommit::OnUserMovedFocus))
+	if (!Text.IsEmpty() && ((CommitType == ETextCommit::OnEnter) || (CommitType == ETextCommit::OnUserMovedFocus)))
 	{
 		FColor Color = FColor::FromHex(Text.ToString());
 		SetNewTargetColorRGB(FLinearColor(Color.R / 255.0f, Color.G / 255.0f, Color.B / 255.0f, Color.A / 255.0f), false);
