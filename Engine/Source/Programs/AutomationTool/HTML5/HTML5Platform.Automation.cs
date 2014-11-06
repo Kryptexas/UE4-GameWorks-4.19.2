@@ -83,8 +83,8 @@ public class HTML5Platform : Platform
             string OutDir = PackagePath;
             File.Copy(JSDir + "/json2.js", OutDir + "/json2.js", true);
             File.SetAttributes(OutDir + "/json2.js", FileAttributes.Normal);
-            File.Copy(JSDir + "/jstorage.js", OutDir + "/jstorage.js", true);
-            File.SetAttributes(OutDir + "/jstorage.js", FileAttributes.Normal);
+            File.Copy(JSDir + "/jStorage.js", OutDir + "/jStorage.js", true);
+            File.SetAttributes(OutDir + "/jStorage.js", FileAttributes.Normal);
             File.Copy(JSDir + "/moz_binarystring.js", OutDir + "/moz_binarystring.js", true);
             File.SetAttributes(OutDir + "/moz_binarystring.js", FileAttributes.Normal);
             PrintRunTime();
@@ -194,7 +194,7 @@ public class HTML5Platform : Platform
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("json2.js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("jstorage.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("jStorage.js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("moz_binarystring.js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
 	}
