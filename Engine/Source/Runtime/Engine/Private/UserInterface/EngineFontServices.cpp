@@ -14,7 +14,10 @@ FEngineFontServices::FEngineFontServices()
 	check(IsInGameThread());
 
 #if !UE_SERVER
-	RenderThreadFontAtlasFactory = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateFontAtlasFactory();
+	if (!IsRunningDedicatedServer())
+	{
+		RenderThreadFontAtlasFactory = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateFontAtlasFactory();
+	}
 #endif
 }
 
