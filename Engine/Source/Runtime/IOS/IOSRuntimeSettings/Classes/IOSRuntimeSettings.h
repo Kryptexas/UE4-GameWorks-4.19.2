@@ -24,8 +24,8 @@ enum class EPowerUsageFrameRateLock : uint8
 UENUM()
 	enum class EIOSVersion : uint8
 {
-	/** iOS 6 */
-	IOS_6 = 6 UMETA(DisplayName="6.0"),
+	/** iOS 6.1 */
+	IOS_61 = 6 UMETA(DisplayName="6.1"),
 
 	/** iOS 7 */
 	IOS_7 = 7 UMETA(DisplayName="7.0"),
@@ -126,10 +126,6 @@ public:
 	// Does the application support iPhone */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)
 	uint32 bSupportsIPhone : 1;
-
-	// Texture compression value
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = CookSettings)
-	uint32 CompressionLevel;
 
 #if WITH_EDITOR
 	// UObject interface

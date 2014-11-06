@@ -443,8 +443,8 @@ void FIOSTargetSettingsCustomization::OnPlistPropertyModified()
 	FString iOSVersionBody = TEXT("\n\t<string>");
 	switch (Settings.MinimumiOSVersion)
 	{
-	case EIOSVersion::IOS_6:
-		iOSVersionBody += TEXT("6.0");
+	case EIOSVersion::IOS_61:
+		iOSVersionBody += TEXT("6.1");
 		break;
 	case EIOSVersion::IOS_7:
 		iOSVersionBody += TEXT("7.0");

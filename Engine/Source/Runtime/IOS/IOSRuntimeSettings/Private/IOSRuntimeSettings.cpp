@@ -16,8 +16,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
     FrameRateLock = EPowerUsageFrameRateLock::PUFRL_30;
 	bSupportsIPad = true;
 	bSupportsIPhone = true;
-	MinimumiOSVersion = EIOSVersion::IOS_6;
-	CompressionLevel = 0;
+	MinimumiOSVersion = EIOSVersion::IOS_61;
 	bDevForArmV7 = true;
 	bDevForArm64 = false;
 	bDevForArmV7S = false;
