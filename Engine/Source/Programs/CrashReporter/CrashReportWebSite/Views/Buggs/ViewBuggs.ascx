@@ -58,7 +58,7 @@
 			{
 				foreach( Bugg CurrentBugg in Model.Results )
 				{
-					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "VBInnerLoop" ) )
+					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "CurrentBugg" + "(" + CurrentBugg.Id + ")" ) )
 					{ 
 						string BuggRowColor = "grey";
 						string BuggColorDescription = "Incoming CrashGroup";

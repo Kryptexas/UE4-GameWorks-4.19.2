@@ -81,16 +81,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// Show detailed information about a crash.
 		/// </summary>
 		/// <param name="CrashesForm">A form of user data passed up from the client.</param>
-		/// <param name="CrashId">The unique NewCrashId of the crash we wish to show the details of.</param>
+		/// <param name="CrashId">The unique id of the crash we wish to show the details of.</param>
 		/// <returns>A view to show crash details.</returns>
-		public ActionResult Show( FormCollection CrashesForm, int CrashId )
+		public ActionResult Show( FormCollection CrashesForm, int id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CrashId + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + id + ")" ) )
 			{
 				CallStackContainer CurrentCallStack = null;
 
 				// Update the selected crash based on the form contents
-				Crash CurrentCrash = LocalCrashRepository.GetCrash( CrashId );
+				Crash CurrentCrash = LocalCrashRepository.GetCrash( id );
 
 				if( CurrentCrash == null )
 				{
@@ -146,11 +146,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <summary>
 		/// Add a crash passed in the payload as Xml to the database.
 		/// </summary>
-		/// <param name="NewCrashId">Unused.</param>
-		/// <returns>The row NewCrashId of the newly added crash.</returns>
-		public ActionResult AddCrash( int NewCrashId )
+		/// <param name="id">Unused.</param>
+		/// <returns>The row id of the newly added crash.</returns>
+		public ActionResult AddCrash( int id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(NewCrashId=" + NewCrashId + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(NewCrashId=" + id + ")" ) )
 			{
 				CrashReporterResult NewCrashResult = new CrashReporterResult();
 				NewCrashResult.ID = -1;

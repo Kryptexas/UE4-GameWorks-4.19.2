@@ -46,11 +46,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// The Show action.
 		/// </summary>
 		/// <param name="BuggsForm">The form of user data passed up from the client.</param>
-		/// <param name="BuggId">The unique BuggId of the Bugg.</param>
+		/// <param name="id">The unique id of the Bugg.</param>
 		/// <returns>The view to display a Bugg on the client.</returns>
-		public ActionResult Show( FormCollection BuggsForm, int BuggId )
+		public ActionResult Show( FormCollection BuggsForm, int id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(BuggId=" + BuggId + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(BuggId=" + id + ")" ) )
 			{
 				// Set the display properties based on the radio buttons
 				bool DisplayModuleNames = false;
@@ -89,7 +89,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				Bugg Bugg = new Bugg();
 
 				BuggViewModel Model = new BuggViewModel();
-				Bugg = LocalBuggRepository.GetBugg( BuggId );
+				Bugg = LocalBuggRepository.GetBugg( id );
 				if( Bugg == null )
 				{
 					return RedirectToAction( "" );
@@ -103,19 +103,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					if( !string.IsNullOrEmpty( BuggsForm["SetStatus"] ) )
 					{
 						Bugg.Status = BuggsForm["SetStatus"];
-						LocalCrashRepository.SetBuggStatus( Bugg.Status, BuggId );
+						LocalCrashRepository.SetBuggStatus( Bugg.Status, id );
 					}
 
 					if( !string.IsNullOrEmpty( BuggsForm["SetFixedIn"] ) )
 					{
 						Bugg.FixedChangeList = BuggsForm["SetFixedIn"];
-						LocalCrashRepository.SetBuggFixedChangeList( Bugg.FixedChangeList, BuggId );
+						LocalCrashRepository.SetBuggFixedChangeList( Bugg.FixedChangeList, id );
 					}
 
 					if( !string.IsNullOrEmpty( BuggsForm["SetTTP"] ) )
 					{
 						Bugg.TTPID = BuggsForm["SetTTP"];
-						LocalCrashRepository.SetBuggTTPID( Bugg.TTPID, BuggId );
+						LocalCrashRepository.SetBuggTTPID( Bugg.TTPID, id );
 					}
 
 					if( !string.IsNullOrEmpty( BuggsForm["Description"] ) )
@@ -147,7 +147,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					NewCrash.CallStackContainer = NewCrash.GetCallStack();
 				}
 
-				using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggsController.Show.PopulateUserInfo" + "(BuggId=" + BuggId + ")" ) )
+				using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggsController.Show.PopulateUserInfo" + "(id=" + id + ")" ) )
 				{
 					// Add in the users for each crash in the Bugg
 					foreach( Crash CrashInstance in Model.Crashes )
