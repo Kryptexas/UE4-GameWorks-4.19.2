@@ -13,6 +13,7 @@ enum EMacEventSendMethod
 @interface NSEvent (FCachedWindowAccess)
 -(void)CacheWindow;
 -(NSWindow*)GetWindow;
+-(void)ResetWindow;
 @end
 
 class FMacEvent

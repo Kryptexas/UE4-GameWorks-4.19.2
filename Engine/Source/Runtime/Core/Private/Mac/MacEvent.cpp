@@ -9,11 +9,16 @@
 @implementation NSEvent (FCachedWindowAccess)
 -(void)CacheWindow
 {
-	_window = [self window];
+	_window = [[self window] retain];
 }
 -(NSWindow*)GetWindow
 {
 	return _window;
+}
+-(void)ResetWindow
+{
+	[_window release];
+	_window = nil;
 }
 @end
 

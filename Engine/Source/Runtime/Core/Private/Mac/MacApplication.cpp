@@ -830,6 +830,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 		}
 	}
 
+	[Event ResetWindow];
 	bIsProcessingNSEvent = bWasProcessingNSEvent;
 }
 
