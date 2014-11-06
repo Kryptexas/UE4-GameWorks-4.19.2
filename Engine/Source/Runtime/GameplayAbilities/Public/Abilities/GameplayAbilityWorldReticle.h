@@ -40,6 +40,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
 	void OnParametersInitialized();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
+	void SetReticleMaterialParamFloat(FName ParamName, float value);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
+	void SetReticleMaterialParamVector(FName ParamName, FVector value);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
 	FWorldReticleParameters Parameters;
 
