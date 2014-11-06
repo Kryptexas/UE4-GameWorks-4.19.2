@@ -244,10 +244,6 @@ namespace UnrealBuildTool
 							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
                         }
 					}
-					else if (InModule.ToString() == "UnrealEd")
-					{
-						InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidPlatformEditor");
-					}
 					else if (InModule.ToString() == "TargetPlatform")
 					{
 						bBuildShaderFormats = true;

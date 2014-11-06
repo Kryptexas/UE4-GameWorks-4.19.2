@@ -247,10 +247,6 @@ namespace UnrealBuildTool
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSTargetPlatform");
                         }
                     }
-                    else if (InModule.ToString() == "UnrealEd")
-                    {
-                        InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSPlatformEditor");
-                    }
                     else if (InModule.ToString() == "TargetPlatform")
                     {
                         bBuildShaderFormats = true;
