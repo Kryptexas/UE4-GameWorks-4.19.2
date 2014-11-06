@@ -189,12 +189,12 @@ bool FOnlineSubsystemNull::Shutdown()
  	}
  
  	// Destruct the interfaces
+	DESTRUCT_INTERFACE(VoiceInterface);
 	DESTRUCT_INTERFACE(AchievementsInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
  	DESTRUCT_INTERFACE(SessionInterface);
-	DESTRUCT_INTERFACE(VoiceInterface);
-
+	
 	#undef DESTRUCT_INTERFACE
 	
 	return true;
