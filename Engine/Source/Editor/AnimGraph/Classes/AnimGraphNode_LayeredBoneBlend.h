@@ -13,6 +13,10 @@ class UAnimGraphNode_LayeredBoneBlend : public UAnimGraphNode_BlendListBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_LayeredBoneBlend Node;
 
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Adds a new pose pin
 	//@TODO: Generalize this behavior (returning a list of actions/delegates maybe?)
 	ANIMGRAPH_API virtual void AddPinToBlendByFilter();

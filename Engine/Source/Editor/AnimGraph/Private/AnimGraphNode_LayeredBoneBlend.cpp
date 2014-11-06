@@ -14,6 +14,7 @@
 UAnimGraphNode_LayeredBoneBlend::UAnimGraphNode_LayeredBoneBlend(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	Node.AddPose();
 }
 
 FLinearColor UAnimGraphNode_LayeredBoneBlend::GetNodeTitleColor() const
@@ -90,4 +91,9 @@ void UAnimGraphNode_LayeredBoneBlend::GetContextMenuActions(const FGraphNodeCont
 	}
 }
 
+void UAnimGraphNode_LayeredBoneBlend::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	Node.ValidateData();
+}
 #undef LOCTEXT_NAMESPACE
