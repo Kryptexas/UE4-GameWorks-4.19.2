@@ -910,7 +910,7 @@ protected:
 	{
 		check(Source->GetClass() == Destination->GetClass());
 		UClass* CommonBaseClass = Source->GetClass();
-		UActorComponent* DefaultComponent = CastChecked<UActorComponent>(Source->GetArchetype());
+		UActorComponent* DefaultComponent = CastChecked<UActorComponent>(Destination->GetArchetype());
 
 		//@TODO: Copy of code from inside CopyActorComponentProperties
 
