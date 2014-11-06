@@ -49,10 +49,10 @@ namespace UnrealBuildTool
 
 		/** Which version of the iOS to allow at build time */
 		[XmlConfig]
-		public static string BuildIOSVersion = "6.0";
+		public static string BuildIOSVersion = "6.1";
 
 		/** Which version of the iOS to allow at run time */
-		public static string RunTimeIOSVersion = "6.0";
+		public static string RunTimeIOSVersion = "6.1";
 
 		/** Which developer directory to root from */
 		[XmlConfig]
