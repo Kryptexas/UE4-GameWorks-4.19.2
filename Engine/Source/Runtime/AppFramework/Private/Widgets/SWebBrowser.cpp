@@ -80,11 +80,25 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 		]
 		+SVerticalBox::Slot()
 		[
-			SAssignNew(ViewportWidget, SViewport)
-			.ViewportSize(InArgs._ViewportSize)
-			.EnableGammaCorrection(false)
-			.EnableBlending(InArgs._SupportsTransparency)
-			.IgnoreTextureAlpha(!InArgs._SupportsTransparency)
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			[
+				SAssignNew(ViewportWidget, SViewport)
+				.ViewportSize(InArgs._ViewportSize)
+				.EnableGammaCorrection(false)
+				.EnableBlending(InArgs._SupportsTransparency)
+				.IgnoreTextureAlpha(!InArgs._SupportsTransparency)
+				.Visibility(this, &SWebBrowser::GetViewportVisibility)
+			]
+			+SOverlay::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SCircularThrobber)
+				.Radius(10.0f)
+				.ToolTipText(LOCTEXT("LoadingThrobberToolTip", "Loading page..."))
+				.Visibility(this, &SWebBrowser::GetLoadingThrobberVisibility)
+			]
 		]
 	];
 
@@ -185,6 +199,28 @@ FReply SWebBrowser::OnReloadClicked()
 	}
 #endif
 	return FReply::Handled();
+}
+
+EVisibility SWebBrowser::GetViewportVisibility() const
+{
+#if WITH_EDITOR || IS_PROGRAM
+	if (BrowserWindow.IsValid() && BrowserWindow->HasBeenPainted())
+	{
+		return EVisibility::Visible;
+	}
+#endif
+	return EVisibility::Hidden;
+}
+
+EVisibility SWebBrowser::GetLoadingThrobberVisibility() const
+{
+#if WITH_EDITOR || IS_PROGRAM
+	if (BrowserWindow.IsValid() && BrowserWindow->HasBeenPainted())
+	{
+		return EVisibility::Hidden;
+	}
+#endif
+	return EVisibility::Visible;
 }
 
 #undef LOCTEXT_NAMESPACE

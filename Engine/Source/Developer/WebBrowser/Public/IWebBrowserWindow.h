@@ -37,6 +37,11 @@ public:
 	virtual bool IsValid() const = 0;
 
 	/**
+	 * Checks whether the web browser has been painted at least once
+	 */
+	virtual bool HasBeenPainted() const = 0;
+
+	/**
 	 * Checks whether the web browser is currently being shut down
 	 */
 	virtual bool IsClosing() const = 0;

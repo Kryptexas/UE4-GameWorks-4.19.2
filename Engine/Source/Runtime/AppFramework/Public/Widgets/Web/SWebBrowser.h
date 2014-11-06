@@ -79,6 +79,16 @@ private:
 	 */
 	FReply OnReloadClicked();
 
+	/**
+	 * Get whether the page viewport should be visible
+	 */
+	EVisibility GetViewportVisibility() const;
+
+	/**
+	 * Get whether loading throbber should be visible
+	 */
+	EVisibility GetLoadingThrobberVisibility() const;
+
 private:
 	/** Interface for dealing with a web browser window */
 	TSharedPtr<IWebBrowserWindow>	BrowserWindow;

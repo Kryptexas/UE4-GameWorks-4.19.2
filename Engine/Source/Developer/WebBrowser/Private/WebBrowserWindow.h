@@ -43,6 +43,7 @@ public:
 	virtual void SetViewportSize(FVector2D WindowSize) override;
 	virtual FSlateShaderResource* GetTexture() override;
 	virtual bool IsValid() const override;
+	virtual bool HasBeenPainted() const override;
 	virtual bool IsClosing() const override;
 	virtual FString GetTitle() const override;
 	virtual void OnKeyDown(const FKeyEvent& InKeyEvent) override;
@@ -155,6 +156,8 @@ private:
 	FIntPoint						ViewportSize;
 	/** Whether this window is closing */
 	bool							bIsClosing;
+	/** Whether this window has been painted at least once */
+	bool							bHasBeenPainted;
 
 	// Allow the Handler to access functions only it needs
 	friend class FWebBrowserHandler;

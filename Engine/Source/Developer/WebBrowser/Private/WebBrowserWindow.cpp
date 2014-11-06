@@ -10,6 +10,7 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize)
 	: UpdatableTexture(nullptr)
 	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
+	, bHasBeenPainted(false)
 {
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
@@ -35,7 +36,9 @@ void FWebBrowserWindow::SetViewportSize(FVector2D WindowSize)
 {
 	// Magic number for texture size, can't access GetMax2DTextureDimension easily
 	FIntPoint ClampedWindowSize = WindowSize.ClampAxes(1, 2048).IntPoint();
-	if (ViewportSize != ClampedWindowSize)
+
+	// Ignore sizes that can't be seen as it forces CEF to re-render whole image
+	if (WindowSize >= FVector2D::UnitVector && ViewportSize != ClampedWindowSize)
 	{
 		FIntPoint OldViewportSize = MoveTemp(ViewportSize);
 		TArray<uint8> OldTextureData = MoveTemp(TextureData);
@@ -74,6 +77,11 @@ FSlateShaderResource* FWebBrowserWindow::GetTexture()
 bool FWebBrowserWindow::IsValid() const
 {
 	return InternalCefBrowser.get() != nullptr;
+}
+
+bool FWebBrowserWindow::HasBeenPainted() const
+{
+	return bHasBeenPainted;
 }
 
 bool FWebBrowserWindow::IsClosing() const
@@ -368,6 +376,8 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
 	{
 		UpdatableTexture->UpdateTexture(TextureData);
 	}
+
+	bHasBeenPainted = true;
 }
 
 void FWebBrowserWindow::OnCursorChange(CefCursorHandle Cursor)
