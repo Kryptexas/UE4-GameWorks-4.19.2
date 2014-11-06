@@ -44,7 +44,7 @@ private:
 protected:
 	FAutomationTestBase* TestRunner;
 
-	FAITestBase() : TestRunner(nullptr), bTearedDown(false)
+	FAITestBase() : bTearedDown(false), TestRunner(nullptr)
 	{}
 
 	template<typename ClassToSpawn>
