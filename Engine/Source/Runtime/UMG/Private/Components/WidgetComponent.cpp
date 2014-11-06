@@ -633,14 +633,18 @@ void UWidgetComponent::UpdateRenderTarget()
 	if(!RenderTarget && DrawSize != FIntPoint::ZeroValue)
 	{
 		RenderTarget = ConstructObject<UTextureRenderTarget2D>(UTextureRenderTarget2D::StaticClass(), this);
-		RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
+
 		RenderTarget->ClearColor = BackgroundColor;
+
 		if (bIsOpaque)
 		{
 			RenderTarget->ClearColor.A = 1.0f;
 		}
+
 		bClearColorChanged = true;
-		
+
+		RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
+
 		MaterialInstance->SetTextureParameterValue( "SlateUI", RenderTarget );
 		MarkRenderStateDirty();
 	}
