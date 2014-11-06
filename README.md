@@ -69,7 +69,7 @@ watch our [short tutorial video](http://youtu.be/usjlNHPn-jo) too.
    
 1. Open your source folder in Finder and run **GitSetup.command** to download binary content for the engine.
 
-1. Be sure to have [Xcode 5.1](https://itunes.apple.com/us/app/xcode/id497799835) installed.
+1. Be sure to have [Xcode](https://itunes.apple.com/us/app/xcode/id497799835) installed.
 
 1. You'll need project files in order to compile.  In the _UnrealEngine_ folder, double-click on **GenerateProjectFiles.command**.  It should take less than a minute to complete.  You can close the Terminal window afterwards.  If you downloaded the source in .zip format, you may see a warning about an unidentified developer.  This is because because the .zip files on GitHub are not digitally signed.  To work around this, right-click on GenerateProjectFiles.command, select Open, then click the Open button if you are sure you want to open it.
 
@@ -114,7 +114,7 @@ watch our [short tutorial video](http://youtu.be/usjlNHPn-jo) too.
 Additional Notes
 ----------------
 
-Visual Studio 2013 and Xcode 5.1 are strongly recommended for development.
+Visual Studio 2013 is strongly recommended for development on PC, though Visual Studio 2012 is also supported.
 
 The first time you start the editor from a fresh source build, you may experience long load times.  This only happens on the first 
 run as the engine optimizes content for the platform and fills the _derived data cache_.
