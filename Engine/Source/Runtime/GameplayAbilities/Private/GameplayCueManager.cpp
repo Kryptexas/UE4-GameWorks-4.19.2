@@ -5,6 +5,7 @@
 #include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
 #include "GameplayTagsModule.h"
+#include "GameplayCueNotify_Static.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -76,8 +77,12 @@ void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, 
 			}
 			else
 			{
-				// Found it - did we load a data asset (UGameplayCueNotify) or a Blueprint (UBlueprint)
-				CueData.LoadedGameplayCueNotify = Cast<UGameplayCueNotify>(FoundObject);
+				// Found it - did we load a non-instance version (UGameplayCueNotify_Static) or an instanced version (AGameplayCueNotify_Actor)
+				CueData.LoadedGameplayCueNotify = Cast<AGameplayCueNotify_Actor>(FoundObject);
+				if (!CueData.LoadedGameplayCueNotify)
+				{
+					CueData.LoadedGameplayCueNotify = Cast<UGameplayCueNotify_Static>(FoundObject);
+				}
 				if (CueData.LoadedGameplayCueNotify == nullptr)
 				{
 					// Not a dataasset - maybe a blueprint
@@ -85,48 +90,75 @@ void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, 
 					UBlueprint* GameplayCueBlueprint = Cast<UBlueprint>(FoundObject);
 					if (GameplayCueBlueprint && GameplayCueBlueprint->GeneratedClass)
 					{
-						CueData.LoadedGameplayCueNotify = Cast<UGameplayCueNotify>(GameplayCueBlueprint->GeneratedClass->ClassDefaultObject);
+						CueData.LoadedGameplayCueNotify = Cast<AGameplayCueNotify_Actor>(GameplayCueBlueprint->GeneratedClass->ClassDefaultObject);
+						if (!CueData.LoadedGameplayCueNotify)
+						{
+							CueData.LoadedGameplayCueNotify = Cast<UGameplayCueNotify_Static>(GameplayCueBlueprint->GeneratedClass->ClassDefaultObject);
+						}
+						else
+						{
+							ABILITY_LOG(Warning, TEXT("GameplayCueNotify %s loaded blueprint object %s that is not a GameplayCueNotify"), *CueData.GameplayCueNotifyObj.ToString(), *FoundObject->GetName());
+							return;
+						}
 					}
 					else
 					{
-						ABILITY_LOG(Warning, TEXT("GameplayCueNotify %s loaded object %s that is not a UGameplayCueNotify or UBlueprint"), *CueData.GameplayCueNotifyObj.ToString(), *FoundObject->GetName());
+						ABILITY_LOG(Warning, TEXT("GameplayCueNotify %s loaded object %s that is not a GameplayCueNotify"), *CueData.GameplayCueNotifyObj.ToString(), *FoundObject->GetName());
 						return;
 					}
-					
 				}
 			}
 		}
 
 		// Handle the Notify if we found something
-		if (CueData.LoadedGameplayCueNotify)
+		if (UGameplayCueNotify_Static* NonInstancedCue = Cast<UGameplayCueNotify_Static>(CueData.LoadedGameplayCueNotify))
 		{
-			UGameplayCueNotify* SpawnedInstanced = nullptr;
-			if (auto InnerMap = NotifyMap.Find(TargetActor))
+			if (NonInstancedCue->HandlesEvent(EventType))
+			{
+				NonInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
+				if (!NonInstancedCue->IsOverride)
+				{
+					HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
+				}
+			}
+			else
+			{
+				//Didn't even handle it, so IsOverride should not apply.
+				HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
+			}
+		}
+		else if (AGameplayCueNotify_Actor* InstancedCue = Cast<AGameplayCueNotify_Actor>(CueData.LoadedGameplayCueNotify))
+		{
+			AGameplayCueNotify_Actor* SpawnedInstancedCue = nullptr;
+			if (auto InnerMap = NotifyMapActor.Find(TargetActor))
 			{
 				if (auto WeakPtrPtr = InnerMap->Find(DataIdx))
 				{
-					SpawnedInstanced = WeakPtrPtr->Get();
+					SpawnedInstancedCue = WeakPtrPtr->Get();
 				}
 			}
 
-			if (SpawnedInstanced == nullptr && CueData.LoadedGameplayCueNotify->NeedsInstanceForEvent(EventType))
+			//Get our instance. We should probably have a flag or something to determine if we want to reuse or stack instances. That would mean changing our map to have a list of active instances.
+			if (SpawnedInstancedCue == nullptr)
 			{
 				// We don't have an instance for this, and we need one, so make one
-				SpawnedInstanced = static_cast<UGameplayCueNotify*>(StaticDuplicateObject(CueData.LoadedGameplayCueNotify, this, TEXT("None"), ~RF_RootSet));
-
-				auto& InnerMap = NotifyMap.FindOrAdd(TargetActor);
-
-				InnerMap.Add(DataIdx) = SpawnedInstanced;
-
-				// Fixme: this will grow unbounded
-				InstantiatedObjects.Add(SpawnedInstanced);
+				//SpawnedInstancedCue = static_cast<AGameplayCueNotify_Actor*>(StaticDuplicateObject(InstancedCue, this, TEXT("None"), ~RF_RootSet));
+				SpawnedInstancedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(InstancedCue->GetActorClass(), TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+				auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
+				InnerMap.Add(DataIdx) = SpawnedInstancedCue;
 			}
-			
-			UGameplayCueNotify* NotifyToExecute = SpawnedInstanced ? SpawnedInstanced : CueData.LoadedGameplayCueNotify;
-			NotifyToExecute->HandleGameplayCue(TargetActor, EventType, Parameters);
-
-			if (NotifyToExecute->IsOverride == false)
+			check(SpawnedInstancedCue);
+			if (SpawnedInstancedCue->HandlesEvent(EventType))
 			{
+				SpawnedInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
+				if (!SpawnedInstancedCue->IsOverride)
+				{
+					HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
+				}
+			}
+			else
+			{
+				//Didn't even handle it, so IsOverride should not apply.
 				HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
 			}
 		}
@@ -135,12 +167,12 @@ void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, 
 
 void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 {
-	TMap<int32, TWeakObjectPtr<UGameplayCueNotify> > FoundMap;	
-	if (NotifyMap.RemoveAndCopyValue(TargetActor, FoundMap))
+	TMap<int32, TWeakObjectPtr<AGameplayCueNotify_Actor>> FoundMapActor;
+	if (NotifyMapActor.RemoveAndCopyValue(TargetActor, FoundMapActor))
 	{
-		for (auto It = FoundMap.CreateConstIterator(); It; ++It)
+		for (auto It = FoundMapActor.CreateConstIterator(); It; ++It)
 		{
-			UGameplayCueNotify* InstancedCue =  It.Value().Get();
+			AGameplayCueNotify_Actor* InstancedCue =  It.Value().Get();
 			if (InstancedCue)
 			{
 				InstancedCue->OnOwnerDestroyed();
@@ -153,9 +185,13 @@ void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 
 void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPaths, bool InFullyLoad)
 {
-	if (!GameplayCueNotifyObjectLibrary)
+	if (!GameplayCueNotifyActorObjectLibrary)
 	{
-		GameplayCueNotifyObjectLibrary = UObjectLibrary::CreateLibrary(UGameplayCueNotify::StaticClass(), true, GIsEditor);
+		GameplayCueNotifyActorObjectLibrary = UObjectLibrary::CreateLibrary(AGameplayCueNotify_Actor::StaticClass(), true, GIsEditor);
+	}
+	if (!GameplayCueNotifyStaticObjectLibrary)
+	{
+		GameplayCueNotifyStaticObjectLibrary = UObjectLibrary::CreateLibrary(UGameplayCueNotify_Static::StaticClass(), true, GIsEditor);
 	}
 
 	LoadedPaths = InPaths;
@@ -196,9 +232,9 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 	SlowTask.MakeDialog();
 #endif
 
-	FScopeCycleCounterUObject PreloadScope(GameplayCueNotifyObjectLibrary);
-	
-	GameplayCueNotifyObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);
+	FScopeCycleCounterUObject PreloadScopeActor(GameplayCueNotifyActorObjectLibrary);
+	GameplayCueNotifyActorObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);
+	GameplayCueNotifyStaticObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);		//No separate cycle counter for this.
 
 	if (bFullyLoad)
 	{
@@ -206,24 +242,28 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 		FString PerfMessage = FString::Printf(TEXT("Fully Loaded GameplayCueNotify object library"));
 		SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
-		GameplayCueNotifyObjectLibrary->LoadAssetsFromAssetData();
+		GameplayCueNotifyActorObjectLibrary->LoadAssetsFromAssetData();
+		GameplayCueNotifyStaticObjectLibrary->LoadAssetsFromAssetData();
 	}
 
 	// ---------------------------------------------------------
 	// Look for GameplayCueNotifies that handle events
 	// ---------------------------------------------------------
 	
-	TArray<FAssetData> AssetDatas;
-	GameplayCueNotifyObjectLibrary->GetAssetDataList(AssetDatas);
+	TArray<FAssetData> ActorAssetDatas;
+	GameplayCueNotifyActorObjectLibrary->GetAssetDataList(ActorAssetDatas);
+
+	TArray<FAssetData> StaticAssetDatas;
+	GameplayCueNotifyStaticObjectLibrary->GetAssetDataList(StaticAssetDatas);
 
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 
 	GameplayCueData.Empty();
 	GameplayCueDataMap.Empty();
 
-	for (FAssetData Data: AssetDatas)
+	for (FAssetData Data: ActorAssetDatas)
 	{
-		const FString* FoundGameplayTag = Data.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UGameplayCueNotify, GameplayCueName));
+		const FString* FoundGameplayTag = Data.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName));
 		if (FoundGameplayTag && FoundGameplayTag->Equals(TEXT("None")) == false)
 		{
 			ABILITY_LOG(Warning, TEXT("Found: %s"), **FoundGameplayTag);
@@ -234,9 +274,28 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 				// Add a new NotifyData entry to our flat list for this one
 				FStringAssetReference StringRef;
 				StringRef.AssetLongPathname = Data.ObjectPath.ToString();
+				AddGameplayCueData_Internal(GameplayCueTag, StringRef);				
+			}
+			else
+			{
+				ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in asset %s but there is no corresponding tag in the GameplayTagMAnager."), **FoundGameplayTag, *Data.PackageName.ToString());
+			}
+		}
+	}
+	for (FAssetData Data : StaticAssetDatas)
+	{
+		const FString* FoundGameplayTag = Data.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName));
+		if (FoundGameplayTag && FoundGameplayTag->Equals(TEXT("None")) == false)
+		{
+			ABILITY_LOG(Warning, TEXT("Found: %s"), **FoundGameplayTag);
 
+			FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(**FoundGameplayTag), false);
+			if (GameplayCueTag.IsValid())
+			{
+				// Add a new NotifyData entry to our flat list for this one
+				FStringAssetReference StringRef;
+				StringRef.AssetLongPathname = Data.ObjectPath.ToString();
 				AddGameplayCueData_Internal(GameplayCueTag, StringRef);
-				
 			}
 			else
 			{
@@ -318,26 +377,23 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 	UBlueprint* Blueprint = Cast<UBlueprint>(Object);
 	if (Blueprint && Blueprint->GeneratedClass)
 	{
-		UGameplayCueNotify* CDO = Cast<UGameplayCueNotify>(Blueprint->GeneratedClass->ClassDefaultObject);
-		if (CDO && CDO->GameplayCueTag.IsValid())
-		{
-			FStringAssetReference StringRef;
-			StringRef.AssetLongPathname = Blueprint->GetPathName();
-
-			AddGameplayCueData_Internal(CDO->GameplayCueTag, StringRef);
-			BuildAccelerationMap_Internal();
-		}
-	}
-	
-	
-	UGameplayCueNotify* Notify = Cast<UGameplayCueNotify>(Object);
-	if (Notify && Notify->GameplayCueTag.IsValid())
-	{
+		UGameplayCueNotify_Static* StaticCDO = Cast<UGameplayCueNotify_Static>(Blueprint->GeneratedClass->ClassDefaultObject);
 		FStringAssetReference StringRef;
-		StringRef.AssetLongPathname = Notify->GetPathName();
-
-		AddGameplayCueData_Internal(Notify->GameplayCueTag, StringRef);
-		BuildAccelerationMap_Internal();
+		StringRef.AssetLongPathname = Blueprint->GetPathName();
+		if (StaticCDO && StaticCDO->GameplayCueTag.IsValid())
+		{
+			AddGameplayCueData_Internal(StaticCDO->GameplayCueTag, StringRef);
+			BuildAccelerationMap_Internal();		//RICKH Could this just be done by setting the acceleration map rebuild bool to true?
+		}
+		else
+		{
+			AGameplayCueNotify_Actor* ActorCDO = Cast<AGameplayCueNotify_Actor>(Blueprint->GeneratedClass->ClassDefaultObject);
+			if (ActorCDO && ActorCDO->GameplayCueTag.IsValid())
+			{
+				AddGameplayCueData_Internal(ActorCDO->GameplayCueTag, StringRef);
+				BuildAccelerationMap_Internal();		//RICKH Could this just be done by setting the acceleration map rebuild bool to true?
+			}
+		}
 	}
 }
 
@@ -349,14 +405,14 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 	UBlueprint* Blueprint = Cast<UBlueprint>(Object);
 	if (Blueprint && Blueprint->GeneratedClass)
 	{
-		UGameplayCueNotify* CDO = Cast<UGameplayCueNotify>(Blueprint->GeneratedClass->ClassDefaultObject);
+		AGameplayCueNotify_Actor* CDO = Cast<AGameplayCueNotify_Actor>(Blueprint->GeneratedClass->ClassDefaultObject);
 		if (CDO && CDO->GameplayCueTag.IsValid())
 		{
 			TagtoRemove = CDO->GameplayCueTag;
 		}
 	}
 
-	UGameplayCueNotify* Notify = Cast<UGameplayCueNotify>(Object);
+	AGameplayCueNotify_Actor* Notify = Cast<AGameplayCueNotify_Actor>(Object);
 	if (Notify && Notify->GameplayCueTag.IsValid())
 	{
 		TagtoRemove = Notify->GameplayCueTag;

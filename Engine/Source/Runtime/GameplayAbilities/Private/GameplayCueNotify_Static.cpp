@@ -1,30 +1,28 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
-#include "GameplayCueNotify.h"
+#include "GameplayCueNotify_Static.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueManager.h"
 #include "AbilitySystemComponent.h"
 
-
-
-UGameplayCueNotify::UGameplayCueNotify(const class FObjectInitializer& PCIP)
+UGameplayCueNotify_Static::UGameplayCueNotify_Static(const class FObjectInitializer& PCIP)
 : Super(PCIP)
 {
 	IsOverride = true;
 }
 
 #if WITH_EDITOR
-void UGameplayCueNotify::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UGameplayCueNotify_Static::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UAbilitySystemGlobals::Get().GetGameplayCueManager()->bAccelerationMapOutdated = true;
 }
 #endif
 
-void UGameplayCueNotify::DeriveGameplayCueTagFromAssetName()
+void UGameplayCueNotify_Static::DeriveGameplayCueTagFromAssetName()
 {
 	// In the editor, attempt to infer GameplayCueTag from our asset name (if there is no valid GameplayCueTag already).
-#if WITH_EDITOR
+	#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		if (GameplayCueTag.IsValid() == false)
@@ -44,24 +42,18 @@ void UGameplayCueNotify::DeriveGameplayCueTagFromAssetName()
 			IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 			GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(*MyName), false);
 		}
-
 		GameplayCueName = GameplayCueTag.GetTagName();
 	}
-#endif
+	#endif
 }
 
-void UGameplayCueNotify::HandleGameplayCue(AActor *Self, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
-{
-
-}
-
-void UGameplayCueNotify::Serialize(FArchive& Ar)
+void UGameplayCueNotify_Static::Serialize(FArchive& Ar)
 {
 	if (Ar.IsSaving())
 	{
 		DeriveGameplayCueTagFromAssetName();
 	}
-	
+
 	Super::Serialize(Ar);
 
 	if (Ar.IsLoading())
@@ -70,25 +62,44 @@ void UGameplayCueNotify::Serialize(FArchive& Ar)
 	}
 }
 
-void UGameplayCueNotify::PostInitProperties()
+void UGameplayCueNotify_Static::PostInitProperties()
 {
 	Super::PostInitProperties();
 	DeriveGameplayCueTagFromAssetName();
 }
 
-bool UGameplayCueNotify::HandlesEvent(EGameplayCueEvent::Type EventType) const
+bool UGameplayCueNotify_Static::HandlesEvent(EGameplayCueEvent::Type EventType) const
 {
-	return false;
+	return true;
 }
 
-/** Does this GameplayCueNotify need a per source actor instance for this event? */
-bool UGameplayCueNotify::NeedsInstanceForEvent(EGameplayCueEvent::Type EventType) const
+void UGameplayCueNotify_Static::HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
-	return (EventType != EGameplayCueEvent::Executed);
+	if (MyTarget && !MyTarget->IsPendingKill())
+	{
+		K2_HandleGameplayCue(MyTarget, EventType, Parameters);
+
+		switch (EventType)
+		{
+		case EGameplayCueEvent::OnActive:
+			OnActive(MyTarget, Parameters);
+			break;
+
+		case EGameplayCueEvent::Executed:
+			OnExecute(MyTarget, Parameters);
+			break;
+
+		case EGameplayCueEvent::Removed:
+			OnRemove(MyTarget, Parameters);
+			break;
+		};
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("Null Target"));
+	}
 }
 
-void UGameplayCueNotify::OnOwnerDestroyed()
+void UGameplayCueNotify_Static::OnOwnerDestroyed()
 {
-	// May need to do extra cleanup in child classes
-	MarkPendingKill();
 }

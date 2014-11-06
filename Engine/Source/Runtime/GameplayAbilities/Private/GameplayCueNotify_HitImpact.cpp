@@ -14,11 +14,6 @@ bool UGameplayCueNotify_HitImpact::HandlesEvent(EGameplayCueEvent::Type EventTyp
 	return (EventType == EGameplayCueEvent::Executed);
 }
 
-bool UGameplayCueNotify_HitImpact::NeedsInstanceForEvent(EGameplayCueEvent::Type EventType) const
-{
-	return false;
-}
-
 void UGameplayCueNotify_HitImpact::HandleGameplayCue(AActor* Self, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
 	check(EventType == EGameplayCueEvent::Executed);
@@ -31,8 +26,6 @@ void UGameplayCueNotify_HitImpact::HandleGameplayCue(AActor* Self, EGameplayCueE
 		{
 			UGameplayStatics::SpawnEmitterAtLocation(Self, ParticleSystem, HitResult->ImpactPoint, HitResult->ImpactNormal.Rotation(), true);
 		}
-
-
 	}
 	else
 	{

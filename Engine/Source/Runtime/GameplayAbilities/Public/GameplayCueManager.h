@@ -4,7 +4,7 @@
 
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
-#include "GameplayCueNotify.h"
+#include "GameplayCueNotify_Actor.h"
 #include "GameplayCueManager.generated.h"
 
 /**
@@ -60,7 +60,7 @@ struct FGameplayCueNotifyData
 	FStringAssetReference	GameplayCueNotifyObj;
 
 	UPROPERTY(transient)
-	UGameplayCueNotify*		LoadedGameplayCueNotify;
+	UObject*				LoadedGameplayCueNotify;
 
 	FGameplayTag			GameplayCueTag;
 
@@ -101,7 +101,10 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	TMap<FGameplayTag, int32>	GameplayCueDataMap;
 	
 	UPROPERTY(transient)
-	UObjectLibrary* GameplayCueNotifyObjectLibrary;
+	UObjectLibrary* GameplayCueNotifyActorObjectLibrary;
+
+	UPROPERTY(transient)
+	UObjectLibrary* GameplayCueNotifyStaticObjectLibrary;
 
 	// -------------------------------------------------------------
 	// Preload GameplayCue tags that we think we will need:
@@ -113,14 +116,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	FStreamableManager	StreamableManager;
 
-	UPROPERTY(transient)
-	TArray<UGameplayCueNotify*>	LoadedObjects;
-
-	UPROPERTY(transient)
-	TArray<UGameplayCueNotify*>	InstantiatedObjects;
-
 	// Fixme: we can combine the AActor* and the int32 into a single struct with a decent hash and avoid double map lookups
-	TMap< TWeakObjectPtr<AActor>, TMap<int32, TWeakObjectPtr<UGameplayCueNotify> > >	NotifyMap;
+	TMap<TWeakObjectPtr<AActor>, TMap<int32, TWeakObjectPtr<AGameplayCueNotify_Actor>>>		NotifyMapActor;
 
 	static FGameplayTag	BaseGameplayCueTag();
 
