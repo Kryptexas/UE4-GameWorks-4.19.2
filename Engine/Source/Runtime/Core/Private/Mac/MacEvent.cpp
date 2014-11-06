@@ -6,12 +6,24 @@
 #include "CocoaThread.h"
 #include "CocoaWindow.h"
 
+@implementation NSEvent (FCachedWindowAccess)
+-(void)CacheWindow
+{
+	_window = [self window];
+}
+-(NSWindow*)GetWindow
+{
+	return _window;
+}
+@end
+
 FMacEvent::FMacEvent(NSEvent* const Event)
 : EventData(Event)
 {
 	SCOPED_AUTORELEASE_POOL;
 	check(Event);
 	[Event retain];
+	[Event CacheWindow];
 }
 
 FMacEvent::FMacEvent(NSNotification* const Notification)

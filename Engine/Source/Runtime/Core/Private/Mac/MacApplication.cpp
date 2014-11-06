@@ -597,10 +597,10 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 			else
 			{
 				NSPoint CursorPos = [Event locationInWindow];
-				if ([Event window])
+				if ([Event GetWindow])
 				{
-					CursorPos.x += [Event window].frame.origin.x;
-					CursorPos.y += [Event window].frame.origin.y;
+					CursorPos.x += [Event GetWindow].frame.origin.x;
+					CursorPos.y += [Event GetWindow].frame.origin.y;
 				}
 				CursorPos.y--; // The y coordinate in the point returned by locationInWindow starts from a base of 1
 				const FVector2D MousePosition = FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y));
@@ -864,7 +864,7 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 			break;
 	}
 
-	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event window];
+	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event GetWindow];
 
 	if ([Event type] == NSMouseMoved)
 	{
@@ -882,17 +882,17 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		{
 			EventWindow = DraggedWindow;
 		}
-		else if( MouseCaptureWindow && MouseCaptureWindow == [Event window] && [MouseCaptureWindow targetWindow] )
+		else if( MouseCaptureWindow && MouseCaptureWindow == [Event GetWindow] && [MouseCaptureWindow targetWindow] )
 		{
 			EventWindow = [MouseCaptureWindow targetWindow];
 		}
 		else
 		{
 			NSPoint CursorPos = [Event locationInWindow];
-			if ([Event window])
+			if ([Event GetWindow])
 			{
-				CursorPos.x += [Event window].frame.origin.x;
-				CursorPos.y += [Event window].frame.origin.y;
+				CursorPos.x += [Event GetWindow].frame.origin.x;
+				CursorPos.y += [Event GetWindow].frame.origin.y;
 			}
 			CursorPos.y--; // The y coordinate in the point returned by locationInWindow starts from a base of 1
 			TSharedPtr<FMacWindow> WindowUnderCursor = LocateWindowUnderCursor(CursorPos);

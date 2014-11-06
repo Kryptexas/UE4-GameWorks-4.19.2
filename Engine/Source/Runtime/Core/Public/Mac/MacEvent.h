@@ -10,6 +10,11 @@ enum EMacEventSendMethod
 	Sync
 };
 
+@interface NSEvent (FCachedWindowAccess)
+-(void)CacheWindow;
+-(NSWindow*)GetWindow;
+@end
+
 class FMacEvent
 {
 	// Constructor for an NSEvent based FMacEvent
