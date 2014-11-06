@@ -9,8 +9,6 @@ public:
 	{ }
 	SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
 	SLATE_ARGUMENT(SMenuAnchor::EMethod, Method)
-	SLATE_EVENT(FOnClicked, OnCloseClicked)
-	SLATE_EVENT(FOnClicked, OnMinimizeClicked)
 	SLATE_END_ARGS()
 
 	/**

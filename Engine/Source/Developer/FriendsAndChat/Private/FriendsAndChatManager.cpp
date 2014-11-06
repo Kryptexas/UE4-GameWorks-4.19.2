@@ -6,6 +6,7 @@
 #include "FriendsViewModel.h"
 #include "ChatViewModel.h"
 #include "SNotificationList.h"
+#include "SWindowTitleBar.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
@@ -223,29 +224,41 @@ void FFriendsAndChatManager::BuildFriendsUI()
 {
 	check(FriendWindow.IsValid());
 
+	TSharedPtr<SWindowTitleBar> TitleBar;
 	FriendWindow->SetContent(
-	SNew(SBorder)
-	.BorderImage( &Style.Background )
-	.VAlign( VAlign_Fill )
-	.HAlign( HAlign_Fill )
-	.Padding(0)
-	[
-		SNew(SOverlay)
-		+SOverlay::Slot()
+		SNew(SBorder)
+		.BorderImage( &Style.Background )
+		.VAlign( VAlign_Fill )
+		.HAlign( HAlign_Fill )
+		.Padding(0)
 		[
-			SNew(SFriendsContainer, FFriendsViewModelFactory::Create(SharedThis(this)))
-			.FriendStyle( &Style )
-			.OnCloseClicked( this, &FFriendsAndChatManager::OnCloseClicked )
-			.OnMinimizeClicked( this, &FFriendsAndChatManager::OnMinimizeClicked )
-			.Method(SMenuAnchor::CreateNewWindow)
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SAssignNew(TitleBar, SWindowTitleBar, FriendWindow.ToSharedRef(), nullptr, HAlign_Center)
+					//.Style(FPortalStyle::Get(), "Window")
+					.ShowAppIcon(false)
+					.Title(FText::GetEmpty())
+				]
+				+ SVerticalBox::Slot()
+				[
+					SNew(SFriendsContainer, FFriendsViewModelFactory::Create(SharedThis(this)))
+					.FriendStyle( &Style )
+					.Method(SMenuAnchor::CreateNewWindow)
+				]
+			]
+			+SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				SAssignNew(FriendsNotificationBox, SNotificationList)
+			]
 		]
-		+SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Bottom)
-		[
-			SAssignNew(FriendsNotificationBox, SNotificationList)
-		]
-	]);
+	);
 }
 
 
@@ -316,19 +329,31 @@ void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< FFriendStuct > Frie
 		.SupportsMaximize( true )
 		.SupportsMinimize( true )
 		.CreateTitleBar( false )
-		.SizingRule( ESizingRule::FixedSize )
-		[
+		.SizingRule( ESizingRule::FixedSize );
+
+		TSharedPtr<SWindowTitleBar> TitleBar;
+
+		ChatWindow->SetContent(
 			SNew( SBorder )
 			.VAlign( VAlign_Fill )
 			.HAlign( HAlign_Fill )
 			.BorderImage( &Style.Background )
 			[
-				SNew(SChatWindow, ChatViewModel.ToSharedRef())
-				.FriendStyle( &Style )
-				.OnCloseClicked( this, &FFriendsAndChatManager::OnChatCloseClicked )
-				.OnMinimizeClicked( this, &FFriendsAndChatManager::OnChatMinimizeClicked )
-			]
-		];
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SAssignNew(TitleBar, SWindowTitleBar, ChatWindow.ToSharedRef(), nullptr, HAlign_Center)
+					//.Style(FPortalStyle::Get(), "Window")
+					.ShowAppIcon(false)
+					.Title(FText::GetEmpty())
+				]
+				+ SVerticalBox::Slot()
+				[
+					SNew(SChatWindow, ChatViewModel.ToSharedRef())
+					.FriendStyle( &Style )
+				]
+			]);
 
 		if ( ParentWidget.IsValid() )
 		{
@@ -434,48 +459,6 @@ FReply FFriendsAndChatManager::HandleMessageAccepted( TSharedPtr< FFriendsAndCha
 
 	return FReply::Handled();
 }
-
-FReply FFriendsAndChatManager::OnCloseClicked()
-{
-	if ( FriendWindow.IsValid() )
-	{
-		FriendWindow->RequestDestroyWindow();
-		FriendWindow = nullptr;
-	}
-	return FReply::Handled();
-}
-
-
-FReply FFriendsAndChatManager::OnMinimizeClicked()
-{
-	if ( FriendWindow.IsValid() )
-	{
-		FriendWindow->Minimize();
-	}
-	return FReply::Handled();
-}
-
-
-FReply FFriendsAndChatManager::OnChatCloseClicked()
-{
-	if ( ChatWindow.IsValid() )
-	{
-		ChatWindow->RequestDestroyWindow();
-		ChatWindow = nullptr;
-	}
-	return FReply::Handled();
-}
-
-
-FReply FFriendsAndChatManager::OnChatMinimizeClicked()
-{
-	if ( ChatWindow.IsValid() )
-	{
-		ChatWindow->Minimize();
-	}
-	return FReply::Handled();
-}
-
 
 // Getters
 

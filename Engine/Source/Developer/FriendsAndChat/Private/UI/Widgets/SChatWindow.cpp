@@ -14,33 +14,6 @@ public:
 
 	void Construct(const FArguments& InArgs, const TSharedRef<FChatViewModel>& InViewModel)
 	{
-		// Dragable bar for the Friends list
-		class SDraggableBar : public SBox
-		{
-			SLATE_BEGIN_ARGS(SDraggableBar)
-			{}
-			SLATE_DEFAULT_SLOT(FArguments, Content)
-			SLATE_END_ARGS()
-			void Construct( const FArguments& InArgs )
-			{
-				SBox::Construct(
-					SBox::FArguments()
-					.Padding( 12.f )
-					[
-						InArgs._Content.Widget
-					]
-				);
-				this->Cursor = EMouseCursor::CardinalCross;
-			}
-
-			virtual EWindowZone::Type GetWindowZoneOverride() const override
-			{
-				return EWindowZone::TitleBar;
-			}
-		};
-
-		OnCloseClicked = InArgs._OnCloseClicked;
-		OnMinimizeClicked = InArgs._OnMinimizeClicked;
 		FriendStyle = *InArgs._FriendStyle;
 		MenuMethod = InArgs._Method;
 		this->ViewModel = InViewModel;
@@ -48,62 +21,9 @@ public:
 		ViewModel->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
 		TimeTransparency = 0.0f;
 
-
-		EVisibility MinimizeButtonVisibility = OnMinimizeClicked.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
-		EVisibility CloseButtonVisibility = OnCloseClicked.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
-
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SOverlay)
-				.Visibility(MinimizeButtonVisibility)
-				+SOverlay::Slot()
-				.VAlign( VAlign_Top )
-				.HAlign( HAlign_Fill )
-				[
-					SNew( SBorder )
-					.BorderImage(&FriendStyle.TitleBarBrush)
-					.BorderBackgroundColor(FLinearColor::White)
-					[
-						SNew(SDraggableBar)
-					]
-				]
-				+SOverlay::Slot()
-				.VAlign( VAlign_Top )
-				.HAlign( HAlign_Right )
-				[
-					SNew( SHorizontalBox )
-					+SHorizontalBox::Slot()
-					.HAlign( HAlign_Right )
-					.AutoWidth()
-					.Padding( 5.0f )
-					[
-						SNew( SButton )
-						.Visibility( MinimizeButtonVisibility )
-						.IsFocusable( false )
-						.ContentPadding( 0 )
-						.Cursor( EMouseCursor::Default )
-						.ButtonStyle( &FriendStyle.MinimizeButtonStyle )
-						.OnClicked(this, &SChatWindowImpl::MinimizeButton_OnClicked)
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding( 5.0f )
-					[
-						SNew( SButton )
-						.Visibility( CloseButtonVisibility )
-						.IsFocusable( false )
-						.ContentPadding( 0 )
-						.Cursor( EMouseCursor::Default )
-						.ButtonStyle(  &FriendStyle.CloseButtonStyle  )
-						.OnClicked( this, &SChatWindowImpl::CloseButton_OnClicked )
-					]
-				]
-			]
 			+SVerticalBox::Slot()
 			.Padding(FMargin(0,5))
 			.VAlign(VAlign_Bottom)
@@ -250,24 +170,6 @@ private:
 				.Method(MenuMethod)
 			]
 		];
-	}
-
-	FReply CloseButton_OnClicked()
-	{
-		if ( OnCloseClicked.IsBound() )
-		{
-			OnCloseClicked.Execute();
-		}
-		return FReply::Handled();
-	}
-
-	FReply MinimizeButton_OnClicked()
-	{
-		if (OnMinimizeClicked.IsBound())
-		{
-			OnMinimizeClicked.Execute();
-		}
-		return FReply::Handled();
 	}
 
 	FReply HandleActionDropDownClicked() const
@@ -519,12 +421,6 @@ private:
 
 	// Holds the Friends List view model
 	TSharedPtr<FChatViewModel> ViewModel;
-
-	/** Holds the delegate for when the close button is clicked. */
-	FOnClicked OnCloseClicked;
-
-	/** Holds the delegate for when the minimize button is clicked. */
-	FOnClicked OnMinimizeClicked;
 
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;

@@ -346,20 +346,6 @@ private:
 	 */
 	bool Tick( float Delta );
 
-	// UI functions
-
-	/** Close button clicked. */
-	FReply OnCloseClicked();
-
-	/** Minimize button clicked. */
-	FReply OnMinimizeClicked();
-
-	/** Close button clicked. */
-	FReply OnChatCloseClicked();
-
-	/** Minimize button clicked. */
-	FReply OnChatMinimizeClicked();
-
 	/** Add a friend toast. */
 	void AddFriendsToast(const FText Message);
 
