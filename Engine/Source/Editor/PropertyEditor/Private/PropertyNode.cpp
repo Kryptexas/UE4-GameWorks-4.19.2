@@ -6,6 +6,7 @@
 #include "CategoryPropertyNode.h"
 #include "ScopedTransaction.h"
 #include "PropertyRestriction.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 
 FPropertySettings& FPropertySettings::Get()
 {
