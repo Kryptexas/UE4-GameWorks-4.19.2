@@ -7,6 +7,26 @@
 
 
 /**
+ * Cocoa class that can help us with reading player item information.
+ */
+@interface FMediaHelper : NSObject
+{
+};
+/** We should only initiate a helper with a media player */
+-(FMediaHelper*) initWithMediaPlayer:(AVPlayer*)InPlayer;
+/** Destructor */
+-(void)dealloc;
+
+/** Reference to the media player which will be responsible for this media session */
+@property(retain) AVPlayer* MediaPlayer;
+
+/** Flag to dictate whether the media players current item is ready to play */
+@property bool bIsPlayerItemReady;
+
+@end
+
+
+/**
  * Implements a media player using the Windows Media Foundation framework.
  */
 class FAvfMediaPlayer
@@ -111,4 +131,8 @@ private:
 
 	/** Holds an event delegate that is invoked when media has been loaded. */
 	FOnMediaOpened OpenedEvent;
+	
+private:
+	/** Cocoa helper object we can use to keep track of ns property changes in our media items */
+	FMediaHelper* MediaHelper;
 };
