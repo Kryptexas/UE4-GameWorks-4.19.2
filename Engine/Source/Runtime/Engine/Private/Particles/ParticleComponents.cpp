@@ -359,7 +359,7 @@ void AEmitter::PostInitializeComponents()
 	// Set Notification Delegate
 	if (ParticleSystemComponent)
 	{
-		ParticleSystemComponent->OnSystemFinished.AddDynamic( this, &AEmitter::OnParticleSystemFinished );
+		ParticleSystemComponent->OnSystemFinished.AddUniqueDynamic( this, &AEmitter::OnParticleSystemFinished );
 		bCurrentlyActive = ParticleSystemComponent->bAutoActivate;
 	}
 
