@@ -1762,7 +1762,7 @@ void FOculusRiftHMD::Shutdown()
 
 	RestoreSystemValues();
 
-#ifndef OVR_SDK_RENDERING
+#ifdef OVR_SDK_RENDERING
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(ShutdownRen,
 	FOculusRiftHMD*, Plugin, this,
 	{
