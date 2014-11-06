@@ -60,6 +60,26 @@ struct ERefQualifier
 	};
 };
 
+/** Misc helper functions */
+struct FClassUtils
+{
+	FORCEINLINE static bool IsTemporaryClass(UClass* InClass)
+	{
+		return GTemporaryClasses.Contains(InClass);
+	}
+	FORCEINLINE static void MarkAsTemporaryClass(UClass* InClass)
+	{
+		if (!IsTemporaryClass(InClass))
+		{
+			GTemporaryClasses.Add(InClass);
+		}
+	}
+	FORCEINLINE static bool IsNoExportOrTemporaryClass(UClass* InClass)
+	{
+		return InClass->HasAnyClassFlags(CLASS_NoExport) || IsTemporaryClass(InClass);
+	}
+};
+
 #ifndef CASE_TEXT
 #define CASE_TEXT(txt) case txt: return TEXT(#txt)
 #endif
@@ -1711,7 +1731,7 @@ struct FNameLookupCPP
 		FString DesiredStructName = Struct->GetName();
 		if (UClass* TestClass = Cast<UClass>(Struct))
 		{
-			if (TestClass->HasAnyClassFlags(CLASS_Temporary))
+			if (FClassUtils::IsTemporaryClass(TestClass))
 			{
 				DesiredStructName = GClassHeaderNameWithNoPathMap[TestClass];
 			}
