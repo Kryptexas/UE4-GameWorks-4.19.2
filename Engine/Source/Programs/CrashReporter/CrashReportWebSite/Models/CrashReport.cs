@@ -19,6 +19,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 	}
 
+	/// <summary> Users mapping. </summary>
+	public partial class UsersMapping
+	{
+		/// <summary> Helper method, display this UsersMapping as a human readable string. Debugging purpose. </summary>
+		public override string ToString()
+		{
+			return string.Format( "{0} [{1}]", UserName, UserEmail );
+		}
+	}
+
+	/// <summary> User. </summary>
+	public partial class User
+	{
+		/// <summary> Helper method, display this User as a human readable string. Debugging purpose. </summary>
+		public override string ToString()
+		{
+			return string.Format( "{0} [{1}/{2}]", UserName, Id, UserGroupId );
+		}
+	}
+
+	/// <summary> UserGroup. </summary>
+	public partial class UserGroup
+	{
+		/// <summary> Helper method, display this UserGroup as a human readable string. Debugging purpose. </summary>
+		public override string ToString()
+		{
+			return string.Format( "{0} [{1}]", Name, Id );
+		}
+	}
+
 	/// <summary>
 	/// Derived information to the default Bugg information from the database.
 	/// </summary>
@@ -95,9 +125,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// Return the top lines of a callstack.
 		/// </summary>
 		/// <returns>A list of callstack entries.</returns>
-		public List<string> GetFunctionCalls( /*int Max*/ )
+		public List<string> GetFunctionCalls()
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Id=" + this.Id + ")" ) )
 			{
 				BuggRepository LocalBuggRepository = new BuggRepository();
 				List<string> Results = LocalBuggRepository.GetFunctionCalls( Pattern );
@@ -217,7 +247,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>Lines of processed callstack entries.</returns>
 		public List<CallStackEntry> GetCallStackEntries( int StartIndex, int Count )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Count=" + Count + ")" ) )
 			{
 				IEnumerable<CallStackEntry> Results = new List<CallStackEntry>() { new CallStackEntry() };
 

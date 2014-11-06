@@ -63,7 +63,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The list of users in the requested user group.</returns>
 		public List<string> GetUsersForGroup( string UserGroupName )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroupName=" + UserGroupName + ")" ) )
 			{
 				List<string> Users = new List<string>();
 				try
@@ -93,7 +93,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The crash with the requested id.</returns>
 		public Crash GetCrash( int Id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId" + Id + ")" ) )
 			{
 				try
 				{
@@ -105,8 +105,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					);
 
 					return Crashes.FirstOrDefault();
-
-					//CrashRepositoryDataContext
 				}
 				catch( Exception Ex )
 				{
@@ -116,84 +114,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				return null;
 			}
 		}
-
-		/// <summary>
-		/// Sets the status of a crash.
-		/// </summary>
-		/// <param name="Status">The new status of the crash (from a predetermined set).</param>
-		/// <param name="Id">The id of the crash to update the status.</param>
-		public void SetCrashStatus( string Status, int Id )
-		{
-			try
-			{
-				string Query = "UPDATE Crashes SET Status = {0} WHERE Id = {1}";
-				CrashRepositoryDataContext.ExecuteCommand( Query, Status, Id );
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in SetCrashStatus: " + Ex.ToString() );
-			}
-		}
-
-		/// <summary>
-		/// Sets the changelist the crash was fixed in.
-		/// </summary>
-		/// <param name="FixedChangeList">The string determining the changelist the crash was fixed.</param>
-		/// <param name="Id">The id of the fixed crash.</param>
-		public void SetCrashFixedChangeList( string FixedChangeList, int Id )
-		{
-			try
-			{
-				string Query = "UPDATE Crashes SET FixedChangeList = {0} WHERE Id = {1}";
-				CrashRepositoryDataContext.ExecuteCommand( Query, FixedChangeList, Id );
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in SetCrashFixedChangeList: " + Ex.ToString() );
-			}
-		}
-
-		/// <summary>
-		/// Sets the TTP ID associated with the crash.
-		/// </summary>
-		/// <param name="TTPID">A string representing a TTP.</param>
-		/// <param name="Id">The id of the crash to update.</param>
-		public void SetCrashTTPID( string TTPID, int Id )
-		{
-			try
-			{
-				string Query = "UPDATE Crashes SET TTPID = {0} WHERE Id = {1}";
-				CrashRepositoryDataContext.ExecuteCommand( Query, TTPID, Id );
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in SetCrashTTPID: " + Ex.ToString() );
-			}
-		}
-
-		/// <summary>
-		/// Sets the description of the crash.
-		/// </summary>
-		/// <param name="Description">A description of the crash.</param>
-		/// <param name="Id">The id of the crash to update.</param>
-		public void SetCrashDescription( string Description, int Id )
-		{
-			try
-			{
-				//string Query = "UPDATE Crashes SET Description = {0} WHERE Id = {1}";
-				//CrashRepositoryDataContext.ExecuteCommand( Query, Description, Id );
-
-				Crash MyCrash = this.CrashRepositoryDataContext.Crashes.Single( Crash => Crash.Id == Id );
-				MyCrash.Description = Description;
-				this.CrashRepositoryDataContext.SubmitChanges();
-
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in SetDescription: " + Ex.ToString() );
-			}
-		}
-
 
 		/// <summary>
 		/// Sets the status for all crashes in a Bugg.
@@ -264,18 +184,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="CrashInstance">An instance of a crash we wish to augment with additional data.</param>
 		public void PopulateUserInfo( Crash CrashInstance )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CrashInstance.Id + ")" ) )
 			{
 				try
 				{
-					var query = (
-						from UserDetail in CrashRepositoryDataContext.Users
-						where UserDetail.Id == CrashInstance.User.Id
-						join UserGroupDetail in CrashRepositoryDataContext.UserGroups on UserDetail.UserGroupId equals UserGroupDetail.Id
-						select UserGroupDetail.Name
-					);
-
-					CrashInstance.UserGroupName = query.First();
+					int UserGroupId = CrashInstance.User.UserGroupId;
+					var Result = CrashRepositoryDataContext.UserGroups.Where( i => i.Id == UserGroupId ).First();
+					CrashInstance.UserGroupName = Result.Name;
 
 				}
 				catch( Exception Ex )
@@ -294,16 +209,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			IQueryable<Crash> Crashes = null;
 			try
 			{
-				Crashes =
-				(
-					from CrashDetail in CrashRepositoryDataContext.Crashes
-					select CrashDetail
-				).OrderByDescending( CrashDetail => CrashDetail.TimeOfCrash );
-
-				Crashes/*IQueryable<Crash> Crashes2*/ = CrashRepositoryDataContext.Crashes.OrderByDescending( CrashDetail => CrashDetail.TimeOfCrash );
-
-				UsersMapping Me = CrashRepositoryDataContext.UsersMappings.FirstOrDefault( mappeduser => mappeduser.UserEmail == "jaroslaw.surowiec@epicgames.com" );
-
+				Crashes = CrashRepositoryDataContext.Crashes.OrderByDescending( CrashDetail => CrashDetail.TimeOfCrash );
 			}
 			catch( Exception Ex )
 			{
@@ -347,30 +253,32 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="Query">The query to apply.</param>
 		/// <returns>A set of results filtered by the query.</returns>
 		public IQueryable<Crash> Search( IQueryable<Crash> Results, string Query )
-		{
-			IQueryable<Crash> Crashes = null;
-			try
+		{using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Query=" + Query + ")" ) )
 			{
-				string[] Terms = Query.Split( "-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-				string TermsToUse = "";
-				foreach( string Term in Terms )
+				IQueryable<Crash> Crashes = null;
+				try
 				{
-					if( !TermsToUse.Contains( Term ) )
+					string[] Terms = Query.Split( "-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
+					string TermsToUse = "";
+					foreach( string Term in Terms )
 					{
-						TermsToUse = TermsToUse + "+" + Term;
+						if( !TermsToUse.Contains( Term ) )
+						{
+							TermsToUse = TermsToUse + "+" + Term;
+						}
 					}
+
+					// Search the results by the search terms using IQueryable search
+					Crashes = (IQueryable<Crash>)Results.Search( TermsToUse.Split( "+".ToCharArray() ) );
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
+					Crashes = Results;
 				}
 
-				// Search the results by the search terms using IQueryable search
-				Crashes = ( IQueryable<Crash> )Results.Search( TermsToUse.Split( "+".ToCharArray() ) );
+				return Crashes;
 			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
-				Crashes = Results;
-			}
-
-			return Crashes;
 		}
 
 		/// <summary>
@@ -393,6 +301,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
+				UsersMapping UniqueUser = null;
 				IQueryable<Crash> Results = null;
 				int Skip = ( FormData.Page - 1 ) * FormData.PageSize;
 				int Take = FormData.PageSize;
@@ -403,26 +312,38 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				// Grab Results 
 				if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
 				{
-					string DecodedQuery = HttpUtility.HtmlDecode( FormData.SearchQuery );
-					if( !string.IsNullOrEmpty( DecodedQuery ) )
-					{
-						// Check if we are looking for user name.
-						string[] Params = DecodedQuery.Split( new string[] { "User:" }, StringSplitOptions.RemoveEmptyEntries );
-						if( Params.Length >= 1 )
+					string DecodedQuery = HttpUtility.HtmlDecode( FormData.SearchQuery ).ToLower();
+					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "CrashRepository.GetResults.FindUserFromQuery" + "(Query=" + DecodedQuery + ")" ) )
+					{						
+						if( !string.IsNullOrEmpty( DecodedQuery ) )
 						{
-							IQueryable<UsersMapping> FoundUsers = CrashRepositoryDataContext.UsersMappings.Where( mappeduser => mappeduser.UserName.Contains( Params[0] ) );
-
-							List<string> EpicIds = new List<string>( 32 );
-							foreach( UsersMapping MappedUser in FoundUsers )
+							// Check if we are looking for user name.
+							string[] Params = DecodedQuery.Split( new string[] { "user:" }, StringSplitOptions.None );
+							if( Params.Length == 2 )
 							{
-								EpicIds.Add( MappedUser.EpicAccountId );
-							}
+								/*IQueryable<UsersMapping>*/
+								// Make sure that type of [dbo].[UsersMapping] is the same as [analyticsdb-01.dmz.epicgames.net].[CrashReport].[dbo].[UsersMapping]
+								IEnumerable<UsersMapping> FoundUsers = CrashRepositoryDataContext.ExecuteQuery<UsersMapping>
+								( @"SELECT * FROM [analyticsdb-01.dmz.epicgames.net].[CrashReport].[dbo].[UsersMapping] WHERE lower(UserName) = {0} OR lower(UserEmail) = {0}", Params[1] );
 
-							Results = Results.Where( CrashInstance => EpicIds.Contains( CrashInstance.EpicAccountId ) );
-						}
-						else
-						{
-							Results = Search( Results, DecodedQuery );
+								foreach( UsersMapping TheUser in FoundUsers )
+								{
+									UniqueUser = TheUser;
+									break;
+								}
+								if( UniqueUser != null )
+								{
+									Results = Results.Where( CrashInstance => CrashInstance.EpicAccountId == UniqueUser.EpicAccountId );
+								}
+								else
+								{
+									Results = Results.Where( CrashInstance => CrashInstance.EpicAccountId == "SomeValueThatIsNotPresentInTheDatabase" );
+								}
+							}
+							else
+							{
+								Results = Search( Results, DecodedQuery );
+							}
 						}
 					}
 				}
@@ -526,11 +447,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				// Grab just the results we want to display on this page
 				Results = Results.Skip( Skip ).Take( Take );
 
-				// Process call stack for display
-				foreach( Crash CrashInstance in Results )
+				using( FScopedLogTimer LogTimer3 = new FScopedLogTimer( "CrashRepository.GetResults.GetCallstacks" ) )
 				{
-					// Put callstacks into an list so we can access them line by line in the view
-					CrashInstance.CallStackContainer = GetCallStack( CrashInstance );
+					// Process call stack for display
+					foreach( Crash CrashInstance in Results )
+					{
+						// Put callstacks into an list so we can access them line by line in the view
+						CrashInstance.CallStackContainer = GetCallStack( CrashInstance );
+					}
 				}
 
 				return new CrashesViewModel
@@ -547,6 +471,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					BranchName = FormData.BranchName,
 					GameName = FormData.GameName,
 					GroupCounts = GroupCounts,
+					RealUserName = UniqueUser != null ? UniqueUser.ToString() : null,
 				};
 			}
 		}
@@ -557,6 +482,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A dictionary of user group names, and the count of crashes for each group.</returns>
 		public Dictionary<string, int> GetCountsByGroup()
 		{
+			// @TODO yrx 2014-11-06 Optimize?
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
 				Dictionary<string, int> Results = new Dictionary<string, int>();
@@ -602,6 +528,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A dictionary of user group names, and the count of Buggs for each group.</returns>
 		public Dictionary<string, int> GetCountsByGroupFromCrashes( IQueryable<Crash> Crashes )
 		{
+			// @TODO yrx 2014-11-06 Optimize?
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
 				Dictionary<string, int> Results = new Dictionary<string, int>();
@@ -646,7 +573,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A dictionary of week vs. crash count.</returns>
 		public Dictionary<DateTime, int> GetWeeklyCountsByGroup( IQueryable<Crash> Crashes, int UserGroupId, int UndefinedUserGroupId )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroupId=" + UserGroupId + ")" ) )
 			{
 				Dictionary<DateTime, int> Results = new Dictionary<DateTime, int>();
 
@@ -680,7 +607,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A dictionary of day vs. crash count.</returns>
 		public Dictionary<DateTime, int> GetDailyCountsByGroup( IQueryable<Crash> Crashes, int UserGroupId, int UndefinedUserGroupId )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroupId=" + UserGroupId + ")" ) )
 			{
 				Dictionary<DateTime, int> Results = new Dictionary<DateTime, int>();
 
@@ -741,7 +668,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A sorted set of crashes.</returns>
 		public IQueryable<Crash> GetSortedResults( IQueryable<Crash> Results, string SortTerm, bool bSortByDescending )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(SortTerm=" + SortTerm + ")" ) )
 			{
 				switch( SortTerm )
 				{
@@ -857,7 +784,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <remarks>All user group interaction is done this way to remove any dependencies on pre-populated tables.</remarks>
 		public int FindOrAddUserGroup( string UserGroupName )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroupName=" + UserGroupName + ")" ) )
 			{
 				int UserGroupNameId = 0;
 				try

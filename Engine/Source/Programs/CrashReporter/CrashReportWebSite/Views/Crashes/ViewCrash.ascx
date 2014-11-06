@@ -89,11 +89,12 @@
 					int Iteration = 0;
 					foreach( Crash CurrentCrash in (IEnumerable)Model.Results )
 					{
-						using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "VCInnerLoop" + "(" + Iteration + ")" ) )
+						using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "CurrentCrash" + "(" + CurrentCrash.Id + ")" ) )
 						{
 							Buggs_Crash BuggCrash = null;
 							try
 							{
+								// This is veeery slow.
 								//BuggCrash = CurrentCrash.Buggs_Crashes.FirstOrDefault();
 							}
 							catch
@@ -131,61 +132,63 @@
 							}
 		%>
 
-	<tr class='CrashRow'>
-		<td class="CrashTd" style="background-color: <%=CrashRowColor %>;" title="<%=CrashColorDescription %>">
-			<input type="CHECKBOX" value="<%=Iteration %>" name="<%=CurrentCrash.Id%>" id="<%=CurrentCrash.Id %>" class='input CrashCheckBox'></td>
-		<td class="Id"><%=Html.ActionLink(CurrentCrash.Id.ToString(), "Show", new { controller = "crashes", id = CurrentCrash.Id }, null)%>
-			<br />
-			<em style="font-size: x-small;"><%= ( BuggCrash != null ) ? BuggCrash.BuggId.ToString() : ""  %></em></td>
-				<td class="TimeOfCrash">
-					<%=CurrentCrash.GetTimeOfCrash()[0]%>
-					<br />
-					<%=CurrentCrash.GetTimeOfCrash()[1]%>
-				</td>
-		<td class="Username"><%=CurrentCrash.UserName%></td>
-				<td class="CallStack" >
-					<div style="clip : auto; ">
-						<div id='<%=CurrentCrash.Id %>-TrimmedCallStackBox' class='TrimmedCallStackBox'>
-							<% foreach( CallStackEntry Entry in CurrentCrash.GetCallStackEntries( 0, 4 ) )
-							   { %>
-								<span class="function-name">
-									<%=Url.CallStackSearchLink( Html.Encode( Entry.GetTrimmedFunctionName( 45 ) ), Model )%>
-					</span>
-					<br />
-							<% } %>
-						</div>
-						<a class='FullCallStackTrigger'><span class='FullCallStackTriggerText'>Full Callstack</span>
-							<div id='<%=CurrentCrash.Id %>-FullCallStackBox' class='FullCallStackBox'>
-								<% foreach( CallStackEntry Entry in CurrentCrash.GetCallStackEntries( 0, 40 ) )
-								   {%>
-										<span class="FunctionName">
-											<%=Html.Encode( Entry.GetTrimmedFunctionName( 60 ) )%>
-										</span>
+								<tr class='CrashRow'>
+									<td class="CrashTd" style="background-color: <%=CrashRowColor %>;" title="<%=CrashColorDescription %>">
+										<input type="CHECKBOX" value="<%=Iteration %>" name="<%=CurrentCrash.Id%>" id="<%=CurrentCrash.Id %>" class='input CrashCheckBox'></td>
+									<td class="Id"><%=Html.ActionLink(CurrentCrash.Id.ToString(), "Show", new { controller = "crashes", id = CurrentCrash.Id }, null)%>
 										<br />
-								<% } %>
-							</div>
-						</a>
-					</div>
+										<em style="font-size: x-small;"><%= ( BuggCrash != null ) ? BuggCrash.BuggId.ToString() : ""  %></em></td>
+											<td class="TimeOfCrash">
+												<%=CurrentCrash.GetTimeOfCrash()[0]%>
+												<br />
+												<%=CurrentCrash.GetTimeOfCrash()[1]%>
+											</td>
+									<td class="Username">
+										<%=Model.RealUserName != null ? Model.RealUserName : CurrentCrash.UserName%>
+									</td>
+									<td class="CallStack">
+										<div style="clip: auto;">
+											<div id='<%=CurrentCrash.Id %>-TrimmedCallStackBox' class='TrimmedCallStackBox'>
+												<% foreach( CallStackEntry Entry in CurrentCrash.GetCallStackEntries( 0, 4 ) )
+												{ %>
+													<span class="function-name">
+														<%=Url.CallStackSearchLink( Html.Encode( Entry.GetTrimmedFunctionName( 45 ) ), Model )%>
+													</span>
+													<br />
+												<% } %>
+											</div>
+											<a class='FullCallStackTrigger'><span class='FullCallStackTriggerText'>Full Callstack</span>
+												<div id='<%=CurrentCrash.Id %>-FullCallStackBox' class='FullCallStackBox'>
+													<% foreach( CallStackEntry Entry in CurrentCrash.GetCallStackEntries( 0, 40 ) )
+													{%>
+														<span class="FunctionName">
+															<%=Html.Encode( Entry.GetTrimmedFunctionName( 60 ) )%>
+														</span>
+														<br />
+													<% } %>
+												</div>
+											</a>
+										</div>
 
-				</td>
+									</td>
 
-				<td class="Game"><%=CurrentCrash.GameName%></td>
-				<td class="Mode"><%=CurrentCrash.EngineMode%></td>
-				<td class="FixedChangeList"><%=CurrentCrash.FixedChangeList%></td>
-				<td class="Ttp"><%=CurrentCrash.TTPID%>&nbsp;</td>
-				<td class="Branch"><%=CurrentCrash.Branch%>&nbsp;</td>
-				<td class="Description"><span class="TableData"><%=CurrentCrash.Description%>&nbsp;</span></td>
-				<td class="Summary"><%=CurrentCrash.Summary%></td>
-				<td class="ChangeListVersion"><%=CurrentCrash.ChangeListVersion%></td>
-				<td class="Computer"><%=CurrentCrash.ComputerName%></td>
-				<td class="Platform"><%=CurrentCrash.PlatformName%></td>
-				<td class="Status"><%=CurrentCrash.Status%></td>
-				<td class="Module"><%=CurrentCrash.Module%></td>
-			</tr>
-	<% 
-			        }
-		        }
-	        }
-	    } 
-	%>
+									<td class="Game"><%=CurrentCrash.GameName%></td>
+									<td class="Mode"><%=CurrentCrash.EngineMode%></td>
+									<td class="FixedChangeList"><%=CurrentCrash.FixedChangeList%></td>
+									<td class="Ttp"><%=CurrentCrash.TTPID%>&nbsp;</td>
+									<td class="Branch"><%=CurrentCrash.Branch%>&nbsp;</td>
+									<td class="Description"><span class="TableData"><%=CurrentCrash.Description%>&nbsp;</span></td>
+									<td class="Summary"><%=CurrentCrash.Summary%></td>
+									<td class="ChangeListVersion"><%=CurrentCrash.ChangeListVersion%></td>
+									<td class="Computer"><%=CurrentCrash.ComputerName%></td>
+									<td class="Platform"><%=CurrentCrash.PlatformName%></td>
+									<td class="Status"><%=CurrentCrash.Status%></td>
+									<td class="Module"><%=CurrentCrash.Module%></td>
+								</tr>
+		<% 
+						}
+					}
+				}
+			} 
+		%>
 </table>

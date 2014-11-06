@@ -111,7 +111,10 @@ Crash Reports
 			<input type="radio" name="CrashType" class="CrashType" value="All" <%=( Model.CrashType == "All" ) ? "checked='checked'" : "" %>/> <span title='All Crashes'>All</span>
 		</span>
 
-		<div id="SearchBox"><%=Html.TextBox( "SearchQuery", Model.SearchQuery, new { width = "1000" } )%><input type="submit" value="Search" class='SearchButton' title="For searching for an user use 'user:[name]'" /></div>
+		<div id="SearchBox">
+			<input id="SearchQuery" name="SearchQuery" type="text" value="<%=Model.SearchQuery %>" width="1000" title="For searching for an user use 'user:[name]'" />
+			<input type="submit" value="Search" class='SearchButton' />
+		</div>
 	
 		<script>$.datepicker.setDefaults($.datepicker.regional['']);</script>
 
@@ -157,7 +160,8 @@ Crash Reports
 						UserGroup = Model.UserGroup, 
 						DateFrom = Model.DateFrom, 
 						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType
+						CrashType = Model.CrashType,
+						RealUserName = Model.RealUserName
 					}
 					, 
 					new { style = "color:black; text-decoration:none;" }
@@ -193,7 +197,8 @@ Crash Reports
 			UserGroup = Model.UserGroup, 
 			DateFrom = Model.DateFrom, 
 			DateTo = Model.DateTo, 
-			CrashType = Model.CrashType 
+			CrashType = Model.CrashType,
+			RealUserName = Model.RealUserName
 		} 
 	) )%>
 	<div id="clear"></div>

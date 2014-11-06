@@ -64,26 +64,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A Bugg representing a group of crashes.</returns>
 		public Bugg GetBugg( int Id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Id + ")" ) )
 			{
-			Bugg Result = null;
+				Bugg Result = null;
 
-			try
-			{
-				Result =
-				(
-					from BuggDetail in BuggsDataContext.Buggs
-					where BuggDetail.Id == Id
-					select BuggDetail
-				).FirstOrDefault();
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in GetBugg: " + Ex.ToString() );
-			}
+				try
+				{
+					Result =
+					(
+						from BuggDetail in BuggsDataContext.Buggs
+						where BuggDetail.Id == Id
+						select BuggDetail
+					).FirstOrDefault();
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in GetBugg: " + Ex.ToString() );
+				}
 
-			return Result;
-		}
+				return Result;
+			}
 		}
 
 		/// <summary>
@@ -95,18 +95,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-			try
-			{
-				FunctionCall FunctionCall = BuggsDataContext.FunctionCalls.Where( FunctionCallInstance => FunctionCallInstance.Call.Contains( FunctionCallName ) ).First();
-				return FunctionCall.Id;
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in GetFunctionCallId: " + Ex.ToString() );
-			}
+				try
+				{
+					FunctionCall FunctionCall = BuggsDataContext.FunctionCalls.Where( FunctionCallInstance => FunctionCallInstance.Call.Contains( FunctionCallName ) ).First();
+					return FunctionCall.Id;
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in GetFunctionCallId: " + Ex.ToString() );
+				}
 
-			return 0;
-		}
+				return 0;
+			}
 		}
 
 		/// <summary>
@@ -130,41 +130,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A list of strings that make up a callstack.</returns>
 		public List<string> GetFunctionCalls( List<int> Ids )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Ids.Count + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Ids.Count=" + Ids.Count + ")" ) )
 			{
-			List<string> FunctionCalls = new List<string>();
-			try
-			{
-// 					using( FAutoScopedLogTimer LogTimer2 = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Ids.Count + ") slow" ) )
-// 					{
-// 						var Query =
-// 											(
-// 												from Id in Ids
-// 												join Function in BuggsDataContext.FunctionCalls on Id equals Function.Id
-// 												select Function.Call
-// 											);
-// 						FunctionCalls = Query.ToList();
-// 					}
-
-					using( FAutoScopedLogTimer LogTimer3 = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Ids.Count + ") fast" ) )
+				List<string> FunctionCalls = new List<string>();
+				try
+				{
+					List<FunctionCall> Funcs = BuggsDataContext.FunctionCalls.Where( FuncCall => Ids.Contains( FuncCall.Id ) ).ToList();
+					// Order by Ids
+					foreach( int Id in Ids )
 					{
-						List<FunctionCall> Funcs = BuggsDataContext.FunctionCalls.Where( FuncCall => Ids.Contains(FuncCall.Id) ).ToList();
-						// Order by Ids
-						foreach( int Id in Ids )
-						{
-							var Found = Funcs.Find( FC => FC.Id == Id );
-							FunctionCalls.Add( Found.Call );
-						}		
+						var Found = Funcs.Find( FC => FC.Id == Id );
+						FunctionCalls.Add( Found.Call );
 					}
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in GetFunctionCalls: " + Ex.ToString() );
+				}
 
+				return FunctionCalls;
 			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in GetFunctionCalls: " + Ex.ToString() );
-			}
-
-			return FunctionCalls;
-		}
 		}
 
 		/// <summary>
@@ -174,81 +159,82 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="Crashes">The set of crashes to add to the Bugg.</param>
 		public void UpdateBuggData( Bugg Bugg, IEnumerable<Crash> Crashes )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString()+ "(" + Bugg.Id + ")" ) )
 			{
+				FLogger.WriteEvent( "UpdateBuggData Bugg.Id=" + Bugg.Id );
 
-			DateTime? TimeOfFirstCrash = null;
-			DateTime? TimeOfLastCrash = null;
-			string BuildVersion = null;
-			List<int> UserNameIds = new List<int>();
-			int CrashCount = 0;
+				DateTime? TimeOfFirstCrash = null;
+				DateTime? TimeOfLastCrash = null;
+				string BuildVersion = null;
+				List<int> UserNameIds = new List<int>();
+				int CrashCount = 0;
 
-			// Set or return min date max date while we're iterating through the crashes
-			bool bHasChanges = false;
-			try
-			{
-				foreach( Crash CurrentCrash in Crashes )
+				// Set or return min date max date while we're iterating through the crashes
+				bool bHasChanges = false;
+				try
 				{
-					CrashCount++;
-					if( TimeOfFirstCrash == null || CurrentCrash.TimeOfCrash < TimeOfFirstCrash )
+					foreach( Crash CurrentCrash in Crashes )
 					{
-						TimeOfFirstCrash = CurrentCrash.TimeOfCrash;
-					}
-
-					if( TimeOfLastCrash == null || CurrentCrash.TimeOfCrash > TimeOfLastCrash )
-					{
-						TimeOfLastCrash = CurrentCrash.TimeOfCrash;
-					}
-
-					if( BuildVersion == null || CurrentCrash.BuildVersion.CompareTo( BuildVersion ) > 0 )
-					{
-						BuildVersion = CurrentCrash.BuildVersion;
-					}
-
-					// Handle user count
-					if(Bugg.Id != 0)
-					{
-						if(!UserNameIds.Contains(CurrentCrash.User.Id))
+						CrashCount++;
+						if( TimeOfFirstCrash == null || CurrentCrash.TimeOfCrash < TimeOfFirstCrash )
 						{
-							// Add username to local users variable that we will use later to set user count and associate users and user groups to the bugg.
-							UserNameIds.Add(CurrentCrash.User.Id);
+							TimeOfFirstCrash = CurrentCrash.TimeOfCrash;
+						}
+
+						if( TimeOfLastCrash == null || CurrentCrash.TimeOfCrash > TimeOfLastCrash )
+						{
+							TimeOfLastCrash = CurrentCrash.TimeOfCrash;
+						}
+
+						if( BuildVersion == null || CurrentCrash.BuildVersion.CompareTo( BuildVersion ) > 0 )
+						{
+							BuildVersion = CurrentCrash.BuildVersion;
+						}
+
+						// Handle user count
+						if( Bugg.Id != 0 )
+						{
+							if( !UserNameIds.Contains( CurrentCrash.User.Id ) )
+							{
+								// Add username to local users variable that we will use later to set user count and associate users and user groups to the bugg.
+								UserNameIds.Add( CurrentCrash.User.Id );
+							}
+						}
+
+						CurrentCrash.FixedChangeList = Bugg.FixedChangeList;
+						CurrentCrash.TTPID = Bugg.TTPID;
+						CurrentCrash.Status = Bugg.Status;
+
+						if( Bugg.Id != 0 )
+						{
+							bHasChanges |= LinkCrashToBugg( Bugg, CurrentCrash );
 						}
 					}
 
-					CurrentCrash.FixedChangeList = Bugg.FixedChangeList;
-					CurrentCrash.TTPID = Bugg.TTPID;
-					CurrentCrash.Status = Bugg.Status;
-
-					if( Bugg.Id != 0 )
+					if( CrashCount > 1 )
 					{
-						bHasChanges |= LinkCrashToBugg( Bugg, CurrentCrash );
+						Bugg.TimeOfLastCrash = TimeOfLastCrash;
+						Bugg.TimeOfFirstCrash = TimeOfFirstCrash;
+						Bugg.NumberOfUsers = UserNameIds.Count();
+						Bugg.NumberOfCrashes = CrashCount;
+						Bugg.BuildVersion = BuildVersion;
+
+						foreach( int UserNameId in UserNameIds )
+						{
+							// Link user to Bugg
+							bHasChanges |= LinkUserToBugg( Bugg, UserNameId );
+						}
+					}
+
+					if( bHasChanges )
+					{
+						BuggsDataContext.SubmitChanges();
 					}
 				}
-
-				if( CrashCount > 1 )
+				catch( Exception Ex )
 				{
-					Bugg.TimeOfLastCrash = TimeOfLastCrash;
-					Bugg.TimeOfFirstCrash = TimeOfFirstCrash;
-					Bugg.NumberOfUsers = UserNameIds.Count();
-					Bugg.NumberOfCrashes = CrashCount;
-					Bugg.BuildVersion = BuildVersion;
-
-					foreach( int UserNameId in UserNameIds )
-					{
-						// Link user to Bugg
-						bHasChanges |= LinkUserToBugg( Bugg, UserNameId );
-					}
+					Debug.WriteLine( "Exception in UpdateBuggData: " + Ex.ToString() );
 				}
-
-				if( bHasChanges )
-				{
-					BuggsDataContext.SubmitChanges();
-				}
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in UpdateBuggData: " + Ex.ToString() );
-			}
 
 			}
 		}
@@ -334,39 +320,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A filtered set of Buggs.</returns>
 		public IQueryable<Bugg> Search( IQueryable<Bugg> Results, string Query )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Query=" + Query + ")" ) )
 			{
-			// Also may want to revisit how we search since this could get inefficient for a big search set.
-			IQueryable<Bugg> Buggs;
-			try
-			{
-				string QueryString = HttpUtility.HtmlDecode( Query.ToString() );
-				if( QueryString == null )
+				// Also may want to revisit how we search since this could get inefficient for a big search set.
+				IQueryable<Bugg> Buggs;
+				try
 				{
-					QueryString = "";
-				}
-
-				// Take out terms starting with a - 
-				string[] Terms = QueryString.Split( "-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-				string TermsToUse = "";
-				foreach( string Term in Terms )
-				{
-					string CallId = GetFunctionCallId( Term ).ToString();
-					if( !TermsToUse.Contains( CallId ) )
+					string QueryString = HttpUtility.HtmlDecode( Query.ToString() );
+					if( QueryString == null )
 					{
-						TermsToUse = TermsToUse + "+" + CallId;
+						QueryString = "";
 					}
-				}
 
-				Buggs = ( IQueryable<Bugg> )Results.Search( new string[] { "Pattern" }, TermsToUse.Split( "+".ToCharArray() ) );
+					// Take out terms starting with a - 
+					string[] Terms = QueryString.Split( "-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
+					string TermsToUse = "";
+					foreach( string Term in Terms )
+					{
+						string CallId = GetFunctionCallId( Term ).ToString();
+						if( !TermsToUse.Contains( CallId ) )
+						{
+							TermsToUse = TermsToUse + "+" + CallId;
+						}
+					}
+
+					Buggs = (IQueryable<Bugg>)Results.Search( new string[] { "Pattern" }, TermsToUse.Split( "+".ToCharArray() ) );
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
+					Buggs = Results;
+				}
+				return Buggs;
 			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in Search: " + Ex.ToString() );
-				Buggs = Results;
-			}
-			return Buggs;
-		}
 		}
 
 		/// <summary>
@@ -378,78 +364,78 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-			// Right now we take a Result IQueryable starting with ListAll() Buggs then we widdle away the result set by tacking on 
-			// Linq queries. Essentially it's Results.ListAll().Where().Where().Where().Where().Where().Where()
-			// Could possibly create more optimized queries when we know exactly what we're querying
-			// The downside is that if we add more parameters each query may need to be updated.... Or we just add new case statements
-			// The other downside is that there's less code reuse, but that may be worth it.
+				// Right now we take a Result IQueryable starting with ListAll() Buggs then we widdle away the result set by tacking on 
+				// Linq queries. Essentially it's Results.ListAll().Where().Where().Where().Where().Where().Where()
+				// Could possibly create more optimized queries when we know exactly what we're querying
+				// The downside is that if we add more parameters each query may need to be updated.... Or we just add new case statements
+				// The other downside is that there's less code reuse, but that may be worth it.
 
-			IQueryable<Bugg> Results = null;
-			int Skip = ( FormData.Page - 1 ) * FormData.PageSize;
-			int Take = FormData.PageSize;
+				IQueryable<Bugg> Results = null;
+				int Skip = ( FormData.Page - 1 ) * FormData.PageSize;
+				int Take = FormData.PageSize;
 
-			// Get every Bugg.
-			Results = ListAll();
+				// Get every Bugg.
+				Results = ListAll();
 
-			// Look at all Buggs that are still 'open' i.e. the last crash occurred in our date range.
-			Results = FilterByDate( Results, FormData.DateFrom, FormData.DateTo );
+				// Look at all Buggs that are still 'open' i.e. the last crash occurred in our date range.
+				Results = FilterByDate( Results, FormData.DateFrom, FormData.DateTo );
 
-			// Filter results by build version.
-			Results = FilterByBuildVersion( Results, FormData.BuildVersion );
+				// Filter results by build version.
+				Results = FilterByBuildVersion( Results, FormData.BuildVersion );
 
-			// Run at the end
-			if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
-			{
-				Results = Search( Results, FormData.SearchQuery );
-			}
-
-			// Filter by Crash Type
-			if( FormData.CrashType != "All" )
-			{
-				switch( FormData.CrashType )
+				// Run at the end
+				if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
 				{
-					case "Crashes":
-						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 1 );
-						break;
-					case "Assert":
-						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 2 );
-						break;
-					case "Ensure":
-						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 3 );
-						break;
-					case "CrashesAsserts":
-						Results = Results.Where( BuggInstance => BuggInstance.CrashType == 1 || BuggInstance.CrashType == 2 );
-						break;
+					Results = Search( Results, FormData.SearchQuery );
 				}
+
+				// Filter by Crash Type
+				if( FormData.CrashType != "All" )
+				{
+					switch( FormData.CrashType )
+					{
+						case "Crashes":
+							Results = Results.Where( BuggInstance => BuggInstance.CrashType == 1 );
+							break;
+						case "Assert":
+							Results = Results.Where( BuggInstance => BuggInstance.CrashType == 2 );
+							break;
+						case "Ensure":
+							Results = Results.Where( BuggInstance => BuggInstance.CrashType == 3 );
+							break;
+						case "CrashesAsserts":
+							Results = Results.Where( BuggInstance => BuggInstance.CrashType == 1 || BuggInstance.CrashType == 2 );
+							break;
+					}
+				}
+
+				// Get UserGroup ResultCounts
+				Dictionary<string, int> GroupCounts = GetCountsByGroup( Results );
+
+				// Filter by user group if present
+				Results = FilterByUserGroup( Results, FormData.UserGroup );
+
+				// Pass in the results and return them sorted properly
+				IEnumerable<Bugg> SortedResults = GetSortedResults( Results, FormData.SortTerm, ( FormData.SortOrder == "Descending" ), FormData.DateFrom, FormData.DateTo );
+
+				// Grab just the results we want to display on this page
+				SortedResults = SortedResults.Skip( Skip ).Take( Take ).ToList();
+
+				return new BuggsViewModel
+				{
+					Results = SortedResults,
+					PagingInfo = new PagingInfo { CurrentPage = FormData.Page, PageSize = FormData.PageSize, TotalResults = Results.Count() },
+					SortTerm = FormData.SortTerm,
+					SortOrder = FormData.SortOrder,
+					UserGroup = FormData.UserGroup,
+					CrashType = FormData.CrashType,
+					SearchQuery = FormData.SearchQuery,
+					DateFrom = (long)( FormData.DateFrom - CrashesViewModel.Epoch ).TotalMilliseconds,
+					DateTo = (long)( FormData.DateTo - CrashesViewModel.Epoch ).TotalMilliseconds,
+					BuildVersion = FormData.BuildVersion,
+					GroupCounts = GroupCounts,
+				};
 			}
-
-			// Get UserGroup ResultCounts
-			Dictionary<string, int> GroupCounts = GetCountsByGroup( Results );
-
-			// Filter by user group if present
-			Results = FilterByUserGroup( Results, FormData.UserGroup );
-
-			// Pass in the results and return them sorted properly
-			IEnumerable<Bugg> SortedResults = GetSortedResults( Results, FormData.SortTerm, ( FormData.SortOrder == "Descending" ), FormData.DateFrom, FormData.DateTo );
-
-			// Grab just the results we want to display on this page
-			SortedResults = SortedResults.Skip( Skip ).Take( Take ).ToList();
-
-			return new BuggsViewModel 
-			{
-				Results = SortedResults,
-				PagingInfo = new PagingInfo { CurrentPage = FormData.Page, PageSize = FormData.PageSize, TotalResults = Results.Count() },
-				SortTerm = FormData.SortTerm,
-				SortOrder = FormData.SortOrder,
-				UserGroup = FormData.UserGroup,
-				CrashType = FormData.CrashType,
-				SearchQuery = FormData.SearchQuery,
-				DateFrom = (long)(FormData.DateFrom - CrashesViewModel.Epoch).TotalMilliseconds,
-				DateTo = (long)(FormData.DateTo - CrashesViewModel.Epoch).TotalMilliseconds,
-				BuildVersion = FormData.BuildVersion,
-				GroupCounts = GroupCounts,
-			};
-		}
 		}
 
 		/// <summary>
@@ -459,37 +445,38 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A dictionary of user group names, and the count of Buggs for each group.</returns>
 		public Dictionary<string, int> GetCountsByGroup( IQueryable<Bugg> Buggs )
 		{
+			// @TODO yrx 2014-11-06 Optimize
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-			Dictionary<string, int> Results = new Dictionary<string, int>();
+				Dictionary<string, int> Results = new Dictionary<string, int>();
 
-			try
-			{
-				Results =
-				(
-					from BuggDetail in Buggs
-					join BuggsUserGroupDetail in BuggsDataContext.Buggs_UserGroups on BuggDetail.Id equals BuggsUserGroupDetail.BuggId
-					join UserGroupDetail in BuggsDataContext.UserGroups on BuggsUserGroupDetail.UserGroupId equals UserGroupDetail.Id
-					group 0 by UserGroupDetail.Name into GroupCount
-					select new { Key = GroupCount.Key, Count = GroupCount.Count() }
-				).ToDictionary( x => x.Key, y => y.Count );
-
-				// Add in all groups, even though there are no crashes associated
-				IEnumerable<string> UserGroups = ( from UserGroupDetail in BuggsDataContext.UserGroups select UserGroupDetail.Name );
-				foreach( string UserGroupName in UserGroups )
+				try
 				{
-					if( !Results.Keys.Contains( UserGroupName ) )
+					Results =
+					(
+						from BuggDetail in Buggs
+						join BuggsUserGroupDetail in BuggsDataContext.Buggs_UserGroups on BuggDetail.Id equals BuggsUserGroupDetail.BuggId
+						join UserGroupDetail in BuggsDataContext.UserGroups on BuggsUserGroupDetail.UserGroupId equals UserGroupDetail.Id
+						group 0 by UserGroupDetail.Name into GroupCount
+						select new { Key = GroupCount.Key, Count = GroupCount.Count() }
+					).ToDictionary( x => x.Key, y => y.Count );
+
+					// Add in all groups, even though there are no crashes associated
+					IEnumerable<string> UserGroups = ( from UserGroupDetail in BuggsDataContext.UserGroups select UserGroupDetail.Name );
+					foreach( string UserGroupName in UserGroups )
 					{
-						Results[UserGroupName] = 0;
+						if( !Results.Keys.Contains( UserGroupName ) )
+						{
+							Results[UserGroupName] = 0;
+						}
 					}
 				}
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in GetCountsByGroup: " + Ex.ToString() );
-			}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in GetCountsByGroup: " + Ex.ToString() );
+				}
 
-			return Results;
+				return Results;
 		}
 		}
 
@@ -502,11 +489,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs between the earliest and latest date.</returns>
 		public IQueryable<Bugg> FilterByDate( IQueryable<Bugg> Results, DateTime DateFrom, DateTime DateTo )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
-			{
 			IQueryable<Bugg> BuggsInTimeFrame = Results.Where( Bugg => Bugg.TimeOfLastCrash >= DateFrom && Bugg.TimeOfLastCrash <= AddOneDayToDate( DateTo ) );
-				return BuggsInTimeFrame;
-			}
+			return BuggsInTimeFrame;			
 		}
 
 		/// <summary>
@@ -517,8 +501,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs that matches specified build version</returns>
 		public IQueryable<Bugg> FilterByBuildVersion( IQueryable<Bugg> Results, string BuildVersion )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
-			{
 			IQueryable<Bugg> BuggsForBuildVersion = Results;
 
 			// Filter by BuildVersion
@@ -530,9 +512,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					where MyBugg.BuildVersion.Contains( BuildVersion )
 					select MyBugg
 				);
-				}			
-				return BuggsForBuildVersion;
 			}
+			return BuggsForBuildVersion;	
 		} 
 
 		/// <summary>
@@ -543,30 +524,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The set of Buggs by users in the requested user group.</returns>
 		public IQueryable<Bugg> FilterByUserGroup( IQueryable<Bugg> SetOfBuggs, string UserGroup )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(UserGroup=" + UserGroup + ")" ) )
 			{
-			IQueryable<Bugg> NewSetOfBuggs = null;
+				IQueryable<Bugg> NewSetOfBuggs = null;
 
-			try
-			{
-				NewSetOfBuggs =
-				(
-					from BuggDetail in SetOfBuggs
-					join BuggsUserGroupDetail in BuggsDataContext.Buggs_UserGroups on BuggDetail.Id equals BuggsUserGroupDetail.BuggId
-					join UserGroupDetail in BuggsDataContext.UserGroups on BuggsUserGroupDetail.UserGroupId equals UserGroupDetail.Id
-					where UserGroupDetail.Name.Contains(UserGroup)
-					select BuggDetail
-				);
+				try
+				{
+					NewSetOfBuggs =
+					(
+						from BuggDetail in SetOfBuggs
+						join BuggsUserGroupDetail in BuggsDataContext.Buggs_UserGroups on BuggDetail.Id equals BuggsUserGroupDetail.BuggId
+						join UserGroupDetail in BuggsDataContext.UserGroups on BuggsUserGroupDetail.UserGroupId equals UserGroupDetail.Id
+						where UserGroupDetail.Name.Contains( UserGroup )
+						select BuggDetail
+					);
 
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in FilterByUserGroup: " + Ex.ToString() );
+				}
+
+
+				return NewSetOfBuggs;
 			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in FilterByUserGroup: " + Ex.ToString() );
-			}
-
-
-			return NewSetOfBuggs;
-		}
 		}
 
 		private DateTime AddOneDayToDate( DateTime Date )
@@ -587,81 +568,81 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-			try
-			{
+				try
+				{
 
-				var IntermediateResults =
-				(
-					from BuggCrashDetail in BuggsDataContext.Buggs_Crashes
-					where BuggCrashDetail.Crash.TimeOfCrash >= DateFrom && BuggCrashDetail.Crash.TimeOfCrash <= AddOneDayToDate( DateTo )
-					group BuggCrashDetail by BuggCrashDetail.BuggId into CrashesGrouped
-					join BuggDetail in Results on CrashesGrouped.Key equals BuggDetail.Id
-					select new { Bugg = BuggDetail, Count = CrashesGrouped.Count() }
-				);
+					var IntermediateResults =
+					(
+						from BuggCrashDetail in BuggsDataContext.Buggs_Crashes
+						where BuggCrashDetail.Crash.TimeOfCrash >= DateFrom && BuggCrashDetail.Crash.TimeOfCrash <= AddOneDayToDate( DateTo )
+						group BuggCrashDetail by BuggCrashDetail.BuggId into CrashesGrouped
+						join BuggDetail in Results on CrashesGrouped.Key equals BuggDetail.Id
+						select new { Bugg = BuggDetail, Count = CrashesGrouped.Count() }
+					);
 
 					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggRepository.GetSortedResults.CrashesInTimeFrame" ) )
 					{
-				foreach( var Result in IntermediateResults )
-				{
-					Result.Bugg.CrashesInTimeFrame = Result.Count;
-				}
+						foreach( var Result in IntermediateResults )
+						{
+							Result.Bugg.CrashesInTimeFrame = Result.Count;
+						}
 					}
 
 
-				switch( SortTerm )
-				{
-					case "CrashesInTimeFrame":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Count, bSortDescending);
-						break;
+					switch( SortTerm )
+					{
+						case "CrashesInTimeFrame":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Count, bSortDescending );
+							break;
 
-					case "Id":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Id, bSortDescending);
-						break;
+						case "Id":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Id, bSortDescending );
+							break;
 
-					case "BuildVersion":
-						IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.BuildVersion, bSortDescending );
-						break;
+						case "BuildVersion":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.BuildVersion, bSortDescending );
+							break;
 
-					case "LatestCrash":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.TimeOfLastCrash, bSortDescending);
-						break;
+						case "LatestCrash":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.TimeOfLastCrash, bSortDescending );
+							break;
 
-					case "FirstCrash":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.TimeOfFirstCrash, bSortDescending);
-						break;
+						case "FirstCrash":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.TimeOfFirstCrash, bSortDescending );
+							break;
 
-					case "NumberOfCrashes":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.NumberOfCrashes, bSortDescending);
-						break;
+						case "NumberOfCrashes":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.NumberOfCrashes, bSortDescending );
+							break;
 
-					case "NumberOfUsers":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.NumberOfUsers, bSortDescending);
-						break;
+						case "NumberOfUsers":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.NumberOfUsers, bSortDescending );
+							break;
 
-					case "Pattern":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Pattern, bSortDescending);
-						break;
+						case "Pattern":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Pattern, bSortDescending );
+							break;
 
-					case "Status":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Status, bSortDescending);
-						break;
+						case "Status":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.Status, bSortDescending );
+							break;
 
-					case "FixedChangeList":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.FixedChangeList, bSortDescending);
-						break;
+						case "FixedChangeList":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.FixedChangeList, bSortDescending );
+							break;
 
-					case "TTPID":
-						IntermediateResults = CrashRepository.OrderBy(IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.TTPID, bSortDescending);
-						break;
+						case "TTPID":
+							IntermediateResults = CrashRepository.OrderBy( IntermediateResults, BuggCrashInstance => BuggCrashInstance.Bugg.TTPID, bSortDescending );
+							break;
 
+					}
+					return IntermediateResults.Select( x => x.Bugg );
 				}
-				return IntermediateResults.Select( x => x.Bugg );
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in GetSortedResults: " + Ex.ToString() );
-			}
-			return Results;
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in GetSortedResults: " + Ex.ToString() );
+				}
+				return Results;
 		}
 	}
 }

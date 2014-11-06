@@ -136,7 +136,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="CurrentCrash"></param>
 		public CallStackContainer( Crash CurrentCrash )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CurrentCrash.Id + ")" ) )
 			{
 				ParseCallStack( CurrentCrash ); 
 			}

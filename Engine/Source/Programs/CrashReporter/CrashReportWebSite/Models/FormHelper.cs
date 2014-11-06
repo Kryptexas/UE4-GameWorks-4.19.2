@@ -97,7 +97,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			string MillisecondsString;
 			if (!GetFormParameter(Request, Form, Key, "", out MillisecondsString))
-				return;
+			{ 
+				return; 
+			}
 
 			try
 			{

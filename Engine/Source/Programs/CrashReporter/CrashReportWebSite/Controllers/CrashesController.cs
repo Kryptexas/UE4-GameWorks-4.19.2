@@ -47,22 +47,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 							if( !string.IsNullOrEmpty( CrashesForm["SetStatus"] ) )
 							{
 								CurrentCrash.Status = CrashesForm["SetStatus"];
-								LocalCrashRepository.SetCrashStatus( CurrentCrash.Status, Id );
 							}
 
 							if( !string.IsNullOrEmpty( CrashesForm["SetFixedIn"] ) )
 							{
 								CurrentCrash.FixedChangeList = CrashesForm["SetFixedIn"];
-								LocalCrashRepository.SetCrashFixedChangeList( CurrentCrash.FixedChangeList, Id );
 							}
 
 							if( !string.IsNullOrEmpty( CrashesForm["SetTTP"] ) )
 							{
 								CurrentCrash.TTPID = CrashesForm["SetTTP"];
-								LocalCrashRepository.SetCrashTTPID( CurrentCrash.TTPID, Id );
 							}
 						}
 					}
+
+					LocalCrashRepository.SubmitChanges();
 				}
 
 				// <STATUS>
@@ -82,21 +81,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// Show detailed information about a crash.
 		/// </summary>
 		/// <param name="CrashesForm">A form of user data passed up from the client.</param>
-		/// <param name="Id">The unique id of the crash we wish to show the details of.</param>
+		/// <param name="CrashId">The unique NewCrashId of the crash we wish to show the details of.</param>
 		/// <returns>A view to show crash details.</returns>
-		public ActionResult Show( FormCollection CrashesForm, int? Id )
+		public ActionResult Show( FormCollection CrashesForm, int CrashId )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CrashId + ")" ) )
 			{
-				if( !Id.HasValue )
-				{
-					return RedirectToAction( "" );
-				}
-
 				CallStackContainer CurrentCallStack = null;
 
 				// Update the selected crash based on the form contents
-				Crash CurrentCrash = LocalCrashRepository.GetCrash( Id.Value );
+				Crash CurrentCrash = LocalCrashRepository.GetCrash( CrashId );
 
 				if( CurrentCrash == null )
 				{
@@ -109,21 +103,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					CurrentCrash.Status = FormValue;
-					//LocalCrashRepository.SetCrashStatus(FormValue, Id.Value);
 				}
 
 				FormValue = CrashesForm["SetFixedIn"];
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					CurrentCrash.FixedChangeList = FormValue;
-					//LocalCrashRepository.SetCrashFixedChangeList(FormValue, Id.Value);
 				}
 
 				FormValue = CrashesForm["SetTTP"];
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
 					CurrentCrash.TTPID = FormValue;
-					//LocalCrashRepository.SetCrashTTPID(FormValue, Id.Value);
 				}
 
 				// Valid to set description to an empty string
@@ -131,7 +122,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				if( FormValue != null )
 				{
 					CurrentCrash.Description = FormValue;
-					//LocalCrashRepository.SetCrashDescription(FormValue, Id.Value);
 				}
 
 				CurrentCallStack = new CallStackContainer( CurrentCrash );
@@ -156,11 +146,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <summary>
 		/// Add a crash passed in the payload as Xml to the database.
 		/// </summary>
-		/// <param name="id">Unused.</param>
-		/// <returns>The row id of the newly added crash.</returns>
-		public ActionResult AddCrash( int id )
+		/// <param name="NewCrashId">Unused.</param>
+		/// <returns>The row NewCrashId of the newly added crash.</returns>
+		public ActionResult AddCrash( int NewCrashId )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(NewCrashId=" + NewCrashId + ")" ) )
 			{
 				CrashReporterResult NewCrashResult = new CrashReporterResult();
 				NewCrashResult.ID = -1;

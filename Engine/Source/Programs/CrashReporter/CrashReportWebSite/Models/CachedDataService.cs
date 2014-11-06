@@ -70,7 +70,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A parsed callstack.</returns>
 		public CallStackContainer GetCallStack( Crash CurrentCrash )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CurrentCrash.Id + ")" ) )
 			{
 				string Key = CacheKeyPrefix + CallstackKeyPrefix + CurrentCrash.Id;
 				CallStackContainer CallStack = (CallStackContainer)CacheInstance[Key];
@@ -116,7 +116,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A list of function names.</returns>
 		public List<string> GetFunctionCalls( string Pattern )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Count=" + CacheInstance.Count + ")" ) )
 			{
 				string Key = CacheKeyPrefix + FunctionCallKeyPrefix + Pattern;
 				List<string> FunctionCalls = (List<string>)CacheInstance[Key];
