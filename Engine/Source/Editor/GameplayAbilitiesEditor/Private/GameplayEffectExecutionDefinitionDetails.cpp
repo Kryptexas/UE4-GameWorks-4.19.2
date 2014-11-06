@@ -75,7 +75,7 @@ void FGameplayEffectExecutionDefinitionDetails::UpdateCalculationModifiers()
 			const UGameplayEffectExecutionCalculation* ExecutionCDO = ClassObj->GetDefaultObject<UGameplayEffectExecutionCalculation>();
 			if (ExecutionCDO)
 			{
-				ValidCaptureDefinitions.Append(ExecutionCDO->GetAttributeCaptureDefinitions());
+				ExecutionCDO->GetValidScopedModifierAttributeCaptureDefinitions(ValidCaptureDefinitions);
 			}
 		}
 	}

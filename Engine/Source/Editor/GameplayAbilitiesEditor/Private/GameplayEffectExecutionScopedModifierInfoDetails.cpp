@@ -174,10 +174,12 @@ void FGameplayEffectExecutionScopedModifierInfoDetails::CustomizeChildren(TShare
 						const UGameplayEffectExecutionCalculation* ExecCalcCDO = ExecutionDef.CalculationClass->GetDefaultObject<UGameplayEffectExecutionCalculation>();
 						if (ensure(ExecCalcCDO))
 						{
-							const TArray<FGameplayEffectAttributeCaptureDefinition>& CDOCaptureDefs = ExecCalcCDO->GetAttributeCaptureDefinitions();
-							for (const FGameplayEffectAttributeCaptureDefinition& CurCaptureDef : CDOCaptureDefs)
+							TArray<FGameplayEffectAttributeCaptureDefinition> CaptureDefs;
+							ExecCalcCDO->GetValidScopedModifierAttributeCaptureDefinitions(CaptureDefs);
+
+							for (const FGameplayEffectAttributeCaptureDefinition& CurDef : CaptureDefs)
 							{
-								AvailableCaptureDefs.Add(MakeShareable(new FGameplayEffectAttributeCaptureDefinition(CurCaptureDef)));
+								AvailableCaptureDefs.Add(MakeShareable(new FGameplayEffectAttributeCaptureDefinition(CurDef)));
 							}
 						}
 					}

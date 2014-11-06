@@ -154,6 +154,22 @@ UGameplayEffectExecutionCalculation::UGameplayEffectExecutionCalculation(const F
 {
 }
 
+#if WITH_EDITORONLY_DATA
+void UGameplayEffectExecutionCalculation::GetValidScopedModifierAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutScopableModifiers) const
+{
+	OutScopableModifiers.Empty();
+
+	const TArray<FGameplayEffectAttributeCaptureDefinition>& DefaultCaptureDefs = GetAttributeCaptureDefinitions();
+	for (const FGameplayEffectAttributeCaptureDefinition& CurDef : DefaultCaptureDefs)
+	{
+		if (!InvalidScopedModifierAttributes.Contains(CurDef))
+		{
+			OutScopableModifiers.Add(CurDef);
+		}
+	}
+}
+#endif // #if WITH_EDITORONLY_DATA
+
 void UGameplayEffectExecutionCalculation::Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, OUT TArray<FGameplayModifierEvaluatedData>& OutAdditionalModifiers) const
 {
 }

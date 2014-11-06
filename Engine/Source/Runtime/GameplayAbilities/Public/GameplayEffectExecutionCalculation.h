@@ -91,7 +91,23 @@ class GAMEPLAYABILITIES_API UGameplayEffectExecutionCalculation : public UGamepl
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITORONLY_DATA
+
+protected:
+
+	/** Any attribute in this list will not show up as a valid option for scoped modifiers; Used to allow attribute capture for internal calculation while preventing modification */
+	UPROPERTY(EditDefaultsOnly, Category=Attributes)
+	TArray<FGameplayEffectAttributeCaptureDefinition> InvalidScopedModifierAttributes;
+
 public:
+	/**
+	 * Gets the collection of capture attribute definitions that the calculation class will accept as valid scoped modifiers
+	 * 
+	 * @param OutScopableModifiers	[OUT] Array to populate with definitions valid as scoped modifiers
+	 */
+	virtual void GetValidScopedModifierAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutScopableModifiers) const;
+
+#endif // #if WITH_EDITORONLY_DATA
 
 	/**
 	 * Called whenever the owning gameplay effect is executed. Allowed to do essentially whatever is desired, including generating new
