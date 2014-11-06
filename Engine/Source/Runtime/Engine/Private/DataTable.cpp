@@ -182,9 +182,9 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 		}
 	}
 
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
+#if WITH_EDITOR
 	Collector.AddReferencedObjects(This->TemporarilyReferencedObjects);
-#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
+#endif //WITH_EDITOR
 
 	Super::AddReferencedObjects( This, Collector );
 }
@@ -240,7 +240,7 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 	return Property;
 }
 
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
+#if WITH_EDITOR
 
 struct FPropertyDisplayNameHelper
 {
@@ -670,4 +670,4 @@ TArray< TArray<FString> > UDataTable::GetTableData() const
 
 }
 
-#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
+#endif //WITH_EDITOR

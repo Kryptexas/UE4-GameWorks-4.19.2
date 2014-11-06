@@ -119,7 +119,7 @@ class UDataTable : public UObject
 	/** Empty the table info (will not clear RowStruct) */
 	ENGINE_API void EmptyTable();
 
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
+#if WITH_EDITOR
 
 private:
 	//when RowStruct is being modified, row data is stored serialized with tags
@@ -159,7 +159,7 @@ public:
 
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
-#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
+#endif //WITH_EDITOR
 
 	ENGINE_API static FString AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData);
 
