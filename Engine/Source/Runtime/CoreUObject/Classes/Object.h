@@ -190,16 +190,16 @@ USTRUCT(immutable, noexport, BlueprintType)
 struct FGuid
 {
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 A;
+	int32 A;
 
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 B;
+	int32 B;
 
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 C;
+	int32 C;
 
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 D;
+	int32 D;
 };
 
 // A unique identifier for networking objects
