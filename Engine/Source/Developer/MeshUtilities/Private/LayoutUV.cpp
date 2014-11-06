@@ -4,7 +4,7 @@
 #include "LayoutUV.h"
 #include "DisjointSet.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogLayoutUV, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogLayoutUV, Warning, All);
 
 #define CHART_JOINING	1
 
