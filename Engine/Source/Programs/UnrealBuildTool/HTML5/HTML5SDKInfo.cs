@@ -44,8 +44,10 @@ namespace UnrealBuildTool
 
         public static string EmscriptenSDKPath()
         {
-            // try to find SDK location in the ini file. 
-            var ConfigCache = new ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", "");
+           var ConfigCache = new ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", UnrealBuildTool.GetUProjectPath());
+           // always pick from the Engine the root directory and NOT the staged engine directory. 
+           string IniFile = Path.GetFullPath(Path.GetDirectoryName(UnrealBuildTool.GetUBTPath()) + "/../../") + "Config/HTML5/HTML5Engine.ini";
+           ConfigCache.ParseIniFile(IniFile);
 
             string PlatformName = "";
             if (!Utils.IsRunningOnMono)

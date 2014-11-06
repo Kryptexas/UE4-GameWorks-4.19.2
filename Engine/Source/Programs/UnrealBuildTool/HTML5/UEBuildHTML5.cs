@@ -374,7 +374,9 @@ namespace UnrealBuildTool
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
                 }
 
-                if (EnableHTTPForNFS && Target.Platform == UnrealTargetPlatform.Win64 )
+                if (EnableHTTPForNFS && (Target.Platform == UnrealTargetPlatform.Win64  
+                                         || Target.Platform == UnrealTargetPlatform.Mac)
+                    )
                 {
                     if (InModule.ToString() == "NetworkFile") // client
                     {
