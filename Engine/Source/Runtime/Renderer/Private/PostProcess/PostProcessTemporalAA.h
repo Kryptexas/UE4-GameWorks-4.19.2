@@ -34,6 +34,20 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 };
 
+// ePId_Input0: Half Res DOF input (point)
+// ePId_Input1: Previous frame's output (bilinear)
+// ePId_Input2: Previous frame's output (point)
+// derives from TRenderingCompositePassBase<InputCount, OutputCount> 
+class FRCPassPostProcessDOFTemporalAANear : public TRenderingCompositePassBase<3, 1>
+{
+public:
+	// interface FRenderingCompositePass ---------
+	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual void Release() override { delete this; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+};
+
+
 // ePId_Input0: Half Res light shaft input (point)
 // ePId_Input1: Previous frame's output (bilinear)
 // ePId_Input2: Previous frame's output (point)
