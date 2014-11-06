@@ -693,13 +693,14 @@ static void InitRHICapabilitiesForGL()
 	}
 
 	GLenum DepthFormat = FOpenGL::GetDepthFormat();
+	GLenum ShadowDepthFormat = FOpenGL::GetShadowDepthFormat();
 
 	// Initialize the platform pixel format map.					InternalFormat				InternalFormatSRGB		Format				Type							bCompressed		bBGRA
 	SetupTextureFormat( PF_Unknown,				FOpenGLTextureFormat( ));
 	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat( GL_RGBA32F,				GL_NONE,				GL_RGBA,			GL_FLOAT,						false,			false));
 	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat( ));
 	//@todo: ES2 requires GL_OES_depth_texture extension to support depth textures of any kind.
-	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
+	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( ShadowDepthFormat,		GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat( GL_RGBA16,				GL_RGBA16,				GL_RGBA,			GL_UNSIGNED_SHORT,				false,			false));
 	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat( ));

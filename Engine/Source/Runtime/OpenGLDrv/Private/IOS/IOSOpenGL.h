@@ -107,6 +107,8 @@ struct FIOSOpenGL : public FOpenGLES2
 	}
 
 	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return false; }
+
+	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT16; }
 };
 
 typedef FIOSOpenGL FOpenGL;

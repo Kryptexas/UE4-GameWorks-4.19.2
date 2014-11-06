@@ -71,6 +71,7 @@ struct FHTML5OpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsMapBuffer()							{ return false; }
 	static FORCEINLINE bool SupportsCombinedDepthStencilAttachment()	{ return bCombinedDepthStencilAttachment; }
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT; }
+	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT; }
 	// Optional
 	static FORCEINLINE void BeginQuery(GLenum QueryType, GLuint QueryId) UGL_OPTIONAL_VOID
 	static FORCEINLINE void EndQuery(GLenum QueryType) UGL_OPTIONAL_VOID
