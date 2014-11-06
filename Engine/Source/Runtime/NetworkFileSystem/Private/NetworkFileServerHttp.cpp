@@ -5,12 +5,6 @@
 #include "NetworkFileSystemPrivatePCH.h"
 #include "NetworkFileServerHttp.h"
 
-#include "AllowWindowsPlatformTypes.h"
-	#include "libwebsockets.h"
-#include "HideWindowsPlatformTypes.h"
-
-
-
 class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientConnection 
 {
 
@@ -334,16 +328,16 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 					
 				// what type is being served. 
 				FString FilePath = FPaths::GameDir() / TEXT("Binaries/HTML5") +  FString((ANSICHAR*)In); 
-				TCHAR *Mime = NULL; 
+				TCHAR Mime[512];
 
 				
 				if ( FilePath.Contains(".js"))
 				{
-					Mime = TEXT("application/javascript;charset=UTF-8");
+                    FCStringWide::Strcpy(Mime,TEXT("application/javascript;charset=UTF-8"));
 				}
 				else
 				{
-						Mime = TEXT("text/html;charset=UTF-8");
+					 FCStringWide::Strcpy(Mime,TEXT("text/html;charset=UTF-8"));
 				}
 
 				UE_LOG(LogFileServer, Warning, TEXT("HTTP Serving file %s with mime %s "), *FilePath, (Mime));
