@@ -91,7 +91,7 @@ bool UK2Node_AssignmentStatement::IsCompatibleWithGraph(UEdGraph const* TargetGr
 	if (bIsCompatible)
 	{
 		EGraphType const GraphType = TargetGraph->GetSchema()->GetGraphType(TargetGraph);
-		bIsCompatible = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
+		bIsCompatible = GraphType == GT_Macro;
 	}
 
 	return bIsCompatible;
