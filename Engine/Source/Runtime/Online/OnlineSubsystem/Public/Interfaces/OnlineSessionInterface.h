@@ -145,17 +145,28 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionInviteAccepted, int32, bool, co
 typedef FOnSessionInviteAccepted::FDelegate FOnSessionInviteAcceptedDelegate;
 
 /**
-	* Called when a user accepts a session invitation. Allows the game code a chance
-	* to clean up any existing state before accepting the invite. The invite must be
-	* accepted by calling JoinSession() after clean up has completed
-	*
-	* @param bWasSuccessful true if the async action completed without error, false if there was an error
-	* @param ControllerId the controller number of the accepting user
-	* @param UserId the user being invited
-	* @param InviteResult the search/settings for the session we're joining via invite
-	*/
+ * Called when a user accepts a session invitation. Allows the game code a chance
+ * to clean up any existing state before accepting the invite. The invite must be
+ * accepted by calling JoinSession() after clean up has completed
+ *
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ControllerId the controller number of the accepting user
+ * @param UserId the user being invited
+ * @param InviteResult the search/settings for the session we're joining via invite
+ */
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSessionUserInviteAccepted, const bool, const int32, TSharedPtr< FUniqueNetId >, const FOnlineSessionSearchResult&);
 typedef FOnSessionUserInviteAccepted::FDelegate FOnSessionUserInviteAcceptedDelegate;
+
+/**
+ * Called when a user receives a session invitation. Allows the game code to decide
+ * on accepting the invite. The invite can be accepted by calling JoinSession()
+ *
+ * @param UserId the user being invited
+ * @param FromId the user that sent the invite
+ * @param InviteResult the search/settings for the session we're joining via invite
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
+typedef FOnSessionInviteReceived::FDelegate FOnSessionInviteReceivedDelegate;
 
 /**
  * Delegate fired when the session registration process has completed
@@ -608,6 +619,16 @@ public:
 	 * @param InviteResult the search/settings for the session we're joining via invite
 	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSessionUserInviteAccepted, const bool, const int32, TSharedPtr< FUniqueNetId >, const FOnlineSessionSearchResult&);
+
+	/**
+	 * Called when a user receives a session invitation. Allows the game code to decide
+	 * on accepting the invite. The invite can be accepted by calling JoinSession()
+	 *
+	 * @param UserId the user being invited
+	 * @param FromId the user that sent the invite
+	 * @param InviteResult the search/settings for the session we're joining via invite
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
 
 	/**
 	 * Returns the platform specific connection information for joining the match.
