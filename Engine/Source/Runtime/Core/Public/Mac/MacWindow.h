@@ -49,7 +49,7 @@ public:
 
 	virtual void SetWindowMode( EWindowMode::Type NewWindowMode ) override;
 
-	virtual EWindowMode::Type GetWindowMode() const override { return WindowMode; } 
+	virtual EWindowMode::Type GetWindowMode() const override;
 
 	virtual bool IsMaximized() const override;
 
@@ -102,9 +102,6 @@ private:
 
 	/** Mac window handle */
 	FCocoaWindow* WindowHandle;
-	
-	/** The mode that the window is in (windowed, fullscreen, windowedfullscreen ) */
-	EWindowMode::Type WindowMode;
 
 	NSRect PreFullscreenWindowRect;
 

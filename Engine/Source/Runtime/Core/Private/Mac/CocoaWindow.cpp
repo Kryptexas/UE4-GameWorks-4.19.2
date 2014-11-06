@@ -353,6 +353,13 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if(self.TargetWindowMode == EWindowMode::Windowed)
 	{
 		self.TargetWindowMode = EWindowMode::Fullscreen;
+#if WITH_EDITORONLY_DATA
+		if(GIsEditor)
+		{
+			self.TargetWindowMode = EWindowMode::WindowedFullscreen;
+		}
+#endif
+		self.PreFullScreenRect = [self openGLFrame];
 	}
 }
 
@@ -371,6 +378,14 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		float WidthScale = ViewSize.width / WindowSize.width;
 		float HeightScale = ViewSize.height / WindowSize.height;
 		MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
+	}
+}
+
+- (void)windowWillExitFullScreen:(NSNotification *)Notification
+{
+	if(self.TargetWindowMode != EWindowMode::Windowed)
+	{
+		self.TargetWindowMode = EWindowMode::Windowed;
 	}
 }
 

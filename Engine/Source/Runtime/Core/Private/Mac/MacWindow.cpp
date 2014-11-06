@@ -96,7 +96,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		if( WindowHandle != nullptr )
 		{
 			[WindowHandle setReleasedWhenClosed:NO];
-			[WindowHandle setWindowMode: WindowMode];
+			[WindowHandle setWindowMode: EWindowMode::Windowed];
 			[WindowHandle setAcceptsInput: Definition->AcceptsInput];
 			[WindowHandle setDisplayReconfiguring: false];
 			[WindowHandle setAcceptsMouseMovedEvents: YES];
@@ -206,7 +206,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 FMacWindow::FMacWindow()
 	: WindowHandle(NULL)
-	, WindowMode(EWindowMode::Windowed)
 	, bIsVisible(false)
 	, bIsClosed(false)
 {
@@ -227,7 +226,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 		const TSharedRef<FGenericApplicationMessageHandler> MessageHandler = OwningApplication->MessageHandler;
 		MessageHandler->BeginReshapingWindow( SharedThis( this ) );
 		
-		if(WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)
+		if(GetWindowMode() == EWindowMode::Windowed || GetWindowMode() == EWindowMode::WindowedFullscreen)
 		{
 			const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
 			NSRect Rect = NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1));
@@ -240,13 +239,13 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 			{
 				MainThreadCall(^{
 					SCOPED_AUTORELEASE_POOL;
-					BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
+					BOOL DisplayIfNeeded = (GetWindowMode() == EWindowMode::Windowed);
 					
 					[WindowHandle setFrame: Rect display:DisplayIfNeeded];
 					
 					// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
 					// have to subvert the OS X or UE fullscreen handling events elsewhere.
-					if(WindowMode != EWindowMode::Windowed)
+					if(GetWindowMode() != EWindowMode::Windowed)
 					{
 						[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
 					}
@@ -272,7 +271,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 bool FMacWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const
 {
 	SCOPED_AUTORELEASE_POOL;
-	bool const bIsFullscreen = (WindowMode == EWindowMode::Fullscreen);
+	bool const bIsFullscreen = (GetWindowMode() == EWindowMode::Fullscreen);
 	const NSRect Frame = (!bIsFullscreen) ? [WindowHandle screen].frame : PreFullscreenWindowRect;
 	X = Frame.origin.x;
 	Y = Frame.origin.y;
@@ -404,7 +403,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 	// In OS X fullscreen and windowed fullscreen are the same
 	bool bMakeFullscreen = NewWindowMode != EWindowMode::Windowed;
-	bool bIsFullscreen = WindowMode != EWindowMode::Windowed;
+	bool bIsFullscreen = GetWindowMode() != EWindowMode::Windowed;
 
 	if( bIsFullscreen != bMakeFullscreen )
 	{
@@ -445,9 +444,12 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			Behaviour &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
 			Behaviour |= NSWindowCollectionBehaviorFullScreenAuxiliary;
 		}
-		
-		WindowMode = NewWindowMode;
 	}
+}
+
+EWindowMode::Type FMacWindow::GetWindowMode() const
+{
+	return [WindowHandle windowMode];
 }
 
 bool FMacWindow::IsMaximized() const
