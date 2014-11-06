@@ -8,7 +8,7 @@
 #include "IWidgetReflector.h"
 #include "GenericCommands.h"
 #include "NotificationManager.h"
-
+#include "AnalogCursor.h"
 
 
 class FEventRouter
@@ -712,6 +712,8 @@ FSlateApplication::FSlateApplication()
 
 	NormalExecutionGetter.BindRaw( this, &FSlateApplication::IsNormalExecution );
 	PointerIndexLastPositionMap.Add(CursorPointerIndex, FVector2D::ZeroVector);
+
+	//AnalogCursor = MakeShareable(new FAnalogCursor);
 }
 
 FSlateApplication::~FSlateApplication()
@@ -1089,6 +1091,11 @@ void FSlateApplication::PollGameDeviceState()
 void FSlateApplication::FinishedInputThisFrame()
 {
 	const float DeltaTime = GetDeltaTime();
+
+	if (AnalogCursor.IsValid())
+	{
+		AnalogCursor->Tick(DeltaTime, PlatformApplication->Cursor);
+	}
 
 	// All the input events have been processed.
 
@@ -1866,12 +1873,16 @@ void FSlateApplication::ClearKeyboardFocus(const EFocusCause ReasonFocusIsChangi
 
 void FSlateApplication::ResetToDefaultInputSettings()
 {
+	ProcessReply(FWidgetPath(), FReply::Handled().ClearUserFocus(true), nullptr, nullptr);
+	ResetToDefaultPointerInputSettings();
+}
+
+void FSlateApplication::ResetToDefaultPointerInputSettings()
+{
 	for (auto MouseCaptorPath : MouseCaptor.ToWidgetPaths())
 	{
 		ProcessReply(MouseCaptorPath, FReply::Handled().ReleaseMouseCapture(), NULL, NULL);
 	}
-	
-	ProcessReply(FWidgetPath(), FReply::Handled().ClearUserFocus(true), NULL, NULL);
 
 	ProcessReply(FWidgetPath(), FReply::Handled().ReleaseMouseLock(), NULL, NULL);
 
@@ -1880,7 +1891,6 @@ void FSlateApplication::ResetToDefaultInputSettings()
 		PlatformApplication->Cursor->SetType(EMouseCursor::Default);
 	}
 }
-
 
 void* FSlateApplication::GetMouseCaptureWindow( void ) const
 {
@@ -2297,19 +2307,16 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	TSharedPtr<SWidget> RequestedFocusRecepient = TheReply.GetUserFocusRecepient();
 	if (TheReply.ShouldSetUserFocus() || RequestedFocusRecepient.IsValid())
 	{
-		FWidgetPath NewFocusedWidgetPath;
-		GeneratePathToWidgetUnchecked(RequestedFocusRecepient.ToSharedRef(), NewFocusedWidgetPath);
-
 		if (TheReply.AffectsAllUsers())
 		{
 			for (int32 SlateUserIndex = 0; SlateUserIndex < SlateApplicationDefs::MaxUsers; ++SlateUserIndex)
 			{
-				SetUserFocus(SlateUserIndex, NewFocusedWidgetPath, TheReply.GetFocusCause());
+				SetUserFocus(SlateUserIndex, RequestedFocusRecepient, TheReply.GetFocusCause());
 			}
 		}
 		else
 		{
-			SetUserFocus(UserIndex, NewFocusedWidgetPath, TheReply.GetFocusCause());
+			SetUserFocus(UserIndex, RequestedFocusRecepient, TheReply.GetFocusCause());
 		}
 	}
 }
@@ -4429,8 +4436,16 @@ bool FSlateApplication::OnControllerAnalog( EControllerButtons::Type Button, int
 {
 	FKey Key = TranslateControllerButtonToKey(Button);
 	int32 UserIndex = GetUserIndexForController(ControllerId);
-
+	
 	FAnalogInputEvent AnalogInputEvent(Key, PlatformApplication->GetModifierKeys(), UserIndex, false, 0, 0, AnalogValue);
+	
+	if (AnalogCursor.IsValid())
+	{
+		if (AnalogCursor->HandleAnalog(AnalogInputEvent))
+		{
+			return true;
+		}
+	}
 
 	return ProcessAnalogInputEvent(AnalogInputEvent);
 }
@@ -4451,6 +4466,14 @@ bool FSlateApplication::OnControllerButtonReleased( EControllerButtons::Type But
 	int32 UserIndex = GetUserIndexForController(ControllerId);
 	
 	FKeyEvent KeyEvent(Key, PlatformApplication->GetModifierKeys(),UserIndex, IsRepeat,  0, 0);
+
+	if (AnalogCursor.IsValid())
+	{
+		if (AnalogCursor->HandleReleased(KeyEvent))
+		{
+			return true;
+		}
+	}
 
 	return ProcessKeyUpEvent(KeyEvent);
 }

@@ -13,6 +13,7 @@ class FHittestGrid;
 struct FPopupTransitionEffect;
 class FMenuStack;
 class IWidgetReflector;
+class FAnalogCursor;
 
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
@@ -410,9 +411,17 @@ public:
 	/**
 	 *	Restores all input settings to their original values
 	 * 
+	 *  Clears all user focus
 	 *  Shows the mouse, clears any locks and captures, turns off high precision input
 	 */
 	void ResetToDefaultInputSettings();
+	
+	/**
+	 *	Restores all pointer input settings to their original values
+	 * 
+	 *  Shows the mouse, clears any locks and captures, turns off high precision input
+	 */
+	void ResetToDefaultPointerInputSettings();
 
 	/**
 	 * Mouse capture
@@ -1248,6 +1257,8 @@ private:
 	};
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;
+
+	TSharedPtr<FAnalogCursor> AnalogCursor;
 
 	/** A weak path to the widget currently focued by a user, if any. */
 	FWeakWidgetPath UserFocusedWidgetPaths[SlateApplicationDefs::MaxUsers];
