@@ -1086,14 +1086,7 @@ void FPropertyValueImpl::AddChild()
 
 					FScriptArrayHelper	ArrayHelper(Array,Addr);
 					const int32 ArrayIndex = ArrayHelper.AddValue();
-
-					if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Array->Inner))
-					{
-						if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), ArrayHelper.GetRawPtr(ArrayIndex)))
-						{
-							UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetName());
-						}
-					}
+					FPropertyNode::AdditionalInitializationUDS(Array->Inner, ArrayHelper.GetRawPtr(ArrayIndex));
 					
 					ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), ArrayIndex);
 				}
@@ -1239,7 +1232,9 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 			}
 		}
 
-		ArrayHelper.InsertValues(Index, 1 );	
+		ArrayHelper.InsertValues(Index, 1 );
+
+		FPropertyNode::AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(Index));
 
 		//set up indices for the coming events
 		TArray< TMap<FString,int32> > ArrayIndicesPerObject;

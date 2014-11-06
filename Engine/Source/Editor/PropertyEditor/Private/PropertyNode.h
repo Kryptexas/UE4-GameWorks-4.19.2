@@ -466,6 +466,8 @@ public:
 	void PropagateArrayPropertyChange( UObject* ModifiedObject, const FString& OriginalArrayContent,
 									   EPropertyArrayChangeType::Type ChangeType, int32 Index);
 
+	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
+
 	/** Broadcasts when a property value changes */
 	DECLARE_EVENT( FPropertyNode, FPropertyValueChangedEvent );
 	FPropertyValueChangedEvent& OnPropertyValueChanged() { return PropertyValueChangedEvent; }

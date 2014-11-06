@@ -742,7 +742,7 @@ public:
 
 	void InnerInitialize()
 	{
-		{
+	{
 			PropertyValueRoot.OwnerObject = NULL;
 			PropertyDefaultValueRoot.OwnerObject = NULL;
 			PropertyValueAddress = NULL;
@@ -757,10 +757,10 @@ public:
 		check(Property);
 		check(PropertyValueRoot.OwnerObject);
 
-		FPropertyNode* ParentNode = PropertyNode->GetParentNode();
+		FPropertyNode* ParentNode		= PropertyNode->GetParentNode();
 
 		// if the object specified is a class object, transfer to the CDO instead
-		if (Cast<UClass>(PropertyValueRoot.OwnerObject) != NULL)
+		if ( Cast<UClass>(PropertyValueRoot.OwnerObject) != NULL )
 		{
 			PropertyValueRoot.OwnerObject = Cast<UClass>(PropertyValueRoot.OwnerObject)->GetDefaultObject();
 		}
@@ -777,11 +777,11 @@ public:
 			PropertyValueAddress = PropertyNode->GetValueAddress(PropertyValueRoot.ValueAddress);
 		}
 
-		if (IsValidTracker())
+		if( IsValidTracker() )
 		{
-			bHasDefaultValue = Private_HasDefaultValue();
+			 bHasDefaultValue = Private_HasDefaultValue();
 			// calculate the values for the default object
-			if (bHasDefaultValue)
+			if ( bHasDefaultValue )
 			{
 				PropertyDefaultValueRoot.OwnerObject = PropertyValueRoot.OwnerObject ? PropertyValueRoot.OwnerObject->GetArchetype() : NULL;
 				PropertyDefaultBaseAddress = OuterArrayProp == NULL
@@ -792,7 +792,7 @@ public:
 				//////////////////////////
 				// If this is an array property, we must take special measures; PropertyDefaultBaseAddress points to an FScriptArray*, while
 				// PropertyDefaultAddress points to the FScriptArray's Data pointer.
-				if (ArrayProp != NULL)
+				if ( ArrayProp != NULL )
 				{
 					PropertyValueAddress = PropertyValueBaseAddress;
 					PropertyDefaultAddress = PropertyDefaultBaseAddress;
@@ -2143,6 +2143,17 @@ bool FPropertyNode::IsFilterAcceptable(const TArray<FString>& InAcceptableNames,
 	return bCompleteMatchFound;
 }
 
+void FPropertyNode::AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr)
+{
+	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
+	{
+		if (!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), RawPtr))
+		{
+			UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetPathName());
+		}
+	}
+}
+
 void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const FString& OriginalArrayContent, EPropertyArrayChangeType::Type ChangeType, int32 Index )
 {
 	UProperty* NodeProperty = GetProperty();
@@ -2226,16 +2237,18 @@ void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const
 			// Check if the original value was the default value and change it only then
 			if (bIsDefault)
 			{
+				int32 ElementToInitialize = -1;
 				switch (ChangeType)
 				{
 					case EPropertyArrayChangeType::Add:
-						ArrayHelper.AddValue();
+						ElementToInitialize = ArrayHelper.AddValue();
 						break;
 					case EPropertyArrayChangeType::Clear:
 						ArrayHelper.EmptyValues();
 						break;
 					case EPropertyArrayChangeType::Insert:
 						ArrayHelper.InsertValues(ArrayIndex, 1);
+						ElementToInitialize = ArrayIndex;
 						break;
 					case EPropertyArrayChangeType::Delete:
 						ArrayHelper.RemoveValues(ArrayIndex, 1);
@@ -2246,6 +2259,10 @@ void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const
 						NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ArrayIndex), ArrayHelper.GetRawPtr(ArrayIndex + 1));
 						Object->InstanceSubobjectTemplates();
 						break;
+				}
+				if (ElementToInitialize >= 0)
+				{
+					AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
 				}
 			}
 		}
