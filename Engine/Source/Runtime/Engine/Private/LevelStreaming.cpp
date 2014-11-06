@@ -496,12 +496,10 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	return true;
 }
 
-void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPackage* InLoadedPackage ) 
+void ULevelStreaming::AsyncLevelLoadComplete( const FName& InPackageName, UPackage* InLoadedPackage ) 
 {
 	bHasLoadRequestPending = false;
 
-	const FName PackageFName = FName(*InPackageName);
-	
 	if( InLoadedPackage )
 	{
 		UPackage* LevelPackage = InLoadedPackage;
@@ -544,7 +542,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 			}
 			else
 			{
-				UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName );
+				UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName.ToString() );
 			}
 		}
 		else
@@ -562,7 +560,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 				//    If the package name to load was different...
 				//         ... it means the specified package name was explicit and we will just load from another file.
 
-				FName OldDesiredPackageName = PackageFName;
+				FName OldDesiredPackageName = InPackageName;
 				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
 				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
 				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
@@ -625,12 +623,12 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 	}
 	else
 	{
-		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName );
+		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName.ToString() );
 	}
 
 	// Clean up the world type list and owning world list now that PostLoad has occurred
-	UWorld::WorldTypePreLoadMap.Remove(PackageFName);
-	ULevel::StreamedLevelsOwningWorld.Remove(PackageFName);
+	UWorld::WorldTypePreLoadMap.Remove(InPackageName);
+	ULevel::StreamedLevelsOwningWorld.Remove(InPackageName);
 }
 
 bool ULevelStreaming::IsLevelVisible() const

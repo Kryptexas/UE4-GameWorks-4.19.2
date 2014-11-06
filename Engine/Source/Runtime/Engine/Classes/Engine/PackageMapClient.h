@@ -68,7 +68,7 @@ public:
 	bool			IsGUIDLoaded( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const;
 
-	void			AsyncPackageCallback( const FString& PackageName, UPackage * Package );
+	void			AsyncPackageCallback( const FName& PackageName, UPackage * Package );
 	
 	TMap< FNetworkGUID, FNetGuidCacheObject >		ObjectLookup;
 	TMap< TWeakObjectPtr< UObject >, FNetworkGUID >	NetGUIDLookup;

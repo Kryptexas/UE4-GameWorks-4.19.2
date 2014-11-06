@@ -314,7 +314,7 @@ private:
 	 *
 	 * @param LevelPackage	Loaded level package
 	 */
-	void AsyncLevelLoadComplete( const FString& PackageName, UPackage* LevelPackage );
+	void AsyncLevelLoadComplete( const FName& PackageName, UPackage* LevelPackage );
 
 	/** Pointer to Level object if currently loaded/ streamed in.																*/
 	UPROPERTY(transient)

@@ -253,7 +253,7 @@ COREUOBJECT_API UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPac
  * @param	PackageName			Package name we were trying to load
  * @param	LoadedPackage		Loaded package if successful, NULL otherwise	
  */
-DECLARE_DELEGATE_TwoParams(FLoadPackageAsyncDelegate, const FString& /*PackageName*/, UPackage* /*LoadedPackage*/)
+DECLARE_DELEGATE_TwoParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/)
 struct FAsyncPackage;
 /**
  * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -284,7 +284,7 @@ COREUOBJECT_API FAsyncPackage& LoadPackageAsync( const FString& PackageName, con
  * @param	PackageName			Name of package to query load percentage for
  * @return	Async load percentage if package is currently being loaded, -1 otherwise
  */
-COREUOBJECT_API float GetAsyncLoadPercentage( const FString& PackageName );
+COREUOBJECT_API float GetAsyncLoadPercentage( const FName& PackageName );
 
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set

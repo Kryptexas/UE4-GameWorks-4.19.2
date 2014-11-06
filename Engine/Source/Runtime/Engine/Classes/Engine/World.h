@@ -143,7 +143,7 @@ private:
 	void CopyWorldData();
 
 	/** callback sent to async loading code to inform us when the level package is complete */
-	void SeamlessTravelLoadCallback(const FString& PackageName, UPackage* LevelPackage);
+	void SeamlessTravelLoadCallback(const FName& PackageName, UPackage* LevelPackage);
 
 	void SetHandlerLoadedData(UObject* InLevelPackage, UWorld* InLoadedWorld);
 
