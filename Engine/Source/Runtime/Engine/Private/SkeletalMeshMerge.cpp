@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Animation/Skeleton.h"
 #include "RawIndexBuffer.h"
 #include "SkeletalMeshMerge.h"
 #include "Engine/SkeletalMeshSocket.h"
