@@ -39,7 +39,9 @@ void SLevelViewportControlsPopup::Construct(const FArguments& InArgs)
 		ChildSlot
 		[
 			SAssignNew(MenuAnchor, SMenuAnchor)
+			.Method(SMenuAnchor::UseCurrentWindow)
 			.Placement(MenuPlacement_AboveAnchor)
+			.OnGetMenuContent(this, &SLevelViewportControlsPopup::OnGetMenuContent)
 			[
 				SAssignNew(Button, SButton)
 				.ContentPadding(5)
@@ -53,7 +55,6 @@ void SLevelViewportControlsPopup::Construct(const FArguments& InArgs)
 					.Image(this, &SLevelViewportControlsPopup::GetButtonImage)
 				]
 			]
-			.OnGetMenuContent(this, &SLevelViewportControlsPopup::OnGetMenuContent)
 		];
 	}
 }
