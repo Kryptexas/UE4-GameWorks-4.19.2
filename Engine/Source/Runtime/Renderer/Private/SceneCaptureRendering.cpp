@@ -229,10 +229,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	ViewFamily.Views.Add(View);
 
 	View->StartFinalPostprocessSettings(ViewLocation);
-	if (!bCaptureSceneColour)
-	{
-		View->OverridePostProcessSettings(*PostProcessSettings, PostProcessBlendWeight);
-	}
+	View->OverridePostProcessSettings(*PostProcessSettings, PostProcessBlendWeight);
 	View->EndFinalPostprocessSettings(ViewInitOptions);
 
 	return FSceneRenderer::CreateSceneRenderer(&ViewFamily, NULL);
