@@ -1117,7 +1117,7 @@ public:
 	virtual void PhysicsRotation(float DeltaTime);
 
 	/** Delegate when PhysicsVolume of UpdatedComponent has been changed **/
-	virtual void PhysicsVolumeChanged(class APhysicsVolume* NewVolume);
+	virtual void PhysicsVolumeChanged(class APhysicsVolume* NewVolume) override;
 
 	/** Set movement mode to the default based on the current physics volume. */
 	virtual void SetDefaultMovementMode();
