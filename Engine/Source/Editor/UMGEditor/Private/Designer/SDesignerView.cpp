@@ -1680,10 +1680,15 @@ FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	}
 	
 	const bool bIsPreview = false;
-	UWidget* Widget = ProcessDropAndAddWidget(MyGeometry, DragDropEvent, bIsPreview);
-	if ( Widget )
+	UWidget* NewTemplateWidget = ProcessDropAndAddWidget(MyGeometry, DragDropEvent, bIsPreview);
+	if ( NewTemplateWidget )
 	{
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+		TSet<FWidgetReference> SelectedTemplates;
+		SelectedTemplates.Add(BlueprintEditor.Pin()->GetReferenceFromTemplate(NewTemplateWidget));
+		 
+		BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates, false);
 
 		// Regenerate extension widgets now that we've finished moving or placing the widget.
 		CreateExtensionWidgetsForSelection();
