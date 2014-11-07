@@ -15,7 +15,7 @@ public class ContentBrowser : ModuleRules
                 "MainFrame",
 				"SourceControl",
 				"SourceControlWindows",
-                "ReferenceViewer"
+                "ReferenceViewer",
 			}
 		);
 
@@ -34,7 +34,8 @@ public class ContentBrowser : ModuleRules
 				"WorkspaceMenuStructure",
 				"UnrealEd",
 				"EditorWidgets",
-				"Projects"
+				"Projects",
+				"AddContentDialog"
 			}
 		);
 

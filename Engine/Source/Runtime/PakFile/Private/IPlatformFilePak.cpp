@@ -677,8 +677,8 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const TCHAR* InPath /*= NULL*/)
 {
 	bool bSuccess = false;
-	IFileHandle* PakHandle = LowerLevel->OpenRead(InPakFilename);
-	if (PakHandle != NULL)
+	TSharedPtr<IFileHandle> PakHandle = MakeShareable(LowerLevel->OpenRead(InPakFilename));
+	if (PakHandle.IsValid())
 	{
 		FPakFile* Pak = new FPakFile(LowerLevel, InPakFilename, bSigned);
 		if (Pak->IsValid())

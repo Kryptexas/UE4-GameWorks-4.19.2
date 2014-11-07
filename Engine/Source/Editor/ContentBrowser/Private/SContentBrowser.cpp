@@ -11,6 +11,7 @@
 #include "AssetRegistryModule.h"
 #include "SDockTab.h"
 #include "GenericCommands.h"
+#include "IAddContentDialogModule.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -169,6 +170,42 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 									SNew( STextBlock )
 									.TextStyle( FEditorStyle::Get(), "ContentBrowser.TopBar.Font" )
 									.Text( LOCTEXT( "Import", "Import" ) )
+								]
+							]
+						]
+
+						// Get content
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Left)
+						[
+							SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+							.ToolTipText(LOCTEXT("AddContentTooltip", "Get more content."))
+							.ContentPadding(0)
+							.Visibility(EVisibility::Collapsed) // TODO: Make the button visible once there are actually content packs available.
+							.OnClicked(this, &SContentBrowser::OnAddContentClicked)
+							[
+								SNew(SHorizontalBox)
+
+								// Get Content Icon
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								[
+									SNew(SImage)
+									.Image(FEditorStyle::GetBrush("ContentBrowser.AddContent"))
+								]
+
+								// Get Content Text
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(VAlign_Center)
+								.Padding(0, 0, 2, 0)
+								[
+									SNew(STextBlock)
+									.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+									.Text(LOCTEXT("GetContent", "Get Content"))
 								]
 							]
 						]
@@ -1319,6 +1356,18 @@ TSharedPtr<SWidget> SContentBrowser::GetFilterContextMenu()
 FReply SContentBrowser::OnSaveClicked()
 {
 	ContentBrowserUtils::SaveDirtyPackages();
+	return FReply::Handled();
+}
+
+FReply SContentBrowser::OnAddContentClicked()
+{
+	IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");
+	TSharedRef<SWindow> AddContentDialog = AddContentDialogModule.CreateDialogWindow();
+
+	FWidgetPath WidgetPath;
+	FSlateApplication::Get().GeneratePathToWidgetChecked(AsShared(), WidgetPath);
+	FSlateApplication::Get().AddWindowAsNativeChild(AddContentDialog, WidgetPath.GetWindow());
+
 	return FReply::Handled();
 }
 

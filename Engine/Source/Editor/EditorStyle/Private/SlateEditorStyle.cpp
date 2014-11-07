@@ -5054,6 +5054,7 @@ void FSlateEditorStyle::FStyle::SetupContentBrowserStyle()
 			.SetShadowColorAndOpacity( FLinearColor( 0, 0, 0, 0.9f ) ) );
 
 		Set( "ContentBrowser.SaveDirtyPackages", new IMAGE_BRUSH( "Icons/icon_file_saveall_40x", Icon25x25 ) );
+		Set( "ContentBrowser.AddContent", new IMAGE_BRUSH( "Icons/icon_AddContent_40x", Icon25x25 ) );
 		Set( "ContentBrowser.ImportPackage", new IMAGE_BRUSH( "Icons/icon_Import_40x", Icon25x25 ) );
 		Set( "ContentBrowser.ImportIcon", new IMAGE_BRUSH( "Icons/icon_Import_16x", Icon16x16 ) );
 

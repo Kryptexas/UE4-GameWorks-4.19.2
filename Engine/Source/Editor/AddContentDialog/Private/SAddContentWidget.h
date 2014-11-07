@@ -1,0 +1,107 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+class FAddContentWidgetViewModel;
+class FContentSourceViewModel;
+class FCategoryViewModel;
+
+/** A widget which allows the user to select multiple options from content which is available to be added to the project. */
+class SAddContentWidget : public SCompoundWidget
+{
+public:
+	DECLARE_DELEGATE(FOnAddListChanged);
+
+	SLATE_BEGIN_ARGS(SAddContentWidget)
+	{}
+
+	SLATE_END_ARGS()
+
+	~SAddContentWidget();
+
+	void Construct(const FArguments& InArgs);
+
+	/** Gets the content sources which have been selected by the user for addition to the project */
+	const TArray<TSharedPtr<IContentSource>>* GetContentSourcesToAdd();
+
+private:
+	/** Creates a strip of tabs which display and allow selecting categories. */
+	TSharedRef<SWidget> CreateCategoryTabs();
+
+	/** Creates a tile view which displays the content sources in the selected category. */
+	TSharedRef<SWidget> CreateContentSourceTileView();
+	
+	/** Creates the widget which represents each content source in the content source tile view. */
+	TSharedRef<ITableRow> CreateContentSourceIconTile(TSharedPtr<FContentSourceViewModel> ContentSource, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Creates a widget representing detailed information about a single content source. */
+	TSharedRef<SWidget> CreateContentSourceDetail(TSharedPtr<FContentSourceViewModel> ContentSource);
+
+	/** Creates a widget carousel for displaying the set of screenshots for a specific content source. */
+	TSharedRef<SWidget> CreateScreenshotCarousel(TSharedPtr<FContentSourceViewModel> ContentSource);
+
+	/** Creates a list view represnting content which the user has selected for addition to the project. */
+	TSharedRef<SWidget> CreateAddListView();
+	
+	/** Creates a row for the list view represnting content selected for addition to the project */
+	TSharedRef<ITableRow> CreateAddContentSourceRow(TSharedPtr<FContentSourceViewModel> ContentSource, const TSharedRef<STableViewBase>& OwnerTable);
+
+
+
+	/** Handles the user clicking on one of the check boxes representing the category tabs. */
+	void CategoryCheckBoxCheckStateChanged(ESlateCheckBoxState::Type CheckState, FCategoryViewModel Category);
+
+	/** Gets the check state for one of the check boxes representing the category tabs. */
+	ESlateCheckBoxState::Type GetCategoryCheckBoxCheckState(FCategoryViewModel Category) const;
+
+	/** Handles the text in the search box changing. */
+	void SearchTextChanged(const FText& SearchText);
+
+	/** Handles the selection in the content source tile view changing */
+	void ContentSourceTileViewSelectionChanged(TSharedPtr<FContentSourceViewModel> SelectedContentSource, ESelectInfo::Type SelectInfo);
+
+	/** Handles an item from the content source tile view being dragged. */
+	FReply ContentSourceTileDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
+	/** Handles the previous screenshot button in the screenshot carousel being pressed. */
+	FReply PreviousScreenshotButtonClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
+
+	/** Handles the next screenshot button in the screenshot carousel being pressed */
+	FReply NextScreenshotButtonClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
+
+	/** Handles the remove button being pressed on a row in the list of content selected for addition to the project. */
+	FReply RemoveAddedContentSourceClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
+
+
+
+	/** Handles the available categories changing on the view model. */
+	void CategoriesChanged();
+
+	/** Handles the available content sources changing on the view model. */
+	void ContentSourcesChanged();
+
+	/** Handles the selected content source changing on the view model. */
+	void SelectedContentSourceChanged();
+
+	/** Handles the list of items selected for addition to the project changing on the view model. */
+	void AddListChanged();
+
+private:
+	/** The view model which represents the current data of the UI. */
+	TSharedPtr<FAddContentWidgetViewModel> ViewModel;
+
+	/** The tile view which displays the content sources in the currently selected category. */
+	TSharedPtr<STileView<TSharedPtr<FContentSourceViewModel>>> ContentSourceTileView;
+
+	/** The placeholder widget which holds the category tab strip. */
+	TSharedPtr<SBox> CategoryTabsContainer;
+
+	/** The placeholder widget which holds the detail view for the currently selected content source. */
+	TSharedPtr<SBox> ContentSourceDetailContainer;
+
+	/** The list view which displays the content sources currently selected for addition to the project. */
+	TSharedPtr<SListView<TSharedPtr<FContentSourceViewModel>>> AddListView;
+
+	/** The content sources which the user has selected for addition to the project. */
+	TArray<TSharedPtr<IContentSource>> ContentSourcesToAdd;
+};

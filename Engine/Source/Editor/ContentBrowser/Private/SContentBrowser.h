@@ -167,6 +167,8 @@ private:
 	/** Saves dirty content. */
 	FReply OnSaveClicked();
 
+	FReply OnAddContentClicked();
+
 	/** Handler for when the selection set in the asset view has changed. */
 	void OnAssetSelectionChanged(const FAssetData& SelectedAsset);
 
