@@ -1,23 +1,11 @@
 Welcome to the UE 4.6 source code!
 ==================================
 
-This is the source code page for the **Unreal Engine on GitHub**.  With the UE4 source code, you can modify the
-engine and tools in any way imaginable and share your changes with others!
+This branch contains source code for the **Unreal Engine 4.6 preview release**. 
 
-You can build the editor for Windows and Mac, and compile games for Android, iOS, Playstation 4, Xbox
-One, HTML5 and Linux.  Source code for all tools is included as well, such as Unreal Lightmass and Unreal Frontend.
-
-Before continuing, check out this [wiki page](https://wiki.unrealengine.com/GitHub_Setup) about getting started
-with the engine code.  We also have a [programming guide](https://docs.unrealengine.com/latest/INT/Programming/index.html) and
-full [API documentation](https://docs.unrealengine.com/latest/INT/API/index.html).
-
-We also have a forum section where you can discuss [engine source and GitHub](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion).
-Have fun - we can't wait to see what you create!
-
-Source releases
----------------
-
-This branch contains source code for the **4.6 preview release**.
+With the UE4 source code, you can modify the engine and tools in any way imaginable and share your changes with others! You can build the editor 
+for Windows and Mac, and compile games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux.  Source code for all tools is included as well, 
+such as Unreal Lightmass and Unreal Frontend.
 
 We're also publishing bleeding edge changes from our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) on GitHub.  Here you can 
 see [live commits](https://github.com/EpicGames/UnrealEngine/commits/master) from Epic programmers along with integrated code submissions from the community. This branch is 
@@ -27,21 +15,25 @@ receive basic testing and have matching dependencies attached.
 We recommend you work with a versioned release such as this one.  The master branch contains unstable and possibly untested code,
 but it should be a great reference for new developments, or for spot merging bug fixes.  Use it at your own risk.  
 
+See also:
+
+* [Engine source and GitHub on the Unreal Engine forums](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion)
+* [Unreal Engine Programming Guide](https://docs.unrealengine.com/latest/INT/Programming/index.html)
+* [Unreal Engine API Documentation](https://docs.unrealengine.com/latest/INT/API/index.html)
 
 
 
 Getting up and running
 ----------------------
 
-Here is the fun part! The steps below will take you through cloning your own private fork, then compiling and running the editor yourself. You might want to
-watch our [short tutorial video](http://youtu.be/usjlNHPn-jo) too.
+Here is the fun part! The steps below will take you through cloning your own private fork, then compiling and running the editor yourself. 
 
 ### Windows
 
 1. Install **[GitHub for Windows](https://windows.github.com/)** then **fork our repository** and **clone it to your computer**. 
 
-   To use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles. 
-   Or if you'd rather not use Git at all, you can [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
+   If you'd rather use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles - or
+   if you'd prefer not to use Git at all, [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
 
 1. Open your source folder in Explorer and run **GitSetup.bat**. This will download binary content for the engine, as well as installing any missing prerequisites and 
    registering file types.
@@ -62,14 +54,16 @@ watch our [short tutorial video](http://youtu.be/usjlNHPn-jo) too.
 
 
 ### Mac
-
+   
 1. Install **[GitHub for Mac](https://mac.github.com/)** then **fork our repository** and **clone it to your computer**. 
    To use Git from the Terminal, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles. 
    Or if you'd rather not use Git at all, you can [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
    
-1. Open your source folder in Finder and run **GitSetup.command** to download binary content for the engine.
+1. Install the [Mono runtime](http://www.mono-project.com/download/).
 
-1. Be sure to have [Xcode](https://itunes.apple.com/us/app/xcode/id497799835) installed.
+1. Install the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
+
+1. Open your source folder in Finder and run **GitSetup.command** to download binary content for the engine.
 
 1. You'll need project files in order to compile.  In the _UnrealEngine_ folder, double-click on **GenerateProjectFiles.command**.  It should take less than a minute to complete.  You can close the Terminal window afterwards.  If you downloaded the source in .zip format, you may see a warning about an unidentified developer.  This is because because the .zip files on GitHub are not digitally signed.  To work around this, right-click on GenerateProjectFiles.command, select Open, then click the Open button if you are sure you want to open it.
 
