@@ -2716,6 +2716,22 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( MaterialQualityLevel_Low, "Low", "Sets material quality in the scene to low.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 
+	static const FText FeatureLevelLabels[ERHIFeatureLevel::Num] = 
+	{
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES2", "Mobile / HTML5"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES3", "High-End Mobile"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_SM4", "Shader Model 4"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_SM5", "Shader Model 5"),
+	};
+
+	static const FText FeatureLevelToolTips[ERHIFeatureLevel::Num] = 
+	{
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES2", "OpenGLES 2"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES3", "OpenGLES 3"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_SM4", "DirectX 10, OpenGL 3.3+"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_SM5", "DirectX 11, OpenGL 4.3+, PS4, XB1"),
+	};
+
 	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
 	{
 		FName Name;
@@ -2725,8 +2741,8 @@ void FLevelEditorCommands::RegisterCommands()
 			FUICommandInfoDecl(
 			this->AsShared(),
 			Name,
-			FText::FromName(Name),
-			FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip", "Preview scenes using feature level {0}"), FText::FromName(Name)))
+			FeatureLevelLabels[i],
+			FeatureLevelToolTips[i])
 			.UserInterfaceType(EUserInterfaceActionType::RadioButton)
 			.DefaultGesture(FInputGesture());
 	}

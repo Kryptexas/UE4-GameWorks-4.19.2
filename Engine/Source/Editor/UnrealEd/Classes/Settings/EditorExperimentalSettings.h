@@ -65,10 +65,6 @@ public:
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
 	bool bContextMenuChunkAssignments;
 
-	/** Enables the dynamic feature level switching functionality */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Feature Level Preview"))
-	bool bFeatureLevelPreview;
-
 	/** Disable cook in the editor */
 	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature (cooks from launch on will be run in a separate process if disabled)"))
 	bool bDisableCookInEditor;

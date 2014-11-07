@@ -1512,7 +1512,7 @@ static void MakeMaterialQualityLevelMenu( FMenuBuilder& MenuBuilder )
 
 static void MakeShaderModelPreviewMenu(FMenuBuilder& MenuBuilder)
 {
-	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "FeatureLevelPreviewHeading", "Feature Level Preview"));
+	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "FeatureLevelPreviewHeading", "Preview Rendering Level"));
 	{
 		for (int32 i = GMaxRHIFeatureLevel; i >= 0; --i)
 		{
@@ -1613,13 +1613,10 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 			LOCTEXT( "MaterialQualityLevelSubMenu_ToolTip", "Sets the value of the CVar \"r.MaterialQualityLevel\" (low=0, high=1). This affects materials via the QualitySwitch material expression." ),
 			FNewMenuDelegate::CreateStatic( &MakeMaterialQualityLevelMenu ) );
 
-		if (GetDefault<UEditorExperimentalSettings>()->bFeatureLevelPreview)
-		{
-			MenuBuilder.AddSubMenu(
-				LOCTEXT("FeatureLevelPreviewSubMenu", "Feature Level Preview"),
-				LOCTEXT("FeatureLevelPreviewSubMenu_ToolTip", "Sets the feature level preview mode"),
-				FNewMenuDelegate::CreateStatic(&MakeShaderModelPreviewMenu));
-		}
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("FeatureLevelPreviewSubMenu", "Preview Rendering Level"),
+			LOCTEXT("FeatureLevelPreviewSubMenu_ToolTip", "Sets the rendering level used by the main editor"),
+			FNewMenuDelegate::CreateStatic(&MakeShaderModelPreviewMenu));
 	}
 	MenuBuilder.EndSection();
 
