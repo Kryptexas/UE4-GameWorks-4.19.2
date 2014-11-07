@@ -808,6 +808,15 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 	FCookerTimer Timer(TimeSlice, IsRealtimeMode());
 
 	uint32 Result = 0;
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	if ( AssetRegistry.IsLoadingCookingAssets() )
+	{
+		// early out
+		return Result;
+	}
+
 	// This is all the target platforms which we needed to process requests for this iteration
 	// we use this in the unsolicited packages processing below
 	TArray<FName> AllTargetPlatformNames;
@@ -2060,15 +2069,27 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 		// Perform a synchronous search of any .ini based asset paths (note that the per-game delegate may
 		// have already scanned paths on its own)
 		// We want the registry to be fully initialized when generating streaming manifests too.
+		bool bSyncronous = !IsRealtimeMode();
 		TArray<FString> ScanPaths;
 		if (GConfig->GetArray(TEXT("AssetRegistry"), TEXT("PathsToScanForCook"), ScanPaths, GEngineIni) > 0)
 		{
-			AssetRegistry.ScanPathsSynchronous(ScanPaths);
+			if ( bSyncronous )
+			{
+				AssetRegistry.ScanPathsSynchronous(ScanPaths);
+			}
+			else
+			{
+				for ( const auto& Path : ScanPaths )
+				{
+					AssetRegistry.AddPath(Path);
+				}
+			}
 		}
 		else
 		{
-			AssetRegistry.SearchAllAssets(true);
+			AssetRegistry.SearchAllAssets(bSyncronous);
 		}
+		AssetRegistry.StartLoadingCookingAssets();
 		
 		// When not cooking on the fly the registry will be saved after the cooker has finished
 		if (CurrentCookMode == ECookMode::CookOnTheFly)
