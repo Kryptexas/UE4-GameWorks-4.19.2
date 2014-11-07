@@ -324,12 +324,18 @@ void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 		}
 	}
 
+	// Update the texture resource.
+	Texture->BeginCachePlatformData();
+	Texture->FinishCachePlatformData();
+	Texture->UpdateResource();
+
 	// Update stats.
 	int32 TextureSize			= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
 	GNumShadowmapTotalTexels	+= TextureSizeX * TextureSizeY;
 	GNumShadowmapTextures++;
 	GShadowmapTotalSize			+= TextureSize;
 	GShadowmapTotalStreamingSize += (ShadowmapFlags & SMF_Streamed) ? TextureSize : 0;
+
 	UPackage* TexturePackage = Texture->GetOutermost();
 
 	for ( int32 LevelIndex=0; TexturePackage && LevelIndex < InWorld->GetNumLevels(); LevelIndex++ )
@@ -342,11 +348,6 @@ void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 			break;
 		}
 	}
-
-	// Update the texture resource.
-	Texture->BeginCachePlatformData();
-	Texture->FinishCachePlatformData();
-	Texture->UpdateResource();
 }
 
 static TArray<FShadowMapAllocationGroup> PendingShadowMaps;
