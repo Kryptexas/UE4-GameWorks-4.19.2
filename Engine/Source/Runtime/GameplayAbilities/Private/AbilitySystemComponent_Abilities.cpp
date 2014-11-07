@@ -55,6 +55,19 @@ void UAbilitySystemComponent::UninitializeComponent()
 	}
 }
 
+void UAbilitySystemComponent::OnComponentDestroyed()
+{
+	// If we haven't already begun being destroyed
+	if ((GetFlags() & RF_BeginDestroyed) == 0)
+	{
+		// Cancel all abilities before we are destroyed.
+		CancelAbilities();
+	}	
+
+	// Call the super at the end, after we've done what we needed to do
+	Super::OnComponentDestroyed();
+}
+
 void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_TickAbilityTasks);
@@ -208,6 +221,8 @@ void UAbilitySystemComponent::ClearAllAbilities()
 
 	// Note we aren't marking any old abilities pending kill. This shouldn't matter since they will be garbage collected.
 	ActivatableAbilities.Empty(ActivatableAbilities.Num());
+
+	CheckForClearedAbilities();
 }
 
 void UAbilitySystemComponent::ClearAbility(const FGameplayAbilitySpecHandle& Handle)
@@ -220,6 +235,8 @@ void UAbilitySystemComponent::ClearAbility(const FGameplayAbilitySpecHandle& Han
 		if (ActivatableAbilities[Idx].Handle == Handle)
 		{
 			ActivatableAbilities.RemoveAtSwap(Idx);
+
+			CheckForClearedAbilities();
 			return;
 		}
 	}
@@ -248,6 +265,27 @@ void UAbilitySystemComponent::OnGiveAbility(const FGameplayAbilitySpec Spec)
 		}
 	}
 }
+
+void UAbilitySystemComponent::CheckForClearedAbilities()
+{
+	for (auto& Triggered : GameplayEventTriggeredAbilities)
+	{
+		// Make sure all triggered abilities still exist, if not remove
+		for (int32 i = 0; i < Triggered.Value.Num(); i++)
+		{
+			FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Triggered.Value[i]);
+
+			if (!Spec)
+			{
+				Triggered.Value.RemoveAt(i);
+				i--;
+			}
+		}
+		
+		// We leave around the empty trigger stub, it's likely to be added again
+	}
+}
+
 
 FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle)
 {
@@ -313,7 +351,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 	// If AnimatingAbility ended, clear the pointer
 	if (LocalAnimMontageInfo.AnimatingAbility == Ability)
 	{
-		LocalAnimMontageInfo.AnimatingAbility = NULL;
+		ClearAnimatingAbility(Ability);
 	}
 
 	Spec->ActiveCount--;
@@ -415,6 +453,36 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
 	{
 		OnGiveAbility(Spec);
 	}
+
+	CheckForClearedAbilities();
+}
+
+void UAbilitySystemComponent::GetActivateableGameplayAbilitySpecsByTag(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities) const
+{
+	for (int32 AbilityIndex = 0; AbilityIndex < ActivatableAbilities.Num(); ++AbilityIndex)
+	{
+		const FGameplayAbilitySpec* AbilitySpecIter = &ActivatableAbilities[AbilityIndex];
+		
+		if (AbilitySpecIter->Ability->AbilityTags.MatchesAll(GameplayTagContainer, false))
+		{
+			MatchingGameplayAbilities.Add(const_cast<FGameplayAbilitySpec*>(AbilitySpecIter));
+		}
+	}
+}
+
+UGameplayAbility* UAbilitySystemComponent::TryActivateAbilityByTag(const FGameplayTagContainer& GameplayTagContainer)
+{
+	TArray<FGameplayAbilitySpec*> AbilitiesToActivate;
+	GetActivateableGameplayAbilitySpecsByTag(GameplayTagContainer, AbilitiesToActivate);
+
+	UGameplayAbility* ActivatedAbility(nullptr);
+
+	for (auto GameplayAbilitySpec : AbilitiesToActivate)
+	{
+		TryActivateAbility(GameplayAbilitySpec->Handle, FPredictionKey(), &ActivatedAbility);
+	}
+
+	return ActivatedAbility;
 }
 
 /**
@@ -787,6 +855,8 @@ void UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 	{
 		return;
 	}
+
+	Ability->SetCurrentActorInfo(Handle, ActorInfo);
 
 	if (Ability->ShouldAbilityRespondToEvent(EventTag, Payload))
 	{
@@ -1307,6 +1377,11 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 			LocalAnimMontageInfo.AnimMontage = NewAnimMontage;
 			LocalAnimMontageInfo.AnimatingAbility = InAnimatingAbility;
 			
+			if (InAnimatingAbility)
+			{
+				InAnimatingAbility->SetCurrentMontage(NewAnimMontage);
+			}
+			
 			// Replicate to non owners
 			if (IsOwnerActorAuthoritative())
 			{
@@ -1507,6 +1582,15 @@ void UAbilitySystemComponent::CurrentMontageStop()
 		{
 			AnimMontage_UpdateReplicatedData();
 		}
+	}
+}
+
+void UAbilitySystemComponent::ClearAnimatingAbility(UGameplayAbility* Ability)
+{
+	if (LocalAnimMontageInfo.AnimatingAbility == Ability)
+	{
+		Ability->SetCurrentMontage(NULL);
+		LocalAnimMontageInfo.AnimatingAbility = NULL;
 	}
 }
 

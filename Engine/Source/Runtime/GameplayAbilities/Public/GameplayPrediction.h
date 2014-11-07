@@ -439,7 +439,7 @@ class UGameplayAbility;
  *	A structure for allowing scoped prediction windows.
  */
 
-struct FScopedPredictionWindow
+struct GAMEPLAYABILITIES_API FScopedPredictionWindow
 {
 	/** To be called on server when a new prediction key is received from the client (In an RPC). */
 	FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey);

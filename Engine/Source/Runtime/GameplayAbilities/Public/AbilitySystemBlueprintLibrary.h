@@ -15,8 +15,8 @@ class UAbilityTask_WaitOverlap;
 class UAbilityTask_WaitConfirmCancel;
 
 // meta =(RestrictedToClasses="GameplayAbility")
-UCLASS(MinimalAPI)
-class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
@@ -97,7 +97,7 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	/** Gets the instigating actor (Pawn/Avatar) of the GameplayCue */
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
-	static AActor*	GetInstigatorActor(FGameplayCueParameters Parameters);
+	static AActor* GetInstigatorActor(FGameplayCueParameters Parameters);
 
 	/** Gets instigating world location */
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")

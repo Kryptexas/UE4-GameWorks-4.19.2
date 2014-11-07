@@ -13,8 +13,13 @@
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
 #include "AssetTypeActions_GameplayAbilitiesBlueprint.h"
+#include "AssetTypeActions_GameplayEffect.h"
 #include "GameplayAbilitiesGraphPanelPinFactory.h"
 #include "GameplayAbilitiesGraphPanelNodeFactory.h"
+
+#include "Runtime/GameplayTags/Public/GameplayTagsModule.h"
+#include "Editor/BlueprintGraph/Public/BlueprintActionDatabase.h"
+#include "K2Node_GameplayCueEvent.h"
 
 class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 {
@@ -25,6 +30,7 @@ class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 
 protected:
 	void RegisterAssetTypeAction(class IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action);
+	static void GameplayTagTreeChanged();
 
 private:
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
@@ -55,9 +61,10 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 
 	// Register asset types
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-	TSharedRef<IAssetTypeActions> Action = MakeShareable(new FAssetTypeActions_GameplayAbilitiesBlueprint());
-	AssetTools.RegisterAssetTypeActions(Action);
-	CreatedAssetTypeActions.Add(Action);
+	TSharedRef<IAssetTypeActions> GABAction = MakeShareable(new FAssetTypeActions_GameplayAbilitiesBlueprint());
+	TSharedRef<IAssetTypeActions> GEAction = MakeShareable(new FAssetTypeActions_GameplayEffect());
+	RegisterAssetTypeAction(AssetTools, GABAction);
+	RegisterAssetTypeAction(AssetTools, GEAction);
 
 	// Register factories for pins and nodes
 	GameplayAbilitiesGraphPanelPinFactory = MakeShareable(new FGameplayAbilitiesGraphPanelPinFactory());
@@ -65,12 +72,22 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 
 	GameplayAbilitiesGraphPanelNodeFactory = MakeShareable(new FGameplayAbilitiesGraphPanelNodeFactory());
 	FEdGraphUtilities::RegisterVisualNodeFactory(GameplayAbilitiesGraphPanelNodeFactory);
+
+	// Listen for changes to the gameplay tag tree so we can refresh blueprint actions for the GameplayCueEvent node
+	UGameplayTagsManager& GameplayTagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	GameplayTagsManager.OnGameplayTagTreeChanged().AddStatic(&FGameplayAbilitiesEditorModule::GameplayTagTreeChanged);
 }
 
 void FGameplayAbilitiesEditorModule::RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
 {
 	AssetTools.RegisterAssetTypeActions(Action);
 	CreatedAssetTypeActions.Add(Action);
+}
+
+void FGameplayAbilitiesEditorModule::GameplayTagTreeChanged()
+{
+	// The tag tree changed so we should refresh which actions are provided by the gameplay cue event
+	FBlueprintActionDatabase::Get().RefreshClassActions(UK2Node_GameplayCueEvent::StaticClass());
 }
 
 void FGameplayAbilitiesEditorModule::ShutdownModule()
@@ -118,5 +135,11 @@ void FGameplayAbilitiesEditorModule::ShutdownModule()
 	{
 		FEdGraphUtilities::UnregisterVisualNodeFactory(GameplayAbilitiesGraphPanelNodeFactory);
 		GameplayAbilitiesGraphPanelNodeFactory.Reset();
+	}
+
+	if ( IGameplayTagsModule::IsAvailable() )
+	{
+		UGameplayTagsManager& GameplayTagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+		GameplayTagsManager.OnGameplayTagTreeChanged().RemoveStatic(&FGameplayAbilitiesEditorModule::GameplayTagTreeChanged);
 	}
 }

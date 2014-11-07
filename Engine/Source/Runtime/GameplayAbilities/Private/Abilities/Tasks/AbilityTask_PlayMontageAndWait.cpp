@@ -12,6 +12,14 @@ UAbilityTask_PlayMontageAndWait::UAbilityTask_PlayMontageAndWait(const FObjectIn
 
 void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	if (Ability.IsValid() && Ability->GetCurrentMontage() == MontageToPlay)
+	{
+		if (Montage == MontageToPlay)
+		{
+			AbilitySystemComponent->ClearAnimatingAbility(Ability.Get());
+		}
+	}
+
 	if (bInterrupted)
 	{
 		OnInterrupted.Broadcast();

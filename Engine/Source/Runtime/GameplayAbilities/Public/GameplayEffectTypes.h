@@ -435,6 +435,11 @@ struct FGameplayEffectContextHandle
 		return IsValid() ? Data.Get() : NULL;
 	}
 
+	const FGameplayEffectContext* Get() const
+	{
+		return IsValid() ? Data.Get() : NULL;
+	}
+
 	/** Returns the list of gameplay tags applicable to this effect, defaults to the owner's tags */
 	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
 	{

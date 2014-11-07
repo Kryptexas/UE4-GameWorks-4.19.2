@@ -161,7 +161,7 @@ float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Att
 	return Attribute.GetNumericValueChecked(AttributeSet);
 }
 
-FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level, FGameplayEffectContextHandle Context) const
+FGameplayEffectSpecHandle UAbilitySystemComponent::MakeOutgoingSpec(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level, FGameplayEffectContextHandle Context) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
 	if (Context.IsValid() == false)
@@ -169,8 +169,25 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGamepl
 		Context = GetEffectContext();
 	}
 
-	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, Context, Level);
-	return FGameplayEffectSpecHandle(NewSpec);
+	if (GameplayEffectClass)
+	{
+		UGameplayEffect* GameplayEffect = GameplayEffectClass->GetDefaultObject<UGameplayEffect>();
+
+		FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, Context, Level);
+		return FGameplayEffectSpecHandle(NewSpec);
+	}
+
+	return FGameplayEffectSpecHandle(nullptr);
+}
+
+FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level, FGameplayEffectContextHandle Contex) const
+{
+	if (GameplayEffect)
+	{
+		return MakeOutgoingSpec(GameplayEffect->GetClass(), Level, GetEffectContext());
+	}
+
+	return FGameplayEffectSpecHandle(nullptr);
 }
 
 FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level) const
@@ -210,9 +227,25 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
+FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToSelf(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level, FGameplayEffectContextHandle EffectContext)
+{
+	if ( GameplayEffectClass )
+	{
+		UGameplayEffect* GameplayEffect = GameplayEffectClass->GetDefaultObject<UGameplayEffect>();
+		return ApplyGameplayEffectToSelf(GameplayEffect, Level, EffectContext);
+	}
+
+	return FActiveGameplayEffectHandle();
+}
+
 FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, FGameplayEffectContextHandle EffectContext)
 {
-	return ApplyGameplayEffectToSelf(GameplayEffect, Level, EffectContext);
+	if ( GameplayEffect )
+	{
+		return BP_ApplyGameplayEffectToSelf(GameplayEffect->GetClass(), Level, EffectContext);
+	}
+
+	return FActiveGameplayEffectHandle();
 }
 
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
@@ -643,6 +676,7 @@ void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueT
 {
 	if (IsOwnerActorAuthoritative())
 	{
+		ForceReplication();
 		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag, PredictionKey, EffectContext);
 	}
 	else if (PredictionKey.IsValidKey())
@@ -655,8 +689,17 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, 
 {
 	if (IsOwnerActorAuthoritative())
 	{
+		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
+
+		ForceReplication();
 		ActiveGameplayCues.AddCue(GameplayCueTag);
 		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, PredictionKey, EffectContext);
+
+		if (!bWasInList)
+		{
+			// Call on server here, clients get it from repnotify
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+		}
 	}
 	else if (PredictionKey.IsValidKey())
 	{
@@ -670,6 +713,8 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 {
 	if (IsOwnerActorAuthoritative())
 	{
+		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
+
 		ActiveGameplayCues.RemoveCue(GameplayCueTag);
 		NetMulticast_InvokeGameplayCueRemoved(GameplayCueTag, PredictionKey);
 	}
@@ -808,6 +853,15 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, SimulatedTasks, COND_SkipOwner);
+}
+
+void UAbilitySystemComponent::ForceReplication()
+{
+	AActor *OwningActor = GetOwner();
+	if (OwningActor && OwningActor->Role == ROLE_Authority)
+	{
+		OwningActor->ForceNetUpdate();
+	}
 }
 
 bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)

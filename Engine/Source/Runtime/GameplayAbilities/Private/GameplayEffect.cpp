@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffect.h"
@@ -40,7 +40,25 @@ UGameplayEffect::UGameplayEffect(const FObjectInitializer& ObjectInitializer)
 
 void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
 {
-	TagContainer.AppendTags(OwnedTagsContainer);
+	TagContainer.AppendTags(InheritableOwnedTagsContainer.CombinedTags);
+}
+
+// void UGameplayEffect::GetClearGameplayTags(FGameplayTagContainer& TagContainer) const
+// {
+// 	TagContainer.AppendTags(InheritableClearTagsContainer.CombinedTags);
+// }
+
+void UGameplayEffect::GetTargetEffects(TArray<UGameplayEffect*>& OutEffects) const
+{
+	OutEffects.Append(TargetEffects);
+
+	for ( TSubclassOf<UGameplayEffect> EffectClass : TargetEffectClasses )
+	{
+		if ( EffectClass )
+		{
+			OutEffects.Add(EffectClass->GetDefaultObject<UGameplayEffect>());
+		}
+	}
 }
 
 void UGameplayEffect::PostLoad()
@@ -58,7 +76,65 @@ void UGameplayEffect::PostLoad()
 		}
 	}
 
-	ValidateGameplayEffect();
+	// We need to update when we first load to override values coming in from the superclass
+	// We also copy the tags from the old tag containers into the inheritable tag containers
+
+	InheritableGameplayEffectTags.Added.AppendTags(GameplayEffectTags);
+	GameplayEffectTags.RemoveAllTags();
+
+	InheritableOwnedTagsContainer.Added.AppendTags(OwnedTagsContainer);
+	OwnedTagsContainer.RemoveAllTags();
+
+	InheritableClearTagsContainer.Added.AppendTags(ClearTagsContainer);
+	ClearTagsContainer.RemoveAllTags();
+
+	UpdateInheritedTagProperties();
+}
+
+void UGameplayEffect::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	InheritableGameplayEffectTags.PostInitProperties();
+	InheritableOwnedTagsContainer.PostInitProperties();
+	InheritableClearTagsContainer.PostInitProperties();
+}
+
+#if WITH_EDITOR
+
+void UGameplayEffect::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const UProperty* PropertyThatChanged = PropertyChangedEvent.MemberProperty;
+	if (PropertyThatChanged)
+	{
+		UGameplayEffect* Parent = Cast<UGameplayEffect>(GetClass()->GetSuperClass()->GetDefaultObject());
+		FName PropName = PropertyThatChanged->GetFName();
+		if (PropName == GET_MEMBER_NAME_CHECKED(UGameplayEffect, InheritableGameplayEffectTags))
+		{
+			InheritableGameplayEffectTags.UpdateInheritedTagProperties(Parent ? &Parent->InheritableGameplayEffectTags : NULL);
+		}
+		else if (PropName == GET_MEMBER_NAME_CHECKED(UGameplayEffect, InheritableOwnedTagsContainer))
+		{
+			InheritableOwnedTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableOwnedTagsContainer : NULL);
+		}
+		else if (PropName == GET_MEMBER_NAME_CHECKED(UGameplayEffect, InheritableClearTagsContainer))
+		{
+			InheritableClearTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableClearTagsContainer : NULL);
+		}
+	}
+}
+
+#endif // #if WITH_EDITOR
+
+void UGameplayEffect::UpdateInheritedTagProperties()
+{
+	UGameplayEffect* Parent = Cast<UGameplayEffect>(GetClass()->GetSuperClass()->GetDefaultObject());
+
+	InheritableGameplayEffectTags.UpdateInheritedTagProperties(Parent ? &Parent->InheritableGameplayEffectTags : NULL);
+	InheritableOwnedTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableOwnedTagsContainer : NULL);
+	InheritableClearTagsContainer.UpdateInheritedTagProperties(Parent ? &Parent->InheritableClearTagsContainer : NULL);
 }
 
 void UGameplayEffect::ValidateGameplayEffect()
@@ -254,7 +330,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	SetupAttributeCaptureDefinitions();
 	
 	// Add the GameplayEffect asset tags to the source Spec tags
-	CapturedSourceTags.GetSpecTags().AppendTags(InDef->GameplayEffectTags);
+	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
 
 	// Make TargetEffectSpecs too
 	for (UGameplayEffect* TargetDef : InDef->TargetEffects)
@@ -885,6 +961,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 		// TODO: check replication policy. Right now we will replicate every execute via a multicast RPC
 
 		ABILITY_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
+		Owner->ForceReplication();
 		Owner->NetMulticast_InvokeGameplayCueExecuted_FromSpec(Spec, PredictionKey);
 	}
 }
@@ -1211,6 +1288,14 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 {
 	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
 
+	if (Owner && Owner->OwnerActor)
+	{
+		if ( IsNetAuthority() )
+		{
+			Owner->OwnerActor->FlushNetDormancy();
+		}
+	}
+
 	FActiveGameplayEffectHandle NewHandle = FActiveGameplayEffectHandle::GenerateNewHandle(Owner);
 	FActiveGameplayEffect& NewEffect = *new (GameplayEffects)FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
 
@@ -1330,7 +1415,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 	}
 
 	// Update our owner with the tags this GameplayEffect grants them
-	Owner->UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, 1);
+	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, 1);
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
 		Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
@@ -1370,7 +1455,8 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
 
 		bool ShouldInvokeGameplayCueEvent = true;
-		if (!IsNetAuthority() && Effect.PredictionKey.IsValidKey() && Effect.PredictionKey.WasReceived() == false)
+		const bool bIsNetAuthority = IsNetAuthority();
+		if (!bIsNetAuthority && Effect.PredictionKey.IsValidKey() && Effect.PredictionKey.WasReceived() == false)
 		{
 			// This was an effect that we predicted. Don't invoke GameplayCue event if we have another GameplayEffect that shares the same predictionkey and was received from the server
 			if (HasReceivedEffectWithPredictedKey(Effect.PredictionKey))
@@ -1393,6 +1479,11 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		if (GameplayEffects[Idx].PeriodHandle.IsValid())
 		{
 			Owner->GetWorld()->GetTimerManager().ClearTimer(GameplayEffects[Idx].PeriodHandle);
+		}
+
+		if (bIsNetAuthority && Owner->OwnerActor)
+		{
+			Owner->OwnerActor->FlushNetDormancy();
 		}
 
 		// Finally remove the ActiveGameplayEffect
@@ -1438,7 +1529,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(cons
 	{
 		// Update gameplaytag count and broadcast delegate if we are at 0
 		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-		Owner->UpdateTagMap(Effect.Spec.Def->OwnedTagsContainer, -1);
+		Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
 
 		for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 		{
@@ -1837,7 +1928,7 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 {
 	if (TagContainer)
 	{
-		if (!Effect.Spec.Def->OwnedTagsContainer.MatchesAny(*TagContainer, false))
+		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*TagContainer, false))
 		{
 			return false;
 		}
@@ -1867,3 +1958,49 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 	return true;
 }
 
+void FInheritedTagContainer::UpdateInheritedTagProperties(const FInheritedTagContainer* Parent)
+{
+	// Make sure we've got a fresh start
+	CombinedTags.RemoveAllTags();
+
+	// Re-add the Parent's tags except the one's we have removed
+	if (Parent)
+	{
+		for (auto Itr = Parent->CombinedTags.CreateConstIterator(); Itr; ++Itr)
+		{
+			if (!Removed.HasTag(*Itr, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::IncludeParentTags))
+			{
+				CombinedTags.AddTag(*Itr);
+			}
+		}
+	}
+
+	// Add our own tags
+	for (auto Itr = Added.CreateConstIterator(); Itr; ++Itr)
+	{
+		// Remove trumps add for explicit matches but not for parent tags.
+		// This lets us remove all inherited tags starting with Foo but still add Foo.Bar
+		if (!Removed.HasTag(*Itr, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+		{
+			CombinedTags.AddTag(*Itr);
+		}
+	}
+}
+
+void FInheritedTagContainer::PostInitProperties()
+{
+	// we shouldn't inherit the added and removed tags from our parents
+	// make sure that these fields are clear
+	Added.RemoveAllTags();
+	Removed.RemoveAllTags();
+}
+
+void FInheritedTagContainer::AddTag(const FGameplayTag& TagToAdd)
+{
+	CombinedTags.AddTag(TagToAdd);
+}
+
+void FInheritedTagContainer::RemoveTag(FGameplayTag TagToRemove)
+{
+	CombinedTags.RemoveTag(TagToRemove);
+}

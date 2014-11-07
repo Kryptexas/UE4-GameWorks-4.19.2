@@ -143,6 +143,8 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 			}
 			GameplayRootTag->GetChildTagNodes().Sort(FCompareFGameplayTagNodeByTag());
 		}
+
+		GameplayTagTreeChangedEvent.Broadcast();
 	}
 }
 

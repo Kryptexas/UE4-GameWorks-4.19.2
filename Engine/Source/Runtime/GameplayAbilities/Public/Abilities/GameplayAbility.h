@@ -222,7 +222,7 @@ protected:
 
 	/** Returns true if this ability can be activated right now. Has no side effects */
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "ShouldAbilityRespondToEvent")
-	virtual bool K2_ShouldAbilityRespondToEvent(FGameplayEventData Payload) const;
+	virtual bool K2_ShouldAbilityRespondToEvent(FGameplayTag EventTag, FGameplayEventData Payload) const;
 
 	bool HasBlueprintShouldAbilityRespondToEvent;
 		
@@ -326,9 +326,15 @@ protected:
 	//	EndAbility
 	// -------------------------------------
 
+	/** Call from kismet to end the ability naturally */
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="EndAbility")
 	virtual void K2_EndAbility();
 
+	/** Kismet event, will be called if an ability ends normally or abnormally */
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName = "OnEndAbility")
+	virtual void K2_OnEndAbility();
+
+	/** Native function, called if an ability ends normally or abnormally */
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
 	virtual void EndAbility();		//Convenience function for calling with default parameters
 
@@ -338,12 +344,18 @@ protected:
 	// -------------------------------------
 
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="ApplyGameplayEffectToOwner")
+	FActiveGameplayEffectHandle BP_ApplyGameplayEffectToOwner(TSubclassOf<UGameplayEffect> GameplayEffectClass, int32 GameplayEffectLevel = 1);
+
+	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName="ApplyGameplayEffectToOwner", meta=(DeprecatedFunction, DeprecationMessage = "Use new ApplyGameplayEffectToOwner"))
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToOwner(const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel = 1);
 
 	/** Non blueprintcallable, safe to call on CDO/NonInstance abilities */
 	FActiveGameplayEffectHandle ApplyGameplayEffectToOwner(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, float GameplayEffectLevel);
 
 	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "ApplyGameplayEffectToTarget")
+	FActiveGameplayEffectHandle BP_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<UGameplayEffect> GameplayEffectClass, int32 GameplayEffectLevel = 1);
+
+	UFUNCTION(BlueprintCallable, Category = Ability, FriendlyName = "ApplyGameplayEffectToTarget", meta=(DeprecatedFunction, DeprecationMessage = "Use new ApplyGameplayEffectToTarget"))
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle TargetData, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel = 1);
 
 	/** Non blueprintcallable, safe to call on CDO/NonInstance abilities */
@@ -421,17 +433,33 @@ public:
 
 	/** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
 	UFUNCTION(BlueprintCallable, Category=Ability)
+	FGameplayEffectSpecHandle MakeOutgoingGameplayEffectSpec(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level=1.f) const;
+
+	/** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
+	UFUNCTION(BlueprintCallable, Category=Ability, meta=(DeprecatedFunction, DeprecationMessage = "Use new MakeOutgoingGameplayEffectSpec"))
 	FGameplayEffectSpecHandle GetOutgoingGameplayEffectSpec(const UGameplayEffect* GameplayEffect, float Level=1.f) const;
 
-	FGameplayEffectSpecHandle GetOutgoingGameplayEffectSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, float Level = 1.f) const;
-	
+	FGameplayEffectSpecHandle MakeOutgoingGameplayEffectSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level = 1.f) const;
 
 	/** Add the Ability's tags to the given GameplayEffectSpec. This is likely to be overriden per project. */
-	virtual void ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec) const;
+	virtual void ApplyAbilityTagsToGameplayEffectSpec(FGameplayEffectSpec& Spec) const;	
+
+	/** Returns the currently playing montage for this ability, if any */
+	UFUNCTION(BlueprintCallable, Category = Animation)
+	UAnimMontage* GetCurrentMontage() const;
+
+	/** Call to set/get the current montage from a montage task. Set to allow hooking up montage events to ability events */
+	void SetCurrentMontage(class UAnimMontage* InCurrentMontage);
 
 protected:
 
 	bool IsSupportedForNetworking() const override;
+
+	/** Returns the gameplay effect used to determine cooldown */
+	class UGameplayEffect* GetCooldownGameplayEffect() const;
+
+	/** Returns the gameplay effect used to apply cost */
+	class UGameplayEffect* GetCostGameplayEffect() const;
 
 	/** Checks cooldown. returns true if we can be used again. False if not */
 	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
@@ -459,7 +487,11 @@ protected:
 	TEnumAsByte<EGameplayAbilityNetExecutionPolicy::Type> NetExecutionPolicy;
 
 	/** This GameplayEffect represents the cost (mana, stamina, etc) of the ability. It will be applied when the ability is committed. */
-	UPROPERTY(EditDefaultsOnly, Category=Costs)
+	UPROPERTY(EditDefaultsOnly, Category = Costs)
+	TSubclassOf<class UGameplayEffect> CostGameplayEffectClass;
+
+	/** Deprecated. Use CostGameplayEffectClass instead */
+	UPROPERTY(VisibleDefaultsOnly, Category=Deprecated)
 	class UGameplayEffect* CostGameplayEffect;
 
 	/** Triggers to determine if this ability should execute in response to an event */
@@ -480,8 +512,12 @@ protected:
 	UPROPERTY()
 	TArray<FGameplayAbilityCooldownInfo> AppliedCooldowns;
 	
-	/** Deprecated? */
+	/** Deprecated? This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
 	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
+	TSubclassOf<class UGameplayEffect> CooldownGameplayEffectClass;
+
+	/** Deprecated. Use CooldownGameplayEffectClass instead */
+	UPROPERTY(VisibleDefaultsOnly, Category=Deprecated)
 	class UGameplayEffect* CooldownGameplayEffect;
 
 	
@@ -515,6 +551,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category="Ability|Animation")
 	void MontageJumpToSection(FName SectionName);
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|Animation")
+	void MontageSetNextSectionName(FName FromSectionName, FName ToSectionName);
 
 	UFUNCTION(BlueprintCallable, Category="Ability|Animation")
 	void MontageStop();
@@ -551,6 +590,11 @@ protected:
 	/** Retrieves the SourceObject associated with this ability. Callable on non instanced */
 	UObject* GetSourceObject(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
 
+public:
+
+	// Temporary conversion code
+	virtual void ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(UGameplayEffect* OldGE, TSubclassOf<UGameplayEffect> NewGEClass);
+
 protected:
 
 	/** 
@@ -563,6 +607,10 @@ protected:
 	mutable const FGameplayAbilityActorInfo* CurrentActorInfo;
 
 	mutable FGameplayAbilitySpecHandle CurrentSpecHandle;
+
+	/** Active montage being played by this ability */
+	UPROPERTY()
+	class UAnimMontage* CurrentMontage;
 
 	/** True if the ability is currently active. For instance per owner abilities */
 	bool bIsActive;

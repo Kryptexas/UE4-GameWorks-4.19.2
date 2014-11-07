@@ -403,12 +403,38 @@ struct FGameplayEffectCue
 	}
 };
 
+USTRUCT()
+struct GAMEPLAYABILITIES_API FInheritedTagContainer
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Tags that I inherited and tags that I added minus tags that I removed*/
+	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category = Application)
+	FGameplayTagContainer CombinedTags;
+
+	/** Tags that I have in addition to my parent's tags */
+	UPROPERTY(EditDefaultsOnly, Transient, BlueprintReadOnly, Category = Application)
+	FGameplayTagContainer Added;
+
+	/** Tags that should be removed if my parent had them */
+	UPROPERTY(EditDefaultsOnly, Transient, BlueprintReadOnly, Category = Application)
+	FGameplayTagContainer Removed;
+
+	void UpdateInheritedTagProperties(const FInheritedTagContainer* Parent);
+
+	void PostInitProperties();
+
+	void AddTag(const FGameplayTag& TagToAdd);
+	void RemoveTag(FGameplayTag TagToRemove);
+};
+
 /**
  * UGameplayEffect
  *	The GameplayEffect definition. This is the data asset defined in the editor that drives everything.
+ *  This is only blueprintable to allow for templating gameplay effects. Gameplay effects should NOT contain blueprint graphs.
  */
-UCLASS(BlueprintType)
-class GAMEPLAYABILITIES_API UGameplayEffect : public UDataAsset, public IGameplayTagAssetInterface
+UCLASS(Blueprintable)
+class GAMEPLAYABILITIES_API UGameplayEffect : public UObject, public IGameplayTagAssetInterface
 {
 
 public:
@@ -436,6 +462,11 @@ public:
 	bool ShowAllProperties;
 #endif
 
+	virtual void PostInitProperties() override;
+#if WITH_EDITOR
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+#endif
+
 	/** Duration in seconds. 0.0 for instantaneous effects; -1.0 for infinite duration. */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
 	FScalableFloat	Duration;
@@ -461,7 +492,13 @@ public:
 
 	/** other gameplay effects that will be applied to the target of this effect if this effect applies */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses;
+
+	/** Deprecated. Use TargetEffectClasses instead */
+	UPROPERTY(VisibleDefaultsOnly, Category = Deprecated)
 	TArray<UGameplayEffect*> TargetEffects;
+
+	void GetTargetEffects(TArray<UGameplayEffect*>& OutEffects) const;
 
 	// ------------------------------------------------
 	// Gameplay tag interface
@@ -470,6 +507,7 @@ public:
 	/** Overridden to return requirements tags */
 	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
 
+	void UpdateInheritedTagProperties();
 	void ValidateGameplayEffect();
 
 	virtual void PostLoad() override;
@@ -503,11 +541,19 @@ public:
 	// ----------------------------------------------------------------------
 	
 	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(DisplayName="GameplayEffectAssetTag"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta = (DisplayName = "GameplayEffectAssetTag"))
+	FInheritedTagContainer InheritableGameplayEffectTags;
+
+	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Deprecated, meta=(DisplayName="GameplayEffectAssetTag"))
 	FGameplayTagContainer GameplayEffectTags;
 	
 	/** "These tags are applied to the actor I am applied to" */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
+	FInheritedTagContainer InheritableOwnedTagsContainer;
+
+	/** "These tags are applied to the actor I am applied to" */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Deprecated)
 	FGameplayTagContainer OwnedTagsContainer;
 	
 	/** Once Applied, these tags requirements are used to determined if the GameplayEffect is "on" or "off". A GameplayEffect can be off and do nothing, but still applied. */
@@ -520,7 +566,12 @@ public:
 
 	// Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be.
 	/** CURRENTLY NOT IMPLEMENTED */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
+	FInheritedTagContainer InheritableClearTagsContainer;
+
+	// Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be.
+	/** CURRENTLY NOT IMPLEMENTED */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Deprecated)
 	FGameplayTagContainer ClearTagsContainer;
 
 };
@@ -847,6 +898,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	FString ToSimpleString() const
 	{
 		return FString::Printf(TEXT("%s"), *Def->GetName());
+	}
+
+	const FGameplayEffectContextHandle& GetEffectContext() const
+	{
+		return EffectContext;
 	}
 
 private:
