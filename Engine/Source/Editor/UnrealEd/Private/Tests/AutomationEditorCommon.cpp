@@ -591,7 +591,6 @@ void FEditorAutomationTestUtilities::CollectTestsByClass(UClass * Class, TArray<
 void FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UClass * Class, bool bRecursiveClass, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands)
 {
 	//Setting the Asset Registry
-
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
 	//Variable setups
@@ -676,60 +675,86 @@ void FEditorAutomationTestUtilities::CollectMiscGameContentTestsByClass(TArray<F
 	ExcludeClassesList.Add(UWorld::StaticClass()->GetFName());
 
 	//Generating the list of assets.
-	//This list isn't expected to have anything that may be obtained with another function.
 	//This list is being filtered by the game folder and class type.  The results are placed into the ObjectList variable.
 	AssetFilter.PackagePaths.Add("/Game");
 	AssetFilter.bRecursivePaths = true;
 	AssetRegistryModule.Get().GetAssets(AssetFilter, ObjectList);
-	
-	//if (ObjectList.Num() < 25000)
-	//{
 
-		//Loop through the list of assets, make their path full and a string, then add them to the test.
-		for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+	//Loop through the list of assets, make their path full and a string, then add them to the test.
+	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+	{
+		const FAssetData& Asset = *ObjIter;
+		//First we check if the class is valid.  If not then we move onto the next object.
+		if (Asset.GetClass() != NULL)
 		{
-			const FAssetData& Asset = *ObjIter;
-			//First we check if the class is valid.  If not then we move onto the next object.
-			if (Asset.GetClass() != NULL)
+			//Variable that holds the class FName for the current asset iteration.
+			FName AssetClassFName = Asset.GetClass()->GetFName();
+
+			//Counter used to keep track for the following for loop.
+			float ExcludedClassesCounter = 1;
+
+			for (auto ExcludeIter = ExcludeClassesList.CreateConstIterator(); ExcludeIter; ++ExcludeIter)
 			{
-				//Variable that holds the class FName for the current asset iteration.
-				FName AssetClassFName = Asset.GetClass()->GetFName();
+				FName ExludedName = *ExcludeIter;
 
-				//Counter used to keep track for the following for loop.
-				float ExcludedClassesCounter = 1;
-
-				for (auto ExcludeIter = ExcludeClassesList.CreateConstIterator(); ExcludeIter; ++ExcludeIter)
+				//If the classes are the same then we don't want this asset. So we move onto the next one instead.
+				if (AssetClassFName == ExludedName)
 				{
-					FName ExludedName = *ExcludeIter;
-
-					//If the classes are the same then we don't want this asset. So we move onto the next one instead.
-					if (AssetClassFName == ExludedName)
-					{
-						break;
-					}
-
-					//We run out of class names in our Excluded list then we want the current ObjectList asset.
-					if ((ExcludedClassesCounter + 1) > ExcludeClassesList.Num())
-					{
-						FString Filename = Asset.ObjectPath.ToString();
-						//convert to full paths
-						Filename = FPackageName::LongPackageNameToFilename(Filename);
-
-						if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
-						{
-							FString BeautifiedFilename = Asset.AssetName.ToString();
-							OutBeautifiedNames.Add(BeautifiedFilename);
-							OutTestCommands.Add(Asset.ObjectPath.ToString());
-						}
-
-						break;
-					}
-
-					//increment the counter.
-					ExcludedClassesCounter++;
+					break;
 				}
+
+				//We run out of class names in our Excluded list then we want the current ObjectList asset.
+				if ((ExcludedClassesCounter + 1) > ExcludeClassesList.Num())
+				{
+					FString Filename = Asset.ObjectPath.ToString();
+					//convert to full paths
+					Filename = FPackageName::LongPackageNameToFilename(Filename);
+
+					if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+					{
+						FString BeautifiedFilename = Asset.AssetName.ToString();
+						OutBeautifiedNames.Add(BeautifiedFilename);
+						OutTestCommands.Add(Asset.ObjectPath.ToString());
+					}
+
+					break;
+				}
+				ExcludedClassesCounter++;
 			}
 		}
-	//}
+	}
 }
 
+/**
+* Generates a list of assets from the GAME by a specific type.
+*/
+void FEditorAutomationTestUtilities::CollectGameContentByClass(const UClass * Class, bool bRecursiveClass, TArray<FString>& OutAssetList)
+{
+	//Setting the Asset Registry
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	//Variable setups
+	TArray<FAssetData> ObjectList;
+	FARFilter AssetFilter;
+
+	//Generating the list of assets.
+	//This list is being filtered by the game folder and class type.  The results are placed into the ObjectList variable.
+	AssetFilter.ClassNames.Add(Class->GetFName());
+	AssetFilter.PackagePaths.Add("/Game");
+	AssetFilter.bRecursiveClasses = bRecursiveClass;
+	AssetFilter.bRecursivePaths = true;
+	AssetRegistryModule.Get().GetAssets(AssetFilter, ObjectList);
+
+	//Loop through the list of assets, make their path full and a string, then add them to the test.
+	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+	{
+		const FAssetData& Asset = *ObjIter;
+		FString Filename = Asset.ObjectPath.ToString();
+		//convert to full paths
+		Filename = FPackageName::LongPackageNameToFilename(Filename);
+		if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+		{
+			OutAssetList.Add(Asset.ObjectPath.ToString());
+		}
+	}
+}
