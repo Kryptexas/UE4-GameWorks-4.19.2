@@ -1643,22 +1643,23 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	// ------------------------------------------------------------
 	// Initialize client if first time through.
 	// ------------------------------------------------------------
-	bool SpawnedNewActor = false;
+	bool bSpawnedNewActor = false;	// If this turns to true, we know an actor was spawned (rather than found)
 	if( Actor == NULL )
 	{
 		if( !Bunch.bOpen )
 		{
-			UE_LOG(LogNetTraffic, Log, TEXT("New actor channel received non-open packet: %i/%i/%i"),Bunch.bOpen,Bunch.bClose,Bunch.bReliable);
+			UE_LOG(LogNetTraffic, Warning, TEXT("UActorChannel::ProcessBunch: New actor channel received non-open packet. bOpen: %i, bClose: %i, bReliable: %i"),Bunch.bOpen,Bunch.bClose,Bunch.bReliable);
 			return;
 		}
 
 		AActor* NewChannelActor = NULL;
-		SpawnedNewActor = Connection->PackageMap->SerializeNewActor(Bunch, this, NewChannelActor);
+		bSpawnedNewActor = Connection->PackageMap->SerializeNewActor(Bunch, this, NewChannelActor);
 
 		// We are unsynchronized. Instead of crashing, let's try to recover.
-		if (!NewChannelActor)
+		if (NewChannelActor == NULL || NewChannelActor->IsPendingKill())
 		{
-			UE_LOG(LogNet, Warning, TEXT("Received invalid actor class on channel %i"), ChIndex);
+			check( !bSpawnedNewActor );
+			UE_LOG(LogNet, Warning, TEXT("UActorChannel::ProcessBunch: SerializeNewActor failed to find/spawn actor. Actor: %s, Channel: %i"), NewChannelActor ? *NewChannelActor->GetFullName() : TEXT( "NULL" ), ChIndex);
 			Broken = 1;
 			FNetControlMessage<NMT_ActorChannelFailure>::Send(Connection, ChIndex);
 			return;
@@ -1692,32 +1693,41 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 
 		if ( Bunch.IsError() )
 		{
-			UE_LOG( LogNet, Error, TEXT( "UActorChannel::ReceivedBunch: ReadContentBlockHeader FAILED. Bunch.IsError() == TRUE.  Closing connection.") );
+			UE_LOG( LogNet, Error, TEXT( "UActorChannel::ReceivedBunch: ReadContentBlockHeader FAILED. Bunch.IsError() == TRUE. Closing connection. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
 			Connection->Close();
 			return;
 		}
 
-		if ( !RepObj )
+		if ( !RepObj || RepObj->IsPendingKill() )
 		{
-			continue;
+			UE_LOG(LogNet, Warning, TEXT("UActorChannel::ProcessBunch: ReadContentBlockHeader failed to find/create object. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex);
+
+			if ( !Actor || Actor->IsPendingKill() )
+			{
+				Broken = 1;
+			}
+
+			break;	// We can't continue reading since this will throw off the de-serialization
 		}
-		
+
 		TSharedRef< FObjectReplicator > & Replicator = FindOrCreateReplicator( RepObj );
 
 		bool bHasUnmapped = false;
 
 		if ( !Replicator.Get().ReceivedBunch( Bunch, RepFlags, bHasUnmapped ) )
 		{
-			UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Replicator.ReceivedBunch failed.  Closing connection.") );
+			UE_LOG( LogNet, Error, TEXT( "UActorChannel::ProcessBunch: Replicator.ReceivedBunch failed.  Closing connection. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex  );
 			Connection->Close();
 			return;
 		}
 
 		// Check to see if the actor was destroyed
 		// If so, don't continue processing packets on this channel, or we'll trigger an error otherwise
-		if ( !Actor )
+		if ( !Actor || Actor->IsPendingKill() )
 		{
-			UE_LOG( LogNet, Log, TEXT( "ReceivedBunch: Actor was destroyed during Replicator.ReceivedBunch processing" ) );
+			UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: Actor was destroyed during Replicator.ReceivedBunch processing" ) );
+			// If we lose the actor on this channel, we can no longer process bunches, so consider this channel broken
+			Broken = 1;		
 			break;
 		}
 
@@ -1726,7 +1736,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 			Connection->Driver->UnmappedReplicators.Add( Replicator );
 		}
 	}
-	
+
 	for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
 	{
 		if ( RepComp.Key().IsValid() )
@@ -1736,7 +1746,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	}
 
 	// After all properties have been initialized, call PostNetInit. This should call BeginPlay() so initialization can be done with proper starting values.
-	if (Actor && SpawnedNewActor)
+	if (Actor && bSpawnedNewActor)
 	{
 		Actor->PostNetInit();
 	}
