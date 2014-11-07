@@ -127,7 +127,8 @@ public:
 	EQueryGroupMode::Type			GroupBy;
 	/** Current way we are sorting queries */
 	EQuerySortMode::Type			SortBy;
-
+	/** Current way we are setting ID sort direction */
+	EColumnSortMode::Type			SortDirection;
 private:
 	/** Called when the queries array in the CollisionAnalyzer change */
 	void OnQueriesChanged();

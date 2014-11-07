@@ -6,6 +6,9 @@
 
 static const int32 NumDrawRecentQueries = 10;
 
+static FName TimeColumnName(TEXT("Name"));
+static FName IDColumnName(TEXT("ID"));
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer* InAnalyzer)
 {
@@ -15,6 +18,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 	MinCPUFilterTime = -1.f;
 	GroupBy = EQueryGroupMode::Ungrouped;
 	SortBy = EQuerySortMode::ByID;
+	SortDirection = EColumnSortMode::Descending;
 	TotalNumQueries = 0;
 
 	ChildSlot
@@ -81,7 +85,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 					.HeaderRow(
 						SNew(SHeaderRow)
 						// ID
-						+SHeaderRow::Column("ID")
+						+SHeaderRow::Column(IDColumnName)
 						.SortMode(this, &SCollisionAnalyzer::GetIDSortMode)
 						.OnSort(this, &SCollisionAnalyzer::OnSortByChanged)
 						.HAlignCell(HAlign_Left)
@@ -241,7 +245,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 							.ToolTipText( LOCTEXT("NumberTouchTooltip", "Number of touching results") )
 						]
 						// CPU time
-						+SHeaderRow::Column("Time")
+						+SHeaderRow::Column(TimeColumnName)
 						.SortMode(this, &SCollisionAnalyzer::GetTimeSortMode)
 						.OnSort(this, &SCollisionAnalyzer::OnSortByChanged)
 						.FixedWidth(48)
@@ -480,6 +484,37 @@ struct FCompareQueryByCPUTime
 	}
 };
 
+/** Functor for comparing query by ID */
+struct FCompareQueryByID
+{
+	FCollisionAnalyzer* Analyzer;
+	EColumnSortMode::Type SortMode;
+	
+	FCompareQueryByID(FCollisionAnalyzer* InAnalyzer, EColumnSortMode::Type InSortMode)
+		 : Analyzer(InAnalyzer), SortMode(InSortMode)
+	 {}
+	
+	FORCEINLINE bool operator()(const TSharedPtr<FQueryTreeItem> A, const TSharedPtr<FQueryTreeItem> B) const
+	{
+		check(A.IsValid());
+		check(!A->bIsGroup);
+		check(B.IsValid());
+		check(!A->bIsGroup);
+		const FCAQuery& QueryA = Analyzer->Queries[A->QueryIndex];
+		const FCAQuery& QueryB = Analyzer->Queries[B->QueryIndex];
+		
+		if (SortMode == EColumnSortMode::Descending)
+		{
+			return (QueryA.ID < QueryB.ID);
+		}
+		else
+		{
+			return (QueryA.ID > QueryB.ID);
+		}
+	}
+};
+
+
 /** Functor for comparing group by CPU time */
 struct FCompareGroupByCPUTime
 {
@@ -506,6 +541,10 @@ void SCollisionAnalyzer::AddQueryToGroupedQueries(int32 NewQueryIndex, bool bPer
 		if(SortBy == EQuerySortMode::ByTime && bPerformSort)
 		{
 			GroupedQueries.Sort( FCompareQueryByCPUTime(Analyzer) );
+		}
+		else if (SortBy == EQuerySortMode::ByID)
+		{
+			GroupedQueries.Sort( FCompareQueryByID(Analyzer, SortDirection) );
 		}
 	}
 	// If we are grouping..
@@ -595,6 +634,10 @@ void SCollisionAnalyzer::RebuildFilteredList()
 				Group->QueriesInGroup.Sort( FCompareQueryByCPUTime(Analyzer) );
 			}
 		}
+	}
+	else if (SortBy == EQuerySortMode::ByID)
+	{
+		GroupedQueries.Sort(FCompareQueryByID(Analyzer, SortDirection));
 	}
 	
 	// When underlying array changes, refresh list
@@ -689,11 +732,25 @@ void SCollisionAnalyzer::FilterTextCommitted(const FText& CommentText, ETextComm
 
 void SCollisionAnalyzer::OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode)
 {
-	SortBy = EQuerySortMode::ByID;
-
-	if(ColumnName == TEXT("Time"))
+	if(ColumnName == TimeColumnName)
 	{
+		// Only makes sense to sort by time decreasing
 		SortBy = EQuerySortMode::ByTime;
+		SortDirection = EColumnSortMode::Descending;
+	}
+	else if(ColumnName == IDColumnName)
+	{
+		// If already sorting by ID, flip direction
+		if (SortBy == EQuerySortMode::ByID)
+		{
+			SortDirection = (SortDirection == EColumnSortMode::Descending) ? EColumnSortMode::Ascending : EColumnSortMode::Descending;
+		}
+		// If not, sort by ID, and default to ascending
+		else
+		{
+			SortBy = EQuerySortMode::ByID;
+			SortDirection = EColumnSortMode::Descending;
+		}
 	}
 
 	RebuildFilteredList();
@@ -701,12 +758,12 @@ void SCollisionAnalyzer::OnSortByChanged(const EColumnSortPriority::Type SortPri
 
 EColumnSortMode::Type SCollisionAnalyzer::GetIDSortMode() const
 {
-	return (SortBy == EQuerySortMode::ByID) ? EColumnSortMode::Ascending : EColumnSortMode::None;
+	return (SortBy == EQuerySortMode::ByID) ? SortDirection : EColumnSortMode::None;
 }
 
 EColumnSortMode::Type SCollisionAnalyzer::GetTimeSortMode() const
 {
-	return (SortBy == EQuerySortMode::ByTime) ? EColumnSortMode::Descending : EColumnSortMode::None;
+	return (SortBy == EQuerySortMode::ByTime) ? SortDirection : EColumnSortMode::None;
 }
 
 FString SCollisionAnalyzer::QueryShapeToString(ECAQueryShape::Type QueryShape)

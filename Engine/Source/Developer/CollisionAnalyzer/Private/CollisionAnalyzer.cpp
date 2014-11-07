@@ -8,18 +8,18 @@
 
 
 void FCollisionAnalyzer::CaptureQuery(	const FVector& Start, 
-									  const FVector& End, 
-									  const FQuat& Rot, 
-									  ECAQueryType::Type QueryType, 
-									  ECAQueryShape::Type QueryShape, 
-									  const FVector& Dims, 
-									  ECollisionChannel TraceChannel, 
-									  const struct FCollisionQueryParams& Params, 
-									  const FCollisionResponseParams&	ResponseParams,
-									  const FCollisionObjectQueryParams&	ObjectParams,
-									  const TArray<FHitResult>& Results, 
-									  const TArray<FHitResult>& TouchAllResults,
-									  double CPUTime ) 
+										const FVector& End, 
+										const FQuat& Rot, 
+										ECAQueryType::Type QueryType, 
+										ECAQueryShape::Type QueryShape, 
+										const FVector& Dims, 
+										ECollisionChannel TraceChannel, 
+										const struct FCollisionQueryParams& Params, 
+										const FCollisionResponseParams&	ResponseParams,
+										const FCollisionObjectQueryParams&	ObjectParams,
+										const TArray<FHitResult>& Results, 
+										const TArray<FHitResult>& TouchAllResults,
+										double CPUTime) 
 {
 	if(bIsRecording)
 	{
@@ -38,7 +38,9 @@ void FCollisionAnalyzer::CaptureQuery(	const FVector& Start,
 		NewQuery.Results = Results;
 		NewQuery.TouchAllResults = TouchAllResults;
 		NewQuery.FrameNum = CurrentFrameNum;
-		NewQuery.CPUTime = CPUTime * 1000.f;
+		NewQuery.CPUTime = CPUTime * 1000.f;		
+		NewQuery.ID = NewQueryId;
+
 
 		QueryAddedEvent.Broadcast();
 	}

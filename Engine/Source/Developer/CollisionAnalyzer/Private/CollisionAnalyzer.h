@@ -19,6 +19,7 @@ struct FCAQuery
 	TArray<FHitResult>			TouchAllResults;
 	int32						FrameNum;
 	float						CPUTime; /** In ms */
+	int32						ID;
 };
 
 /** Actual implementation of CollisionAnalyzer, private inside module */
