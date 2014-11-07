@@ -221,70 +221,57 @@ namespace iPhonePackager
 
 			X509Certificate2 Result = null;
 
-			if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX) {
+			if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
+			{
 				// run certtool y to get the currently installed certificates
 				CertToolData = "";
 				Process CertTool = new Process ();
-				CertTool.StartInfo.FileName = "/usr/bin/certtool";
+				CertTool.StartInfo.FileName = "/usr/bin/security";
 				CertTool.StartInfo.UseShellExecute = false;
-				CertTool.StartInfo.Arguments = "y";
+				CertTool.StartInfo.Arguments = "find-identity -p codesigning -v";
 				CertTool.StartInfo.RedirectStandardOutput = true;
 				CertTool.OutputDataReceived += new DataReceivedEventHandler (OutputReceivedCertToolProcessCall);
 				CertTool.Start ();
 				CertTool.BeginOutputReadLine ();
 				CertTool.WaitForExit ();
-				if (CertTool.ExitCode == 0) {
-					foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates) {
+				if (CertTool.ExitCode == 0)
+				{
+					foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates)
+					{
 						X509Certificate2 ValidInTimeCert = null;
 						// see if certificate can be found by serial number
-						string SerialNumber = SourceCert.GetSerialNumberString ();
-						for (int Index = 14; Index > 0; Index -= 2) {
-							SerialNumber = SerialNumber.Insert (Index, " ");
+						string CertHash = SourceCert.GetCertHashString();
+
+						if (CertToolData.Contains (CertHash))
+						{
+							ValidInTimeCert = SourceCert;
 						}
 
-						if (CertToolData.Contains (SerialNumber)) {
-							// check the cert time
-							int StartLine = CertToolData.IndexOf (SerialNumber);
-							string BeforeStart = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Not Before", StartLine))+1);
-							BeforeStart = BeforeStart.Remove(BeforeStart.IndexOf("\n"));
-							string AfterStart = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Not After", StartLine))+1);
-							AfterStart = AfterStart.Remove(AfterStart.IndexOf("\n"));
-							string CommonName = CertToolData.Substring( CertToolData.IndexOf( ":", CertToolData.IndexOf ("Common Name", CertToolData.IndexOf("Subject Name", StartLine)))+1);
-							CommonName = CommonName.Remove(CommonName.IndexOf("\n"));
-
-							DateTime EffectiveDate = DateTime.Parse (BeforeStart);
-							DateTime ExpirationDate = DateTime.Parse (AfterStart);
-							DateTime Now = DateTime.Now;
-
-							bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
-
-							Program.LogVerbose ("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", CommonName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", BeforeStart, AfterStart);
-							if (bCertTimeIsValid) {
-								ValidInTimeCert = SourceCert;
-							}
-						}
-
-						if (ValidInTimeCert != null) {
+						if (ValidInTimeCert != null)
+						{
 							// Found a cert in the valid time range, quit now!
 							Result = ValidInTimeCert;
 							break;
 						}
 					}
-				} else {
 				}
-			} else {
+			}
+			else
+			{
 				// Open the personal certificate store on this machine
 				X509Store Store = new X509Store ();
 				Store.Open (OpenFlags.ReadOnly);
 
 				// Try finding a matching certificate from the serial number (the one in the mobileprovision is missing the public/private key pair)
-				foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates) {
+				foreach (X509Certificate2 SourceCert in ProvisionToWorkFrom.DeveloperCertificates)
+				{
 					X509Certificate2Collection FoundCerts = Store.Certificates.Find (X509FindType.FindBySerialNumber, SourceCert.SerialNumber, false);
 
 					Program.LogVerbose ("  .. Provision entry SN '{0}' matched {1} installed certificate(s)", SourceCert.SerialNumber, FoundCerts.Count);
 
 					X509Certificate2 ValidInTimeCert = null;
-					foreach (X509Certificate2 TestCert in FoundCerts) {
+					foreach (X509Certificate2 TestCert in FoundCerts)
+					{
 						//@TODO: Pretty sure the certificate information from the library is in local time, not UTC and this works as expected, but it should be verified!
 						DateTime EffectiveDate = TestCert.NotBefore;
 						DateTime ExpirationDate = TestCert.NotAfter;
@@ -293,13 +280,15 @@ namespace iPhonePackager
 						bool bCertTimeIsValid = (EffectiveDate < Now) && (ExpirationDate > Now);
 
 						Program.LogVerbose ("  .. .. Installed certificate '{0}' is {1} (range '{2}' to '{3}')", TestCert.FriendlyName, bCertTimeIsValid ? "valid (choosing it)" : "EXPIRED", TestCert.GetEffectiveDateString (), TestCert.GetExpirationDateString ());
-						if (bCertTimeIsValid) {
+						if (bCertTimeIsValid)
+						{
 							ValidInTimeCert = TestCert;
 							break;
 						}
 					}
 
-					if (ValidInTimeCert != null) {
+					if (ValidInTimeCert != null)
+					{
 						// Found a cert in the valid time range, quit now!
 						Result = ValidInTimeCert;
 						break;
@@ -561,20 +550,23 @@ namespace iPhonePackager
 			FatBinaryFile FatBinary = new FatBinaryFile();
 			FatBinary.LoadFromBytes(SourceExeData);
 
+			//@TODO: Verify it's an executable (not an object file, etc...)
+			ulong CurrentStreamOffset = 0;
+			byte[] FinalExeData = new byte[SourceExeData.Length + 1024 * 1024];
+
 			foreach (MachObjectFile Exe in FatBinary.MachObjectFiles)
 			{
 				Program.Log("... Processing one mach object (binary is {0})", FatBinary.bIsFatBinary ? "fat" : "thin");
-				
+
 				// Pad the memory stream with extra room to handle any possible growth in the code signing data
 				int OverSize = 1024 * 1024;
-				MemoryStream OutputExeStream = new MemoryStream(SourceExeData.Length + OverSize);
-				
+				MemoryStream OutputExeStream = new MemoryStream(SourceExeData.Length - (int)CurrentStreamOffset + OverSize);
+
 				// Copy the executable into the stream
 				OutputExeStream.Seek(0, SeekOrigin.Begin);
-				OutputExeStream.Write(SourceExeData, 0, SourceExeData.Length);
+				OutputExeStream.Write(SourceExeData, (int)CurrentStreamOffset, SourceExeData.Length - (int)CurrentStreamOffset);
 				OutputExeStream.Seek(0, SeekOrigin.Begin);
-
-				//@TODO: Verify it's an executable (not an object file, etc...)
+				long Length = OutputExeStream.Length;
 
 				// Find out if there was an existing code sign blob and find the linkedit segment command
 				MachLoadCommandCodeSignature CodeSigningBlobLC = null;
@@ -711,17 +703,22 @@ namespace iPhonePackager
 
 				Program.Log("... Truncating/copying final binary", DateTime.Now - SigningTime);
 				ulong DesiredExecutableLength = LinkEditSegmentLC.FileSize + LinkEditSegmentLC.FileOffset;
-				byte[] FinalExeData = OutputExeStream.ToArray();
-				if ((ulong)FinalExeData.Length < DesiredExecutableLength)
+
+				if ((ulong)Length < DesiredExecutableLength)
 				{
 					throw new InvalidDataException("Data written is smaller than expected, unable to finish signing process");
 				}
-				Array.Resize(ref FinalExeData, (int)DesiredExecutableLength); //@todo: Extend the file system interface so we don't have to copy 20 MB just to truncate a few hundred bytes
-
-				// Save the patched and signed executable
-				Program.Log("Saving signed executable... ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
-				FileSystem.WriteAllBytes(CFBundleExecutable, FinalExeData);
+				byte[] Data = OutputExeStream.ToArray();
+				Data.CopyTo(FinalExeData, (long)CurrentStreamOffset);
+				CurrentStreamOffset += DesiredExecutableLength;
 			}
+
+			// resize to the finale size
+			Array.Resize(ref FinalExeData, (int)CurrentStreamOffset); //@todo: Extend the file system interface so we don't have to copy 20 MB just to truncate a few hundred bytes
+
+			// Save the patched and signed executable
+			Program.Log("Saving signed executable... ({0:0.00} s elapsed so far)", (DateTime.Now - SigningTime).TotalSeconds);
+			FileSystem.WriteAllBytes(CFBundleExecutable, FinalExeData);
 
 			Program.Log("Finished code signing, which took {0:0.00} s", (DateTime.Now - SigningTime).TotalSeconds);
 		}

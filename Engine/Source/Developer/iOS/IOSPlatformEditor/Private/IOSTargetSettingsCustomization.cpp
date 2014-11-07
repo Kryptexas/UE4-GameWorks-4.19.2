@@ -505,27 +505,84 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 {
 	// pass the file to IPP to install
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-#if PLATFORM_MAC
-	FString CmdExe = TEXT("/bin/sh");
-	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
-	FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Install Engine -project \"%s\" -provision"), *ScriptPath, *IPPPath, *ProjectPath);
-#else
-	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -provision"), *ProjectPath);
-#endif
-	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
-	OutputMessage = TEXT("");
-	IPPProcess->OnOutput().BindStatic(&OnOutput);
-	IPPProcess->Launch();
-	while(IPPProcess->IsRunning())
-	{
-		FPlatformProcess::Sleep(0.01f);
-	}
-	int RetCode = IPPProcess->GetReturnCode();
-	ensure(RetCode == 0);
+	FString ProvisionPath;
 
-	UpdateStatus();
+	// get the provision by popping up the file dialog
+	TArray<FString> OpenFilenames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bOpened = false;
+	int32 FilterIndex = -1;
+	FString FileTypes = TEXT("Provision Files (*.mobileprovision)|*.mobileprovision");
+
+	if ( DesktopPlatform )
+	{
+		void* ParentWindowWindowHandle = NULL;
+
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		{
+			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
+		bOpened = DesktopPlatform->OpenFileDialog(
+			ParentWindowWindowHandle,
+			LOCTEXT("ImportDialogTitle", "Import Provision").ToString(),
+			FPaths::GetProjectFilePath(),
+			TEXT(""),
+			FileTypes,
+			EFileDialogFlags::None,
+			OpenFilenames,
+			FilterIndex
+			);
+	}
+
+	if ( bOpened )
+	{
+        ProvisionPath = FPaths::ConvertRelativePathToFull(OpenFilenames[0]);
+
+		// see if the provision is already installed
+		FString DestName = FPaths::GetBaseFilename(ProvisionPath);
+		TCHAR Path[4096];
+#if PLATFORM_MAC
+		FPlatformMisc::GetEnvironmentVariable(TEXT("HOME"), Path, ARRAY_COUNT(Path));
+		FString Destination = FString::Printf(TEXT("\"%s/Library/MobileDevice/Provisioning Profiles/%s.mobileprovision\""), Path, *DestName);
+		FString Destination2 = FString::Printf(TEXT("\"%s/Library/MobileDevice/Provisioning Profiles/%s.mobileprovision\""), Path, FApp::GetGameName());
+#else
+		FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA"), Path, ARRAY_COUNT(Path));
+		FString Destination = FString::Printf(TEXT("%s\\Apple Computer\\MobileDevice\\Provisioning Profiles\\%s.mobileprovision"), Path, *DestName);
+		FString Destination2 = FString::Printf(TEXT("%s\\Apple Computer\\MobileDevice\\Provisioning Profiles\\%s.mobileprovision"), Path, FApp::GetGameName());
+#endif
+		if (FPaths::FileExists(Destination) || FPaths::FileExists(Destination2))
+		{
+			FString MessagePrompt = FString::Printf(TEXT("%s mobile provision file already exists.  Do you want to replace this provision?"), *DestName);
+			if (FPlatformMisc::MessageBoxExt(EAppMsgType::OkCancel, *MessagePrompt, TEXT("File Exists")) == EAppReturnType::Cancel)
+			{
+				return FReply::Handled();
+			}
+		}
+#if PLATFORM_MAC
+		FString CmdExe = TEXT("/bin/sh");
+		FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
+		FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Install Engine -project \"%s\" -provision \"%s\""), *ScriptPath, *IPPPath, *ProjectPath, *ProvisionPath);
+#else
+		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -provision \"%s\""), *ProjectPath, *ProvisionPath);
+#endif
+		TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		OutputMessage = TEXT("");
+		IPPProcess->OnOutput().BindStatic(&OnOutput);
+		IPPProcess->Launch();
+		while(IPPProcess->IsRunning())
+		{
+			FPlatformProcess::Sleep(0.01f);
+		}
+		int RetCode = IPPProcess->GetReturnCode();
+		ensure(RetCode == 0);
+
+		UpdateStatus();
+	}
 
 	return FReply::Handled();
 }
@@ -534,27 +591,63 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 {
 	// pass the file to IPP to install
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-#if PLATFORM_MAC
-	FString CmdExe = TEXT("/bin/sh");
-	FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
-	FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Install Engine -project \"%s\" -certificate"), *ScriptPath, *IPPPath, *ProjectPath);
-#else
-	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
-	FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -certificate"), *ProjectPath);
-#endif
-	TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
-	OutputMessage = TEXT("");
-	IPPProcess->OnOutput().BindStatic(&OnOutput);
-	IPPProcess->Launch();
-	while(IPPProcess->IsRunning())
-	{
-		FPlatformProcess::Sleep(0.01f);
-	}
-	int RetCode = IPPProcess->GetReturnCode();
-	ensure(RetCode == 0);
+	FString CertPath;
 
-	UpdateStatus();
+	// get the provision by popping up the file dialog
+	TArray<FString> OpenFilenames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	bool bOpened = false;
+	int32 FilterIndex = -1;
+	FString FileTypes = TEXT("Code Signing Certificates (*.cer;*.p12)|*.cer;*p12");
+
+	if ( DesktopPlatform )
+	{
+		void* ParentWindowWindowHandle = NULL;
+
+		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		{
+			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
+		bOpened = DesktopPlatform->OpenFileDialog(
+			ParentWindowWindowHandle,
+			LOCTEXT("ImportDialogTitle", "Import Certificate").ToString(),
+			FPaths::GetProjectFilePath(),
+			TEXT(""),
+			FileTypes,
+			EFileDialogFlags::None,
+			OpenFilenames,
+			FilterIndex
+			);
+	}
+
+	if ( bOpened )
+	{
+        CertPath = FPaths::ConvertRelativePathToFull(OpenFilenames[0]);
+#if PLATFORM_MAC
+		FString CmdExe = TEXT("/bin/sh");
+		FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
+		FString IPPPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString CommandLine = FString::Printf(TEXT("\"%s\" \"%s\" Install Engine -project \"%s\" -certificate \"%s\""), *ScriptPath, *IPPPath, *ProjectPath, *CertPath);
+#else
+		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
+		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -certificate \"%s\""), *ProjectPath, *CertPath);
+#endif
+		TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		OutputMessage = TEXT("");
+		IPPProcess->OnOutput().BindStatic(&OnOutput);
+		IPPProcess->Launch();
+		while(IPPProcess->IsRunning())
+		{
+			FPlatformProcess::Sleep(0.01f);
+		}
+		int RetCode = IPPProcess->GetReturnCode();
+		ensure(RetCode == 0);
+
+		UpdateStatus();
+	}
 
 	return FReply::Handled();
 }
