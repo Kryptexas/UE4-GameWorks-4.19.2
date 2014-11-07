@@ -194,7 +194,7 @@ namespace UnrealBuildTool
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
 
 
-				string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
+                string BaseSDKPath = HTML5SDKInfo.EmscriptenSDKPath();
 				Result += " --js-library \"" + BaseSDKPath + "/Src/library_openal.js\" ";
 			}
 
