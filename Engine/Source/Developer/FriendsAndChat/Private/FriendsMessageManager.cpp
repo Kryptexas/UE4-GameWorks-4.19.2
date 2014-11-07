@@ -28,11 +28,26 @@ public:
 			IOnlineIdentityPtr OnlineIdentity = OnlineSubMcp->GetIdentityInterface();
 			if(OnlineIdentity->GetUniquePlayerId(0).IsValid())
 			{
-				IOnlineChatPtr ChatInterface = OnlineSubMcp->GetChatInterface();
-				if(ChatInterface.IsValid())
+				if (!RoomName.IsEmpty())
 				{
-					ChatInterface->SendPrivateChat(*OnlineIdentity->GetUniquePlayerId(0).Get(), RecipientId, MsgBody);
+					TSharedPtr<FChatRoomInfo> RoomInfo = ChatInterface->GetRoomInfo(*LoggedInUser, FChatRoomId(RoomName));
+					if (RoomInfo.IsValid() &&
+						RoomInfo->IsJoined())
+					{
+						ChatInterface->SendRoomChat(*LoggedInUser, FChatRoomId(RoomName), MsgBody);
+					}
 				}
+				else
+				{
+					// send to all joined rooms
+					TArray<FChatRoomId> JoinedRooms;
+					OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
+					for (auto RoomId : JoinedRooms)
+					{
+						ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody);
+					}
+				}
+				
 			}
 		}
 	}
@@ -105,7 +120,7 @@ private:
 	}
 
 	void OnChatRoomJoinPublic(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, bool, const FString& Message)
-	{
+	{		
 	}
 
 	void OnChatRoomExit(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, bool, const FString& Message)
@@ -114,10 +129,40 @@ private:
 
 	void OnChatRoomMemberJoin(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FUniqueNetId& OtherID)
 	{
+		if (LoggedInUser.IsValid() &&
+			*LoggedInUser != MemberId)
+		{
+			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+			TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
+			if (ChatMember.IsValid())
+			{
+				ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
+			}
+			ChatItem->Message = FText::FromString(TEXT("entered room"));
+			ChatItem->MessageType = EChatMessageType::Global;
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+			ChatItem->bIsFromSelf = false;
+			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+		}
 	}
 
 	void OnChatRoomMemberExit(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FUniqueNetId& OtherID)
 	{
+		if (LoggedInUser.IsValid() &&
+			*LoggedInUser != MemberId)
+		{
+			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+			TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
+			if (ChatMember.IsValid())
+			{
+				ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
+			}
+			ChatItem->Message = FText::FromString(TEXT("left room"));
+			ChatItem->MessageType = EChatMessageType::Global;
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+			ChatItem->bIsFromSelf = false;
+			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+		}
 	}
 
 	void OnChatRoomMemberUpdate(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FUniqueNetId& OtherID)
@@ -126,6 +171,32 @@ private:
 
 	void OnChatRoomMessageReceived(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FChatMessage& ChatMessage)
 	{
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+
+		TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, ChatMessage.GetUserId());
+		if (ChatMember.IsValid())
+		{
+			ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
+		}
+		else
+		{
+			ChatItem->FromName = FText::FromString("Unknown");
+		}
+		ChatItem->Message = FText::FromString(*ChatMessage.GetBody());
+		ChatItem->MessageType = EChatMessageType::Global;
+		ChatItem->MessageTimeText = FText::AsTime(ChatMessage.GetTimestamp());
+		ChatItem->bIsFromSelf = UserId == *LoggedInUser;
+		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+
+		ChatItem->FromName = FText::FromString(*ChatMessage.GetNickname());
+		ChatItem->Message = FText::FromString(*ChatMessage.GetBody());
+		ChatItem->MessageType = EChatMessageType::Global;
+		ChatItem->MessageTimeText = FText::AsTime(ChatMessage.GetTimestamp());
+		ChatItem->bIsFromSelf = ChatMessage.GetUserId() == *LoggedInUser;
+		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+
 	}
 
 	void OnChatPrivateMessageReceived(const FUniqueNetId& FriendID, const FChatMessage& ChatMessage)

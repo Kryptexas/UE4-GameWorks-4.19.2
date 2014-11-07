@@ -61,6 +61,11 @@ public:
 		{
 			MessageManager.Pin()->SendMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
 		}
+		else if (SelectedChatChannel == EChatMessageType::Global)
+		{
+			//@todo samz - send message to specific room (empty room name will send to all rooms)
+			MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
+		}
 
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 		if(SelectedFriend.IsValid())
