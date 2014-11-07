@@ -764,16 +764,14 @@ void UStaticMeshComponent::CopyInstanceVertexColorsIfCompatible( UStaticMeshComp
 	{
 		Modify();
 
+		bool bRegistered = IsRegistered();
+		FComponentReregisterContext ReregisterContext(this);
+		if (bRegistered)
+		{
+			FlushRenderingCommands(); // don't sync threads unless we have to
+		}
 		// Remove any and all vertex colors from the target static mesh, if they exist.
-		if ( IsRenderStateCreated() )
-		{
-			FComponentReregisterContext ComponentReregisterContext( this );
-			RemoveInstanceVertexColors();
-		}
-		else
-		{
-			RemoveInstanceVertexColors();
-		}
+		RemoveInstanceVertexColors();
 
 		int32 NumSourceLODs = SourceComponent->StaticMesh->GetNumLODs();
 
