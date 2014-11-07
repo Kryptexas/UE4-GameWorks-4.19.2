@@ -695,8 +695,12 @@ void USkeletalMeshComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysM
 	}
 }
 
+DEFINE_STAT(STAT_InitArticulated);
+
 void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 {
+	SCOPE_CYCLE_COUNTER(STAT_InitArticulated);
+
 	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 
 	if(PhysScene == NULL || PhysicsAsset == NULL || SkeletalMesh == NULL)
@@ -736,15 +740,19 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	uint32 SkelMeshCompID = GetUniqueID();
 	PhysScene->DeferredAddCollisionDisableTable(SkelMeshCompID, &PhysicsAsset->CollisionDisableTable);
 
-	if(Aggregate == NULL && Bodies.Num() > AggregatePhysicsAssetThreshold)
+	int32 NumBodies = PhysicsAsset->BodySetup.Num();
+	if(Aggregate == NULL && NumBodies > RagdollAggregateThreshold && NumBodies <= AggregateMaxSize)
 	{
-		Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, true);
+		Aggregate = GPhysXSDK->createAggregate(PhysicsAsset->BodySetup.Num(), true);
+	}
+	else if(Aggregate && NumBodies > AggregateMaxSize)
+	{
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Too many bodies to create aggregate, Max: %u, This: %d"), AggregateMaxSize, NumBodies);
 	}
 #endif //WITH_PHYSX
 
 	// Create all the bodies.
 	check(Bodies.Num() == 0);
-	int32 NumBodies = PhysicsAsset->BodySetup.Num();
 	Bodies.AddZeroed(NumBodies);
 	for(int32 i=0; i<NumBodies; i++)
 	{
@@ -798,6 +806,19 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		// Get the scene type from the SkeletalMeshComponent's BodyInstance
 		const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
 		PhysScene->GetPhysXScene(SceneType)->addAggregate(*Aggregate);
+
+		// If we've used an aggregate, InitBody would not be able to set awake status as we *must* have a scene
+		// to do that, so we reconcile this here.
+		AActor* Owner = GetOwner();
+		bool bShouldSleep = !BodyInstance.bStartAwake && (Owner && Owner->GetVelocity().SizeSquared() <= KINDA_SMALL_NUMBER);
+
+		if(bShouldSleep)
+		{
+			for(FBodyInstance* Body : Bodies)
+			{
+				Body->GetPxRigidDynamic()->putToSleep();
+			}
+		}
 	}
 #endif //WITH_PHYSX
 

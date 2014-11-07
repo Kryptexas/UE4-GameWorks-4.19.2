@@ -1320,8 +1320,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	// Need to add actor into scene before calling putToSleep
 	// check if InAggregate is passed in
 	// BRG N.B. : For now only using InAggregate and BodyAggregate for dynamic bodies that are in the same scene as the aggregate, since otherwise we might have actors from two scenes.
-	// Right now aggregates are effectively disabled anyhow.
-	if(InAggregate && PNewDynamic != NULL && InAggregate->getScene() == PSceneForNewDynamic)
+	// If the aggregate scene is NULL we trust the caller that incoming bodies will be in the same scene.
+	if(InAggregate && PNewDynamic != NULL && (InAggregate->getScene() == PSceneForNewDynamic || InAggregate->getScene() == NULL))
 	{
 		InAggregate->addActor(*PNewDynamic);
 	}
@@ -1384,7 +1384,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		CreateDOFLock();
 
 		// wakeUp and putToSleep will issue warnings on kinematic actors
-		if (IsRigidBodyNonKinematic(PNewDynamic))
+		if (IsRigidBodyNonKinematic(PNewDynamic) && PNewDynamic->getScene())
 		{
 		    // Sleep/wake up as appropriate
 		    if (bShouldStartAwake)
