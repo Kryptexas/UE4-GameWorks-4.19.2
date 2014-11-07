@@ -2732,7 +2732,7 @@ struct FPropertyChangedEvent
 	{
 	}
 
-	//@TODO: DEPRECATED(4.6, "The bInChangesTopology parameter has been removed, use the two-argument constructor of FPropertyChangedEvent instead")
+	DEPRECATED(4.7, "The bInChangesTopology parameter has been removed, use the two-argument constructor of FPropertyChangedEvent instead")
 	FPropertyChangedEvent(UProperty* InProperty, const bool /*bInChangesTopology*/, EPropertyChangeType::Type InChangeType)
 		: Property(InProperty)
 		, MemberProperty(InProperty)
