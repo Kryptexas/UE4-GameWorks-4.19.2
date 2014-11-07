@@ -71,6 +71,8 @@ public:
 	/** Called after done loading to update show flags from saved data */
 	virtual void PostLoad() override;
 
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
 private:
 	/** Update the show flags from our show flags settings (ideally, you'd be able to set this more directly, but currently unable to make FEngineShowFlags a UStruct to use it as a UProperty...) */
 	void UpdateShowFlags();

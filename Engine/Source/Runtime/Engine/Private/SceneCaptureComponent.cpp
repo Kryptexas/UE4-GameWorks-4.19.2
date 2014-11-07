@@ -169,6 +169,19 @@ void USceneCaptureComponent::PostLoad()
 	UpdateShowFlags();
 }
 
+void USceneCaptureComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	USceneCaptureComponent* This = CastChecked<USceneCaptureComponent>(InThis);
+
+	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
+
+	if (Ref)
+	{
+		Ref->AddReferencedObjects(Collector);
+	}
+
+	Super::AddReferencedObjects(This, Collector);
+}
 
 void USceneCaptureComponent::HideComponent(UPrimitiveComponent* InComponent)
 {
