@@ -9,7 +9,7 @@
 #include "TireType.generated.h"
 
 UCLASS()
-class UTireType : public UDataAsset
+class ENGINE_API UTireType : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
