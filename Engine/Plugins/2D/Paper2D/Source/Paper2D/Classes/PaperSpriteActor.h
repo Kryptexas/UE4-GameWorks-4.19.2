@@ -11,13 +11,13 @@
  * This actor is created when you drag a sprite asset from the content browser into the level, and
  * it is just a thin wrapper around a UPaperSpriteComponent that actually references the asset.
  */
-UCLASS(MinimalAPI, meta=(ChildCanTick))
-class APaperSpriteActor : public AActor
+UCLASS(meta=(ChildCanTick))
+class PAPER2D_API APaperSpriteActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
 private:
-	UPROPERTY(Category = Sprite, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess = "true"))
+	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess="true"))
 	class UPaperSpriteComponent* RenderComponent;
 public:
 

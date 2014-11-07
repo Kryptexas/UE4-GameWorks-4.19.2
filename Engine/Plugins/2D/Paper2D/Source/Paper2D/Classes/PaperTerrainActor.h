@@ -22,7 +22,7 @@ private:
 	UPROPERTY()
 	class UPaperTerrainSplineComponent* SplineComponent;
 
-	UPROPERTY(Category = Sprite, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess = "true"))
+	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess="true"))
 	class UPaperTerrainComponent* RenderComponent;
 public:
 

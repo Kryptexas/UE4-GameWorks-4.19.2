@@ -6,13 +6,19 @@
 
 #include "PaperTileMapActor.generated.h"
 
-UCLASS(MinimalAPI)
-class APaperTileMapActor : public AActor
+/**
+ * An instance of a UPaperTileMap in a level.
+ *
+ * This actor is created when you drag a tile map asset from the content browser into the level, and
+ * it is just a thin wrapper around a UPaperTileMapRenderComponent that actually references the asset.
+ */
+UCLASS()
+class PAPER2D_API APaperTileMapActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
 private:
-	UPROPERTY(Category=TileMapActor, VisibleAnywhere)
+	UPROPERTY(Category=TileMapActor, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess="true"))
 	class UPaperTileMapRenderComponent* RenderComponent;
 public:
 
