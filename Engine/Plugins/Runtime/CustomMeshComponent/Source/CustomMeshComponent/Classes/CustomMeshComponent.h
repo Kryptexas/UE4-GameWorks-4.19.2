@@ -9,13 +9,13 @@ struct FCustomMeshTriangle
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Triangle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex0;
 
-	UPROPERTY(EditAnywhere, Category=Triangle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex1;
 
-	UPROPERTY(EditAnywhere, Category=Triangle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex2;
 };
 
