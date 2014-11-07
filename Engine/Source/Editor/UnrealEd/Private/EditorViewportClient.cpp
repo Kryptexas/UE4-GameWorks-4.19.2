@@ -2408,6 +2408,11 @@ void FEditorViewportClient::AddReferencedObjects( FReferenceCollector& Collector
 	{
 		PreviewScene->AddReferencedObjects( Collector );
 	}
+
+	if (ViewState.GetReference())
+	{
+		ViewState.GetReference()->AddReferencedObjects(Collector);
+	}
 }
 
 FSceneInterface* FEditorViewportClient::GetScene() const

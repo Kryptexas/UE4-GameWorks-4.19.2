@@ -1620,10 +1620,15 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	ULocalPlayer* This = CastChecked<ULocalPlayer>(InThis);
 
 	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
-
 	if(Ref)
 	{
 		Ref->AddReferencedObjects(Collector);
+	}
+
+	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
+	if (StereoRef)
+	{
+		StereoRef->AddReferencedObjects(Collector);
 	}
 
 	UPlayer::AddReferencedObjects(This, Collector);
