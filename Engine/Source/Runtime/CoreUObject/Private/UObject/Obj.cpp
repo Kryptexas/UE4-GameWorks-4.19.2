@@ -223,16 +223,24 @@ void UObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 {
+	const bool bIsEditingArchetypeProperty = HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && 
+		(PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead()) && !FApp::IsGame();
+
+	if (bIsEditingArchetypeProperty)
+	{
+		// this object must now be included in the undo/redo buffer (needs to be 
+		// done prior to the following PreEditChange() call, in case it attempts 
+		// to store this object in the undo/redo transaction buffer)
+		SetFlags(RF_Transactional);
+	}
+
 	// forward the notification to the UProperty* version of PreEditChange
 	PreEditChange(PropertyAboutToChange.GetActiveNode()->GetValue());
 
 	FCoreUObjectDelegates::OnPreObjectPropertyChanged.Broadcast(this, PropertyAboutToChange);
 
-	if ( HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead() && !FApp::IsGame())
+	if (bIsEditingArchetypeProperty)
 	{
-		// this object must now be included in the undo/redo buffer
-		SetFlags(RF_Transactional);
-
 		// Get a list of all objects which will be affected by this change; 
 		TArray<UObject*> Objects;
 		GetArchetypeInstances(Objects);
