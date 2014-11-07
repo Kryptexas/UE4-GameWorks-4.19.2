@@ -249,7 +249,7 @@ namespace BlueprintSearchMetaDataHelpers
 		}
 
 		TJsonFindInBlueprintStringReader( FArchive* InStream,  TMap< int32, FText >& InLookupTable )
-			: TJsonReader(InStream)
+			: TJsonReader<CharType>(InStream)
 			, LookupTable(MoveTemp(InLookupTable))
 		{
 
