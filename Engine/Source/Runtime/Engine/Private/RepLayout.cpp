@@ -1976,7 +1976,7 @@ void FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Relat
 		}
 		else
 		{
-			UE_LOG( LogNet, Verbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
+			UE_LOG( LogNet, VeryVerbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
 		}
 	}
 	else if ( Property->IsA( UBoolProperty::StaticClass() ) )
