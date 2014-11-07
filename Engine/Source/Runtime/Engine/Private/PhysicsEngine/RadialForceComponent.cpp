@@ -95,6 +95,13 @@ void URadialForceComponent::FireImpulse()
 
 	FCollisionQueryParams Params(FireImpulseOverlapName, false);
 	Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
+
+	// Ignore owner actor if desired
+	if (bIgnoreOwningActor)
+	{
+		Params.AddIgnoredActor(GetOwner());
+	}
+
 	GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, CollisionObjectQueryParams);
 
 	// Iterate over each and apply an impulse

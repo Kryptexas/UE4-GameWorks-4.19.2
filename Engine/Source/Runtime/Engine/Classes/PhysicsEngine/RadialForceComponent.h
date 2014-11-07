@@ -28,6 +28,10 @@ class URadialForceComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Impulse)
 	uint32 bImpulseVelChange:1;
 
+	/** If true, do not apply force/impulse to any physics objects that are part of the Actor that owns this component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Impulse)
+	uint32 bIgnoreOwningActor:1;
+
 	/** How strong the force should be */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Force)
 	float ForceStrength;
