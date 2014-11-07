@@ -78,9 +78,10 @@ void FFeedbackContext::EndSlowTask()
 }
 /**** End legacy API ****/
 
-void FScopedSlowTask::MakeDialog(bool bShowCancelButton)
+void FScopedSlowTask::MakeDialog(bool bShowCancelButton, bool bAllowInPIE)
 {
-	const bool bIsDialogAllowed = bEnabled && !GIsSilent && !GIsPlayInEditorWorld && !IsRunningCommandlet() && IsInGameThread();
+	const bool bIsDisabledByPIE = GIsPlayInEditorWorld && !bAllowInPIE;
+	const bool bIsDialogAllowed = bEnabled && !GIsSilent && !bIsDisabledByPIE && !IsRunningCommandlet() && IsInGameThread();
 	if (!GIsSlowTask && bIsDialogAllowed)
 	{
 		Context.StartSlowTask(GetCurrentMessage(), bShowCancelButton);
