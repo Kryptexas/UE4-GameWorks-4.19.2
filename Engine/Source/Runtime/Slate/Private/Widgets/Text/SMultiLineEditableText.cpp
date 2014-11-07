@@ -2228,7 +2228,7 @@ int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
 	CachedSize = AllottedGeometry.Size;
 
-	LayerId = TextLayout->OnPaint( Args.WithNewParent(this), AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+	LayerId = TextLayout->OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 	return LayerId;
 }
