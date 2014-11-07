@@ -45,6 +45,7 @@ public:
 	virtual ~FChatMessage() {}
 
 	virtual const FUniqueNetId& GetUserId() const = 0;
+	virtual const FString& GetNickname() const = 0;
 	virtual const FString& GetBody() const = 0;
 	virtual const FDateTime& GetTimestamp() const = 0;
 };
