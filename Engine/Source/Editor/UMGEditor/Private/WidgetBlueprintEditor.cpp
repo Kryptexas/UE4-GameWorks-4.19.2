@@ -68,7 +68,11 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 
-	SequencerObjectBindingManager->InitPreviewObjects();
+	// If the user has close the sequencer tab, this will not be initialized.
+	if ( SequencerObjectBindingManager.IsValid() )
+	{
+		SequencerObjectBindingManager->InitPreviewObjects();
+	}
 
 	DesignerCommandList = MakeShareable(new FUICommandList);
 
