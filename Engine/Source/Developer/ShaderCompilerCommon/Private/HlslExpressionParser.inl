@@ -22,14 +22,38 @@ namespace CrossCompiler
 			Symbols.Add(Type);
 		}
 
-		bool FindType(const FString& Type) const
+		static bool FindType(const FSymbolScope* Scope, const FString& Type)
 		{
-			if (Symbols.Contains(Type))
+			while (Scope)
 			{
-				return true;
+				if (Scope->Symbols.Contains(Type))
+				{
+					return true;
+				}
+
+				Scope = Scope->Parent;
 			}
 
-			return Parent ? Parent->FindType(Type) : false;
+			return false;
+		}
+	};
+
+	struct FCreateSymbolScope
+	{
+		FSymbolScope* Original;
+		FSymbolScope** Current;
+
+		FCreateSymbolScope(FSymbolScope** InCurrent) :
+			Current(InCurrent)
+		{
+			Original = *InCurrent;
+			auto* NewScope = new(Original->Children) FSymbolScope(Original);
+			*Current = NewScope;
+		}
+
+		~FCreateSymbolScope()
+		{
+			*Current = Original;
 		}
 	};
 
@@ -269,7 +293,7 @@ namespace CrossCompiler
 			if (TypeFlags & ETF_USER_TYPES)
 			{
 				check(SymbolScope);
-				if (Token->Token == EHlslToken::Identifier && SymbolScope->FindType(Token->String))
+				if (Token->Token == EHlslToken::Identifier && FSymbolScope::FindType(SymbolScope, Token->String))
 				{
 					return EParseResult::Matched;
 				}

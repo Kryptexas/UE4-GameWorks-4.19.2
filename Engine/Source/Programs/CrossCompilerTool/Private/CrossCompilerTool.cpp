@@ -22,7 +22,7 @@ namespace CCT
 		ILanguageSpec* Language = nullptr;
 		FCodeBackend* Backend = nullptr;
 
-		int32 Flags = 0;
+		uint32 Flags = 0;
 
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
 
@@ -81,12 +81,20 @@ namespace CCT
 					}
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("%s!"), *File);
 
-					CrossCompiler::Parser::Parse(HLSLShader, File);
+					if (!CrossCompiler::Parser::Parse(HLSLShader, File))
+					{
+						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *File);
+						return 0;
+					}
 				}
 			}
 			else
 			{
-				CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile);
+				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile))
+				{
+					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);
+					return 0;
+				}
 			}
 			//Scanner.Dump();
 			return 1;
