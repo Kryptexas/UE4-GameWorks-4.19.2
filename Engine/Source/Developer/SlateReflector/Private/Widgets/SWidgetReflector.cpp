@@ -49,6 +49,7 @@ static FReply ToggleSlateStats()
 	return FReply::Handled();
 }
 
+extern SLATECORE_API int32 bFoldTick;
 
 
 void SWidgetReflector::Construct( const FArguments& InArgs )
@@ -90,61 +91,85 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					]
 
 				+ SVerticalBox::Slot()
-					.AutoHeight()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
 					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5.0f)
-						[
-							// Check box that controls LIVE MODE
-							SNew(SCheckBox)
-								.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
-								.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
-								[
-									SNew(STextBlock)
-										.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
-								]
-						]
-
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5.0f)
-						[
-							// Check box that controls PICKING A WIDGET TO INSPECT
-							SNew(SButton)
-							.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
-							.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
+						// Check box that controls LIVE MODE
+						SNew(SCheckBox)
+							.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
+							.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
 							[
 								SNew(STextBlock)
-								.Text(this, &SWidgetReflector::HandlePickButtonText)
+									.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
 							]
-						]
+					]
 
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5.0f)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						// Check box that controls PICKING A WIDGET TO INSPECT
+						SNew(SButton)
+						.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
+						.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
 						[
-							SNew(SButton)
-							#if STATS
-							.Text( LOCTEXT("ToggleStats", "Toggle Stats") )
-							#else
-							.Text( LOCTEXT("ToggleStatsUnavailable", "Toggle Stats [see tooltip]") )
-							.ToolTip
-							(
-								SNew(SToolTip)
-								[
-									SNew(STextBlock)
-									.WrapTextAt(200.0f)
-									.Text( LOCTEXT("ToggleStatsUnavailableTooltip", "To enable STATS in standalone applications turn on <bCompileWithStatsWithoutEngine>false</bCompileWithStatsWithoutEngine> in BuildConfiguration.xml") )
-								]
-							)
-							.IsEnabled(false)
-							#endif
-							.OnClicked_Static( &ToggleSlateStats )
+							SNew(STextBlock)
+							.Text(this, &SWidgetReflector::HandlePickButtonText)
 						]
 					]
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						SNew(SButton)
+						#if STATS
+						.Text( LOCTEXT("ToggleStats", "Toggle Stats") )
+						#else
+						.Text( LOCTEXT("ToggleStatsUnavailable", "Toggle Stats [see tooltip]") )
+						.ToolTip
+						(
+							SNew(SToolTip)
+							[
+								SNew(STextBlock)
+								.WrapTextAt(200.0f)
+								.Text( LOCTEXT("ToggleStatsUnavailableTooltip", "To enable STATS in standalone applications turn on <bCompileWithStatsWithoutEngine>false</bCompileWithStatsWithoutEngine> in BuildConfiguration.xml") )
+							]
+						)
+						.IsEnabled(false)
+						#endif
+						.OnClicked_Static( &ToggleSlateStats )
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						SNew(SCheckBox)
+						.Style( FCoreStyle::Get(), "ToggleButtonCheckbox" )
+						.IsChecked_Lambda([]()
+						{
+							return bFoldTick == 0 ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+						})
+						.OnCheckStateChanged_Lambda([]( const ESlateCheckBoxState::Type NewState )
+						{
+							bFoldTick = (NewState == ESlateCheckBoxState::Checked) ? 1 : 0;
+						})
+						[
+							SNew(SBox)
+							.VAlign( VAlign_Center )
+							.HAlign( HAlign_Center )
+							[
+								SNew(STextBlock)	
+								.Text( LOCTEXT("ToggleTickFolding", "Fold Tick") )
+							]
+						]
+					]
+				]
 
 				+ SVerticalBox::Slot()
 					.FillHeight(1.0f)
@@ -258,7 +283,7 @@ void SWidgetReflector::SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisu
 
 int32 SWidgetReflector::Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId )
 {
-	const bool bAttemptingToVisualizeReflector = InWidgetsToVisualize.ContainsWidget(SharedThis(this));
+	const bool bAttemptingToVisualizeReflector = InWidgetsToVisualize.ContainsWidget(ReflectorTree.ToSharedRef());
 
 	if (!InWidgetsToVisualize.IsValid())
 	{
@@ -459,7 +484,10 @@ public:
 
 	FName GetStatName() const { return StatName; }
 	FText GetDisplayName() const { return DisplayText; }	
-	FText GetInclusiveAvgMsText() const { return InclusiveAvgMsText; }
+	FText GetInclusiveAvgMsText() const
+	{
+		return InclusiveAvgMsText;
+	}
 	float GetInclusiveAvgMs() const { return InclusiveAvgMs; }
 	void UpdateInclusiveAvgMs( float InMs )
 	{
@@ -474,8 +502,9 @@ public:
 
 private:
 
-	FName StatName;
-	FText DisplayText;
+	const FName StatName;
+	const FText DisplayText;
+
 	FText InclusiveAvgMsText;
 	float InclusiveAvgMs;
 	
@@ -574,11 +603,22 @@ void SWidgetReflector::UpdateStats()
 		{
 			StatsList->RequestListRefresh();
 		}		
+		else
+		{
+			int32 a = 5;
+			if (a == 10){  }
+		}
 	}
 	else
 	{
 		// We are now showing stale stats; provide visual hint.
 		StatsBorder->SetColorAndOpacity(FLinearColor(1,1,1,0.75f));
+		
+		// If we don't get a report about a stat this frame, assume its value is 0;
+		for (auto& StatItem : StatsItems)
+		{
+			StatItem->UpdateInclusiveAvgMs(0.0f);
+		}
 	}
 
 	#endif
