@@ -1,12 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 #include "BrushComponent.generated.h"
 
 struct FEngineShowFlags;
 struct FConvexVolume;
 
+/** 
+ *	A brush component defines a shape that can be modified within the editor. They are used both as part of BSP building, and for volumes. 
+ *	@see https://docs.unrealengine.com/latest/INT/Engine/Actors/Volumes
+ *	@see https://docs.unrealengine.com/latest/INT/Engine/Actors/Brushes
+ */
 UCLASS(editinlinenew, MinimalAPI, hidecategories=(Physics, Lighting, LOD, Rendering, TextureStreaming, Transform, Activation, "Components|Activation"), showcategories=(Mobility, "Rendering|Material"))
 class UBrushComponent : public UPrimitiveComponent
 {

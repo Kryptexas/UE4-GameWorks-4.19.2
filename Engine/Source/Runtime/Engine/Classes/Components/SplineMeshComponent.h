@@ -84,6 +84,10 @@ struct FSplineMeshParams
 
 };
 
+/** 
+ *	A Spline Mesh Component is a derivation of a Static Mesh Component which can be deformed using a spline. Only a start and end position (and tangent) can be specified.  
+ *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Blueprint_Splines
+ */
 UCLASS(ClassGroup=Rendering, hidecategories=(Physics), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
 {

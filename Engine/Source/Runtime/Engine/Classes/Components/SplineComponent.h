@@ -4,10 +4,12 @@
 #pragma once
 #include "SplineComponent.generated.h"
 
-
-
+/** 
+ *	A spline component is a spline shape which can be used for other purposes (e.g. animating objects). It does not contain rendering capabilities itself (outside the editor) 
+ *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Blueprint_Splines
+ */
 UCLASS(ClassGroup=Shapes, meta=(BlueprintSpawnableComponent))
-class ENGINE_API USplineComponent : public USceneComponent
+class ENGINE_API USplineComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
