@@ -71,8 +71,8 @@ if [ "$IS_GITHUB_BUILD" = true ]; then
 	echo Checking / downloading the latest archives
 	echo
 	set +e
-        chmod +x Build/BatchFiles/Linux/GetAssets.py
-	Build/BatchFiles/Linux/GetAssets.py EpicGames/UnrealEngine $GITHUB_TAG 
+	# should not be needed since we add it as post-merge hook, but run here for now to overkill
+	mono Binaries/DotNET/GitDependencies.exe
 	UpdateResult=$?
 	set -e
 

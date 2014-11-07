@@ -131,8 +131,8 @@ Unixify()
   cd ${TOP_DIR}
 }
 
-CleanRepo
-ExtractArchives
+#CleanRepo
+#ExtractArchives
 Unixify
 
 echo "********** SUCCESS ****************"
