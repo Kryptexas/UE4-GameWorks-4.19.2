@@ -215,12 +215,12 @@ EVisibility SWebBrowser::GetViewportVisibility() const
 EVisibility SWebBrowser::GetLoadingThrobberVisibility() const
 {
 #if WITH_EDITOR || IS_PROGRAM
-	if (BrowserWindow.IsValid() && BrowserWindow->HasBeenPainted())
+	if (BrowserWindow.IsValid() && !BrowserWindow->HasBeenPainted())
 	{
-		return EVisibility::Hidden;
+		return EVisibility::Visible;
 	}
 #endif
-	return EVisibility::Visible;
+	return EVisibility::Hidden;
 }
 
 #undef LOCTEXT_NAMESPACE
