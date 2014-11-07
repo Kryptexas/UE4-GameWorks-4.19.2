@@ -5354,6 +5354,19 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 }
 #endif // WITH_EDITOR
 
+#if WITH_EDITOR
+void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	if(PersistentLevel && PersistentLevel->OwningWorld)
+	{
+		if(ULevelScriptBlueprint* LevelBlueprint = PersistentLevel->GetLevelScriptBlueprint(true))
+		{
+			LevelBlueprint->GetAssetRegistryTags(OutTags);
+		}
+	}
+}
+#endif
+
 /**
 * Dump visible actors in current world.
 */

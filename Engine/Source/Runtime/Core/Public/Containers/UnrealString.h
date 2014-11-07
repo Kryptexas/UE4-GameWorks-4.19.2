@@ -1427,6 +1427,52 @@ FORCEINLINE uint32 GetTypeHash( const FString& S )
 	return FCrc::Strihash_DEPRECATED(*S);
 }
 
+/** 
+ * Convert an array of bytes to a TCHAR
+ * @param In byte array values to convert
+ * @param Count number of bytes to convert
+ * @return Valid string representing bytes.
+ */
+inline FString BytesToString(const uint8* In, int32 Count)
+{
+	FString Result;
+	Result.Empty(Count);
+
+	while (Count)
+	{
+		// Put the byte into an int16 and add 1 to it, this keeps anything from being put into the string as a null terminator
+		int16 Value = *In;
+		Value += 1;
+
+		Result += TCHAR(Value);
+
+		++In;
+		Count--;
+	}
+	return Result;
+}
+
+/** 
+ * Convert FString of bytes into the byte array.
+ * @param String		The FString of byte values
+ * @param OutBytes		Ptr to memory must be preallocated large enough
+ * @param MaxBufferSize	Max buffer size of the OutBytes array, to prevent overflow
+ * @return	The number of bytes copied
+ */
+inline int32 StringToBytes( const FString& String, uint8* OutBytes, int32 MaxBufferSize )
+{
+	int32 NumBytes = 0;
+	const TCHAR* CharPos = *String;
+
+	while( *CharPos && NumBytes < MaxBufferSize)
+	{
+		OutBytes[ NumBytes ] = (int8)(*CharPos - 1);
+		CharPos++;
+		++NumBytes;
+	}
+	return NumBytes - 1;
+}
+
 /** @return Char value of Nibble */
 inline TCHAR NibbleToTChar(uint8 Num)
 {

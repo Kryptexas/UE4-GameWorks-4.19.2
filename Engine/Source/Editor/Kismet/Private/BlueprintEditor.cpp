@@ -7008,7 +7008,6 @@ void FBlueprintEditor::SaveAsset_Execute()
 		if (Blueprint)
 		{
 			// Update the Blueprint's search data
-			Blueprint->SearchGuid = FGuid::NewGuid();
 			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(Blueprint);
 		}
 	}

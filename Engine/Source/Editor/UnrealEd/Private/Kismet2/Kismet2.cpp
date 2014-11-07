@@ -355,12 +355,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
 #if WITH_EDITOR
 	// Do not want to run this code without the editor present nor when running commandlets.
-	if (GEditor && GIsEditor && !IsRunningCommandlet())
+	if (GEditor && GIsEditor)
 	{
 		// We do not want to regenerate a search Guid during loads, nothing has changed in the Blueprint and it is cached elsewhere
 		if (!bIsRegeneratingOnLoad)
 		{
-			BlueprintObj->SearchGuid = FGuid::NewGuid();
 			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(BlueprintObj);
 		}
 	}
@@ -1254,7 +1253,7 @@ void FKismetEditorUtilities::ShowActorReferencesInLevelScript(const AActor* Acto
 
 				const bool bSetFindWithinBlueprint = true;
 				const bool bSelectFirstResult = true;
-				BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, Actor->GetName(), bSelectFirstResult);
+				BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, Actor->GetActorLabel(), bSelectFirstResult);
 			}
 		}
 
