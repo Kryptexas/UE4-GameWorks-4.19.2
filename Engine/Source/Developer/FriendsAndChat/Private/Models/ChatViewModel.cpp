@@ -59,30 +59,29 @@ public:
 	{
 		if(SelectedChatChannel == EChatMessageType::Whisper)
 		{
-			MessageManager.Pin()->SendMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
+			MessageManager.Pin()->SendPrivateMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
+			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+			if (SelectedFriend.IsValid())
+			{
+				ChatItem->FromName = FText::FromString(SelectedFriend->GetName());
+			}
+			else
+			{
+				ChatItem->FromName = FText::FromString("Unknown");
+			}
+
+			ChatItem->Message = NewMessage;
+			ChatItem->MessageType = SelectedChatChannel;
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+			ChatItem->bIsFromSelf = true;
+			ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
+			FilterChatList();
 		}
 		else if (SelectedChatChannel == EChatMessageType::Global)
 		{
 			//@todo samz - send message to specific room (empty room name will send to all rooms)
 			MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
 		}
-
-		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-		if(SelectedFriend.IsValid())
-		{
-			ChatItem->FriendID = FText::FromString(SelectedFriend->GetName());
-		}
-		else
-		{
-			ChatItem->FriendID = FText::FromString("Unknown");
-		}
-
-		ChatItem->Message = NewMessage;
-		ChatItem->MessageType = SelectedChatChannel;
-		ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
-		ChatItem->bIsFromSelf = true;
-		ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
-		FilterChatList();
 	}
 
 	virtual void SetTimeDisplayTransparency(const float TimeTransparency)
