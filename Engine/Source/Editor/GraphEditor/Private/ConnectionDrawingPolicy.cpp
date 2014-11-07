@@ -328,12 +328,17 @@ float FConnectionDrawingPolicy::MakeSplineReparamTable(const FVector2D& P0, cons
 	return TotalDist;
 }
 
+FVector2D FConnectionDrawingPolicy::ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const
+{
+	return Settings->ComputeSplineTangent(Start, End);
+}
+
 void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& Start, const FVector2D& End, const FLinearColor& InColor, float Thickness, bool bDrawBubbles )
 {
 	const FVector2D& P0 = Start;
 	const FVector2D& P1 = End;
 
-	const FVector2D P0Tangent = Settings->ComputeSplineTangent(P0, P1);
+	const FVector2D P0Tangent = ComputeSplineTangent(P0, P1);
 	const FVector2D P1Tangent = P0Tangent;
 
 	// Draw the spline itself
