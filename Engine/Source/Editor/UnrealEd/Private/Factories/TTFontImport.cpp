@@ -40,6 +40,7 @@ UTrueTypeFontFactory::UTrueTypeFontFactory(const FObjectInitializer& ObjectIniti
 {
 	SupportedClass = UFont::StaticClass();
 	bCreateNew = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 	AutoPriority = -1;
 	LODGroup = TEXTUREGROUP_UI;
