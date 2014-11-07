@@ -165,3 +165,5 @@ FLocalizedText FContentSourceViewModel::ChooseLocalizedText(TArray<FLocalizedTex
 	}
 	return Default;
 }
+
+#undef LOCTEXT_NAMESPACE

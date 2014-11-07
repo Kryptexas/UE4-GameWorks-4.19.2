@@ -54,3 +54,5 @@ void FCategoryViewModel::Initialize()
 		break;
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

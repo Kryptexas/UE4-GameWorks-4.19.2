@@ -20,6 +20,8 @@ public:
 
 	virtual void InstallToProject(FString InstallPath) override;
 
+	virtual ~FFeaturePackContentSource();
+
 private:
 	void LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);
 

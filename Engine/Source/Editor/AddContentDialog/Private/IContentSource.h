@@ -95,4 +95,6 @@ public:
 
 	/** Installs the content in the content source to the specific path. */
 	virtual void InstallToProject(FString InstallPath) = 0;
+
+	virtual ~IContentSource() { };
 };

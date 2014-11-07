@@ -37,8 +37,9 @@ public:
 
 private:
 	TSharedPtr<FContentSourceProviderManager> ContentSourceProviderManager;
-	FString TransferFilePath = FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT("UnrealEngineLauncher"), TEXT("com"), TEXT("transfer.tmp"));
 
 };
 
 IMPLEMENT_MODULE(FAddContentDialogModule, AddContentDialog);
+
+#undef LOCTEXT_NAMESPACE

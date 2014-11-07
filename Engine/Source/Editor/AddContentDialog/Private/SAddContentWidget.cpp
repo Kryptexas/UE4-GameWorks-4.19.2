@@ -512,3 +512,5 @@ void SAddContentWidget::AddListChanged()
 SAddContentWidget::~SAddContentWidget()
 {
 }
+
+#undef LOCTEXT_NAMESPACE

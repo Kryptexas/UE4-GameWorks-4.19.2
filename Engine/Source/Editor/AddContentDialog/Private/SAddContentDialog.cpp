@@ -61,3 +61,5 @@ FReply SAddContentDialog::AddButtonClicked()
 SAddContentDialog::~SAddContentDialog()
 {
 }
+
+#undef LOCTEXT_NAMESPACE

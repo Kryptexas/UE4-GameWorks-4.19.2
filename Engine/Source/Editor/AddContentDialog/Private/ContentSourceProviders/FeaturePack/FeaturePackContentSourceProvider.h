@@ -10,6 +10,8 @@ public:
 	virtual const TArray<TSharedRef<IContentSource>> GetContentSources() override;
 	virtual void SetContentSourcesChanged(FOnContentSourcesChanged OnContentSourcesChangedIn) override;
 
+	virtual ~FFeaturePackContentSourceProvider();
+
 private:
 	FOnContentSourcesChanged OnContentSourcesChanged;
 	TArray<TSharedRef<IContentSource>> ContentSources;

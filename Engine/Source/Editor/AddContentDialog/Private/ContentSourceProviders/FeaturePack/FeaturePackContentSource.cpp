@@ -111,3 +111,7 @@ void FFeaturePackContentSource::InstallToProject(FString InstallPath)
 	AssetPaths.Add(FeaturePackPath);
 	AssetToolsModule.Get().ImportAssets(AssetPaths, InstallPath);
 }
+
+FFeaturePackContentSource::~FFeaturePackContentSource()
+{
+}

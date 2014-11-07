@@ -47,3 +47,7 @@ void FFeaturePackContentSourceProvider::SetContentSourcesChanged(FOnContentSourc
 {
 	OnContentSourcesChanged = OnContentSourcesChangedIn;
 }
+
+FFeaturePackContentSourceProvider::~FFeaturePackContentSourceProvider()
+{
+}
