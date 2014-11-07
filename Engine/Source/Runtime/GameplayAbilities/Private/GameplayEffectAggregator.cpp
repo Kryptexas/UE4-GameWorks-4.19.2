@@ -164,6 +164,11 @@ void FAggregator::AddModsFrom(const FAggregator& SourceAggregator)
 	}
 }
 
+void FAggregator::AddDependant(FActiveGameplayEffectHandle Handle)
+{
+	Dependants.Add(Handle);
+}
+
 void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle)
 {
 	check(ActiveHandle.IsValid());
@@ -188,7 +193,36 @@ void FAggregator::TakeSnapshotOf(const FAggregator& AggToSnapshot)
 
 void FAggregator::BroadcastOnDirty()
 {
+	// If we are batching on Dirty calls (and we actually have dependants registered with us) then early out.
+	if (FScopedAggregatorOnDirtyBatch::GlobalBatchCount > 0 && (Dependants.Num() > 0 || OnDirty.IsBound()))
+	{
+		FScopedAggregatorOnDirtyBatch::DirtyAggregators.Add(this);
+		return;
+	}
+
+	if (IsBroadcastingDirty)
+	{
+		// Apologies for the vague warning but its very hard from this spot to call out what data has caused this. If this frequently happens we should improve this.
+		ABILITY_LOG(Warning, TEXT("FAggregator detected cyclic attribute dependancies. We are skipping a recursive dirty call. Its possible the resulting attribute values are not what you expect!"));
+		return;
+	}
+
+	TGuardValue<bool>	Guard(IsBroadcastingDirty, true);
+	
 	OnDirty.Broadcast(this);
+
+	TArray<FActiveGameplayEffectHandle>	ValidDependants;
+	for (FActiveGameplayEffectHandle Handle : Dependants)
+	{
+		UAbilitySystemComponent* ASC = Handle.GetOwningAbilitySystemComponent();
+		if (ASC)
+		{
+			ASC->OnMagnitudeDependancyChange(Handle, this);
+			ValidDependants.Add(Handle);
+		}
+	}
+	Dependants = ValidDependants;
+
 }
 
 void FAggregatorRef::TakeSnapshotOf(const FAggregatorRef& RefToSnapshot)
@@ -203,5 +237,27 @@ void FAggregatorRef::TakeSnapshotOf(const FAggregatorRef& RefToSnapshot)
 	else
 	{
 		Data.Reset();
+	}
+}
+
+int32 FScopedAggregatorOnDirtyBatch::GlobalBatchCount = 0;
+TSet<FAggregator*> FScopedAggregatorOnDirtyBatch::DirtyAggregators;
+
+FScopedAggregatorOnDirtyBatch::FScopedAggregatorOnDirtyBatch()
+{
+	GlobalBatchCount++;
+}
+
+FScopedAggregatorOnDirtyBatch::~FScopedAggregatorOnDirtyBatch()
+{
+	GlobalBatchCount--;
+	if (GlobalBatchCount == 0)
+	{
+		for (FAggregator* Agg : DirtyAggregators)
+		{
+			Agg->BroadcastOnDirty();
+
+		}
+		DirtyAggregators.Empty();
 	}
 }

@@ -55,6 +55,12 @@ UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetTargetAbil
 	return TargetAbilitySystemComponent.Get();
 }
 
+UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetSourcebilitySystemComponent() const
+{
+	check(OwningSpec);
+	return OwningSpec->GetContext().GetInstigatorAbilitySystemComponent();
+}
+
 bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const
 {
 	check(OwningSpec);

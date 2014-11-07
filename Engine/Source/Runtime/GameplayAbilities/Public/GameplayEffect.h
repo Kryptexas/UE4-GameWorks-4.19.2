@@ -201,6 +201,9 @@ public:
 	 */
 	bool AttemptCalculateMagnitude(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude) const;
 
+	/** Attempts to recalculate the magnitude given a changed aggregator. This will only recalculate if we are a modifier that is linked (non snapshot) to the given aggregator. */
+	bool AttempteRecalculateMagnitudeFromDependantChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const;
+
 	/**
 	 * Gather all of the attribute capture definitions necessary to compute the magnitude and place them into the provided array
 	 * 
@@ -539,7 +542,9 @@ private:
 	UPROPERTY()
 	float EvaluatedMagnitude;
 
+	/** These structures are the only ones that should internally be able to update the EvaluatedMagnitude. Any gamecode that gets its hands on FModifierSpec should never be setting EvaluatedMagnitude manually */
 	friend struct FGameplayEffectSpec;
+	friend struct FActiveGameplayEffectsContainer;
 };
 
 /** Saves list of modified attributes, to use for gameplay cues or later processing */
@@ -634,6 +639,12 @@ struct FGameplayEffectAttributeCaptureSpec
 	
 	/** Simple accessor to backing capture definition */
 	const FGameplayEffectAttributeCaptureDefinition& GetBackingDefinition() const;
+
+	/** Register this handle with linked aggregators */
+	void RegisterLinkedAggregatorCallback(FActiveGameplayEffectHandle Handle) const;
+	
+	/** Return true if this capture should be recalculated if the given aggregator has changed */
+	bool ShouldRefreshLinkedAggregator(const FAggregator* ChangedAggregator) const;
 		
 private:
 
@@ -691,6 +702,9 @@ public:
 	/** Returns whether the container has at least one spec w/o snapshotted attributes */
 	bool HasNonSnapshottedAttributes() const;
 
+	/** Registers any linked aggregators to notify this active handle if they are dirtied */
+	void RegisterLinkedAggregatorCallbacks(FActiveGameplayEffectHandle Handle) const;
+
 private:
 
 	/** Captured attributes from the source of a gameplay effect */
@@ -716,7 +730,7 @@ private:
  * is still distinct from an FActiveGameplayEffect which in an applied instance of an FGameplayEffectSpec.
  */
 USTRUCT()
-struct FGameplayEffectSpec
+struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -1123,6 +1137,8 @@ private:
 	FAggregatorRef& FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
 	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
+
+	void OnMagnitudeDependancyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg);
 };
 
 template<>

@@ -374,7 +374,7 @@ void UGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, co
 {
 	if (CooldownGameplayEffect)
 	{
-		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CooldownGameplayEffect, 1.f);
+		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CooldownGameplayEffect, GetAbilityLevel(Handle, ActorInfo));
 	}
 }
 
@@ -383,7 +383,7 @@ bool UGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const 
 	if (CostGameplayEffect)
 	{
 		check(ActorInfo->AbilitySystemComponent.IsValid());
-		return ActorInfo->AbilitySystemComponent->CanApplyAttributeModifiers(CostGameplayEffect, 1.f, GetEffectContext(ActorInfo));
+		return ActorInfo->AbilitySystemComponent->CanApplyAttributeModifiers(CostGameplayEffect, GetAbilityLevel(Handle, ActorInfo), GetEffectContext(ActorInfo));
 	}
 	return true;
 }
@@ -392,7 +392,7 @@ void UGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const 
 {
 	if (CostGameplayEffect)
 	{
-		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CostGameplayEffect, 1.f);
+		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, CostGameplayEffect, GetAbilityLevel(Handle, ActorInfo));
 	}
 }
 

@@ -238,7 +238,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	void OnAttributeAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
 
-	void OnOngoingTagRequirementChange(FActiveGameplayEffectHandle ActiveHandle);
+	void OnMagnitudeDependancyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAggregator);
 
 	// --------------------------------------------
 	// Tags

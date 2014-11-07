@@ -27,6 +27,9 @@ public:
 
 	/** Simple accessor to target ability system component */
 	UAbilitySystemComponent* GetTargetAbilitySystemComponent() const;
+
+	/** Simple accessor to source ability system component (could be null!) */
+	UAbilitySystemComponent* GetSourcebilitySystemComponent() const;
 	
 	/**
 	 * Attempts to calculate the magnitude of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have

@@ -4,8 +4,6 @@
 
 #include "GameplayEffectTypes.h"
 
-// #include "GameplayEffectAggregator.generated.h"
-
 struct GAMEPLAYABILITIES_API FAggregatorEvaluateParameters
 {
 	FAggregatorEvaluateParameters() : SourceTags(nullptr), TargetTags(nullptr) { }
@@ -37,7 +35,7 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 {
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAggregatorDirty, FAggregator*);
 
-	FAggregator(float InBaseValue=0.f) : BaseValue(InBaseValue) { }
+	FAggregator(float InBaseValue=0.f) : BaseValue(InBaseValue), IsBroadcastingDirty(false) { }
 
 	/** Simple accessor to base value */
 	float GetBaseValue() const;
@@ -64,17 +62,23 @@ struct GAMEPLAYABILITIES_API FAggregator : public TSharedFromThis<FAggregator>
 
 	void AddModsFrom(const FAggregator& SourceAggregator);
 
+	void AddDependant(FActiveGameplayEffectHandle Handle);
+
 private:
 
 	void BroadcastOnDirty();
+	float SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const FAggregatorEvaluateParameters& Parameters) const;
+	void RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle);
 
 	float	BaseValue;
 	TArray<FAggregatorMod>	Mods[EGameplayModOp::Max];
 
-	float SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const FAggregatorEvaluateParameters& Parameters) const;
-	void RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle);
+	/** ActiveGE handles that we need to notify if we change. NOT copied over during snapshots. */
+	TArray<FActiveGameplayEffectHandle>	Dependants;
+	bool	IsBroadcastingDirty;
 
 	friend struct FAggregator;
+	friend struct FScopedAggregatorOnDirtyBatch;	// Only outside class that gets to call BroadcastOnDirty()
 	friend class UAbilitySystemComponent;	// Only needed for DisplayDebug()
 };
 
@@ -88,4 +92,20 @@ struct GAMEPLAYABILITIES_API FAggregatorRef
 	TSharedPtr<FAggregator>	Data;
 
 	void TakeSnapshotOf(const FAggregatorRef& RefToSnapshot);
+};
+
+/**
+ *	Allows us to batch all aggregator OnDirty calls within a scope. That is, ALL OnDirty() callbacks are
+ *	delayed until FScopedAggregatorOnDirtyBatch goes out of scope.
+ *	
+ *	The only catch is that we store raw FAggregator*. This should only be used in scopes where aggreagtors
+ *	are not deleted. There is currently no place that does. If we find to, we could add additional safety checks.
+ */
+struct GAMEPLAYABILITIES_API FScopedAggregatorOnDirtyBatch
+{
+	FScopedAggregatorOnDirtyBatch();
+	~FScopedAggregatorOnDirtyBatch();
+
+	static int32	GlobalBatchCount;
+	static TSet<FAggregator*>	DirtyAggregators;
 };

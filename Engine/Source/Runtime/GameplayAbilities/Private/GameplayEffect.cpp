@@ -157,6 +157,27 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 	return bCanCalc;
 }
 
+bool FGameplayEffectModifierMagnitude::AttempteRecalculateMagnitudeFromDependantChange(const FGameplayEffectSpec& InRelevantSpec, OUT float& OutCalculatedMagnitude, const FAggregator* ChangedAggregator) const
+{
+	TArray<FGameplayEffectAttributeCaptureDefinition> ReqCaptureDefs;
+	GetAttributeCaptureDefinitions(ReqCaptureDefs);
+
+	// We could have many potential captures. If a single one matches our criteria, then we call AttemptCalculateMagnitude once and return.
+	for (const FGameplayEffectAttributeCaptureDefinition& CaptureDef : ReqCaptureDefs)
+	{
+		if (CaptureDef.bSnapshot == false)
+		{
+			const FGameplayEffectAttributeCaptureSpec* CapturedSpec = InRelevantSpec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(CaptureDef, true);
+			if (CapturedSpec && CapturedSpec->ShouldRefreshLinkedAggregator(ChangedAggregator))
+			{
+				return AttemptCalculateMagnitude(InRelevantSpec, OutCalculatedMagnitude);
+			}
+		}
+	}
+
+	return false;
+}
+
 void FGameplayEffectModifierMagnitude::GetAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutCaptureDefs) const
 {
 	OutCaptureDefs.Empty();
@@ -528,6 +549,24 @@ bool FGameplayEffectAttributeCaptureSpec::AttemptAddAggregatorModsToAggregator(O
 	return false;
 }
 
+void FGameplayEffectAttributeCaptureSpec::RegisterLinkedAggregatorCallback(FActiveGameplayEffectHandle Handle) const
+{
+	if (BackingDefinition.bSnapshot == false)
+	{
+		// Its possible the linked Aggregator is already gone.
+		FAggregator* Agg = AttributeAggregator.Get();
+		if (Agg)
+		{
+			Agg->AddDependant(Handle);
+		}
+	}
+}
+
+bool FGameplayEffectAttributeCaptureSpec::ShouldRefreshLinkedAggregator(const FAggregator* ChangedAggregator) const
+{
+	return (BackingDefinition.bSnapshot == false && (ChangedAggregator == nullptr || AttributeAggregator.Get() == ChangedAggregator));
+}
+
 const FGameplayEffectAttributeCaptureDefinition& FGameplayEffectAttributeCaptureSpec::GetBackingDefinition() const
 {
 	return BackingDefinition;
@@ -611,7 +650,18 @@ bool FGameplayEffectAttributeCaptureSpecContainer::HasNonSnapshottedAttributes()
 	return bHasNonSnapshottedAttributes;
 }
 
+void FGameplayEffectAttributeCaptureSpecContainer::RegisterLinkedAggregatorCallbacks(FActiveGameplayEffectHandle Handle) const
+{
+	for (const FGameplayEffectAttributeCaptureSpec& CaptureSpec : SourceAttributes)
+	{
+		CaptureSpec.RegisterLinkedAggregatorCallback(Handle);
+	}
 
+	for (const FGameplayEffectAttributeCaptureSpec& CaptureSpec : TargetAttributes)
+	{
+		CaptureSpec.RegisterLinkedAggregatorCallback(Handle);
+	}
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -626,10 +676,13 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 
 	if (IsInhibited != ShouldBeInhibited)
 	{
+		// All OnDirty callbacks must be inhibited until we update this entire GameplayEffect.
+		FScopedAggregatorOnDirtyBatch	AggregatorOnDirtyBatcher;
+
 		if (ShouldBeInhibited)
 		{
 			// Register this ActiveGameplayEffects modifiers with our Attribute Aggregators
-			if (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD)
+			if (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD)
 			{
 				for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 				{
@@ -642,7 +695,7 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 		else
 		{
 			// Register this ActiveGameplayEffects modifiers with our Attribute Aggregators
-			if (Spec.GetPeriod() == UGameplayEffect::NO_PERIOD)
+			if (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD)
 			{
 				for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
 				{
@@ -750,9 +803,6 @@ void FActiveGameplayEffectsContainer::RegisterWithOwner(UAbilitySystemComponent*
 		// Binding raw is ok here, since the owner is literally the UObject that owns us. If we are destroyed, its because that uobject is destroyed,
 		// and if that is destroyed, the delegate wont be able to fire.
 		Owner->RegisterGenericGameplayTagEvent().AddRaw(this, &FActiveGameplayEffectsContainer::OnOwnerTagChange);
-
-		// Add Aggregators for system attributes
-		//FindOrCreateAttributeAggregator(
 	}
 }
 
@@ -899,6 +949,65 @@ void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Ag
 	
 	float NewValue = Aggregator->Evaluate(EvaluationParameters);
 	InternalUpdateNumericalAttribute(Attribute, NewValue, nullptr);
+}
+
+void FActiveGameplayEffectsContainer::OnMagnitudeDependancyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg)
+{
+	if (Handle.IsValid())
+	{
+		FActiveGameplayEffect* ActiveEffect = GetActiveGameplayEffect(Handle);
+		if (ActiveEffect)
+		{
+			// This handle registered with the ChangedAgg to be notified when the aggregator changed.
+			// At this point we don't know what actually needs to be updated inside this active gameplay effect.
+			FGameplayEffectSpec& Spec = ActiveEffect->Spec;
+
+			// We must update attribute aggregators only if we are actually 'on' right now, and if we are non periodic (periodic effects do their thing on execute callbacks)
+			bool MustUpdateAttributeAggregators = (ActiveEffect->IsInhibited == false && (Spec.GetDuration() <= UGameplayEffect::NO_PERIOD));
+
+			// As we update our modifier magnitudes, we will update our owner's attribute aggregators. When we do this, we have to clear them first of all of our (Handle's) previous mods.
+			// Since we could potentially have two mods to the same attribute, one that gets updated, and one that doesnt - we need to do this in two passes.
+			TSet<FGameplayAttribute>	AttributesToUpdate;
+
+			// First pass: update magnitudes of our modifiers that changed
+			for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
+			{
+				const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
+				FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
+
+				if (ModDef.ModifierMagnitude.AttempteRecalculateMagnitudeFromDependantChange(Spec, ModSpec.EvaluatedMagnitude, ChangedAgg))
+				{
+					// We changed, so we need to reapply/update our spot in the attribute aggregator map
+					if (MustUpdateAttributeAggregators)
+					{
+						AttributesToUpdate.Add(ModDef.Attribute);
+					}
+				}
+			}
+
+			// Second pass, update the aggregators that we need to
+			for (const FGameplayAttribute& Attribute : AttributesToUpdate)
+			{
+				FAggregator* Aggregator = FindOrCreateAttributeAggregator(Attribute).Get();
+				check(Aggregator);
+
+				// Remove ALL of our mods (this is all we can do! We don't keep track of aggregator mods <=> spec mod mappings)
+				Aggregator->RemoveMod(Handle);
+
+				// Now readd ALL of our mods (even if they weren't recalculated here)
+				for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
+				{
+					const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
+					FModifierSpec& ModSpec = Spec.Modifiers[ModIdx];
+
+					if (ModDef.Attribute == Attribute)
+					{
+						Aggregator->AddMod(ModSpec.GetEvaluatedMagnitude(), ModDef.ModifierOp, &ModDef.SourceTags, &ModDef.TargetTags, Handle);
+					}
+				}
+			}
+		}
+	}
 }
 
 void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseValue)
@@ -1107,7 +1216,11 @@ FActiveGameplayEffect& FActiveGameplayEffectsContainer::CreateNewActiveGameplayE
 
 	// Calc all of our modifier magnitudes now. Some may need to update later based on attributes changing, etc, but those should
 	// be done through delegate callbacks.
+	NewEffect.Spec.CapturedRelevantAttributes.CaptureAttributes(Owner, EGameplayEffectAttributeCaptureSource::Target);
 	NewEffect.Spec.CalculateModifierMagnitudes();
+
+	// Register Source and Target non snapshot capture delegates here
+	NewEffect.Spec.CapturedRelevantAttributes.RegisterLinkedAggregatorCallbacks(NewHandle);
 
 	// Calculate Duration mods if we have a real duration
 	float DurationBaseValue = NewEffect.Spec.GetDuration();
