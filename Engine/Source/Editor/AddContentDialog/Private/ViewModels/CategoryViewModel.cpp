@@ -26,11 +26,6 @@ const FSlateBrush* FCategoryViewModel::GetIconBrush() const
 	return IconBrush;
 }
 
-inline bool FCategoryViewModel::operator==(const FCategoryViewModel& Other) const
-{
-	return Other.Text.EqualTo(Text) && (Other.IconBrush == IconBrush);
-}
-
 uint32 FCategoryViewModel::GetTypeHash() const
 {
 	return (uint32)Category;

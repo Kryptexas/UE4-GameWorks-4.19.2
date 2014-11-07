@@ -16,7 +16,10 @@ public:
 	/** Gets the brush which should be used to draw the icon for the category. */
 	const FSlateBrush* GetIconBrush() const;
 
-	inline bool operator==(const FCategoryViewModel& Other) const;
+	inline bool operator==(const FCategoryViewModel& Other) const
+	{
+		return Other.Text.EqualTo(Text) && (Other.IconBrush == IconBrush);
+	}
 
 	uint32 GetTypeHash() const;
 
