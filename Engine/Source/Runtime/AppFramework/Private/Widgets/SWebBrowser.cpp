@@ -2,7 +2,7 @@
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SWebBrowser.h"
-
+#include "SThrobber.h"
 #if WITH_EDITOR || IS_PROGRAM
 #include "WebBrowserModule.h"
 #include "IWebBrowserSingleton.h"

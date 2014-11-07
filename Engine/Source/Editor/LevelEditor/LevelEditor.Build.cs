@@ -13,7 +13,8 @@ public class LevelEditor : ModuleRules
 				"MainFrame",
                 "PlacementMode",
 				"ReferenceViewer",
-                "IntroTutorials"
+                "IntroTutorials",
+                "AppFramework"
 			}
 		);
 
@@ -52,6 +53,7 @@ public class LevelEditor : ModuleRules
 				"TargetPlatform",
 				"EngineSettings",
 				"PropertyEditor",
+                "AppFramework",
 			}
 		);
 

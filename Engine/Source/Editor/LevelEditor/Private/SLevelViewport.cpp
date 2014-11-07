@@ -35,6 +35,7 @@
 #include "SDPIScaler.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "SLevelViewportControlsPopup.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -192,6 +193,14 @@ void SLevelViewport::ConstructViewportOverlayContent()
 	.HAlign(HAlign_Right)
 	[
 		SAssignNew( ActorPreviewHorizontalBox, SHorizontalBox )
+	];
+
+	ViewportOverlay->AddSlot(SlotIndex)
+	.VAlign(VAlign_Bottom)
+	.HAlign(HAlign_Left)
+	.Padding(5.0f)
+	[
+		SNew(SLevelViewportControlsPopup)
 	];
 
 	ViewportOverlay->AddSlot( SlotIndex )
