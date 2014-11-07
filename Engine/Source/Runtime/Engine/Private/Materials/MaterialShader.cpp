@@ -41,6 +41,7 @@ FString GetShadingModelString(EMaterialShadingModel ShadingModel)
 		case MSM_PreintegratedSkin:	ShadingModelName = TEXT("MSM_PreintegratedSkin"); break;
 		case MSM_ClearCoat:			ShadingModelName = TEXT("MSM_ClearCoat"); break;
 		case MSM_SubsurfaceProfile:	ShadingModelName = TEXT("MSM_SubsurfaceProfile"); break;
+		case MSM_TwoSidedFoliage:	ShadingModelName = TEXT("MSM_TwoSidedFoliage"); break;
 		default: ShadingModelName = TEXT("Unknown"); break;
 	}
 	return ShadingModelName;
@@ -84,6 +85,7 @@ void UpdateMaterialShaderCompilingStats(const FMaterial* Material)
 		case MSM_PreintegratedSkin:
 		case MSM_ClearCoat:
 		case MSM_SubsurfaceProfile:
+		case MSM_TwoSidedFoliage:
 			INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumLitMaterialShaders,1);
 			break;
 		default: break;

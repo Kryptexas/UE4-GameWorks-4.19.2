@@ -3642,7 +3642,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		break;
 	case MP_Opacity:
 		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
-		if (ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile)
+		if (IsSubsurfaceShadingModel(ShadingModel))
 		{
 			Active = true;
 		}
@@ -3657,13 +3657,14 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = ShadingModel != MSM_Unlit;
 		break;
 	case MP_Metallic:
-		Active = ShadingModel != MSM_Unlit && ShadingModel != MSM_Subsurface && ShadingModel != MSM_PreintegratedSkin && ShadingModel != MSM_SubsurfaceProfile;
+		// Subsurface models store opacity in place of Metallic in the GBuffer
+		Active = ShadingModel != MSM_Unlit && !IsSubsurfaceShadingModel(ShadingModel);
 		break;
 	case MP_Normal:
 		Active = ShadingModel != MSM_Unlit || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
-		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin;
+		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage;
 		break;
 	case MP_ClearCoat:
 	case MP_ClearCoatRoughness:

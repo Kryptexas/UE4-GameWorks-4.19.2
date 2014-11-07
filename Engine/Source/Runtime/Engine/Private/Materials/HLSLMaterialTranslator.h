@@ -341,7 +341,7 @@ public:
 			EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
 
 			if (Material->GetMaterialDomain() == MD_Surface
-				&& (MaterialShadingModel == MSM_Subsurface || MaterialShadingModel == MSM_PreintegratedSkin || MaterialShadingModel == MSM_SubsurfaceProfile))
+				&& IsSubsurfaceShadingModel(MaterialShadingModel))
 			{
 				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
 
@@ -526,13 +526,6 @@ public:
 			MaterialTemplateLineNumber += 3;
 
 			MaterialCompilationOutput.UniformExpressionSet.SetParameterCollections(ParameterCollections);
-
-/* test
-			if(MaterialShadingModel == MSM_SubsurfaceProfile)
-			{
-				MaterialCompilationOutput.UniformExpressionSet.SetCompileInSubsurfaceProfile();
-			}
-*/
 
 			// Create the material uniform buffer struct.
 			MaterialCompilationOutput.UniformExpressionSet.CreateBufferStruct();
@@ -764,15 +757,15 @@ protected:
 			check(!CodeChunks[InProperty][InFrequency][Index].UniformExpression || CodeChunks[InProperty][InFrequency][Index].UniformExpression->IsConstant());
 			if (CodeChunks[InProperty][InFrequency][Index].UniformExpression && CodeChunks[InProperty][InFrequency][Index].UniformExpression->IsConstant())
 			{
-					// Handle a constant uniform expression being the only code chunk hooked up to a material input
-					const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
+				// Handle a constant uniform expression being the only code chunk hooked up to a material input
+				const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
 				OutValue = CodeChunk.Definition;
-				}
-				else
-				{
-					const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
-					// Combine the definition lines and the return statement
-					check(CodeChunk.bInline || CodeChunk.SymbolName.Len() > 0);
+			}
+			else
+			{
+				const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
+				// Combine the definition lines and the return statement
+				check(CodeChunk.bInline || CodeChunk.SymbolName.Len() > 0);
 				OutDefinitions = GetDefinitions(InProperty, InFrequency);
 				OutValue = CodeChunk.bInline ? CodeChunk.Definition : CodeChunk.SymbolName;
 			}

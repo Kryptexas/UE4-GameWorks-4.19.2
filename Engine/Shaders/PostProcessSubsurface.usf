@@ -31,7 +31,7 @@ float GetSubsurfaceStrength(float2 UV)
 {
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
-	float Mask = ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE;
+	float Mask = ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE;
 
 	return Mask * ScreenSpaceData.GBuffer.Opacity;
 }
@@ -204,7 +204,7 @@ float4 SetupSubsurfaceForOnePixel(float2 UV)
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
-	FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE)
+	FLATTEN if (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE)
 	{
 		float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
 
@@ -352,7 +352,7 @@ void SubsurfaceRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColo
 	}
 
 	// 0: dont' fade in subsurface half res,  1:fully fade in half res
-	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
+	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 
 #if 0
 	// fade out subsurface scattering if radius is too small to be more crips (not blend with half resolution)
@@ -394,7 +394,7 @@ void ExtractSpecularPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(GBufferUV);
 
 	// 0: dont' fade in subsurface half res,  1:fully fade in half res
-	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE_PROFILE);
+	float BlendFactor = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
 
 	float3 ExtractedSpecular = 0;
 	 

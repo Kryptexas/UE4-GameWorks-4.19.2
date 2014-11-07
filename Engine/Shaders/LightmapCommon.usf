@@ -45,8 +45,10 @@ half4 GetLightMapColorLQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 	return half4( Color, Luma );
 }
 
-half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNormal )
+void GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNormal, out half3 OutDiffuseLighting, out half3 OutSubsurfaceLighting )
 {
+	OutSubsurfaceLighting = 0;
+
 	half4 Lightmap0 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV0 );
 	half4 Lightmap1 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV1 );
 
@@ -71,6 +73,11 @@ half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 
 	// Sample SH with normal
 	half Directionality = max( 0.0, dot( SH, half4(WorldNormal.yzx, 1) ) );
+
+	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+		half SubsurfaceDirectionality = max( 0.0, dot( SH, half4(-WorldNormal.yzx, 1) ) );
+		OutSubsurfaceLighting = L * SubsurfaceDirectionality * UVW;
+	#endif
 #else
 	half Directionality = 0.6;
 #endif
@@ -78,7 +85,7 @@ half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 	half Luma = L * Directionality;
 	half3 Color = Luma * UVW;
 
-	return half4( Color, Luma );
+	OutDiffuseLighting = Color;
 }
 
 float4 GetSkyBentNormalAndOcclusion(float2 LightmapUV)
