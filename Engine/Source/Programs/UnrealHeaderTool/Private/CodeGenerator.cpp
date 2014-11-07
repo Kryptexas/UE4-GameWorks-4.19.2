@@ -1665,19 +1665,22 @@ FString GetGeneratedMacroDeprecationWarning(const TCHAR* MacroName)
  */
 FString GetPreservedAccessSpecifierString(FClass* Class)
 {
-	FString PreservedAccessSpecifier = "static_assert(false, \"Access specifier for GENERATED_BODY() macro is wrong.\");";
-
-	switch (GScriptHelper.FindClassData(Class)->GeneratedBodyMacroAccessSpecifier)
+	FString PreservedAccessSpecifier(FString::Printf(TEXT("static_assert(false, \"Unknown access specifier for GENERATED_BODY() macro in class %s.\");"), *GetNameSafe(Class)));
+	FClassMetaData* Data = GScriptHelper.FindClassData(Class);	
+	if (Data)
 	{
-	case EAccessSpecifier::ACCESS_Private:
-		PreservedAccessSpecifier = "private:";
-		break;
-	case EAccessSpecifier::ACCESS_Protected:
-		PreservedAccessSpecifier = "protected:";
-		break;
-	case EAccessSpecifier::ACCESS_Public:
-		PreservedAccessSpecifier = "public:";
-		break;
+		switch (Data->GeneratedBodyMacroAccessSpecifier)
+		{
+		case EAccessSpecifier::ACCESS_Private:
+			PreservedAccessSpecifier = "private:";
+			break;
+		case EAccessSpecifier::ACCESS_Protected:
+			PreservedAccessSpecifier = "protected:";
+			break;
+		case EAccessSpecifier::ACCESS_Public:
+			PreservedAccessSpecifier = "public:";
+			break;
+		}
 	}
 
 	return PreservedAccessSpecifier + LINE_TERMINATOR;

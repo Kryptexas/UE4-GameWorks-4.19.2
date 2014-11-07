@@ -1307,10 +1307,11 @@ class FClassMetaData
 public:
 	/** Default constructor */
 	FClassMetaData()
-		: bContainsDelegates(false),
-		bConstructorDeclared(false),
-		bDefaultConstructorDeclared(false),
-		bObjectInitializerConstructorDeclared(false)
+		: bContainsDelegates(false)
+		, bConstructorDeclared(false)
+		, bDefaultConstructorDeclared(false)
+		, bObjectInitializerConstructorDeclared(false)
+		, GeneratedBodyMacroAccessSpecifier(ACCESS_NotAnAccessSpecifier)
 	{
 	}
 
