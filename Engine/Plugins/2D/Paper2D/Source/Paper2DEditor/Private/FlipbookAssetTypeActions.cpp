@@ -17,7 +17,7 @@ FText FFlipbookAssetTypeActions::GetName() const
 
 FColor FFlipbookAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor(129, 196, 115);
 }
 
 UClass* FFlipbookAssetTypeActions::GetSupportedClass() const
