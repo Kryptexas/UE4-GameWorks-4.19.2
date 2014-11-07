@@ -149,6 +149,14 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					.AutoWidth()
 					.Padding(5.0f)
 					[
+						SNew(SButton)
+						.OnClicked( this, &SWidgetReflector::CopyStatsToClipboard )
+						.Text( LOCTEXT("CopyStatsToClipboard", "Copy Stats") )
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
 						SNew(SCheckBox)
 						.Style( FCoreStyle::Get(), "ToggleButtonCheckbox" )
 						.IsChecked_Lambda([]()
@@ -278,6 +286,8 @@ void SWidgetReflector::SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisu
 		FReflectorNode::FindWidgetPath( ReflectorTreeRoot, InWidgetsToVisualize, PickedPath );
 		VisualizeAsTree(PickedPath);
 	}
+	
+	ReflectorTree->RequestTreeRefresh();
 }
 
 
@@ -714,6 +724,22 @@ TSharedRef<ITableRow> SWidgetReflector::GenerateStatRow( TSharedRef<FStatItem> S
 	};
 
 	return SNew(SStatTableRow, OwnerTable, StatItem);
+}
+
+FReply SWidgetReflector::CopyStatsToClipboard()
+{
+	FString ClipboardString;
+
+	for (const TSharedRef<FStatItem>& StatItem : StatsItems)
+	{
+		ClipboardString += StatItem->GetDisplayName().ToString();
+		ClipboardString += TEXT(", ");
+		ClipboardString += StatItem->GetInclusiveAvgMsText().ToString();
+		ClipboardString += TEXT("\r\n");
+	}
+
+	FPlatformMisc::ClipboardCopy( *ClipboardString );
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

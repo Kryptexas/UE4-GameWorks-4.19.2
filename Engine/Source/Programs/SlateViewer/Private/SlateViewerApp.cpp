@@ -4,6 +4,7 @@
 #include "RequiredProgramMainCPPInclude.h"
 #include "STestSuite.h"
 #include "ISourceCodeAccessModule.h"
+#include "SPerfSuite.h"
 
 IMPLEMENT_APPLICATION(SlateViewer, "SlateViewer");
 
@@ -38,8 +39,18 @@ void RunSlateViewer( const TCHAR* CommandLine )
 	FGlobalTabmanager::Get()->SetApplicationTitle(NSLOCTEXT("SlateViewer", "AppTitle", "Slate Viewer"));
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(WorkspaceMenu::DeveloperMenu);
 
-	// Bring up the test suite.
-	RestoreSlateTestSuite();
+	
+	if (FParse::Param(FCommandLine::Get(), TEXT("perftest")))
+	{
+		// Bring up perf test
+		SummonPerfTestSuite();
+	}
+	else
+	{
+		// Bring up the test suite.
+		RestoreSlateTestSuite();
+	}
+
 
 #if WITH_SHARED_POINTER_TESTS
 	SharedPointerTesting::TestSharedPointer<ESPMode::Fast>();

@@ -792,7 +792,7 @@ public:
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 	STableViewTesting()
-	: TotalItems( 125 )
+	: TotalItems( 5000 )
 	, ScrollToIndex( 0 )
 	{
 	}

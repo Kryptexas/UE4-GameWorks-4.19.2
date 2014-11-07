@@ -208,4 +208,5 @@ private:
 	TSharedRef<SWidget> MakeStatViewer();
 	void UpdateStats();
 	TSharedRef<ITableRow> GenerateStatRow( TSharedRef<FStatItem> StatItem, const TSharedRef<STableViewBase>& OwnerTable );
+	FReply CopyStatsToClipboard();
 };

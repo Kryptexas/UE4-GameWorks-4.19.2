@@ -18,6 +18,7 @@ public class AppFramework : ModuleRules
 			new string[] {
 				"InputCore",
 				"WebBrowser",
+				"SlateReflector",
 			}
 		);
 
