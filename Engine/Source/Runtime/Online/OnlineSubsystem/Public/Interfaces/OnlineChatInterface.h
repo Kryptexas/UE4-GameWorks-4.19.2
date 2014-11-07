@@ -21,6 +21,7 @@ public:
 	virtual const FUniqueNetId& GetOwnerId() const = 0;
 	virtual const FString& GetSubject() const = 0;
 	virtual bool IsPrivate() const = 0;
+	virtual bool IsJoined() const = 0;
 };
 
 /**
@@ -182,11 +183,10 @@ public:
 	 * 
 	 * @param UserId id of user to find
 	 * @param RoomId id of room to find
-	 * @param OutRoomInfo [out] information about a chat room
 	 *
-	 * @return true if found
+	 * @return RoomInfo information about a chat room or NULL if not found
 	 */
-	virtual bool GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId, FChatRoomInfo& OutRoomInfo) = 0;
+	virtual TSharedPtr<FChatRoomInfo> GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId) = 0;
 
 	/**
 	 * Get cached list of members currently joined in a chat room 
