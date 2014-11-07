@@ -46,3 +46,8 @@ bool FOnlineExternalUIIOS::ShowProfileUI( const FUniqueNetId& Requestor, const F
 {
 	return false;
 }
+
+bool FOnlineExternalUIIOS::ShowAccountUpgradeUI(const FUniqueNetId& UniqueId)
+{
+	return false;
+}

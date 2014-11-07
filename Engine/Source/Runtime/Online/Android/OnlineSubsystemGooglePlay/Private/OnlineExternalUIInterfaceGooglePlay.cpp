@@ -61,3 +61,8 @@ bool FOnlineExternalUIGooglePlay::ShowProfileUI( const FUniqueNetId& Requestor, 
 {
 	return false;
 }
+
+bool FOnlineExternalUIGooglePlay::ShowAccountUpgradeUI(const FUniqueNetId& UniqueId)
+{
+	return false;
+}

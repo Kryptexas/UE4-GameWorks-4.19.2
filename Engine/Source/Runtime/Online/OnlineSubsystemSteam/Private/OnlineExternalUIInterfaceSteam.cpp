@@ -78,7 +78,8 @@ bool FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const
 	return false;
 }
 
-
-
-
+bool FOnlineExternalUISteam::ShowAccountUpgradeUI(const FUniqueNetId& UniqueId)
+{
+	return false;
+}
 
