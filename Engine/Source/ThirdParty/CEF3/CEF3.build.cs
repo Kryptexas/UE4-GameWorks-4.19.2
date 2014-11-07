@@ -34,7 +34,14 @@ public class CEF3 : ModuleRules
 
 				//PublicAdditionalLibraries.Add("cef_sandbox.lib");
 				PublicAdditionalLibraries.Add("libcef.lib");
-				PublicAdditionalLibraries.Add("libcef_dll_wrapper.lib");
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+				{
+					PublicAdditionalLibraries.Add("libcef_dll_wrapperD.lib");
+				}
+				else
+				{
+					PublicAdditionalLibraries.Add("libcef_dll_wrapper.lib");
+				}
 
 				PublicDelayLoadDLLs.Add("d3dcompiler_43.dll");
 				PublicDelayLoadDLLs.Add("d3dcompiler_46.dll");
