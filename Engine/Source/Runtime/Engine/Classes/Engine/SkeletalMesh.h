@@ -10,6 +10,7 @@
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Interfaces/Interface_AssetUserData.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -564,7 +565,7 @@ class FSkeletalMeshResource;
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
-class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider
+class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -713,6 +714,12 @@ public:
 	/** Clothing asset data */
 	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category=Clothing)
 	TArray<FClothingAssetData>		ClothingAssets;
+
+protected:
+
+	/** Array of user data stored with the asset */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=SkeletalMesh)
+	TArray<UAssetUserData*> AssetUserData;
 
 private:
 	/** Skeletal mesh source data */
@@ -898,6 +905,13 @@ public:
 		return true;
 	}
 	// End Interface_CollisionDataProvider Interface
+
+	// Begin IInterface_AssetUserData Interface
+	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
+	// End IInterface_AssetUserData Interface
 
 private:
 
