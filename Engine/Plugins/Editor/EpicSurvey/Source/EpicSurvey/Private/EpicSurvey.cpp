@@ -93,9 +93,9 @@ TSharedPtr< FSlateDynamicImageBrush > FEpicSurvey::LoadRawDataAsBrush( FName Res
 		}
 	}
 
-	if ( bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource( ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage ) )
+	if ( bSucceeded )
 	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush( ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()) ) );
+		Brush = FSlateDynamicImageBrush::CreateWithImageData( ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()), DecodedImage );
 	}
 
 	return Brush;
