@@ -92,7 +92,10 @@ protected:
 	EVisibility GetToggleButtonVisibility() const;
 
 	/** Returns the color for the toggle bubble including the opacity value */
-	FSlateColor GetToggleButtonColour() const;
+	FSlateColor GetToggleButtonColor() const;
+
+	/** Returns the foreground color for the text and buttons, taking into account the bubble color */
+	FSlateColor GetForegroundColor() const { return ForegroundColor; }
 
 	/** Called when the comment text is committed */
 	void OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
@@ -118,6 +121,8 @@ protected:
 	/** Delegate to determine if the graph node is currently hovered */
 	FIsGraphNodeHovered IsGraphNodeHovered;
 
+	/** Current Foreground Color */
+	FLinearColor ForegroundColor;
 	/** Allow pin behaviour */
 	bool bAllowPinning;
 	/** Allow in bubble controls */

@@ -21,6 +21,15 @@ namespace SCommentBubbleDefs
 
 	/** Height of the arrow connecting the bubble to the node */
 	static const float BubbleArrowHeight = 8.f;
+
+	/** Luminance CoEficients */
+	static const FLinearColor LuminanceCoEff( 0.2126f, 0.7152f, 0.0722f, 0.f );
+
+	/** Light foreground color */
+	static const FLinearColor LightForegroundClr( 0.f, 0.f, 0.f, 0.65f );
+
+	/** Dark foreground color */
+	static const FLinearColor DarkForegroundClr( 1.f, 1.f, 1.f, 0.65f );
 };
 
 
@@ -92,6 +101,11 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 	bool bIsHovered = IsHovered();
 
+	const FLinearColor BubbleColor = ColorAndOpacity.Get().GetSpecifiedColor() * SCommentBubbleDefs::LuminanceCoEff;
+	const float BubbleLuminance = BubbleColor.R + BubbleColor.G + BubbleColor.B;
+	ForegroundColor = BubbleLuminance < 0.5f ? SCommentBubbleDefs::DarkForegroundClr : SCommentBubbleDefs::LightForegroundClr;
+
+
 	if( DoubleClickDelayTime >= 0.f )
 	{
 		DoubleClickDelayTime += InDeltaTime;
@@ -152,6 +166,7 @@ void SCommentBubble::UpdateBubble()
 						.OnCheckStateChanged( this, &SCommentBubble::OnPinStateToggle )
 						.ToolTipText( this, &SCommentBubble::GetScaleButtonTooltip )
 						.Cursor( EMouseCursor::Default )
+						.ForegroundColor( this, &SCommentBubble::GetForegroundColor )
 					]
 				]
 				+SVerticalBox::Slot()
@@ -165,7 +180,7 @@ void SCommentBubble::UpdateBubble()
 					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
-					.ForegroundColor( this, &SCommentBubble::GetToggleButtonColour )
+					.ForegroundColor( FLinearColor::White )
 				];
 			}
 			else
@@ -177,12 +192,12 @@ void SCommentBubble::UpdateBubble()
 				.VAlign( VAlign_Top )
 				[
 					SNew( SCheckBox )
-					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton6" ))
+					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
 					.IsChecked( GraphNode->bCommentBubbleVisible ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
 					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
-					.ForegroundColor( this, &SCommentBubble::GetToggleButtonColour )
+					.ForegroundColor( FLinearColor::White )
 				];
 			}
 		}
@@ -216,7 +231,7 @@ void SCommentBubble::UpdateBubble()
 							SAssignNew(TextBlock, SInlineEditableTextBlock)
 							.Text( this, &SCommentBubble::GetCommentText )
 							.Font( FEditorStyle::GetFontStyle( TEXT("Graph.Node.CommentFont")) )
-							.ColorAndOpacity( FEditorStyle::GetColor("Graph.Node.Comment.TextColor"))
+							.ColorAndOpacity( this, &SCommentBubble::GetForegroundColor)
 							.OnTextCommitted( this, &SCommentBubble::OnCommentTextCommitted )
 						]
 						+SHorizontalBox::Slot()
@@ -266,7 +281,7 @@ void SCommentBubble::UpdateBubble()
 				.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 				.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 				.Cursor( EMouseCursor::Default )
-				.ForegroundColor( this, &SCommentBubble::GetToggleButtonColour )
+				.ForegroundColor( this, &SCommentBubble::GetToggleButtonColor )
 			];
 		}
 		ChildSlot
@@ -327,10 +342,10 @@ FText SCommentBubble::GetScaleButtonTooltip() const
 	}
 }
 
-FSlateColor SCommentBubble::GetToggleButtonColour() const
+FSlateColor SCommentBubble::GetToggleButtonColor() const
 {
 	const FLinearColor BubbleColor = ColorAndOpacity.Get().GetSpecifiedColor();
-	return FLinearColor( BubbleColor.R, BubbleColor.G, BubbleColor.B, OpacityValue * OpacityValue );
+	return FLinearColor( 1.f, 1.f, 1.f, OpacityValue * OpacityValue );
 }
 
 void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
