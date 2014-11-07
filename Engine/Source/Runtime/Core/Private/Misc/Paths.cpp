@@ -161,7 +161,7 @@ FString FPaths::VideoCaptureDir()
 
 FString FPaths::GameLogDir()
 {
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_XBOXONE
 	return FPlatformProcess::UserLogsDir();
 #else
 	return FPaths::GameSavedDir() + TEXT("Logs/");
