@@ -788,13 +788,15 @@ void UMaterialInstance::OverrideVectorParameterDefault(FName ParameterName, cons
 		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
 		{
 			FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
-			check(UniformExpression->GetType() == &FMaterialUniformExpressionVectorParameter::StaticType);
-			FMaterialUniformExpressionVectorParameter* VectorExpression = static_cast<FMaterialUniformExpressionVectorParameter*>(UniformExpression);
-
-			if (VectorExpression->GetParameterName() == ParameterName)
+			if (UniformExpression->GetType() == &FMaterialUniformExpressionVectorParameter::StaticType)
 			{
-				VectorExpression->SetTransientOverrideDefaultValue(Value, bOverride);
-				bShouldRecacheMaterialExpressions = true;
+				FMaterialUniformExpressionVectorParameter* VectorExpression = static_cast<FMaterialUniformExpressionVectorParameter*>(UniformExpression);
+
+				if (VectorExpression->GetParameterName() == ParameterName)
+				{
+					VectorExpression->SetTransientOverrideDefaultValue(Value, bOverride);
+					bShouldRecacheMaterialExpressions = true;
+				}
 			}
 		}
 	}
@@ -821,13 +823,15 @@ void UMaterialInstance::OverrideScalarParameterDefault(FName ParameterName, floa
 		for (int32 ExpressionIndex = 0; ExpressionIndex < UniformExpressions.Num(); ExpressionIndex++)
 		{
 			FMaterialUniformExpression* UniformExpression = UniformExpressions[ExpressionIndex];
-			check(UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType);
-			FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
-
-			if (ScalarExpression->GetParameterName() == ParameterName)
+			if (UniformExpression->GetType() == &FMaterialUniformExpressionScalarParameter::StaticType)
 			{
-				ScalarExpression->SetTransientOverrideDefaultValue(Value, bOverride);
-				bShouldRecacheMaterialExpressions = true;
+				FMaterialUniformExpressionScalarParameter* ScalarExpression = static_cast<FMaterialUniformExpressionScalarParameter*>(UniformExpression);
+
+				if (ScalarExpression->GetParameterName() == ParameterName)
+				{
+					ScalarExpression->SetTransientOverrideDefaultValue(Value, bOverride);
+					bShouldRecacheMaterialExpressions = true;
+				}
 			}
 		}
 	}
