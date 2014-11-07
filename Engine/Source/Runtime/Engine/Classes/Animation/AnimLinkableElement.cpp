@@ -56,23 +56,22 @@ void FAnimLinkableElement::LinkSequence(UAnimSequenceBase* Sequence, float AbsSe
 
 void FAnimLinkableElement::Clear()
 {
+	ChangeLinkMethod(EAnimLinkMethod::Absolute);
 	LinkedSequence = nullptr;
 	SegmentBeginTime = -1.0f;
 	SegmentLength = -1.0f;
-	LinkMethod = EAnimLinkMethod::Absolute;
-	CachedLinkMethod = LinkMethod;
+	SegmentIndex = INDEX_NONE;
 }
 
 void FAnimLinkableElement::Update()
 {
-	if(LinkedMontage)
+	if(LinkedMontage && LinkedMontage->SlotAnimTracks.IsValidIndex(SlotIndex))
 	{
-		check(LinkedMontage->SlotAnimTracks.IsValidIndex(SlotIndex));
 		FSlotAnimationTrack& Slot = LinkedMontage->SlotAnimTracks[SlotIndex];
 		float CurrentTime = GetTime();
 
 		// If we don't have a segment, check to see if one has been added.
-		if(SegmentIndex == INDEX_NONE)
+		if(SegmentIndex == INDEX_NONE || !Slot.AnimTrack.AnimSegments.IsValidIndex(SegmentIndex))
 		{
 			SegmentIndex = Slot.AnimTrack.GetSegmentIndexAtTime(CurrentTime);
 		}
@@ -148,7 +147,7 @@ void FAnimLinkableElement::OnChanged(float NewMontageTime)
 
 		SetTime(NewMontageTime);
 	}
-	else if(!LinkedSequence)
+	else if(!(LinkedSequence && !LinkedMontage))
 	{
 		// We have no segment to link to, we need to clear our the segment data
 		// and give ourselves an absolute time

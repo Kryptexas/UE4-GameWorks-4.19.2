@@ -10,6 +10,7 @@
 DECLARE_DELEGATE( FOnPreAnimUpdate )
 DECLARE_DELEGATE( FOnPostAnimUpdate )
 DECLARE_DELEGATE_OneParam( FOnAnimSegmentNodeClicked, int32 )
+DECLARE_DELEGATE_OneParam( FOnAnimSegmentRemoved, int32 )
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimSegmentsPanel
@@ -41,6 +42,7 @@ public:
 	SLATE_EVENT( FOnAnimSegmentNodeClicked, OnAnimSegmentNodeClicked )
 	SLATE_EVENT( FOnPreAnimUpdate,			OnPreAnimUpdate )
 	SLATE_EVENT( FOnPostAnimUpdate,			OnPostAnimUpdate )
+	SLATE_EVENT( FOnAnimSegmentRemoved,		OnAnimSegmentRemoved )
 
 	SLATE_EVENT( FOnBarDrag,				OnBarDrag)
 	SLATE_EVENT( FOnBarDrop,				OnBarDrop)
@@ -57,6 +59,7 @@ private:
 	FOnPreAnimUpdate			OnPreAnimUpdateDelegate;
 	FOnPostAnimUpdate			OnPostAnimUpdateDelegate;
 	FOnAnimSegmentNodeClicked	OnAnimSegmentNodeClickedDelegate;
+	FOnAnimSegmentRemoved		OnAnimSegmentRemovedDelegate;
 
 	enum ETrackViewStyle
 	{

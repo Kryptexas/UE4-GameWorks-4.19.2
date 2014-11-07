@@ -24,6 +24,7 @@ void SAnimSegmentsPanel::Construct(const FArguments& InArgs)
 	OnAnimSegmentNodeClickedDelegate = InArgs._OnAnimSegmentNodeClicked;
 	OnPreAnimUpdateDelegate			 = InArgs._OnPreAnimUpdate;
 	OnPostAnimUpdateDelegate		 = InArgs._OnPostAnimUpdate;
+	OnAnimSegmentRemovedDelegate	 = InArgs._OnAnimSegmentRemoved;
 
 	// Animation Segment tracks
 	TArray<TSharedPtr<STrack>> AnimSTracks;
@@ -214,6 +215,7 @@ void SAnimSegmentsPanel::RemoveAnimSegment(int32 AnimSegmentIndex)
 
 		AnimTrack->AnimSegments.RemoveAt(AnimSegmentIndex);
 
+		OnAnimSegmentRemovedDelegate.ExecuteIfBound(AnimSegmentIndex);
 		OnPostAnimUpdateDelegate.Execute();
 	}
 }

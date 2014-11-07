@@ -137,4 +137,9 @@ private:
 	void CreateNewSection(const FText& NewSectionName, ETextCommit::Type CommitInfo, float StartTime);
 	void CreateNewBranch(const FText& NewBranchName, ETextCommit::Type CommitInfo, float StartTime);
 	void RenameBranchPoint(const FText &NewName, ETextCommit::Type CommitInfo, int32 BranchPointIndex);
+
+	/** Called when a segment is removed from a track, so we can adjust the indices in linkable elements
+	 *	@param SegmentIndex - Index of the removed segment
+	 */
+	void OnAnimSegmentRemoved(int32 SegmentIndex, int32 SlotIndex);
 };
