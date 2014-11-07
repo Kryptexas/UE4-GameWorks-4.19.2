@@ -37,6 +37,17 @@ public:
 
 	void InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor, FWorldReticleParameters InParameters);
 
+	void SetIsTargetValid(bool bNewValue);
+	void SetIsTargetAnActor(bool bNewValue);
+
+	/** Called whenever bIsTargetValid changes value. */
+	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
+	void OnValidTargetChanged(bool bNewValue);
+
+	/** Called whenever bIsTargetAnActor changes value. */
+	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
+	void OnTargetingAnActor(bool bNewValue);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
 	void OnParametersInitialized();
 
@@ -46,10 +57,21 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Reticle)
 	void SetReticleMaterialParamVector(FName ParamName, FVector value);
 
+	UFUNCTION(BlueprintCallable, Category = Reticle)
+	void FaceTowardSource();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Reticle")
 	FWorldReticleParameters Parameters;
 
 protected:
+	/** This indicates whether or not the targeting actor considers the current target to be valid. Defaults to true. */
+	UPROPERTY(BlueprintReadOnly, Category = "Network")
+	bool bIsTargetValid;
+
+	/** This indicates whether or not the targeting reticle is pointed at an actor. Defaults to false. */
+	UPROPERTY(BlueprintReadOnly, Category = "Network")
+	bool bIsTargetAnActor;
+
 	/** This is used in the process of determining whether we should replicate to a specific client. */
 	UPROPERTY(BlueprintReadOnly, Category = "Network")
 	APlayerController* MasterPC;

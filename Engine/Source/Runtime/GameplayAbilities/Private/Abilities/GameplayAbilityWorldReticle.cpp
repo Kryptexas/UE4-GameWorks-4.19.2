@@ -15,6 +15,8 @@ AGameplayAbilityWorldReticle::AGameplayAbilityWorldReticle(const FObjectInitiali
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
+	bIsTargetValid = true;
+	bIsTargetAnActor = false;
 }
 
 void AGameplayAbilityWorldReticle::InitializeReticle(AGameplayAbilityTargetActor* InTargetingActor, FWorldReticleParameters InParameters)
@@ -41,4 +43,28 @@ bool AGameplayAbilityWorldReticle::IsNetRelevantFor(const APlayerController* Rea
 bool AGameplayAbilityWorldReticle::GetReplicates() const
 {
 	return bReplicates;
+}
+
+void AGameplayAbilityWorldReticle::SetIsTargetValid(bool bNewValue)
+{
+	if (bIsTargetValid != bNewValue)
+	{
+		bIsTargetValid = bNewValue;
+		OnValidTargetChanged(bNewValue);
+	}
+}
+
+void AGameplayAbilityWorldReticle::SetIsTargetAnActor(bool bNewValue)
+{
+	if (bIsTargetAnActor != bNewValue)
+	{
+		bIsTargetAnActor = bNewValue;
+		OnTargetingAnActor(bNewValue);
+	}
+}
+
+void AGameplayAbilityWorldReticle::FaceTowardSource()
+{
+	check(TargetingActor);
+	SetActorRotation((TargetingActor->StartLocation.GetTargetingTransform().GetLocation() - GetActorLocation()).Rotation());
 }

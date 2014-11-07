@@ -183,9 +183,9 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 		}
 	}
 
-	if (AActor* LocalReticleActor = ReticleActor.Get())
+	if (AGameplayAbilityWorldReticle* LocalReticleActor = ReticleActor.Get())
 	{
-		//TODO Special (for now) functionality: We should tell the reticle to turn red or something, indicating this isn't a valid location
+		LocalReticleActor->SetIsTargetValid(bLastTraceWasGood);
 		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
 	}
 
