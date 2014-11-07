@@ -81,6 +81,7 @@ private:
 	void UpdateIMMWindowPositions(HIMC IMMContext);
 	void BeginIMMComposition();
 	void EndIMMComposition();
+	void CancelIMMComposition();
 
 	// TSF Implementation
 	bool InitializeTSF();
