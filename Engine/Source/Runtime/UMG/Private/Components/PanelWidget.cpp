@@ -137,6 +137,17 @@ bool UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 
 #if WITH_EDITOR
 
+bool UPanelWidget::ReplaceChild(UWidget* CurrentChild, UWidget* NewChild)
+{
+	int32 Index = GetChildIndex(CurrentChild);
+	if ( Index != -1 )
+	{
+		return ReplaceChildAt(Index, NewChild);
+	}
+
+	return false;
+}
+
 UPanelSlot* UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 {
 	UPanelSlot* NewSlot = AddChild(Content);

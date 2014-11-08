@@ -58,6 +58,14 @@ public:
 #if WITH_EDITOR
 
 	/**
+	 * Swaps the child widget out of the slot, and replaces it with the new child widget.
+	 * @param CurrentChild The existing child widget being removed.
+	 * @param NewChild The new child widget being inserted.
+	 * @return true if the CurrentChild was found and the swap occurred, otherwise false.
+	 */
+	virtual bool ReplaceChild(UWidget* CurrentChild, UWidget* NewChild);
+
+	/**
 	 * Inserts a widget at a specific index.  This does not update the live slate version, it requires
 	 * a rebuild of the whole UI to see a change.
 	 */
