@@ -47,6 +47,24 @@ public:
 			return *this;
 		}
 
+		FOverlaySlot& Padding(float Uniform)
+		{
+			SlotPadding = FMargin(Uniform);
+			return *this;
+		}
+
+		FOverlaySlot& Padding(float Horizontal, float Vertical)
+		{
+			SlotPadding = FMargin(Horizontal, Vertical);
+			return *this;
+		}
+
+		FOverlaySlot& Padding(float Left, float Top, float Right, float Bottom)
+		{
+			SlotPadding = FMargin(Left, Top, Right, Bottom);
+			return *this;
+		}
+
 		FOverlaySlot& Padding( const TAttribute<FMargin> InPadding )
 		{
 			SlotPadding = InPadding;
