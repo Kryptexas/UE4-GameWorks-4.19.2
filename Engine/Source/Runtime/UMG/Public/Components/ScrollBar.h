@@ -6,7 +6,7 @@
 
 /** */
 UCLASS(Experimental)
-class UMG_API UScrollBar : public UPanelWidget
+class UMG_API UScrollBar : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
