@@ -16,6 +16,8 @@ const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
 const float UGameplayEffect::NO_PERIOD = 0.f;
 const float UGameplayEffect::INVALID_LEVEL = -1.f;
 
+#pragma optimize( "", off )
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	UGameplayEffect
@@ -746,6 +748,7 @@ void FGameplayEffectAttributeCaptureSpecContainer::RegisterLinkedAggregatorCallb
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
+/** This is the core function that turns the ActiveGE 'on' or 'off */
 void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, FActiveGameplayEffectsContainer& OwningContainer)
 {
 	bool ShouldBeInhibited = !Spec.Def->OngoingTagRequirements.RequirementsMet(OwnerTags);
@@ -757,34 +760,12 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 
 		if (ShouldBeInhibited)
 		{
-			// Register this ActiveGameplayEffects modifiers with our Attribute Aggregators
-			if (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD)
-			{
-				for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
-				{
-					const FModifierSpec &Mod = Spec.Modifiers[ModIdx];
-					FAggregator* Aggregator = OwningContainer.FindOrCreateAttributeAggregator(Spec.Def->Modifiers[ModIdx].Attribute).Get();
-					Aggregator->RemoveMod(Handle);
-				}
-			}
+			// Remove our ActiveGameplayEffects modifiers with our Attribute Aggregators
+			OwningContainer.RemoveActiveGameplayEffectGrantedTagsAndModifiers(*this);
 		}
 		else
 		{
-			// Register this ActiveGameplayEffects modifiers with our Attribute Aggregators
-			if (Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD)
-			{
-				for (int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
-				{
-					const FModifierSpec &Mod = Spec.Modifiers[ModIdx];
-					const FGameplayModifierInfo &ModInfo = Spec.Def->Modifiers[ModIdx];
-
-					// Note we assume the EvaluatedMagnitude is up to do. There is no case currently where we should recalculate magnitude based on
-					// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
-					
-					FAggregator* Aggregator = OwningContainer.FindOrCreateAttributeAggregator(Spec.Def->Modifiers[ModIdx].Attribute).Get();
-					Aggregator->AddMod(Mod.GetEvaluatedMagnitude(), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Handle);
-				}
-			}
+			OwningContainer.AddActiveGameplayEffectGrantedTagsAndModifiers(*this);
 		}
 
 		IsInhibited = ShouldBeInhibited;
@@ -1414,19 +1395,41 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 		ActiveEffectTagDependencies.FindOrAdd(Tag).Add(Effect.Handle);
 	}
 
-	// Update our owner with the tags this GameplayEffect grants them
-	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, 1);
-	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
-	{
-		Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
-	}
-
 	// Check if we should actually be turned on or not (this will turn us on for the first time)
 	FGameplayTagContainer OwnerTags;
 	Owner->GetOwnedGameplayTags(OwnerTags);
 	
 	Effect.IsInhibited = true; // Effect has to start inhibited, if it should be uninhibited, CheckOnGoingTagRequirements will handle that state change
 	Effect.CheckOngoingTagRequirements(OwnerTags, *this);
+}
+
+void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModifiers(FActiveGameplayEffect& Effect)
+{
+	// Register this ActiveGameplayEffects modifiers with our Attribute Aggregators
+	if (Effect.Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD)
+	{
+		for (int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
+		{
+			const FModifierSpec &Mod = Effect.Spec.Modifiers[ModIdx];
+			const FGameplayModifierInfo &ModInfo = Effect.Spec.Def->Modifiers[ModIdx];
+
+			// Note we assume the EvaluatedMagnitude is up to do. There is no case currently where we should recalculate magnitude based on
+			// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
+					
+			FAggregator* Aggregator = FindOrCreateAttributeAggregator(Effect.Spec.Def->Modifiers[ModIdx].Attribute).Get();
+			Aggregator->AddMod(Mod.GetEvaluatedMagnitude(), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.Handle);
+		}
+	}
+
+	// Update our owner with the tags this GameplayEffect grants them
+	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, 1);
+
+	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, 1);
+
+	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
+	{
+		Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
+	}
 }
 
 /** Called on server to remove a GameplayEffect */
@@ -1506,39 +1509,49 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 /** Called by client and server: This does cleanup that has to happen whether the effect is being removed locally or due to replication */
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect)
 {
-	Effect.OnRemovedDelegate.Broadcast();
-
-	// Update AttributeAggregators: remove mods from this ActiveGE Handle
-	for(const FGameplayModifierInfo& Mod : Effect.Spec.Def->Modifiers)
-	{
-		if(Mod.Attribute.IsValid())
-		{
-			FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Mod.Attribute);
-			if(RefPtr)
-			{
-				RefPtr->Get()->RemoveMod(Effect.Handle);
-			}
-		}
-	}
-
 	// Remove our tag requirements from the dependancy map
 	RemoveActiveEffectTagDependancy(Effect.Spec.Def->OngoingTagRequirements.IgnoreTags, Effect.Handle);
 	RemoveActiveEffectTagDependancy(Effect.Spec.Def->OngoingTagRequirements.RequireTags, Effect.Handle);
 
 	if (Effect.Spec.Def)
 	{
-		// Update gameplaytag count and broadcast delegate if we are at 0
-		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-		Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
-
-		for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
-		{
-			Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
-		}
+		RemoveActiveGameplayEffectGrantedTagsAndModifiers(Effect);
 	}
 	else
 	{
 		ABILITY_LOG(Warning, TEXT("InternalOnActiveGameplayEffectRemoved called with no GameplayEffect: %s"), *Effect.Handle.ToString());
+	}
+
+	Effect.OnRemovedDelegate.Broadcast();
+}
+
+void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect)
+{
+	// Update AttributeAggregators: remove mods from this ActiveGE Handle
+	if (Effect.Spec.GetPeriod() <= UGameplayEffect::NO_PERIOD)
+	{
+		for(const FGameplayModifierInfo& Mod : Effect.Spec.Def->Modifiers)
+		{
+			if(Mod.Attribute.IsValid())
+			{
+				FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Mod.Attribute);
+				if(RefPtr)
+				{
+					RefPtr->Get()->RemoveMod(Effect.Handle);
+				}
+			}
+		}
+	}
+
+	// Update gameplaytag count and broadcast delegate if we are at 0
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
+
+	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
+
+	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
+	{
+		Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
 	}
 }
 
@@ -1928,7 +1941,8 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 {
 	if (TagContainer)
 	{
-		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*TagContainer, false))
+		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*TagContainer, false) &&
+			Effect.Spec.DynamicGrantedTags.MatchesAny(*TagContainer, false))
 		{
 			return false;
 		}

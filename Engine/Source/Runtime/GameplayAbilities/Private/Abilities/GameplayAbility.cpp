@@ -388,11 +388,11 @@ UGameplayEffect* UGameplayAbility::GetCostGameplayEffect() const
 
 bool UGameplayAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
-	if (CooldownGE)
+	FGameplayTagContainer* CooldownTags = GetCooldownTags();
+	if (CooldownTags)
 	{
 		check(ActorInfo->AbilitySystemComponent.IsValid());
-		if (CooldownGE->InheritableOwnedTagsContainer.CombinedTags.Num() > 0 && ActorInfo->AbilitySystemComponent->HasAnyMatchingGameplayTags(CooldownGE->InheritableOwnedTagsContainer.CombinedTags))
+		if (CooldownTags->Num() > 0 && ActorInfo->AbilitySystemComponent->HasAnyMatchingGameplayTags(*CooldownTags))
 		{
 			return false;
 		}
@@ -437,13 +437,13 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
 	if (CooldownGE)
 	{
-		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGE->InheritableOwnedTagsContainer.CombinedTags));
+		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
 		if (Durations.Num() > 0)
-			{
+		{
 			Durations.Sort();
 			return Durations[Durations.Num()-1];
-				}
-			}
+		}
+	}
 
 	return 0.f;
 }
@@ -456,14 +456,14 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(const FGameplayAbilit
 
 	TimeRemaining = 0.f;
 	CooldownDuration = 0.f;
-
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
+	
+	FGameplayTagContainer* CooldownTags = GetCooldownTags();
 	if (CooldownGE)
 	{
-		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(&CooldownGE->InheritableOwnedTagsContainer.CombinedTags));
+		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
 		if (DurationRemaining.Num() > 0)
 		{
-			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsDuration(FActiveGameplayEffectQuery(&CooldownGE->InheritableOwnedTagsContainer.CombinedTags));
+			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsDuration(FActiveGameplayEffectQuery(CooldownTags));
 			check(Durations.Num() == DurationRemaining.Num());
 			int32 BestIdx = 0;
 			float LongestTime = DurationRemaining[0];
@@ -480,6 +480,12 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(const FGameplayAbilit
 			CooldownDuration = Durations[BestIdx];
 		}
 	}
+}
+
+FGameplayTagContainer* UGameplayAbility::GetCooldownTags() const
+{
+	UGameplayEffect* CDGE =GetCooldownGameplayEffect();
+	return CDGE ? &CDGE->InheritableClearTagsContainer.CombinedTags : nullptr;
 }
 
 FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const

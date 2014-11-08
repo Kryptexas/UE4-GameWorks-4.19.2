@@ -474,19 +474,6 @@ struct GAMEPLAYABILITIES_API FAttributeDefaults
 	class UDataTable*	DefaultStartingTable;
 };
 
-// Still WIP: not being used yet
-USTRUCT()
-struct GAMEPLAYABILITIES_API FGameplayAbilityCooldownInfo
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
-	FScalableFloat	Cooldown;
-
-	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
-	FGameplayTagContainer CooldownTags;
-};
-
 /** Used for cleaning up predicted data on network clients */
 DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
 

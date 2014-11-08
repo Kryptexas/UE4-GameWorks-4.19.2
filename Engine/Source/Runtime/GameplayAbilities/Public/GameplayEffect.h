@@ -874,15 +874,16 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	bool bTopOfStack;
 
 	// Captured Source Tags on GameplayEffectSpec creation.	
-	UPROPERTY()
+	UPROPERTY(NotReplicated)
 	FTagContainerAggregator	CapturedSourceTags;
 
-	// Tags from the target, captured during execute?
-	// Not sure if this is the right place or not, or how 'contextual' tags get injected (headshot, crit, etc)
-	// Does this overlap with info in the GameplayEffectContextHandle? Should it just all live there?
-	// For now - putting it here so places have one spot to pull from. Need to figure this out long term.
-	UPROPERTY()
+	// Tags from the target, captured during execute	
+	UPROPERTY(NotReplicated)
 	FTagContainerAggregator	CapturedTargetTags;
+
+	/** Tags that are granted and that did not come from the UGameplayEffect def. These are replicated. */
+	UPROPERTY()
+	FGameplayTagContainer DynamicGrantedTags;
 	
 	UPROPERTY()
 	TArray<FModifierSpec> Modifiers;
@@ -1178,6 +1179,9 @@ private:
 	/** Called both in server side creation and replication creation/deletion */
 	void InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
+
+	void RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect);
+	void AddActiveGameplayEffectGrantedTagsAndModifiers(FActiveGameplayEffect& Effect);
 
 	/** Updates tag dependancy map when a GameplayEffect is removed */
 	void RemoveActiveEffectTagDependancy(const FGameplayTagContainer& Tags, FActiveGameplayEffectHandle Handle);
