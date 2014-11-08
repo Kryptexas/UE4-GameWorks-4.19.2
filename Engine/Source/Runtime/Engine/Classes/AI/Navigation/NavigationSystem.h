@@ -539,7 +539,7 @@ public:
 	FORCEINLINE bool IsNavigationBuildingLocked() const { return bNavigationBuildingLocked || bInitialBuildingLockActive; }
 
 	// @todo document
-	UFUNCTION(BlueprintCallable, Category = Navigation)
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
 	void OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume);
 	void OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume);

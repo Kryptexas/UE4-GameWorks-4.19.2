@@ -23,7 +23,7 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 
 	virtual void CalcBounds();
 
-	UFUNCTION(BlueprintCallable, Category="Navigation")
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	void SetNavigationRelevancy(bool bRelevant);
 
 	/** force refresh in navigation octree */

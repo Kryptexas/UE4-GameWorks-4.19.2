@@ -8,7 +8,7 @@
 /** 
  *	Allows applying selected AreaClass to navmesh, using Volume's shape
  */
-UCLASS(hidecategories=(Navigation, "AI|Navigation"))
+UCLASS(hidecategories=(Navigation))
 class ANavModifierVolume : public AVolume, public INavRelevantInterface
 {
 	GENERATED_UCLASS_BODY()

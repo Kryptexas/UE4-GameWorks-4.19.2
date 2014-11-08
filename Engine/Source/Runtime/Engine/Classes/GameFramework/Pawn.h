@@ -26,7 +26,7 @@ class UPrimitiveComponent;
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/
  */
-UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
+UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_BODY()
@@ -222,7 +222,7 @@ public:
 
 	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
 	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
-	UFUNCTION(BlueprintCallable, Category="Navigation")
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	void SetCanAffectNavigationGeneration(bool bNewValue);
 
 	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
