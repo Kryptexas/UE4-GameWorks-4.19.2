@@ -17,7 +17,7 @@ echo Engine/Binaries/DotNET/GitDependencies.exe >>.git\hooks\post-merge
 
 rem Register the engine installation...
 if not exist .\Engine\Binaries\Win64\UnrealVersionSelector-Win64-Shipping.exe goto :no_unreal_version_selector
-.\Engine\Binaries\Win64\UnrealVersionSelector-Win64-Shipping.exe /quiet
+.\Engine\Binaries\Win64\UnrealVersionSelector-Win64-Shipping.exe /register
 :no_unreal_version_selector
 
 rem Done!
