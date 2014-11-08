@@ -12,8 +12,6 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 {
 	bIsVariable = false;
 
-//	WidgetStyle = *UTextBlock::GetDefaultStyle();
-
 	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
@@ -114,21 +112,9 @@ void UTextBlock::PostLoad()
 	{
 		if ( Style_DEPRECATED != nullptr )
 		{
-			//const FTextBlockStyle* StylePtr = Style_DEPRECATED->GetStyle<FTextBlockStyle>();
-			//if ( StylePtr != nullptr )
-			//{
-			//	WidgetStyle = *StylePtr;
-			//}
-
 			Style_DEPRECATED = nullptr;
 		}
 	}
-}
-
-const FTextBlockStyle* UTextBlock::GetDefaultStyle()
-{
-	static const STextBlock::FArguments Defaults;
-	return Defaults._TextStyle;
 }
 
 #if WITH_EDITOR
