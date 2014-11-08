@@ -100,6 +100,10 @@ void FFriendsAndChatManager::Login()
 			SetState(EFriendsAndManagerState::RequestFriendsListRefresh);
 
 			MessageManager->LogIn();
+			for (auto RoomName : ChatRoomstoJoin)
+			{
+				MessageManager->JoinPublicRoom(RoomName);
+			}
 		}
 		else
 		{
@@ -178,6 +182,18 @@ void FFriendsAndChatManager::SetInSession( bool bInSession )
 void FFriendsAndChatManager::InsertNetworkChatMessage(const FString InMessage)
 {
 
+}
+
+void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
+{
+	if (!RoomName.IsEmpty())
+	{
+		ChatRoomstoJoin.AddUnique(RoomName);
+		if (MessageManager.IsValid())
+		{
+			MessageManager->JoinPublicRoom(RoomName);
+		}
+	}
 }
 
 // UI Creation

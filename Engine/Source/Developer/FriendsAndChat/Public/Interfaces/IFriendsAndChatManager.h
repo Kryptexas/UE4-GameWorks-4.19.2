@@ -45,6 +45,11 @@ public:
 	virtual void InsertNetworkChatMessage(const FString InMessage) = 0;
 
 	/**
+	 * Join a global chat room
+	 */
+	virtual void JoinPublicChatRoom(const FString& RoomName) = 0;
+
+	/**
 	 * Set that we are in a session, so can send join game requests.
 	 *
 	 * @param bInSession If we are in a session.

@@ -26,7 +26,7 @@ public:
 
 	virtual FText GetFriendID() override
 	{
-		return ChatMessage->FriendID;
+		return ChatMessage->FromName;
 	}
 
 	virtual FText GetMessageTime() override

@@ -13,42 +13,86 @@ public:
 	virtual void LogIn() override
 	{
 		Initialize();
+
+		if (OnlineSub != nullptr &&
+			OnlineSub->GetIdentityInterface().IsValid())
+		{
+			LoggedInUser = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0);
+		}
+
+		for (auto RoomName : PendingRoomJoins)
+		{
+			JoinPublicRoom(RoomName);
+		}
 	}
 
 	virtual void LogOut() override
 	{
+		if (OnlineSub != nullptr &&
+			OnlineSub->GetChatInterface().IsValid() &&
+			LoggedInUser.IsValid())
+		{
+			// exit out of any rooms that we're in
+			TArray<FChatRoomId> JoinedRooms;
+			OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
+			for (auto RoomId : JoinedRooms)
+			{
+				OnlineSub->GetChatInterface()->ExitRoom(*LoggedInUser, RoomId);
+			}
+		}
+		LoggedInUser.Reset();
 		UnInitialize();
 	}
 
-	virtual void SendMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) override
+	virtual void SendRoomMessage(const FString& RoomName, const FString& MsgBody) override
 	{
-		if (OnlineSubMcp != nullptr &&
-		OnlineSubMcp->GetIdentityInterface().IsValid())
+		if (OnlineSub != nullptr &&
+			LoggedInUser.IsValid())
 		{
-			IOnlineIdentityPtr OnlineIdentity = OnlineSubMcp->GetIdentityInterface();
-			if(OnlineIdentity->GetUniquePlayerId(0).IsValid())
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			if (ChatInterface.IsValid())
 			{
-				if (!RoomName.IsEmpty())
+				TSharedPtr<FChatRoomInfo> RoomInfo = ChatInterface->GetRoomInfo(*LoggedInUser, FChatRoomId(RoomName));
+				if (RoomInfo.IsValid() &&
+					RoomInfo->IsJoined())
 				{
-					TSharedPtr<FChatRoomInfo> RoomInfo = ChatInterface->GetRoomInfo(*LoggedInUser, FChatRoomId(RoomName));
-					if (RoomInfo.IsValid() &&
-						RoomInfo->IsJoined())
-					{
-						ChatInterface->SendRoomChat(*LoggedInUser, FChatRoomId(RoomName), MsgBody);
-					}
-				}
-				else
-				{
-					// send to all joined rooms
-					TArray<FChatRoomId> JoinedRooms;
-					OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
-					for (auto RoomId : JoinedRooms)
-					{
-						ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody);
-					}
+					ChatInterface->SendRoomChat(*LoggedInUser, FChatRoomId(RoomName), MsgBody);
 				}
 				
 			}
+		}
+	}
+
+	virtual void SendPrivateMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) override
+	{
+		if (OnlineSub != nullptr &&
+			LoggedInUser.IsValid())
+		{
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			if(ChatInterface.IsValid())
+			{
+				ChatInterface->SendPrivateChat(*LoggedInUser, RecipientId, MsgBody);
+			}
+		}
+	}
+
+	virtual void JoinPublicRoom(const FString& RoomName) override
+	{
+		if (LoggedInUser.IsValid())
+		{
+			PendingRoomJoins.Remove(RoomName);
+
+			if (OnlineSub != nullptr &&
+				OnlineSub->GetChatInterface().IsValid())
+			{
+				// join the room to start receiving messages from it
+				FString NickName = OnlineSub->GetIdentityInterface()->GetPlayerNickname(*LoggedInUser);
+				OnlineSub->GetChatInterface()->JoinPublicRoom(*LoggedInUser, FChatRoomId(RoomName), NickName);
+			}
+		}
+		else
+		{
+			PendingRoomJoins.AddUnique(RoomName);
 		}
 	}
 
@@ -65,7 +109,7 @@ public:
 
 private:
 	FFriendsMessageManagerImpl( )
-		: OnlineSubMcp(nullptr)
+		: OnlineSub(nullptr)
 	{
 	}
 
@@ -74,11 +118,11 @@ private:
 		// Clear existing data
 		LogOut();
 
-		OnlineSubMcp = static_cast< FOnlineSubsystemMcp* >( IOnlineSubsystem::Get( TEXT( "MCP" ) ) );
+		OnlineSub = IOnlineSubsystem::Get( TEXT( "MCP" ) );
 
-		if (OnlineSubMcp != nullptr)
+		if (OnlineSub != nullptr)
 		{
-			IOnlineChatPtr ChatInterface = OnlineSubMcp->GetChatInterface();
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
 			if( ChatInterface.IsValid())
 			{
 				OnChatRoomJoinPublicDelegate = FOnChatRoomJoinPublicDelegate::CreateSP( this, &FFriendsMessageManagerImpl::OnChatRoomJoinPublic);
@@ -102,9 +146,9 @@ private:
 
 	void UnInitialize()
 	{
-		if (OnlineSubMcp != nullptr)
+		if (OnlineSub != nullptr)
 		{
-			IOnlineChatPtr ChatInterface = OnlineSubMcp->GetChatInterface();
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
 			if( ChatInterface.IsValid())
 			{
 				ChatInterface->ClearOnChatRoomJoinPublicDelegate(OnChatRoomJoinPublicDelegate);
@@ -116,18 +160,27 @@ private:
 				ChatInterface->ClearOnChatPrivateMessageReceivedDelegate(OnChatPrivateMessageReceivedDelegate);
 			}
 		}
-		OnlineSubMcp = nullptr;
+		OnlineSub = nullptr;
 	}
 
-	void OnChatRoomJoinPublic(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, bool, const FString& Message)
+	void OnChatRoomJoinPublic(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
 	{		
+		if (bWasSuccessful)
+		{
+			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+			ChatItem->Message = FText::FromString(FString::Printf(TEXT("Enter %s channel"), *ChatRoomID));
+			ChatItem->MessageType = EChatMessageType::Global;
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+			ChatItem->bIsFromSelf = true;
+			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+		}
 	}
 
-	void OnChatRoomExit(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, bool, const FString& Message)
+	void OnChatRoomExit(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
 	{
 	}
 
-	void OnChatRoomMemberJoin(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FUniqueNetId& OtherID)
+	void OnChatRoomMemberJoin(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
 	{
 		if (LoggedInUser.IsValid() &&
 			*LoggedInUser != MemberId)
@@ -146,7 +199,7 @@ private:
 		}
 	}
 
-	void OnChatRoomMemberExit(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FUniqueNetId& OtherID)
+	void OnChatRoomMemberExit(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
 	{
 		if (LoggedInUser.IsValid() &&
 			*LoggedInUser != MemberId)
@@ -165,11 +218,11 @@ private:
 		}
 	}
 
-	void OnChatRoomMemberUpdate(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FUniqueNetId& OtherID)
+	void OnChatRoomMemberUpdate(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
 	{
 	}
 
-	void OnChatRoomMessageReceived(const FUniqueNetId& FriendID, const FChatRoomId& ChatRoomID, const FChatMessage& ChatMessage)
+	void OnChatRoomMessageReceived(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FChatMessage& ChatMessage)
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
@@ -199,18 +252,18 @@ private:
 
 	}
 
-	void OnChatPrivateMessageReceived(const FUniqueNetId& FriendID, const FChatMessage& ChatMessage)
+	void OnChatPrivateMessageReceived(const FUniqueNetId& UserId, const FChatMessage& ChatMessage)
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
 		TSharedPtr<FFriendStuct> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
 		if(FoundFriend.IsValid())
 		{
-			ChatItem->FriendID = FText::FromString(*FoundFriend->GetName());
+			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());
 		}
 		else
 		{
-			ChatItem->FriendID = FText::FromString("Unknown");
+			ChatItem->FromName = FText::FromString("Unknown");
 		}
 		ChatItem->Message = FText::FromString(*ChatMessage.GetBody());
 		ChatItem->MessageType = EChatMessageType::Whisper;
@@ -221,7 +274,7 @@ private:
 
 private:
 
-	// Incomming delegates
+	// Incoming delegates
 	FOnChatRoomJoinPublicDelegate OnChatRoomJoinPublicDelegate;
 	FOnChatRoomExitDelegate OnChatRoomExitDelegate;
 	FOnChatRoomMemberJoinDelegate OnChatRoomMemberJoinDelegate;
@@ -233,7 +286,9 @@ private:
 	// Outgoing events
 	FOnChatMessageReceivedEvent MessageReceivedDelegate;
 
-	FOnlineSubsystemMcp* OnlineSubMcp;
+	IOnlineSubsystem* OnlineSub;
+	TSharedPtr<FUniqueNetId> LoggedInUser;
+	TArray<FString> PendingRoomJoins;
 
 private:
 	friend FFriendsMessageManagerFactory;

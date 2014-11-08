@@ -35,7 +35,7 @@ namespace EChatMessageType
 struct FFriendChatMessage
 {
 	EChatMessageType::Type MessageType;
-	FText FriendID;
+	FText FromName;
 	FText Message;
 	FText MessageTimeText;
 	bool bIsFromSelf;
@@ -54,11 +54,12 @@ public:
 
 	virtual void LogIn() = 0;
 	virtual void LogOut() = 0;
-	virtual void SendMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) = 0;
+	virtual void JoinPublicRoom(const FString& RoomName) = 0;
+	virtual void SendRoomMessage(const FString& RoomName, const FString& MsgBody) = 0;
+	virtual void SendPrivateMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) = 0;
 
 	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatMessageReceivedEvent, const TSharedRef<FFriendChatMessage> /*The chat message*/)
 	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() = 0;
-
 };
 
 /**

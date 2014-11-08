@@ -45,6 +45,7 @@ public:
 	virtual TSharedPtr< SWidget > GenerateChatWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetInSession( bool bInSession ) override;
 	virtual void InsertNetworkChatMessage(const FString InMessage) override;
+	virtual void JoinPublicChatRoom(const FString& RoomName) override;
 
 	/**
 	 * Get if the player is in a session.
@@ -435,6 +436,12 @@ private:
 	IOnlineFriendsPtr FriendsInterface;
 	// Holds the Online Subsystem
 	FOnlineSubsystemMcp* OnlineSubMcp;
+
+	/* Chat stuff
+	*****************************************************************************/
+
+	// Keeps track of global chat rooms that have been requested to join
+	TArray<FString> ChatRoomstoJoin;
 
 	TSharedPtr<class FFriendsMessageManager> MessageManager;
 	TSharedPtr<class FChatViewModel> ChatViewModel;
