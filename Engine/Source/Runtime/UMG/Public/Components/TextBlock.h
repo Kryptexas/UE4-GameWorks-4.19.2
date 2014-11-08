@@ -42,10 +42,6 @@ public:
 	void SetShadowOffset(FVector2D InShadowOffset);
 
 public:
-	/** The text block style */
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
-	//FTextBlockStyle WidgetStyle;
-
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
@@ -134,8 +130,6 @@ public:
 	// Begin UObject interface
 	virtual void PostLoad() override;
 	// End of UObject interface
-
-	static const FTextBlockStyle* GetDefaultStyle();
 
 #if WITH_EDITOR
 	// UWidget interface
