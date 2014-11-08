@@ -32,15 +32,16 @@ Here is the fun part! The steps below will take you through cloning your own pri
 
 1. Install **[GitHub for Windows](https://windows.github.com/)** then **fork our repository** and **clone it to your computer**. 
 
-   If you'd rather use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles - or
-   if you'd prefer not to use Git at all, [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
+   To use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles.
+   
+   If you'd prefer not to use Git at all, you can also [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
 
-1. Open your source folder in Explorer and run **Setup.bat**. This will download binary content for the engine, as well as installing any missing prerequisites and 
-   registering file types.
+1. Install **Visual Studio 2013**. Any desktop edition of Visual Studio 2013 will do, including the free version - [Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=40787).
 
-1. Install **Visual Studio 2013**. Any desktop edition of Visual Studio 2013 will do, including the free version: [Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=40787).
+1. Open your source folder in Explorer and run **Setup.bat**. This will download binary content for the engine, as well as installing prerequisites
+   and setting up Unreal file associations. On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
 
-1. Run **GenerateProjectFiles.bat** to create project files for engine. It should take less than a minute to complete.  On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
+1. Run **GenerateProjectFiles.bat** to create project files for engine. It should take less than a minute to complete.  
 
 1. Load the project into Visual Studio by double-clicking on the **UE4.sln** file.
 
@@ -86,20 +87,20 @@ Here is the fun part! The steps below will take you through cloning your own pri
 
 1. Both cross-compiling and native builds are supported. 
 
-1. Cross-compiling is handy when you are a Windows (Mac support planned too) developer who wants to package your game for Linux with minimal hassle, and it requires a [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to be installed (see the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux)). Note that you will also need [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/latest-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder.
+   **Cross-compiling** is handy when you are a Windows (Mac support planned too) developer who wants to package your game for Linux with minimal hassle, and it requires a [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to be installed (see the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux)). Note that you will also need [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/latest-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder.
 
-1. Native compilation is discussed in [a separate README](https://github.com/EpicGames/UnrealEngine/blob/4.5/Engine/Build/BatchFiles/Linux/README.md) and [community wiki page](https://wiki.unrealengine.com/Building_On_Linux). Downloading the dependencies has now been automated, so you will only need to clone the repo and run **GenerateProjectFiles.sh** (provided that you have OAUTH_TOKEN set to your personal access token, see the above README for details).
+   **Native compilation** is discussed in [a separate README](https://github.com/EpicGames/UnrealEngine/blob/4.6/Engine/Build/BatchFiles/Linux/README.md) and [community wiki page](https://wiki.unrealengine.com/Building_On_Linux). Downloading the dependencies has now been automated, so you will only need to clone the repo and run **GenerateProjectFiles.sh** (provided that you have OAUTH_TOKEN set to your personal access token, see the above README for details).
 
 
 
 
 ### Additional target platforms
 
-**Android** support will be downloaded by the Setup script if you have the Android NDK installed. See the [Android getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/).
+**Android** support will be downloaded by the setup script if you have the Android NDK installed. See the [Android getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/).
 
 **iOS** programming requires a Mac. Instructions are in the [iOS getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/iOS/GettingStarted/index.html).
 
-**HTML5** support files will be downloaded by the Setup script if you have Emscripten installed. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
+**HTML5** support will be downloaded by the setup script if you have Emscripten installed. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
 
 **Playstation 4** or **XboxOne** development require additional files that can only be provided after your registered developer status is confirmed by Sony or Microsoft. See [the announcement blog post](https://www.unrealengine.com/blog/playstation-4-and-xbox-one-now-supported) for more information.
 
@@ -108,10 +109,10 @@ Here is the fun part! The steps below will take you through cloning your own pri
 Additional Notes
 ----------------
 
-Visual Studio 2013 is strongly recommended for development on PC, though Visual Studio 2012 is also supported.
+Visual Studio 2012 is supported by the Windows toolchain, though Visual Studio 2013 is recommended.
 
 The first time you start the editor from a fresh source build, you may experience long load times.  This only happens on the first 
 run as the engine optimizes content for the platform and fills the _derived data cache_.
 
-Your private forks of the Unreal Engine code are associated with your GitHub account permissions.  Just remember
-that if you unsubscribe or switch GitHub user names, you'll need to re-fork and upload your changes from a local copy. 
+Your private forks of the Unreal Engine code are associated with your GitHub account permissions.
+If you unsubscribe or switch GitHub user names, you'll need to re-fork and upload your changes from a local copy. 
