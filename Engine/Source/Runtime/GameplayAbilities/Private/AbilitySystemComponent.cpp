@@ -203,6 +203,17 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 	return Context;
 }
 
+FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget(TSubclassOf<UGameplayEffect> GameplayEffectClass, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context)
+{
+	if (GameplayEffectClass)
+	{
+		UGameplayEffect* GameplayEffect = GameplayEffectClass->GetDefaultObject<UGameplayEffect>();
+		return ApplyGameplayEffectToTarget(GameplayEffect, Target, Level, Context);
+	}
+
+	return FActiveGameplayEffectHandle();
+}
+
 FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context)
 {
 	return ApplyGameplayEffectToTarget(GameplayEffect, Target, Level, Context);
