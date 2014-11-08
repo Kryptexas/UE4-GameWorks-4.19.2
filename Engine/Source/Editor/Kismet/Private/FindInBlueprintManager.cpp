@@ -235,6 +235,11 @@ namespace BlueprintSearchMetaDataHelpers
 		TMap< FLookupTableItem, int32 > ReverseLookupTable;
 	};
 
+	static uint32 GetTypeHash(const BlueprintSearchMetaDataHelpers::TJsonFindInBlueprintStringWriter<TCondensedJsonPrintPolicy<TCHAR>>::FLookupTableItem& InObject)
+	{
+		return FCrc::MemCrc32(&InObject.Text, sizeof(InObject.Text));
+	}
+
 	typedef TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>> SearchMetaDataWriterParentClass;
 	typedef TJsonFindInBlueprintStringWriter<TCondensedJsonPrintPolicy<TCHAR>> SearchMetaDataWriter;
 
@@ -589,11 +594,6 @@ namespace BlueprintSearchMetaDataHelpers
 			InWriter->WriteArrayEnd();
 		}
 	}
-}
-
-static uint32 GetTypeHash(const BlueprintSearchMetaDataHelpers::TJsonFindInBlueprintStringWriter<TCondensedJsonPrintPolicy<TCHAR>>::FLookupTableItem& InObject)
-{
-	return FCrc::MemCrc32(&InObject.Text, sizeof(InObject.Text));
 }
 
 FFindInBlueprintSearchManager& FFindInBlueprintSearchManager::Get()
