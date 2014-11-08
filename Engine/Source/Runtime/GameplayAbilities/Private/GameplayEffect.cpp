@@ -1942,7 +1942,7 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 	if (TagContainer)
 	{
 		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*TagContainer, false) &&
-			Effect.Spec.DynamicGrantedTags.MatchesAny(*TagContainer, false))
+			!Effect.Spec.DynamicGrantedTags.MatchesAny(*TagContainer, false))
 		{
 			return false;
 		}
