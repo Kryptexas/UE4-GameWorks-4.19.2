@@ -44,7 +44,7 @@ struct FMetaSettingGatherer
 
 			if (!bReadOnly)
 			{
-				FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+				FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ValueSet);
 				SettingsObject->PostEditChangeProperty(ChangeEvent);
 			}
 			else
