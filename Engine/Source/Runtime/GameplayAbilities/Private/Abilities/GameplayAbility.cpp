@@ -388,7 +388,7 @@ UGameplayEffect* UGameplayAbility::GetCostGameplayEffect() const
 
 bool UGameplayAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	FGameplayTagContainer* CooldownTags = GetCooldownTags();
+	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
 	if (CooldownTags)
 	{
 		check(ActorInfo->AbilitySystemComponent.IsValid());
@@ -434,8 +434,8 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemaining);
 
 	check(ActorInfo->AbilitySystemComponent.IsValid());
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
-	if (CooldownGE)
+	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
+	if (CooldownTags)
 	{
 		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
 		if (Durations.Num() > 0)
@@ -448,7 +448,7 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	return 0.f;
 }
 
-void UGameplayAbility::GetCooldownTimeRemainingAndDuration(const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const
+void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemainingAndDuration);
 
@@ -457,8 +457,8 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(const FGameplayAbilit
 	TimeRemaining = 0.f;
 	CooldownDuration = 0.f;
 	
-	FGameplayTagContainer* CooldownTags = GetCooldownTags();
-	if (CooldownGE)
+	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
+	if (CooldownTags)
 	{
 		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
 		if (DurationRemaining.Num() > 0)
@@ -482,7 +482,7 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(const FGameplayAbilit
 	}
 }
 
-FGameplayTagContainer* UGameplayAbility::GetCooldownTags() const
+const FGameplayTagContainer* UGameplayAbility::GetCooldownTags() const
 {
 	UGameplayEffect* CDGE =GetCooldownGameplayEffect();
 	return CDGE ? &CDGE->InheritableClearTagsContainer.CombinedTags : nullptr;

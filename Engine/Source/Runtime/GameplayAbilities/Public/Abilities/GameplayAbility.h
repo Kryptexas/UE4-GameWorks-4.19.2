@@ -128,7 +128,9 @@ public:
 	virtual float GetCooldownTimeRemaining(const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	/** Returns the time in seconds remaining on the currently active cooldown and the original duration for this cooldown. */
-	virtual void GetCooldownTimeRemainingAndDuration(const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const;
+	virtual void GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const;
+
+	virtual const FGameplayTagContainer* GetCooldownTags() const;
 		
 	EGameplayAbilityInstancingPolicy::Type GetInstancingPolicy() const
 	{
@@ -503,15 +505,7 @@ protected:
 	//	Cooldowns
 	//
 	// ----------------------------------------------------------------------------------------------------------------
-		
-
-	/** Cooldown tags that we check for. If we have cooldowns with these tags, we cannot activate this ability */
-	UPROPERTY()
-	FGameplayTagContainer CheckedCooldownTags;
-
-	UPROPERTY()
-	TArray<FGameplayAbilityCooldownInfo> AppliedCooldowns;
-	
+			
 	/** Deprecated? This GameplayEffect represents the cooldown. It will be applied when the ability is committed and the ability cannot be used again until it is expired. */
 	UPROPERTY(EditDefaultsOnly, Category = Cooldowns)
 	TSubclassOf<class UGameplayEffect> CooldownGameplayEffectClass;
@@ -519,7 +513,6 @@ protected:
 	/** Deprecated. Use CooldownGameplayEffectClass instead */
 	UPROPERTY(VisibleDefaultsOnly, Category=Deprecated)
 	class UGameplayEffect* CooldownGameplayEffect;
-
 	
 	// ----------------------------------------------------------------------------------------------------------------
 	//
