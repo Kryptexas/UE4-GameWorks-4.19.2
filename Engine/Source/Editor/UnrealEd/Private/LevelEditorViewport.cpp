@@ -1430,13 +1430,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 
 	// Sign up for notifications about users changing settings.
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddRaw(this, &FLevelEditorViewportClient::HandleViewportSettingChanged);
-
-	StatUnitData = new FStatUnitData();
-	StatHitchesData = new FStatHitchesData();
-	FCoreDelegates::StatCheckEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatCheckEnabled);
-	FCoreDelegates::StatEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatEnabled);
-	FCoreDelegates::StatDisabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisabled);
-	FCoreDelegates::StatDisableAll.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisableAll);
 }
 
 //
@@ -1470,16 +1463,6 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	FCoreDelegates::StatEnabled.RemoveAll(this);
 	FCoreDelegates::StatDisabled.RemoveAll(this);
 	FCoreDelegates::StatDisableAll.RemoveAll(this);
-	if (StatHitchesData)
-	{
-		delete StatHitchesData;
-		StatHitchesData = NULL;
-	}
-	if (StatUnitData)
-	{
-		delete StatUnitData;
-		StatUnitData = NULL;
-	}
 
 	GEditor->LevelViewportClients.Remove(this);
 
@@ -4137,56 +4120,6 @@ void FLevelEditorViewportClient::SetIsSimulateInEditorViewport( bool bInIsSimula
 	else
 	{
 		FEditorModeRegistry::Get().UnregisterMode( FBuiltinEditorModes::EM_Physics );
-	}
-}
-
-void FLevelEditorViewportClient::HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
-{
-	// Check to see which viewports have this enabled (current, non-current)
-	const bool bEnabled = IsStatEnabled(InName);
-	if (GStatProcessingViewportClient == this)
-	{
-		// Only if realtime and stats are also enabled should we show the stat as visible
-		bOutCurrentEnabled = IsRealtime() && ShouldShowStats() && bEnabled;
-	}
-	else
-	{
-		bOutOthersEnabled |= bEnabled;
-	}
-}
-
-void FLevelEditorViewportClient::HandleViewportStatEnabled(const TCHAR* InName)
-{
-	// Just enable this on the active viewport
-	if (GStatProcessingViewportClient == this)
-	{
-		SetShowStats(true);
-		SetRealtime(true);
-		SetStatEnabled(InName, true);
-	}
-}
-
-void FLevelEditorViewportClient::HandleViewportStatDisabled(const TCHAR* InName)
-{
-	// Just disable this on the active viewport
-	if (GStatProcessingViewportClient == this)
-	{
-		if (SetStatEnabled(InName, false) == 0)
-		{
-			SetShowStats(false);
-			// Note: we can't disable realtime as we don't know the setting it was previously
-		}
-	}
-}
-
-void FLevelEditorViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport)
-{
-	// Disable all on either all or the current viewport (depending on the flag)
-	if (bInAnyViewport || GStatProcessingViewportClient == this)
-	{
-		SetShowStats(false);
-		// Note: we can't disable realtime as we don't know the setting it was previously
-		SetStatEnabled(NULL, false, true);
 	}
 }
 

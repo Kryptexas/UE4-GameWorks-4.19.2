@@ -478,46 +478,6 @@ public:
 	}
 
 	/**
-	 * Get a ptr to the stat unit data for this viewport
-	 */
-	virtual FStatUnitData* GetStatUnitData() const override
-	{
-		return StatUnitData;
-	}
-
-	/**
-	 * Get a ptr to the stat unit data for this viewport
-	 */
-	virtual FStatHitchesData* GetStatHitchesData() const override
-	{
-		return StatHitchesData;
-	}
-
-	/**
-	 * Get a ptr to the enabled stats list
-	 */
-	virtual const TArray<FString>* GetEnabledStats() const override
-	{
-		return &EnabledStats;
-	}
-
-	/**
-	 * Sets all the stats that should be enabled for the viewport
-	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
-	{
-		EnabledStats = InEnabledStats;
-	}
-
-	/**
-	 * Check whether a specific stat is enabled for this viewport
-	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const override
-	{
-		return EnabledStats.Contains(InName);
-	}
-
-	/**
 	 * Get the sound stat flags enabled for this viewport
 	 */
 	virtual ESoundShowFlags::Type GetSoundShowFlags() const override
@@ -531,31 +491,6 @@ public:
 	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
 	{
 		SoundShowFlags = InSoundShowFlags;
-	}
-
-private:
-	/**
-	 * Set a specific stat to either enabled or disabled (returns true if there are any stats enabled)
-	 */
-	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false)
-	{
-		if (bEnable)
-		{
-			check(!bAll);	// Not possible to enable all
-			EnabledStats.AddUnique(InName);
-		}
-		else
-		{
-			if (bAll)
-			{
-				EnabledStats.Empty();
-			}
-			else
-			{
-				EnabledStats.Remove(InName);
-			}
-		}
-		return EnabledStats.Num();
 	}
 
 protected:
@@ -678,18 +613,6 @@ private:
 	/** Project the specified actors into the world according to the current drag parameters */
 	void ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* Viewport, const FVector& Drag, const FRotator& Rot);
 
-	/** Delegate handler to see if a stat is enabled on this viewport */
-	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
-
-	/** Delegate handler for when stats are enabled in a viewport */
-	void HandleViewportStatEnabled(const TCHAR* InName);
-
-	/** Delegate handler for when stats are disabled in a viewport */
-	void HandleViewportStatDisabled(const TCHAR* InName);
-
-	/** Delegate handler for when all stats are disabled in a viewport */
-	void HandleViewportStatDisableAll(const bool bInAnyViewport);
-
 public:
 	/** Static: List of objects we're hovering over */
 	static TSet< FViewportHoverTarget > HoveredObjects;
@@ -776,15 +699,6 @@ private:
 	 */
 	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
 	TWeakObjectPtr<AActor>	ActorLockedToCamera;
-
-	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
-	FStatUnitData*			StatUnitData;
-
-	/** Data needed to display perframe stat tracking when STAT HITCHES is enabled */
-	FStatHitchesData*		StatHitchesData;
-
-	/** A list of all the stat names which are enabled for this viewport */
-	TArray<FString>			EnabledStats;
 
 	/** Those sound stat flags which are enabled on this viewport */
 	ESoundShowFlags::Type	SoundShowFlags;

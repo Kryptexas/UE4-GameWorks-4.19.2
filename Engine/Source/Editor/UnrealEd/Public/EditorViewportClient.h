@@ -411,8 +411,6 @@ public:
 
 	void SetInitialViewTransform( const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
 
-	virtual void ProcessScreenShots(FViewport* Viewport) override;
-
 	void TakeHighResScreenShot();
 
 	/** Called when an editor mode has been (de)activated */
@@ -423,6 +421,7 @@ public:
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 
 	/** FViewportClient interface */
+	virtual void ProcessScreenShots(FViewport* Viewport) override;
 	virtual void RedrawRequested(FViewport* Viewport) override;
 	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
@@ -437,7 +436,11 @@ public:
 	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
 	virtual bool IsOrtho() const override;
 	virtual void LostFocus(FViewport* Viewport) override;
-
+	virtual FStatUnitData* GetStatUnitData() const override;
+	virtual FStatHitchesData* GetStatHitchesData() const override;
+	virtual const TArray<FString>* GetEnabledStats() const override;
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override;
+	virtual bool IsStatEnabled(const TCHAR* InName) const override;
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -1161,6 +1164,23 @@ private:
 		return &EngineShowFlags; 
 	}
 
+	/**
+	 * Set a specific stat to either enabled or disabled (returns true if there are any stats enabled)
+	 */
+	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false);
+
+	/** Delegate handler to see if a stat is enabled on this viewport */
+	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
+
+	/** Delegate handler for when stats are enabled in a viewport */
+	void HandleViewportStatEnabled(const TCHAR* InName);
+
+	/** Delegate handler for when stats are disabled in a viewport */
+	void HandleViewportStatDisabled(const TCHAR* InName);
+
+	/** Delegate handler for when all stats are disabled in a viewport */
+	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
 public:
 	static const uint32 MaxCameraSpeeds;
 
@@ -1352,6 +1372,16 @@ public:
 	/* Default view mode for orthographic viewports */
 	static const EViewModeIndex DefaultOrthoViewMode;
 
+protected:
+	/** Data needed to display per-frame stat tracking when STAT UNIT is enabled */
+	mutable FStatUnitData StatUnitData;
+
+	/** Data needed to display per-frame stat tracking when STAT HITCHES is enabled */
+	mutable FStatHitchesData StatHitchesData;
+
+	/** A list of all the stat names which are enabled for this viewport */
+	TArray<FString> EnabledStats;
+
 private:
 	/* View mode to set when this viewport is of type LVT_Perspective */
 	EViewModeIndex PerspViewModeIndex;
@@ -1368,6 +1398,9 @@ private:
 	/** If true, we are in Game View mode*/
 	bool bInGameViewMode;
 };
+
+
+
 
 class UNREALED_API FEditorViewportStats
 {

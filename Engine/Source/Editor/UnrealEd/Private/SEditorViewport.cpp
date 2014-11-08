@@ -347,10 +347,32 @@ void SEditorViewport::OnToggleStats()
 	}
 }
 
+void SEditorViewport::ToggleStatCommand(FString CommandName)
+{
+	GEngine->ExecEngineStat(GetWorld(), Client.Get(), *CommandName);
+
+	// Invalidate the client to render once in case the click was on the checkbox itself (which doesn't dismiss the menu)
+	Client->Invalidate();
+}
+
 bool SEditorViewport::IsStatCommandVisible(FString CommandName) const
 {
 	// Only if realtime and stats are also enabled should we show the stat as visible
 	return Client->IsRealtime() && Client->ShouldShowStats() && Client->IsStatEnabled(*CommandName);
+}
+
+void SEditorViewport::ToggleShowFlag(uint32 EngineShowFlagIndex)
+{
+	bool bOldState = Client->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
+	Client->EngineShowFlags.SetSingleFlag(EngineShowFlagIndex, !bOldState);
+
+	// Invalidate clients which aren't real-time so we see the changes
+	Client->Invalidate();
+}
+
+bool SEditorViewport::IsShowFlagEnabled(uint32 EngineShowFlagIndex) const
+{
+	return Client->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
 }
 
 void SEditorViewport::ChangeExposureSetting( int32 ID )
@@ -456,6 +478,12 @@ void SEditorViewport::OnCycleCoordinateSystem()
 
 	Client->SetWidgetCoordSystemSpace( (ECoordSystem)CoordSystemAsInt );
 }
+
+UWorld* SEditorViewport::GetWorld() const
+{
+	return Client->GetWorld();
+}
+
 
 void SEditorViewport::OnToggleSurfaceSnap()
 {

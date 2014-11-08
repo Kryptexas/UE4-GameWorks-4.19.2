@@ -282,6 +282,11 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPre
 	SetViewMode(IsPerspective() ? PerspViewModeIndex : OrthoViewModeIndex);
 
 	ModeTools->OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
+
+	FCoreDelegates::StatCheckEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatCheckEnabled);
+	FCoreDelegates::StatEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatEnabled);
+	FCoreDelegates::StatDisabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisabled);
+	FCoreDelegates::StatDisableAll.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisableAll);
 }
 
 FEditorViewportClient::~FEditorViewportClient()
@@ -1414,6 +1419,78 @@ void FEditorViewportClient::DrawSafeFrameQuad( FCanvas &Canvas, FVector2D V1, FV
 	TriItem.TriangleList.Add( UVTriItem );
 	TriItem.SetColor( SafeFrameColor );
 	TriItem.Draw( &Canvas );
+}
+
+int32 FEditorViewportClient::SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll)
+{
+	if (bEnable)
+	{
+		check(!bAll);	// Not possible to enable all
+		EnabledStats.AddUnique(InName);
+	}
+	else
+	{
+		if (bAll)
+		{
+			EnabledStats.Empty();
+		}
+		else
+		{
+			EnabledStats.Remove(InName);
+		}
+	}
+	return EnabledStats.Num();
+}
+
+
+void FEditorViewportClient::HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	// Check to see which viewports have this enabled (current, non-current)
+	const bool bEnabled = IsStatEnabled(InName);
+	if (GStatProcessingViewportClient == this)
+	{
+		// Only if realtime and stats are also enabled should we show the stat as visible
+		bOutCurrentEnabled = IsRealtime() && ShouldShowStats() && bEnabled;
+	}
+	else
+	{
+		bOutOthersEnabled |= bEnabled;
+	}
+}
+
+void FEditorViewportClient::HandleViewportStatEnabled(const TCHAR* InName)
+{
+	// Just enable this on the active viewport
+	if (GStatProcessingViewportClient == this)
+	{
+		SetShowStats(true);
+		SetRealtime(true);
+		SetStatEnabled(InName, true);
+	}
+}
+
+void FEditorViewportClient::HandleViewportStatDisabled(const TCHAR* InName)
+{
+	// Just disable this on the active viewport
+	if (GStatProcessingViewportClient == this)
+	{
+		if (SetStatEnabled(InName, false) == 0)
+		{
+			SetShowStats(false);
+			// Note: we can't disable realtime as we don't know the setting it was previously
+		}
+	}
+}
+
+void FEditorViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport)
+{
+	// Disable all on either all or the current viewport (depending on the flag)
+	if (bInAnyViewport || GStatProcessingViewportClient == this)
+	{
+		SetShowStats(false);
+		// Note: we can't disable realtime as we don't know the setting it was previously
+		SetStatEnabled(NULL, false, true);
+	}
 }
 
 void FEditorViewportClient::UpdateMouseDelta()
@@ -4135,6 +4212,33 @@ void FEditorViewportClient::SetGameView(bool bGameViewEnable)
 
 	Invalidate();
 }
+
+FStatUnitData* FEditorViewportClient::GetStatUnitData() const
+{
+	return &StatUnitData;
+}
+
+FStatHitchesData* FEditorViewportClient::GetStatHitchesData() const
+{
+	return &StatHitchesData;
+}
+
+const TArray<FString>* FEditorViewportClient::GetEnabledStats() const
+{
+	return &EnabledStats;
+}
+
+void FEditorViewportClient::SetEnabledStats(const TArray<FString>& InEnabledStats)
+{
+	EnabledStats = InEnabledStats;
+}
+
+bool FEditorViewportClient::IsStatEnabled(const TCHAR* InName) const
+{
+	return EnabledStats.Contains(InName);
+}
+
+////////////////
 
 bool FEditorViewportStats::bInitialized(false);
 bool FEditorViewportStats::bUsingCalledThisFrame(false);

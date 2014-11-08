@@ -1704,15 +1704,6 @@ bool SLevelViewport::IsBufferVisualizationModeSelected( FName InName ) const
 	return LevelViewportClient->IsViewModeEnabled( VMI_VisualizeBuffer ) && LevelViewportClient->CurrentBufferVisualizationMode == InName;	
 }
 
-void SLevelViewport::ToggleShowFlag( uint32 EngineShowFlagIndex )
-{
-	bool bOldState = LevelViewportClient->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
-	LevelViewportClient->EngineShowFlags.SetSingleFlag(EngineShowFlagIndex, !bOldState);
-
-	// Invalidate clients which aren't real-time so we see the changes
-	LevelViewportClient->Invalidate();
-}
-
 void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 {
 	// Reinitialize the volume actor visibility flags to the new state.  All volumes should be visible if "Show All" was selected and hidden if it was not selected.
@@ -1832,16 +1823,6 @@ void SLevelViewport::OnToggleAllStatCommands( bool bVisible )
 		const FString& CommandName = EnabledStats->Last();
 		ToggleStatCommand(CommandName);
 	}
-}
-
-void SLevelViewport::ToggleStatCommand(FString CommandName)
-{
-	GEngine->ExecEngineStat(GetWorld(), LevelViewportClient.Get(), *CommandName);
-}
-
-bool SLevelViewport::IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const
-{
-	return LevelViewportClient->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
 }
 
 void SLevelViewport::OnUseDefaultShowFlags(bool bUseSavedDefaults)
