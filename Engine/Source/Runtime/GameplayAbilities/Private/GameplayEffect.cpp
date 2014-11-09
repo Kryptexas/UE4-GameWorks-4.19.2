@@ -539,6 +539,12 @@ void FGameplayEffectSpec::SetContext(FGameplayEffectContextHandle NewEffectConte
 	}
 }
 
+void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container) const
+{
+	Container.AppendTags(DynamicGrantedTags);
+	Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	FGameplayEffectAttributeCaptureSpec
