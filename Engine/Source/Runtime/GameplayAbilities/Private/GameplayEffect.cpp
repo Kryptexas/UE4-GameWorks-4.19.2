@@ -16,8 +16,6 @@ const float UGameplayEffect::INSTANT_APPLICATION = 0.f;
 const float UGameplayEffect::NO_PERIOD = 0.f;
 const float UGameplayEffect::INVALID_LEVEL = -1.f;
 
-#pragma optimize( "", off )
-
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	UGameplayEffect
