@@ -149,6 +149,9 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SWidgetDetailsView::OnEditorSelectionChanged);
 
 	RegisterCustomizations();
+	
+	// Refresh the selection in the details panel.
+	OnEditorSelectionChanged();
 }
 
 SWidgetDetailsView::~SWidgetDetailsView()
