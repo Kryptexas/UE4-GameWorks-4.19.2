@@ -184,4 +184,13 @@ public:
 	/** Closes any popup menu */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Widget|Menu")
 	static void DismissAllMenus();
+
+	/**
+	 * Find all widgets of a certain class.
+	 * @param FoundWidgets The widgets that were found matching the filter.
+	 * @param WidgetClass The widget class to filter by.
+	 * @param TopLevelOnly Only the widgets that are direct children of the viewport will be returned.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Widget", meta=( WorldContext="WorldContextObject" ))
+	static void GetAllWidgetsOfClass(UObject* WorldContextObject, TArray<UUserWidget*>& FoundWidgets, TSubclassOf<UUserWidget> WidgetClass, bool TopLevelOnly = true);
 };

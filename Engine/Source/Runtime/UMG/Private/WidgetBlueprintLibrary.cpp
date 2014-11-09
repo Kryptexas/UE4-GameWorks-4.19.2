@@ -345,4 +345,43 @@ void UWidgetBlueprintLibrary::DismissAllMenus()
 	FSlateApplication::Get().DismissAllMenus();
 }
 
+void UWidgetBlueprintLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, TArray<UUserWidget*>& FoundWidgets, TSubclassOf<UUserWidget> WidgetClass, bool TopLevelOnly)
+{
+	//Prevent possibility of an ever-growing array if user uses this in a loop
+	FoundWidgets.Empty();
+	
+	if ( !WidgetClass || !WorldContextObject )
+	{
+		return;
+	}
+	 
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( !World )
+	{
+		return;
+	}
+
+	for ( TObjectIterator<UUserWidget> Itr; Itr; ++Itr )
+	{
+		UUserWidget* LiveWidget = *Itr;
+
+		if ( LiveWidget->GetWorld() != World )
+		{
+			continue;
+		}
+		
+		if ( TopLevelOnly )
+		{
+			if ( LiveWidget->IsInViewport() )
+			{
+				FoundWidgets.Add(LiveWidget);
+			}
+		}
+		else
+		{
+			FoundWidgets.Add(LiveWidget);
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
