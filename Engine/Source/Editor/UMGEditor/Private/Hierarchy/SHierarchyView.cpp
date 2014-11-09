@@ -102,8 +102,6 @@ void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurr
 			RebuildTreeView();
 		}
 
-		SaveExpandedItems();
-
 		RefreshTree();
 
 		RestoreExpandedItems();
@@ -237,6 +235,11 @@ void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyMod
 	}
 }
 
+void SHierarchyView::WidgetHierarchy_OnExpansionChanged(TSharedPtr<FHierarchyModel> Item, bool bExpanded)
+{
+	Item->SetExpanded(bExpanded);
+}
+
 FReply SHierarchyView::HandleDeleteSelected()
 {
 	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
@@ -262,6 +265,7 @@ void SHierarchyView::RebuildTreeView()
 		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler< TSharedPtr<FHierarchyModel> >::OnGetFilteredChildren)
 		.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
 		.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
+		.OnExpansionChanged(this, &SHierarchyView::WidgetHierarchy_OnExpansionChanged)
 		.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
 		.TreeItemsSource(&TreeRootWidgets);
 
@@ -280,23 +284,6 @@ void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 	{
 		bRefreshRequested = true;
 		bRebuildTreeRequested = true;
-
-		// We save the expanded items immediately because they're potentially about to become invalid.
-		SaveExpandedItems();
-	}
-}
-
-void SHierarchyView::SaveExpandedItems()
-{
-	if ( ExpandedItems.Num() == 0 )
-	{
-		TSet < TSharedPtr<FHierarchyModel> > ExpandedModels;
-		WidgetTreeView->GetExpandedItems(ExpandedModels);
-
-		for ( TSharedPtr<FHierarchyModel>& Model : ExpandedModels )
-		{
-			ExpandedItems.Add(Model->GetUniqueName());
-		}
 	}
 }
 
@@ -306,13 +293,11 @@ void SHierarchyView::RestoreExpandedItems()
 	{
 		RecursiveExpand(Model);
 	}
-
-	ExpandedItems.Empty();
 }
 
 void SHierarchyView::RecursiveExpand(TSharedPtr<FHierarchyModel>& Model)
 {
-	if ( ExpandedItems.Contains(Model->GetUniqueName()) )
+	if ( Model->IsExpanded() )
 	{
 		WidgetTreeView->SetItemExpansion(Model, true);
 

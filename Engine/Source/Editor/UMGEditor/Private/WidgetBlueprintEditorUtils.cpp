@@ -105,45 +105,11 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 		// Find and update all variable references in the graph
 
 		Widget->Rename(*NewNameStr);
-	
-		// Update Variable References
-		TArray<UK2Node_Variable*> WidgetVarNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(Blueprint, WidgetVarNodes);
-		for ( UK2Node_Variable* TestNode : WidgetVarNodes )
-		{
-			if ( TestNode && ( OldName == TestNode->GetVarName() ) )
-			{
-				UEdGraphPin* TestPin = TestNode->FindPin(OldNameStr);
-				if ( TestPin && ( Widget->GetClass() == TestPin->PinType.PinSubCategoryObject.Get() ) )
-				{
-					TestNode->Modify();
-					if ( TestNode->VariableReference.IsSelfContext() )
-					{
-						TestNode->VariableReference.SetSelfMember(NewName);
-					}
-					else
-					{
-						//TODO:
-						UClass* ParentClass = TestNode->VariableReference.GetMemberParentClass((UClass*)NULL);
-						TestNode->VariableReference.SetExternalMember(NewName, ParentClass);
-					}
-					TestPin->Modify();
-					TestPin->PinName = NewNameStr;
-				}
-			}
-		}
 
+		// Update Variable References and
 		// Update Event References to member variables
-		TArray<UK2Node_ComponentBoundEvent*> EventNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_ComponentBoundEvent>(Blueprint, EventNodes);
-		for ( UK2Node_ComponentBoundEvent* EventNode : EventNodes )
-		{
-			if ( EventNode->ComponentPropertyName == OldName )
-			{
-				EventNode->ComponentPropertyName = NewName;
-			}
-		}
-
+		FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, OldName, NewName);
+		
 		// Find and update all binding references in the widget blueprint
 		for ( FDelegateEditorBinding& Binding : Blueprint->Bindings )
 		{
@@ -216,6 +182,15 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
 			FNewMenuDelegate::CreateStatic(&FWidgetBlueprintEditorUtils::BuildWrapWithMenu, BP, Widgets)
 			);
+
+		if ( Widgets.Num() == 1 )
+		{
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("WidgetTree_ReplaceWith", "Replace With..."),
+				LOCTEXT("WidgetTree_ReplaceWithToolTip", "Replaces the currently selected panel widget, with another panel widget"),
+				FNewMenuDelegate::CreateStatic(&FWidgetBlueprintEditorUtils::BuildReplaceWithMenu, BP, Widgets)
+				);
+		}
 	}
 	MenuBuilder.EndSection();
 
@@ -339,17 +314,20 @@ void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetB
 		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 		{
 			UClass* WidgetClass = *ClassIt;
-			if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+			if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
 			{
-				Menu.AddMenuEntry(
-					WidgetClass->GetDisplayNameText(),
-					FText::GetEmpty(),
-					FSlateIcon(),
-					FUIAction(
-					FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::WrapWidgets, BP, Widgets, WidgetClass),
-					FCanExecuteAction()
-					)
-					);
+				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+				{
+					Menu.AddMenuEntry(
+						WidgetClass->GetDisplayNameText(),
+						FText::GetEmpty(),
+						FSlateIcon(),
+						FUIAction(
+						FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::WrapWidgets, BP, Widgets, WidgetClass),
+						FCanExecuteAction()
+						)
+						);
+				}
 			}
 		}
 	}
@@ -358,11 +336,12 @@ void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetB
 
 void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass)
 {
+	const FScopedTransaction Transaction(LOCTEXT("WrapWidgets", "Wrap Widgets"));
+
 	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
 
 	UPanelWidget* NewWrapperWidget = CastChecked<UPanelWidget>(Template->Create(BP->WidgetTree));
 
-	//TODO UMG When wrapping multiple widgets, how will that work?
 	for ( FWidgetReference& Item : Widgets )
 	{
 		int32 OutIndex;
@@ -372,7 +351,7 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 			CurrentParent->Modify();
 			CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
 		}
-		else
+		else if ( Item.GetTemplate() == BP->WidgetTree->RootWidget )
 		{
 			BP->WidgetTree->Modify();
 
@@ -380,6 +359,79 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 		}
 
 		NewWrapperWidget->AddChild(Item.GetTemplate());
+	}
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+}
+
+void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
+{
+	Menu.BeginSection("ReplaceWith", LOCTEXT("WidgetTree_ReplaceWith", "Replace With..."));
+	{
+		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+		{
+			UClass* WidgetClass = *ClassIt;
+			if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
+			{
+				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+				{
+					// Only allow replacement with panels that accept multiple children
+					if ( WidgetClass->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren() )
+					{
+						Menu.AddMenuEntry(
+							WidgetClass->GetDisplayNameText(),
+							FText::GetEmpty(),
+							FSlateIcon(),
+							FUIAction(
+							FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgets, BP, Widgets, WidgetClass),
+							FCanExecuteAction()
+							)
+							);
+					}
+				}
+			}
+		}
+	}
+	Menu.EndSection();
+}
+
+void FWidgetBlueprintEditorUtils::ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ReplaceWidgets", "Replace Widgets"));
+
+	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
+
+	UPanelWidget* NewReplacementWidget = CastChecked<UPanelWidget>(Template->Create(BP->WidgetTree));
+
+	for ( FWidgetReference& Item : Widgets )
+	{
+		if ( UPanelWidget* ExistingPanel = Cast<UPanelWidget>(Item.GetTemplate()) )
+		{
+			ExistingPanel->Modify();
+
+			if ( UPanelWidget* CurrentParent = ExistingPanel->GetParent() )
+			{
+				CurrentParent->Modify();
+				CurrentParent->ReplaceChild(ExistingPanel, NewReplacementWidget);
+			}
+			else if ( Item.GetTemplate() == BP->WidgetTree->RootWidget )
+			{
+				BP->WidgetTree->Modify();
+				BP->WidgetTree->RootWidget = NewReplacementWidget;
+			}
+			else
+			{
+				continue;
+			}
+
+			while ( ExistingPanel->GetChildrenCount() > 0 )
+			{
+				UWidget* Widget = ExistingPanel->GetChildAt(0);
+				Widget->Modify();
+
+				NewReplacementWidget->AddChild(Widget);
+			}
+		}
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
@@ -599,6 +651,34 @@ void FWidgetBlueprintEditorUtils::ImportPropertiesFromText(UObject* Object, cons
 			}
 		}
 	}
+}
+
+bool FWidgetBlueprintEditorUtils::IsUsableWidgetClass(UClass* WidgetClass)
+{
+	if ( WidgetClass->IsChildOf(UWidget::StaticClass()) )
+	{
+		// We aren't interested in classes that are experimental or cannot be instantiated
+		bool bIsExperimental, bIsEarlyAccess;
+		FObjectEditorUtils::GetClassDevelopmentStatus(WidgetClass, bIsExperimental, bIsEarlyAccess);
+		const bool bIsInvalid = WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
+		if ( bIsExperimental || bIsEarlyAccess || bIsInvalid )
+		{
+			return false;
+		}
+
+		// Don't include skeleton classes or the same class as the widget being edited
+		const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+
+		// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
+		if ( bIsSkeletonClass )
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

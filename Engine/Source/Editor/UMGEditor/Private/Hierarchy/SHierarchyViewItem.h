@@ -58,6 +58,9 @@ public:
 	virtual bool CanControlVisibility() const { return false; }
 	virtual void SetIsVisible(bool IsVisible) { }
 
+	virtual bool IsExpanded() const { return true; }
+	virtual void SetExpanded(bool bIsExpanded) { }
+
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) = 0;
 	virtual void UpdateSelection() = 0;
@@ -193,9 +196,16 @@ public:
 		{
 			PreviewWidget->bHiddenInDesigner = !IsVisible;
 		}
+	}
 
-		// Mark the blueprint as modified
-		FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintEditor.Pin()->GetBlueprintObj());
+	virtual bool IsExpanded() const override
+	{
+		return Item.GetTemplate()->bExpandedInDesigner;
+	}
+
+	virtual void SetExpanded(bool bIsExpanded) override
+	{
+		Item.GetTemplate()->bExpandedInDesigner = bIsExpanded;
 	}
 
 protected:

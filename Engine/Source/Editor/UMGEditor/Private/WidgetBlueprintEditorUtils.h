@@ -24,6 +24,8 @@ public:
 
 	static void CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
 
+	static bool IsUsableWidgetClass(UClass* WidgetClass);
+
 public:
 	static void ExportWidgetsToText(TSet<UWidget*> WidgetsToExport, /*out*/ FString& ExportedText);
 
@@ -46,4 +48,8 @@ private:
 	static void BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
 
 	static void WrapWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass);
+
+	static void BuildReplaceWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
+
+	static void ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets, UClass* WidgetClass);
 };

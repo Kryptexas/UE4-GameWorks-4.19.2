@@ -345,23 +345,12 @@ void SPaletteView::BuildClassWidgetList()
 	{
 		UClass* WidgetClass = *ClassIt;
 
-		if ( WidgetClass->IsChildOf(UWidget::StaticClass()) )
-		{	
-			// We aren't interested in classes that are experimental or cannot be instantiated
-			bool bIsExperimental, bIsEarlyAccess;
-			FObjectEditorUtils::GetClassDevelopmentStatus(WidgetClass, bIsExperimental, bIsEarlyAccess);
-			const bool bIsInvalid = WidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
-			if ( bIsExperimental || bIsEarlyAccess || bIsInvalid )
-			{
-				continue;
-			}
-
-			// Don't include skeleton classes or the same class as the widget being edited
-			const bool bIsSkeletonClass = WidgetClass->HasAnyFlags(RF_Transient) && WidgetClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+		if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
+		{
 			const bool bIsSameClass = WidgetClass->GetFName() == ActiveWidgetBlueprintClassName;
 
 			// Check that the asset that generated this class is valid (necessary b/c of a larger issue wherein force delete does not wipe the generated class object)
-			if ( bIsSkeletonClass || bIsSameClass )
+			if ( bIsSameClass )
 			{
 				continue;
 			}

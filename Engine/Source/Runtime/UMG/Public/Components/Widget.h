@@ -125,6 +125,10 @@ public:
 	UPROPERTY()
 	bool bHiddenInDesigner;
 
+	/** Stores the design time flag setting if the widget is expanded inside the designer */
+	UPROPERTY()
+	bool bExpandedInDesigner;
+
 	/** Stores a reference to the asset responsible for this widgets construction. */
 	UPROPERTY(Transient)
 	UObject* WidgetGeneratedBy;
