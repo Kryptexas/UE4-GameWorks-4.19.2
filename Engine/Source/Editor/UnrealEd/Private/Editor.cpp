@@ -385,7 +385,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		!GIsDemoMode &&
 		!IsRunningCommandlet() &&
 		!FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher")) &&
-		!FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher")) ) )
+		!FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher")) &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("Epic Launcher")) ) )
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )

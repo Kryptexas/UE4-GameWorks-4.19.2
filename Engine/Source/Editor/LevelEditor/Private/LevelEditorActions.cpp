@@ -1691,7 +1691,7 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("FALSE")));
 
-			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Unreal Engine Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
+			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 			{
 				if (!DesktopPlatform->OpenLauncher(true, TEXT("-OpenMarket")))
 				{
