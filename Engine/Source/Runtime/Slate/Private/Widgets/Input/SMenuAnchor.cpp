@@ -158,6 +158,8 @@ static FVector2D GetMenuOffsetForPlacement(const FGeometry& AllottedGeometry, EM
 		return FVector2D(AllottedGeometry.GetLocalSize().X - PopupSizeLocalSpace.X, 0.0f);
 	case MenuPlacement_MenuLeft:
 		return FVector2D(-AllottedGeometry.GetLocalSize().X - PopupSizeLocalSpace.X, 0.0f);
+	case MenuPlacement_CenteredBelowAnchor:
+		return FVector2D(-((PopupSizeLocalSpace.X / 2 ) - (AllottedGeometry.GetLocalSize().X / 2)), 0.0f);
 	default:
 		return FVector2D::ZeroVector;
 	}
