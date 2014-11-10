@@ -17,6 +17,9 @@ namespace GitDependencies
 
 		[XmlAttribute]
 		public string Hash;
+
+		[XmlAttribute]
+		public bool IsExecutable;
 	}
 
 	[DebuggerDisplay("{Hash}")]
