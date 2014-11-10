@@ -66,6 +66,9 @@ protected:
 	/** Update the inspector window to show information on the supplied objects */
 	void UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options);
 
+	/** Add this property and all its child properties to SelectedObjectProperties */
+	void AddPropertiesRecursive(UProperty* Property);
+
 	/** Pointer back to the kismet 2 tool that owns us */
 	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
 
@@ -75,7 +78,7 @@ protected:
 	/** Should we currently show the property view */
 	bool bShowInspectorPropertyView;
 
-	/** State of CheckBox representing wether to show only the public variables*/
+	/** State of CheckBox representing whether to show only the public variables*/
 	ESlateCheckBoxState::Type	PublicViewState;
 
 	/** Property viewing widget */

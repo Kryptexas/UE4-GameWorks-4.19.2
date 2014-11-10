@@ -307,6 +307,32 @@ void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObj
 	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
 }
 
+void SKismetInspector::AddPropertiesRecursive(UProperty* Property)
+{
+	if (Property != NULL)
+	{
+		// Add this property
+		SelectedObjectProperties.Add(Property);
+
+		// If this is a struct or an array of structs, recursively add the child properties
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+		UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+		if(	StructProperty != NULL && 
+			StructProperty->Struct != NULL)
+		{
+			for (TFieldIterator<UProperty> StructPropIt(StructProperty->Struct); StructPropIt; ++StructPropIt)
+			{
+				UProperty* InsideStructProperty = *StructPropIt;
+				AddPropertiesRecursive(InsideStructProperty);
+			}
+		}
+		else if( ArrayProperty && ArrayProperty->Inner->IsA<UStructProperty>() )
+		{
+			AddPropertiesRecursive(ArrayProperty->Inner);
+		}
+	}
+}
+
 void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
 	if (!Options.bForceRefresh)
@@ -412,30 +438,7 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 				UProperty* Property = *PropIt;
 				check(Property != NULL);
 
-				SelectedObjectProperties.Add(Property);
-
-				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-				// If 'showing inners' on a struct, add them to the list as well
-				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-				static FName ShowOnlyInners("ShowOnlyInnerProperties");
-				if(	StructProperty != NULL && 
-					StructProperty->Struct != NULL && 
-					StructProperty->HasMetaData(ShowOnlyInners) )
-				{
-					for (TFieldIterator<UProperty> StructPropIt(StructProperty->Struct); StructPropIt; ++StructPropIt)
-					{
-						UProperty* InsideStructProperty = *StructPropIt;
-						check(InsideStructProperty != NULL);
-						SelectedObjectProperties.Add(InsideStructProperty);
-					}
-				}
-				else if( ArrayProperty && ArrayProperty->Inner->IsA<UStructProperty>() )
-				{
-					// Array property inners with complex children should be tested for visibility since the children of the inner could have different visibility requirements
-					SelectedObjectProperties.Add(ArrayProperty->Inner);
-				}
-
-
+				AddPropertiesRecursive(Property);
 			}
 
 			// Attempt to locate a matching property for the current component template
