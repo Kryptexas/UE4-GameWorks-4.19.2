@@ -2008,7 +2008,10 @@ void FEngineLoop::Exit()
 	}
 
 #if !UE_SERVER
-	FEngineFontServices::Destroy();
+	if ( FEngineFontServices::IsInitialized() )
+	{
+		FEngineFontServices::Destroy();
+	}
 #endif
 
 	// close all windows

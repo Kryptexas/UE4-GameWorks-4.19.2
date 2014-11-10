@@ -47,6 +47,11 @@ void FEngineFontServices::Destroy()
 	Instance = nullptr;
 }
 
+bool FEngineFontServices::IsInitialized()
+{
+	return Instance != nullptr;
+}
+
 FEngineFontServices& FEngineFontServices::Get()
 {
 	check(Instance);

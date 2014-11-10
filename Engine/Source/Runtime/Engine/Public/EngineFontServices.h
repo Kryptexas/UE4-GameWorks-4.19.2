@@ -15,6 +15,9 @@ public:
 	/** Destroy the singular instance of this class - must be called from the game thread */
 	static void Destroy();
 
+	/** Check to see if the singular instance of this class is currently initialized and ready */
+	static bool IsInitialized();
+
 	/** Get the singular instance of this class */
 	static FEngineFontServices& Get();
 
