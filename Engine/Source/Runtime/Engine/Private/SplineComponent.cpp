@@ -17,8 +17,8 @@ USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	, bStationaryEndpoints(false)
 	, bClosedLoop(false)
 #if WITH_EDITORONLY_DATA
-	, EditorSelectedSplineSegmentColor(FLinearColor(1.0f, 0.0f, 0.0f))
 	, EditorUnselectedSplineSegmentColor(FLinearColor(1.0f, 1.0f, 1.0f))
+	, EditorSelectedSplineSegmentColor(FLinearColor(1.0f, 0.0f, 0.0f))
 #endif
 {
 	SplineInfo.Points.Reset(10);
