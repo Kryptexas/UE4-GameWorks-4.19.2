@@ -4,6 +4,22 @@
 #pragma once
 #include "SplineComponent.generated.h"
 
+
+
+/** Permitted spline point types for SplineComponent */
+UENUM()
+namespace ESplinePointType
+{
+	enum Type
+	{
+		Linear,
+		Curve,
+		Constant,
+		CurveClamped
+	};
+}
+
+
 /** 
  *	A spline component is a spline shape which can be used for other purposes (e.g. animating objects). It does not contain rendering capabilities itself (outside the editor) 
  *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Blueprint_Splines
@@ -46,6 +62,16 @@ private:
 	bool bClosedLoop;
 
 public:
+#if WITH_EDITORONLY_DATA
+	/** Color of an unselected spline component segment in the editor */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Editor)
+	FLinearColor EditorUnselectedSplineSegmentColor;
+
+	/** Color of a selected spline component segment in the editor */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Editor)
+	FLinearColor EditorSelectedSplineSegmentColor;
+#endif
+
 	// Begin UActorComponent interface.
 	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
@@ -86,6 +112,14 @@ public:
 	/** Move an existing point to a new world location */
 	UFUNCTION(BlueprintCallable, Category = Spline)
 	void SetWorldLocationAtSplinePoint(int32 PointIndex, const FVector& InLocation);
+
+	/** Get the type of a spline point */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	ESplinePointType::Type GetSplinePointType(int32 PointIndex) const;
+
+	/** Specify the type of a spline point */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void SetSplinePointType(int32 PointIndex, ESplinePointType::Type Type);
 
 	/** Get the number of points that make up this spline */
 	UFUNCTION(BlueprintCallable, Category=Spline)

@@ -140,8 +140,8 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 
 		USplineComponent* EditedSplineComp = GetEditedSplineComponent();
 
-		const FColor NormalColor(255, 255, 255);
-		const FColor SelectedColor(255, 0, 0);
+		const FColor NormalColor = SplineComp->EditorUnselectedSplineSegmentColor;
+		const FColor SelectedColor = SplineComp->EditorSelectedSplineSegmentColor;
 		const float GrabHandleSize = 12.0f;
 
 		const FInterpCurveVector& SplineInfo = SplineComp->SplineInfo;

@@ -16,6 +16,10 @@ USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	, Duration(1.0f)
 	, bStationaryEndpoints(false)
 	, bClosedLoop(false)
+#if WITH_EDITORONLY_DATA
+	, EditorSelectedSplineSegmentColor(FLinearColor(1.0f, 0.0f, 0.0f))
+	, EditorUnselectedSplineSegmentColor(FLinearColor(1.0f, 1.0f, 1.0f))
+#endif
 {
 	SplineInfo.Points.Reset(10);
 
@@ -359,6 +363,57 @@ void USplineComponent::SetWorldLocationAtSplinePoint(int32 PointIndex, const FVe
 		UpdateSpline();
 	}
 }
+
+
+ESplinePointType::Type USplineComponent::GetSplinePointType(int32 PointIndex) const
+{
+	if ((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	{
+		switch (SplineInfo.Points[PointIndex].InterpMode)
+		{
+			case CIM_CurveAuto:			return ESplinePointType::Curve;
+			case CIM_CurveAutoClamped:	return ESplinePointType::CurveClamped;
+			case CIM_Linear:			return ESplinePointType::Linear;
+		}
+	}
+
+	return ESplinePointType::Constant;
+}
+
+
+void USplineComponent::SetSplinePointType(int32 PointIndex, ESplinePointType::Type Type)
+{
+	EInterpCurveMode InterpMode = CIM_Constant;
+	switch (Type)
+	{
+		case ESplinePointType::Curve:			InterpMode = CIM_CurveAuto; break;
+		case ESplinePointType::CurveClamped:	InterpMode = CIM_CurveAutoClamped; break;
+		case ESplinePointType::Linear:			InterpMode = CIM_Linear; break;
+	}
+
+	const int32 NumPoints = SplineInfo.Points.Num();
+
+	if ((PointIndex >= 0) && (PointIndex < NumPoints))
+	{
+		SplineInfo.Points[PointIndex].InterpMode = InterpMode;
+
+		if (IsClosedLoop())
+		{
+			// In a closed loop, the first and last points are tied, so update one with the other
+			if (PointIndex == 0)
+			{
+				SplineInfo.Points[NumPoints - 1].InterpMode = InterpMode;
+			}
+			else if (PointIndex == NumPoints - 1)
+			{
+				SplineInfo.Points[0].InterpMode = InterpMode;
+			}
+		}
+
+		UpdateSpline();
+	}
+}
+
 
 int32 USplineComponent::GetNumSplinePoints() const
 {
