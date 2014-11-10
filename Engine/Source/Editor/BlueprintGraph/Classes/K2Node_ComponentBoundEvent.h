@@ -19,6 +19,10 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 	UPROPERTY()
 	FName ComponentPropertyName;
 
+	// Begin UObject interface
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
+	// End UObject interface
+
 	// Begin UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;

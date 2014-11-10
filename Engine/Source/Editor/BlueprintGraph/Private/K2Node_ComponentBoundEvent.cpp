@@ -10,6 +10,13 @@ UK2Node_ComponentBoundEvent::UK2Node_ComponentBoundEvent(const FObjectInitialize
 {
 }
 
+bool UK2Node_ComponentBoundEvent::Modify(bool bAlwaysMarkDirty)
+{
+	CachedNodeTitle.MarkDirty();
+
+	return Super::Modify(bAlwaysMarkDirty);
+}
+
 FText UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (CachedNodeTitle.IsOutOfDate())
