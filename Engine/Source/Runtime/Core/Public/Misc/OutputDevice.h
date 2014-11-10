@@ -234,8 +234,13 @@ namespace ELogTimes
 {
 	enum Type
 	{
+		// Do not display log timestamps
 		None,
+
+		// Display log timestamps in UTC
 		UTC,
+
+		// Display log timestamps in seconds elapsed since GStartTime
 		SinceGStartTime
 	};
 }

@@ -34,6 +34,25 @@ namespace ESearchDir
 	};
 }
 
+/**
+ * Enum that defines how the log times are to be displayed (mirrored from OutputDevice.h).
+ */
+UENUM()
+namespace ELogTimes
+{
+	enum Type
+	{
+		// Do not display log timestamps
+		None UMETA(DisplayName = "None"),
+
+		// Display log timestamps in UTC
+		UTC UMETA(DisplayName = "UTC"),
+
+		// Display log timestamps in seconds elapsed since GStartTime
+		SinceGStartTime UMETA(DisplayName = "Time since application start"),
+	};
+}
+
 /** Generic axis enum (mirrored for native use in Axis.h). */
 UENUM()
 namespace EAxis

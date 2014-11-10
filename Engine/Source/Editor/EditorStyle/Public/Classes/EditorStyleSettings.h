@@ -74,6 +74,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, AdvancedDisplay)
 	uint32 bExpandConfigurationMenus:1;
 
+	/** The display mode for timestamps in the output log */
+	UPROPERTY(EditAnywhere, config, Category=UserInterface)
+	TEnumAsByte<ELogTimes::Type> LogTimestampMode;
+
 public:
 
 	/**

@@ -14,6 +14,7 @@ UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInit
 	PressedSelectionColor = FLinearColor(0.701f, 0.225f, 0.003f);
 
 	bShowFriendlyNames = true;
+	LogTimestampMode = ELogTimes::None;
 }
 
 
