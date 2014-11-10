@@ -23,6 +23,7 @@
 #include "SSearchBox.h"
 
 #include "WidgetBlueprintCompiler.h"
+#include "WidgetBlueprintEditorUtils.h"
 
 #include "Blueprint/UserWidget.h"
 #include "WidgetBlueprint.h"
