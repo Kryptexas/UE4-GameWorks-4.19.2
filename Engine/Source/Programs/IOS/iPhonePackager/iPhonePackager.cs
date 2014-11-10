@@ -224,108 +224,79 @@ namespace iPhonePackager
 							case "-cookonthefly":
 								Config.bCookOnTheFly = true;
 								break;
-							case "-provision":
-								Config.bProvision = true;
-								break;
-							case "-certificate":
-								Config.bCert = true;
-								break;
 						}
 
 						// get the stage dir path
-						if (Arg == "-stagedir")
-						{
+						if (Arg == "-stagedir") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								Config.RepackageStagingDirectory = Arguments[++ArgIndex];
-							}
-							else
-							{
+							if (Arguments.Length > ArgIndex + 1) {
+								Config.RepackageStagingDirectory = Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
-						}
-						else if (Arg == "-config")
-						{
+						} else if (Arg == "-config") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								GameConfiguration = Arguments[++ArgIndex];
-							}
-							else
-							{
+							if (Arguments.Length > ArgIndex + 1) {
+								GameConfiguration = Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
 						}
 						// append a name to the bungle identifier and display name
-						else if (Arg == "-bundlename")
-						{
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								Config.OverrideBundleName = Arguments[++ArgIndex];
-							}
-							else
-							{
+						else if (Arg == "-bundlename") {
+							if (Arguments.Length > ArgIndex + 1) {
+								Config.OverrideBundleName = Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
-						}
-						else if (Arg == "-mac")
-						{
+						} else if (Arg == "-mac") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								Config.OverrideMacName = Arguments[++ArgIndex];
-							}
-							else
-							{
+							if (Arguments.Length > ArgIndex + 1) {
+								Config.OverrideMacName = Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
-						}
-						else if (Arg == "-architecture" || Arg == "-arch")
-						{
+						} else if (Arg == "-architecture" || Arg == "-arch") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								Architecture = "-" + Arguments[++ArgIndex];
-							}
-							else
-							{
+							if (Arguments.Length > ArgIndex + 1) {
+								Architecture = "-" + Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
-						}
-						else if (Arg == "-project")
-						{
+						} else if (Arg == "-project") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								Config.ProjectFile = Arguments[++ArgIndex];
-							}
-							else
-							{
+							if (Arguments.Length > ArgIndex + 1) {
+								Config.ProjectFile = Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
-						}
-						else if (Arg == "-device")
-						{
+						} else if (Arg == "-device") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								Config.DeviceId = Arguments[++ArgIndex];
-							}
-							else
-							{
+							if (Arguments.Length > ArgIndex + 1) {
+								Config.DeviceId = Arguments [++ArgIndex];
+							} else {
 								return false;
 							}
-						}
-						else if (Arg == "-additionalcommandline")
-						{
+						} else if (Arg == "-additionalcommandline") {
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1)
-							{
-								AdditionalCommandline = Arguments[++ArgIndex];
+							if (Arguments.Length > ArgIndex + 1) {
+								AdditionalCommandline = Arguments [++ArgIndex];
+							} else {
+								return false;
 							}
-							else
-							{
+						} else if (Arg == "-provision") {
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1) {
+								Config.Provision = Arguments [++ArgIndex];
+								Config.bProvision = true;
+							} else {
+								return false;
+							}
+						} else if (Arg == "-certificate") {
+							if (Arguments.Length > ArgIndex + 1) {
+							Config.Certificate = Arguments [++ArgIndex];
+								Config.bCert = true;
+							} else {
 								return false;
 							}
 						}
@@ -715,11 +686,11 @@ namespace iPhonePackager
 						GameName = "";
 						if (Config.bProvision)
 						{
-							ToolsHub.TryInstallingMobileProvision();
+							ToolsHub.TryInstallingMobileProvision(Config.Provision, false);
 						}
 						if (Config.bCert)
 						{
-							ToolsHub.TryInstallingCertificate_PromptForKey();
+							ToolsHub.TryInstallingCertificate_PromptForKey(Config.Certificate, false);
 						}
 						break;
 

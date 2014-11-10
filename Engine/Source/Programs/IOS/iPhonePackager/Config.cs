@@ -292,9 +292,19 @@ namespace iPhonePackager
 		public static bool bProvision = false;
 
 		/// <summary>
+		/// provision to be installed
+		/// </summary>
+		public static string Provision = "";
+
+		/// <summary>
 		/// Whether the install should be performed on a certificate
 		/// </summary>
 		public static bool bCert = false;
+
+		/// <summary>
+		/// Certificate to be installed
+		/// </summary>
+		public static string Certificate = "";
 
 		/// <summary>
 		/// An override server Mac name

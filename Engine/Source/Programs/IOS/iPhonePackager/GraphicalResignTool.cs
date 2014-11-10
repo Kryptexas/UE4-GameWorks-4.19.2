@@ -403,13 +403,13 @@ namespace iPhonePackager
 
 		private void ImportCertificateButton3_Click(object sender, EventArgs e)
 		{
-			ToolsHub.TryInstallingCertificate_PromptForKey();
+			ToolsHub.TryInstallingCertificate_PromptForKey(null);
 			RefreshProvisionsList();
 		}
 
 		private void ImportProvisionButton3_Click(object sender, EventArgs e)
 		{
-			ToolsHub.TryInstallingMobileProvision();
+			ToolsHub.TryInstallingMobileProvision(null);
 			RefreshProvisionsList();
 		}
 
