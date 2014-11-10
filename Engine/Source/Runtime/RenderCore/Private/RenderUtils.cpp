@@ -244,7 +244,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+		if (GetFeatureLevel() >= ERHIFeatureLevel::ES3_1)
 		{
 			// Create the texture.
 			FBlackVolumeTextureResourceBulkDataInterface BlackTextureBulkData;
@@ -513,7 +513,7 @@ public:
 FTexture* GBlackCubeArrayTexture = new TGlobalResource<FBlackCubeArrayTexture>;
 
 /*
- 	3 XYZ packed in 4 bytes. (11:11:10 for X:Y:Z)
+	3 XYZ packed in 4 bytes. (11:11:10 for X:Y:Z)
 */
 
 /**
