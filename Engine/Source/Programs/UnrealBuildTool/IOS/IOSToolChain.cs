@@ -98,8 +98,8 @@ namespace UnrealBuildTool
 			{
 				switch (MinVersion)
 				{
-					case "IOS_6":
-						RunTimeIOSVersion = "6.0";
+					case "IOS_61":
+						RunTimeIOSVersion = "6.1";
 						break;
 					case "IOS_7":
 						RunTimeIOSVersion = "7.0";
