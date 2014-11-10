@@ -637,11 +637,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	  if (PlatformInfo->TargetPlatformName != FName("HTML5")) 
 	  { 
 		OptionalParams += TEXT(" -pak");
-
-		if (PackagingSettings->UseOBB_InAPK)
-		{
-			OptionalParams += TEXT(" -obbinapk");
-		}
 	  }
 	}
 

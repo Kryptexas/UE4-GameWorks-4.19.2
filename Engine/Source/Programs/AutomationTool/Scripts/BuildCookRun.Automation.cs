@@ -133,6 +133,11 @@ public class BuildCookRun : BuildCommand
 			}
 		}
 
+        var configCache = new UnrealBuildTool.ConfigCacheIni("Game", Path.GetDirectoryName(ProjectPath));
+        bool obbInAPK = false;
+        configCache.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "UseOBB_InAPK", out obbInAPK);
+        Params.OBBinAPK = obbInAPK;         
+
 		Params.ValidateAndLog();
 		return Params;
 	}

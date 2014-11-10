@@ -89,8 +89,13 @@ public class AndroidPlatform : Platform
 	{
 		string ObbName = GetFinalObbName(ApkName);
 		string PackageName = GetPackageInfo(ApkName, false);
-		return "/mnt/sdcard/obb/" + PackageName + "/" + Path.GetFileName(ObbName);
+		return "obb/" + PackageName + "/" + Path.GetFileName(ObbName);
 	}
+
+    private static string GetStorageQueryCommand()
+    {
+        return "shell \"echo $EXTERNAL_STORAGE\"";
+    }
 
 	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture)
 	{
@@ -156,13 +161,14 @@ public class AndroidPlatform : Platform
 				"set ADB=%ANDROID_HOME%\\platform-tools\\adb.exe",
 				"set DEVICE=",
 				"if not \"%1\"==\"\" set DEVICE=-s %1",
+                "for /f \"delims=\" %%A in ('adb " + GetStorageQueryCommand() +"') do @set STORAGE=%%A",
 				"%ADB% %DEVICE% uninstall " + PackageName,
 				"%ADB% %DEVICE% install " + Path.GetFileName(ApkName),
 				"@if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
-				"%ADB% %DEVICE% shell rm -r /mnt/sdcard/" + Params.ShortProjectName,
-				"%ADB% %DEVICE% shell rm -r /mnt/sdcard/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
-				"%ADB% %DEVICE% shell rm -r /mnt/sdcard/obb/" + PackageName,
-				Params.OBBinAPK || !bHasPakFile ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(LocalObbName) + " " + DeviceObbName,
+				"%ADB% %DEVICE% shell rm -r %STORAGE%/" + Params.ShortProjectName,
+				"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
+				"%ADB% %DEVICE% shell rm -r %STORAGE%/obb/" + PackageName,
+				Params.OBBinAPK || !bHasPakFile ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(LocalObbName) + " %STORAGE%/" + DeviceObbName,
 				Params.OBBinAPK || !bHasPakFile ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 				"goto:eof",
 				":Error",
@@ -348,7 +354,6 @@ public class AndroidPlatform : Platform
         }
 
 		// now we can use the apk to get more info
-		string DeviceObbName = GetDeviceObbName(ApkName);
 		string PackageName = GetPackageInfo(ApkName, false);
 
         // try uninstalling an old app with the same identifier.
@@ -385,14 +390,19 @@ public class AndroidPlatform : Platform
 		string IntermediateCmdLineFile = CombinePaths(SC.StageDirectory, "UE4CommandLine.txt");
 		Project.WriteStageCommandline(IntermediateCmdLineFile, Params, SC);
 
+        // Setup the OBB name and add the storage path (queried from the device) to it
+        string DeviceStorageQueryCommand = GetStorageQueryCommand();
+        ProcessResult Result = Run(CmdEnv.CmdExe, AdbCommand + DeviceStorageQueryCommand, null, ERunOptions.AppMustExist);
+        String StorageLocation = Result.Output.Trim();
+        string DeviceObbName = StorageLocation + "/" + GetDeviceObbName(ApkName);
 
 		// copy files to device if we were staging
 		if (SC.Stage)
 		{
 			// cache some strings
 			string BaseCommandline = AdbCommand + "push";
-			string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
-			string UE4GameRemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
+			string RemoteDir = StorageLocation + "/" + Params.ShortProjectName;
+            string UE4GameRemoteDir = StorageLocation + "/" + Params.ShortProjectName;
 
 			// make sure device is at a clean state
 			Run(CmdEnv.CmdExe, AdbCommand + "shell rm -r " + RemoteDir);
@@ -518,7 +528,7 @@ public class AndroidPlatform : Platform
 		{
 			// cache some strings
 			string BaseCommandline = AdbCommand + "push";
-			string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
+            string RemoteDir = StorageLocation + "/" + Params.ShortProjectName;
 
 			string FinalRemoteDir = RemoteDir;
 			/*
