@@ -181,9 +181,10 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 			auto BPClassA = Cast<const UBlueprintGeneratedClass>(DuplicatedClass);
 			auto BPClassB = Cast<const UBlueprintGeneratedClass>(ClassToReinstance);
 			auto BP = Cast<const UBlueprint>(ClassToReinstance->ClassGeneratedBy);
+			const bool bBPSubClass = (BP && BP->GetClass() != UBlueprint::StaticClass());
 			static const FBoolConfigValueHelper ChangeDefaultValueWithoutReinstancing(TEXT("Kismet"), TEXT("bChangeDefaultValueWithoutReinstancing"), GEngineIni);
 			const bool bTheSameDefaultValues = BP && ClassToReinstanceDefaultValuesCRC && (BP->CrcPreviousCompiledCDO == ClassToReinstanceDefaultValuesCRC);
-			const bool bTheSame = (ChangeDefaultValueWithoutReinstancing || bTheSameDefaultValues) && BPClassA && BPClassB && FStructUtils::TheSameLayout(BPClassA, BPClassB, true);
+			const bool bTheSame = !bBPSubClass && (ChangeDefaultValueWithoutReinstancing || bTheSameDefaultValues) && BPClassA && BPClassB && FStructUtils::TheSameLayout(BPClassA, BPClassB, true);
 			if (bTheSame)
 			{
 				UE_LOG(LogBlueprint, Log, TEXT("BlueprintCompileReinstancer: class '%s' is replaced without reinstancing (the optimized way)."), *GetPathNameSafe(ClassToReinstance));
