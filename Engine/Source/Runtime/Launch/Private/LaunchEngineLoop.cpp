@@ -1820,6 +1820,8 @@ bool FEngineLoop::LoadStartupModules()
 		return false;
 	}
 
+	FModuleManager::Get().InitializeAutoStartupModules();
+
 	return true;
 }
 
@@ -1920,9 +1922,7 @@ int32 FEngineLoop::Init()
 		GIsRequestingExit = true;
 		return 1;
 	}
-
-	FModuleManager::Get().InitializeAutoStartupModules();
-
+	
 	GetMoviePlayer()->WaitForMovieToFinish();
 
 	// initialize automation worker
