@@ -4,6 +4,7 @@
 	HlslExpressionParser.inl - Implementation for parsing hlsl expressions.
 =============================================================================*/
 
+#pragma once
 #include "ShaderCompilerCommon.h"
 #include "HlslParser.h"
 
@@ -331,7 +332,7 @@ namespace CrossCompiler
 			{
 				return EParseResult::Error;
 			}
-			Info.PrintWithTabs(FString::Printf(TEXT("Atom %s\n"), *Token->String));
+			//Info.PrintWithTabs(FString::Printf(TEXT("Atom %s\n"), *Token->String));
 
 			bool bFoundUnary = true;
 			switch (Token->Token)
@@ -367,6 +368,11 @@ namespace CrossCompiler
 				break;
 
 			case EHlslToken::BoolConstant:
+				Scanner.Advance();
+				bFoundUnary = false;
+				bFoundNonUnary = true;
+				break;
+
 			case EHlslToken::UnsignedIntegerConstant:
 				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Atom Int %d\n"), Token->UnsignedInteger);
 				Scanner.Advance();
@@ -396,7 +402,7 @@ namespace CrossCompiler
 				if (Peek1 && ParseGeneralType(Peek1, ETF_BUILTIN_NUMERIC | ETF_USER_TYPES, SymbolScope) == EParseResult::Matched && Peek2 && Peek2->Token == EHlslToken::RightParenthesis)
 				{
 					// Cast
-					Info.PrintWithTabs(FString::Printf(TEXT("Cast %s\n"), *Peek1->String));
+					//Info.PrintWithTabs(FString::Printf(TEXT("Cast %s\n"), *Peek1->String));
 					Scanner.Advance();
 					Scanner.Advance();
 				}
@@ -447,42 +453,42 @@ namespace CrossCompiler
 				// Grrr handle Sampler as a variable name
 				if (ParseGeneralType(Scanner, ETF_SAMPLER_TEXTURE_BUFFER) == EParseResult::Matched)
 				{
-					bFoundUnary = false;
+				bFoundUnary = false;
 					bFoundNonUnary = true;
-					break;
-				}
+				break;
+			}
 				// Handle float3(x,y,z)
 				else if (ParseGeneralType(Scanner, ETF_BUILTIN_NUMERIC) == EParseResult::Matched)
-				{
+			{
 					bFoundUnary = false;
 					//bFoundTypeInitializerList = true;
 					bFoundNonUnary = true;
-					break;
-				}
-				else
-				{
-					return EParseResult::NotMatched;
-				}
-			}
-
-			if (!bFoundUnary)
-			{
 				break;
 			}
+				else
+	{
+					return EParseResult::NotMatched;
+		}
+		}
+
+			if (!bFoundUnary)
+		{
+			break;
+		}
 		}
 		while (Scanner.HasMoreTokens());
 
 		if (!bFoundNonUnary)
-		{
+			{
 			Scanner.SourceError(TEXT("Expected expression!"));
-			return EParseResult::Error;
-		}
+				return EParseResult::Error;
+			}
 
 		// Suffix
 		while (Scanner.HasMoreTokens())
 		{
 			auto* Token = Scanner.GetCurrentToken();
-			Info.PrintWithTabs(FString::Printf(TEXT("Atom %s\n"), *Token->String));
+			//Info.PrintWithTabs(FString::Printf(TEXT("Atom %s\n"), *Token->String));
 			if (Scanner.MatchToken(EHlslToken::LeftSquareBracket))
 			{
 				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Array\n"));
@@ -510,7 +516,7 @@ namespace CrossCompiler
 			}
 			else if (Scanner.MatchToken(EHlslToken::LeftParenthesis))
 			{
-				Info.PrintWithTabs(TEXT("FunctionCall (\n"));
+				//Info.PrintWithTabs(TEXT("FunctionCall (\n"));
 				bool bFirst = true;
 				bool bFoundRightParenthesis = false;
 				while (Scanner.HasMoreTokens())

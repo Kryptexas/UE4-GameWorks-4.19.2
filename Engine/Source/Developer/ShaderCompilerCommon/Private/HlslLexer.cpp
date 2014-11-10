@@ -1,5 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// HlslLexer.cpp - Implementation for scanning & tokenizing hlsl
+
+/*=============================================================================
+	HlslLexer.cpp - Implementation for scanning & tokenizing hlsl
+=============================================================================*/
 
 
 #include "ShaderCompilerCommon.h"
@@ -886,9 +889,9 @@ namespace CrossCompiler
 	inline void FHlslScanner::AddToken(const FHlslToken& Token, const FTokenizer& Tokenizer)
 	{
 		int32 TokenIndex = Tokens.Add(Token);
-		Tokens[TokenIndex].SourceFilename = &SourceFilenames.Last();
-		Tokens[TokenIndex].SourceLine = Tokenizer.Line;
-		Tokens[TokenIndex].SourceColumn = (int32)(Tokenizer.Current - Tokenizer.CurrentLineStart) + 1;
+		Tokens[TokenIndex].SourceInfo.Filename = &SourceFilenames.Last();
+		Tokens[TokenIndex].SourceInfo.Line = Tokenizer.Line;
+		Tokens[TokenIndex].SourceInfo.Column = (int32)(Tokenizer.Current - Tokenizer.CurrentLineStart) + 1;
 	}
 
 	void FHlslScanner::Clear(const FString& Filename)
@@ -1059,8 +1062,8 @@ namespace CrossCompiler
 		if (CurrentToken < (uint32)Tokens.Num())
 		{
 			const auto& Token = Tokens[CurrentToken];
-			check(Token.SourceFilename);
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **Token.SourceFilename, Token.SourceLine, Token.SourceColumn, *Error);
+			check(Token.SourceInfo.Filename);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **Token.SourceInfo.Filename, Token.SourceInfo.Line, Token.SourceInfo.Column, *Error);
 		}
 		else
 		{

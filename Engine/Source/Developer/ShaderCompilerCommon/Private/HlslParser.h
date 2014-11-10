@@ -19,6 +19,7 @@ namespace CrossCompiler
 
 	namespace Parser
 	{
+		// Returns true if successfully parsed
 		bool Parse(const FString& Input, const FString& Filename);
 	}
 }

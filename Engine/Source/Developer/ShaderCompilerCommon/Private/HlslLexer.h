@@ -246,6 +246,15 @@ namespace CrossCompiler
 		BoolConstant,
 	};
 
+	struct FSourceInfo
+	{
+		FString* Filename;
+		int32 Line;
+		int32 Column;
+
+		FSourceInfo() : Filename(nullptr), Line(0), Column(0) {}
+	};
+
 	struct FHlslToken
 	{
 		EHlslToken Token;
@@ -253,15 +262,13 @@ namespace CrossCompiler
 		uint32 UnsignedInteger;
 		float Float;
 
-		FString* SourceFilename;
-		int32 SourceLine;
-		int32 SourceColumn;
+		FSourceInfo SourceInfo;
 
-		explicit FHlslToken(const FString& Identifier) : Token(EHlslToken::Identifier), String(Identifier), UnsignedInteger(0), Float(0), SourceFilename(nullptr), SourceLine(0), SourceColumn(0) { }
-		explicit FHlslToken(EHlslToken InToken, const FString& Identifier) : Token(InToken), String(Identifier), UnsignedInteger(0), Float(0), SourceFilename(nullptr), SourceLine(0), SourceColumn(0) { }
-		explicit FHlslToken(uint32 InUnsignedInteger) : Token(EHlslToken::UnsignedIntegerConstant), UnsignedInteger(InUnsignedInteger), Float(0), SourceFilename(nullptr), SourceLine(0), SourceColumn(0) { }
-		explicit FHlslToken(float InFloat) : Token(EHlslToken::FloatConstant), UnsignedInteger(0), Float(InFloat), SourceFilename(nullptr), SourceLine(0), SourceColumn(0) { }
-		explicit FHlslToken(bool bInValue) : Token(EHlslToken::BoolConstant), UnsignedInteger(bInValue ? 1 : 0), Float(0), SourceFilename(nullptr), SourceLine(0), SourceColumn(0) { }
+		explicit FHlslToken(const FString& Identifier) : Token(EHlslToken::Identifier), String(Identifier), UnsignedInteger(0), Float(0) { }
+		explicit FHlslToken(EHlslToken InToken, const FString& Identifier) : Token(InToken), String(Identifier), UnsignedInteger(0), Float(0) { }
+		explicit FHlslToken(uint32 InUnsignedInteger) : Token(EHlslToken::UnsignedIntegerConstant), UnsignedInteger(InUnsignedInteger), Float(0) { }
+		explicit FHlslToken(float InFloat) : Token(EHlslToken::FloatConstant), UnsignedInteger(0), Float(InFloat) { }
+		explicit FHlslToken(bool bInValue) : Token(EHlslToken::BoolConstant), UnsignedInteger(bInValue ? 1 : 0), Float(0) { }
 	};
 
 	class FHlslScanner
