@@ -866,6 +866,7 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 			NumTravellingPlayers--;
 			PC->bPlayerIsWaiting = true;
 			PC->ChangeState(NAME_Spectating);
+			PC->ClientGotoState(NAME_Spectating);
 		}
 	}
 	else
