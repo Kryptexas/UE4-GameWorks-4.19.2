@@ -11,13 +11,26 @@ class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 
 public:
 
-	/**  */
-	UFUNCTION(BlueprintPure, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	/**
+	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
+	 */
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
 	static float GetViewportScale(UObject* WorldContextObject);
 
-	/**  */
-	UFUNCTION(BlueprintPure, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	/**
+	 * Gets the size of the game viewport.
+	 */
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
 	static FVector2D GetViewportSize(UObject* WorldContextObject);
+
+	/**
+	 * Gets the mouse position of the player controller, scaled by the DPI.  If you're trying to go from raw mouse screenspace coordinates
+	 * to fullscreen widget space, you'll need to transform the mouse into DPI Scaled space.  This function performs that scaling.
+	 *
+	 * MousePositionScaledByDPI = MousePosition * (1 / ViewportScale).
+	 */
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport")
+	static bool GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY);
 
 	/**
 	 * Gets the slot object on the child widget as a Canvas Slot, allowing you to manipulate layout information.

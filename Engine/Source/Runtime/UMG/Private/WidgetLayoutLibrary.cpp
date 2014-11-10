@@ -32,6 +32,20 @@ float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
 	return 1;
 }
 
+bool UWidgetLayoutLibrary::GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY)
+{
+	if ( Player && Player->GetMousePosition(LocationX, LocationY) )
+	{
+		float Scale = UWidgetLayoutLibrary::GetViewportScale(Player);
+		LocationX = LocationX * ( 1.0f / Scale );
+		LocationY = LocationY * ( 1.0f / Scale );
+
+		return true;
+	}
+
+	return false;
+}
+
 FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
