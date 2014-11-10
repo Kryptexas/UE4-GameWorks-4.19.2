@@ -1,42 +1,39 @@
-Welcome to the UE 4.6 source code!
-==================================
+Unreal Engine
+=============
 
-This branch contains source code for the **Unreal Engine 4.6 preview release**. 
+With the Unreal Engine source code you can build the Unreal Editor for Windows and Mac, compile Unreal Engine games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux,
+and build tools like Unreal Lightmass and Unreal Frontend. Modify them in any way you can imagine, and share your changes with others! 
 
-With the UE4 source code, you can modify the engine and tools in any way imaginable and share your changes with others! You can build the editor 
-for Windows and Mac, and compile games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux.  Source code for all tools is included as well, 
-such as Unreal Lightmass and Unreal Frontend.
+Release branches (such as this one) are extensively tested by our QA team and make a great starting point for learning the engine or
+making your own games. Battle-hardened developers may be interested to track [live changes](https://github.com/EpicGames/UnrealEngine/commits/master) 
+by our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) or stable builds verified by our QA team in the 
+[promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted).
 
-We're also publishing bleeding edge changes from our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) on GitHub.  Here you can 
-see [live commits](https://github.com/EpicGames/UnrealEngine/commits/master) from Epic programmers along with integrated code submissions from the community. This branch is 
-unstable and may not even compile, though we periodically tag [preview releases](https://github.com/EpicGames/UnrealEngine/releases/tag/latest-preview) which
-receive basic testing and have matching dependencies attached.
+We have a heap of documentation available for the engine on the web. If you're looking for the answer to something, you may want to start here: 
 
-We recommend you work with a versioned release such as this one.  The master branch contains unstable and possibly untested code,
-but it should be a great reference for new developments, or for spot merging bug fixes.  Use it at your own risk.  
-
-See also:
-
-* [Engine source and GitHub on the Unreal Engine forums](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion)
 * [Unreal Engine Programming Guide](https://docs.unrealengine.com/latest/INT/Programming/index.html)
 * [Unreal Engine API Documentation](https://docs.unrealengine.com/latest/INT/API/index.html)
+* [Engine source and GitHub on the Unreal Engine forums](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion)
 
+If you need more, just ask. A lot of Epic developers hang out on the forums or AnswerHub, and we're proud to be part of a well-meaning, friendly and 
+welcoming community of thousands. Make yourself at home, don't feel afraid to ask, and don't feel nervous to challenge the status quo. 
+We don't like egos, and we want to do great stuff together.
 
 
 Getting up and running
 ----------------------
 
-Here is the fun part! The steps below will take you through cloning your own private fork, then compiling and running the editor yourself. 
+The steps below will take you through cloning your own private fork, then compiling and running the editor yourself:
 
 ### Windows
 
 1. Install **[GitHub for Windows](https://windows.github.com/)** then **fork our repository** and **clone it to your computer**. 
 
-   To use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles.
-   
-   If you'd prefer not to use Git at all, you can also [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
+   If you'd rather use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles.
+   If you'd prefer not to use Git at all, [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
 
-1. Install **Visual Studio 2013**. Any desktop edition of Visual Studio 2013 will do, including the free version - [Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=40787).
+1. Install **Visual Studio 2013** if you don't already have it.
+   Any desktop edition of Visual Studio 2013 will do, including the free version: [Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=40787).
 
 1. Open your source folder in Explorer and run **Setup.bat**. This will download binary content for the engine, as well as installing prerequisites
    and setting up Unreal file associations. On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
@@ -45,9 +42,8 @@ Here is the fun part! The steps below will take you through cloning your own pri
 
 1. Load the project into Visual Studio by double-clicking on the **UE4.sln** file.
 
-1. It's time to **compile the editor**!  In Visual Studio, make sure your solution configuration is set to **Development Editor**, and your solution 
-   platform is set to **Win64**.  Right click on the **UE4** target and select **Build**.  It will take between 15 and 40 minutes to finish compiling,
-   depending on your system specs.
+1. In Visual Studio, set your solution configuration to **Development Editor** and your solution platform to **Win64**.  
+   Right click on the **UE4** target and select **Build**.  It will take between 15 and 40 minutes to finish compiling, depending on your system specs.
 
 1. After compiling finishes, you can load the editor from Visual Studio by setting your startup project to **UE4** and pressing **F5** to debug.
 
@@ -87,7 +83,7 @@ Here is the fun part! The steps below will take you through cloning your own pri
 
 1. Both cross-compiling and native builds are supported. 
 
-   **Cross-compiling** is handy when you are a Windows (Mac support planned too) developer who wants to package your game for Linux with minimal hassle, and it requires a [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to be installed (see the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux)). Note that you will also need [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/latest-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder.
+   **Cross-compiling** is handy when you are a Windows (Mac support planned too) developer who wants to package your game for Linux with minimal hassle, and it requires a [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to be installed (see the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux)).
 
    **Native compilation** is discussed in [a separate README](https://github.com/EpicGames/UnrealEngine/blob/4.6/Engine/Build/BatchFiles/Linux/README.md) and [community wiki page](https://wiki.unrealengine.com/Building_On_Linux). Downloading the dependencies has now been automated, so you will only need to clone the repo and run **GenerateProjectFiles.sh** (provided that you have OAUTH_TOKEN set to your personal access token, see the above README for details).
 
@@ -111,8 +107,8 @@ Additional Notes
 
 Visual Studio 2012 is supported by the Windows toolchain, though Visual Studio 2013 is recommended.
 
-The first time you start the editor from a fresh source build, you may experience long load times.  This only happens on the first 
-run as the engine optimizes content for the platform and fills the _derived data cache_.
+The first time you start the editor from a fresh source build, you may experience long load times. 
+The engine is optimizing content for your platform to the _derived data cache_, and it should only happen once.
 
 Your private forks of the Unreal Engine code are associated with your GitHub account permissions.
 If you unsubscribe or switch GitHub user names, you'll need to re-fork and upload your changes from a local copy. 
