@@ -8,7 +8,6 @@
 #include "AssetThumbnail.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Runtime/AssetRegistry/Public/AssetData.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "PropertyHandleImpl.h"
 #include "DelegateFilter.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
@@ -325,12 +324,9 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 
 	if(bIsActor)
 	{
-		TSharedPtr<SceneOutliner::FOutlinerFilters> ActorFilters = MakeShareable( new SceneOutliner::FOutlinerFilters );
-		ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ) ) ) );
-
 		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object),
 																	 bAllowClear,
-																	 ActorFilters,
+																	 FOnShouldFilterActor::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ),
 																	 FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected),
 																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ),
 																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );

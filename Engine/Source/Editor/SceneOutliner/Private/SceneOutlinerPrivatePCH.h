@@ -15,4 +15,3 @@
 #include "SceneOutlinerModule.h"
 #include "SSceneOutliner.h"
 #include "SOutlinerTreeView.h"
-#include "SSceneOutlinerItemWidget.h"

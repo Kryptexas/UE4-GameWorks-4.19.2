@@ -16,7 +16,6 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/BSPOps.h"
 #include "Editor/LevelEditor/Public/DlgDeltaTransform.h"

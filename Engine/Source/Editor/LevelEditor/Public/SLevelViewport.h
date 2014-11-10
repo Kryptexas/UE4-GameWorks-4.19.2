@@ -210,7 +210,7 @@ public:
 	/**
 	 * @return a new custom column for a scene outliner that indicates whether each actor is locked to this viewport
 	 */
-	TSharedRef< class ISceneOutlinerColumn > CreateActorLockSceneOutlinerColumn( const TWeakPtr< class ISceneOutliner >& SceneOutliner ) const;
+	TSharedRef< class ISceneOutlinerColumn > CreateActorLockSceneOutlinerColumn( class ISceneOutliner& SceneOutliner ) const;
 
 	/** Called when Preview Selected Cameras preference is changed.*/
 	void OnPreviewSelectedCamerasChange();

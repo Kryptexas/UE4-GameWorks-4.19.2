@@ -4,147 +4,164 @@
 
 #include "IFilter.h"
 #include "FilterCollection.h"
-#include "DelegateFilter.h"
+#include "ITreeItem.h"
+
+#include "FolderTreeItem.h"
+#include "ActorTreeItem.h"
+#include "WorldTreeItem.h"
+#include "LevelBlueprintTreeItem.h"
 
 namespace SceneOutliner
 {
-	/** Helper typedefs to aid in creation of filter predicates */
-	typedef TDelegateFilter< const AActor* const >::FPredicate FActorFilterPredicate;
-	typedef TDelegateFilter< FName >::FPredicate FFolderFilterPredicate;
 
-	/** Proxy type that is passed to the filters to check whether something should be shown or not */
-	struct FOutlinerFilterProxy
+	/** Enum to specify how items that are not explicitly handled by this filter should be managed */
+	enum class EDefaultFilterBehaviour : uint8 { Pass, Fail };
+
+	/** A filter that can be applied to any type in the tree */
+	class FOutlinerFilter : public ITreeItemVisitor, public IFilter<const ITreeItem&>
 	{
-		/** The actor to filter, null for folders */
-		const AActor* Actor;
+	public:
 
-		/** The folder to filter */
-		FName FolderPath;
+		/** Event that is fired if this filter changes */
+		DECLARE_DERIVED_EVENT(FOutlinerFilter, IFilter<const ITreeItem&>::FChangedEvent, FChangedEvent);
+		virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
 
-		/** Constructor for filtering the specified actor */
-		FOutlinerFilterProxy(const AActor* InActor)
-			: Actor(InActor)
-			, FolderPath(Actor->GetFolderPath())
+	protected:
+
+		/**	The event that broadcasts whenever a change occurs to the filter */
+		FChangedEvent ChangedEvent;
+
+		/** Default result of the filter when not overridden in derived classes */
+		const EDefaultFilterBehaviour DefaultBehaviour;
+		
+		/** Constructor to specify the default result of a filter */
+		FOutlinerFilter(EDefaultFilterBehaviour InDefaultBehaviour = EDefaultFilterBehaviour::Pass) : DefaultBehaviour(InDefaultBehaviour) {}
+
+		/** Overridden in derived types to filter actors */
+		virtual bool PassesFilter(const AActor* Actor) const { return DefaultBehaviour == EDefaultFilterBehaviour::Pass; }
+		
+		/** Overridden in derived types to filter worlds */
+		virtual bool PassesFilter(const UWorld* World) const { return DefaultBehaviour == EDefaultFilterBehaviour::Pass; }
+		
+		/** Overridden in derived types to filter level blueprints */
+		virtual bool PassesFilter(const FLevelBlueprintHandle& LevelBlueprint) const { return DefaultBehaviour == EDefaultFilterBehaviour::Pass; }
+
+		/** Overridden in derived types to filter folders */
+		virtual bool PassesFilter(FName Folder) const { return DefaultBehaviour == EDefaultFilterBehaviour::Pass; }
+
+	private:
+
+		/** Transient result from the filter operation. Only valid until the next invocation of the filter. */
+		mutable bool bTransientFilterResult;
+
+		virtual void Visit(const FActorTreeItem& ActorItem) const override
+		{
+			if (const AActor* Actor = ActorItem.Actor.Get())
+			{
+				bTransientFilterResult = PassesFilter(Actor);
+			}
+			else
+			{
+				bTransientFilterResult = false;
+			}
+		}
+
+		virtual void Visit(const FWorldTreeItem& WorldItem) const override
+		{
+			if (const UWorld* World = WorldItem.World.Get())
+			{
+				bTransientFilterResult = PassesFilter(World);
+			}
+			else
+			{
+				bTransientFilterResult = false;
+			}
+		}
+
+		virtual void Visit(const FLevelBlueprintTreeItem& LevelBlueprintItem) const override
+		{
+			bTransientFilterResult = PassesFilter(LevelBlueprintItem.Handle);
+		}
+
+		virtual void Visit(const FFolderTreeItem& FolderItem) const override
+		{
+			bTransientFilterResult = PassesFilter(FolderItem.Path);
+		}
+
+		/** Check whether the specified item passes our filter */
+		virtual bool PassesFilter( const ITreeItem& InItem ) const override
+		{
+			InItem.Visit(*this);
+			return bTransientFilterResult;
+		}
+	};
+
+	DECLARE_DELEGATE_RetVal_OneParam( bool, FActorFilterPredicate, const AActor* );
+	DECLARE_DELEGATE_RetVal_OneParam( bool, FWorldFilterPredicate, const UWorld* );
+	DECLARE_DELEGATE_RetVal_OneParam( bool, FLevelBlueprintFilterPredicate, const FLevelBlueprintHandle& );
+	DECLARE_DELEGATE_RetVal_OneParam( bool, FFolderFilterPredicate, FName );
+
+	/** Predicate based filter for the outliner */
+	struct FOutlinerPredicateFilter : public FOutlinerFilter
+	{
+		/** Predicate used to filter actors */
+		mutable FActorFilterPredicate	ActorPred;
+		/** Predicate used to filter worlds */
+		mutable FWorldFilterPredicate	WorldPred;
+		/** Predicate used to filter Folders */
+		mutable FFolderFilterPredicate	FolderPred;
+		/** Predicate used to filter level blueprints */
+		mutable FLevelBlueprintFilterPredicate LevelBlueprintPred;
+
+		FOutlinerPredicateFilter(FActorFilterPredicate InActorPred, EDefaultFilterBehaviour InDefaultBehaviour)
+			: FOutlinerFilter(InDefaultBehaviour)
+			, ActorPred(InActorPred)
 		{}
 
-		/** Constructor for filtering the specified folder path */
-		FOutlinerFilterProxy(FName InFolder)
-			: Actor(nullptr), FolderPath(InFolder)
+		FOutlinerPredicateFilter(FWorldFilterPredicate InWorldPred, EDefaultFilterBehaviour InDefaultBehaviour)
+			: FOutlinerFilter(InDefaultBehaviour)
+			, WorldPred(InWorldPred)
 		{}
+
+		FOutlinerPredicateFilter(FFolderFilterPredicate InFolderPred, EDefaultFilterBehaviour InDefaultBehaviour)
+			: FOutlinerFilter(InDefaultBehaviour)
+			, FolderPred(InFolderPred)
+		{}
+
+		FOutlinerPredicateFilter(FLevelBlueprintFilterPredicate InLevelBpPred, EDefaultFilterBehaviour InDefaultBehaviour)
+			: FOutlinerFilter(InDefaultBehaviour)
+			, LevelBlueprintPred(InLevelBpPred)
+		{}
+
+		virtual bool PassesFilter(const AActor* Actor) const override
+		{
+			return ActorPred.IsBound() ? ActorPred.Execute(Actor) : DefaultBehaviour == EDefaultFilterBehaviour::Pass;
+		}
+
+		virtual bool PassesFilter(const UWorld* World) const override
+		{
+			return WorldPred.IsBound() ? WorldPred.Execute(World) : DefaultBehaviour == EDefaultFilterBehaviour::Pass;
+		}
+
+		virtual bool PassesFilter(const FLevelBlueprintHandle& Handle) const override
+		{
+			return LevelBlueprintPred.IsBound() ? LevelBlueprintPred.Execute(Handle) : DefaultBehaviour == EDefaultFilterBehaviour::Pass;
+		}
+
+		virtual bool PassesFilter(FName Folder) const override
+		{
+			return FolderPred.IsBound() ? FolderPred.Execute(Folder) : DefaultBehaviour == EDefaultFilterBehaviour::Pass;
+		}
 	};
 
 	/** Scene outliner filter class. This class abstracts the filtering of both actors and folders and allows for filtering on both types */
-	struct FOutlinerFilters : public TFilterCollection<const FOutlinerFilterProxy&>
+	struct FOutlinerFilters : public TFilterCollection<const ITreeItem&>
 	{
-		/** Check if the specified object matches the specified folder filter */
-		static bool ProxyPassesFilter(const FOutlinerFilterProxy& Proxy, TSharedPtr<IFilter<FName>> Filter)
+		/** Add a filter predicate to this filter collection */
+		template<typename T>
+		void AddFilterPredicate(T Predicate, EDefaultFilterBehaviour InDefaultBehaviour = EDefaultFilterBehaviour::Fail)
 		{
-			return Filter->PassesFilter(Proxy.FolderPath);
-		}
-
-		/** Check if the specified object matches the specified actor filter */
-		static bool ProxyPassesFilter(const FOutlinerFilterProxy& Proxy, TSharedPtr<IFilter<const AActor* const>> Filter)
-		{
-			return !Proxy.Actor || Filter->PassesFilter(Proxy.Actor);
-		}
-
-		/** Base class for proxy delegates */
-		struct ProxyBase : IFilter<const FOutlinerFilterProxy&>
-		{
-			/** Virtual functions to test whether the wrapped filter matches the specified filter. Used for removal */
-			virtual bool MatchesWrappedFilter(TSharedPtr<IFilter<FName>>) const					{ return false; }
-			virtual bool MatchesWrappedFilter(TSharedPtr<IFilter<const AActor* const>>) const	{ return false; }
-		};
-
-		/** Derived proxy wrapper. This proxy executes the wrapped delegate with the correct type.
-			Currently supported TFilterTypes are FName and const AActor* const.
-		 */
-		template<class TFilterType>
-		struct ProxyFilter : ProxyBase
-		{
-			typedef TSharedPtr<IFilter<TFilterType>> TFilterPtr;
-
-			/** Constructor */
-			ProxyFilter(TFilterPtr InFilter) : Filter(InFilter) {}
-
-			/** Returns whether the specified Item passes the Filter's restrictions */
-			virtual bool PassesFilter(const FOutlinerFilterProxy& InItem) const override
-			{
-				return ProxyPassesFilter(InItem, Filter);
-			}
-
-			/** Get the on changed event - does nothing for this wrapper */
-			virtual FChangedEvent& OnChanged() override
-			{
-				return ChangedEvent;
-			}
-
-			/** Override the relevant function that matches our type */
-			virtual bool MatchesWrappedFilter(TFilterPtr WrappedFilter) const override
-			{
-				return WrappedFilter == Filter;
-			}
-
-			TFilterPtr Filter;
-			FChangedEvent ChangedEvent;
-		};
-
-		/** Meta template used to extract the filter type from a pointer or raw ptr proxy (to support MakeShareable) */
-		template <class> struct TGetFilterType;
-		template <class X, template<class, ESPMode> class TPtr, ESPMode E> struct TGetFilterType<TPtr<X, E>> { typedef typename X::ItemType Type; };
-		template <class X, template<class> class TPtr> struct TGetFilterType<TPtr<X>> { typedef typename X::ItemType Type; };
-
-		/** Add a custom filter to this collection.
-			Example usage:
-				struct FMyFilterType : public IFilter<const AActor* const> {...}
-				Filters.Add(MakeSareable(new FMyFilterType));
-		*/
-		template<class T>
-		void Add(T InFilter)
-		{
-			typedef ProxyFilter<typename TGetFilterType<T>::Type> TProxyType;
-
-			TSharedPtr<TProxyType> NewProxy(new TProxyType(InFilter));
-			NewProxy->Filter->OnChanged().AddSP(this, &FOutlinerFilters::OnChildFilterChanged);
-			TFilterCollection::Add(NewProxy);
-		}
-		
-		/** Add an actor filter predicate to this filter collection */
-		void AddFilterPredicate(SceneOutliner::FActorFilterPredicate Predicate)
-		{
-			Add(MakeShareable(new TDelegateFilter<const AActor* const>(Predicate)));
-		}
-
-		/** Add a folder filter predicate to this filter collection */
-		void AddFilterPredicate(SceneOutliner::FFolderFilterPredicate Predicate)
-		{
-			Add(MakeShareable(new TDelegateFilter<FName>(Predicate)));
-		}
-
-		/** Remove the specified wrapped filter from this collection */
-		template<class T>
-		void Remove(TSharedPtr<T> InFilter)
-		{
-			TSharedPtr<IFilter<typename T::ItemType>> InBaseFilter = InFilter;
-
-			InFilter->OnChanged().RemoveAll(this);
-
-			TArray<TSharedPtr<ProxyBase>> FiltersToRemove;
-			for (const auto& Child : ChildFilters)
-			{
-				const TSharedPtr<ProxyBase> ProxyChild = StaticCastSharedPtr<ProxyBase>(Child);
-				if (ProxyChild->MatchesWrappedFilter(InBaseFilter))
-				{
-					FiltersToRemove.Add(ProxyChild);
-				}
-			}
-			if (FiltersToRemove.Num())
-			{
-				for (const auto& Filter : FiltersToRemove)
-				{
-					TFilterCollection::Remove(Filter);
-				}
-			}
+			Add(MakeShareable(new FOutlinerPredicateFilter(Predicate, InDefaultBehaviour)));
 		}
 	};
 }

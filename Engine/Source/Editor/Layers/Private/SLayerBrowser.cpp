@@ -5,6 +5,7 @@
 #include "SLayerBrowser.h"
 #include "SDockTab.h"
 #include "SSearchBox.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 
 #define LOCTEXT_NAMESPACE "LayerBrowser"
 
@@ -118,7 +119,9 @@ void SLayerBrowser::Construct(const FArguments& InArgs)
 	//////////////////////////////////////////////////////////////////////////
 	//	Layer Contents Section
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked< FSceneOutlinerModule >("SceneOutliner");
-	FSceneOutlinerInitializationOptions InitOptions;
+	
+	using namespace SceneOutliner;
+	FInitializationOptions InitOptions;
 	{
 		InitOptions.Mode = ESceneOutlinerMode::ActorBrowsing;
 
@@ -126,7 +129,14 @@ void SLayerBrowser::Construct(const FArguments& InArgs)
 		InitOptions.bShowHeaderRow = false;
 		InitOptions.bShowParentTree = false;
 		InitOptions.CustomDelete = FCustomSceneOutlinerDeleteDelegate::CreateSP(this, &SLayerBrowser::RemoveActorsFromSelectedLayer);
-		InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP(this, &SLayerBrowser::CreateCustomLayerColumn);
+
+		// Outliner Gutter
+		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Gutter(), FColumnInfo(EColumnVisibility::Visible, 0) );
+		// Actor Label
+		InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 10) );
+		// Layer Contents
+		InitOptions.ColumnMap.Add(FSceneOutlinerLayerContentsColumn::GetID(), FColumnInfo(SceneOutliner::EColumnVisibility::Visible, 20,
+			FCreateSceneOutlinerColumn::CreateSP( this, &SLayerBrowser::CreateCustomLayerColumn )) );
 
 		InitOptions.Filters->Add(SelectedLayersFilter);
 	}

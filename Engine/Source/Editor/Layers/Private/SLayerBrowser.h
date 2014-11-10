@@ -176,7 +176,7 @@ private:
 		SelectedLayerViewModel->RemoveActors( Actors );
 	}
 
-	TSharedRef< ISceneOutlinerColumn > CreateCustomLayerColumn( const TWeakPtr< ISceneOutliner >& SceneOutliner ) const
+	TSharedRef< ISceneOutlinerColumn > CreateCustomLayerColumn( ISceneOutliner& SceneOutliner ) const
 	{
 		return MakeShareable( new FSceneOutlinerLayerContentsColumn( SelectedLayerViewModel.ToSharedRef() ) );
 	}

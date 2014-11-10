@@ -370,7 +370,7 @@ void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<SceneOutline
 {
 	struct Local
 	{
-		static bool IsFilteredActor( const AActor* const Actor, TSharedRef<FPropertyEditor> PropertyEditor )
+		static bool IsFilteredActor( const AActor* Actor, TSharedRef<FPropertyEditor> PropertyEditor )
 		{
 			const TSharedRef<FPropertyNode> PropertyNode = PropertyEditor->GetPropertyNode();
 			UProperty* NodeProperty = PropertyNode->GetProperty();
@@ -384,7 +384,7 @@ void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<SceneOutline
 		}
 	};
 
-	OutFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &Local::IsFilteredActor, AsShared() ) ) ) );
+	OutFilters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &Local::IsFilteredActor, AsShared() ) );
 }
 
 void FPropertyEditor::OnResetToDefault()

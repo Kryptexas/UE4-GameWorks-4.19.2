@@ -30,6 +30,7 @@ FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, c
 
 // Static member definitions
 FOnActorFolderCreate	FActorFolders::OnFolderCreate;
+FOnActorFolderMove		FActorFolders::OnFolderMove;
 FOnActorFolderDelete	FActorFolders::OnFolderDelete;
 FActorFolders*			FActorFolders::Singleton;
 
@@ -405,6 +406,7 @@ bool FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewP
 					// Otherwise use default properties
 					FoldersInWorld.Folders.Add(NewFolder);
 				}
+				OnFolderMove.Broadcast(World, Path, NewFolder);
 				OnFolderCreate.Broadcast(World, NewFolder);
 			}
 			RenamedFolders.Add(Path);

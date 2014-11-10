@@ -4,7 +4,7 @@
 #include "PropertyEditor.h"
 #include "PropertyNode.h"
 #include "ObjectPropertyNode.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 
 #define LOCTEXT_NAMESPACE "PropertySceneOutliner"
 
@@ -53,7 +53,7 @@ TSharedRef<SWidget> SPropertySceneOutliner::OnGenerateSceneOutliner()
 {
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::Get().LoadModuleChecked<FSceneOutlinerModule>(TEXT("SceneOutliner"));
 
-	FSceneOutlinerInitializationOptions InitOptions;
+	SceneOutliner::FInitializationOptions InitOptions;
 	InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
 	OnGetActorFilters.ExecuteIfBound( InitOptions.Filters );
 

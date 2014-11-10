@@ -7,6 +7,7 @@
 /** Multicast delegates for broadcasting various folder events */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorFolderCreate, UWorld&, FName);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnActorFolderDelete, UWorld&, FName);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActorFolderMove, UWorld&, FName /* src */, FName /* dst */);
 
 USTRUCT()
 struct FActorFolderProps
@@ -59,6 +60,7 @@ struct UNREALED_API FActorFolders : public FGCObject
 
 	/** Folder creation and deletion events. Called whenever a folder is created or deleted in a world. */
 	static FOnActorFolderCreate OnFolderCreate;
+	static FOnActorFolderMove 	OnFolderMove;
 	static FOnActorFolderDelete OnFolderDelete;
 
 	/** Check if the specified path is a child of the specified parent */

@@ -13,7 +13,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "SLevelEditor.h"
 #include "SLevelViewport.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "DelegateFilter.h"
 #include "AssetData.h"
 #include "DebuggerCommands.h"
@@ -743,7 +743,7 @@ void FLevelEditorContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 		}
 	};
 
-	FSceneOutlinerInitializationOptions InitOptions;
+	SceneOutliner::FInitializationOptions InitOptions;
 	{
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;			
 		InitOptions.bShowHeaderRow = false;

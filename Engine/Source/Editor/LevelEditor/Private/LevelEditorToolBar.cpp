@@ -6,7 +6,7 @@
 #include "LevelEditorActions.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 #include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "DelegateFilter.h"
 #include "EditorViewportCommands.h"
 #include "SScalabilitySettings.h"
@@ -1873,7 +1873,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, InCommandList );
 
 	// We can't build a list of Matinees while the current World is a PIE world.
-	FSceneOutlinerInitializationOptions InitOptions;
+	SceneOutliner::FInitializationOptions InitOptions;
 	{
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
 

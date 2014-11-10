@@ -18,7 +18,7 @@
 #include "SLevelEditorModeContent.h"
 #include "SLevelEditorBuildAndSubmit.h"
 #include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "Editor/Layers/Public/LayersModule.h"
 #include "Editor/Levels/Public/LevelsModule.h"
 #include "Editor/WorldBrowser/Public/WorldBrowserModule.h"
@@ -607,13 +607,13 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	}
 	else if( TabIdentifier == TEXT("LevelEditorSceneOutliner") )
 	{
-		FSceneOutlinerInitializationOptions InitOptions;
+		SceneOutliner::FInitializationOptions InitOptions;
 		InitOptions.Mode = ESceneOutlinerMode::ActorBrowsing;
 		{
 			TWeakPtr<SLevelEditor> WeakLevelEditor = SharedThis(this);
 			InitOptions.DefaultMenuExtender = MakeShareable(new FExtender);
 			InitOptions.DefaultMenuExtender->AddMenuExtension(
-				"FolderSection", EExtensionHook::Before, GetLevelEditorActions(),
+				"MainSection", EExtensionHook::Before, GetLevelEditorActions(),
 				FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> InWeakLevelEditor){
 					// Only extend the menu if we have actors selected
 					if (GEditor->GetSelectedActors()->Num())

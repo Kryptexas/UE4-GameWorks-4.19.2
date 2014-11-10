@@ -19,6 +19,8 @@ public:
 	FSceneOutlinerLayerContentsColumn( const TSharedRef< class FLayerViewModel >& InViewModel );
 
 	virtual ~FSceneOutlinerLayerContentsColumn() {}
+	
+	static FName GetID();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Begin ISceneOutlinerColumn Implementation
@@ -27,15 +29,12 @@ public:
 
 	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() override;
 
-	virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) override;
-
-	virtual bool ProvidesSearchStrings();
-
-	virtual void PopulateActorSearchStrings( const AActor* const InActor, OUT TArray< FString >& OutSearchStrings ) const override;
-	
-	virtual bool SupportsSorting() const override { return false; }
-
-	virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const override {}
+	virtual const TSharedRef< SWidget > ConstructRowWidget( SceneOutliner::FTreeItemRef TreeItem, const STableRow<SceneOutliner::FTreeItemPtr>& Row ) override
+	{
+		FColumnGenerator Generator(*this);
+		TreeItem->Visit(Generator);
+		return Generator.Widget.ToSharedRef();
+	}
 
 	// End ISceneOutlinerColumn Implementation
 	//////////////////////////////////////////////////////////////////////////
@@ -44,7 +43,19 @@ private:
 
 	FReply OnRemoveFromLayerClicked( const TWeakObjectPtr< AActor > Actor );
 
+	TSharedRef<SWidget> ConstructRowWidget(const TWeakObjectPtr< AActor >& Actor );
+	
+	struct FColumnGenerator : SceneOutliner::FColumnGenerator
+	{
+		FSceneOutlinerLayerContentsColumn& Column;
+		FColumnGenerator(FSceneOutlinerLayerContentsColumn& InColumn) : Column(InColumn) {}
 
+		virtual TSharedRef<SWidget> GenerateWidget(SceneOutliner::FActorTreeItem& ActorItem) const override
+		{
+			return Column.ConstructRowWidget(ActorItem.Actor);
+		}
+	};
+	friend FColumnGenerator;
 private:
 
 	/**	 */

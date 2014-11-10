@@ -19,14 +19,12 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/ExportTextDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/BrushBuilderDragDropOp.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
-#include "Editor/SceneOutliner/Public/ISceneOutlinerColumn.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "ScopedTransaction.h"
 #include "LevelUtils.h"
 #include "HighresScreenshotUI.h"
 #include "SCaptureRegionWidget.h"
 #include "ISettingsModule.h"
-#include "SceneOutlinerTreeItems.h"
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
@@ -2168,7 +2166,7 @@ float SLevelViewport::GetActorLockSceneOutlinerColumnWidth()
 	return 18.0f;	// 16.0f for the icons and 2.0f padding
 }
 
-TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerColumn( const TWeakPtr< ISceneOutliner >& SceneOutliner ) const
+TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerColumn( ISceneOutliner& SceneOutliner ) const
 {
 	/**
 	 * A custom column for the SceneOutliner which shows whether an actor is locked to a viewport
@@ -2199,39 +2197,52 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 		virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() override
 		{
 			return SHeaderRow::Column( GetColumnID() )
+				.FixedWidth(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
 				[
 					SNew( SSpacer )
 				];
 		}
 
-		virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) override
+		virtual const TSharedRef< SWidget > ConstructRowWidget( SceneOutliner::FTreeItemRef TreeItem, const STableRow<SceneOutliner::FTreeItemPtr>& InRow ) override
 		{
-			if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+			struct FConstructWidget : SceneOutliner::FColumnGenerator
 			{
-				bool bLocked = Viewport->IsActorLocked(StaticCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor);
+				const SLevelViewport* Viewport;
+				FConstructWidget(const SLevelViewport* InViewport) : Viewport(InViewport) {}
 
-				return SNew(SBox)
-					.WidthOverride(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
-					.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush(bLocked ? "PropertyWindow.Locked" : "PropertyWindow.Unlocked"))
-						.ColorAndOpacity(bLocked ? FLinearColor::White : FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
-					];
+				virtual TSharedRef<SWidget> GenerateWidget(SceneOutliner::FActorTreeItem& ActorItem) const override
+				{
+					AActor* Actor = ActorItem.Actor.Get();
+					if (!Actor)
+					{
+						return SNullWidget::NullWidget;
+					}
+
+					const bool bLocked = Viewport->IsActorLocked(Actor);
+
+					return SNew(SBox)
+						.WidthOverride(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
+						.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush(bLocked ? "PropertyWindow.Locked" : "PropertyWindow.Unlocked"))
+							.ColorAndOpacity(bLocked ? FLinearColor::White : FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
+						];	
+				}
+			};
+
+			FConstructWidget Visitor(Viewport);
+			TreeItem->Visit(Visitor);
+
+			if (Visitor.Widget.IsValid())
+			{
+				return Visitor.Widget.ToSharedRef();	
 			}
 			else
 			{
 				return SNullWidget::NullWidget;
 			}
 		}
-
-		virtual bool ProvidesSearchStrings() { return false; }
-
-		virtual void PopulateActorSearchStrings( const AActor* const InActor, OUT TArray< FString >& OutSearchStrings ) const override {}
-	
-		virtual bool SupportsSorting() const override { return false; }
-
-		virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const override {}
 
 		// End ISceneOutlinerColumn Implementation
 		//////////////////////////////////////////////////////////////////////////

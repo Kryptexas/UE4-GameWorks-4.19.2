@@ -2,365 +2,146 @@
 
 #include "SceneOutlinerPrivatePCH.h"
 
-#include "MessageLog.h"
-#include "SSocketChooser.h"
-#include "ScopedTransaction.h"
-#include "SceneOutlinerTreeItems.h"
-
 #define LOCTEXT_NAMESPACE "SSceneOutliner"
 
 namespace SceneOutliner
 {
-	typedef TArray<TWeakPtr<TOutlinerFolderTreeItem>> FolderArray;
-	typedef TArray<TWeakObjectPtr<AActor>> ActorArray;
-
-	/* Struct used for validation of a drag/drop operation in the scene outliner */
-	struct FDragValidationInfo
+	static void UpdateOperationDecorator(const FDragDropEvent& Event, const FDragValidationInfo& ValidationInfo)
 	{
-		/* The tooltip type to display on the operation */
-		FActorDragDropGraphEdOp::ToolTipTextType TooltipType;
+		const FSlateBrush* Icon = ValidationInfo.IsValid() ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 
-		/* The tooltip text to display on the operation */
-		FText ValidationText;
+		FDragDropOperation* Operation = Event.GetOperation().Get();
+		if (Operation)
+		{
+			if (Operation->IsOfType<FSceneOutlinerDragDropOp>())
+			{
+				auto* OutlinerOp = static_cast<FSceneOutlinerDragDropOp*>(Operation);
+				OutlinerOp->SetTooltip(ValidationInfo.ValidationText, Icon);
+			}
+			else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
+			{
+				static_cast<FActorDragDropGraphEdOp*>(Operation)->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
+			}
+			else if (Operation->IsOfType<FDecoratedDragDropOp>())
+			{
+				auto* DecoratedOp = static_cast<FDecoratedDragDropOp*>(Operation);
+				DecoratedOp->SetToolTip(ValidationInfo.ValidationText, Icon);
+			}
+		}
+	}
 
-		/* Construct this validation information out of a tootip type and some text */
-		FDragValidationInfo(const FActorDragDropGraphEdOp::ToolTipTextType InTooltipType, const FText InValidationText)
-			: TooltipType(InTooltipType)
-			, ValidationText(InValidationText)
+	static void ResetOperationDecorator(const FDragDropEvent& Event)
+	{
+		FDragDropOperation* Operation = Event.GetOperation().Get();
+		if (Operation)
+		{
+			if (Operation->IsOfType<FSceneOutlinerDragDropOp>())
+			{
+				static_cast<FSceneOutlinerDragDropOp*>(Operation)->ResetTooltip();
+			}
+			else if (Operation->IsOfType<FDecoratedDragDropOp>())
+			{
+				static_cast<FDecoratedDragDropOp*>(Operation)->ResetToDefaultToolTip();
+			}
+		}
+	}
+
+	static FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, TWeakPtr<SOutlinerTreeView> Table )
+	{
+		auto TablePtr = Table.Pin();
+		if (TablePtr.IsValid() && MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
+		{
+			auto Operation = SceneOutliner::CreateDragDropOperation(TablePtr->GetSelectedItems());
+			if (Operation.IsValid())
+			{
+				return FReply::Handled().BeginDragDrop(Operation.ToSharedRef());
+			}
+		}
+
+		return FReply::Unhandled();
+	}
+
+	FReply HandleDrop(TWeakPtr<ISceneOutliner> SceneOutlinerWeak, const FDragDropEvent& DragDropEvent, IDropTarget& DropTarget, FDragValidationInfo& ValidationInfo, bool bApplyDrop = false)
+	{
+		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
+		if (!SceneOutlinerPtr.IsValid())
+		{
+			return FReply::Unhandled();
+		}
+
+		const FSharedOutlinerData& SharedData = SceneOutlinerPtr->GetSharedData();
+		if (SharedData.Mode != ESceneOutlinerMode::ActorBrowsing)
+		{
+			return FReply::Unhandled();	
+		}
+
+		// Don't handle this if we're not showing a hierarchy, not in browsing mode, or the drop operation is not applicable
+		if (!SharedData.bShowParentTree || !SharedData.RepresentingWorld)
+		{
+			return FReply::Unhandled();
+		}
+
+		FDragDropPayload DraggedObjects;
+		// Validate now to make sure we don't doing anything we shouldn't
+		if (!DraggedObjects.ParseDrag(*DragDropEvent.GetOperation()))
+		{
+			// Return handled here to stop anything else trying to handle it - the operation is invalid as far as we're concerned
+			return FReply::Handled();
+		}
+
+		ValidationInfo = DropTarget.ValidateDrop(DraggedObjects, *SharedData.RepresentingWorld);
+
+		if (!ValidationInfo.IsValid())
+		{
+			// Return handled here to stop anything else trying to handle it - the operation is invalid as far as we're concerned
+			return FReply::Handled();
+		}
+
+		if (bApplyDrop)
+		{
+			DropTarget.OnDrop(DraggedObjects, *SharedData.RepresentingWorld, ValidationInfo, SceneOutlinerPtr.ToSharedRef());
+		}
+
+		return FReply::Handled();
+	}
+
+	struct FDropHandler : ITreeItemVisitor
+	{
+		/** Pointer to the scene outliner */
+		const TWeakPtr<SSceneOutliner>& SceneOutlinerWeak;
+
+		/** The drag/drop event we are processing */
+		const FDragDropEvent& DragDropEvent;
+
+		/** Whether or not we should actually apply the drop, or just validate it */
+		bool bApplyDrop;
+
+		/** The resulting validation information */
+		mutable FDragValidationInfo ValidationInfo;
+		
+		/** The reply we shouyld return, if applicable */
+		mutable FReply Reply;
+
+		/** Constructor */
+		FDropHandler(const TWeakPtr<SSceneOutliner>& InSceneOutlinerWeak, const FDragDropEvent& InDragDropEvent, bool bInApplyDrop)
+			: SceneOutlinerWeak(InSceneOutlinerWeak)
+			, DragDropEvent(InDragDropEvent)
+			, bApplyDrop(bInApplyDrop)
+			, ValidationInfo(FDragValidationInfo::Invalid())
+			, Reply(FReply::Unhandled())
 		{}
 
-		/* Return a generic invalid result */
-		static FDragValidationInfo Invalid()
+		virtual void Visit(const FActorTreeItem& ActorItem) const override
 		{
-			return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, FText());
+			FActorDropTarget DropTarget(ActorItem.Actor.Get());
+			Reply = HandleDrop(SceneOutlinerWeak, DragDropEvent, DropTarget, ValidationInfo, bApplyDrop);
 		}
-		
-		/* @return true if this operation is valid, false otheriwse */ 
-		bool IsValid() const
+		virtual void Visit(const FFolderTreeItem& FolderItem) const override
 		{
-			switch(TooltipType)
-			{
-			case FActorDragDropGraphEdOp::ToolTip_Compatible:
-			case FActorDragDropGraphEdOp::ToolTip_CompatibleAttach:
-			case FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric:
-			case FActorDragDropGraphEdOp::ToolTip_CompatibleMultipleAttach:
-			case FActorDragDropGraphEdOp::ToolTip_CompatibleDetach:
-			case FActorDragDropGraphEdOp::ToolTip_CompatibleMultipleDetach:
-				return true;
-			default:
-				return false;
-			}
+			FFolderDropTarget DropTarget(FolderItem.Path);
+			Reply = HandleDrop(SceneOutlinerWeak, DragDropEvent, DropTarget, ValidationInfo, bApplyDrop);
 		}
 	};
-
-	/** Extract lists of dragged folders and actors from the specified drag drop operation */
-	void ExtractDraggedActorsAndFolders(TSharedPtr<FDragDropOperation> Operation, const ActorArray*& DraggedActors, const FolderArray*& DraggedFolders)
-	{
-		if (!Operation.IsValid())
-		{
-			return;
-		}
-
-		if (Operation->IsOfType<FFolderActorDragDropOp>())
-		{
-			DraggedFolders = &StaticCastSharedPtr<FFolderActorDragDropOp>(Operation)->Folders;
-		}
-		else if (Operation->IsOfType<FFolderDragDropOp>())
-		{
-			DraggedFolders = &StaticCastSharedPtr<FFolderDragDropOp>(Operation)->Folders;
-		}
-
-		if (Operation->IsOfType<FActorDragDropGraphEdOp>())
-		{
-			DraggedActors = &StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation)->Actors;
-		}
-	}
-
-	/** Check to see if the specified drag drop operation is relevant to the scene outliner */
-	bool IsDropOperationApplicable(TSharedPtr<FDragDropOperation> Operation)
-	{
-		// We're only interested in actor drags and folder drags
-		return Operation.IsValid() && (Operation->IsOfType<FActorDragDropGraphEdOp>() || Operation->IsOfType<FFolderDragDropOp>());
-	}
-
-	/** Compute validation information for dropping folder(s) onto another folder */
-	static FDragValidationInfo ValidateDropOnFolder(TSharedRef<SSceneOutliner> SceneOutlinerRef, const FolderArray& DragFolders, FName DropTargetPath)
-	{
-		// Iterate over all the folders that have been dragged
-		for (auto FolderIt = DragFolders.CreateConstIterator(); FolderIt; ++FolderIt)
-		{
-			auto DragFolderPtr = FolderIt->Pin();
-			if (DragFolderPtr.IsValid())
-			{
-				if (DragFolderPtr->GetParentPath() == DropTargetPath)
-				{
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("SourceName"), FText::FromName(DragFolderPtr->LeafName));
-
-					FText Text;
-					if (DropTargetPath.IsNone())
-					{
-						Text = FText::Format(LOCTEXT("FolderAlreadyAssignedRoot", "{SourceName} is already assigned to root"), Args);
-					}
-					else
-					{
-						Args.Add(TEXT("DestPath"), FText::FromName(DropTargetPath));
-						Text = FText::Format(LOCTEXT("FolderAlreadyAssigned", "{SourceName} is already assigned to {DestPath}"), Args);
-					}
-					
-					return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, Text);
-				}
-
-				const FString DragFolderPath = DragFolderPtr->Path.ToString();
-				const FString LeafName = DragFolderPtr->LeafName.ToString();
-				const FString DstFolderPath = DropTargetPath.IsNone() ? FString() : DropTargetPath.ToString();
-				const FString NewPath = DstFolderPath / LeafName;
-
-				if (SceneOutlinerRef->FindFolderByPath(FName(*NewPath)).IsValid())
-				{
-					// The folder already exists
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("DragName"), FText::FromString(LeafName));
-					return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric,
-						FText::Format(LOCTEXT("FolderAlreadyExistsRoot", "A folder called \"{DragName}\" already exists at this level"), Args));
-				}
-				else if (DragFolderPath == DstFolderPath || DstFolderPath.StartsWith(DragFolderPath + "/"))
-				{
-					// Cannot drag as a child of itself
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("FolderPath"), FText::FromName(DragFolderPtr->Path));
-					return FDragValidationInfo(
-						FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric,
-						FText::Format(LOCTEXT("ChildOfItself", "Cannot move \"{FolderPath}\" to be a child of itself"), Args));
-				}
-			}
-		}
-
-		// Everything else is a valid operation
-		if (DropTargetPath.IsNone())
-		{
-			return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, LOCTEXT("MoveToRoot", "Move to root"));
-		}
-		else
-		{
-			return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, FText::Format(LOCTEXT("MoveInto", "Move into \"{DropPath}\""), FText::FromName(DropTargetPath)));
-		}
-	}
-
-	/** Compute validation information for dropping actor(s) onto another actor */
-	static FDragValidationInfo ValidateDropOnActor(const ActorArray& DragActors, const AActor& DropTarget)
-	{
-		FText AttachErrorMsg;
-		bool CanAttach = true;
-		bool DraggedOntoAttachmentParent = true;
-
-		for (auto ActorIt = DragActors.CreateConstIterator(); ActorIt; ++ActorIt)
-		{
-			AActor* DragActor = ActorIt->Get();
-			if (DragActor)
-			{
-				if (!GEditor->CanParentActors(&DropTarget, DragActor, &AttachErrorMsg))
-				{
-					CanAttach = false;
-				}
-				if (DragActor->GetAttachParentActor() != &DropTarget)
-				{
-					DraggedOntoAttachmentParent = false;
-				}
-			}
-		}
-
-		if (DraggedOntoAttachmentParent)
-		{
-			if (DragActors.Num() == 1)
-			{
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleDetach, FText::FromString(DropTarget.GetActorLabel()));
-			}
-			else
-			{
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleMultipleDetach, FText::FromString(DropTarget.GetActorLabel()));
-			}
-		}
-		else if (CanAttach)
-		{
-			if (DragActors.Num() == 1)
-			{
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleAttach, FText::FromString(DropTarget.GetActorLabel()));
-			}
-			else
-			{
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleMultipleAttach, FText::FromString(DropTarget.GetActorLabel()));
-			}
-		}
-		else
-		{
-			if (DragActors.Num() == 1)
-			{
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, AttachErrorMsg);
-			}
-			else
-			{
-				const FText ReasonText = FText::Format(LOCTEXT("DropOntoText", "{DropTarget}. {AttachMessage}"), FText::FromString(DropTarget.GetActorLabel()), AttachErrorMsg);
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleMultipleAttach, ReasonText);
-			}
-		}
-	}
-
-	/** Check that it is valid to drop the specified folders and/or actors to the root */
-	static FDragValidationInfo ValidateDropOnRoot(TSharedRef<SSceneOutliner> SceneOutlinerRef, const ActorArray* DraggedActors, const FolderArray* DraggedFolders)
-	{
-		if (DraggedFolders && DraggedFolders->Num())
-		{
-			// Dropping folders at the root
-			const FDragValidationInfo ValidationInfo = ValidateDropOnFolder(SceneOutlinerRef, *DraggedFolders, FName());
-
-			// If the operation is invalid, or we don't have any actors to check for, return immediately
-			// If it is valid then we need to drop down and validate the actors below.
-			if (!ValidationInfo.IsValid() || !DraggedActors || DraggedActors->Num() == 0)
-			{
-				return ValidationInfo;
-			}
-		}
-
-		if (DraggedActors && DraggedActors->Num() > 0)
-		{
-			// Actors are always valid
-			return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, LOCTEXT("MoveToRoot", "Move to root"));
-		}
-
-		return FDragValidationInfo::Invalid();
-	}
-
-	/** Validate a drop event that wants to drop at the root of the tree */
-	static FDragValidationInfo ValidateRootDragDropEvent(TSharedRef<SSceneOutliner> SceneOutlinerRef, const FDragDropEvent& DragDropEvent)
-	{
-		const FolderArray* DraggedFolders = nullptr;
-		const ActorArray* DraggedActors = nullptr;
-
-		ExtractDraggedActorsAndFolders(DragDropEvent.GetOperation(), DraggedActors, DraggedFolders);
-
-		return ValidateDropOnRoot(SceneOutlinerRef, DraggedActors, DraggedFolders);
-	}
-
-	/** Validate a drop event that wants to drop onto the specified destination row */
-	static FDragValidationInfo ValidateDropOnItem(TSharedRef<SSceneOutliner> SceneOutlinerRef, TSharedRef<TOutlinerTreeItem> Destination, const ActorArray* DraggedActors, const FolderArray* DraggedFolders)
-	{
-		if (DraggedFolders)
-		{
-			if (DraggedFolders->Num())
-			{
-				if (Destination->Type == TOutlinerTreeItem::Actor)
-				{
-					return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, LOCTEXT("FoldersOnActorError", "Cannot attach folders to actors"));
-				}
-				else
-				{
-					// Dropping folders onto a folder
-					auto DragFolder = StaticCastSharedRef<TOutlinerFolderTreeItem>(Destination);
-
-					const FDragValidationInfo FolderValidation = ValidateDropOnFolder(SceneOutlinerRef, *DraggedFolders, DragFolder->Path);
-
-					// If the operation is invalid, or we don't have any actors to check for, return immediately
-					// If it is valid then we need to drop down and validate the actors below.
-					if (!FolderValidation.IsValid() || !DraggedActors || DraggedActors->Num() == 0)
-					{
-						return FolderValidation;
-					}
-				}
-			}
-		}
-
-		//	--------------------------------------------------------------------------------
-		//	Validate dragging actors on the scene outliner
-		if (DraggedActors)
-		{
-			if (Destination->Type == TOutlinerTreeItem::Actor)
-			{
-				// Dragged into an actor
-				auto ActorTreeItem = StaticCastSharedRef<TOutlinerActorTreeItem>(Destination);
-				AActor* DropActor = ActorTreeItem->Actor.Get();
-				if (DropActor)
-				{
-					return ValidateDropOnActor(*DraggedActors, *DropActor);
-				}
-			}
-			else
-			{
-				auto DropFolder = StaticCastSharedRef<TOutlinerFolderTreeItem>(Destination);
-
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("DestName"), FText::FromName(DropFolder->LeafName));
-
-				// Check to see if any of the actors are already assigned to the destination
-				for (const auto& WeakActor : *DraggedActors)
-				{
-					AActor* DragActor = WeakActor.Get();
-					if (DragActor && !DragActor->GetAttachParentActor() && DragActor->GetFolderPath() == DropFolder->Path)
-					{
-						Args.Add(TEXT("SourceName"), FText::FromString(DragActor->GetActorLabel()));
-						const FText Text = FText::Format(LOCTEXT("MoveToFolderAlreadyAssigned", "{SourceName} is already assigned to {DestName}"), Args);
-						return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, Text);
-					}
-				}
-
-				const int32 NumDraggedFolders = DraggedFolders ? DraggedFolders->Num() : 0;
-				const int32 NumDraggedItems = DraggedActors->Num() + NumDraggedFolders;
-
-				// Calculate a singular drag operation source name
-				if (NumDraggedItems == 1)
-				{
-					if (DraggedActors->Num() == 1)
-					{
-						const AActor* Actor = DraggedActors->GetData()[0].Get();
-						if (Actor)
-						{
-							Args.Add(TEXT("SourceName"), FText::FromString(Actor->GetActorLabel()));
-						}
-					}
-					else
-					{
-						const auto DraggedFolder = DraggedFolders->GetData()[0].Pin();
-						if (DraggedFolder.IsValid())
-						{
-							Args.Add(TEXT("SourceName"), FText::FromString(DraggedFolder->LeafName.ToString()));
-						}
-					}
-				}
-
-				FText Text;
-				if (Args.Contains(TEXT("SourceName")))
-				{
-					Text = FText::Format(LOCTEXT("MoveToFolderSingle", "Move {SourceName} into {DestName}"), Args);
-				}
-				else
-				{
-					Text = FText::Format(LOCTEXT("MoveToFolderMulti", "Move items into {DestName}"), Args);
-				}
-
-				return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, Text);
-			}
-		}
-
-		return FDragValidationInfo::Invalid();
-	}
-
-	/** Validate a drop event that wants to drop onto the specified destination row */
-	static FDragValidationInfo ValidateDragDropEvent(TSharedRef<SSceneOutliner> SceneOutlinerRef, const FDragDropEvent& DragDropEvent, TSharedRef<TOutlinerTreeItem> Destination)
-	{
-		// Only allow dropping objects when in actor browsing mode
-		if (SceneOutlinerRef->GetInitOptions().Mode != ESceneOutlinerMode::ActorBrowsing)
-		{
-			return FDragValidationInfo::Invalid();
-		}
-
-		//	Validate dragging a mixture of actors and folders inside the scene outliner
-		const FolderArray* DraggedFolders = nullptr;
-		const ActorArray* DraggedActors = nullptr;
-
-		ExtractDraggedActorsAndFolders(DragDropEvent.GetOperation(), DraggedActors, DraggedFolders);
-
-		return ValidateDropOnItem(SceneOutlinerRef, Destination, DraggedActors, DraggedFolders);
-	}
 
 	void SOutlinerTreeView::Construct(const SOutlinerTreeView::FArguments& InArgs, TSharedRef<SSceneOutliner> Owner)
 	{
@@ -368,102 +149,27 @@ namespace SceneOutliner
 		STreeView::Construct(InArgs);
 	}
 
-	void SOutlinerTreeView::FlashHighlightOnItem( FOutlinerTreeItemPtr FlashHighlightOnItem )
+	void SOutlinerTreeView::FlashHighlightOnItem( FTreeItemPtr FlashHighlightOnItem )
 	{
 		TSharedPtr< SSceneOutlinerTreeRow > RowWidget = StaticCastSharedPtr< SSceneOutlinerTreeRow >( WidgetGenerator.GetWidgetForItem( FlashHighlightOnItem ) );
 		if( RowWidget.IsValid() )
 		{
-			TSharedPtr< SSceneOutlinerItemWidget > ItemWidget = RowWidget->GetItemWidget();
-			if( ItemWidget.IsValid() )
-			{
-				ItemWidget->FlashHighlight();
-			}
+			RowWidget->FlashHighlight();
 		}
-	}
-
-	bool SOutlinerTreeView::ValidateMoveSelectionTo(FName NewParent, FText* OutValidationText)
-	{
-		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-		if (!SceneOutlinerPtr.IsValid())
-		{
-			return false;
-		}
-
-		FolderArray Folders;
-		ActorArray Actors;
-
-		for (const auto& Item : GetSelectedItems())
-		{
-			if (Item->Type == TOutlinerTreeItem::Folder)
-			{
-				Folders.Add(StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item));
-			}
-			else
-			{
-				Actors.Add(StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor);
-			}
-		}
-
-		FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
-		if (NewParent.IsNone())
-		{
-			ValidationInfo = ValidateDropOnRoot(SceneOutlinerPtr.ToSharedRef(), &Actors, &Folders);
-		}
-		else
-		{
-			auto Folder = SceneOutlinerPtr->FindFolderByPath(NewParent);
-			if (Folder.IsValid())
-			{
-				ValidationInfo = ValidateDropOnItem(SceneOutlinerPtr.ToSharedRef(), Folder.ToSharedRef(), &Actors, &Folders);
-			}
-			else
-			{
-				ValidationInfo.ValidationText = FText::Format(LOCTEXT("UnableToFindFolderFailure", "Unable to find folder: {0}"), FText::FromName(NewParent));
-			}
-		}
-
-		if (OutValidationText)
-		{
-			*OutValidationText = ValidationInfo.ValidationText;
-		}
-		return ValidationInfo.IsValid();
 	}
 
 	FReply SOutlinerTreeView::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 	{
-		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-		if (!SceneOutlinerPtr.IsValid())
+		FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
+
+		FFolderDropTarget DropTarget(NAME_None);
+
+		auto Reply = HandleDrop(SceneOutlinerWeak, DragDropEvent, DropTarget, ValidationInfo);
+
+		if (Reply.IsEventHandled())
 		{
-			return FReply::Unhandled();
-		}
-
-
-		TSharedPtr<FDecoratedDragDropOp> DecoratedDragOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
-		if (DecoratedDragOp.IsValid())
-		{
-			const FDragValidationInfo ValidationInfo = ValidateRootDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent);
-
-			if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric || ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric)
-			{
-				// Generic messages can go through the decorated drag/drop operation base class
-				DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
-				if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric)
-				{
-					DecoratedDragOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-				}
-				else
-				{
-					DecoratedDragOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				}
-				return FReply::Handled();
-			}
-			else if (DecoratedDragOp->IsOfType<FActorDragDropGraphEdOp>())
-			{
-				// Display actor specific messages
-				auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DecoratedDragOp);
-				ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
-				return FReply::Handled();
-			}
+			UpdateOperationDecorator(DragDropEvent, ValidationInfo);
+			return FReply::Handled();
 		}
 
 		return FReply::Unhandled();
@@ -471,308 +177,94 @@ namespace SceneOutliner
 	
 	void SOutlinerTreeView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	{
-		if( !SceneOutlinerWeak.Pin()->GetInitOptions().bShowParentTree )
+		if( SceneOutlinerWeak.Pin()->GetSharedData().bShowParentTree )
 		{
-			// We only allowing dropping to perform attachments when displaying the actors
-			// in their parent/child hierarchy
-			return;
-		}
-
-		auto DecoratedOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
-		if (DecoratedOp.IsValid())
-		{
-			DecoratedOp->ResetToDefaultToolTip();
+			ResetOperationDecorator(DragDropEvent);
 		}
 	}
 
 	FReply SOutlinerTreeView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 	{
-		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
+		FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
+		FFolderDropTarget DropTarget(NAME_None);
 
-		// Don't handle this if we're not showing a hierarchy, not in browsing mode, or the drop operation is not applicable
-		if (!SceneOutlinerPtr.IsValid() ||
-			!SceneOutlinerPtr->GetInitOptions().bShowParentTree ||
-			SceneOutlinerPtr->GetInitOptions().Mode != ESceneOutlinerMode::ActorBrowsing ||
-			!IsDropOperationApplicable(DragDropEvent.GetOperation())
-			)
-		{
-			return FReply::Unhandled();
-		}
-
-		// Validate now to make sure we don't doing anything we shouldn't
-		const FDragValidationInfo ValidationInfo = ValidateRootDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent);
-		if (!ValidationInfo.IsValid())
-		{
-			return FReply::Handled();
-		}
-
-		const FScopedTransaction Transaction(LOCTEXT("UndoAction_DropOnSceneOutliner", "Drop on Scene Outliner"));
-		
-		const FolderArray* DraggedFolders = nullptr;
-		const ActorArray* DraggedActors = nullptr;
-		ExtractDraggedActorsAndFolders(DragDropEvent.GetOperation(), DraggedActors, DraggedFolders);
-
-		if (DraggedFolders)
-		{
-			for (auto& Folder : *DraggedFolders)
-			{
-				auto FolderPtr = Folder.Pin();
-				if (FolderPtr.IsValid())
-				{
-					SceneOutlinerPtr->MoveFolderTo(FolderPtr.ToSharedRef(), FName());
-				}
-			}
-		}
-
-		if (DraggedActors)
-		{
-			for (auto& Actor : *DraggedActors)
-			{
-				auto* ActorPtr = Actor.Get();
-				if (ActorPtr)
-				{
-					ActorPtr->SetFolderPath(FName());
-				}
-			}
-		}
-
-		return FReply::Handled();
+		return HandleDrop(SceneOutlinerWeak, DragDropEvent, DropTarget, ValidationInfo, true);
 	}
 
 	FReply SSceneOutlinerTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 	{
-		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-
-		// Don't handle this if we're not showing a hierarchy, not in browsing mode, or the drop operation is not applicable
-		if (!SceneOutlinerPtr.IsValid() ||
-			!SceneOutlinerPtr->GetInitOptions().bShowParentTree ||
-			SceneOutlinerPtr->GetInitOptions().Mode != ESceneOutlinerMode::ActorBrowsing ||
-			!IsDropOperationApplicable(DragDropEvent.GetOperation())
-			)
+		auto ItemPtr = Item.Pin();
+		if (ItemPtr.IsValid())
 		{
-			return FReply::Unhandled();
+			FDropHandler Handler(SceneOutlinerWeak, DragDropEvent, true);
+			ItemPtr->Visit(Handler);
+			return Handler.Reply;
 		}
 
-		// Validate now to make sure we don't doing anything we shouldn't
-		const FDragValidationInfo ValidationInfo = ValidateDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent, Item.ToSharedRef());
-		if (!ValidationInfo.IsValid())
-		{
-			// Return handled here to stop anything else trying to handle it - the operation is invalid as far as we're concerned
-			return FReply::Handled();
-		}
-
-		const FScopedTransaction Transaction(LOCTEXT("UndoAction_DropOnSceneOutliner", "Drop on Scene Outliner"));
-
-		const FolderArray* DraggedFolders = nullptr;
-		const ActorArray* DraggedActors = nullptr;
-
-		ExtractDraggedActorsAndFolders(DragDropEvent.GetOperation(), DraggedActors, DraggedFolders);
-
-		// Drop on a folder?
-		if (Item->Type == TOutlinerTreeItem::Folder && DraggedFolders)
-		{
-			auto DropFolder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item);
-			for (auto& FolderIt : *DraggedFolders)
-			{
-				auto FolderItemPtr = FolderIt.Pin();
-				if (FolderItemPtr.IsValid())
-				{
-					SceneOutlinerPtr->MoveFolderTo(FolderItemPtr.ToSharedRef(), DropFolder->Path);
-				}
-			}
-		}
-
-		if (DraggedActors)
-		{
-			// Dragged some actors, deal with those now
-			if (Item->Type == TOutlinerTreeItem::Actor)
-			{
-				// Dropped on an actor
-				auto ActorTreeItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item);
-				AActor* DropActor = ActorTreeItem->Actor.Get();
-				if (!DropActor)
-				{
-					return FReply::Handled();
-				}
-
-				FMessageLog EditorErrors("EditorErrors");
-				EditorErrors.NewPage(LOCTEXT("ActorAttachmentsPageLabel", "Actor attachment"));
-
-				if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleMultipleDetach || ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleDetach)
-				{
-					PerformDetachment(ActorTreeItem->Actor);
-				}
-				else if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleMultipleAttach || ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleAttach)
-				{
-					// Show socket chooser if we have sockets to select
-
-					//@TODO: Should create a menu for each component that contains sockets, or have some form of disambiguation within the menu (like a fully qualified path)
-					// Instead, we currently only display the sockets on the root component
-					USceneComponent* Component = DropActor->GetRootComponent();
-					if ((Component != NULL) && (Component->HasAnySockets()))
-					{
-						TWeakObjectPtr<AActor> Actor = ActorTreeItem->Actor;
-						// Create the popup
-						FSlateApplication::Get().PushMenu(
-							SceneOutlinerPtr.ToSharedRef(),
-							SNew(SSocketChooserPopup)
-							.SceneComponent( Component )
-							.OnSocketChosen(this, &SSceneOutlinerTreeRow::PerformAttachment, Actor, *DraggedActors ),
-							FSlateApplication::Get().GetCursorPos(),
-							FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
-							);
-					}
-					else
-					{
-						PerformAttachment(NAME_None, ActorTreeItem->Actor, *DraggedActors);
-					}
-				}
-
-				// Report errors
-				EditorErrors.Notify(NSLOCTEXT("ActorAttachmentError", "AttachmentsFailed", "Attachments Failed!"));
-			}
-			else
-			{
-				// Dropped on a folder
-				auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item);
-				for (auto& ActorIt : *DraggedActors)
-				{
-					auto* ActorPtr = ActorIt.Get();
-					if (ActorPtr)
-					{
-						ActorPtr->SetFolderPath(FolderTreeItem->Path);
-					}
-				}
-			}
-		}
-
-		return FReply::Handled();
+		return FReply::Unhandled();
 	}
 
 	void SSceneOutlinerTreeRow::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 	{
-		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-		if( !SceneOutlinerPtr.IsValid() || !SceneOutlinerPtr->GetInitOptions().bShowParentTree )
+		auto ItemPtr = Item.Pin();
+		if (ItemPtr.IsValid())
 		{
-			// We only allowing dropping to perform attachments when displaying the actors
-			// in their parent/child hierarchy
-			return;
-		}
+			FDropHandler Handler(SceneOutlinerWeak, DragDropEvent, false);
+			ItemPtr->Visit(Handler);
 
-		// Perform the validation and update the tooltip if necessary
-		const FDragValidationInfo ValidationInfo = ValidateDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent, Item.ToSharedRef());
-
-		TSharedPtr<FActorDragDropGraphEdOp> ActorDragOp = DragDropEvent.GetOperationAs<FActorDragDropGraphEdOp>();
-		if (ActorDragOp.IsValid())
-		{
-			ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
-			return;
-		}
-
-		TSharedPtr<FDecoratedDragDropOp> DecoratedDragOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
-		if (DecoratedDragOp.IsValid())
-		{
-			DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
-			DecoratedDragOp->CurrentIconBrush = ValidationInfo.IsValid() ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
+			UpdateOperationDecorator(DragDropEvent, Handler.ValidationInfo);
 		}
 	}
 
-	void SSceneOutlinerTreeRow::PerformAttachment( FName SocketName, TWeakObjectPtr<AActor> ParentActorPtr, const TArray< TWeakObjectPtr<AActor> > ChildrenPtrs )
+	void SSceneOutlinerTreeRow::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	{
-		AActor* ParentActor = ParentActorPtr.Get();
-		if(ParentActor != NULL)
-		{
-			// modify parent and child
-			const FScopedTransaction Transaction( LOCTEXT("UndoAction_PerformAttachment", "Attach actors") );
-
-			// Attach each child
-			bool bAttached = false;
-			for(int32 i = 0; i < ChildrenPtrs.Num(); i++)
-			{
-				AActor* ChildActor = ChildrenPtrs[i].Get();
-				if (GEditor->CanParentActors(ParentActor, ChildActor))
-				{
-					GEditor->ParentActors(ParentActor, ChildActor, SocketName);
-					bAttached = true;
-				}
-			}
-
-			// refresh the tree, and ensure parent is expanded so we can still see the child if we attached something
-			if (bAttached)
-			{
-				SceneOutlinerWeak.Pin()->ExpandActor(ParentActor);
-			}
-		}
-	}
-
-	void SSceneOutlinerTreeRow::PerformDetachment( TWeakObjectPtr<AActor> ParentActorPtr )
-	{
-		AActor* ParentActor = ParentActorPtr.Get();
-		if(ParentActor != NULL)
-		{
-			bool bAttached = GEditor->DetachSelectedActors();
-			// refresh the tree, and ensure parent is expanded so we can still see the child if we attached something
-			if (bAttached)
-			{
-				SceneOutlinerWeak.Pin()->ExpandActor(ParentActor);
-			}
-		}
-	}
-
-	FReply SSceneOutlinerTreeRow::HandleDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		if ( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
-		{
-			auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-			if (!SceneOutlinerPtr.IsValid())
-			{
-				return FReply::Unhandled();
-			}
-
-			// We only support drag and drop when in actor browsing mode
-			if( SceneOutlinerPtr->GetInitOptions().Mode == ESceneOutlinerMode::ActorBrowsing )
-			{
-				auto SelectedItems = SceneOutlinerPtr->GetSelectedItems();
-				return FReply::Handled().BeginDragDrop(SceneOutliner::CreateDragDropOperation(SelectedItems));
-			}
-		}
-
-		return FReply::Unhandled();
+		ResetOperationDecorator(DragDropEvent);
 	}
 
 	FReply SSceneOutlinerTreeRow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 	{
-		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		auto ItemPtr = Item.Pin();
+		if (ItemPtr.IsValid() && ItemPtr->CanInteract())
 		{
-			FReply Reply = SMultiColumnTableRow<FOutlinerTreeItemPtr>::OnMouseButtonDown( MyGeometry, MouseEvent );
-
-			// We only support drag and drop when in actor browsing mode
-			if( SceneOutlinerWeak.Pin()->GetInitOptions().Mode == ESceneOutlinerMode::ActorBrowsing )
+			if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 			{
-				return Reply.DetectDrag( SharedThis(this) , EKeys::LeftMouseButton );
-			}
+				FReply Reply = SMultiColumnTableRow<FTreeItemPtr>::OnMouseButtonDown( MyGeometry, MouseEvent );
 
-			return Reply.PreventThrottling();
+				// We only support drag and drop when in actor browsing mode
+				if( SceneOutlinerWeak.Pin()->GetSharedData().Mode == ESceneOutlinerMode::ActorBrowsing )
+				{
+					return Reply.DetectDrag( SharedThis(this) , EKeys::LeftMouseButton );
+				}
+
+				return Reply.PreventThrottling();
+			}
 		}
 
 		return FReply::Unhandled();
 	}
 
-	TSharedPtr< SSceneOutlinerItemWidget > SSceneOutlinerTreeRow::GetItemWidget()
-	{
-		return ItemWidget;
-	}
-
 	TSharedRef<SWidget> SSceneOutlinerTreeRow::GenerateWidgetForColumn( const FName& ColumnName )
 	{
-		// Create the widget for this item
-		TSharedRef< SWidget > NewItemWidget = SceneOutlinerWeak.Pin()->GenerateWidgetForItemAndColumn( Item, ColumnName, FIsSelected::CreateSP(this, &SSceneOutlinerTreeRow::IsSelectedExclusively) );
-		if( ColumnName == ColumnID_ActorLabel )
+		auto ItemPtr = Item.Pin();
+		if (!ItemPtr.IsValid())
 		{
-			ItemWidget = StaticCastSharedPtr<SSceneOutlinerItemWidget>( TSharedPtr< SWidget >(NewItemWidget) );
+			return SNullWidget::NullWidget;
 		}
 
-		if( ColumnName == ColumnID_ActorLabel )
+
+		auto Outliner = SceneOutlinerWeak.Pin();
+		check(Outliner.IsValid());
+
+		// Create the widget for this item
+		TSharedRef<SWidget> NewItemWidget = SNullWidget::NullWidget;
+
+		auto Column = Outliner->GetColumns().FindRef(ColumnName);
+		if (Column.IsValid())
+		{
+			NewItemWidget = Column->ConstructRowWidget(ItemPtr.ToSharedRef(), *this);
+		}
+
+		if( ColumnName == FBuiltInColumnTypes::Label() )
 		{
 			// The first column gets the tree expansion arrow for this row
 			return 
@@ -798,16 +290,122 @@ namespace SceneOutliner
 		}
 	}
 
-	void SSceneOutlinerTreeRow::Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
+	void SSceneOutlinerTreeRow::Construct( const FArguments& InArgs, const TSharedRef<SOutlinerTreeView>& OutlinerTreeView, TSharedRef<SSceneOutliner> SceneOutliner )
 	{
-		SceneOutlinerWeak = InArgs._SceneOutliner;
-		Item = InArgs._Item;
+		Item = InArgs._Item->AsShared();
+		SceneOutlinerWeak = SceneOutliner;
 
-		SMultiColumnTableRow< FOutlinerTreeItemPtr >::Construct(
-			FSuperRowType::FArguments()
-			.OnDragDetected(this, &SSceneOutlinerTreeRow::HandleDragDetected)
-			.Style(&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow"))
-		,InOwnerTableView );
+		auto Args = FSuperRowType::FArguments()
+			.Style(&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow"));
+
+		// We only support drag and drop when in actor browsing mode
+		if (SceneOutliner->GetSharedData().Mode == ESceneOutlinerMode::ActorBrowsing)
+		{
+			Args.OnDragDetected_Static(SceneOutliner::OnDragDetected, TWeakPtr<SOutlinerTreeView>(OutlinerTreeView));
+		}
+
+		SMultiColumnTableRow<FTreeItemPtr>::Construct(Args, OutlinerTreeView);
+	}
+
+	const float SSceneOutlinerTreeRow::HighlightRectLeftOffset = 0.0f;
+	const float SSceneOutlinerTreeRow::HighlightRectRightOffset = 0.0f;
+	const float SSceneOutlinerTreeRow::HighlightTargetSpringConstant = 25.0f;
+	const float SSceneOutlinerTreeRow::HighlightTargetEffectDuration = 0.5f;
+	const float SSceneOutlinerTreeRow::HighlightTargetOpacity = 0.8f;
+	const float SSceneOutlinerTreeRow::LabelChangedAnimOffsetPercent = 0.2f;
+    
+    void SSceneOutlinerTreeRow::FlashHighlight()
+    {
+        LastHighlightInteractionTime = FSlateApplication::Get().GetCurrentTime();
+    }
+
+	void SSceneOutlinerTreeRow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+	{
+		// Call parent implementation.
+		SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
+
+		// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
+		const bool bShouldAppearFocused = HasKeyboardFocus();
+
+		// Update highlight 'target' effect
+		{
+			const float HighlightLeftX = HighlightRectLeftOffset;
+			const float HighlightRightX = HighlightRectRightOffset + AllottedGeometry.Size.X;
+
+			HighlightTargetLeftSpring.SetTarget( HighlightLeftX );
+			HighlightTargetRightSpring.SetTarget( HighlightRightX );
+
+			float TimeSinceHighlightInteraction = (float)( InCurrentTime - LastHighlightInteractionTime );
+			if( TimeSinceHighlightInteraction <= HighlightTargetEffectDuration || bShouldAppearFocused )
+			{
+				HighlightTargetLeftSpring.Tick( InDeltaTime );
+				HighlightTargetRightSpring.Tick( InDeltaTime );
+			}
+		}
+	}
+
+	int32 SSceneOutlinerTreeRow::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	{
+		int32 StartLayer = SMultiColumnTableRow::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+
+		const int32 TextLayer = 1;	
+
+		// See if a disabled effect should be used
+		bool bEnabled = ShouldBeEnabled( bParentEnabled );
+		ESlateDrawEffect::Type DrawEffects = (bEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
+		const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
+
+		// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
+		const bool bShouldAppearFocused = HasKeyboardFocus();
+
+		const float DrawPositionY = ( AllottedGeometry.Size.Y / 2 ) - ( AllottedGeometry.Size.Y / 2 );
+
+		// Draw highlight targeting effect
+		const float TimeSinceHighlightInteraction = (float)( CurrentTime - LastHighlightInteractionTime );
+		if( TimeSinceHighlightInteraction <= HighlightTargetEffectDuration )
+		{
+
+			// Compute animation progress
+			float EffectAlpha = FMath::Clamp( TimeSinceHighlightInteraction / HighlightTargetEffectDuration, 0.0f, 1.0f );
+			EffectAlpha = 1.0f - EffectAlpha * EffectAlpha;  // Inverse square falloff (looks nicer!)
+
+			// Apply extra opacity falloff when dehighlighting
+			float EffectOpacity = EffectAlpha;
+
+			// Figure out a universally visible highlight color.
+			FColor HighlightTargetColorAndOpacity = ( (FLinearColor::White - ColorAndOpacity.Get())*0.5f + FLinearColor(+0.4f, +0.1f, -0.2f)) * InWidgetStyle.GetColorAndOpacityTint();
+			HighlightTargetColorAndOpacity.A = HighlightTargetOpacity * EffectOpacity * 255.0f;
+
+			// Compute the bounds offset of the highlight target from where the highlight target spring
+			// extents currently lie.  This is used to "grow" or "shrink" the highlight as needed.
+			const float LabelChangedAnimOffset = LabelChangedAnimOffsetPercent * AllottedGeometry.Size.Y;
+
+			// Choose an offset amount depending on whether we're highlighting, or clearing highlight
+			const float EffectOffset = EffectAlpha * LabelChangedAnimOffset;
+
+			const float HighlightLeftX = HighlightTargetLeftSpring.GetPosition() - EffectOffset;
+			const float HighlightRightX = HighlightTargetRightSpring.GetPosition() + EffectOffset;
+			const float HighlightTopY = 0.0f - LabelChangedAnimOffset;
+			const float HighlightBottomY = AllottedGeometry.Size.Y + EffectOffset;
+
+			const FVector2D DrawPosition = FVector2D( HighlightLeftX, HighlightTopY );
+			const FVector2D DrawSize = FVector2D( HighlightRightX - HighlightLeftX, HighlightBottomY - HighlightTopY );
+
+			const FSlateBrush* StyleInfo = FEditorStyle::GetBrush("SceneOutliner.ChangedItemHighlight");
+
+			// NOTE: We rely on scissor clipping for the highlight rectangle
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId + TextLayer,
+				AllottedGeometry.ToPaintGeometry( DrawPosition, DrawSize ),	// Position, Size, Scale
+				StyleInfo,													// Style
+				MyClippingRect,												// Clipping rect
+				DrawEffects,												// Effects to use
+				HighlightTargetColorAndOpacity );							// Color
+		}
+
+		return LayerId + TextLayer;
 	}
 }
 
