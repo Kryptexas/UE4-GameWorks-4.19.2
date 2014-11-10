@@ -34,8 +34,6 @@ FLinuxApplication* LinuxApplication = NULL;
 
 FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 {
-	LinuxApplication = new FLinuxApplication();
-	
 	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
 		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : PlatformInitMultimedia() failed, cannot create application instance."));
@@ -49,6 +47,8 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 	check(InitializedSubsystems & SDL_INIT_JOYSTICK);
 	check(InitializedSubsystems & SDL_INIT_GAMECONTROLLER);
 #endif // DO_CHECK
+
+	LinuxApplication = new FLinuxApplication();
 
 	SDLControllerState *controllerState = LinuxApplication->ControllerStates;
 	for (int i = 0; i < SDL_NumJoysticks(); ++i) {
