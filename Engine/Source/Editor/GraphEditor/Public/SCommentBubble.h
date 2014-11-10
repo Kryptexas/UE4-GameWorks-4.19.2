@@ -51,8 +51,6 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 
 	// Begin SWidget interface
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End SWidget Interface
 
@@ -94,6 +92,12 @@ protected:
 	/** Returns the color for the toggle bubble including the opacity value */
 	FSlateColor GetToggleButtonColor() const;
 
+	/** Returns the current background color for the textbox */
+	FSlateColor GetTextBackgroundColor() const;
+	
+	/** Returns the current foreground color for the textbox */
+	FSlateColor GetTextForegroundColor() const;
+
 	/** Returns the foreground color for the text and buttons, taking into account the bubble color */
 	FSlateColor GetForegroundColor() const { return ForegroundColor; }
 
@@ -105,7 +109,7 @@ protected:
 	/** The GraphNode this widget interacts with */
 	UEdGraphNode* GraphNode;
 	/** Cached inline editable text box */
-	TSharedPtr<SInlineEditableTextBlock> TextBlock;
+	TSharedPtr<SMultiLineEditableTextBox> TextBlock;
 
 	/** The Comment Bubble color and opacity value */
 	TAttribute<FSlateColor> ColorAndOpacity;
@@ -129,8 +133,6 @@ protected:
 	bool bEnableBubbleCtrls;
 	/** Enable the title bar bubble toggle */
 	bool bEnableTitleBarBubble;
-	/** Used to control the delay on double click selection */
-	float DoubleClickDelayTime;
 	/** Used to Control hover fade up/down for widgets */
 	float OpacityValue;
 	/** Cached comment */

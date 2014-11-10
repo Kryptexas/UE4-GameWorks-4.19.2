@@ -30,6 +30,10 @@ namespace SCommentBubbleDefs
 
 	/** Dark foreground color */
 	static const FLinearColor DarkForegroundClr( 1.f, 1.f, 1.f, 0.65f );
+
+	/** Clear text box background color */
+	static const FLinearColor TextClearBackground( 0.f, 0.f, 0.f, 0.f );
+
 };
 
 
@@ -47,7 +51,6 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 	GraphLOD				= InArgs._GraphLOD;
 	IsGraphNodeHovered		= InArgs._IsGraphNodeHovered;
 
-	DoubleClickDelayTime	= SCommentBubbleDefs::DoubleClickDisable;
 	OpacityValue			= 0.f;
 
 	// Create Widget
@@ -66,35 +69,6 @@ FCursorReply SCommentBubble::OnCursorQuery( const FGeometry& MyGeometry, const F
 	return FCursorReply::Cursor( EMouseCursor::Default );
 }
 
-FReply SCommentBubble::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent )
-{
-	if( TextBlock.IsValid() )
-	{
-		const FVector2D Size( GetDesiredSize().X, GetDesiredSize().Y - SCommentBubbleDefs::BubbleArrowHeight );
-		const FSlateRect TestRect( MyGeometry.AbsolutePosition, MyGeometry.AbsolutePosition + Size );
-
-		if( TestRect.ContainsPoint( CursorEvent.GetScreenSpacePosition() ))
-		{
-			if( DoubleClickDelayTime >= SCommentBubbleDefs::DoubleClickDelay )
-			{
-				TextBlock->EnterEditingMode();
-				DoubleClickDelayTime = SCommentBubbleDefs::DoubleClickDisable;
-			}
-			else
-			{
-				FSlateApplication::Get().SetKeyboardFocus( TextBlock, EKeyboardFocusCause::SetDirectly );
-				DoubleClickDelayTime = 0.f;
-			}
-		}
-	}
-	return FReply::Handled();
-}
-
-FReply SCommentBubble::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-{
-	return FReply::Handled();
-}
-
 void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
@@ -105,16 +79,6 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 	const float BubbleLuminance = BubbleColor.R + BubbleColor.G + BubbleColor.B;
 	ForegroundColor = BubbleLuminance < 0.5f ? SCommentBubbleDefs::DarkForegroundClr : SCommentBubbleDefs::LightForegroundClr;
 
-
-	if( DoubleClickDelayTime >= 0.f )
-	{
-		DoubleClickDelayTime += InDeltaTime;
-		
-		if( !bIsHovered )
-		{
-			DoubleClickDelayTime = -1.f;
-		}
-	}
 	if( bEnableTitleBarBubble && IsGraphNodeHovered.IsBound() )
 	{
 		bIsHovered |= IsGraphNodeHovered.Execute();
@@ -228,10 +192,12 @@ void SCommentBubble::UpdateBubble()
 						.Padding( BubblePadding )
 						.AutoWidth()
 						[
-							SAssignNew(TextBlock, SInlineEditableTextBlock)
+							SAssignNew(TextBlock, SMultiLineEditableTextBox)
 							.Text( this, &SCommentBubble::GetCommentText )
+							.HintText( NSLOCTEXT( "CommentBubble", "EditCommentHint", "Type here to edit the comment" ))
 							.Font( FEditorStyle::GetFontStyle( TEXT("Graph.Node.CommentFont")) )
-							.ColorAndOpacity( this, &SCommentBubble::GetForegroundColor)
+							.ForegroundColor( this, &SCommentBubble::GetTextForegroundColor )
+							.BackgroundColor( this, &SCommentBubble::GetTextBackgroundColor )
 							.OnTextCommitted( this, &SCommentBubble::OnCommentTextCommitted )
 						]
 						+SHorizontalBox::Slot()
@@ -346,6 +312,16 @@ FSlateColor SCommentBubble::GetToggleButtonColor() const
 {
 	const FLinearColor BubbleColor = ColorAndOpacity.Get().GetSpecifiedColor();
 	return FLinearColor( 1.f, 1.f, 1.f, OpacityValue * OpacityValue );
+}
+
+FSlateColor SCommentBubble::GetTextBackgroundColor() const
+{
+	return TextBlock->HasKeyboardFocus() ? FLinearColor::White : SCommentBubbleDefs::TextClearBackground;
+}
+
+FSlateColor SCommentBubble::GetTextForegroundColor() const
+{
+	return TextBlock->HasKeyboardFocus() ? FLinearColor::Black : ForegroundColor;
 }
 
 void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
