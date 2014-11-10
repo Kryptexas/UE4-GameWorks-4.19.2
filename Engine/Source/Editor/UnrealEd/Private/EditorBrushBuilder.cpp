@@ -144,17 +144,17 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 	return true;
 }
 
-int32 UEditorBrushBuilder::GetVertexCount()
+int32 UEditorBrushBuilder::GetVertexCount() const
 {
 	return Vertices.Num();
 }
 
-FVector UEditorBrushBuilder::GetVertex(int32 i)
+FVector UEditorBrushBuilder::GetVertex(int32 i) const
 {
 	return Vertices.IsValidIndex(i) ? Vertices[i] : FVector::ZeroVector;
 }
 
-int32 UEditorBrushBuilder::GetPolyCount()
+int32 UEditorBrushBuilder::GetPolyCount() const
 {
 	return Polys.Num();
 }

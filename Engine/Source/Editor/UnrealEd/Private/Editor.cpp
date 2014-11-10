@@ -2293,10 +2293,68 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 			}
 
 			// If the actor is a brush, update the vertices.
-			if( Brush )
+			if( Brush != nullptr)
 			{
+				FVector DeltaScale = ModifiedScale;
+
+				AActor::bUsePercentageBasedScaling = GEditor->UsePercentageBasedScaling();
+				if (!AActor::bUsePercentageBasedScaling)
+				{
+					// Attempt to deduce current implied scale by comparing the bounding box of the source builder brush with the current bounding box.
+					// Not a perfect method, but it feels OK.
+					// Also disallow singularities by not permitting a zero scale on any of the axes (otherwise we lose information).
+					const UBrushBuilder* BrushBuilder = Brush->GetBrushBuilder();
+					if (BrushBuilder != nullptr)
+					{
+						// Get builder brush bounding box
+						FBox BuildBrushBBox(0);
+
+						for (int32 Index = 0, NumVerts = BrushBuilder->GetVertexCount(); Index < NumVerts; Index++)
+						{
+							BuildBrushBBox += BrushBuilder->GetVertex(Index);
+						}
+
+						if (Brush->Brush != nullptr && Brush->Brush->Polys != nullptr)
+						{
+							// Get current bounding box
+							FBox CurrentBBox(0);
+
+							for (const auto& Poly : Brush->Brush->Polys->Element)
+							{
+								for (const auto& Vertex : Poly.Vertices)
+								{
+									CurrentBBox += Vertex;
+								}
+							}
+
+							// Estimate implied scale (can only be positive), avoiding zero scale components
+							const FVector ImpliedScale = ((CurrentBBox.Max - CurrentBBox.Min) / (BuildBrushBBox.Max - BuildBrushBBox.Min))
+								.ComponentMax(FVector(SMALL_NUMBER, SMALL_NUMBER, SMALL_NUMBER));
+							
+							// Calculate delta scale vector which, when applied as a scale transform and added to the original vector, will scale by this additional amount.
+							// A scale of 0.0 implies no change, a scale of -1.0 will collapse component to zero, a scale of +1.0 will double the size.
+							const FVector NewScaleVector = DeltaScale / ImpliedScale;
+
+							// Protect against singularities by never allowing a component scale close to 0.
+							const float Limit = -1.0f + 0.0625f;
+							if (NewScaleVector.X > Limit &&
+								NewScaleVector.Y > Limit &&
+								NewScaleVector.Z > Limit)
+							{
+								// Apply calculated scale delta
+								DeltaScale = NewScaleVector;
+							}
+							else
+							{
+								// Apply zero scale delta
+								DeltaScale = FVector::ZeroVector;
+							}
+						}
+					}
+				}
+
 				// Scale all of the polygons of the brush.
-				const FScaleMatrix matrix( FVector( ModifiedScale.X , ModifiedScale.Y, ModifiedScale.Z ) );
+				const FScaleMatrix Matrix(DeltaScale);
 				
 				if(Brush->GetBrushComponent()->Brush && Brush->GetBrushComponent()->Brush->Polys)
 				{
@@ -2323,7 +2381,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						{
 							FVector Wk = BrushActorToWorld.TransformPosition( Poly->Vertices[vertex] );
 							Wk -= GLevelEditorModeTools().PivotLocation;
-							Wk += matrix.TransformPosition( Wk );
+							Wk += Matrix.TransformPosition( Wk );
 							Wk += GLevelEditorModeTools().PivotLocation;
 							Poly->Vertices[vertex] = BrushActorToWorld.InverseTransformPosition( Wk );
 						}
@@ -2336,7 +2394,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 
 						FVector Wk = BrushActorToWorld.TransformPosition( Poly->Base );
 						Wk -= GLevelEditorModeTools().PivotLocation;
-						Wk += matrix.TransformPosition( Wk );
+						Wk += Matrix.TransformPosition( Wk );
 						Wk += GLevelEditorModeTools().PivotLocation;
 						Poly->Base = BrushActorToWorld.InverseTransformPosition( Wk );
 
