@@ -1372,12 +1372,12 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 					LightSceneInfo,
 					PrimitiveSceneInfo,
 					ShadowInitializer,
-					false,					// no preshadow
+					false,					// not preshadow
 					SizeX,
 					MaxShadowResolutionY,
 					MaxScreenPercent,
 					ResolutionFadeAlphas,
-					false					// no tranlucent shadow
+					false					// not translucent shadow
 					);
 				VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
 
@@ -1410,12 +1410,13 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 					LightSceneInfo,
 					PrimitiveSceneInfo,
 					ShadowInitializer,
-					false,					// no preshadow
-					SizeX,
-					MaxShadowResolutionY,
+					false,					// not preshadow
+					// Size was computed for the full res opaque shadow, convert to downsampled translucent shadow size with proper clamping
+					FMath::Clamp<int32>(SizeX / GSceneRenderTargets.GetTranslucentShadowDownsampleFactor(), 1, GSceneRenderTargets.GetTranslucentShadowDepthTextureResolution().X - SHADOW_BORDER * 2),
+					FMath::Clamp<int32>(MaxShadowResolutionY / GSceneRenderTargets.GetTranslucentShadowDownsampleFactor(), 1, GSceneRenderTargets.GetTranslucentShadowDepthTextureResolution().Y - SHADOW_BORDER * 2),
 					MaxScreenPercent,
 					ResolutionFadeAlphas,
-					true					// tranlucent shadow
+					true					// translucent shadow
 					);
 				VisibleLightInfo.MemStackProjectedShadows.Add(ProjectedShadowInfo);
 
@@ -1490,12 +1491,12 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 						LightSceneInfo,
 						PrimitiveSceneInfo,
 						ShadowInitializer,
-						true,
+						true,				// preshadow
 						PreshadowSizeX,
 						FMath::TruncToInt(MaxShadowResolutionY * CVarPreShadowResolutionFactor.GetValueOnRenderThread()),
 						MaxScreenPercent,
 						ResolutionPreShadowFadeAlphas,
-						false
+						false				// not translucent shadow
 						);
 				}
 

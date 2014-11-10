@@ -379,6 +379,7 @@ public:
 	FIntPoint GetShadowDepthTextureResolution() const;
 	FIntPoint GetPreShadowCacheTextureResolution() const;
 	FIntPoint GetTranslucentShadowDepthTextureResolution() const;
+	int32 GetTranslucentShadowDownsampleFactor() const { return 2; }
 
 	/** Returns the size of the RSM buffer, taking into account platform limitations and game specific resolution limits. */
 	FIntPoint GetReflectiveShadowMapTextureResolution() const;

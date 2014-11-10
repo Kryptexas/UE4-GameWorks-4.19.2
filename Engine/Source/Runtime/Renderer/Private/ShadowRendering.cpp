@@ -2353,7 +2353,7 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 
 FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride, bool bHasShadowBorder ) const
 {
-	FIntPoint ShadowBufferResolution = ( ShadowBufferResolutionOverride ) ? *ShadowBufferResolutionOverride : GSceneRenderTargets.GetShadowDepthTextureResolution();
+	FIntPoint ShadowBufferResolution = ( ShadowBufferResolutionOverride ) ? *ShadowBufferResolutionOverride : GetShadowBufferResolution();
 	float ShadowBorder = (bHasShadowBorder) ? SHADOW_BORDER : 0.0f;
 
 	const float InvBufferResolutionX = 1.0f / (float)ShadowBufferResolution.X;
@@ -2393,6 +2393,11 @@ FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, 
 /** Returns the resolution of the shadow buffer used for this shadow, based on the shadow's type. */
 FIntPoint FProjectedShadowInfo::GetShadowBufferResolution() const
 {
+	if (bTranslucentShadow)
+	{
+		return GSceneRenderTargets.GetTranslucentShadowDepthTextureResolution();
+	}
+
 	const FTexture2DRHIRef& ShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture(bAllocatedInPreshadowCache);
 
 	//prefer to return the actual size of the allocated texture if possible.  It may be larger than the size of a single shadowmap due to atlasing (see forward renderer CSM handling in InitDynamicShadows).

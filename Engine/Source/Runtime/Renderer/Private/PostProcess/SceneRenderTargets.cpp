@@ -1488,7 +1488,7 @@ void FSceneRenderTargets::ReleaseDynamicRHI()
 /** Returns the size of the shadow depth buffer, taking into account platform limitations and game specific resolution limits. */
 FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const
 {
-	int32 MaxShadowRes = GetCachedScalabilityCVars().MaxShadowResolution;
+	int32 MaxShadowRes = CurrentMaxShadowResolution;
 	const FIntPoint ShadowBufferResolution(
 			FMath::Clamp(MaxShadowRes,1,GMaxShadowDepthBufferSizeX),
 			FMath::Clamp(MaxShadowRes,1,GMaxShadowDepthBufferSizeY));
@@ -1513,7 +1513,9 @@ FIntPoint FSceneRenderTargets::GetPreShadowCacheTextureResolution() const
 
 FIntPoint FSceneRenderTargets::GetTranslucentShadowDepthTextureResolution() const
 {
-	const FIntPoint ShadowDepthResolution = GetShadowDepthTextureResolution();
+	FIntPoint ShadowDepthResolution = GetShadowDepthTextureResolution();
+	ShadowDepthResolution.X = FMath::Max<int32>(ShadowDepthResolution.X / GetTranslucentShadowDownsampleFactor(), 1);
+	ShadowDepthResolution.Y = FMath::Max<int32>(ShadowDepthResolution.Y / GetTranslucentShadowDownsampleFactor(), 1);
 	return ShadowDepthResolution;
 }
 

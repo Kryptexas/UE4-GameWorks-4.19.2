@@ -1873,7 +1873,7 @@ static TAutoConsoleVariable<int32> CVarMaxAnistropy(
 
 static TAutoConsoleVariable<int32> CVarShadowMaxResolution(
 	TEXT("r.Shadow.MaxResolution"),
-	1024,
+	2048,
 	TEXT("Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
