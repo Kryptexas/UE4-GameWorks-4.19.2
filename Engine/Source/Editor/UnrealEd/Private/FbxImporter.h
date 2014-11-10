@@ -114,7 +114,8 @@ struct FBXImportOptions
 	EFBXNormalImportMethod NormalImportMethod;
 	// Static Mesh options
 	bool bCombineToSingle;
-	bool bReplaceVertexColors;
+	EVertexColorImportOption::Type VertexColorImportOption;
+	FColor VertexOverrideColor;
 	bool bRemoveDegenerates;
 	bool bGenerateLightmapUVs;
 	bool bOneConvexHullPerUCX;
@@ -689,7 +690,8 @@ protected:
 	 * @param LODIndex	LOD level to set up for StaticMesh
 	 * @return bool true if set up successfully
 	 */
-	bool BuildStaticMeshFromGeometry(FbxMesh* FbxMesh, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex, TMap<FVector, FColor>* ExistingVertexColorData);
+	bool BuildStaticMeshFromGeometry(FbxMesh* FbxMesh, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex,
+									 EVertexColorImportOption::Type VertexColorImportOption, const TMap<FVector, FColor>& ExistingVertexColorData, const FColor& VertexOverrideColor);
 	
 	/**
 	 * Clean up for destroy the Importer.

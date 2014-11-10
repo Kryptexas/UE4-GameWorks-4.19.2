@@ -91,7 +91,8 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMesh(UObject* InParent, FbxNode* N
 	return ImportStaticMeshAsSingle(InParent, MeshNodeArray, Name, Flags, ImportData, InStaticMesh, LODIndex);
 }
 
-bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex, TMap<FVector, FColor>* ExistingVertexColorData)
+bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex,
+													  EVertexColorImportOption::Type VertexColorImportOption, const TMap<FVector, FColor>& ExistingVertexColorData, const FColor& VertexOverrideColor)
 {
 	check(StaticMesh->SourceModels.IsValidIndex(LODIndex));
 
@@ -462,7 +463,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 		RawMesh.WedgeTangentZ.AddZeroed(WedgeOffset + WedgeCount - RawMesh.WedgeTangentZ.Num());
 	}
 
-	if (LayerElementVertexColor || ExistingVertexColorData || RawMesh.WedgeColors.Num() )
+	if (LayerElementVertexColor || VertexColorImportOption != EVertexColorImportOption::Replace || RawMesh.WedgeColors.Num() )
 	{
 		int32 NumNewColors = WedgeOffset + WedgeCount - RawMesh.WedgeColors.Num();
 		int32 FirstNewColor = RawMesh.WedgeColors.Num();
@@ -571,34 +572,43 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 			//
 			// vertex colors
 			//
-			if (LayerElementVertexColor && !ExistingVertexColorData)
+			if (VertexColorImportOption == EVertexColorImportOption::Replace)
 			{
-				int32 VertexColorMappingIndex = (VertexColorMappingMode == FbxLayerElement::eByControlPoint) ? 
-					Mesh->GetPolygonVertex(TriangleIndex,CornerIndex) : (TriangleIndex*3+CornerIndex);
+				if (LayerElementVertexColor)
+				{
+					int32 VertexColorMappingIndex = (VertexColorMappingMode == FbxLayerElement::eByControlPoint) ?
+						Mesh->GetPolygonVertex(TriangleIndex, CornerIndex) : (TriangleIndex * 3 + CornerIndex);
 
-				int32 VectorColorIndex = (VertexColorReferenceMode == FbxLayerElement::eDirect) ? 
+					int32 VectorColorIndex = (VertexColorReferenceMode == FbxLayerElement::eDirect) ?
 					VertexColorMappingIndex : LayerElementVertexColor->GetIndexArray().GetAt(VertexColorMappingIndex);
 
-				FbxColor VertexColor = LayerElementVertexColor->GetDirectArray().GetAt(VectorColorIndex);
+					FbxColor VertexColor = LayerElementVertexColor->GetDirectArray().GetAt(VectorColorIndex);
 
-				RawMesh.WedgeColors[WedgeIndex] = FColor(
-					uint8(255.f*VertexColor.mRed),
-					uint8(255.f*VertexColor.mGreen),
-					uint8(255.f*VertexColor.mBlue),
-					uint8(255.f*VertexColor.mAlpha)
-					);
+					RawMesh.WedgeColors[WedgeIndex] = FColor(
+						uint8(255.f*VertexColor.mRed),
+						uint8(255.f*VertexColor.mGreen),
+						uint8(255.f*VertexColor.mBlue),
+						uint8(255.f*VertexColor.mAlpha)
+						);
+				}
 			}
-			else if (ExistingVertexColorData)
+			else if (VertexColorImportOption == EVertexColorImportOption::Ignore)
 			{
 				// try to match this triangles current vertex with one that existed in the previous mesh.
 				// This is a find in a tmap which uses a fast hash table lookup.
 				FVector Position = RawMesh.VertexPositions[RawMesh.WedgeIndices[WedgeIndex]];
-				FColor* PaintedColor = ExistingVertexColorData->Find(Position);
+				const FColor* PaintedColor = ExistingVertexColorData.Find(Position);
 				if (PaintedColor)
 				{
 					// A matching color for this vertex was found
 					RawMesh.WedgeColors[WedgeIndex] = *PaintedColor;
 				}
+			}
+			else
+			{
+				// set the triangle's vertex color to a constant override
+				check(VertexColorImportOption == EVertexColorImportOption::Override);
+				RawMesh.WedgeColors[WedgeIndex] = VertexOverrideColor;
 			}
 		}
 
@@ -871,8 +881,8 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;
-	// If we should get vertex colors. Defaults to the checkbox value available to the user in the import property window
-	bool bGetVertexColors = ImportOptions->bReplaceVertexColors;
+
+	EVertexColorImportOption::Type VertexColorImportOption = ImportOptions->VertexColorImportOption;
 	FString NewPackageName;
 
 	if( InStaticMesh == NULL || LODIndex == 0 )
@@ -892,8 +902,11 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 		if (0 == ExistingVertexColorData.Num())
 		{
-			// If there were no vertex colors, automatically take vertex colors from the file.
-			bGetVertexColors = true;
+			// If there were no vertex colors and we specified to ignore FBX vertex colors, automatically take vertex colors from the file anyway.
+			if (VertexColorImportOption == EVertexColorImportOption::Ignore)
+			{
+				VertexColorImportOption = EVertexColorImportOption::Replace;
+			}
 		}
 
 		// Free any RHI resources for existing mesh before we re-create in place.
@@ -922,12 +935,18 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 
 		// Vertex colors should be copied always if there is no existing static mesh.
-		bGetVertexColors = true;
+		if (VertexColorImportOption == EVertexColorImportOption::Ignore)
+		{
+			VertexColorImportOption = EVertexColorImportOption::Replace;
+		}
 	}
 	else
 	{ 
 		// Vertex colors should be copied always if there is no existing static mesh.
-		bGetVertexColors = true;
+		if (VertexColorImportOption == EVertexColorImportOption::Ignore)
+		{
+			VertexColorImportOption = EVertexColorImportOption::Replace;
+		}
 	}
 	
 	if( InStaticMesh != NULL && LODIndex > 0 )
@@ -971,7 +990,8 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 		if (Node->GetMesh())
 		{
-			if (!BuildStaticMeshFromGeometry(Node->GetMesh(), StaticMesh, MeshMaterials, LODIndex, bGetVertexColors? NULL: &ExistingVertexColorData))
+			if (!BuildStaticMeshFromGeometry(Node->GetMesh(), StaticMesh, MeshMaterials, LODIndex,
+											 VertexColorImportOption, ExistingVertexColorData, ImportOptions->VertexOverrideColor))
 			{
 				bBuildStatus = false;
 				break;

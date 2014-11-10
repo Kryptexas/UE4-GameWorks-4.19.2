@@ -40,10 +40,16 @@ private:
 	/** Called when the StaticMeshLODGroup spinbox is changed */
 	void OnLODGroupChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo, TWeakPtr<IPropertyHandle> HandlePtr);
 
+	/** Called to determine the visibility of the VertexOverrideColor property */
+	bool GetVertexOverrideColorEnabledState() const;
+
 	/** LOD group options. */
 	TArray<FName> LODGroupNames;
 	TArray<TSharedPtr<FString>> LODGroupOptions;
 
 	/** Cached StaticMeshLODGroup property handle */
 	TSharedPtr<IPropertyHandle> StaticMeshLODGroupPropertyHandle;
+
+	/** Cached VertexColorImportOption property handle */
+	TSharedPtr<IPropertyHandle> VertexColorImportOptionHandle;
 };

@@ -10,6 +10,7 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const FObjectInitializer& Obj
 	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
 	bAutoGenerateCollision = true;
+	VertexOverrideColor = FColor(255, 255, 255, 255);
 }
 
 UFbxStaticMeshImportData* UFbxStaticMeshImportData::GetImportDataForStaticMesh(UStaticMesh* StaticMesh, UFbxStaticMeshImportData* TemplateForCreation)

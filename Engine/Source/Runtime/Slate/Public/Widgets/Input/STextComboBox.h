@@ -24,6 +24,9 @@ public:
 		/** Text color and opacity */
 		SLATE_ATTRIBUTE( FSlateColor, ColorAndOpacity )
 
+		/** Sets the font used to draw the text */
+		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
+
 		/** Visual padding of the button content for the combobox */
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 
@@ -86,4 +89,7 @@ private:
 
 	/** Forwarding Delegate */
 	FOnTextSelectionChanged SelectionChanged;
+
+	/** Sets the font used to draw the text */
+	TAttribute< FSlateFontInfo > Font;
 };

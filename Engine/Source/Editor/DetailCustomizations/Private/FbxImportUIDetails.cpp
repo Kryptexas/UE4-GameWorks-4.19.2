@@ -118,6 +118,14 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 					{
 						SetStaticMeshLODGroupWidget(PropertyRow, Handle);
 					}
+
+					if (Property->GetFName() == GET_MEMBER_NAME_CHECKED(UFbxStaticMeshImportData, VertexOverrideColor))
+					{
+						// Cache the VertexColorImportOption property
+						VertexColorImportOptionHandle = StaticMeshDataProp->GetChildHandle(GET_MEMBER_NAME_CHECKED(UFbxStaticMeshImportData, VertexColorImportOption));
+
+						PropertyRow.IsEnabled(TAttribute<bool>(this, &FFbxImportUIDetails::GetVertexOverrideColorEnabledState));
+					}
 				}
 			}
 		}
@@ -242,8 +250,10 @@ void FFbxImportUIDetails::SetStaticMeshLODGroupWidget(IDetailPropertyRow& Proper
 		.ValueContent()
 		.MinDesiredWidth(Row.ValueWidget.MinWidth)
 		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+		.VAlign(VAlign_Center)
 		[
 			SNew(STextComboBox)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OptionsSource(&LODGroupOptions)
 			.InitiallySelectedItem(LODGroupOptions[GroupIndex])
 			.OnSelectionChanged(this, &FFbxImportUIDetails::OnLODGroupChanged, HandlePtr)
@@ -261,6 +271,14 @@ void FFbxImportUIDetails::OnLODGroupChanged(TSharedPtr<FString> NewValue, ESelec
 	}
 }
 
+bool FFbxImportUIDetails::GetVertexOverrideColorEnabledState() const
+{
+	uint8 VertexColorImportOption;
+	check(VertexColorImportOptionHandle.IsValid())
+	ensure(VertexColorImportOptionHandle->GetValue(VertexColorImportOption) == FPropertyAccess::Success);
+
+	return (VertexColorImportOption == EVertexColorImportOption::Override);
+}
 
 void FFbxImportUIDetails::CollectChildPropertiesRecursive(TSharedPtr<IPropertyHandle> Node, TArray<TSharedPtr<IPropertyHandle>>& OutProperties)
 {
