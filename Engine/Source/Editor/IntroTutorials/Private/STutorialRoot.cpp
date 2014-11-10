@@ -305,6 +305,11 @@ void STutorialRoot::HandleCloseClicked()
 	if(CurrentTutorial != nullptr)
 	{
 		CurrentTutorial->HandleTutorialClosed();
+		// Update the current stage when we close
+		bool bHaveSeenTutorial = false;
+		CurrentTutorialStage = GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
+		GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
+		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 	}
 
 	// submit analytics data
