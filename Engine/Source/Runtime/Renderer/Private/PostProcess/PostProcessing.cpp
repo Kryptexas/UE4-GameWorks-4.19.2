@@ -1040,7 +1040,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			}
 
 			// some views don't have a state (thumbnail rendering)
-			if(!GIsHighResScreenshot && View.State && (StereoPass != eSSP_RIGHT_EYE) && !View.bIsSceneCapture)
+			if(!GIsHighResScreenshot && View.State && (StereoPass != eSSP_RIGHT_EYE))
 			{
 				// we always add eye adaptation, if the engine show flag is disabled we set the ExposureScale in the texture to a fixed value
 				EyeAdaptation = AddPostProcessEyeAdaptation(Context, Histogram);
