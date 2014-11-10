@@ -612,6 +612,9 @@ private:
 		return EnabledStats.Num();
 	}
 
+	/** Process the 'show collision' console command */
+	void ToggleShowCollision();
+
 	/** Delegate handler to see if a stat is enabled on this viewport */
 	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
 
@@ -623,6 +626,9 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
+	/** Delegate handler for when an actor is spawned */
+	void ShowCollisionOnSpawnedActors(AActor* Actor);
 
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */
@@ -668,6 +674,9 @@ private:
 	/** Those sound stat flags which are enabled on this viewport */
 	static ESoundShowFlags::Type SoundShowFlags;
 
+	/** Number of viewports which have enabled 'show collision' */
+	static int32 NumViewportsShowingCollision;
+
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
 
@@ -679,7 +688,6 @@ private:
 
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
-
 };
 
 
