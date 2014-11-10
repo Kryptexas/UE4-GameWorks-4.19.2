@@ -245,12 +245,11 @@ namespace MetalUtils
 	/** Compute shader system values. */
 	static FSystemValue ComputeSystemValueTable[] =
 	{
-/*
-		{"SV_DispatchThreadID", glsl_type::uvec3_type, "gl_GlobalInvocationID", ir_var_in, false, false, false, false},
-		{"SV_GroupID", glsl_type::uvec3_type, "gl_WorkGroupID", ir_var_in, false, false, false, false},
-		{"SV_GroupIndex", glsl_type::uint_type, "gl_LocalInvocationIndex", ir_var_in, false, false, false, false},
-		{"SV_GroupThreadID", glsl_type::uvec3_type, "gl_LocalInvocationID", ir_var_in, false, false, false, false},
-*/
+		// D3D,					type,					GL,						param,		Metal
+		{"SV_DispatchThreadID",	glsl_type::uvec3_type,	"GlobalInvocationID",	ir_var_in, "[[ thread_position_in_grid ]]"},
+		{"SV_GroupID",			glsl_type::uvec3_type,	"WorkGroupID",			ir_var_in, "[[ threadgroup_position_in_grid ]]"},
+		{"SV_GroupIndex",		glsl_type::uint_type,	"LocalInvocationIndex",	ir_var_in, "[[ thread_index_in_threadgroup ]]"},
+		{"SV_GroupThreadID",	glsl_type::uvec3_type,	"LocalInvocationID",	ir_var_in, "[[ thread_position_in_threadgroup ]]"},
 		{NULL, NULL, NULL, ir_var_auto, nullptr}
 	};
 
@@ -1608,8 +1607,6 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 	exec_list PostCallInstructions;
 	ParseState->symbols->push_scope();
 
-	// 
-
 	// Set of variables packed into a struct
 	std::set<ir_variable*> VSStageInVariables;
 	std::set<ir_variable*> PSStageInVariables;
@@ -1628,6 +1625,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 	// Extra arguments needed for input (VertexID, etc)
 	TIRVarList VSInputArguments;
 	TIRVarList PSInputArguments;
+	TIRVarList CSInputArguments;
 
 	if (Frequency == HSF_VertexShader)
 	{
@@ -1811,6 +1809,60 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
 			}
 		}
+	}
+	else if (Frequency == HSF_ComputeShader)
+	{
+		YYLTYPE loc = {0};
+
+		foreach_iter(exec_list_iterator, Iter, *Instructions)
+		{
+			ir_instruction* IR = (ir_instruction*)Iter.get();
+			auto* Variable = IR->as_variable();
+			if (Variable)
+			{
+				switch (Variable->mode)
+				{
+				case ir_var_out:
+					{
+						_mesa_glsl_error(&loc, ParseState, "Compute/Kernel shaders do not support out variables ('%s')!", Variable->name);
+						return;
+					}
+					break;
+
+				case ir_var_in:
+					{
+						TArray<glsl_struct_field> CSStageInMembers;
+						TIRVarSet CSStageInVariables;
+						if (!ProcessStageInVariables(ParseState, Frequency, Variable, CSStageInMembers, CSStageInVariables, nullptr, CSInputArguments))
+						{
+							return;
+						}
+
+						if (CSStageInMembers.Num() != 0 || CSStageInVariables.size() != 0)
+						{
+							_mesa_glsl_error(&loc, ParseState, "Compute/Kernel shaders do not support out stage_in variables or vertex attributes ('%s')!", Variable->name);
+							return;
+						}
+					}
+					break;
+
+				case ir_var_shared:
+					{
+						// groupshared
+						Variable->remove();
+						DeclInstructions.push_head(Variable);
+					}
+					break;
+
+				default:
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		check(0);
 	}
 
 	TIRVarList VarsToMoveToBody;
