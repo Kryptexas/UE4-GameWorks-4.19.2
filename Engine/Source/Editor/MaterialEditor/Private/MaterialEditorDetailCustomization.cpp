@@ -165,9 +165,15 @@ FString FMaterialExpressionCollectionParameterDetails::GetParameterNameString() 
 
 bool FMaterialExpressionCollectionParameterDetails::IsParameterNameComboEnabled() const
 {
-	UObject* CollectionObject = NULL;
-	verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
-	UMaterialParameterCollection* Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	UMaterialParameterCollection* Collection = nullptr;
+	
+	if (CollectionPropertyHandle->IsValidHandle())
+	{
+		UObject* CollectionObject = nullptr;
+		verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
+		Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	}
+
 	return Collection != nullptr;
 }
 
@@ -184,7 +190,9 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 
 	// Get a handle to the property we are about to edit
 	ParameterNamePropertyHandle = DetailLayout.GetProperty( "ParameterName" );
+	check(ParameterNamePropertyHandle.IsValid());
 	CollectionPropertyHandle = DetailLayout.GetProperty( "Collection" );
+	check(CollectionPropertyHandle.IsValid());
 
 	// Register a changed callback on the collection property since we need to update the PropertyName vertical box when it changes
 	FSimpleDelegate OnCollectionChangedDelegate = FSimpleDelegate::CreateSP( this, &FMaterialExpressionCollectionParameterDetails::OnCollectionChanged );
@@ -242,9 +250,14 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 
 void FMaterialExpressionCollectionParameterDetails::PopulateParameters()
 {
-	UObject* CollectionObject = NULL;
-	verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
-	UMaterialParameterCollection* Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	UMaterialParameterCollection* Collection = nullptr;
+	
+	if (CollectionPropertyHandle->IsValidHandle())
+	{
+		UObject* CollectionObject = nullptr;
+		verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
+		Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	}
 
 	ParametersSource.Empty();
 
