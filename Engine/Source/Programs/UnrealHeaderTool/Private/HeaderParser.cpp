@@ -610,7 +610,7 @@ UEnum* FHeaderParser::CompileEnum(UClass* Scope)
 	ParseFieldMetaData(EnumToken.MetaData, EnumToken.Identifier);
 
 	// Create enum definition.
-	UEnum* Enum = new(Scope->HasAnyClassFlags(CLASS_Temporary) ? Scope->GetOuter() : Scope, EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
+	UEnum* Enum = new(FClassUtils::IsTemporaryClass(Scope) ? Scope->GetOuter() : Scope, EnumToken.Identifier, RF_Public) UEnum(FObjectInitializer());
 	Enum->Next = Scope->Children;
 	Scope->Children = Enum;
 
@@ -1196,7 +1196,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	}
 
 	// Verify uniqueness (if declared within UClass).
-	if (!Scope->HasAnyClassFlags(CLASS_Temporary))
+	if (!FClassUtils::IsTemporaryClass(Scope))
 	{
 		UField* Existing = FindField(Scope, *EffectiveStructName);
 		if (Existing && Existing->GetOuter() == Scope)
@@ -1329,7 +1329,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 	}
 	
 	// If declared in a header without UClass, the outer is the class package.
-	UObject* StructOuter = Scope->HasAnyClassFlags(CLASS_Temporary) ? Scope->GetOuter() : Scope;
+	UObject* StructOuter = FClassUtils::IsTemporaryClass(Scope) ? Scope->GetOuter() : Scope;
 	// Create.
 	UScriptStruct* Struct = new(StructOuter, *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
 	Struct->Next = Scope->Children;
@@ -6436,7 +6436,7 @@ ECompilationResult::Type FHeaderParser::ParseHeaderForOneClass(FClasses& AllClas
 		}
 
 		// mark temporary classes as native
-		if ( (Class->ClassFlags & CLASS_Temporary) )
+		if (FClassUtils::IsTemporaryClass(Class))
 		{
 			Class->ClassFlags |= CLASS_Native;
 		}
