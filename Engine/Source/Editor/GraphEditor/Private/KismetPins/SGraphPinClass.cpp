@@ -80,8 +80,9 @@ TSharedRef<SWidget> SGraphPinClass::GenerateAssetPicker()
 		.WidthOverride(280)
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
+
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			.MaxHeight(500)
 			[ 
 				SNew(SBorder)
