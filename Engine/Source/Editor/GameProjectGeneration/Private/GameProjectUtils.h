@@ -283,6 +283,9 @@ private:
 	/** Generates a new project using a template project */
 	static bool CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
+	/** Sets the engine association for a new project. Handles foreign and non-foreign projects. */
+	static bool SetEngineAssociationForForeignProject(const FString& ProjectFileName, FText& OutFailReason);
+
 	/** Copies starter content into the specified project folder. */
 	static bool CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason);
 

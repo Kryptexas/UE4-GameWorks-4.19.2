@@ -879,13 +879,20 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	// Generate the project file
 	{
 		FText LocalFailReason;
-		if (IProjectManager::Get().GenerateNewProjectFile(InProjectInfo.ProjectFilename, StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
+		if (IProjectManager::Get().GenerateNewProjectFile(InProjectInfo.ProjectFilename, StartupModuleNames, TEXT(""), LocalFailReason))
 		{
 			CreatedFiles.Add(InProjectInfo.ProjectFilename);
 		}
 		else
 		{
 			OutFailReason = LocalFailReason;
+			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
+			return false;
+		}
+
+		// Set the engine identifier for it. Do this after saving, so it can be correctly detected as foreign or non-foreign.
+		if(!SetEngineAssociationForForeignProject(InProjectInfo.ProjectFilename, OutFailReason))
+		{
 			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
 			return false;
 		}
@@ -1277,7 +1284,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		}
 
 		// Update it to current
-		Project.EngineAssociation = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+		Project.EngineAssociation.Empty();
 		Project.EpicSampleNameHash = 0;
 
 		// Fix up module names
@@ -1291,6 +1298,13 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 
 		// Save it to disk
 		if(!Project.Save(InProjectInfo.ProjectFilename, OutFailReason))
+		{
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
+			return false;
+		}
+
+		// Set the engine identifier if it's a foreign project. Do this after saving, so it can be correctly detected as foreign.
+		if(!SetEngineAssociationForForeignProject(InProjectInfo.ProjectFilename, OutFailReason))
 		{
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
@@ -1342,6 +1356,19 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		return false;
 	}
 	
+	return true;
+}
+
+bool GameProjectUtils::SetEngineAssociationForForeignProject(const FString& ProjectFileName, FText& OutFailReason)
+{
+	if(FUProjectDictionary(FPaths::RootDir()).IsForeignProject(ProjectFileName))
+	{
+		if(!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFileName, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier()))
+		{
+			OutFailReason = LOCTEXT("FailedToSetEngineIdentifier", "Couldn't set engine identifier for project");
+			return false;
+		}
+	}
 	return true;
 }
 
