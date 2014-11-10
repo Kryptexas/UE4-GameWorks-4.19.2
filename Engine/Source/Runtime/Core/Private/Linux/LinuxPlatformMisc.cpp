@@ -487,47 +487,54 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 
 int32 FLinuxPlatformMisc::NumberOfCores()
 {
-	cpu_set_t AvailableCpusMask;
-	CPU_ZERO(&AvailableCpusMask);
-
-	if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+	// WARNING: this function ignores edge cases like affinity mask changes (and even more fringe cases like CPUs going offline)
+	// in the name of performance (higher level code calls NumberOfCores() way too often...)
+	static int32 NumCoreIds = 0;
+	if (NumCoreIds == 0)
 	{
-		return 1;	// we are running on something, right?
-	}
+		cpu_set_t AvailableCpusMask;
+		CPU_ZERO(&AvailableCpusMask);
 
-	char FileNameBuffer[1024];
-	unsigned char PossibleCores[CPU_SETSIZE] = { 0 };
-
-	for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
-	{
-		if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+		if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
 		{
-			sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
-			
-			FILE* CoreIdFile = fopen(FileNameBuffer, "r");
-			unsigned int CoreId = 0;
-			if (CoreIdFile)
-			{
-				if (1 != fscanf(CoreIdFile, "%d", &CoreId))
-				{
-					CoreId = 0;
-				}
-				fclose(CoreIdFile);
-			}
-
-			if (CoreId >= ARRAY_COUNT(PossibleCores))
-			{
-				CoreId = 0;
-			}
-			
-			PossibleCores[ CoreId ] = 1;
+			NumCoreIds = 1;	// we are running on something, right?
 		}
-	}
+		else
+		{
+			char FileNameBuffer[1024];
+			unsigned char PossibleCores[CPU_SETSIZE] = { 0 };
 
-	int32 NumCoreIds = 0;
-	for(int32 Idx = 0; Idx < ARRAY_COUNT(PossibleCores); ++Idx)
-	{
-		NumCoreIds += PossibleCores[Idx];
+			for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+			{
+				if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+				{
+					sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
+					
+					FILE* CoreIdFile = fopen(FileNameBuffer, "r");
+					unsigned int CoreId = 0;
+					if (CoreIdFile)
+					{
+						if (1 != fscanf(CoreIdFile, "%d", &CoreId))
+						{
+							CoreId = 0;
+						}
+						fclose(CoreIdFile);
+					}
+
+					if (CoreId >= ARRAY_COUNT(PossibleCores))
+					{
+						CoreId = 0;
+					}
+					
+					PossibleCores[ CoreId ] = 1;
+				}
+			}
+
+			for(int32 Idx = 0; Idx < ARRAY_COUNT(PossibleCores); ++Idx)
+			{
+				NumCoreIds += PossibleCores[Idx];
+			}
+		}
 	}
 
 	return NumCoreIds;
@@ -535,15 +542,25 @@ int32 FLinuxPlatformMisc::NumberOfCores()
 
 int32 FLinuxPlatformMisc::NumberOfCoresIncludingHyperthreads()
 {
-	cpu_set_t AvailableCpusMask;
-	CPU_ZERO(&AvailableCpusMask);
-
-	if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+	// WARNING: this function ignores edge cases like affinity mask changes (and even more fringe cases like CPUs going offline)
+	// in the name of performance (higher level code calls NumberOfCores() way too often...)
+	static int32 NumCoreIds = 0;
+	if (NumCoreIds == 0)
 	{
-		return 1;	// we are running on something, right?
+		cpu_set_t AvailableCpusMask;
+		CPU_ZERO(&AvailableCpusMask);
+
+		if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+		{
+			NumCoreIds = 1;	// we are running on something, right?
+		}
+		else
+		{
+			return CPU_COUNT(&AvailableCpusMask);
+		}
 	}
 
-	return CPU_COUNT(&AvailableCpusMask);
+	return NumCoreIds;
 }
 
 void FLinuxPlatformMisc::LoadPreInitModules()
