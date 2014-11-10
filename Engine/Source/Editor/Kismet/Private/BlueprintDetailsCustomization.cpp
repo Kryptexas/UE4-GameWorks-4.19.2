@@ -2013,13 +2013,17 @@ FText FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText() const
 
 void FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 {
-	if (!NewText.IsEmpty() && !ShouldPinBeReadOnly() && (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) && ParamItemPtr.IsValid())
+	auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
+	if (!NewText.IsEmpty() 
+		&& !ShouldPinBeReadOnly() 
+		&& (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) 
+		&& ParamItemPtr.IsValid() 
+		&& GraphActionDetailsPinned.IsValid())
 	{
 		bool bSuccess = TargetNode->ModifyUserDefinedPinDefaultValue(ParamItemPtr.Pin(), NewText.ToString());
-		
 		if (bSuccess)
 		{
-			GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode);
+			GraphActionDetailsPinned->OnParamsChanged(TargetNode);
 		}
 	}
 }
