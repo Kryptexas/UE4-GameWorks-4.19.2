@@ -1973,8 +1973,8 @@ void SEditableText::SummonContextMenu( const FVector2D& InLocation )
 
 #undef LOCTEXT_NAMESPACE
 
-	const bool bFocusImmediatley = false;
-	TSharedPtr< SWindow > ContextMenuWindowPinned = FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ), bFocusImmediatley );
+	const bool bFocusImmediately = true;
+	TSharedPtr< SWindow > ContextMenuWindowPinned = FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ), bFocusImmediately );
 	ContextMenuWindow = ContextMenuWindowPinned;
 
 	// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
