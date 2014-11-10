@@ -38,27 +38,13 @@ namespace GitDependencies
 
 		public static void WriteStatus(string Format, params object[] Args)
 		{
+			// Write the new status, and clear any space after the end of the string if it's shorter
 			string NewStatus = String.Format(Format, Args);
-
-			// Figure out how many characters are in common
-			int NumCommon = 0;
-			while(NumCommon < CurrentStatus.Length && NumCommon < NewStatus.Length && CurrentStatus[NumCommon] == NewStatus[NumCommon])
-			{
-				NumCommon++;
-			}
-
-			// Go back to the point that they diverge and write the new string
-			Console.Write(new String('\b', CurrentStatus.Length - NumCommon));
-			Console.Write(NewStatus.Substring(NumCommon));
-
-			// If the new message is shorter, clear the rest of the line
+			Console.Write("\r" + NewStatus);
 			if(NewStatus.Length < CurrentStatus.Length)
 			{
-				Console.Write(new String(' ', CurrentStatus.Length - NewStatus.Length));
-				Console.Write(new String('\b', CurrentStatus.Length - NewStatus.Length));
+				Console.Write(new string(' ', CurrentStatus.Length - NewStatus.Length) + "\r" + NewStatus);
 			}
-
-			// Update the status message
 			CurrentStatus = NewStatus;
 		}
 

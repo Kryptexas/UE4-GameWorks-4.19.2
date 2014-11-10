@@ -11,7 +11,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace GitDependencies
@@ -20,14 +19,17 @@ namespace GitDependencies
 	{
 		class AsyncDownloadState
 		{
+			public int NumFiles;
 			public int NumFilesRead;
 			public long NumBytesRead;
-			public string ErrorMessage;
+			public string LastDecompressError;
+			public int NumFailingDownloads;
+			public string LastDownloadError;
 		}
 
 		const string IncomingFileSuffix = ".incoming";
 		const string TempManifestExtension = ".tmp";
-
+		
 		static int Main(string[] Args)
 		{
 			// Build the argument list. Remove any double-hyphens from the start of arguments for conformity with other Epic tools.
@@ -54,7 +56,7 @@ namespace GitDependencies
 					ExcludeFolders.Add("Win32");
 					ExcludeFolders.Add("Win64");
 				}
-				if(Environment.OSVersion.Platform != PlatformID.MacOSX)
+				if(Environment.OSVersion.Platform != PlatformID.MacOSX && !(Environment.OSVersion.Platform == PlatformID.Unix && Directory.Exists("/Applications") && Directory.Exists("/System")))
 				{
 					ExcludeFolders.Add("Mac");
 				}
@@ -111,12 +113,14 @@ namespace GitDependencies
 				return 0;
 			}
 
-			// Update the tree
+			// Register a delegate to clear the status text if we use ctrl-c to quit
+			Console.CancelKeyPress += delegate { Log.FlushStatus(); };
+
+			// Update the tree. Make sure we clear out the status line if we quit for any reason (eg. ctrl-c)
 			if(!UpdateWorkingTree(bForce, bDryRun, RootPath, ExcludeFolders, NumThreads, MaxRetries))
 			{
 				return 1;
 			}
-
 			return 0;
 		}
 
@@ -166,11 +170,11 @@ namespace GitDependencies
 			// Start scanning on the working directory 
 			if(ExcludeFolders.Count > 0)
 			{
-				Log.WriteLine("Checking binary dependencies (excluding {0})...", String.Join(", ", ExcludeFolders));
+				Log.WriteLine("Updating UE4 binary dependencies (excluding {0})...", String.Join(", ", ExcludeFolders));
 			}
 			else
 			{
-				Log.WriteLine("Checking binary dependencies...");
+				Log.WriteLine("Updating UE4 binary dependencies...");
 			}
 
 			// Figure out the path to the working manifest
@@ -185,11 +189,7 @@ namespace GitDependencies
 
 			// Read the initial manifest, or create a new one
 			WorkingManifest CurrentManifest;
-			if(File.Exists(WorkingManifestPath))
-			{
-				CurrentManifest = ReadXmlObject<WorkingManifest>(WorkingManifestPath);
-			}
-			else
+			if(!File.Exists(WorkingManifestPath) || !ReadXmlObject(WorkingManifestPath, out CurrentManifest))
 			{
 				CurrentManifest = new WorkingManifest();
 			}
@@ -219,8 +219,8 @@ namespace GitDependencies
 					foreach(string ManifestFileName in Directory.EnumerateFiles(BuildFolder, "*.gitdeps.xml"))
 					{
 						// Read this manifest
-						DependencyManifest NewTargetManifest = ReadXmlObject<DependencyManifest>(ManifestFileName);
-						if(NewTargetManifest == null)
+						DependencyManifest NewTargetManifest;
+						if(!ReadXmlObject(ManifestFileName, out NewTargetManifest))
 						{
 							return false;
 						}
@@ -257,6 +257,23 @@ namespace GitDependencies
 						CurrentFile.Timestamp = LastWriteTime;
 					}
 					CurrentFileLookup.Add(CurrentFile.Name, CurrentFile);
+				}
+			}
+
+			// Also add all the untracked files which already exist, but weren't downloaded by this program
+			foreach (DependencyFile TargetFile in TargetFiles.Values) 
+			{
+				if(!CurrentFileLookup.ContainsKey(TargetFile.Name))
+				{
+					string CurrentFilePath = Path.Combine(RootPath, TargetFile.Name);
+					if(File.Exists(CurrentFilePath))
+					{
+						WorkingFile CurrentFile = new WorkingFile();
+						CurrentFile.Name = TargetFile.Name;
+						CurrentFile.Hash = ComputeHashForFile(CurrentFilePath);
+						CurrentFile.Timestamp = File.GetLastWriteTimeUtc(CurrentFilePath).Ticks;
+						CurrentFileLookup.Add(CurrentFile.Name, CurrentFile);
+					}
 				}
 			}
 
@@ -311,28 +328,35 @@ namespace GitDependencies
 				return true;
 			}
 
-			// Check if there are any files that have been tampered with
-			if(CurrentFileLookup.Count > 0 && !bForce)
+			// Delete any files which are no longer needed
+			List<WorkingFile> TamperedFiles = new List<WorkingFile>();
+			foreach(WorkingFile FileToRemove in CurrentFileLookup.Values)
 			{
-				WorkingFile[] ModifiedFiles = CurrentFileLookup.Values.Where(x => x.Hash != x.ExpectedHash).ToArray();
-				if(ModifiedFiles.Length > 0)
+				if(!bForce && FileToRemove.Hash != FileToRemove.ExpectedHash)
 				{
-					Log.WriteError("The following file(s) have been modified. Re-run with the --force parameter to overwrite them.");
-					foreach(WorkingFile ModifiedFile in ModifiedFiles)
-					{
-						Log.WriteError("  {0}", ModifiedFile.Name);
-					}
+					TamperedFiles.Add(FileToRemove);
+				}
+				else if(!SafeDeleteFile(Path.Combine(RootPath, FileToRemove.Name)))
+				{
 					return false;
 				}
 			}
 
-			// Delete any files that are no longer needed
-			foreach(string FileToRemove in CurrentFileLookup.Keys)
+			// Warn if there were any files that have been tampered with, and remove them from the download list
+			if(TamperedFiles.Count > 0)
 			{
-				if(!SafeDeleteFile(Path.Combine(RootPath, FileToRemove)))
+				Log.WriteError("The following file(s) have been modified, and were not updated:");
+				foreach(WorkingFile TamperedFile in TamperedFiles)
 				{
-					return false;
+					DependencyFile TargetFile;
+					if(TargetFiles.TryGetValue(TamperedFile.Name, out TargetFile))
+					{
+						TargetFiles.Remove(TamperedFile.Name);
+						FilesToDownload.Remove(TargetFile);
+					}
+					Log.WriteError("  {0}", TamperedFile.Name);
 				}
+				Log.WriteError("Re-run with the --force parameter to overwrite them.");
 			}
 
 			// Write out the new working manifest, so we can track any files that we're going to download. We always verify missing files on startup, so it's ok that things don't exist yet.
@@ -341,17 +365,9 @@ namespace GitDependencies
 				return false;
 			}
 
-			// Log out if we have any up-to-date files
-			if(NewWorkingManifest.Files.Count > FilesToDownload.Count)
-			{
-				Log.WriteLine("{0} files up to date.", NewWorkingManifest.Files.Count - FilesToDownload.Count);
-			}
-
 			// If there's nothing to do, just print a simpler message and exit early
 			if(FilesToDownload.Count > 0)
 			{
-				Log.WriteLine("Downloading {0} files using {1} threads...", FilesToDownload.Count, NumThreads);
-
 				// Download all the new dependencies
 				if(!DownloadDependencies(RootPath, FilesToDownload, TargetBlobs.Values, TargetPacks.Values, NumThreads, MaxRetries))
 				{
@@ -375,6 +391,96 @@ namespace GitDependencies
 					return false;
 				}
 			}
+
+			// Update all the executable permissions
+			if(!SetExecutablePermissions(RootPath, TargetFiles.Values))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		static bool SetExecutablePermissions(string RootDir, IEnumerable<DependencyFile> Files)
+		{
+			// Try to load the Mono Posix assembly. If it doesn't exist, we're on Windows.
+			Assembly MonoPosix;
+			try
+			{
+				MonoPosix = Assembly.Load("Mono.Posix, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756");
+			}
+			catch(FileNotFoundException)
+			{
+				return true;
+			}
+
+			// Dynamically find all the types and methods for Syscall.stat and Syscall.chmod
+			Type SyscallType = MonoPosix.GetType("Mono.Unix.Native.Syscall");
+			if(SyscallType == null)
+			{
+				Log.WriteError("Couldn't find Syscall type");
+				return false;
+			}
+            MethodInfo StatMethod = SyscallType.GetMethod ("stat");
+			if(StatMethod == null)
+			{
+				Log.WriteError("Couldn't find Mono.Unix.Native.Syscall.stat method");
+				return false;
+			}
+			MethodInfo ChmodMethod = SyscallType.GetMethod("chmod");
+			if(ChmodMethod == null)
+			{
+				Log.WriteError("Couldn't find Mono.Unix.Native.Syscall.chmod method");
+				return false;
+			}
+			Type StatType = MonoPosix.GetType("Mono.Unix.Native.Stat");
+			if(StatType == null)
+			{
+				Log.WriteError("Couldn't find Mono.Unix.Native.Stat type");
+				return false;
+			}
+			FieldInfo StatModeField = StatType.GetField("st_mode");
+			if(StatModeField == null)
+			{
+				Log.WriteError("Couldn't find Mono.Unix.Native.Stat.st_mode field");
+				return false;
+			}
+
+			// Update all the executable permissions
+			const uint ExecutableBits = (1 << 0) | (1 << 3) | (1 << 6);
+			foreach(DependencyFile File in Files)
+			{
+				if(File.IsExecutable)
+				{
+					string FileName = Path.Combine(RootDir, File.Name);
+
+					// Call Syscall.stat(Filename, out Stat)
+					object[] StatArgs = new object[]{ FileName, null };
+					int StatResult = (int)StatMethod.Invoke(null, StatArgs);
+					if(StatResult != 0)
+					{
+						Log.WriteError("Stat() call for {0} failed with error {1}", File.Name, StatResult);
+						return false;
+					}
+
+					// Get the current permissions
+					uint CurrentPermissions = (uint)StatModeField.GetValue(StatArgs[1]);
+
+					// The desired permissions should be executable for every read group
+					uint NewPermissions = CurrentPermissions | ((CurrentPermissions >> 2) & ExecutableBits);
+
+					// Update them if they don't match
+					if (CurrentPermissions != NewPermissions)
+					{
+						int ChmodResult = (int)ChmodMethod.Invoke(null, new object[]{ FileName, NewPermissions });
+						if(ChmodResult != 0)
+						{
+							Log.WriteError("Chmod() call for {0} failed with error {1}", File.Name, ChmodResult);
+							return false;
+						}
+					}
+				}
+			}
 			return true;
 		}
 
@@ -392,6 +498,9 @@ namespace GitDependencies
 
 		static bool DownloadDependencies(string RootPath, IEnumerable<DependencyFile> RequiredFiles, IEnumerable<DependencyBlob> Blobs, IEnumerable<DependencyPack> Packs, int NumThreads, int MaxRetries)
 		{
+			// Make sure we can actually open the right number of connections
+			ServicePointManager.DefaultConnectionLimit = NumThreads;
+
 			// Build a lookup for the files that need updating from each blob
 			Dictionary<string, List<DependencyFile>> BlobToFiles = new Dictionary<string,List<DependencyFile>>();
 			foreach(DependencyFile RequiredFile in RequiredFiles)
@@ -424,148 +533,190 @@ namespace GitDependencies
 			// Find all the required packs
 			DependencyPack[] RequiredPacks = Packs.Where(x => PackToBlobs.ContainsKey(x.Hash)).ToArray();
 
+			// Get temporary filenames for all the files we're going to download
+			Dictionary<DependencyPack, string> DownloadFileNames = new Dictionary<DependencyPack,string>();
+			foreach(DependencyPack Pack in RequiredPacks)
+			{
+				DownloadFileNames.Add(Pack, Path.GetTempFileName());
+			}
+
 			// Setup the async state
 			AsyncDownloadState State = new AsyncDownloadState();
-			ConcurrentQueue<DependencyPack> RemainingPacks = new ConcurrentQueue<DependencyPack>(RequiredPacks);
+			State.NumFiles = RequiredFiles.Count();
 			long NumBytesTotal = RequiredPacks.Sum(x => x.CompressedSize);
-			long NumFilesTotal = RequiredFiles.Count();
+			ConcurrentQueue<DependencyPack> DownloadQueue = new ConcurrentQueue<DependencyPack>(RequiredPacks);
+			ConcurrentQueue<DependencyPack> DecompressQueue = new ConcurrentQueue<DependencyPack>();
 
 			// Create all the worker threads
 			Thread[] WorkerThreads = new Thread[NumThreads];
 			for(int Idx = 0; Idx < NumThreads; Idx++)
 			{
-				WorkerThreads[Idx] = new Thread(x => DownloadWorker(RootPath, RemainingPacks, PackToBlobs, BlobToFiles, State, MaxRetries));
+				WorkerThreads[Idx] = new Thread(x => DownloadWorker(RootPath, DownloadQueue, DecompressQueue, DownloadFileNames, PackToBlobs, BlobToFiles, State, MaxRetries));
 				WorkerThreads[Idx].Start();
 			}
 
-			// Tick the status message until we've finished or ended with an error
-			while(State.NumFilesRead < NumFilesTotal && State.ErrorMessage == null)
+			// Create the decompression thread
+			Thread DecompressionThread = new Thread(x => DecompressWorker(RootPath, DecompressQueue, DownloadFileNames, PackToBlobs, BlobToFiles, State));
+			DecompressionThread.Start();
+
+			// Tick the status message until we've finished or ended with an error. Use a circular buffer to average out the speed over time.
+			long[] NumBytesReadBuffer = new long[60];
+			for(int BufferIdx = 0, NumFilesReportedRead = 0; NumFilesReportedRead < State.NumFiles && State.NumFailingDownloads < NumThreads && State.LastDecompressError == null; BufferIdx = (BufferIdx + 1) % NumBytesReadBuffer.Length)
 			{
-				Thread.Sleep(100);
+				const int TickInterval = 100;
+
 				long NumBytesRead = Interlocked.Read(ref State.NumBytesRead);
-				Log.WriteStatus("Staged {0}/{1} files ({2:0.0}/{3:0.0}mb; {4}%)", State.NumFilesRead, NumFilesTotal, NumBytesRead / (1024.0 * 1024.0), NumBytesTotal / (1024.0 * 1024.0), (NumBytesRead * 100) / NumBytesTotal);
+				float NumBytesPerSecond = (float)Math.Max(NumBytesRead - NumBytesReadBuffer[BufferIdx], 0) * 1000.0f / (NumBytesReadBuffer.Length * TickInterval);
+				NumFilesReportedRead = State.NumFilesRead;
+				Log.WriteStatus("Received {0}/{1} files ({2:0.0}/{3:0.0}mb; {4:0.00}mb/s; {5}%)...", NumFilesReportedRead, State.NumFiles, (NumBytesRead / (1024.0 * 1024.0)) + 0.0999999, (NumBytesTotal / (1024.0 * 1024.0)) + 0.0999999, (NumBytesPerSecond / (1024.0 * 1024.0)) + 0.0099, (NumBytesRead * 100) / NumBytesTotal);
+				NumBytesReadBuffer[BufferIdx] = NumBytesRead;
+
+				Thread.Sleep(TickInterval);
 			}
 
-			// If we finished with an error
-			if(State.ErrorMessage == null)
+			// If we finished with an error, try to clean up and return
+			if(State.NumFilesRead < State.NumFiles)
 			{
-				Log.FlushStatus();
-				for(int Idx = 0; Idx < WorkerThreads.Length; Idx++)
+				DecompressionThread.Abort();
+				foreach(Thread WorkerThread in WorkerThreads)
 				{
-					WorkerThreads[Idx].Join();
+					WorkerThread.Abort();
 				}
-				return true;
-			}
-			else
-			{
-				Log.WriteError("{0}", State.ErrorMessage);
-				for(int Idx = 0; Idx < WorkerThreads.Length; Idx++)
+				Log.WriteError("{0}", (State.LastDecompressError != null)? State.LastDecompressError : State.LastDownloadError);
+				foreach(string FileName in DownloadFileNames.Values)
 				{
-					WorkerThreads[Idx].Abort();
+					try { File.Delete(FileName); } catch (Exception) { }
 				}
 				return false;
 			}
+
+			// Join all the threads
+			DecompressionThread.Join();
+			foreach(Thread WorkerThread in WorkerThreads)
+			{
+				WorkerThread.Join();
+			}
+			Log.FlushStatus();
+			return true;
 		}
 
-		static void DownloadWorker(string RootPath, ConcurrentQueue<DependencyPack> RemainingPacks, Dictionary<string, List<DependencyBlob>> PackToBlobs, Dictionary<string, List<DependencyFile>> BlobToFiles, AsyncDownloadState State, int MaxRetries)
+		static void DecompressWorker(string RootPath, ConcurrentQueue<DependencyPack> DecompressQueue, Dictionary<DependencyPack, string> DownloadFileNames, Dictionary<string, List<DependencyBlob>> PackToBlobs, Dictionary<string, List<DependencyFile>> BlobToFiles, AsyncDownloadState State)
 		{
-			DependencyPack NextPack;
-			while(RemainingPacks.TryDequeue(out NextPack))
+			while(State.NumFilesRead < State.NumFiles)
 			{
-				// Get the temporary filename for the pack file
-				string PackFileName = Path.GetTempFileName();
-				try
+				// Remove the next file from the queue, or wait before polling again
+				DependencyPack NextPack;
+				if(!DecompressQueue.TryDequeue(out NextPack))
 				{
-					// Format the URL for it
-					string BundleUrl = String.Format("http://s3.amazonaws.com/unrealengine/dependencies/{0}/{1}", NextPack.RemotePath, NextPack.Hash);
+					Thread.Sleep(100);
+					continue;
+				}
 
-					// Download the file, decompressing and hashing it as we go.
-					for(int NumAttempts = 0;;)
+				// Get the filename for the downloaded pack
+				string PackFileName = DownloadFileNames[NextPack];
+
+				// Extract all the files from this pack file to their final locations
+				foreach(DependencyBlob Blob in PackToBlobs[NextPack.Hash])
+				{
+					foreach(DependencyFile File in BlobToFiles[Blob.Hash])
 					{
-						string ExceptionMessage;
-
-						// Try to download the file
-						long RollbackSize = 0;
+						string OutputFileName = Path.Combine(RootPath, File.Name);
 						try
 						{
-							DownloadFileAndVerifyHash(BundleUrl, PackFileName, NextPack.Hash, Size => { RollbackSize += Size; Interlocked.Add(ref State.NumBytesRead, Size); });
-							break;
+							ExtractBlob(PackFileName, Blob, OutputFileName);
 						}
-						catch(InvalidDataException Ex)
+						catch(Exception Ex)
 						{
-							// The downloaded file was corrupt
-							ExceptionMessage = Ex.Message;
+							Interlocked.CompareExchange(ref State.LastDecompressError, String.Format("Failed to extract '{0}': {1}", OutputFileName, Ex.Message), null);
+							return;
 						}
-						catch(WebException Ex)
-						{
-							// Error while downloading the file
-							ExceptionMessage = Ex.Message;
-						}
-						Interlocked.Add(ref State.NumBytesRead, -RollbackSize);
-
-						// Bail out after retrying
-						if(++NumAttempts == MaxRetries)
-						{
-							throw new Exception(String.Format("Failed to download '{0}' to '{1}' after {2} attempts: {3}", BundleUrl, PackFileName, NumAttempts, ExceptionMessage));
-						}
+						Interlocked.Increment(ref State.NumFilesRead);
 					}
+				}
 
-					// Move the files into their final place
-					foreach(DependencyBlob Blob in PackToBlobs[NextPack.Hash])
+				// Delete the pack file now that we're finished with it. Doesn't matter much if it fails.
+				try { System.IO.File.Delete(PackFileName); } catch(Exception) { }
+			}
+		}
+
+		static void DownloadWorker(string RootPath, ConcurrentQueue<DependencyPack> DownloadQueue, ConcurrentQueue<DependencyPack> DecompressQueue, Dictionary<DependencyPack, string> DownloadFileNames, Dictionary<string, List<DependencyBlob>> PackToBlobs, Dictionary<string, List<DependencyFile>> BlobToFiles, AsyncDownloadState State, int MaxRetries)
+		{
+			int Retries = 0;
+			while(State.NumFilesRead < State.NumFiles)
+			{
+				// Remove the next file from the download queue, or wait before polling again
+				DependencyPack NextPack;
+				if(!DownloadQueue.TryDequeue(out NextPack))
+				{
+					Thread.Sleep(100);
+					continue;
+				}
+
+				// Get the temporary file to download to
+				string PackFileName = DownloadFileNames[NextPack];
+
+				// Format the URL for it
+				string Url = String.Format("http://cdn.unrealengine.com/dependencies/{0}/{1}", NextPack.RemotePath, NextPack.Hash);
+
+				// Try to download the file
+				long RollbackSize = 0;
+				try
+				{
+					// Download the file and queue it for decompression
+					DownloadFileAndVerifyHash(Url, PackFileName, NextPack.Hash, Size => { RollbackSize += Size; Interlocked.Add(ref State.NumBytesRead, Size); });
+					DecompressQueue.Enqueue(NextPack);
+
+					// If we were failing, decrement the number of failing threads
+					if(Retries > MaxRetries)
 					{
-						foreach(DependencyFile File in BlobToFiles[Blob.Hash])
-						{
-							string OutputFileName = Path.Combine(RootPath, File.Name);
-							try
-							{
-								ExtractBlob(PackFileName, Blob, OutputFileName);
-							}
-							catch(Exception Ex)
-							{
-								throw new Exception(String.Format("Failed to extract '{0}': {1}", OutputFileName, Ex.Message));
-							}
-							Interlocked.Increment(ref State.NumFilesRead);
-						}
+						Interlocked.Decrement(ref State.NumFailingDownloads);
+						Retries = 0;
 					}
 				}
 				catch(Exception Ex)
 				{
-					Interlocked.CompareExchange(ref State.ErrorMessage, Ex.Message, null);
-					break;
-				}
-				finally
-				{
-					File.Delete(PackFileName);
+					// Rollback the byte count and add the file back into the download queue
+					Interlocked.Add(ref State.NumBytesRead, -RollbackSize);
+					DownloadQueue.Enqueue(NextPack);
+
+					// If we've retried enough times already, set the error message. 
+					if(Retries++ == MaxRetries)
+					{
+						Interlocked.Increment(ref State.NumFailingDownloads);
+						State.LastDownloadError = String.Format("Failed to download '{0}' to '{1}': {2} ({3})", Url, PackFileName, Ex.Message, Ex.GetType().Name);
+					}
 				}
 			}
 		}
 
 		static void DownloadFileAndVerifyHash(string Url, string PackFileName, string ExpectedHash, NotifyReadDelegate NotifyRead)
 		{
-			// Create the output folder
-			Directory.CreateDirectory(Path.GetDirectoryName(PackFileName));
+			// Create the web request
+			WebRequest Request = WebRequest.Create(Url);
+			Request.Proxy = null;
 
-			// Download the file, decompressing and hashing it as we go
-			SHA1Managed Hasher = new SHA1Managed();
-			using(FileStream OutputStream = File.OpenWrite(PackFileName))
+			// Get the response
+			using(WebResponse Response = Request.GetResponse())
 			{
-				CryptoStream HashOutputStream = new CryptoStream(OutputStream, Hasher, CryptoStreamMode.Write);
-				using (WebClient Client = new WebClient())
+				// Download the file, decompressing and hashing it as we go
+				SHA1Managed Hasher = new SHA1Managed();
+				using(FileStream OutputStream = File.OpenWrite(PackFileName))
 				{
-					using(NotifyReadStream InputStream = new NotifyReadStream(Client.OpenRead(Url), NotifyRead))
+					CryptoStream HashOutputStream = new CryptoStream(OutputStream, Hasher, CryptoStreamMode.Write);
+					using(NotifyReadStream InputStream = new NotifyReadStream(Response.GetResponseStream(), NotifyRead))
 					{
 						GZipStream DecompressedStream = new GZipStream(InputStream, CompressionMode.Decompress, true);
 						DecompressedStream.CopyTo(HashOutputStream);
 					}
+					HashOutputStream.FlushFinalBlock();
 				}
-				HashOutputStream.FlushFinalBlock();
-			}
 
-			// Check the hash was what we expected
-			string Hash = BitConverter.ToString(Hasher.Hash).ToLower().Replace("-", "");
-			if(Hash != ExpectedHash)
-			{
-				throw new InvalidDataException("Incorrect hash value");
+				// Check the hash was what we expected
+				string Hash = BitConverter.ToString(Hasher.Hash).ToLower().Replace("-", "");
+				if(Hash != ExpectedHash)
+				{
+					throw new InvalidDataException(String.Format("Incorrect hash for {0} - expected {1}, got {2}", Url, ExpectedHash, Hash));
+				}
 			}
 		}
 
@@ -608,20 +759,22 @@ namespace GitDependencies
 			File.Move(OutputFileName + IncomingFileSuffix, OutputFileName);
 		}
 
-		public static T ReadXmlObject<T>(string FileName)
+		public static bool ReadXmlObject<T>(string FileName, out T NewObject)
 		{
 			try
 			{
 				XmlSerializer Serializer = new XmlSerializer(typeof(T));
 				using(StreamReader Reader = new StreamReader(FileName))
 				{
-					return (T)Serializer.Deserialize(Reader);
+					NewObject = (T)Serializer.Deserialize(Reader);
 				}
+				return true;
 			}
 			catch(Exception Ex)
 			{
-				Log.WriteError("Failed to read '{0}': {1}", FileName, Ex.Message);
-				return default(T);
+				Log.WriteError("Failed to read '{0}': {1}", FileName, Ex.ToString());
+				NewObject = default(T);
+				return false;
 			}
 		}
 
