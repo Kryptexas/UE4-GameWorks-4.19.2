@@ -213,12 +213,6 @@ public:
 	DECLARE_EVENT_TwoParams( IAssetRegistry, FFileLoadProgressUpdatedEvent, int32 /*NumAssetsDiscovered*/, int32 /*TotalAssets*/ );
 	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() = 0;
 
-	/** Indicate that we have started loading cooking asset */
-	virtual void StartLoadingCookingAssets() = 0;
-
-	/** Returns false when asset registry finishes loading cooking assets (after StartLoadingCookingAssets has been called) */
-	virtual bool IsLoadingCookingAssets() const = 0;
-
 	/** Returns true if the asset registry is currently loading files and does not yet know about all assets */
 	virtual bool IsLoadingAssets() const = 0;
 

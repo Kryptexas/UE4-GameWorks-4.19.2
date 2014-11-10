@@ -811,7 +811,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-	if ( AssetRegistry.IsLoadingCookingAssets() )
+	if ( AssetRegistry.IsLoadingAssets() )
 	{
 		// early out
 		return Result;
@@ -2069,28 +2069,22 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 		// Perform a synchronous search of any .ini based asset paths (note that the per-game delegate may
 		// have already scanned paths on its own)
 		// We want the registry to be fully initialized when generating streaming manifests too.
-		bool bSyncronous = !IsRealtimeMode();
-		TArray<FString> ScanPaths;
-		if (GConfig->GetArray(TEXT("AssetRegistry"), TEXT("PathsToScanForCook"), ScanPaths, GEngineIni) > 0)
+		bool bEditor = IsRealtimeMode();
+
+		// editor will scan asset registry automagically 
+		if ( !bEditor )
 		{
-			if ( bSyncronous )
+			TArray<FString> ScanPaths;
+			if (GConfig->GetArray(TEXT("AssetRegistry"), TEXT("PathsToScanForCook"), ScanPaths, GEngineIni) > 0)
 			{
 				AssetRegistry.ScanPathsSynchronous(ScanPaths);
 			}
 			else
 			{
-				for ( const auto& Path : ScanPaths )
-				{
-					AssetRegistry.AddPath(Path);
-				}
+				AssetRegistry.SearchAllAssets(true);
 			}
 		}
-		else
-		{
-			AssetRegistry.SearchAllAssets(bSyncronous);
-		}
-		AssetRegistry.StartLoadingCookingAssets();
-		
+
 		// When not cooking on the fly the registry will be saved after the cooker has finished
 		if (CurrentCookMode == ECookMode::CookOnTheFly)
 		{
