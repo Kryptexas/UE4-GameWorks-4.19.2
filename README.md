@@ -1,7 +1,8 @@
-Unreal Engine
-=============
+Unreal Engine 4.6
+=================
 
-With the Unreal Engine source code you can build the Unreal Editor for Windows and Mac, compile Unreal Engine games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux,
+Welcome to the Unreal Engine source code! With this you can build the Unreal Editor for Windows and Mac, 
+compile Unreal Engine games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux,
 and build tools like Unreal Lightmass and Unreal Frontend. Modify them in any way you can imagine, and share your changes with others! 
 
 Release branches (such as this one) are extensively tested by our QA team and make a great starting point for learning the engine or
@@ -15,9 +16,8 @@ We have a heap of documentation available for the engine on the web. If you're l
 * [Unreal Engine API Documentation](https://docs.unrealengine.com/latest/INT/API/index.html)
 * [Engine source and GitHub on the Unreal Engine forums](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion)
 
-If you need more, just ask. A lot of Epic developers hang out on the forums or AnswerHub, and we're proud to be part of a well-meaning, friendly and 
-welcoming community of thousands. Make yourself at home, don't feel afraid to ask, and don't feel nervous to challenge the status quo. 
-We don't like egos, and we want to do great stuff together.
+If you need more, just ask. A lot of Epic developers hang out on the [forums](https://forums.unrealengine.com/) or [AnswerHub](https://answers.unrealengine.com/), 
+and we're proud to be part of a well-meaning, friendly and welcoming community of thousands. 
 
 
 Getting up and running
@@ -37,13 +37,14 @@ The steps below will take you through cloning your own private fork, then compil
 
 1. Open your source folder in Explorer and run **Setup.bat**. This will download binary content for the engine, as well as installing prerequisites
    and setting up Unreal file associations. On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
-
+   
+   A fresh download of all the engine binaries is currently around 2.5gb, which may take some time to complete on a slow internet connection.
+   Incremental downloads for future checkouts will be much quicker.
+ 
 1. Run **GenerateProjectFiles.bat** to create project files for engine. It should take less than a minute to complete.  
 
-1. Load the project into Visual Studio by double-clicking on the **UE4.sln** file.
-
-1. In Visual Studio, set your solution configuration to **Development Editor** and your solution platform to **Win64**.  
-   Right click on the **UE4** target and select **Build**.  It will take between 15 and 40 minutes to finish compiling, depending on your system specs.
+1. Load the project into Visual Studio by double-clicking on the **UE4.sln** file. Set your solution configuration to **Development Editor** and your solution
+   platform to **Win64**, then right click on the **UE4** target and select **Build**. It may take anywhere between 10 and 40 minutes to finish compiling, depending on your system specs.
 
 1. After compiling finishes, you can load the editor from Visual Studio by setting your startup project to **UE4** and pressing **F5** to debug.
 
