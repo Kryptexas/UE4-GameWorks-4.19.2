@@ -14,6 +14,15 @@ bool FDetailWidgetExtensionHandler::IsPropertyExtenable(const UClass* InObjectCl
 	// TODO UMG make this work for multiple widgets.
 	if ( InPropertyHandle.GetNumOuterObjects() == 1 )
 	{
+		TArray<UObject*> Objects;
+		InPropertyHandle.GetOuterObjects(Objects);
+
+		// We don't allow bindings on the CDO.
+		if ( Objects[0]->HasAnyFlags(RF_ClassDefaultObject) )
+		{
+			return false;
+		}
+
 		UProperty* Property = InPropertyHandle.GetProperty();
 		FString DelegateName = Property->GetName() + "Delegate";
 
