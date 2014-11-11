@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		{
             if (HTML5SDKInfo.IsSDKInstalled() && HTML5SDKInfo.IsPythonInstalled())
             {
-					EMCCPath = HTML5SDKInfo.EmscriptenCompiler();
+                    EMCCPath = "\"" + HTML5SDKInfo.EmscriptenCompiler() + "\"";
 					PythonPath = HTML5SDKInfo.PythonPath(); 
 
 					// set some environment variable we'll need
