@@ -19,7 +19,7 @@ class AIMODULE_API UBTTask_Wait : public UBTTaskNode
 	GENERATED_UCLASS_BODY()
 
 	/** wait time in seconds */
-	UPROPERTY(Category=Node, EditAnywhere)
+	UPROPERTY(Category=Wait, EditAnywhere)
 	float WaitTime;
 
 	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
