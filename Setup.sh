@@ -11,22 +11,30 @@ if [ ! -f Engine/Binaries/DotNET/GitDependencies.exe ]; then
 	exit 1
 fi 
 
-# Setup the git hooks
-if [ -d .git/hooks ]; then
-	echo "Registering git hooks... (this will override existing ones!)"
-	echo \#!/bin/sh >.git/hooks/post-checkout
-	echo mono Engine/Binaries/DotNET/GitDependencies.exe >>.git/hooks/post-checkout
-	chmod +x .git/hooks/post-checkout
+if [ "$(uname)" = "Darwin" ]; then
+	# Setup the git hooks
+	if [ -d .git/hooks ]; then
+		echo "Registering git hooks... (this will override existing ones!)"
+		rm -f .git/hooks/post-checkout
+		rm -f .git/hooks/post-merge
+		ln -s ../../Engine/Build/BatchFiles/Mac/GitDependenciesHook.sh .git/hooks/post-checkout
+		ln -s ../../Engine/Build/BatchFiles/Mac/GitDependenciesHook.sh .git/hooks/post-merge
+	fi
 
-	echo \#!/bin/sh >.git/hooks/post-merge
-	echo mono Engine/Binaries/DotNET/GitDependencies.exe >>.git/hooks/post-merge
-	chmod +x .git/hooks/post-merge
+	# Get the dependencies for the first time
+	Engine/Build/BatchFiles/Mac/GitDependencies.sh $@
+else
+	# Setup the git hooks
+	if [ -d .git/hooks ]; then
+		echo "Registering git hooks... (this will override existing ones!)"
+		echo \#!/bin/sh >.git/hooks/post-checkout
+		echo mono Engine/Binaries/DotNET/GitDependencies.exe >>.git/hooks/post-checkout
+		chmod +x .git/hooks/post-checkout
+
+		echo \#!/bin/sh >.git/hooks/post-merge
+		echo mono Engine/Binaries/DotNET/GitDependencies.exe >>.git/hooks/post-merge
+		chmod +x .git/hooks/post-merge
+	fi
+
+	mono Engine/Binaries/DotNET/GitDependencies.exe "$@"
 fi
-
-#if [ "$(uname)" = "Darwin" ]; then
-#	cd Engine/Build/BatchFiles/Mac
-#	source SetupMono.sh "`pwd`"
-#	cd ../../../..
-#fi
-
-mono Engine/Binaries/DotNET/GitDependencies.exe "$@"

@@ -47,6 +47,13 @@ namespace GitDependencies
 			bool bHelp = ParseSwitch(ArgsList, "-help");
 			string RootPath = ParseParameter(ArgsList, "-root=", Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "../../..")));
 
+			// Setup network proxy from argument list or environment variable
+			string ProxyUrl = ParseParameter(ArgsList, "-proxy=", null);
+			if(String.IsNullOrEmpty(ProxyUrl))
+			{
+				ProxyUrl = Environment.GetEnvironmentVariable("HTTP_PROXY");
+			}
+
 			// Parse all the default exclude filters
 			HashSet<string> ExcludeFolders = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
 			if(!ParseSwitch(ArgsList, "-all"))
@@ -105,6 +112,7 @@ namespace GitDependencies
 				Log.WriteLine("   -threads=X        Use X threads when downloading new files");
 				Log.WriteLine("   -dry-run          Print a list of outdated files, but don't do anything");
 				Log.WriteLine("   -max-retries		Set the maximum number of retries for downloading files");
+				Log.WriteLine("   -proxy=<URL>      Set http proxy URL");
 				if(ExcludeFolders.Count > 0)
 				{
 					Log.WriteLine();
@@ -117,7 +125,7 @@ namespace GitDependencies
 			Console.CancelKeyPress += delegate { Log.FlushStatus(); };
 
 			// Update the tree. Make sure we clear out the status line if we quit for any reason (eg. ctrl-c)
-			if(!UpdateWorkingTree(bForce, bDryRun, RootPath, ExcludeFolders, NumThreads, MaxRetries))
+			if(!UpdateWorkingTree(bForce, bDryRun, RootPath, ExcludeFolders, NumThreads, MaxRetries, ProxyUrl))
 			{
 				return 1;
 			}
@@ -165,16 +173,16 @@ namespace GitDependencies
 			}
 		}
 
-		static bool UpdateWorkingTree(bool bForce, bool bDryRun, string RootPath, HashSet<string> ExcludeFolders, int NumThreads, int MaxRetries)
+		static bool UpdateWorkingTree(bool bForce, bool bDryRun, string RootPath, HashSet<string> ExcludeFolders, int NumThreads, int MaxRetries, string ProxyUrl)
 		{
 			// Start scanning on the working directory 
 			if(ExcludeFolders.Count > 0)
 			{
-				Log.WriteLine("Updating UE4 binary dependencies (excluding {0})...", String.Join(", ", ExcludeFolders));
+				Log.WriteLine("Checking dependencies (excluding {0})...", String.Join(", ", ExcludeFolders));
 			}
 			else
 			{
-				Log.WriteLine("Updating UE4 binary dependencies...");
+				Log.WriteLine("Checking dependencies...");
 			}
 
 			// Figure out the path to the working manifest
@@ -277,36 +285,43 @@ namespace GitDependencies
 				}
 			}
 
-			// Create a list of files which need to be updated
-			List<DependencyFile> FilesToDownload = new List<DependencyFile>();
-
-			// Create a new working manifest for the working directory, moving over files that we already have. Add any missing dependencies into the download queue.
-			WorkingManifest NewWorkingManifest = new WorkingManifest();
+			// Build a list of all the filtered target files
+			List<DependencyFile> FilteredTargetFiles = new List<DependencyFile>();
 			foreach(DependencyFile TargetFile in TargetFiles.Values)
 			{
 				if(!IsExcludedFolder(TargetFile.Name, ExcludeFolders))
 				{
-					WorkingFile NewFile;
-					if(CurrentFileLookup.TryGetValue(TargetFile.Name, out NewFile) && NewFile.Hash == TargetFile.Hash)
-					{
-						// Update the expected hash to match what we're looking for
-						NewFile.ExpectedHash = TargetFile.Hash;
-
-						// Move the existing file to the new working set
-						CurrentFileLookup.Remove(NewFile.Name);
-					}
-					else
-					{
-						// Create a new working file
-						NewFile = new WorkingFile();
-						NewFile.Name = TargetFile.Name;
-						NewFile.ExpectedHash = TargetFile.Hash;
-
-						// Add it to the download list
-						FilesToDownload.Add(TargetFile);
-					}
-					NewWorkingManifest.Files.Add(NewFile);
+					FilteredTargetFiles.Add(TargetFile);
 				}
+			}
+
+			// Create a list of files which need to be updated, and a list of the executable files in the 
+			List<DependencyFile> FilesToDownload = new List<DependencyFile>();
+
+			// Create a new working manifest for the working directory, moving over files that we already have. Add any missing dependencies into the download queue.
+			WorkingManifest NewWorkingManifest = new WorkingManifest();
+			foreach(DependencyFile TargetFile in FilteredTargetFiles)
+			{
+				WorkingFile NewFile;
+				if(CurrentFileLookup.TryGetValue(TargetFile.Name, out NewFile) && NewFile.Hash == TargetFile.Hash)
+				{
+					// Update the expected hash to match what we're looking for
+					NewFile.ExpectedHash = TargetFile.Hash;
+
+					// Move the existing file to the new working set
+					CurrentFileLookup.Remove(NewFile.Name);
+				}
+				else
+				{
+					// Create a new working file
+					NewFile = new WorkingFile();
+					NewFile.Name = TargetFile.Name;
+					NewFile.ExpectedHash = TargetFile.Hash;
+
+					// Add it to the download list
+					FilesToDownload.Add(TargetFile);
+				}
+				NewWorkingManifest.Files.Add(NewFile);
 			}
 
 			// Print out everything that we'd change in a dry run
@@ -369,7 +384,7 @@ namespace GitDependencies
 			if(FilesToDownload.Count > 0)
 			{
 				// Download all the new dependencies
-				if(!DownloadDependencies(RootPath, FilesToDownload, TargetBlobs.Values, TargetPacks.Values, NumThreads, MaxRetries))
+				if(!DownloadDependencies(RootPath, FilesToDownload, TargetBlobs.Values, TargetPacks.Values, NumThreads, MaxRetries, ProxyUrl))
 				{
 					return false;
 				}
@@ -393,7 +408,7 @@ namespace GitDependencies
 			}
 
 			// Update all the executable permissions
-			if(!SetExecutablePermissions(RootPath, TargetFiles.Values))
+			if(!SetExecutablePermissions(RootPath, FilteredTargetFiles))
 			{
 				return false;
 			}
@@ -496,7 +511,7 @@ namespace GitDependencies
 			return false;
 		}
 
-		static bool DownloadDependencies(string RootPath, IEnumerable<DependencyFile> RequiredFiles, IEnumerable<DependencyBlob> Blobs, IEnumerable<DependencyPack> Packs, int NumThreads, int MaxRetries)
+		static bool DownloadDependencies(string RootPath, IEnumerable<DependencyFile> RequiredFiles, IEnumerable<DependencyBlob> Blobs, IEnumerable<DependencyPack> Packs, int NumThreads, int MaxRetries, string ProxyUrl)
 		{
 			// Make sure we can actually open the right number of connections
 			ServicePointManager.DefaultConnectionLimit = NumThreads;
@@ -551,7 +566,7 @@ namespace GitDependencies
 			Thread[] WorkerThreads = new Thread[NumThreads];
 			for(int Idx = 0; Idx < NumThreads; Idx++)
 			{
-				WorkerThreads[Idx] = new Thread(x => DownloadWorker(RootPath, DownloadQueue, DecompressQueue, DownloadFileNames, PackToBlobs, BlobToFiles, State, MaxRetries));
+				WorkerThreads[Idx] = new Thread(x => DownloadWorker(RootPath, DownloadQueue, DecompressQueue, DownloadFileNames, PackToBlobs, BlobToFiles, State, MaxRetries, ProxyUrl));
 				WorkerThreads[Idx].Start();
 			}
 
@@ -639,7 +654,7 @@ namespace GitDependencies
 			}
 		}
 
-		static void DownloadWorker(string RootPath, ConcurrentQueue<DependencyPack> DownloadQueue, ConcurrentQueue<DependencyPack> DecompressQueue, Dictionary<DependencyPack, string> DownloadFileNames, Dictionary<string, List<DependencyBlob>> PackToBlobs, Dictionary<string, List<DependencyFile>> BlobToFiles, AsyncDownloadState State, int MaxRetries)
+		static void DownloadWorker(string RootPath, ConcurrentQueue<DependencyPack> DownloadQueue, ConcurrentQueue<DependencyPack> DecompressQueue, Dictionary<DependencyPack, string> DownloadFileNames, Dictionary<string, List<DependencyBlob>> PackToBlobs, Dictionary<string, List<DependencyFile>> BlobToFiles, AsyncDownloadState State, int MaxRetries, string ProxyUrl)
 		{
 			int Retries = 0;
 			while(State.NumFilesRead < State.NumFiles)
@@ -663,7 +678,7 @@ namespace GitDependencies
 				try
 				{
 					// Download the file and queue it for decompression
-					DownloadFileAndVerifyHash(Url, PackFileName, NextPack.Hash, Size => { RollbackSize += Size; Interlocked.Add(ref State.NumBytesRead, Size); });
+					DownloadFileAndVerifyHash(Url, ProxyUrl, PackFileName, NextPack.Hash, Size => { RollbackSize += Size; Interlocked.Add(ref State.NumBytesRead, Size); });
 					DecompressQueue.Enqueue(NextPack);
 
 					// If we were failing, decrement the number of failing threads
@@ -689,11 +704,18 @@ namespace GitDependencies
 			}
 		}
 
-		static void DownloadFileAndVerifyHash(string Url, string PackFileName, string ExpectedHash, NotifyReadDelegate NotifyRead)
+		static void DownloadFileAndVerifyHash(string Url, string ProxyUrl, string PackFileName, string ExpectedHash, NotifyReadDelegate NotifyRead)
 		{
 			// Create the web request
 			WebRequest Request = WebRequest.Create(Url);
-			Request.Proxy = null;
+			if(String.IsNullOrEmpty(ProxyUrl))
+			{
+				Request.Proxy = null;
+			}
+			else
+			{
+				Request.Proxy = new WebProxy(ProxyUrl);
+			}
 
 			// Get the response
 			using(WebResponse Response = Request.GetResponse())
