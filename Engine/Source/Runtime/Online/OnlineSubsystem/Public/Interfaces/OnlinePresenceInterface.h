@@ -19,6 +19,9 @@ const FString CustomPresenceDataKey = "CustomData";
 /** Id of the client that sent the presence update */
 const FString DefaultClientIdKey = "ClientId";
 
+/** Id of the session for the presence update. @todo samz - SessionId on presence data should be FUniqueNetId not uint64 */
+const FString DefaultSessionIdKey = "SessionId";
+
 namespace EOnlinePresenceState
 {
 	enum Type
