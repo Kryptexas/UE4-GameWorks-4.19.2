@@ -91,7 +91,20 @@ private:
 
 	const FSlateBrush* GetPresenceBrush() const
 	{
-		return ViewModel->IsOnline() == true ?  &FriendStyle.FortniteImageBrush : &FriendStyle.FriendImageBrush;
+		if (ViewModel->IsOnline())
+		{
+			FString ClientId = ViewModel->GetClientId();
+			//@todo samz - better way of finding known ids
+			if (ClientId == TEXT("300d79839c914445948e3c1100f211db"))
+			{
+				return &FriendStyle.FortniteImageBrush;
+			}
+			else if (ClientId == TEXT("f3e80378aed4462498774a7951cd263f"))
+			{
+				return &FriendStyle.LauncherImageBrush;
+			}
+		}
+		return &FriendStyle.FriendImageBrush;
 	}
 
 	const FSlateBrush* GetStatusBrush() const

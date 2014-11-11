@@ -101,6 +101,11 @@ public:
 		return FriendItem.IsValid() ? FriendItem->IsOnline() : false;
 	}
 
+	virtual FString GetClientId() const override
+	{
+		return FriendItem.IsValid() ? FriendItem->GetClientId() : FString();
+	}
+
 private:
 
 	void RemoveFriend() const
