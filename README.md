@@ -67,8 +67,6 @@ The steps below will take you through cloning your own private fork, then compil
    To use Git from the Terminal, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles. 
    Or if you'd rather not use Git at all, you can [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
    
-1. Install the [Mono runtime](http://www.mono-project.com/download/).
-
 1. Install the latest version of [Xcode](https://itunes.apple.com/us/app/xcode/id497799835).
 
 1. Open your source folder in Finder and run **Setup.command** to download binary content for the engine.
