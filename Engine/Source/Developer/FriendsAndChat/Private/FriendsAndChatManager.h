@@ -64,6 +64,11 @@ public:
 	void GenerateChatWindow( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
+	 * Set the chat widget contents.
+	 */
+	void SetChatWindowContents();
+
+	/**
 	 * Accept a friend request.
 	 *
 	 * @param FriendItem The friend to accept.
@@ -352,6 +357,20 @@ private:
 	 * @param FriendId	The friend ID.
 	 */
 	void OnInviteAccepted(const FUniqueNetId& UserId, const FUniqueNetId& FriendId);
+
+	/**
+	 * Handle the Chat window closed.
+	 *
+	 * @param InWindow - the window closed.
+	 */
+	void HandleChatWindowClosed(const TSharedRef<SWindow>& InWindow);
+
+	/**
+	 * Handle the Friends window closed.
+	 *
+	 * @param InWindow - the window closed.
+	 */
+	void HandleFriendsWindowClosed(const TSharedRef<SWindow>& InWindow);
 
 	/**
 	 * Handle an accept message accepted from a notification.

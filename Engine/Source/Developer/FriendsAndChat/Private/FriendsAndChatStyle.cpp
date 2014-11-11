@@ -50,7 +50,6 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetTitleBarBrush(const FSlateBrush& 
 	return *this;
 }
 
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendImageBrush(const FSlateBrush& Brush)
 {
 	FriendImageBrush = Brush;
@@ -101,7 +100,6 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetAwayBrush(const FSlateBrush& InAw
 	return *this; 
 }
 
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetBackgroundBrush(const FSlateBrush& InBackground)
 {
 	Background = InBackground;
@@ -113,7 +111,6 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetTextStyle(const FTextBlockStyle& 
 	TextStyle = InTextStle;
 	return *this;
 }
-
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyle(const FSlateFontInfo& InFontStyle)
 {
@@ -154,6 +151,24 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetPartyChatColor(const FLinearColor
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetNetworkChatColor(const FLinearColor& InFontColor)
 {
 	NetworkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatGlobalBrush(const FSlateBrush& Brush)
+{
+	ChatGlobalBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatPartyBrush(const FSlateBrush& Brush)
+{
+	ChatGlobalBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWhisperBrush(const FSlateBrush& Brush)
+{
+	ChatGlobalBrush = Brush;
 	return *this;
 }
 

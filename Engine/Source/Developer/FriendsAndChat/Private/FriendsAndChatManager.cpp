@@ -224,6 +224,8 @@ void FFriendsAndChatManager::CreateFriendsListWidget( TSharedPtr< const SWidget 
 		.bDragAnywhere( true )
 		.CreateTitleBar( false );
 
+		FriendWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleFriendsWindowClosed));
+
 		BuildFriendsUI();
 
 		if ( ParentWidget.IsValid() )
@@ -233,7 +235,7 @@ void FFriendsAndChatManager::CreateFriendsListWidget( TSharedPtr< const SWidget 
 			FriendWindow = FSlateApplication::Get().AddWindowAsNativeChild( FriendWindow.ToSharedRef(), WidgetPath.GetWindow() );
 		}
 	}
-	else if(!FriendWindow->IsVisible())
+	else if(!FriendWindow->IsWindowMinimized())
 	{
 		FriendWindow->Restore();
 		BuildFriendsUI();
@@ -241,6 +243,11 @@ void FFriendsAndChatManager::CreateFriendsListWidget( TSharedPtr< const SWidget 
 
 	// Clear notifications
 	OnFriendsNotification().Broadcast(false);
+}
+
+void FFriendsAndChatManager::HandleFriendsWindowClosed(const TSharedRef<SWindow>& InWindow)
+{
+	FriendWindow.Reset();
 }
 
 void FFriendsAndChatManager::BuildFriendsUI()
@@ -354,30 +361,9 @@ void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< IFriendListItems > 
 		.CreateTitleBar( false )
 		.SizingRule( ESizingRule::FixedSize );
 
-		TSharedPtr<SWindowTitleBar> TitleBar;
+		ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
 
-		ChatWindow->SetContent(
-			SNew( SBorder )
-			.VAlign( VAlign_Fill )
-			.HAlign( HAlign_Fill )
-			.BorderImage( &Style.Background )
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SAssignNew(TitleBar, SWindowTitleBar, ChatWindow.ToSharedRef(), nullptr, HAlign_Center)
-					//.Style(FPortalStyle::Get(), "Window")
-					.ShowAppIcon(false)
-					.Title(FText::GetEmpty())
-				]
-				+ SVerticalBox::Slot()
-				[
-					SNew(SChatWindow, ChatViewModel.ToSharedRef())
-					.FriendStyle( &Style )
-				]
-			]);
-
+		SetChatWindowContents();
 		if ( ParentWidget.IsValid() )
 		{
 			FWidgetPath WidgetPath;
@@ -385,10 +371,46 @@ void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< IFriendListItems > 
 			ChatWindow = FSlateApplication::Get().AddWindowAsNativeChild( ChatWindow.ToSharedRef(), WidgetPath.GetWindow() );
 		}
 	}
+	else if(ChatWindow->IsWindowMinimized())
+	{
+		ChatWindow->Restore();
+		SetChatWindowContents();
+	}
 
 	ChatViewModel->SetChatFriend(FriendItem);
 }
 
+void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& InWindow)
+{
+	ChatWindow.Reset();
+}
+
+void FFriendsAndChatManager::SetChatWindowContents()
+{
+	TSharedPtr<SWindowTitleBar> TitleBar;
+
+	ChatWindow->SetContent(
+		SNew( SBorder )
+		.VAlign( VAlign_Fill )
+		.HAlign( HAlign_Fill )
+		.BorderImage( &Style.Background )
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SAssignNew(TitleBar, SWindowTitleBar, ChatWindow.ToSharedRef(), nullptr, HAlign_Center)
+				//.Style(FPortalStyle::Get(), "Window")
+				.ShowAppIcon(false)
+				.Title(FText::GetEmpty())
+			]
+			+ SVerticalBox::Slot()
+			[
+				SNew(SChatWindow, ChatViewModel.ToSharedRef())
+				.FriendStyle( &Style )
+			]
+		]);
+}
 // Actions
 
 void FFriendsAndChatManager::SetUserIsOnline(bool bIsOnline)
@@ -688,10 +710,6 @@ void FFriendsAndChatManager::OnQueryRecentPlayersComplete(const FUniqueNetId& Us
 				OnFriendsListUpdated().Broadcast();
 			}
 		}
-	}
-	else
-	{
-		RequestRecentPlayersListRefresh();
 	}
 
 	if(bFoundAllIds)

@@ -154,4 +154,16 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor NetworkChatColor;
 	FFriendsAndChatStyle& SetNetworkChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush ChatGlobalBrush;
+	FFriendsAndChatStyle& SetChatGlobalBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush ChatPartyBrush;
+	FFriendsAndChatStyle& SetChatPartyBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush ChatWhisperBrush;
+	FFriendsAndChatStyle& SetChatWhisperBrush(const FSlateBrush& Brush);
 };
