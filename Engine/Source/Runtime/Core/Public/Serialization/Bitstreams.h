@@ -235,6 +235,11 @@ public:
 		return Pos;
 	}
 
+	void Pop( FBitReader& Reader )
+	{
+		Reader.Pos = Pos;
+	}
+
 	void Copy( FBitReader& Reader, TArray<uint8> &Buffer );
 
 private:
