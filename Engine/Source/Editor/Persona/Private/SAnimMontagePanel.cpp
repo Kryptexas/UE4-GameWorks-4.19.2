@@ -520,6 +520,7 @@ void SAnimMontagePanel::Update()
 					.OnAnimSegmentNodeClicked( this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx )
 					.OnPreAnimUpdate( Editor, &SMontageEditor::PreAnimUpdate )
 					.OnPostAnimUpdate( Editor, &SMontageEditor::PostAnimUpdate )
+					.OnAnimSegmentRemoved(this, &SAnimMontagePanel::OnAnimSegmentRemoved, SlotAnimIdx )
 					.OnBarDrag(Editor, &SMontageEditor::OnEditSectionTime)
 					.OnBarDrop(Editor, &SMontageEditor::OnEditSectionTimeFinish)
 					.OnBarClicked(SharedThis(this), &SAnimMontagePanel::ShowSectionInDetailsView)
@@ -1050,6 +1051,37 @@ void SAnimMontagePanel::CollectLinkableElements(TArray<FAnimLinkableElement*> &E
 	{
 		FAnimLinkableElement* Element = &Notify;
 		Elements.Add(Element);
+	}
+}
+
+void SAnimMontagePanel::OnAnimSegmentRemoved(int32 SegmentIndex, int32 SlotIndex)
+{
+	TArray<FAnimLinkableElement*> LinkableElements;
+	CollectLinkableElements(LinkableElements);
+
+	for(FAnimNotifyEvent& Notify : Montage->Notifies)
+	{
+		if(Notify.NotifyStateClass)
+		{
+			LinkableElements.Add(&Notify.EndLink);
+		}
+	}
+
+	// Go through the linkable elements and fix the indices.
+	// BG TODO: Once we can identify moved segments, remove
+	for(FAnimLinkableElement* Element : LinkableElements)
+	{
+		if(Element->GetSlotIndex() == SlotIndex)
+		{
+			if(Element->GetSegmentIndex() == SegmentIndex)
+			{
+				Element->Clear();
+			}
+			else if(Element->GetSegmentIndex() > SegmentIndex)
+			{
+				Element->SetSegmentIndex(Element->GetSegmentIndex() - 1);
+			}
+		}
 	}
 }
 
