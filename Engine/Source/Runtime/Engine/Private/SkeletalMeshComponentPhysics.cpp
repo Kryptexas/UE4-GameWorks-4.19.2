@@ -812,9 +812,13 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		AActor* Owner = GetOwner();
 		bool bShouldSleep = !BodyInstance.bStartAwake && (Owner && Owner->GetVelocity().SizeSquared() <= KINDA_SMALL_NUMBER);
 
-		if(bShouldSleep)
+		for(FBodyInstance* Body : Bodies)
 		{
-			for(FBodyInstance* Body : Bodies)
+			// Creates a DOF constraint if necessary for the body - also requires the scene to exist within the actor
+			Body->CreateDOFLock();
+
+			// Set to sleep if necessary
+			if(bShouldSleep)
 			{
 				Body->GetPxRigidDynamic()->putToSleep();
 			}

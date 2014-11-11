@@ -1381,22 +1381,26 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);
 		PNewDynamic->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
 
-		CreateDOFLock();
-
-		// wakeUp and putToSleep will issue warnings on kinematic actors
-		if (IsRigidBodyNonKinematic(PNewDynamic) && PNewDynamic->getScene())
+		if(PNewDynamic->getScene())
 		{
-		    // Sleep/wake up as appropriate
-		    if (bShouldStartAwake)
-		    {
-			    // Wake up bodies that are part of a moving actor.
-			    PNewDynamic->wakeUp();
-		    }
-		    else
-		    {
-			    // Bodies should start out sleeping.
-			    PNewDynamic->putToSleep();
-		    }
+			// A scene is required to build the DOF constraint
+			CreateDOFLock();
+
+			// wakeUp and putToSleep will issue warnings on kinematic actors
+			if(IsRigidBodyNonKinematic(PNewDynamic) && PNewDynamic->getScene())
+			{
+				// Sleep/wake up as appropriate
+				if(bShouldStartAwake)
+				{
+					// Wake up bodies that are part of a moving actor.
+					PNewDynamic->wakeUp();
+				}
+				else
+				{
+					// Bodies should start out sleeping.
+					PNewDynamic->putToSleep();
+				}
+			}
 		}
 	}
 #endif // WITH_PHYSX
