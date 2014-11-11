@@ -15,8 +15,16 @@ FOnlineLeaderboardsGooglePlay::FOnlineLeaderboardsGooglePlay(FOnlineSubsystemGoo
 
 bool FOnlineLeaderboardsGooglePlay::ReadLeaderboards(const TArray< TSharedRef<FUniqueNetId> >& Players, FOnlineLeaderboardReadRef& ReadObject)
 {
-	ReadObject->ReadState = EOnlineAsyncTaskState::InProgress;
 	ReadObject->Rows.Empty();
+
+	if (Subsystem->GetGameServices() == nullptr)
+	{
+		ReadObject->ReadState = EOnlineAsyncTaskState::Failed;
+		Subsystem->GetLeaderboardsInterface()->TriggerOnLeaderboardReadCompleteDelegates(false);
+		return false;
+	}
+
+	ReadObject->ReadState = EOnlineAsyncTaskState::InProgress;
 
 	auto ReadTask = new FOnlineAsyncTaskGooglePlayReadLeaderboard(
 		Subsystem,
@@ -98,6 +106,12 @@ bool FOnlineLeaderboardsGooglePlay::WriteLeaderboards(const FName& SessionName, 
 bool FOnlineLeaderboardsGooglePlay::FlushLeaderboards(const FName& SessionName)
 {
 	UE_LOG_ONLINE(Display, TEXT("flush leaderboards session name :%s"), *SessionName.ToString());
+
+	if (Subsystem->GetGameServices() == nullptr)
+	{
+		Subsystem->GetLeaderboardsInterface()->TriggerOnLeaderboardFlushCompleteDelegates(SessionName, false);
+		return false;
+	}
 
 	bool Success = true;
 

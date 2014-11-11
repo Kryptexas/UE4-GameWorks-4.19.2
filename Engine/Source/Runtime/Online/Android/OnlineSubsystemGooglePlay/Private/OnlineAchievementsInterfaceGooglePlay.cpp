@@ -17,6 +17,12 @@ FOnlineAchievementsGooglePlay::FOnlineAchievementsGooglePlay( FOnlineSubsystemGo
 
 void FOnlineAchievementsGooglePlay::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
+	if (AndroidSubsystem->GetGameServices() == nullptr)
+	{
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
+	}
+
 	auto QueryTask = new FOnlineAsyncTaskGooglePlayQueryAchievements(AndroidSubsystem, FUniqueNetIdString(PlayerId), Delegate);
 	AndroidSubsystem->QueueAsyncTask(QueryTask);
 }
@@ -129,6 +135,12 @@ void FOnlineAchievementsGooglePlay::WriteAchievements( const FUniqueNetId& Playe
 {
 	// @todo: verify the PlayerId passed in is the currently signed in player
 		
+	if (AndroidSubsystem->GetGameServices() == nullptr)
+	{
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
+	}
+
 	// We need valid data from Google first because we use the achievement type to convert Unreal progress
 	// (percentage) to Google progress (binary locked/unlocked or integer number of arbitrary steps).
 	// Kick off a query if we don't have valid data.
