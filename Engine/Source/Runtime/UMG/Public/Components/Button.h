@@ -53,7 +53,7 @@ public:
 public:
 
 	/** Called when the button is clicked */
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Button|Event")
 	FOnButtonClickedEvent OnClicked;
 
 public:

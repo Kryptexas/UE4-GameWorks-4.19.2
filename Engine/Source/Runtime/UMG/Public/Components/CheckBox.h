@@ -90,7 +90,7 @@ public:
 public:
 
 	/** Called when the checked state has changed */
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="CheckBox|Event")
 	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
 
 public:
