@@ -87,10 +87,11 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 *
 	 * @param ComandType OS hint as to the type of command 
 	 * @param Command the command to execute
+	 * @param CommandLine the commands to pass to the executable
 	 *
 	 * @return whether the command was successful or not
 	 */
-	static bool OsExecute(const TCHAR* CommandType, const TCHAR* Command);
+	static bool OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine = NULL);
 
 	/**
 	 * Searches for a window that matches the window name or the title starts with a particular text. When

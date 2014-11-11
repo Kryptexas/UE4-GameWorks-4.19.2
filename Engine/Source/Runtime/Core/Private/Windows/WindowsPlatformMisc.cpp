@@ -1782,12 +1782,12 @@ void FWindowsPlatformMisc::LoadStartupModules()
 #endif	//WITH_EDITOR
 }
 
-bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command)
+bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine)
 {
 	HINSTANCE hApp = ShellExecute(NULL,
 		CommandType,
 		Command,
-		NULL,
+		CommandLine,
 		NULL,
 		SW_SHOWNORMAL);
 	bool bSucceeded = hApp > (HINSTANCE)32;
