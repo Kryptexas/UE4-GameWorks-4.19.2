@@ -738,80 +738,6 @@ void make_intrinsic_end_primitive(exec_list *ir, _mesa_glsl_parse_state *state)
 	ir->push_tail(func);
 }
 
-void make_intrinsic_barriers(exec_list *ir, _mesa_glsl_parse_state *state)
-{
-	/**
-	* Create GLSL functions that are left out of the symbol table
-	*  Prevent pollution, but make them so thay can be used to
-	*  implement the hlsl barriers
-	*/
-	const int glslFuncCount = 7;
-	const char * glslFuncName[glslFuncCount] =
-	{
-		"barrier", "memoryBarrier", "memoryBarrierAtomicCounter", "memoryBarrierBuffer",
-		"memoryBarrierShared", "memoryBarrierImage", "groupMemoryBarrier"
-	};
-	ir_function* glslFuncs[glslFuncCount];
-
-	for (int i = 0; i < glslFuncCount; i++)
-	{
-		void* ctx = state;
-		ir_function* func = new(ctx)ir_function(glslFuncName[i]);
-		ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::void_type);
-		sig->is_builtin = true;
-		func->add_signature(sig);
-		ir->push_tail(func);
-		glslFuncs[i] = func;
-	}
-
-	/** Implement HLSL barriers in terms of GLSL functions */
-	const char * functions[] =
-	{
-		"GroupMemoryBarrier", "GroupMemoryBarrierWithGroupSync",
-		"DeviceMemoryBarrier", "DeviceMemoryBarrierWithGroupSync",
-		"AllMemoryBarrier", "AllMemoryBarrierWithGroupSync"
-	};
-	const int max_children = 4;
-	ir_function * implFuncs[][max_children] =
-	{
-		{glslFuncs[4]} /**{"memoryBarrierShared"}*/,
-		{glslFuncs[4], glslFuncs[0]} /**{"memoryBarrierShared","barrier"}*/,
-		{glslFuncs[2], glslFuncs[3], glslFuncs[5]} /**{"memoryBarrierAtomicCounter", "memoryBarrierBuffer", "memoryBarrierImage"}*/,
-		{glslFuncs[2], glslFuncs[3], glslFuncs[5], glslFuncs[0]} /**{"memoryBarrierAtomicCounter", "memoryBarrierBuffer", "memoryBarrierImage", "barrier"}*/,
-		{glslFuncs[1]} /**{"memoryBarrier"}*/,
-		{glslFuncs[1], glslFuncs[0]} /**{"groupMemoryBarrier","barrier"}*/
-	};
-
-	for (size_t i = 0; i < sizeof(functions) / sizeof(const char*); i++)
-	{
-		void* ctx = state;
-		ir_function* func = new(ctx)ir_function(functions[i]);
-
-		ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::void_type);
-		sig->is_builtin = true;
-		sig->is_defined = true;
-
-		for (int j = 0; j < max_children; j++)
-		{
-			if (implFuncs[i][j] == NULL)
-				break;
-			ir_function* child = implFuncs[i][j];
-			check(child);
-			check(child->signatures.get_head() == child->signatures.get_tail());
-			ir_function_signature *childSig = (ir_function_signature *)child->signatures.get_head();
-			exec_list actual_parameter;
-			sig->body.push_tail(
-				new(ctx)ir_call(childSig, NULL, &actual_parameter)
-				);
-		}
-
-		func->add_signature(sig);
-
-		state->symbols->add_global_function(func);
-		ir->push_tail(func);
-	}
-}
-
 void make_intrinsic_pack_functions(exec_list *ir, _mesa_glsl_parse_state *state)
 {
 	void* ctx = state;
@@ -1491,7 +1417,6 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 
 	if (state->language_version >= 310)
 	{
-		make_intrinsic_barriers(ir, state);
 		make_intrinsic_pack_functions(ir, state);
 		make_intrinsic_genType(ir, state, "bitreverse", ir_unop_bitreverse, IR_INTRINSIC_INT | IR_INTRINSIC_UINT, 1);
 		make_intrinsic_sm5_functions(ir, state);
