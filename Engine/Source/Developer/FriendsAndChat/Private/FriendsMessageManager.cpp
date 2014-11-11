@@ -259,7 +259,7 @@ private:
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
-		TSharedPtr<IFriendListItems> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
+		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
 		if(FoundFriend.IsValid())
 		{
 			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());

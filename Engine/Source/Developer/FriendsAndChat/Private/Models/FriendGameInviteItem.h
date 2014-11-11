@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "IFriendListItems.h"
+#include "IFriendItem.h"
 /**
  * Class containing a friend's game invite information - used to build the list view.
  */
 class FFriendGameInviteItem : 
-	public FFriendStuct
+	public FFriendItem
 {
 public:
 
@@ -21,7 +21,7 @@ public:
 		const TSharedRef<FOnlineFriend>& InOnlineFriend,
 		const TSharedRef<FOnlineUser>& InOnlineUser,
 		const TSharedRef<FOnlineSessionSearchResult>& InSessionResult)
-		: FFriendStuct(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
+		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
 		, SessionResult(InSessionResult)
 	{ }
 

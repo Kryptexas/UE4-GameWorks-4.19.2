@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "IFriendListItems.h"
+#include "IFriendItem.h"
 /**
  * Class containing the friend information - used to build the list view.
  */
-class FFriendStuct : public IFriendListItems 
+class FFriendItem : public IFriendItem 
 {
 public:
 
@@ -17,7 +17,7 @@ public:
 	 * @param InOnlineUser The online user.
 	 * @param InListType The list type.
 	 */
-	FFriendStuct( TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType )
+	FFriendItem( TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType )
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
@@ -35,7 +35,7 @@ public:
 	 *
 	 * @param InGroupName The group name.
 	 */
-	FFriendStuct( const FString& InGroupName )
+	FFriendItem( const FString& InGroupName )
 		: GroupName( InGroupName )
 	{ }
 
@@ -148,7 +148,7 @@ public:
 protected:
 
 	/** Hidden default constructor. */
-	FFriendStuct()
+	FFriendItem()
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
 	{ };

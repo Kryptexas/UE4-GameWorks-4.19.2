@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "IFriendListItems.h"
+#include "IFriendItem.h"
 /**
  * Class containing the friend information - used to build the list view.
  */
-class FFriendRecentPlayerItem : public IFriendListItems 
+class FFriendRecentPlayerItem : public IFriendItem 
 {
 public:
 

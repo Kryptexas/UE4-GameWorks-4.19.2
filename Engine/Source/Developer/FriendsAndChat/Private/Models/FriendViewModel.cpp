@@ -197,21 +197,21 @@ private:
 	}
 
 	FFriendViewModelImpl(
-		const TSharedRef<IFriendListItems>& FriendItem
+		const TSharedRef<IFriendItem>& FriendItem
 		)
 		: FriendItem(FriendItem)
 	{
 	}
 
 private:
-	TSharedPtr<IFriendListItems> FriendItem;
+	TSharedPtr<IFriendItem> FriendItem;
 
 private:
 	friend FFriendViewModelFactory;
 };
 
 TSharedRef< FFriendViewModel > FFriendViewModelFactory::Create(
-	const TSharedRef<IFriendListItems>& FriendItem
+	const TSharedRef<IFriendItem>& FriendItem
 	)
 {
 	TSharedRef< FFriendViewModelImpl > ViewModel(new FFriendViewModelImpl(FriendItem));

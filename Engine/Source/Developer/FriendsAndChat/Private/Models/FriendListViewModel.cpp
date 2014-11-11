@@ -72,9 +72,9 @@ private:
 	void RefreshFriendsList()
 	{
 		FriendsList.Empty();
-		TArray< TSharedPtr< IFriendListItems > > OnlineFriendsList;
-		TArray< TSharedPtr< IFriendListItems > > OfflineFriendsList;
-		TArray< TSharedPtr< IFriendListItems > > FriendItemList;
+		TArray< TSharedPtr< IFriendItem > > OnlineFriendsList;
+		TArray< TSharedPtr< IFriendItem > > OfflineFriendsList;
+		TArray< TSharedPtr< IFriendItem > > FriendItemList;
 
 		if(ListType == EFriendsDisplayLists::GameInviteDisplay)
 		{
@@ -129,7 +129,7 @@ private:
 		/** Functor for sorting friends list */
 		struct FCompareGroupByName
 		{
-			FORCEINLINE bool operator()( const TSharedPtr< IFriendListItems > A, const TSharedPtr< IFriendListItems > B ) const
+			FORCEINLINE bool operator()( const TSharedPtr< IFriendItem > A, const TSharedPtr< IFriendItem > B ) const
 			{
 				check( A.IsValid() );
 				check ( B.IsValid() );

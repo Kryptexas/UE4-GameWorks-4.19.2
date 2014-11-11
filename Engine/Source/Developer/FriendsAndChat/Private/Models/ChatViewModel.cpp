@@ -116,7 +116,7 @@ public:
 		return RecentPlayerList;
 	}
 
-	virtual void SetChatFriend(TSharedPtr<IFriendListItems> ChatFriend) override
+	virtual void SetChatFriend(TSharedPtr<IFriendItem> ChatFriend) override
 	{
 		SelectedFriend = ChatFriend;
 		SelectedChatChannel = EChatMessageType::Whisper;
@@ -161,7 +161,7 @@ private:
 	TArray<TSharedRef<FChatItemViewModel> > FilteredChatLists;
 	FChatListUpdated ChatListUpdatedEvent;
 	TArray<FString> RecentPlayerList;
-	TSharedPtr<IFriendListItems> SelectedFriend;
+	TSharedPtr<IFriendItem> SelectedFriend;
 
 	EChatMessageType::Type SelectedViewChannel;
 	EChatMessageType::Type SelectedChatChannel;

@@ -61,7 +61,7 @@ public:
 	 *
 	 * @param FriendItem The friend to start a chat with.
 	 */
-	void GenerateChatWindow( TSharedPtr< IFriendListItems > FriendItem );
+	void GenerateChatWindow( TSharedPtr< IFriendItem > FriendItem );
 
 	/**
 	 * Set the chat widget contents.
@@ -73,14 +73,14 @@ public:
 	 *
 	 * @param FriendItem The friend to accept.
 	 */
-	void AcceptFriend( TSharedPtr< IFriendListItems > FriendItem );
+	void AcceptFriend( TSharedPtr< IFriendItem > FriendItem );
 
 	/**
 	 * Reject a friend request.
 	 *
 	 * @param FriendItem The friend to reject.
 	 */
-	void RejectFriend( TSharedPtr< IFriendListItems > FriendItem );
+	void RejectFriend( TSharedPtr< IFriendItem > FriendItem );
 
 	/**
 	 * Get the friends filtered list of friends.
@@ -88,13 +88,13 @@ public:
 	 * @param OutFriendsList  Array of friends to fill in.
 	 * @return the friend list count.
 	 */
-	int32 GetFilteredFriendsList( TArray< TSharedPtr< IFriendListItems > >& OutFriendsList );
+	int32 GetFilteredFriendsList( TArray< TSharedPtr< IFriendItem > >& OutFriendsList );
 
 	/**
 	 * Get the recent players list.
 	 * @return the list.
 	 */
-	TArray< TSharedPtr< IFriendListItems > >& GetrecentPlayerList();
+	TArray< TSharedPtr< IFriendItem > >& GetrecentPlayerList();
 
 	/**
 	 * Get outgoing request list.
@@ -102,7 +102,7 @@ public:
 	 * @param OutFriendsList  Array of friends to fill in.
 	 * @return The friend list count.
 	 */
-	int32 GetFilteredOutgoingFriendsList( TArray< TSharedPtr< IFriendListItems > >& OutFriendsList );
+	int32 GetFilteredOutgoingFriendsList( TArray< TSharedPtr< IFriendItem > >& OutFriendsList );
 
 	/**
 	 * Request a friend be added.
@@ -116,7 +116,7 @@ public:
 	 *
 	 * @param FriendItem The friend item to delete.
 	 */
-	void DeleteFriend( TSharedPtr< IFriendListItems > FriendItem );
+	void DeleteFriend( TSharedPtr< IFriendItem > FriendItem );
 
 	/**
 	 * Get incoming game invite list.
@@ -124,28 +124,28 @@ public:
 	 * @param OutFriendsList  Array of friends to fill in.
 	 * @return The friend list count.
 	 */
-	int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendListItems > >& OutFriendsList);
+	int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendItem > >& OutFriendsList);
 
 	/**
 	 * Reject a game invite
 	 *
 	 * @param FriendItem friend with game invite info
 	 */
-	void RejectGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
+	void RejectGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
 
 	/**
 	 * Accept a game invite
 	 *
 	 * @param FriendItem friend with game invite info
 	 */
-	void AcceptGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
+	void AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
 
 	/**
 	 * Send a game invite to a friend
 	 *
 	 * @param FriendItem friend to send game invite to
 	 */
-	void SendGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
+	void SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
 
 	/**
 	 * Find a user ID.
@@ -182,7 +182,7 @@ public:
 	 * @param InUserName The user name to find.
 	 * @return The Friend ID.
 	 */
-	TSharedPtr< IFriendListItems > FindUser(const FUniqueNetId& InUserID);
+	TSharedPtr< IFriendItem > FindUser(const FUniqueNetId& InUserID);
 
 	// External events
 	DECLARE_DERIVED_EVENT(FFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsNotificationEvent, FOnFriendsNotificationEvent)
@@ -262,7 +262,7 @@ private:
 	void SendFriendInviteNotification();
 
 	/** Send a friend invite accepted notification. */
-	void SendInviteAcceptedNotification(TSharedPtr< IFriendListItems > Friend);
+	void SendInviteAcceptedNotification(TSharedPtr< IFriendItem > Friend);
 
 	/** Called when singleton is released. */
 	void ShutdownManager();
@@ -454,19 +454,19 @@ private:
 	// Holds the list of Unique Ids found for user names to add as friends
 	TArray< TSharedRef< FUniqueNetId > > QueryUserIds;
 	// Holds the full friends list used to build the UI
-	TArray< TSharedPtr< IFriendListItems > > FriendsList;
+	TArray< TSharedPtr< IFriendItem > > FriendsList;
 	// Holds the recent players list
-	TArray< TSharedPtr< IFriendListItems > > RecentPlayersList;
+	TArray< TSharedPtr< IFriendItem > > RecentPlayersList;
 	// Holds the filtered friends list used in the UI
-	TArray< TSharedPtr< IFriendListItems > > FilteredFriendsList;
+	TArray< TSharedPtr< IFriendItem > > FilteredFriendsList;
 	// Holds the outgoing friend request list used in the UI
-	TArray< TSharedPtr< IFriendListItems > > FilteredOutgoingList;
+	TArray< TSharedPtr< IFriendItem > > FilteredOutgoingList;
 	// Holds the unprocessed friends list generated from a friends request update
-	TArray< TSharedPtr< IFriendListItems > > PendingFriendsList;
+	TArray< TSharedPtr< IFriendItem > > PendingFriendsList;
 	// Holds the list of incoming invites that need to be responded to
-	TArray< TSharedPtr< IFriendListItems > > PendingIncomingInvitesList;
+	TArray< TSharedPtr< IFriendItem > > PendingIncomingInvitesList;
 	// Holds the list of incoming game invites that need to be responded to
-	TMap< FString, TSharedPtr< IFriendListItems > > PendingGameInvitesList;
+	TMap< FString, TSharedPtr< IFriendItem > > PendingGameInvitesList;
 	// Holds the list of invites we have already responded to
 	TArray< TSharedPtr< FUniqueNetId > > NotifiedRequest;
 	// Holds the list messages sent out to be responded to

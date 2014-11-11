@@ -5,7 +5,7 @@
 /**
  * Class containing the friend information - used to build the list view.
  */
-class IFriendListItems
+class IFriendItem
 {
 public:
 
@@ -116,5 +116,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	virtual ~IFriendListItems() { }
+	virtual ~IFriendItem() { }
 };

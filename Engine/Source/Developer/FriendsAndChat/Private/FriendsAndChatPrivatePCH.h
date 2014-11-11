@@ -23,7 +23,7 @@
 #include "OnlineUserInterface.h"
 #include "OnlineMessageInterface.h"
 #include "OnlinePresenceInterface.h"
-#include "FriendListItems.h"
+#include "FriendItem.h"
 
 /* Private Class includes
 *****************************************************************************/

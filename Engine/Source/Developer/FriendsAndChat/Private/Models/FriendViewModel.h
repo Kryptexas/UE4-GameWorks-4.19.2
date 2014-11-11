@@ -62,4 +62,4 @@ public:
  * @return the newly created FriendViewModel implementation.
  */
 FACTORY(TSharedRef< FFriendViewModel >, FFriendViewModel,
-	const TSharedRef<class IFriendListItems>& IFriendListItems);
+	const TSharedRef<class IFriendItem>& IFriendItem);

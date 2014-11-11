@@ -198,13 +198,13 @@ private:
 	SMenuAnchor::EMethod MenuMethod;
 
 	/** Holds the list of friends. */
-	TArray< TSharedPtr< IFriendListItems > > FriendsList;
+	TArray< TSharedPtr< IFriendItem > > FriendsList;
 
 	/** Holds the list of outgoing invites. */
-	TArray< TSharedPtr< IFriendListItems > > OutgoingFriendsList;
+	TArray< TSharedPtr< IFriendItem > > OutgoingFriendsList;
 
 	/** Holds the tree view of the Friends list. */
-	TSharedPtr< SListView< TSharedPtr< IFriendListItems > > > FriendsListView;
+	TSharedPtr< SListView< TSharedPtr< IFriendItem > > > FriendsListView;
 
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;

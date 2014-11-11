@@ -8,17 +8,17 @@
 
 // FFriendStruct implementation
 
-const TSharedPtr< FOnlineFriend > FFriendStuct::GetOnlineFriend() const
+const TSharedPtr< FOnlineFriend > FFriendItem::GetOnlineFriend() const
 {
 	return OnlineFriend;
 }
 
-const TSharedPtr< FOnlineUser > FFriendStuct::GetOnlineUser() const
+const TSharedPtr< FOnlineUser > FFriendItem::GetOnlineUser() const
 {
 	return OnlineUser;
 }
 
-const FString FFriendStuct::GetName() const
+const FString FFriendItem::GetName() const
 {
 	if ( OnlineUser.IsValid() )
 	{
@@ -28,7 +28,7 @@ const FString FFriendStuct::GetName() const
 	return GroupName;
 }
 
-const FText FFriendStuct::GetFriendLocation() const
+const FText FFriendItem::GetFriendLocation() const
 {
 	if(OnlineFriend.IsValid())
 	{
@@ -67,7 +67,7 @@ const FText FFriendStuct::GetFriendLocation() const
 	return FText::GetEmpty();
 }
 
-const FString FFriendStuct::GetClientId() const
+const FString FFriendItem::GetClientId() const
 {
 	FString Result;
 	if (OnlineFriend.IsValid())
@@ -83,7 +83,7 @@ const FString FFriendStuct::GetClientId() const
 	return Result;
 }
 
-const bool FFriendStuct::IsOnline() const
+const bool FFriendItem::IsOnline() const
 {
 	if(OnlineFriend.IsValid())
 	{
@@ -92,28 +92,28 @@ const bool FFriendStuct::IsOnline() const
 	return false;
 }
 
-const TSharedRef< FUniqueNetId > FFriendStuct::GetUniqueID() const
+const TSharedRef< FUniqueNetId > FFriendItem::GetUniqueID() const
 {
 	return UniqueID.ToSharedRef();
 }
 
-const EFriendsDisplayLists::Type FFriendStuct::GetListType() const
+const EFriendsDisplayLists::Type FFriendItem::GetListType() const
 {
 	return ListType;
 }
 
-void FFriendStuct::SetOnlineFriend( TSharedPtr< FOnlineFriend > InOnlineFriend )
+void FFriendItem::SetOnlineFriend( TSharedPtr< FOnlineFriend > InOnlineFriend )
 {
 	OnlineFriend = InOnlineFriend;
 	bIsUpdated = true;
 }
 
-void FFriendStuct::SetOnlineUser(TSharedPtr< FOnlineUser > InOnlineUser)
+void FFriendItem::SetOnlineUser(TSharedPtr< FOnlineUser > InOnlineUser)
 {
 	OnlineUser = InOnlineUser;
 }
 
-void FFriendStuct::ClearUpdated()
+void FFriendItem::ClearUpdated()
 {
 	bIsUpdated = false;
 	bIsPendingAccepted = false;
@@ -121,42 +121,42 @@ void FFriendStuct::ClearUpdated()
 	bIsPendingDelete = false;
 }
 
-bool FFriendStuct::IsUpdated()
+bool FFriendItem::IsUpdated()
 {
 	return bIsUpdated;
 }
 
-void FFriendStuct::SetPendingAccept()
+void FFriendItem::SetPendingAccept()
 {
 	bIsPendingAccepted = true;
 }
 
-bool FFriendStuct::IsPendingAccepted() const
+bool FFriendItem::IsPendingAccepted() const
 {
 	return bIsPendingAccepted;
 }
 
-bool FFriendStuct::IsGameRequest() const
+bool FFriendItem::IsGameRequest() const
 {
 	return bIsGameRequest;
 }
 
-void FFriendStuct::SetPendingInvite()
+void FFriendItem::SetPendingInvite()
 {
 	bIsPendingInvite = true;
 }
 
-void FFriendStuct::SetPendingDelete()
+void FFriendItem::SetPendingDelete()
 {
 	bIsPendingDelete = true;
 }
 
-bool FFriendStuct::IsPendingDelete() const
+bool FFriendItem::IsPendingDelete() const
 {
 	return bIsPendingDelete;
 }
 
-EInviteStatus::Type FFriendStuct::GetInviteStatus()
+EInviteStatus::Type FFriendItem::GetInviteStatus()
 {
 	if ( bIsPendingAccepted )
 	{
