@@ -43,6 +43,15 @@ public:
 	/** @return The preview widget. */
 	UUserWidget* GetPreview() const;
 
+	/** @return The preview scene that owns the preview widget. */
+	FPreviewScene* GetPreviewScene();
+
+	/**  */
+	bool IsSimulating() const;
+
+	/**  */
+	void SetIsSimulating(bool bSimulating);
+
 	/** Causes the preview to be destroyed and a new one to be created next tick */
 	void InvalidatePreview();
 
@@ -196,4 +205,10 @@ private:
 
 	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
 	bool bPreviewInvalidated;
+
+	/**  */
+	bool bIsSimulateEnabled;
+
+	/**  */
+	bool bIsRealTime;
 };

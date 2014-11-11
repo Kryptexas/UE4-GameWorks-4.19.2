@@ -133,6 +133,8 @@ private:
 	void HandleOnCustomResolutionSelected();
 	TSharedRef<SWidget> GetAspectMenu();
 
+	EVisibility PIENotification() const;
+
 	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
 	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
 	FReply HandleDPISettingsClicked();

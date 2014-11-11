@@ -70,11 +70,15 @@ void UUserWidget::Initialize()
 
 void UUserWidget::PostEditImport()
 {
+	Super::PostEditImport();
+
 	Initialize();
 }
 
 void UUserWidget::PostDuplicate(bool bDuplicateForPIE)
 {
+	Super::PostDuplicate(bDuplicateForPIE);
+
 	Initialize();
 }
 
@@ -149,6 +153,11 @@ UWorld* UUserWidget::GetWorld() const
 		{
 			return World;
 		}
+	}
+
+	if ( UWorld* World = Cast<UWorld>(GetOuter()) )
+	{
+		return World;
 	}
 
 	return nullptr;
@@ -444,17 +453,19 @@ UWidget* UUserWidget::GetWidgetFromName(const FName& Name) const
 void UUserWidget::GetSlotNames(TArray<FName>& SlotNames) const
 {
 	// Only do this if this widget is of a blueprint class
-	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-	if ( BGClass != nullptr )
+	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
 	{
 		SlotNames.Append(BGClass->NamedSlots);
 	}
-
-	// Also add any existing bindings uniquely, templates don't have any components
-	// yet because they're never initialized because of their CDO status.
-	for ( const FNamedSlotBinding& Binding : NamedSlotBindings )
+	else // For non-blueprint widget blueprints we have to go through the widget tree to locate the named slots dynamically.
 	{
-		SlotNames.AddUnique( Binding.Name );
+		TArray<FName> NamedSlots;
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+			if ( Widget && Widget->IsA<UNamedSlot>() )
+			{
+				NamedSlots.Add(Widget->GetFName());
+			}
+		});
 	}
 }
 
@@ -660,8 +671,8 @@ void UUserWidget::SetPositionInViewport(FVector2D Position)
 {
 	float Scale = UWidgetLayoutLibrary::GetViewportScale(this);
 
-	ViewportOffsets.Left = Position.X * ( 1.0f / Scale );
-	ViewportOffsets.Top = Position.Y * ( 1.0f / Scale );
+	ViewportOffsets.Left = Position.X / Scale;
+	ViewportOffsets.Top = Position.Y / Scale;
 
 	ViewportAnchors = FAnchors(0, 0);
 }
@@ -708,6 +719,26 @@ FAnchors UUserWidget::GetViewportAnchors() const
 FVector2D UUserWidget::GetFullScreenAlignment() const
 {
 	return ViewportAlignment;
+}
+
+void UUserWidget::PreSave()
+{
+	Super::PreSave();
+
+	// Remove bindings that are no longer contained in the class.
+	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
+	{
+		for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++ )
+		{
+			const FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
+
+			if ( !BGClass->NamedSlots.Contains(Binding.Name) )
+			{
+				NamedSlotBindings.RemoveAt(BindingIndex);
+				BindingIndex--;
+			}
+		}
+	}
 }
 
 #if WITH_EDITOR

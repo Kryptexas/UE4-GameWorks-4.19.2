@@ -28,7 +28,10 @@ FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(nullptr)
 	, HoverTime(0)
+	, bIsSimulateEnabled(false)
+	, bIsRealTime(true)
 {
+	PreviewScene.GetWorld()->bBegunPlay = false;
 }
 
 FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
@@ -59,7 +62,7 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
 	// If this blueprint is empty, add a canvas panel as the root widget.
-	if ( Blueprint->WidgetTree->RootWidget == NULL )
+	if ( Blueprint->WidgetTree->RootWidget == nullptr )
 	{
 		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
 		RootWidget->SetIsDesignTime(true);
@@ -318,12 +321,12 @@ bool FWidgetBlueprintEditor::CanPasteWidgets()
 	if ( Widgets.Num() == 1 )
 	{
 		FWidgetReference Target = *Widgets.CreateIterator();
-		const bool bIsPanel = Cast<UPanelWidget>(Target.GetTemplate()) != NULL;
+		const bool bIsPanel = Cast<UPanelWidget>(Target.GetTemplate()) != nullptr;
 		return bIsPanel;
 	}
 	else if ( Widgets.Num() == 0 )
 	{
-		if ( GetWidgetBlueprintObj()->WidgetTree->RootWidget == NULL )
+		if ( GetWidgetBlueprintObj()->WidgetTree->RootWidget == nullptr )
 		{
 			return true;
 		}
@@ -351,11 +354,8 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 	// Tick the preview scene world.
 	if ( !GIntraFrameDebuggingGameThread )
 	{
-		bool bIsSimulateEnabled = true;
-		bool bIsRealTime = true;
-
 		// Allow full tick only if preview simulation is enabled and we're not currently in an active SIE or PIE session
-		if ( bIsSimulateEnabled && GEditor->PlayWorld == NULL && !GEditor->bIsSimulatingInEditor )
+		if ( bIsSimulateEnabled && GEditor->PlayWorld == nullptr && !GEditor->bIsSimulatingInEditor )
 		{
 			PreviewScene.GetWorld()->Tick(bIsRealTime ? LEVELTICK_All : LEVELTICK_TimeOnly, DeltaTime);
 		}
@@ -378,7 +378,7 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 {
 	UProperty* CurrentProperty = PropertyChainNode->GetValue();
 
-	if ( PropertyChainNode->GetNextNode() == NULL )
+	if ( PropertyChainNode->GetNextNode() == nullptr )
 	{
 		if ( bIsModify )
 		{
@@ -390,7 +390,7 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 			// Check to see if there's an edit condition property we also need to migrate.
 			bool bDummyNegate = false;
 			UBoolProperty* EditConditionProperty = PropertyCustomizationHelpers::GetEditConditionProperty(MemberProperty, bDummyNegate);
-			if ( EditConditionProperty != NULL )
+			if ( EditConditionProperty != nullptr )
 			{
 				FObjectEditorUtils::MigratePropertyValue(SourceObject, EditConditionProperty, DestinationObject, EditConditionProperty);
 			}
@@ -428,7 +428,7 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
 	UUserWidget* PreviewActor = GetPreview();
-	if ( PreviewActor != NULL )
+	if ( PreviewActor != nullptr )
 	{
 		for ( FWidgetReference& WidgetRef : SelectedWidgets )
 		{
@@ -489,10 +489,25 @@ UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 {
 	if ( PreviewWidgetPtr.IsStale(true) )
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	return PreviewWidgetPtr.Get();
+}
+
+FPreviewScene* FWidgetBlueprintEditor::GetPreviewScene()
+{
+	return &PreviewScene;
+}
+
+bool FWidgetBlueprintEditor::IsSimulating() const
+{
+	return bIsSimulateEnabled;
+}
+
+void FWidgetBlueprintEditor::SetIsSimulating(bool bSimulating)
+{
+	bIsSimulateEnabled = bSimulating;
 }
 
 FWidgetReference FWidgetBlueprintEditor::GetReferenceFromTemplate(UWidget* TemplateWidget)
@@ -612,7 +627,7 @@ void FWidgetBlueprintEditor::RefreshPreview()
 void FWidgetBlueprintEditor::DestroyPreview()
 {
 	UUserWidget* PreviewActor = GetPreview();
-	if ( PreviewActor != NULL )
+	if ( PreviewActor != nullptr )
 	{
 		check(PreviewScene.GetWorld());
 
@@ -625,7 +640,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	UUserWidget* PreviewActor = GetPreview();
 
 	// Signal that we're going to be constructing editor components
-	if ( InBlueprint != NULL && InBlueprint->SimpleConstructionScript != NULL )
+	if ( InBlueprint != nullptr && InBlueprint->SimpleConstructionScript != nullptr )
 	{
 		InBlueprint->SimpleConstructionScript->BeginEditorComponentConstruction();
 	}
@@ -655,7 +670,6 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 	OnWidgetPreviewUpdated.Broadcast();
 }
-
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 {

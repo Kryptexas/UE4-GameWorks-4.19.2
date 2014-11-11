@@ -244,6 +244,29 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 				.OnPaintHandler(this, &SDesignerView::HandleEffectsPainting)
 			]
 
+			// Top-right corner text indicating PIE is active
+			+ SOverlay::Slot()
+			.Padding(0)
+			.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SImage)
+				.Visibility(this, &SDesignerView::PIENotification)
+				.Image(FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")))
+			]
+
+			// Top-right corner text indicating PIE is active
+			+ SOverlay::Slot()
+			.Padding(20)
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Right)
+			[
+				SNew(STextBlock)
+				.Visibility(this, &SDesignerView::PIENotification)
+				.TextStyle( FEditorStyle::Get(), "Graph.SimulatingText" )
+				.Text( LOCTEXT("SIMULATING", "SIMULATING") )
+			]
+
 			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
@@ -1749,6 +1772,16 @@ EVisibility SDesignerView::GetResolutionTextVisibility() const
 	}
 
 	return EVisibility::SelfHitTestInvisible;
+}
+
+EVisibility SDesignerView::PIENotification() const
+{
+	if ( GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != nullptr )
+	{
+		return EVisibility::HitTestInvisible;
+	}
+
+	return EVisibility::Hidden;
 }
 
 FReply SDesignerView::HandleDPISettingsClicked()

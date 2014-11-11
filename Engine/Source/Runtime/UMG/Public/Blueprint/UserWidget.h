@@ -579,6 +579,10 @@ public:
 	/** Ticks this widget and forwards to the underlying widget to tick */
 	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime );
 
+	// Begin UObject interface
+	virtual void PreSave() override;
+	// End UObject interface
+
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;

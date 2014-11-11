@@ -37,8 +37,8 @@ bool UWidgetLayoutLibrary::GetMousePositionScaledByDPI(APlayerController* Player
 	if ( Player && Player->GetMousePosition(LocationX, LocationY) )
 	{
 		float Scale = UWidgetLayoutLibrary::GetViewportScale(Player);
-		LocationX = LocationX * ( 1.0f / Scale );
-		LocationY = LocationY * ( 1.0f / Scale );
+		LocationX = LocationX / Scale;
+		LocationY = LocationY / Scale;
 
 		return true;
 	}
