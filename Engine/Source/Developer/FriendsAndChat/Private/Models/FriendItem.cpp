@@ -92,6 +92,17 @@ const bool FFriendItem::IsOnline() const
 	return false;
 }
 
+bool FFriendItem::IsGameJoinable() const
+{
+	if (OnlineFriend.IsValid())
+	{
+		const bool bIsOnline = OnlineFriend->GetPresence().Status.State == EOnlinePresenceState::Online;
+		const bool bIsJoinable = OnlineFriend->GetPresence().bIsJoinable && OnlineFriend->GetPresence().SessionId > 0;
+		return bIsJoinable && bIsOnline;
+	}
+	return false;
+}
+
 const TSharedRef< FUniqueNetId > FFriendItem::GetUniqueID() const
 {
 	return UniqueID.ToSharedRef();
@@ -138,7 +149,7 @@ bool FFriendItem::IsPendingAccepted() const
 
 bool FFriendItem::IsGameRequest() const
 {
-	return bIsGameRequest;
+	return false;
 }
 
 void FFriendItem::SetPendingInvite()

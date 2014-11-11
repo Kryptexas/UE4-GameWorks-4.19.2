@@ -25,7 +25,6 @@ public:
 		, UniqueID( InOnlineUser->GetUserId() )
 		, ListType( InListType )
 		, bIsPendingAccepted(false)
-		, bIsGameRequest(false)
 		, bIsPendingInvite(false)
 		, bIsPendingDelete(false)
 	{ }
@@ -80,6 +79,12 @@ public:
 	 * @return The user online state.
 	 */
 	virtual const bool IsOnline() const override;
+
+	/**
+	 * Get if the user is online and his game is joinable
+	 * @return The user joinable game state.
+	 */
+	virtual bool IsGameJoinable() const override;
 
 	/**
 	 * Get the Unique ID.
@@ -175,9 +180,6 @@ private:
 
 	/** Holds if we are pending an accept as friend action. */
 	bool bIsPendingAccepted;
-
-	/** Holds if this is a game request. */
-	bool bIsGameRequest;
 
 	/** Holds if we are pending an invite response. */
 	bool bIsPendingInvite;

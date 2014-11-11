@@ -107,6 +107,9 @@ public:
 	/** Get if is from a game request. */
 	virtual bool IsGameRequest() const override;
 
+	/** Is the player in a game that is joinable */
+	virtual bool IsGameJoinable() const override;
+
 	/**
 	 * Get the invitation status.
 	 *

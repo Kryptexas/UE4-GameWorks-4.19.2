@@ -49,13 +49,6 @@ public:
 	 */
 	virtual void JoinPublicChatRoom(const FString& RoomName) = 0;
 
-	/**
-	 * Set that we are in a session, so can send join game requests.
-	 *
-	 * @param bInSession If we are in a session.
-	 */
-	virtual void SetInSession( bool bInSession ) = 0;
-
 	/** Log out and kill the friends list window. */
 	virtual void Logout() = 0;
 

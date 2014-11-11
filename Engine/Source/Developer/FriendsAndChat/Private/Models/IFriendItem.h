@@ -50,6 +50,12 @@ public:
 	virtual const bool IsOnline() const = 0;
 
 	/**
+	 * Get if the user is online and his game is joinable
+	 * @return The user joinable game state.
+	 */
+	virtual bool IsGameJoinable() const = 0;
+
+	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */

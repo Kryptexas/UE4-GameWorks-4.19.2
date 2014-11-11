@@ -25,12 +25,12 @@ public:
 			{
 				case EInviteStatus::Accepted :
 				{
-					if(FriendItem->IsOnline())
+					if (FriendItem->IsGameJoinable())
 					{
 						Actions.Add(EFriendActionType::JoinGame);
 					}
 
-					if( FFriendsAndChatManager::Get()->IsInSession())
+					if (FFriendsAndChatManager::Get()->IsInGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}

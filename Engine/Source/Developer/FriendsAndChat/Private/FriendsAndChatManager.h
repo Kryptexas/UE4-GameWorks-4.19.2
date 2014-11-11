@@ -45,7 +45,6 @@ public:
 	virtual void SetUserSettings(FFriendsAndChatSettings UserSettings) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual TSharedPtr< SWidget > GenerateChatWidget( const FFriendsAndChatStyle* InStyle ) override;
-	virtual void SetInSession( bool bInSession ) override;
 	virtual void InsertNetworkChatMessage(const FString InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
 
@@ -54,7 +53,7 @@ public:
 	 *
 	 * @return True if we are in a game session.
 	 */
-	bool IsInSession();
+	bool IsInGameSession();
 
 	/**
 	 * Create the friends list window.
@@ -378,6 +377,10 @@ private:
 	 */
 	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult);
 
+	void OnGameCreated(const FName SessionName, bool bWasSuccessful);
+	void OnGameDestroyed(const FName SessionName, bool bWasSuccessful);
+	void OnGameJoined(const FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult);
+
 	/**
 	 * Delegate used when a friend is removed.
 	 *
@@ -507,6 +510,12 @@ private:
 	FOnInviteReceivedDelegate OnFriendInviteReceivedDelegate;
 	// Delegate for a game invite received
 	FOnSessionInviteReceivedDelegate OnGameInviteReceivedDelegate;
+	// Delegate for a game session being created
+	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
+	// Delegate for a game session being destroyed
+	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
+	// Delegate for a game session being joined
+	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
 	// Delegate for friend removed
 	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
 	// Delegate for friend invite rejected
@@ -568,8 +577,6 @@ private:
 	TSharedPtr< SWindow > ChatWindow;
 	// Holds the style used to create the Friends List widget
 	FFriendsAndChatStyle Style;
-	// Holds if the game is in session
-	bool bIsInSession;
 	// Holds if the Friends list is inited
 	bool bIsInited;
 	// Holds the Friends system user settings

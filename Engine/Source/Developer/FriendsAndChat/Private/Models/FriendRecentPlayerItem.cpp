@@ -82,6 +82,11 @@ bool FFriendRecentPlayerItem::IsGameRequest() const
 	return false;
 }
 
+bool FFriendRecentPlayerItem::IsGameJoinable() const
+{
+	return false;
+}
+
 void FFriendRecentPlayerItem::SetPendingInvite()
 {
 }
