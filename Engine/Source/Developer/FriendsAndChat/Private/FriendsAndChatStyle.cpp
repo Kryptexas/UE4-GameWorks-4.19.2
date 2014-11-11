@@ -162,13 +162,13 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatGlobalBrush(const FSlateBrush
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatPartyBrush(const FSlateBrush& Brush)
 {
-	ChatGlobalBrush = Brush;
+	ChatPartyBrush = Brush;
 	return *this;
 }
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWhisperBrush(const FSlateBrush& Brush)
 {
-	ChatGlobalBrush = Brush;
+	ChatWhisperBrush = Brush;
 	return *this;
 }
 

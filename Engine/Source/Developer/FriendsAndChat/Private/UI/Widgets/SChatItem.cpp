@@ -36,6 +36,14 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
+			.Padding(FMargin(5))
+			[
+				SNew(SImage)
+				.Image(this, &SChatItemImpl::GetChatIcon)
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
 			.Padding(FMargin(5,1))
 			[
 				SAssignNew(FriendItemBorder, SBorder)
@@ -85,6 +93,19 @@ private:
 			case EChatMessageType::Network: return FriendStyle.NetworkChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 			default:
 			return FLinearColor::Gray;
+		}
+	}
+
+	const FSlateBrush* GetChatIcon() const
+	{
+		switch(ViewModel->GetMessageType())
+		{
+			case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
+			case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
+			case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
+			case EChatMessageType::Network: return &FriendStyle.ChatPartyBrush; break;
+			default:
+			return nullptr;
 		}
 	}
 
