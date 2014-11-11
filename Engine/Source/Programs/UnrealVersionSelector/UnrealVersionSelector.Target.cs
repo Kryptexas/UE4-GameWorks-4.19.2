@@ -57,7 +57,7 @@ public class UnrealVersionSelectorTarget : TargetRules
 		if (InHostPlatform == UnrealTargetPlatform.Win32 || InHostPlatform == UnrealTargetPlatform.Win64)
 		{
 			bInternalToolOnly = true;
-			SeparateNode = false;
+			SeparateNode = true;
 			return true;
 		}
 
