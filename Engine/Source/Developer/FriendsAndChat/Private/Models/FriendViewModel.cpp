@@ -30,7 +30,7 @@ public:
 						Actions.Add(EFriendActionType::JoinGame);
 					}
 
-					if (FFriendsAndChatManager::Get()->IsInGameSession())
+					if (FFriendsAndChatManager::Get()->IsInJoinableGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}

@@ -53,7 +53,14 @@ public:
 	 *
 	 * @return True if we are in a game session.
 	 */
-	bool IsInGameSession();
+	bool IsInGameSession() const;
+
+	/**
+	 * Get if the player is in a session and that game is joinable.
+	 *
+	 * @return True if we are in a game session.
+	 */
+	bool IsInJoinableGameSession() const;
 
 	/**
 	 * Create the friends list window.
@@ -377,9 +384,7 @@ private:
 	 */
 	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult);
 
-	void OnGameCreated(const FName SessionName, bool bWasSuccessful);
 	void OnGameDestroyed(const FName SessionName, bool bWasSuccessful);
-	void OnGameJoined(const FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult);
 
 	/**
 	 * Delegate used when a friend is removed.
@@ -510,12 +515,8 @@ private:
 	FOnInviteReceivedDelegate OnFriendInviteReceivedDelegate;
 	// Delegate for a game invite received
 	FOnSessionInviteReceivedDelegate OnGameInviteReceivedDelegate;
-	// Delegate for a game session being created
-	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
 	// Delegate for a game session being destroyed
 	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
-	// Delegate for a game session being joined
-	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
 	// Delegate for friend removed
 	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
 	// Delegate for friend invite rejected
@@ -579,6 +580,8 @@ private:
 	FFriendsAndChatStyle Style;
 	// Holds if the Friends list is inited
 	bool bIsInited;
+	// true if the current game is allowed to be joined
+	bool bIsGameJoinable;
 	// Holds the Friends system user settings
 	FFriendsAndChatSettings UserSettings;
 	// Holds if we need a list refresh

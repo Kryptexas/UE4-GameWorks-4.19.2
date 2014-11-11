@@ -73,9 +73,7 @@ void FFriendsAndChatManager::Login()
 			OnFriendInviteRejected = FOnInviteRejectedDelegate::CreateSP(this, &FFriendsAndChatManager::OnInviteRejected);
 			OnFriendInviteAccepted = FOnInviteAcceptedDelegate::CreateSP(this, &FFriendsAndChatManager::OnInviteAccepted);
 			OnGameInviteReceivedDelegate = FOnSessionInviteReceivedDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameInviteReceived);
-			OnCreateSessionCompleteDelegate = FOnCreateSessionCompleteDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameCreated);
 			OnDestroySessionCompleteDelegate = FOnDestroySessionCompleteDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameDestroyed);
-			OnJoinSessionCompleteDelegate = FOnJoinSessionCompleteDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameJoined);
 
 			FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
 			FriendsInterface->AddOnFriendsChangeDelegate(0, OnFriendsListChangedDelegate);
@@ -90,10 +88,8 @@ void FFriendsAndChatManager::Login()
 			UserInterface->AddOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
 			OnlineSubMcp->GetPresenceInterface()->AddOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
 			OnlineSubMcp->GetSessionInterface()->AddOnSessionInviteReceivedDelegate(OnGameInviteReceivedDelegate);
-			OnlineSubMcp->GetSessionInterface()->AddOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
 			OnlineSubMcp->GetSessionInterface()->AddOnDestroySessionCompleteDelegate(OnDestroySessionCompleteDelegate);
-			OnlineSubMcp->GetSessionInterface()->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);			
-
+			
 			FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
 			OnlinePersonaMcp->AddOnQueryUserIdMappingCompleteDelegate(OnQueryUserIdMappingCompleteDelegate);
 
@@ -149,9 +145,7 @@ void FFriendsAndChatManager::Logout()
 		if (OnlineSubMcp->GetSessionInterface().IsValid())
 		{
 			OnlineSubMcp->GetSessionInterface()->ClearOnSessionInviteReceivedDelegate(OnGameInviteReceivedDelegate);
-			OnlineSubMcp->GetSessionInterface()->ClearOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
 			OnlineSubMcp->GetSessionInterface()->ClearOnDestroySessionCompleteDelegate(OnDestroySessionCompleteDelegate);
-			OnlineSubMcp->GetSessionInterface()->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
 		}
 		if (OnlineSubMcp->GetUserInterface().IsValid())
 		{
@@ -551,7 +545,7 @@ int32 FFriendsAndChatManager::GetFilteredGameInviteList(TArray< TSharedPtr< IFri
 	return OutFriendsList.Num();
 }
 
-bool FFriendsAndChatManager::IsInGameSession()
+bool FFriendsAndChatManager::IsInGameSession() const
 {	
 	if (OnlineSubMcp != nullptr &&
 		OnlineIdentity.IsValid() &&
@@ -561,6 +555,11 @@ bool FFriendsAndChatManager::IsInGameSession()
 		return true;
 	}
 	return false;
+}
+
+bool FFriendsAndChatManager::IsInJoinableGameSession() const
+{
+	return bIsGameJoinable && IsInGameSession();
 }
 
 bool FFriendsAndChatManager::GetUserIsOnline()
@@ -1055,7 +1054,33 @@ void FFriendsAndChatManager::OnPresenceReceived( const FUniqueNetId& UserId, con
 
 void FFriendsAndChatManager::OnPresenceUpdated(const FUniqueNetId& UserId, const bool bWasSuccessful)
 {
-	// TODO: May need to do something here
+	if (OnlineSubMcp != nullptr &&
+		OnlineSubMcp->GetIdentityInterface().IsValid() &&
+		OnlineSubMcp->GetPresenceInterface().IsValid())
+	{
+		TSharedPtr<FUniqueNetId> CurrentUserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId(0);
+		if (CurrentUserId.IsValid() &&
+			*CurrentUserId == UserId)
+		{
+			TSharedPtr<FOnlineUserPresence> Presence;
+			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(UserId, Presence);
+			bIsGameJoinable = false;
+			if (Presence.IsValid())
+			{
+				if (Presence->bIsJoinable)
+				{
+					FString SessionIdStr;
+					const FVariantData* SessionId = Presence->Status.Properties.Find(DefaultSessionIdKey);
+					if (SessionId != nullptr)
+					{
+						SessionId->GetValue(SessionIdStr);
+					}
+					bIsGameJoinable = !SessionIdStr.IsEmpty();
+				}
+			}
+			RefreshList();
+		}
+	}
 }
 
 void FFriendsAndChatManager::OnFriendsListChanged()
@@ -1089,29 +1114,11 @@ void FFriendsAndChatManager::OnGameInviteReceived(const FUniqueNetId& UserId, co
 	}
 }
 
-void FFriendsAndChatManager::OnGameCreated(const FName SessionName, bool bWasSuccessful)
-{
-	if (bWasSuccessful &&
-		SessionName == GameSessionName)
-	{
-		RefreshList();
-	}
-}
-
 void FFriendsAndChatManager::OnGameDestroyed(const FName SessionName, bool bWasSuccessful)
 {
 	if (SessionName == GameSessionName)
 	{
 		RequestRecentPlayersListRefresh();
-	}
-}
-
-void FFriendsAndChatManager::OnGameJoined(const FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult)
-{
-	if ((JoinResult == EOnJoinSessionCompleteResult::AlreadyInSession || JoinResult == EOnJoinSessionCompleteResult::Success) &&
-		SessionName == GameSessionName)
-	{
-		RefreshList();
 	}
 }
 

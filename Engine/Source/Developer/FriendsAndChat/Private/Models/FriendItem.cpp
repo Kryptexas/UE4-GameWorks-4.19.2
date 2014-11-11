@@ -96,9 +96,18 @@ bool FFriendItem::IsGameJoinable() const
 {
 	if (OnlineFriend.IsValid())
 	{
-		const bool bIsOnline = OnlineFriend->GetPresence().Status.State == EOnlinePresenceState::Online;
-		const bool bIsJoinable = OnlineFriend->GetPresence().bIsJoinable && OnlineFriend->GetPresence().SessionId > 0;
-		return bIsJoinable && bIsOnline;
+		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
+		if (FriendPresence.Status.State == EOnlinePresenceState::Online &&
+			FriendPresence.bIsJoinable)
+		{
+			FString SessionIdStr;
+			const FVariantData* SessionId = FriendPresence.Status.Properties.Find(DefaultSessionIdKey);
+			if (SessionId != nullptr)
+			{
+				SessionId->GetValue(SessionIdStr);
+			}
+			return !SessionIdStr.IsEmpty();
+		}
 	}
 	return false;
 }
