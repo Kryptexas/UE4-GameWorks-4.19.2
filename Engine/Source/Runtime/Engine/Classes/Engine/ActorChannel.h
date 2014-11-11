@@ -46,7 +46,10 @@ class ENGINE_API UActorChannel : public UChannel
 
 	// Variables.
 	UPROPERTY()
-	AActor* Actor;			// Actor this corresponds to.
+	AActor* Actor;					// Actor this corresponds to.
+
+	FNetworkGUID ActorNetGUID;		// Actor GUID (useful when we don't have the actor resolved yet). Currently only valid on clients.
+
 
 	// Variables.
 	double	RelevantTime;			// Last time this actor was relevant to client.
@@ -91,7 +94,7 @@ class ENGINE_API UActorChannel : public UChannel
 
 	virtual void Tick() override;
 	void ProcessBunch( FInBunch & Bunch );
-	void ProcessQueuedBunches();
+	bool ProcessQueuedBunches();
 
 	virtual void ReceivedNak( int32 NakPacketId ) override;
 	

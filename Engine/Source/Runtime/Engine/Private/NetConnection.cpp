@@ -348,6 +348,13 @@ void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	{
 		Collector.AddReferencedObject( This->Channels[ChIndex], This );
 	}
+
+	// Let GC know that we're referencing some UActorChannel objects
+	for ( auto It = This->KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
+	{
+		Collector.AddReferencedObject( It.Value(), This );
+	}
+
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -1380,9 +1387,26 @@ void UNetConnection::Tick()
 			OpenChannels[i]->Tick();
 		}
 
-		for ( int32 i = KeepProcessingActorChannelBunches.Num() - 1; i >= 0; i-- )
+		for ( auto It = KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
 		{
-			KeepProcessingActorChannelBunches[i]->ProcessQueuedBunches();
+			if ( It.Value() == NULL || It.Value()->IsPendingKill() )
+			{
+				It.RemoveCurrent();
+				UE_LOG( LogNet, Verbose, TEXT( "UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap before done processing bunches. Num: %i" ), KeepProcessingActorChannelBunchesMap.Num() );
+				continue;
+			}
+
+			check( It.Value()->ChIndex == -1 );
+
+			if ( It.Value()->ProcessQueuedBunches() )
+			{
+				// Since we are done processing bunches, we can now actually clean this channel up
+				It.Value()->ConditionalCleanUp();
+
+				// Remove the channel from the map
+				It.RemoveCurrent();
+				UE_LOG( LogNet, VeryVerbose, TEXT( "UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap. Num: %i" ), KeepProcessingActorChannelBunchesMap.Num() );
+			}
 		}
 
 		// If channel 0 has closed, mark the connection as closed.
@@ -1619,6 +1643,8 @@ void UNetConnection::ResetGameWorldState()
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
+	KeepProcessingActorChannelBunchesMap.Empty();
+	DormantReplicatorMap.Empty();
 
 	CleanupDormantActorState();
 }

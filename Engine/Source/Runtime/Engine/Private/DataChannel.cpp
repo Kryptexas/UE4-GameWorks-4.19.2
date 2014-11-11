@@ -1357,32 +1357,58 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 		Connection->SentTemporaries.Remove(Actor);
 	}
 
-	if ( !bIsServer && Dormant && QueuedBunches.Num() > 0 && !bForDestroy )
+	if ( !bIsServer && Dormant && QueuedBunches.Num() > 0 && ChIndex >= 0 && !bForDestroy )
 	{
-		UE_LOG( LogNet, Log, TEXT( "UActorChannel::CleanUp: Adding to KeepProcessingActorChannelBunches. Channel: %i" ), ChIndex );
+		if ( !ActorNetGUID.IsValid() )
+		{
+			UE_LOG( LogNet, Error, TEXT( "UActorChannel::CleanUp: Can't add to KeepProcessingActorChannelBunchesMap (ActorNetGUID invalid). Channel: %i" ), ChIndex );
+		}
+		else if ( Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
+		{
+			// FIXME: Handle this case!
+			// We should merge the channel info here
+			UE_LOG( LogNet, Error, TEXT( "UActorChannel::CleanUp: Can't add to KeepProcessingActorChannelBunchesMap (ActorNetGUID already in list). Channel: %i" ), ChIndex );
+		}
+		else
+		{
+			UE_LOG( LogNet, VeryVerbose, TEXT( "UActorChannel::CleanUp: Adding to KeepProcessingActorChannelBunchesMap. Channel: %i, Num: %i" ), ChIndex, Connection->KeepProcessingActorChannelBunchesMap.Num() );
 
-		// Remember the connection, since CleanUp below will NULL it
-		UNetConnection* OldConnection = Connection;
+			// Remember the connection, since CleanUp below will NULL it
+			UNetConnection* OldConnection = Connection;
 
-		// This will unregister the channel, and make it free for opening again
-		// We need to do this, since the server will assume this channel is free once we ack this packet
-		Super::CleanUp( bForDestroy );
+			// This will unregister the channel, and make it free for opening again
+			// We need to do this, since the server will assume this channel is free once we ack this packet
+			Super::CleanUp( bForDestroy );
 
-		// Restore connection property since we'll need it for processing bunches (the Super::CleanUp call above NULL'd it)
-		Connection = OldConnection;
+			// Restore connection property since we'll need it for processing bunches (the Super::CleanUp call above NULL'd it)
+			Connection = OldConnection;
 
-		// Add this channel to the KeepProcessingActorChannelBunches list
-		check( !Connection->KeepProcessingActorChannelBunches.Contains( this ) );
-		Connection->KeepProcessingActorChannelBunches.Add( this );
+			// Add this channel to the KeepProcessingActorChannelBunchesMap list
+			check( !Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) );
+			Connection->KeepProcessingActorChannelBunchesMap.Add( ActorNetGUID, this );
 
-		// We set ChIndex to -1 to signify that we've already been "closed" but we aren't done processing bunches
-		ChIndex = -1;
+			// We set ChIndex to -1 to signify that we've already been "closed" but we aren't done processing bunches
+			ChIndex = -1;
 
-		// Return false so we won't do pending kill yet
-		return false;
+			// Return false so we won't do pending kill yet
+			return false;
+		}
 	}
 
-	check( bForDestroy || !Connection->KeepProcessingActorChannelBunches.Contains( this ) );
+	// If there is another channel that was processing queued bunched for this guid, make sure to clean those up as well
+	if ( Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
+	{
+		UActorChannel * OtherChannel = Connection->KeepProcessingActorChannelBunchesMap.FindChecked( ActorNetGUID );
+		// We can ignore if this channel is already being destroyed, or if it's this actual channel (which is already being taken care of)
+		if ( OtherChannel != NULL && !OtherChannel->IsPendingKill() && OtherChannel != this )
+		{
+			// Reset a few things so that the ConditionalCleanUp doesn't do work we will do here
+			OtherChannel->Actor		= NULL;
+			OtherChannel->Dormant	= 0;
+
+			OtherChannel->ConditionalCleanUp( true );
+		}
+	}
 
 	// Remove from hash and stuff.
 	SetClosingFlag();
@@ -1511,7 +1537,7 @@ void UActorChannel::Tick()
 	ProcessQueuedBunches();
 }
 
-void UActorChannel::ProcessQueuedBunches()
+bool UActorChannel::ProcessQueuedBunches()
 {
 	// Try to resolve any guids that are holding up the network stream on this channel
 	for ( auto It = PendingGuidResolves.CreateIterator(); It; ++It )
@@ -1532,8 +1558,11 @@ void UActorChannel::ProcessQueuedBunches()
 		}
 	}
 
-	// If we don't have any pending guids to resolve, process any queued bunches now
-	if ( PendingGuidResolves.Num() == 0 && QueuedBunches.Num() > 0 )
+	// We can process all of the queued up bunches if ALL of these are true:
+	//	1. We have queued bunches to process
+	//	2. We no longer have any pending guids to load
+	//	3. We aren't still processing bunches on another channel that this actor was previously on
+	if ( QueuedBunches.Num() > 0 && PendingGuidResolves.Num() == 0 && ( ChIndex == -1 || !Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) ) )
 	{
 		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
 		{
@@ -1541,7 +1570,7 @@ void UActorChannel::ProcessQueuedBunches()
 			delete QueuedBunches[i];
 		}
 
-		UE_LOG( LogNet, Log, TEXT( "UActorChannel::ProcessQueuedBunches: Flushing queued bunches. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+		UE_LOG( LogNet, VeryVerbose, TEXT( "UActorChannel::ProcessQueuedBunches: Flushing queued bunches. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
 
 		QueuedBunches.Empty();
 	}
@@ -1557,22 +1586,9 @@ void UActorChannel::ProcessQueuedBunches()
 			QueuedBunchStartTime = FPlatformTime::Seconds();
 		}
 	}
-	else
-	{
-		if ( ChIndex == -1 )
-		{
-			UE_LOG( LogNet, Log, TEXT( "UActorChannel::ProcessQueuedBunches: Removing from KeepProcessingActorChannelBunches. ChIndex: %i, Actor: %s" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ) );
 
-			check( Connection->KeepProcessingActorChannelBunches.Contains( this ) );
-			Connection->KeepProcessingActorChannelBunches.Remove( this );
-			// Since we are done processing bunches, we can now actually clean this channel up
-			ConditionalCleanUp();
-		}
-		else
-		{
-			check( !Connection->KeepProcessingActorChannelBunches.Contains( this ) );
-		}
-	}
+	// Return true if we are done processing queued bunches
+	return QueuedBunches.Num() == 0;
 }
 
 void UActorChannel::ReceivedBunch( FInBunch & Bunch )
@@ -1584,50 +1600,76 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 		return;
 	}
 
-	if ( Bunch.bHasMustBeMappedGUIDs )
+	if ( Connection->Driver->IsServer() )
 	{
-		if ( Connection->Driver->IsServer() )
+		if ( Bunch.bHasMustBeMappedGUIDs )
 		{
 			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReceivedBunch: Client attempted to set bHasMustBeMappedGUIDs. Actor: %s" ), Actor != NULL ? *Actor->GetName() : TEXT( "NULL" ) );
 			Bunch.SetError();
 			return;
 		}
-
-		// If this bunch has any guids that must be mapped, we need to wait until they resolve before we can 
-		// process the rest of the stream on this channel
-		uint16 NumMustBeMappedGUIDs = 0;
-		Bunch << NumMustBeMappedGUIDs;
-
-		//UE_LOG( LogNetTraffic, Warning, TEXT( "Read must be mapped GUID's. NumMustBeMappedGUIDs: %i" ), NumMustBeMappedGUIDs );
-
-		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
-
-		for ( int32 i = 0; i < NumMustBeMappedGUIDs; i++ )
+	}
+	else
+	{
+		if ( Bunch.bHasMustBeMappedGUIDs )
 		{
-			FNetworkGUID NetGUID;
-			Bunch << NetGUID;
+			// If this bunch has any guids that must be mapped, we need to wait until they resolve before we can 
+			// process the rest of the stream on this channel
+			uint16 NumMustBeMappedGUIDs = 0;
+			Bunch << NumMustBeMappedGUIDs;
 
-			// This GUID better have been exported before we get here, which means it must be registered by now
-			check( Connection->Driver->GuidCache->IsGUIDRegistered( NetGUID ) );
+			//UE_LOG( LogNetTraffic, Warning, TEXT( "Read must be mapped GUID's. NumMustBeMappedGUIDs: %i" ), NumMustBeMappedGUIDs );
 
-			if ( !Connection->Driver->GuidCache->IsGUIDLoaded( NetGUID ) )
+			UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+			for ( int32 i = 0; i < NumMustBeMappedGUIDs; i++ )
 			{
-				PendingGuidResolves.Add( NetGUID );
+				FNetworkGUID NetGUID;
+				Bunch << NetGUID;
+
+				// This GUID better have been exported before we get here, which means it must be registered by now
+				check( Connection->Driver->GuidCache->IsGUIDRegistered( NetGUID ) );
+
+				if ( !Connection->Driver->GuidCache->IsGUIDLoaded( NetGUID ) )
+				{
+					PendingGuidResolves.Add( NetGUID );
+				}
 			}
 		}
-	}
 
-	// If we have guids that need to be resolved, or we have existing pending bunches, we must process this bunch later
-	if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 )
-	{
-		if ( QueuedBunches.Num() == 0 )
+		if ( Actor == NULL && Bunch.bOpen )
 		{
-			// Remember when we first started queuing
-			QueuedBunchStartTime = FPlatformTime::Seconds();
+			// Take a sneak peak at the actor guid so we have a copy of it now
+			FBitReaderMark Mark( Bunch );
+
+			NET_CHECKSUM( Bunch );
+
+			Bunch << ActorNetGUID;
+
+			Mark.Pop( Bunch );
 		}
 
-		QueuedBunches.Add( new FInBunch( Bunch ) );
-		return;
+		// We need to queue this bunch if any of these are true:
+		//	1. We have pending guids to resolve
+		//	2. We already have queued up bunches
+		//	3. If this actor was previously on a channel that is now still processing bunches after a close
+		if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 || Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
+		{
+			if ( Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
+			{
+				UE_LOG( LogNet, Log, TEXT( "UActorChannel::ReceivedBunch: Queuing bunch because another channel (that closed) is processing bunches for this guid still. ActorNetGUID: %s" ), *ActorNetGUID.ToString() );
+			}
+
+			if ( QueuedBunches.Num() == 0 )
+			{
+				// Remember when we first started queuing
+				QueuedBunchStartTime = FPlatformTime::Seconds();
+			}
+
+			QueuedBunches.Add( new FInBunch( Bunch ) );
+
+			return;
+		}
 	}
 
 	// We can process this bunch now
@@ -2591,3 +2633,4 @@ FAutoConsoleCommandWithWorldAndArgs TestObjectRefSerializeCommand(
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(TestObjectRefSerialize)
 	);
 #endif
+
