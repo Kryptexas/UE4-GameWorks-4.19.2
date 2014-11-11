@@ -13,6 +13,7 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 	, bLoadAndSaveCache( bInLoadAndSaveCache )
 	, bSavedCacheAfterInitialDiscovery( false )
 	, DiskCachedAssetDataBuffer( NULL )
+	, Thread(NULL)
 {
 	const FString AllIllegalCharacters = INVALID_LONGPACKAGE_CHARACTERS;
 	for ( int32 CharIdx = 0; CharIdx < AllIllegalCharacters.Len() ; ++CharIdx )

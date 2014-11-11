@@ -39,9 +39,12 @@ FAssetRegistry::FAssetRegistry()
 
 	NumAssets = 0;
 	NumDependsNodes = 0;
+	bSearchAllStarted = false;
 	bInitialSearchCompleted = true;
+	bCookSearchCompleted = true;
 	AmortizeStartTime = 0;
 	TotalAmortizeTime = 0;
+	
 
 	MaxSecondsPerFrame = 0.015;
 
@@ -208,6 +211,11 @@ FAssetRegistry::~FAssetRegistry()
 
 void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 {
+	if ( !bSynchronousSearch && bSearchAllStarted )
+		// already started the search and it's async so don't need to do it again
+		return;
+
+	bSearchAllStarted = true;
 	// Mark the time before the first search started
 	FullSearchStartTime = FPlatformTime::Seconds();
 
@@ -226,7 +234,17 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	}
 	else
 	{
-		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
+		if ( BackgroundAssetSearch.IsValid() )
+		{
+			for ( const auto& Path : PathsToSearch )
+			{
+				BackgroundAssetSearch->AddPathToSearch( Path );
+			}
+		}
+		else
+		{
+			BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
+		}
 	}
 }
 
@@ -1174,6 +1192,16 @@ bool FAssetRegistry::IsLoadingAssets() const
 	return !bInitialSearchCompleted;
 }
 
+void FAssetRegistry::StartLoadingCookingAssets()
+{
+	bCookSearchCompleted = false;
+}
+
+bool FAssetRegistry::IsLoadingCookingAssets() const
+{
+	return !bCookSearchCompleted;
+}
+
 void FAssetRegistry::Tick(float DeltaTime)
 {
 	double TickStartTime = FPlatformTime::Seconds();
@@ -1231,16 +1259,25 @@ void FAssetRegistry::Tick(float DeltaTime)
 	}
 
 	// If completing an initial search, refresh the content browser
-	if ( !bInitialSearchCompleted && NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 )
+	if ( NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 )
 	{
-		UE_LOG(LogAssetRegistry, Verbose, TEXT("### Time spent amortizing search results: %0.4f seconds"), TotalAmortizeTime);
-		UE_LOG(LogAssetRegistry, Log, TEXT("Asset discovery search completed in %0.4f seconds"), FPlatformTime::Seconds() - FullSearchStartTime);
+		if ( !bInitialSearchCompleted )
+		{
+			UE_LOG(LogAssetRegistry, Verbose, TEXT("### Time spent amortizing search results: %0.4f seconds"), TotalAmortizeTime);
+			UE_LOG(LogAssetRegistry, Log, TEXT("Asset discovery search completed in %0.4f seconds"), FPlatformTime::Seconds() - FullSearchStartTime);
 
-		bInitialSearchCompleted = true;
+			bInitialSearchCompleted = true;
 
-		FileLoadedEvent.Broadcast();
+			FileLoadedEvent.Broadcast();
+		}
+		
+		if ( !bCookSearchCompleted )
+		{
+			bCookSearchCompleted = true;
+		}
 	}
 }
+
 
 bool FAssetRegistry::IsUsingWorldAssets()
 {
