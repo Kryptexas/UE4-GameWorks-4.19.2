@@ -134,14 +134,6 @@ public:
 						.AutoHeight()
 						.VAlign(VAlign_Top)
 						[
-							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
-						+ SVerticalBox::Slot()
-						.AutoHeight()
-						.VAlign(VAlign_Top)
-						[
 							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
 							.FriendStyle(&FriendStyle)
 							.Method(MenuMethod)
