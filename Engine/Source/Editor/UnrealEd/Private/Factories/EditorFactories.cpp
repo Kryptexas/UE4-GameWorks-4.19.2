@@ -3235,6 +3235,7 @@ UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 	Formats.Add( TEXT( "png;Texture" ) );
 	Formats.Add( TEXT( "jpg;Texture" ) );
 	Formats.Add( TEXT( "jpeg;Texture" ) );
+	Formats.Add( TEXT( "exr;Texture" ) );
 
 	bCreateNew = false;
 	bEditorImport = true;
@@ -3578,6 +3579,68 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 			else
 			{
 				Warn->Logf( ELogVerbosity::Error, TEXT( "Failed to decode JPEG." ) );
+				Texture->MarkPendingKill();
+
+				return nullptr;
+			}
+		}
+
+		return Texture;
+	}
+	//
+	// EXR
+	//
+	IImageWrapperPtr ExrImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::EXR );
+	if ( ExrImageWrapper.IsValid() && ExrImageWrapper->SetCompressed( Buffer, Length ) )
+	{
+		int32 Width = ExrImageWrapper->GetWidth();
+		int32 Height = ExrImageWrapper->GetHeight();
+
+		if ( !IsImportResolutionValid( Width, Height, bAllowNonPowerOfTwo, Warn ) )
+		{
+			return nullptr;
+		}
+
+		// Select the texture's source format
+		ETextureSourceFormat TextureFormat = TSF_Invalid;
+		int32 BitDepth = ExrImageWrapper->GetBitDepth();
+		ERGBFormat::Type Format = ExrImageWrapper->GetFormat();
+
+		if ( Format == ERGBFormat::RGBA && BitDepth == 16 )
+		{
+			TextureFormat = TSF_RGBA16F;
+			Format = ERGBFormat::BGRA;
+		}
+
+		if ( TextureFormat == TSF_Invalid )
+		{
+			Warn->Logf( ELogVerbosity::Error, TEXT( "EXR file contains data in an unsupported format." ) );
+			return nullptr;
+		}
+
+		UTexture2D* Texture = CreateTexture2D( InParent, Name, Flags );
+		if ( Texture )
+		{
+			const TArray<uint8>* Raw = nullptr;
+			if ( ExrImageWrapper->GetRaw( Format, BitDepth, Raw ) )
+			{
+				Texture->Source.Init(
+					Width,
+					Height,
+					/*NumSlices=*/ 1,
+					/*NumMips=*/ 1,
+					TextureFormat
+					);
+				Texture->SRGB = false;
+				Texture->CompressionSettings = TC_HDR;
+
+				uint8* MipData = Texture->Source.LockMip( 0 );
+				FMemory::Memcpy( MipData, Raw->GetData(), Raw->Num() );
+				Texture->Source.UnlockMip( 0 );
+			}
+			else
+			{
+				Warn->Logf( ELogVerbosity::Error, TEXT( "Failed to decode EXR." ) );
 				Texture->MarkPendingKill();
 
 				return nullptr;

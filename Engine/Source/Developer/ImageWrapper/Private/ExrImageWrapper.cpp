@@ -92,6 +92,77 @@ public:
 };
 
 
+class FMemFileIn : public Imf::IStream
+{
+public:
+	//-------------------------------------------------------
+	// A constructor that opens the file with the given name.
+	// The destructor will close the file.
+	//-------------------------------------------------------
+
+	FMemFileIn(const void* InData, int32 InSize)
+		: Imf::IStream("")
+		, Data((const char *)InData)
+		, Size(InSize)
+		, Pos(0)
+	{
+	}
+
+	//------------------------------------------------------
+	// Read from the stream:
+	//
+	// read(c,n) reads n bytes from the stream, and stores
+	// them in array c.  If the stream contains less than n
+	// bytes, or if an I/O error occurs, read(c,n) throws
+	// an exception.  If read(c,n) reads the last byte from
+	// the file it returns false, otherwise it returns true.
+	//------------------------------------------------------
+
+	virtual bool read (char c[/*n*/], int n)
+	{
+		if(Pos + n > Size)
+		{
+			return false;
+		}
+
+		for (int32 i = 0; i < n; ++i)
+		{
+			c[i] = Data[Pos];
+			++Pos;
+		}
+
+		return Pos >= Size;
+	}
+
+	//--------------------------------------------------------
+	// Get the current reading position, in bytes from the
+	// beginning of the file.  If the next call to read() will
+	// read the first byte in the file, tellg() returns 0.
+	//--------------------------------------------------------
+
+	virtual Imf::Int64 tellg()
+	{
+		return Pos;
+	}
+
+	//-------------------------------------------
+	// Set the current reading position.
+	// After calling seekg(i), tellg() returns i.
+	//-------------------------------------------
+
+	virtual void seekg(Imf::Int64 pos)
+	{
+		Pos = pos;
+	}
+
+private:
+
+	const char* Data;
+	int32 Size;
+	int64 Pos;
+};
+
+
 namespace
 {
 	/////////////////////////////////////////
@@ -287,27 +358,70 @@ void FExrImageWrapper::Compress( int32 Quality )
 
 void FExrImageWrapper::Uncompress( const ERGBFormat::Type InFormat, const int32 InBitDepth )
 {
-	checkf(false, TEXT("EXR decompression not supported"));
+	// Ensure we haven't already uncompressed the file.
+	if ( RawData.Num() != 0 )
+	{
+		return;
+	}
+
+	FMemFileIn MemFile(&CompressedData[0], CompressedData.Num());
+
+	Imf::RgbaInputFile ImfFile(MemFile);
+	Imath::Box2i win = ImfFile.dataWindow();
+
+	check(BitDepth == 16);
+	check(Width);
+	check(Height);
+
+	uint32 Channels = 4;
+
+	RawData.Empty();
+	RawData.AddUninitialized( Width * Height * Channels * (BitDepth / 8) );
+
+	int dx = win.min.x;
+	int dy = win.min.y;
+
+	ImfFile.setFrameBuffer((Imf::Rgba*)&RawData[0] - dx - dy * Width, 1, Width);
+	ImfFile.readPixels(win.min.y, win.max.y);
 }
+
+// from http://www.openexr.com/ReadingAndWritingImageFiles.pdf
+bool IsThisAnOpenExrFile(Imf::IStream& f)
+{
+	char b[4];
+	f.read(b, sizeof(b));
+
+	f.seekg(0);
+	return b[0] == 0x76 && b[1] == 0x2f && b[2] == 0x31 && b[3] == 0x01;}
 
 bool FExrImageWrapper::SetCompressed( const void* InCompressedData, int32 InCompressedSize )
 {
-	bool bResult = FImageWrapperBase::SetCompressed( InCompressedData, InCompressedSize );
-
-	return bResult;
-}
-
-bool FExrImageWrapper::GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData )
-{
-	LastError.Empty();
-	Uncompress(InFormat, InBitDepth);
-
-	if (LastError.IsEmpty())
+	if(!FImageWrapperBase::SetCompressed( InCompressedData, InCompressedSize))
 	{
-		OutRawData = &GetRawData();
+		return false;
 	}
 
-	return LastError.IsEmpty();
+	FMemFileIn MemFile(InCompressedData, InCompressedSize);
+
+	if(!IsThisAnOpenExrFile(MemFile))
+	{
+		return false;
+	}
+
+	Imf::RgbaInputFile ImfFile(MemFile);
+	Imath::Box2i win = ImfFile.dataWindow();
+
+	Imath::V2i dim(win.max.x - win.min.x + 1, win.max.y - win.min.y + 1);
+
+	BitDepth = 16;
+
+	Width = dim.x;
+	Height = dim.y;
+
+	// ideally we can specify float here
+	Format = ERGBFormat::RGBA;
+
+	return true;
 }
 
 #endif // WITH_UNREALEXR
