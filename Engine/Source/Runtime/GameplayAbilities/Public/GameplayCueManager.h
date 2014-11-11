@@ -51,7 +51,7 @@ struct FGameplayCueNotifyData
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayCueNotifyData()
-	: LoadedGameplayCueNotify(nullptr)
+	: LoadedGameplayCueClass(nullptr)
 	, ParentDataIdx( INDEX_NONE )
 	{
 	}
@@ -59,8 +59,8 @@ struct FGameplayCueNotifyData
 	UPROPERTY(VisibleDefaultsOnly, Category=GameplayCue, meta=(AllowedClasses="GameplayCueNotify"))
 	FStringAssetReference	GameplayCueNotifyObj;
 
-	UPROPERTY(transient)
-	UObject*				LoadedGameplayCueNotify;
+	UPROPERTY()
+	UClass*					LoadedGameplayCueClass;
 
 	FGameplayTag			GameplayCueTag;
 
