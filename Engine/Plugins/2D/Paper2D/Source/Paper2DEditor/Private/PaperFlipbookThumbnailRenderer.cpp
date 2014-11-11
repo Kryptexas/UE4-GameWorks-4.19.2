@@ -20,7 +20,8 @@ void UPaperFlipbookThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, ui
 
 		if (UPaperSprite* Sprite = Flipbook->GetSpriteAtTime(PlayTime))
 		{
-			DrawFrame(Sprite, X, Y, Width, Height, RenderTarget, Canvas);
+			FBoxSphereBounds FlipbookBounds = Flipbook->GetRenderBounds();
+			DrawFrame(Sprite, X, Y, Width, Height, RenderTarget, Canvas, &FlipbookBounds);
 			return;
 		}
 		else
