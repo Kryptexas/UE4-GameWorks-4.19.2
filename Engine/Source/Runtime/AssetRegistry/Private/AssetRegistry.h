@@ -71,10 +71,6 @@ public:
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FFileLoadProgressUpdatedEvent, FFileLoadProgressUpdatedEvent );
 	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() override { return FileLoadProgressUpdatedEvent; }
 
-	/** Async management of cook asset directories */
-	virtual void StartLoadingCookingAssets() override;
-	virtual bool IsLoadingCookingAssets() const override;
-
 	virtual bool IsLoadingAssets() const override;
 
 	virtual void Tick (float DeltaTime) override;
@@ -249,12 +245,6 @@ private:
 
 	/** Flag to indicate if the initial background search has completed */
 	bool bInitialSearchCompleted;
-
-	/** Flag to indicate the if SearchAllAssets has already been run */
-	bool bSearchAllStarted;
-
-	/** Flag to indicate the cooked directories have been searched */
-	bool bCookSearchCompleted;
 
 	/** When loading a registry from disk, we can allocate all the FAssetData objects in one chunk, to save on 10s of thousands of heap allocations */
 	FAssetData* PreallocatedAssetDataBuffer;

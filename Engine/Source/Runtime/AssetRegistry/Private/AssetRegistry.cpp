@@ -39,9 +39,7 @@ FAssetRegistry::FAssetRegistry()
 
 	NumAssets = 0;
 	NumDependsNodes = 0;
-	bSearchAllStarted = false;
 	bInitialSearchCompleted = true;
-	bCookSearchCompleted = true;
 	AmortizeStartTime = 0;
 	TotalAmortizeTime = 0;
 	
@@ -211,11 +209,6 @@ FAssetRegistry::~FAssetRegistry()
 
 void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 {
-	if ( !bSynchronousSearch && bSearchAllStarted )
-		// already started the search and it's async so don't need to do it again
-		return;
-
-	bSearchAllStarted = true;
 	// Mark the time before the first search started
 	FullSearchStartTime = FPlatformTime::Seconds();
 
@@ -232,19 +225,10 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 		const bool bForceRescan = false;
 		ScanPathsSynchronous_Internal(PathsToSearch, bForceRescan, bLoadAndSaveCache);
 	}
-	else
+	else if ( !BackgroundAssetSearch.IsValid() )
 	{
-		if ( BackgroundAssetSearch.IsValid() )
-		{
-			for ( const auto& Path : PathsToSearch )
-			{
-				BackgroundAssetSearch->AddPathToSearch( Path );
-			}
-		}
-		else
-		{
-			BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
-		}
+		// if the BackgroundAssetSearch is already valid then we have already called it before
+		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
 	}
 }
 
@@ -1192,16 +1176,6 @@ bool FAssetRegistry::IsLoadingAssets() const
 	return !bInitialSearchCompleted;
 }
 
-void FAssetRegistry::StartLoadingCookingAssets()
-{
-	bCookSearchCompleted = false;
-}
-
-bool FAssetRegistry::IsLoadingCookingAssets() const
-{
-	return !bCookSearchCompleted;
-}
-
 void FAssetRegistry::Tick(float DeltaTime)
 {
 	double TickStartTime = FPlatformTime::Seconds();
@@ -1269,11 +1243,6 @@ void FAssetRegistry::Tick(float DeltaTime)
 			bInitialSearchCompleted = true;
 
 			FileLoadedEvent.Broadcast();
-		}
-		
-		if ( !bCookSearchCompleted )
-		{
-			bCookSearchCompleted = true;
 		}
 	}
 }
