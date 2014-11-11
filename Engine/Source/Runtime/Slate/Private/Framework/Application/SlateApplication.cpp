@@ -693,7 +693,6 @@ FSlateApplication::FSlateApplication()
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 	, VirtualDesktopRect( 0,0,0,0 )
-	, HittestGrid( MakeShareable( new FHittestGrid() ) )
 {
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	FModuleManager::Get().LoadModule(TEXT("Settings"));
@@ -815,7 +814,7 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 
 		if ( Window->IsVisible() && AcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate) && !bPrevWindowWasModal )
 		{
-			const TArray<FWidgetAndPointer> WidgetsAndCursors = HittestGrid->GetBubblePath( ScreenspaceMouseCoordinate, bIgnoreEnabledStatus );
+			const TArray<FWidgetAndPointer> WidgetsAndCursors = Window->GetHittestGrid()->GetBubblePath(ScreenspaceMouseCoordinate, bIgnoreEnabledStatus);
 			return FWidgetPath( WidgetsAndCursors );
 		}
 	}
@@ -908,8 +907,9 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 		FGeometry WindowGeometry = WindowToDraw->GetWindowGeometryInWindow();
 		int32 MaxLayerId = 0;
 		{
+			WindowToDraw->GetHittestGrid()->ClearGridForNewFrame( VirtualDesktopRect );
 			MaxLayerId = WindowToDraw->PaintWindow(
-				FPaintArgs(WindowToDraw, *HittestGrid, WindowToDraw->GetPositionInScreen(), GetCurrentTime(), GetDeltaTime()),
+				FPaintArgs(WindowToDraw, *WindowToDraw->GetHittestGrid(), WindowToDraw->GetPositionInScreen(), GetCurrentTime(), GetDeltaTime()),
 				WindowGeometry, WindowToDraw->GetClippingRectangleInWindow(),
 				WindowElementList,
 				0,
@@ -1033,12 +1033,6 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateDrawWindowTime );
-
-		const bool bClearHittestGrid = !DrawOnlyThisWindow.IsValid();
-		if ( bClearHittestGrid )
-		{
-			HittestGrid->BeginFrame( VirtualDesktopRect );
-		}
 
 		TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow(); 
 
@@ -1477,10 +1471,7 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 		return;
 	}
 
-	// If we are spawning a modal window, we don't want to allow the possibility of input events being routed to non-modal geometry that existed on the hittest grid last frame.
-	// To this end we clear the grid now. This means that input events that occur on the first frame will be missed, however since the user couldn't even see the window yet, this is ok.
-	// @todo slate : switch to FHittestGrid per window
-	HittestGrid->BeginFrame( VirtualDesktopRect );
+
 
 	// Push the active modal window onto the stack.  
 	ActiveModalWindows.AddUnique( InSlateWindow );
@@ -4419,7 +4410,7 @@ bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEven
 				// Switch worlds for widgets in the current path 
 				FScopedSwitchWorldHack SwitchWorld(FocusedWidgetPath);
 
-				NewFocusedWidget = HittestGrid->FindNextFocusableWidget(FocusedArrangedWidget, NavigationType, NavigationReply, BoundaryWidget);
+				NewFocusedWidget = FocusedWidgetPath.GetWindow()->GetHittestGrid()->FindNextFocusableWidget(FocusedArrangedWidget, NavigationType, NavigationReply, BoundaryWidget);
 			}
 		}
 	}

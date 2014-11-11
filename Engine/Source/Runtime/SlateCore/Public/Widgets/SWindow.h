@@ -2,6 +2,8 @@
 
 #pragma once
 
+class FHittestGrid;
+
 
 /** Notification that a window has been activated */
 DECLARE_DELEGATE( FOnWindowActivated );
@@ -668,6 +670,14 @@ public:
 		ViewportSize = VP;
 	}
 
+	/**
+	 * Access the hittest acceleration data structure for this window.
+	 * The grid is filled out every time the window is painted.
+	 *
+	 * @see FHittestGrid for more details.
+	 */
+	TSharedRef<FHittestGrid> GetHittestGrid();
+
 public:
 
 	// SWidget overrides
@@ -833,6 +843,9 @@ private:
 
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
+
+	/** Each window has its own hittest grid for accelerated widget picking. */
+	TSharedRef<FHittestGrid> HittestGrid;
 	
 	/** Invoked when the window has been activated. */
 	FOnWindowActivated OnWindowActivated;

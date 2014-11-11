@@ -35,7 +35,7 @@ public:
 	 *
 	 * @param HittestArea       Size in Slate Units of the area we are considering for hittesting.
 	 */
-	void BeginFrame(const FSlateRect& HittestArea);
+	void ClearGridForNewFrame(const FSlateRect& HittestArea);
 
 	/** Add Widget into the hittest data structure so that we can later make queries about it. */
 	int32 InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect );

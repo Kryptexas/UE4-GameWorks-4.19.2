@@ -511,6 +511,10 @@ bool SWindow::HasActiveChildren() const
 	return false;
 }
 
+TSharedRef<FHittestGrid> SWindow::GetHittestGrid()
+{
+	return HittestGrid;
+}
 
 void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -1696,7 +1700,9 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
  * Default constructor. Protected because SWindows must always be used via TSharedPtr. Instead, use FSlateApplication::MakeWindow()
  */
 SWindow::SWindow()
-	: Opacity( 1.0f )
+	: HittestGrid( MakeShareable(new FHittestGrid()) )
+	, bDragAnywhere( false )
+	, Opacity( 1.0f )
 	, SizingRule( ESizingRule::UserSized )
 	, bIsTransparent( false )
 	, bIsPopupWindow( false )

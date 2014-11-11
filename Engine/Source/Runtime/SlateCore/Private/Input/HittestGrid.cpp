@@ -150,7 +150,7 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoo
 	}
 }
 
-void FHittestGrid::BeginFrame( const FSlateRect& HittestArea )
+void FHittestGrid::ClearGridForNewFrame( const FSlateRect& HittestArea )
 {
 	//LogGrid();
 
@@ -164,57 +164,62 @@ void FHittestGrid::BeginFrame( const FSlateRect& HittestArea )
 
 int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect )
 {
-	ensureMsgf( ParentHittestIndex < WidgetsCachedThisFrame->Num(), TEXT("Widget '%s' being drawn before its parent."), *Widget.ToString() );
-
-	// Update the FGeometry to transform into desktop space.
-	FArrangedWidget WindowAdjustedWidget(Widget);
-	WindowAdjustedWidget.Geometry.AppendTransform(FSlateLayoutTransform(InWindowOffset));
-	const FSlateRect WindowAdjustedRect = InClippingRect.OffsetBy(InWindowOffset);
-
-	// Remember this widget, its geometry, and its place in the logical hierarchy.
-	const int32 WidgetIndex = WidgetsCachedThisFrame->Add( FCachedWidget( ParentHittestIndex, WindowAdjustedWidget, WindowAdjustedRect ) );
-	check( WidgetIndex < WidgetsCachedThisFrame->Num() ); 
-	if (ParentHittestIndex != INDEX_NONE)
+	if ( ensureMsgf( ParentHittestIndex < WidgetsCachedThisFrame->Num(), TEXT("Widget '%s' being drawn before its parent."), *Widget.ToString() ) )
 	{
-		(*WidgetsCachedThisFrame)[ParentHittestIndex].AddChild( WidgetIndex );
-	}
-	
-	if (Visibility.IsHitTestVisible())
-	{
-		// Mark any cell that is overlapped by this widget.
+		// Update the FGeometry to transform into desktop space.
+		FArrangedWidget WindowAdjustedWidget(Widget);
+		WindowAdjustedWidget.Geometry.AppendTransform(FSlateLayoutTransform(InWindowOffset));
+		const FSlateRect WindowAdjustedRect = InClippingRect.OffsetBy(InWindowOffset);
 
-		// Compute the render space clipping rect, and compute it's aligned bounds so we can insert conservatively into the hit test grid.
-		FSlateRect GridRelativeBoundingClipRect = 
-			TransformRect(
-				Concatenate(
-					Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
-					WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform()
-				),
-				FSlateRotatedRect(WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect))
-			)
-			.ToBoundingRect()
-			.OffsetBy(-GridOrigin);
 
-		// Starting and ending cells covered by this widget.	
-		const FIntPoint UpperLeftCell = FIntPoint(
-			FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Left / CellSize.X)),
-			FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Top / CellSize.Y)));
-
-		const FIntPoint LowerRightCell = FIntPoint(
-			FMath::Min( NumCells.X-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Right / CellSize.X)),
-			FMath::Min( NumCells.Y-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Bottom / CellSize.Y)));
-
-		for (int32 XIndex=UpperLeftCell.X; XIndex <= LowerRightCell.X; ++ XIndex )
+		// Remember this widget, its geometry, and its place in the logical hierarchy.
+		const int32 WidgetIndex = WidgetsCachedThisFrame->Add( FCachedWidget( ParentHittestIndex, WindowAdjustedWidget, WindowAdjustedRect ) );
+		check( WidgetIndex < WidgetsCachedThisFrame->Num() ); 
+		if (ParentHittestIndex != INDEX_NONE)
 		{
-			for(int32 YIndex=UpperLeftCell.Y; YIndex <= LowerRightCell.Y; ++YIndex)
+			(*WidgetsCachedThisFrame)[ParentHittestIndex].AddChild( WidgetIndex );
+		}
+	
+		if (Visibility.IsHitTestVisible())
+		{
+			// Mark any cell that is overlapped by this widget.
+
+			// Compute the render space clipping rect, and compute it's aligned bounds so we can insert conservatively into the hit test grid.
+			FSlateRect GridRelativeBoundingClipRect = 
+				TransformRect(
+					Concatenate(
+						Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
+						WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform()
+					),
+					FSlateRotatedRect(WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect))
+				)
+				.ToBoundingRect()
+				.OffsetBy(-GridOrigin);
+
+			// Starting and ending cells covered by this widget.	
+			const FIntPoint UpperLeftCell = FIntPoint(
+				FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Left / CellSize.X)),
+				FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Top / CellSize.Y)));
+
+			const FIntPoint LowerRightCell = FIntPoint(
+				FMath::Min( NumCells.X-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Right / CellSize.X)),
+				FMath::Min( NumCells.Y-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Bottom / CellSize.Y)));
+
+			for (int32 XIndex=UpperLeftCell.X; XIndex <= LowerRightCell.X; ++ XIndex )
 			{
-				CellAt(XIndex, YIndex).CachedWidgetIndexes.Add( WidgetIndex );
+				for(int32 YIndex=UpperLeftCell.Y; YIndex <= LowerRightCell.Y; ++YIndex)
+				{
+					CellAt(XIndex, YIndex).CachedWidgetIndexes.Add( WidgetIndex );
+				}
 			}
 		}
-	}
-	
-	return WidgetIndex;
 
+		return WidgetIndex;
+	}
+	else
+	{
+		return INDEX_NONE;
+	}
 }
 
 void FHittestGrid::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex )

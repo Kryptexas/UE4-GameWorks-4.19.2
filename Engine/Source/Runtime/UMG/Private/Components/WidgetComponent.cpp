@@ -466,12 +466,12 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 		FSlateDrawBuffer& DrawBuffer = Renderer->GetDrawBuffer();
 		FSlateWindowElementList& WindowElementList = DrawBuffer.AddWindowElementList(SlateWidget.ToSharedRef());
 
-		// Prepare the test grid 
-		HitTestGrid->BeginFrame(WindowGeometry.GetClippingRect());
-
-		// Paint the window
 		int32 MaxLayerId = 0;
 		{
+			// Prepare the test grid 
+			HitTestGrid->ClearGridForNewFrame(WindowGeometry.GetClippingRect());
+
+			// Paint the window
 			MaxLayerId = SlateWidget->Paint(
 				FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FSlateApplication::Get().GetCurrentTime(), FSlateApplication::Get().GetDeltaTime()),
 				WindowGeometry, WindowGeometry.GetClippingRect(),

@@ -1476,6 +1476,4 @@ private:
 	// but there could be another monitor on any of the sides.
 	FSlateRect VirtualDesktopRect;
 
-	// Hittest acceleration structure. Filled out during Paint.
-	TSharedRef<FHittestGrid> HittestGrid;
 };
