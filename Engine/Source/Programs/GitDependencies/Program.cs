@@ -277,36 +277,43 @@ namespace GitDependencies
 				}
 			}
 
-			// Create a list of files which need to be updated
-			List<DependencyFile> FilesToDownload = new List<DependencyFile>();
-
-			// Create a new working manifest for the working directory, moving over files that we already have. Add any missing dependencies into the download queue.
-			WorkingManifest NewWorkingManifest = new WorkingManifest();
+			// Build a list of all the filtered target files
+			List<DependencyFile> FilteredTargetFiles = new List<DependencyFile>();
 			foreach(DependencyFile TargetFile in TargetFiles.Values)
 			{
 				if(!IsExcludedFolder(TargetFile.Name, ExcludeFolders))
 				{
-					WorkingFile NewFile;
-					if(CurrentFileLookup.TryGetValue(TargetFile.Name, out NewFile) && NewFile.Hash == TargetFile.Hash)
-					{
-						// Update the expected hash to match what we're looking for
-						NewFile.ExpectedHash = TargetFile.Hash;
-
-						// Move the existing file to the new working set
-						CurrentFileLookup.Remove(NewFile.Name);
-					}
-					else
-					{
-						// Create a new working file
-						NewFile = new WorkingFile();
-						NewFile.Name = TargetFile.Name;
-						NewFile.ExpectedHash = TargetFile.Hash;
-
-						// Add it to the download list
-						FilesToDownload.Add(TargetFile);
-					}
-					NewWorkingManifest.Files.Add(NewFile);
+					FilteredTargetFiles.Add(TargetFile);
 				}
+			}
+
+			// Create a list of files which need to be updated, and a list of the executable files in the 
+			List<DependencyFile> FilesToDownload = new List<DependencyFile>();
+
+			// Create a new working manifest for the working directory, moving over files that we already have. Add any missing dependencies into the download queue.
+			WorkingManifest NewWorkingManifest = new WorkingManifest();
+			foreach(DependencyFile TargetFile in FilteredTargetFiles)
+			{
+				WorkingFile NewFile;
+				if(CurrentFileLookup.TryGetValue(TargetFile.Name, out NewFile) && NewFile.Hash == TargetFile.Hash)
+				{
+					// Update the expected hash to match what we're looking for
+					NewFile.ExpectedHash = TargetFile.Hash;
+
+					// Move the existing file to the new working set
+					CurrentFileLookup.Remove(NewFile.Name);
+				}
+				else
+				{
+					// Create a new working file
+					NewFile = new WorkingFile();
+					NewFile.Name = TargetFile.Name;
+					NewFile.ExpectedHash = TargetFile.Hash;
+
+					// Add it to the download list
+					FilesToDownload.Add(TargetFile);
+				}
+				NewWorkingManifest.Files.Add(NewFile);
 			}
 
 			// Print out everything that we'd change in a dry run
@@ -393,7 +400,7 @@ namespace GitDependencies
 			}
 
 			// Update all the executable permissions
-			if(!SetExecutablePermissions(RootPath, TargetFiles.Values))
+			if(!SetExecutablePermissions(RootPath, FilteredTargetFiles))
 			{
 				return false;
 			}
