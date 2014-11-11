@@ -11,6 +11,8 @@ namespace EFriendsAndManagerState
 		Idle,								// Idle - can accept requests
 		RequestingFriendsList,				// Requesting a list refresh
 		RequestFriendsListRefresh,			// List request in progress
+		RequestingRecentPlayersIDs,			// Requesting recent player ids
+		RequestRecentPlayersListRefresh,	// Recent players request in progress
 		ProcessFriendsList,					// Process the Friends List after a list refresh
 		RequestingFriendName,				// Requesting a friend add
 		DeletingFriends,					// Deleting a friend
@@ -59,21 +61,21 @@ public:
 	 *
 	 * @param FriendItem The friend to start a chat with.
 	 */
-	void GenerateChatWindow( TSharedPtr< FFriendStuct > FriendItem );
+	void GenerateChatWindow( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
 	 * Accept a friend request.
 	 *
 	 * @param FriendItem The friend to accept.
 	 */
-	void AcceptFriend( TSharedPtr< FFriendStuct > FriendItem );
+	void AcceptFriend( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
 	 * Reject a friend request.
 	 *
 	 * @param FriendItem The friend to reject.
 	 */
-	void RejectFriend( TSharedPtr< FFriendStuct > FriendItem );
+	void RejectFriend( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
 	 * Get the friends filtered list of friends.
@@ -81,7 +83,13 @@ public:
 	 * @param OutFriendsList  Array of friends to fill in.
 	 * @return the friend list count.
 	 */
-	int32 GetFilteredFriendsList( TArray< TSharedPtr< FFriendStuct > >& OutFriendsList );
+	int32 GetFilteredFriendsList( TArray< TSharedPtr< IFriendListItems > >& OutFriendsList );
+
+	/**
+	 * Get the recent players list.
+	 * @return the list.
+	 */
+	TArray< TSharedPtr< IFriendListItems > >& GetrecentPlayerList();
 
 	/**
 	 * Get outgoing request list.
@@ -89,7 +97,7 @@ public:
 	 * @param OutFriendsList  Array of friends to fill in.
 	 * @return The friend list count.
 	 */
-	int32 GetFilteredOutgoingFriendsList( TArray< TSharedPtr< FFriendStuct > >& OutFriendsList );
+	int32 GetFilteredOutgoingFriendsList( TArray< TSharedPtr< IFriendListItems > >& OutFriendsList );
 
 	/**
 	 * Request a friend be added.
@@ -103,7 +111,7 @@ public:
 	 *
 	 * @param FriendItem The friend item to delete.
 	 */
-	void DeleteFriend( TSharedPtr< FFriendStuct > FriendItem );
+	void DeleteFriend( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
 	 * Find a user ID.
@@ -128,12 +136,19 @@ public:
 	void SetUserIsOnline(bool bIsOnline);
 
 	/**
+	 * Send network message
+	 *
+	 * @param NetworkMessage - the message to send
+	 */
+	void SendNetworkMessage(const FString& NetworkMessage);
+
+	/**
 	 * Find a user.
 	 *
 	 * @param InUserName The user name to find.
 	 * @return The Friend ID.
 	 */
-	TSharedPtr< FFriendStuct > FindUser(const FUniqueNetId& InUserID);
+	TSharedPtr< IFriendListItems > FindUser(const FUniqueNetId& InUserID);
 
 	// External events
 	DECLARE_DERIVED_EVENT(FFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsNotificationEvent, FOnFriendsNotificationEvent)
@@ -179,6 +194,11 @@ private:
 	void RequestListRefresh();
 
 	/**
+	 * Request recent player list
+	 */
+	void RequestRecentPlayersListRefresh();
+
+	/**
 	 * Pre process the friends list - find missing names etc
 	 *
 	 * @param ListName - the list name
@@ -202,7 +222,7 @@ private:
 	void SendFriendInviteNotification();
 
 	/** Send a friend invite accepted notification. */
-	void SendInviteAcceptedNotification(TSharedPtr< FFriendStuct > Friend);
+	void SendInviteAcceptedNotification(TSharedPtr< IFriendListItems > Friend);
 
 	/** Called when singleton is released. */
 	void ShutdownManager();
@@ -216,6 +236,15 @@ private:
 	 * @param ErrorStr			String representing the error condition.
 	 */
 	void OnReadFriendsListComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr );
+
+	/**
+	 * Delegate used when the query for recent players has completed
+	 *
+	 * @param UserId the id of the user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error string representing the error condition
+	 */
+	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr);
 
 	/**
 	 * Delegate used when an invite send request has completed.
@@ -362,15 +391,17 @@ private:
 	// Holds the list of Unique Ids found for user names to add as friends
 	TArray< TSharedRef< FUniqueNetId > > QueryUserIds;
 	// Holds the full friends list used to build the UI
-	TArray< TSharedPtr< FFriendStuct > > FriendsList;
+	TArray< TSharedPtr< IFriendListItems > > FriendsList;
+	// Holds the recent players list
+	TArray< TSharedPtr< IFriendListItems > > RecentPlayersList;
 	// Holds the filtered friends list used in the UI
-	TArray< TSharedPtr< FFriendStuct > > FilteredFriendsList;
+	TArray< TSharedPtr< IFriendListItems > > FilteredFriendsList;
 	// Holds the outgoing friend request list used in the UI
-	TArray< TSharedPtr< FFriendStuct > > FilteredOutgoingList;
+	TArray< TSharedPtr< IFriendListItems > > FilteredOutgoingList;
 	// Holds the unprocessed friends list generated from a friends request update
-	TArray< TSharedPtr< FFriendStuct > > PendingFriendsList;
+	TArray< TSharedPtr< IFriendListItems > > PendingFriendsList;
 	// Holds the list of incoming invites that need to be responded to
-	TArray< TSharedPtr< FFriendStuct > > PendingIncomingInvitesList;
+	TArray< TSharedPtr< IFriendListItems > > PendingIncomingInvitesList;
 	// Holds the list of invites we have already responded to
 	TArray< TSharedPtr< FUniqueNetId > > NotifiedRequest;
 	// Holds the list messages sent out to be responded to
@@ -389,6 +420,8 @@ private:
 	FTickerDelegate UpdateFriendsTickerDelegate;
 	// Delegate when friend list has been read
 	FOnReadFriendsListCompleteDelegate OnReadFriendsCompleteDelegate;
+	// Delegate to use for querying for recent players 
+	FOnQueryRecentPlayersCompleteDelegate OnQueryRecentPlayersCompleteDelegate;
 	// Delegate when invites accepted
 	FOnAcceptInviteCompleteDelegate OnAcceptInviteCompleteDelegate;
 	// Delegate when invites have been sent
@@ -472,7 +505,10 @@ private:
 	bool bIsInited;
 	// Holds the Friends system user settings
 	FFriendsAndChatSettings UserSettings;
+	// Holds if we need a list refresh
 	bool bRequiresListRefresh;
+	// Holds if we need a recent player list refresh
+	bool bRequiresRecentPlayersRefresh;
 	// Holds the toast notification
 	TSharedPtr<SNotificationList> FriendsNotificationBox;
 

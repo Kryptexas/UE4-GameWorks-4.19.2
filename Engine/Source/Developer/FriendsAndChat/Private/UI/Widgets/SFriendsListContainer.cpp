@@ -120,16 +120,23 @@ private:
 private:
 	TSharedRef<SWidget> CreateList()
 	{
-		if(ViewModel->GetListType() == EFriendsDisplayLists::FriendRequestsDisplay || ViewModel->GetListType() == EFriendsDisplayLists::OutgoingFriendInvitesDisplay)
+		switch(ViewModel->GetListType())
 		{
-			return SNew(SInvitesList, ViewModel.ToSharedRef())
-			.FriendStyle(&FriendStyle);
-		}
-		else
-		{
-			return SNew(SFriendsList, ViewModel.ToSharedRef())
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod);
+			case EFriendsDisplayLists::FriendRequestsDisplay :
+			case EFriendsDisplayLists::OutgoingFriendInvitesDisplay :
+			case EFriendsDisplayLists::GameInviteDisplay :
+			case EFriendsDisplayLists::RecentPlayersDisplay :
+			{
+				return SNew(SInvitesList, ViewModel.ToSharedRef())
+				.FriendStyle(&FriendStyle);
+			}
+			break;
+			default:
+			{
+				return SNew(SFriendsList, ViewModel.ToSharedRef())
+					.FriendStyle(&FriendStyle)
+					.Method(MenuMethod);
+			}
 		}
 	}
 

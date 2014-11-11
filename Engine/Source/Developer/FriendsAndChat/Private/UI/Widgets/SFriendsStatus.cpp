@@ -23,14 +23,7 @@ public:
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(SImage)
-				.Image(this, &SFriendsStatusImpl::GetStatusBrush)
-			]
+
 			+ SHorizontalBox::Slot()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Center)
@@ -45,10 +38,18 @@ public:
 					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Center)
 					.OnClicked(this, &SFriendsStatusImpl::HandleVersionDropDownClicked)
-					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
 					.Cursor(EMouseCursor::Hand)
 					[
 						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SImage)
+							.Image(this, &SFriendsStatusImpl::GetStatusBrush)
+						]
 						+ SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
 						.AutoWidth()
@@ -94,7 +95,7 @@ private:
 				[
 					SNew(SButton)
 					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, true)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 					[
 						SNew(STextBlock)
 						.ColorAndOpacity(FLinearColor::White)
@@ -106,7 +107,7 @@ private:
 				[
 					SNew(SButton)
 					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, false)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 					[
 						SNew(STextBlock)
 						.ColorAndOpacity(FLinearColor::White)
@@ -114,6 +115,18 @@ private:
 						.Text(FText::FromString("Away"))
 					]
 				]
+				+ SVerticalBox::Slot()
+				[
+					SNew(SButton)
+					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, false)
+					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FLinearColor::White)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(FText::FromString("Offline"))
+					 ]
+				 ]
 			];
 	}
 

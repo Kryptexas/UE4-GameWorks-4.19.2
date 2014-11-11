@@ -89,6 +89,22 @@ public:
 		}
 	}
 
+	virtual void SendNetworkMessage(const FString& MsgBody) override
+	{
+		FFriendsAndChatManager::Get()->SendNetworkMessage(MsgBody);
+	}
+
+	virtual void InsertNetworkMessage(const FString& MsgBody) override
+	{
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+		ChatItem->FromName = FText::FromString("Game");
+		ChatItem->Message = FText::FromString(MsgBody);
+		ChatItem->MessageType = EChatMessageType::Network;
+		ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+		ChatItem->bIsFromSelf = false;
+		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
+	}
+
 	virtual void JoinPublicRoom(const FString& RoomName) override
 	{
 		if (LoggedInUser.IsValid())
@@ -243,7 +259,7 @@ private:
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
-		TSharedPtr<FFriendStuct> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
+		TSharedPtr<IFriendListItems> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
 		if(FoundFriend.IsValid())
 		{
 			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());

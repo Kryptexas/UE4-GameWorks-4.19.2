@@ -15,6 +15,8 @@ namespace EChatMessageType
 		Party,
 		// Global Chat Item
 		Global,
+		// Network chat item
+		Network,
 	};
 
 	/** @return the FTextified version of the enum passed in */
@@ -25,6 +27,7 @@ namespace EChatMessageType
 			case Global: return NSLOCTEXT("FriendsList","Global", "Global");
 			case Whisper: return NSLOCTEXT("FriendsList","Whisper", "Whisper");
 			case Party: return NSLOCTEXT("FriendsList","Party", "Party");
+			case Network: return NSLOCTEXT("FriendsList","Network", "Network");
 
 			default: return FText::GetEmpty();
 		}
@@ -57,6 +60,8 @@ public:
 	virtual void JoinPublicRoom(const FString& RoomName) = 0;
 	virtual void SendRoomMessage(const FString& RoomName, const FString& MsgBody) = 0;
 	virtual void SendPrivateMessage(const FUniqueNetId& RecipientId, const FString& MsgBody) = 0;
+	virtual void SendNetworkMessage(const FString& MsgBody) = 0;
+	virtual void InsertNetworkMessage(const FString& MsgBody) = 0;
 
 	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatMessageReceivedEvent, const TSharedRef<FFriendChatMessage> /*The chat message*/)
 	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() = 0;

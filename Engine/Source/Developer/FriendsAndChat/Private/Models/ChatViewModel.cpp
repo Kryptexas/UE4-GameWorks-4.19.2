@@ -39,6 +39,7 @@ public:
 	{
 		OUTChannelType.Add(EChatMessageType::Global);
 		OUTChannelType.Add(EChatMessageType::Party);
+		OUTChannelType.Add(EChatMessageType::Network);
 	}
 
 	virtual void SetChatChannel(const EChatMessageType::Type NewOption, FString InSelectedFriend) override
@@ -57,30 +58,41 @@ public:
 
 	virtual void SendMessage(const FText NewMessage) override
 	{
-		if(SelectedChatChannel == EChatMessageType::Whisper)
+		switch(SelectedChatChannel)
 		{
-			MessageManager.Pin()->SendPrivateMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
-			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-			if (SelectedFriend.IsValid())
-			{
-				ChatItem->FromName = FText::FromString(SelectedFriend->GetName());
-			}
-			else
-			{
-				ChatItem->FromName = FText::FromString("Unknown");
-			}
 
-			ChatItem->Message = NewMessage;
-			ChatItem->MessageType = SelectedChatChannel;
-			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
-			ChatItem->bIsFromSelf = true;
-			ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
-			FilterChatList();
-		}
-		else if (SelectedChatChannel == EChatMessageType::Global)
-		{
-			//@todo samz - send message to specific room (empty room name will send to all rooms)
-			MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
+			case EChatMessageType::Whisper:
+			{
+				MessageManager.Pin()->SendPrivateMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
+				TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+				if (SelectedFriend.IsValid())
+				{
+					ChatItem->FromName = FText::FromString(SelectedFriend->GetName());
+				}
+				else
+				{
+					ChatItem->FromName = FText::FromString("Unknown");
+				}
+
+				ChatItem->Message = NewMessage;
+				ChatItem->MessageType = SelectedChatChannel;
+				ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+				ChatItem->bIsFromSelf = true;
+				ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
+				FilterChatList();
+			}
+			break;
+			case EChatMessageType::Global:
+			{
+				//@todo samz - send message to specific room (empty room name will send to all rooms)
+				MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
+			}
+			break;
+			case EChatMessageType::Network:
+			{
+				MessageManager.Pin()->SendNetworkMessage(NewMessage.ToString());
+			}
+			break;
 		}
 	}
 
@@ -104,7 +116,7 @@ public:
 		return RecentPlayerList;
 	}
 
-	virtual void SetChatFriend(TSharedPtr<FFriendStuct> ChatFriend) override
+	virtual void SetChatFriend(TSharedPtr<IFriendListItems> ChatFriend) override
 	{
 		SelectedFriend = ChatFriend;
 		SelectedChatChannel = EChatMessageType::Whisper;
@@ -149,7 +161,7 @@ private:
 	TArray<TSharedRef<FChatItemViewModel> > FilteredChatLists;
 	FChatListUpdated ChatListUpdatedEvent;
 	TArray<FString> RecentPlayerList;
-	TSharedPtr<FFriendStuct> SelectedFriend;
+	TSharedPtr<IFriendListItems> SelectedFriend;
 
 	EChatMessageType::Type SelectedViewChannel;
 	EChatMessageType::Type SelectedChatChannel;

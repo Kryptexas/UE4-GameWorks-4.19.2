@@ -22,6 +22,7 @@ public:
 			case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
 			case EChatMessageType::Whisper: DisplayColor =  FriendStyle.WhisplerChatColor; break;
 			case EChatMessageType::Party: DisplayColor =  FriendStyle.PartyChatColor; break;
+			case EChatMessageType::Network: DisplayColor =  FriendStyle.NetworkChatColor; break;
 			default:
 			DisplayColor = FLinearColor::Gray;
 		}
@@ -32,32 +33,6 @@ public:
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.Padding(FMargin(5,1))
-			.AutoWidth()
-			[
-				// Temporary indication that this is from the user
-				SNew(STextBlock)
-				.Visibility(FromSelfVisibility)
-				.Text(FText::FromString(">"))
-				.ColorAndOpacity(FriendStyle.DefaultFontColor)
-				.Font(FriendStyle.FriendsFontStyleSmall)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			.Padding(FMargin(5,1))
-			[
-				SNew(SBorder)
-				.BorderImage(&FriendStyle.TitleBarBrush)
-				.BorderBackgroundColor(DisplayColor)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SSpacer)
-					.Size(FVector2D(10,10))
-				]
-			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
@@ -107,6 +82,7 @@ private:
 			case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 			case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 			case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
+			case EChatMessageType::Network: return FriendStyle.NetworkChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 			default:
 			return FLinearColor::Gray;
 		}

@@ -21,6 +21,10 @@ public:
 		ViewModel->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
 		TimeTransparency = 0.0f;
 
+		TSharedRef<SScrollBar> ExternalScrollbar =
+		SNew(SScrollBar)
+		.AlwaysShowScrollbar( true );
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
@@ -29,10 +33,24 @@ public:
 			.VAlign(VAlign_Bottom)
 			.HAlign(HAlign_Fill)
 			[
-				SAssignNew(ChatList, SListView<TSharedRef<FChatItemViewModel>>)
-				.ListItemsSource(&ViewModel->GetFilteredChatList())
-				.SelectionMode(ESelectionMode::None)
-				.OnGenerateRow(this, &SChatWindowImpl::MakeChatWidget)
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+			 	.AutoWidth()
+				[
+					SNew( SBox )
+					.WidthOverride( 16.0f )
+					[
+						ExternalScrollbar
+					]
+				]
+				+SHorizontalBox::Slot()
+			 	[
+					SAssignNew(ChatList, SListView<TSharedRef<FChatItemViewModel>>)
+					.ListItemsSource(&ViewModel->GetFilteredChatList())
+					.SelectionMode(ESelectionMode::None)
+					.OnGenerateRow(this, &SChatWindowImpl::MakeChatWidget)
+					.ExternalScrollbar(ExternalScrollbar)
+				]
 			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -53,32 +71,23 @@ public:
 					.OnGetMenuContent(this, &SChatWindowImpl::GetMenuContent)
 					[
 						SNew(SButton)
-						.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
 						.ContentPadding(FMargin(5, 0))
 						.OnClicked(this, &SChatWindowImpl::HandleActionDropDownClicked)
 						.Cursor(EMouseCursor::Hand)
 						[
 							SNew(SVerticalBox)
 							+SVerticalBox::Slot()
-							.VAlign(VAlign_Center)
+							.VAlign(VAlign_Top)
 							.HAlign(HAlign_Center)
 							[
-								SNew(STextBlock)
-								.ColorAndOpacity(FriendStyle.DefaultFontColor)
-								.Font(FriendStyle.FriendsFontStyle)
-								.Text(FText::FromString("^"))
+								SNew(SImage)
+								.Image(&FriendStyle.FriendsCalloutBrush)
 							]
 							+SVerticalBox::Slot()
 							[
-								SNew(SBorder)
-								.BorderImage(&FriendStyle.TitleBarBrush)
-								.BorderBackgroundColor(this, &SChatWindowImpl::GetChatChannelColor)
-								.HAlign(HAlign_Center)
-								.VAlign(VAlign_Center)
-								[
-									SNew(SSpacer)
-									.Size(FVector2D(15,10))
-								]
+								SNew(SSpacer)
+								.Size(FVector2D(15,10))
 							]
 						]
 					]
@@ -112,8 +121,8 @@ public:
 							.Method(SMenuAnchor::UseCurrentWindow)
 							.OnGetMenuContent(this, &SChatWindowImpl::GetFriendActionMenu)
 							[
-								SNew(SSpacer)
-								.Size(FVector2D(5,5))
+								SNew(SImage)
+								.Image(&FriendStyle.FriendsCalloutBrush)
 							]
 						]
 					]
@@ -208,52 +217,23 @@ private:
 			.BorderImage(&FriendStyle.TitleBarBrush)
 			.ColorAndOpacity(FLinearColor::Gray)
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.VAlign(VAlign_Top)
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(SCheckBox)
-					]
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Global Chatter"))
-						.Font(FriendStyle.FriendsFontStyle)
-						.ColorAndOpacity(FriendStyle.DefaultFontColor)
-					]
+					SNew(SCheckBox)
 				]
-				+SVerticalBox::Slot()
-				.VAlign(VAlign_Top)
-				.AutoHeight()
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.AutoWidth()
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(SCheckBox)
-					]
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Game Events"))
-						.Font(FriendStyle.FriendsFontStyle)
-						.ColorAndOpacity(FriendStyle.DefaultFontColor)
-					]
+					SNew(STextBlock)
+					.Text(FText::FromString("Global Chatter"))
+					.Font(FriendStyle.FriendsFontStyle)
+					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				]
 			]
 		];
@@ -401,6 +381,7 @@ private:
 			case EChatMessageType::Global: return FriendStyle.DefaultChatColor; break;
 			case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor; break;
 			case EChatMessageType::Party: return FriendStyle.PartyChatColor; break;
+			case EChatMessageType::Network: return FriendStyle.NetworkChatColor; break;
 			default:
 			return FLinearColor::Gray;
 		}

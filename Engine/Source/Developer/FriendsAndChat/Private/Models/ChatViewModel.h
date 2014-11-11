@@ -24,7 +24,7 @@ public:
 	virtual const float GetTimeTransparency() const = 0;
 	virtual EChatMessageType::Type GetChatChannelType() const = 0;
 	virtual const TArray<FString>& GetRecentOptions() const = 0;
-	virtual void SetChatFriend(TSharedPtr<FFriendStuct> ChatFriend) = 0;
+	virtual void SetChatFriend(TSharedPtr<IFriendListItems> ChatFriend) = 0;
 
 	DECLARE_EVENT(FChatViewModel, FChatListUpdated)
 	virtual FChatListUpdated& OnChatListUpdated() = 0;

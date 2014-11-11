@@ -26,7 +26,10 @@ public:
 
 	virtual FText GetFriendID() override
 	{
-		return ChatMessage->FromName;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Username"), ChatMessage->FromName);
+		const FText DisplayName = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayName", "{Username}: "), Args);
+		return DisplayName;
 	}
 
 	virtual FText GetMessageTime() override

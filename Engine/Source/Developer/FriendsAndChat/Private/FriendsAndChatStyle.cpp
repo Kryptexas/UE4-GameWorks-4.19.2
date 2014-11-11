@@ -6,20 +6,6 @@
 const FName FFriendsAndChatStyle::TypeName( TEXT("FFriendsAndChatStyle") );
 
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetCloseButtonStyle( const FButtonStyle& InButtonStyle)
-{
-	CloseButtonStyle = InButtonStyle; 
-	return *this; 
-}
-
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetMinimizeStyle( const FButtonStyle& InButtonStyle)
-{
-	MinimizeButtonStyle = InButtonStyle; 
-	return *this;
-}
-
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetSearchButtonStyle( const FButtonStyle& InButtonStyle)
 {
 	SearchButtonStyle = InButtonStyle; 
@@ -83,12 +69,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetLauncherImageBrush(const FSlateBr
 	return *this;
 }
 
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsComboDropdownImageBrush(const FSlateBrush& Brush)
 {
 	FriendsComboDropdownImageBrush = Brush;
 	return *this;
 }
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsCalloutBrush(const FSlateBrush& Brush)
+{
+	FriendsCalloutBrush = Brush;
+	return *this;
+}
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetOfflineBrush(const FSlateBrush& InOffLine)
 {
@@ -156,6 +148,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetWhisplerChatColor(const FLinearCo
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetPartyChatColor(const FLinearColor& InFontColor)
 {
 	PartyChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetNetworkChatColor(const FLinearColor& InFontColor)
+{
+	NetworkChatColor = InFontColor;
 	return *this;
 }
 

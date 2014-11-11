@@ -8,11 +8,6 @@
 
 // FFriendStruct implementation
 
-void FFriendStuct::AddChild( TSharedPtr< FFriendStuct > InChild )
-{
-	Children.Add( InChild );
-}
-
 const TSharedPtr< FOnlineFriend > FFriendStuct::GetOnlineFriend() const
 {
 	return OnlineFriend;
@@ -21,11 +16,6 @@ const TSharedPtr< FOnlineFriend > FFriendStuct::GetOnlineFriend() const
 const TSharedPtr< FOnlineUser > FFriendStuct::GetOnlineUser() const
 {
 	return OnlineUser;
-}
-
-TArray< TSharedPtr < FFriendStuct > >& FFriendStuct::GetChildList()
-{
-	return Children;
 }
 
 const FString FFriendStuct::GetName() const
@@ -55,13 +45,18 @@ const FText FFriendStuct::GetFriendLocation() const
 			case EOnlinePresenceState::ExtendedAway:
 				return FText::FromString("Away");
 			case EOnlinePresenceState::Chat:
-				return FText::FromString("Online (chatting)");
 			case EOnlinePresenceState::DoNotDisturb:
-				return FText::FromString("Busy");
+			case EOnlinePresenceState::Online:	
 			default:
-			case EOnlinePresenceState::Online:			
-				return FText::FromString("Online");
-
+				// rich presence string
+				if (!OnlinePresence.Status.StatusStr.IsEmpty())
+				{
+					return FText::FromString(*OnlinePresence.Status.StatusStr);
+				}
+				else
+				{
+					return FText::FromString(TEXT("Online"));
+				}
 			};
 		}
 		else
@@ -70,6 +65,22 @@ const FText FFriendStuct::GetFriendLocation() const
 		}
 	}
 	return FText::GetEmpty();
+}
+
+const FString FFriendStuct::GetClientId() const
+{
+	FString Result;
+	if (OnlineFriend.IsValid())
+	{
+		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
+		const FVariantData* ClientId = OnlinePresence.Status.Properties.Find(DefaultClientIdKey);
+		if (ClientId != nullptr &&
+			ClientId->GetType() == EOnlineKeyValuePairDataType::String)
+		{
+			ClientId->GetValue(Result);
+		}
+	}
+	return Result;
 }
 
 const bool FFriendStuct::IsOnline() const
@@ -97,6 +108,11 @@ void FFriendStuct::SetOnlineFriend( TSharedPtr< FOnlineFriend > InOnlineFriend )
 	bIsUpdated = true;
 }
 
+void FFriendStuct::SetOnlineUser(TSharedPtr< FOnlineUser > InOnlineUser)
+{
+	OnlineUser = InOnlineUser;
+}
+
 void FFriendStuct::ClearUpdated()
 {
 	bIsUpdated = false;
@@ -118,6 +134,11 @@ void FFriendStuct::SetPendingAccept()
 bool FFriendStuct::IsPendingAccepted() const
 {
 	return bIsPendingAccepted;
+}
+
+bool FFriendStuct::IsGameRequest() const
+{
+	return bIsGameRequest;
 }
 
 void FFriendStuct::SetPendingInvite()

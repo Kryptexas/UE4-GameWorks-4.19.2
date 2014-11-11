@@ -21,8 +21,6 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef<FFriendsViewModel>& ViewModel)
 	{
 		this->ViewModel = ViewModel;
-		// Dragable bar for the Friends list
-
 		FriendStyle = *InArgs._FriendStyle;
 
 		// Set up titles
@@ -36,26 +34,10 @@ public:
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Fill)
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(5)
-				[
-					SNew(STextBlock)
-					.Font(FriendStyle.FriendsFontStyle)
-					.Text(FText::FromString("Social"))
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SSpacer)
-					.Size(FVector2D(100,0))
-				]
-				+ SHorizontalBox::Slot()
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
 				.AutoWidth()
@@ -65,18 +47,55 @@ public:
 					.Method(MenuMethod)
 				]
 				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+			 	.HAlign(HAlign_Fill)
+				.Padding(FMargin(5,0))
+				[
+				 	SNew(SHorizontalBox)
+					.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
+					+SHorizontalBox::Slot()
+				 	[
+						SAssignNew(FriendNameTextBox, SEditableTextBox)
+						.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email address"))
+						.Font(FriendStyle.FriendsFontStyle)
+						.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+					]
+					+SHorizontalBox::Slot()
+				 	.AutoWidth()
+					[
+						SNew(SButton)
+						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+						.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyle)
+							.Text(FText::FromString("x"))
+						]
+					]
+				]
+				+ SHorizontalBox::Slot()
+			 	.AutoWidth()
+			 	.HAlign(HAlign_Fill)
 				[
 					SNew(SSpacer)
 				]
 				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				.Padding(5.f)
 				.AutoWidth()
+				.Padding(5.f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Right)
 				[
-					SNew(SFriendsUserSettings, ViewModel->GetUserSettingsViewModel())
-					.FriendStyle(&FriendStyle)
-					.Method(MenuMethod)
+					SNew(SButton)
+					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+				 	.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FLinearColor::White)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(FText::FromString("+"))
+					]
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -85,36 +104,6 @@ public:
 			[
 				SNew(SSeparator)
 				.Orientation(Orient_Horizontal)
-			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5,0))
-				[
-					SAssignNew(FriendNameTextBox, SEditableTextBox)
-					.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email address"))
-					.Font(FriendStyle.FriendsFontStyle)
-					.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SButton)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-					.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(FText::FromString("Add"))
-					]
-				]
 			]
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(0,5))
@@ -125,6 +114,14 @@ public:
 					+SScrollBox::Slot()
 					[
 						SNew(SVerticalBox)
+						+ SVerticalBox::Slot()
+						.AutoHeight()
+						.VAlign(VAlign_Top)
+						[
+							SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::GameInviteDisplay))
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
 						+ SVerticalBox::Slot()
 						.AutoHeight()
 						.VAlign(VAlign_Top)
@@ -173,10 +170,11 @@ public:
 
 private:
 
+
 	FReply HandleAddFriendButtonClicked()
 	{
-		ViewModel->RequestFriend(FriendNameTextBox->GetText());
 		FriendNameTextBox->SetText(FText::GetEmpty());
+		ViewModel->PerformAction();
 		return FReply::Handled();
 	}
 
@@ -184,8 +182,19 @@ private:
 	{
 		if (CommitInfo == ETextCommit::OnEnter)
 		{
+			ViewModel->RequestFriend(CommentText);
 			HandleAddFriendButtonClicked();
 		}
+	}
+
+	EVisibility AddFriendVisibility() const
+	{
+		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Hidden;
+	}
+
+	EVisibility AddFriendActionVisibility() const
+	{
+		return ViewModel->IsPerformingAction() ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
 private:
@@ -197,13 +206,13 @@ private:
 	SMenuAnchor::EMethod MenuMethod;
 
 	/** Holds the list of friends. */
-	TArray< TSharedPtr< FFriendStuct > > FriendsList;
+	TArray< TSharedPtr< IFriendListItems > > FriendsList;
 
 	/** Holds the list of outgoing invites. */
-	TArray< TSharedPtr< FFriendStuct > > OutgoingFriendsList;
+	TArray< TSharedPtr< IFriendListItems > > OutgoingFriendsList;
 
 	/** Holds the tree view of the Friends list. */
-	TSharedPtr< SListView< TSharedPtr< FFriendStuct > > > FriendsListView;
+	TSharedPtr< SListView< TSharedPtr< IFriendListItems > > > FriendsListView;
 
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;

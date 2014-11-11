@@ -10,7 +10,12 @@ public:
 
 	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions)
 	{
-		if(FriendItem->IsPendingAccepted())
+		if(FriendItem->IsGameRequest())
+		{
+			Actions.Add(EFriendActionType::JoinGame);
+			Actions.Add(EFriendActionType::RejectGame);
+		}
+		else if(FriendItem->IsPendingAccepted())
 		{
 			Actions.Add(EFriendActionType::Updating);
 		}
@@ -71,6 +76,7 @@ public:
 			case EFriendActionType::SendFriendRequest : SendFriendRequest(); break;
 			case EFriendActionType::InviteToGame : InviteToGame(); break;
 			case EFriendActionType::JoinGame : JoinGame(); break;
+			case EFriendActionType::RejectGame : RejectGame(); break;
 			case EFriendActionType::Chat : StartChat(); break;
 		}
 	}
@@ -109,7 +115,7 @@ private:
 
 	void SendFriendRequest() const
 	{
-		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		if (FriendItem.IsValid())
 		{
 			FFriendsAndChatManager::Get()->RequestFriend(FText::FromString(FriendItem->GetName()));
 		}
@@ -124,6 +130,14 @@ private:
 	}
 
 	void JoinGame()
+	{
+		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		{
+			//FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
+		}
+	}
+
+	void RejectGame()
 	{
 		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
 		{
@@ -149,21 +163,21 @@ private:
 	}
 
 	FFriendViewModelImpl(
-		const TSharedRef<FFriendStuct>& FriendItem
+		const TSharedRef<IFriendListItems>& FriendItem
 		)
 		: FriendItem(FriendItem)
 	{
 	}
 
 private:
-	TSharedPtr<FFriendStuct> FriendItem;
+	TSharedPtr<IFriendListItems> FriendItem;
 
 private:
 	friend FFriendViewModelFactory;
 };
 
 TSharedRef< FFriendViewModel > FFriendViewModelFactory::Create(
-	const TSharedRef<FFriendStuct>& FriendItem
+	const TSharedRef<IFriendListItems>& FriendItem
 	)
 {
 	TSharedRef< FFriendViewModelImpl > ViewModel(new FFriendViewModelImpl(FriendItem));

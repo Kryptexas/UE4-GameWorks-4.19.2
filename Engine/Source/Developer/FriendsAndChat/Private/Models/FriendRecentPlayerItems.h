@@ -6,37 +6,17 @@
 /**
  * Class containing the friend information - used to build the list view.
  */
-class FFriendStuct : public IFriendListItems 
+class FFriendRecentPlayerItem : public IFriendListItems 
 {
 public:
 
 	/**
 	 * Constructor takes the required details.
 	 *
-	 * @param InOnlineFriend The online friend.
-	 * @param InOnlineUser The online user.
-	 * @param InListType The list type.
+	 * @param RecentPlayer The recent friend.
 	 */
-	FFriendStuct( TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType )
-		: bIsUpdated(true)
-		, GroupName(TEXT(""))
-		, OnlineFriend( InOnlineFriend )
-		, OnlineUser( InOnlineUser )
-		, UniqueID( InOnlineUser->GetUserId() )
-		, ListType( InListType )
-		, bIsPendingAccepted(false)
-		, bIsGameRequest(false)
-		, bIsPendingInvite(false)
-		, bIsPendingDelete(false)
-	{ }
-
-	/**
-	 * Constructor takes the required details.
-	 *
-	 * @param InGroupName The group name.
-	 */
-	FFriendStuct( const FString& InGroupName )
-		: GroupName( InGroupName )
+	FFriendRecentPlayerItem(TSharedPtr< FOnlineRecentPlayer > RecentPlayer)
+		: RecentPlayer(RecentPlayer)
 	{ }
 
 public:
@@ -93,20 +73,9 @@ public:
 	 */
 	virtual const EFriendsDisplayLists::Type GetListType() const override;
 
-	/**
-	 * Set new online friend.
-	 *
-	 * @param InOnlineFriend The new online friend.
-	 * @see GetOnlineFriend
-	 */
 	virtual void SetOnlineFriend( TSharedPtr< FOnlineFriend > InOnlineFriend ) override;
 
-	/**
-	 * Set new online user.
-	 *
-	 * @param InOnlineUser The new online user.
-	 */
-	virtual void SetOnlineUser( TSharedPtr< FOnlineUser > InOnlineUser) override;
+	virtual void SetOnlineUser( TSharedPtr< FOnlineUser > InOnlineFriend ) override;
 
 	/**
 	 * Clear updated flag.
@@ -148,40 +117,12 @@ public:
 private:
 
 	/** Hidden default constructor. */
-	FFriendStuct()
-		: bIsUpdated(true)
-		, GroupName(TEXT(""))
+	FFriendRecentPlayerItem()
 	{ };
 
 private:
 
-	/** Holds if this item has been updated. */
-	bool bIsUpdated;
-
-	/** Holds the group name. */
-	const FString GroupName;
-
-	/** Holds the cached online friend. */
-	TSharedPtr<FOnlineFriend> OnlineFriend;
-
-	/** Holds the cached online user. */
+	// Holds the recent player struct
+	TSharedPtr< FOnlineRecentPlayer > RecentPlayer;
 	TSharedPtr<FOnlineUser> OnlineUser;
-
-	/** Holds the cached user id. */
-	TSharedPtr< FUniqueNetId > UniqueID;
-
-	/** Holds if this is the list type. */
-	EFriendsDisplayLists::Type ListType;
-
-	/** Holds if we are pending an accept as friend action. */
-	bool bIsPendingAccepted;
-
-	/** Holds if this is a game request. */
-	bool bIsGameRequest;
-
-	/** Holds if we are pending an invite response. */
-	bool bIsPendingInvite;
-
-	/** Holds if we are pending delete. */
-	bool bIsPendingDelete;
 };
