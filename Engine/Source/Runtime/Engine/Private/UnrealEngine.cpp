@@ -10328,7 +10328,7 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 	}
 
 	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, *WindowModeSuffix);
-	CVarSystemResolution->Set(*NewValue, ECVF_SetByCode);
+	CVarSystemResolution->Set(*NewValue, ECVF_SetByConsole);
 }
 
 

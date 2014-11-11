@@ -9,7 +9,6 @@
 
 #include "IHeadMountedDisplay.h"
 
-extern int32 GetBoundFullScreenModeCVar();
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget )
@@ -844,13 +843,12 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 			// scaling so we actual render to the resolution we've been asked for.
 			if (DesiredWindowMode == EWindowMode::WindowedFullscreen)
 			{
-				FSlateRect Rect = WindowToResize->GetFullScreenInfo();
-				if (Rect.IsValid())
-				{
-					NewSizeX = Rect.GetSize().X;
-					NewSizeY = Rect.GetSize().Y;
-				}
+				FDisplayMetrics DisplayMetrics;
+				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+				NewSizeX = DisplayMetrics.PrimaryDisplayWidth;;
+				NewSizeY = DisplayMetrics.PrimaryDisplayHeight;;
 			}
+
 			uint32 ViewportSizeX = NewSizeX;
 			uint32 ViewportSizeY = NewSizeY;
 

@@ -62,31 +62,6 @@ static FAutoConsoleCommand GDumpDrawListStatsCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(&RunSynthBenchmark)
 	);
 
-
-int32 GetBoundFullScreenModeCVar()
-{
-	if (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
-	{
-		// For HMD, Fullscreen mode should be always 0 (normal fullscreen).
-		return 0;
-	}
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode")); 
-
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		int32 Value = CVar->GetValueOnGameThread();
-
-		if (Value >= 0 && Value < EWindowMode::NumWindowModes)
-		{
-			return Value;
-		}
-	}
-
-	// every other value behaves like 0
-	return 0;
-}
-
-// depending on WindowMode and the console variable r.FullScreenMode
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -192,7 +167,9 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	else if (FParse::Param(FCommandLine::Get(),TEXT("FullScreen")))
 	{
 		// -FullScreen
-		WindowMode = EWindowMode::Fullscreen;
+		auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
+		check(CVar);
+		WindowMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.

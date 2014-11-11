@@ -1687,11 +1687,10 @@ static TAutoConsoleVariable<int32> CVarPostProcessAAQuality(
 
 static TAutoConsoleVariable<int32> CVarFullscreenMode(
 	TEXT("r.FullScreenMode"),
-	2,
+	1,
 	TEXT("Defines how we do full screen when requested (e.g. command line option -fullscreen or in ini [SystemSettings] fullscreen=true)\n")
 	TEXT(" 0: normal full screen (renders faster, more control over vsync, less GPU memory, 10bit color if possible)\n")
-	TEXT(" 1: windowed full screen, desktop resolution (quick switch between applications and window mode, full quality)\n")
-	TEXT(" 2: windowed full screen, specified resolution (like 1 but no unintuitive performance cliff, can be blurry, default)\n")
+	TEXT(" 1: windowed full screen (quick switch between applications and window mode, slight performance loss)\n")
 	TEXT(" any other number behaves like 0"),
 	ECVF_Scalability);
 

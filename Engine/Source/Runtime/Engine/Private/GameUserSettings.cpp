@@ -194,11 +194,6 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 	bool bIsDirty = IsDirty();
 	EWindowMode::Type NewWindowMode = GetFullscreenMode();
 
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set(NewWindowMode, ECVF_SetByGameSetting);
-	}
-
 	// Update vsync cvar
 	{
 		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")); 
@@ -219,11 +214,6 @@ void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrid
 	ValidateSettings();
 
 	EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
-
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(NewFullscreenMode, ECVF_SetByGameSetting);
-	}
 
 	// Request a resolution change
 	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewFullscreenMode, bCheckForCommandLineOverrides);
@@ -273,11 +263,6 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 		UGameEngine::ConditionallyOverrideSettings(InResolutionX, InResolutionY, InWindowMode);
 	}
 
-
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(InWindowMode, ECVF_SetByGameSetting);
-	}
 	FSystemResolution::RequestResolutionChange(InResolutionX, InResolutionY, InWindowMode);
 }
 
@@ -332,11 +317,6 @@ void UGameUserSettings::PreloadResolutionSettings()
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
 		}
 #endif
-	}
-
-	{
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set((int32)WindowMode, ECVF_SetByGameSetting);
 	}
 
 	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);

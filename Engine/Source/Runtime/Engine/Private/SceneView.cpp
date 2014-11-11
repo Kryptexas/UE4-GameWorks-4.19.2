@@ -1253,11 +1253,8 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 		if (bFullscreen)
 		{
-			extern int32 GetBoundFullScreenModeCVar();
-			int32 WindowModeType = GetBoundFullScreenModeCVar();
-
 			// CVar mode 2 is fullscreen with upscale
-			if(WindowModeType == 2)
+			if(GSystemResolution.WindowMode == EWindowMode::WindowedFullscreen)
 			{
 //				FIntPoint WindowSize = Viewport->GetSizeXY();
 				FIntPoint WindowSize = Family->RenderTarget->GetSizeXY();

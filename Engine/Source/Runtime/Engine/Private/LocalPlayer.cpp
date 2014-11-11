@@ -44,8 +44,6 @@ static TAutoConsoleVariable<int32> CVarViewportTest(
 bool GShouldLogOutAFrameOfMoveComponent = false;
 bool GShouldLogOutAFrameOfSetBodyTransform = false;
 
-extern int32 GetBoundFullScreenModeCVar();
-
 //////////////////////////////////////////////////////////////////////////
 // ULocalPlayer
 
