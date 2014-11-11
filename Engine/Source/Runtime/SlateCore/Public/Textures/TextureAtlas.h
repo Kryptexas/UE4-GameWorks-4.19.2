@@ -56,12 +56,12 @@ struct FAtlasedTextureSlot
 class SLATECORE_API FSlateTextureAtlas
 {
 public:
-	FSlateTextureAtlas( uint32 InWidth, uint32 InHeight, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle InPaddingStyle )
+	FSlateTextureAtlas( uint32 InWidth, uint32 InHeight, uint32 InBytesPerPixel, ESlateTextureAtlasPaddingStyle InPaddingStyle )
 		: AtlasData()
 		, RootNode( nullptr )
 		, AtlasWidth( InWidth )
 		, AtlasHeight( InHeight )
-		, Stride( StrideBytes )
+		, BytesPerPixel( InBytesPerPixel )
 		, PaddingStyle( InPaddingStyle )
 		, bNeedsUpdate( false )
 	{
@@ -172,6 +172,11 @@ private:
 	 */
 	const FAtlasedTextureSlot* FindSlotForTexture( FAtlasedTextureSlot& Start, uint32 InWidth, uint32 InHeight );
 
+	/** Returns the amount of padding needed for the current padding style */
+	int32 GetPaddingAmount() const
+	{
+		return (PaddingStyle == ESlateTextureAtlasPaddingStyle::NoPadding) ? 0 : 1;
+	}
 protected:
 	/** Actual texture data contained in the atlas */
 	TArray<uint8> AtlasData;
@@ -181,8 +186,8 @@ protected:
 	uint32 AtlasWidth;
 	/** Height of the atlas */
 	uint32 AtlasHeight;
-	/** Stride of the atlas in bytes */
-	uint32 Stride;
+	/** Bytes per pixel in the atlas */
+	uint32 BytesPerPixel;
 	/** Padding style */
 	ESlateTextureAtlasPaddingStyle PaddingStyle;
 

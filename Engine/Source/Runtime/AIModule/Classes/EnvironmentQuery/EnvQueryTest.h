@@ -20,7 +20,7 @@ class AIMODULE_API UEnvQueryTest : public UObject
 	UPROPERTY()
 	int32 TestOrder;
 
-	UPROPERTY(EditDefaultsOnly, Category=Filter,
+	UPROPERTY(EditDefaultsOnly, Category=Test,
 		Meta=(ToolTip="The purpose of this test.  Should it be used for filtering possible results, scoring them, or both?"))
 	TEnumAsByte<EEnvTestPurpose::Type> TestPurpose;
 	

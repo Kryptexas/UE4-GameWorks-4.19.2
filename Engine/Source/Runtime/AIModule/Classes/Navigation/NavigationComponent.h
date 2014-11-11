@@ -163,7 +163,7 @@ public:
 	 *	Called when given path becomes invalid (via @see PathObserverDelegate)
 	 *	NOTE: InvalidatedPath doesn't have to be instance's current Path
 	 */
-	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
+	virtual void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
 
 	/** Called when nearby custom link changes its state */
 	virtual void OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink);

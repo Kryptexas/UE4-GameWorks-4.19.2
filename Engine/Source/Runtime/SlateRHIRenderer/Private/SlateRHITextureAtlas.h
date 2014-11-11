@@ -14,12 +14,11 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param Width
-	 * @param Height
-	 * @param StrideBytes
-	 * @param Padding
+	 * @param InWidth
+	 * @param InHeight
+	 * @param PaddingStyle
 	 */
-	FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 SrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle );
+	FSlateTextureAtlasRHI( uint32 InWidth, uint32 InHeight, ESlateTextureAtlasPaddingStyle PaddingStyle );
 
 	/**
 	 * Destructor.

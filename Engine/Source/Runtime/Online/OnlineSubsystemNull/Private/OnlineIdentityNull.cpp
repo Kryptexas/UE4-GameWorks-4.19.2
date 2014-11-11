@@ -120,15 +120,42 @@ bool FOnlineIdentityNull::AutoLogin(int32 LocalUserNum)
 	FString LoginStr;
 	FString PasswordStr;
 	FString TypeStr;
-	
-	if (FParse::Value(FCommandLine::Get(), TEXT("LOGIN="), LoginStr) &&
-		!LoginStr.IsEmpty())
+
+	FParse::Value(FCommandLine::Get(), TEXT("LOGIN="), LoginStr);
+	if (!LoginStr.IsEmpty())
 	{
-		if (FParse::Value(FCommandLine::Get(), TEXT("PASSWORD="), PasswordStr) &&
-			!PasswordStr.IsEmpty())
+		UE_LOG_ONLINE(Warning, TEXT("LOGIN commandline parameter is deprecated, use AUTH_LOGIN"));
+	}
+	else
+	{
+		FParse::Value(FCommandLine::Get(), TEXT("AUTH_LOGIN="), LoginStr);
+	}
+
+	FParse::Value(FCommandLine::Get(), TEXT("PASSWORD="), PasswordStr);
+	if (!PasswordStr.IsEmpty())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("PASSWORD commandline parameter is deprecated, use AUTH_PASSWORD"));
+	}
+	else
+	{
+		FParse::Value(FCommandLine::Get(), TEXT("AUTH_PASSWORD="), PasswordStr);
+	}
+
+	FParse::Value(FCommandLine::Get(), TEXT("TYPE="), TypeStr);
+	if (!TypeStr.IsEmpty())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("TYPE commandline parameter is deprecated, use AUTH_TYPE"));
+	}
+	else
+	{
+		FParse::Value(FCommandLine::Get(), TEXT("AUTH_TYPE="), TypeStr);
+	}
+	
+	if (!LoginStr.IsEmpty())
+	{
+		if (!PasswordStr.IsEmpty())
 		{
-			if (FParse::Value(FCommandLine::Get(), TEXT("TYPE="), TypeStr) &&
-				!PasswordStr.IsEmpty())
+			if (!TypeStr.IsEmpty())
 			{
 				return Login(0, FOnlineAccountCredentials(TypeStr, LoginStr, PasswordStr));
 			}

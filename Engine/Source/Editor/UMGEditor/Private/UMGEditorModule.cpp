@@ -34,7 +34,10 @@ public:
 	{
 		FModuleManager::LoadModuleChecked<IUMGModule>("UMG");
 
-		FDesignerCommands::Register();
+		if (GIsEditor)
+		{
+			FDesignerCommands::Register();
+		}
 
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager());
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager());

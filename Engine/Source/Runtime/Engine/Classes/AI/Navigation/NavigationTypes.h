@@ -225,7 +225,7 @@ struct FNavPathPoint : public FNavLocation
 };
 
 /** path type data */
-struct FNavPathType
+struct ENGINE_API FNavPathType
 {
 	FNavPathType() : Id(++NextUniqueId) {}
 	FNavPathType(const FNavPathType& Src) : Id(Src.Id) {}

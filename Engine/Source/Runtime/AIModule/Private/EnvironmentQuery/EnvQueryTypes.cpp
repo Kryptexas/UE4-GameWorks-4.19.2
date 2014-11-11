@@ -28,7 +28,7 @@ FVector FEnvQueryResult::GetItemAsLocation(int32 Index) const
 		ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
-		return DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
+		return DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 	}
 
 	return FVector::ZeroVector;

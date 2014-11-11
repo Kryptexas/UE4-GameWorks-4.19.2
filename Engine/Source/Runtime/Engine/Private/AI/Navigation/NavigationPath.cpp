@@ -285,6 +285,35 @@ bool FNavigationPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLoca
 	return bIntersects;
 }
 
+FVector FNavigationPath::GetSegmentDirection(uint32 SegmentEndIndex) const
+{
+	FVector Result = FNavigationSystem::InvalidLocation;
+
+	// require at least two points
+	if (PathPoints.Num() > 1)
+	{
+		if (PathPoints.IsValidIndex(SegmentEndIndex))
+		{
+			if (SegmentEndIndex > 0)
+			{
+				Result = (PathPoints[SegmentEndIndex].Location - PathPoints[SegmentEndIndex - 1].Location).SafeNormal();
+			}
+			else
+			{
+				// for '0'-th segment returns same as for 1st segment 
+				Result = (PathPoints[1].Location - PathPoints[0].Location).SafeNormal();
+			}
+		}
+		else if (SegmentEndIndex >= uint32(GetPathPoints().Num()))
+		{
+			// in this special case return direction of last segment
+			Result = (PathPoints[PathPoints.Num() - 1].Location - PathPoints[PathPoints.Num() - 2].Location).SafeNormal();
+		}
+	}
+
+	return Result;
+}
+
 #if ENABLE_VISUAL_LOG
 
 void FNavigationPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const 
@@ -866,7 +895,7 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 	return bAreTheSame;
 }
 
-FORCEINLINE bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
+FORCEINLINE_DEBUGGABLE bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
 {
 	bool bIntersects = false;	
 	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
@@ -900,7 +929,7 @@ FORCEINLINE bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Bo
 		if (bIntersects == false)
 		{
 			ensure(PathPoints.Num() == 2);
-			const FVector End = PathPoints[1].Location;
+			const FVector End = PathPoints.Last().Location;
 			if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
@@ -913,15 +942,16 @@ FORCEINLINE bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Bo
 					}
 				}
 			}
-			// just check if path's end is inside the tested box
-			else if (Box.IsInside(End))
-			{
-				bIntersects = true;
-				if (IntersectingSegmentIndex != NULL)
-				{
-					*IntersectingSegmentIndex = CorridorEdges.Num();
-				}
-			}
+		}
+	}
+	
+	// just check if path's end is inside the tested box
+	if (bIntersects == false && Box.IsInside(PathPoints.Last().Location))
+	{
+		bIntersects = true;
+		if (IntersectingSegmentIndex != NULL)
+		{
+			*IntersectingSegmentIndex = CorridorEdges.Num();
 		}
 	}
 
@@ -955,6 +985,39 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocatio
 	}
 
 	return DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex);
+}
+
+FVector FNavMeshPath::GetSegmentDirection(uint32 SegmentEndIndex) const
+{
+	if (IsStringPulled())
+	{
+		return Super::GetSegmentDirection(SegmentEndIndex);
+	}
+	
+	FVector Result = FNavigationSystem::InvalidLocation;
+	const TArray<FNavigationPortalEdge>& Corridor = GetPathCorridorEdges();
+
+	if (Corridor.Num() > 0 && PathPoints.Num() > 1)
+	{
+		if (Corridor.IsValidIndex(SegmentEndIndex))
+		{
+			if (SegmentEndIndex > 0)
+			{
+				Result = (Corridor[SegmentEndIndex].GetMiddlePoint() - Corridor[SegmentEndIndex - 1].GetMiddlePoint()).SafeNormal();
+			}
+			else
+			{
+				Result = (Corridor[0].GetMiddlePoint() - GetPathPoints()[0].Location).SafeNormal();
+			}
+		}
+		else if (SegmentEndIndex >= uint32(Corridor.Num()))
+		{
+			// in this special case return direction of last segment
+			Result = (Corridor[Corridor.Num() - 1].GetMiddlePoint() - GetPathPoints()[0].Location).SafeNormal();
+		}
+	}
+
+	return Result;
 }
 
 #if ENABLE_VISUAL_LOG

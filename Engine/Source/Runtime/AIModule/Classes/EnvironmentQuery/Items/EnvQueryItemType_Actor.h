@@ -17,7 +17,7 @@ class AIMODULE_API UEnvQueryItemType_Actor : public UEnvQueryItemType_ActorBase
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<const AActor*>& MultipleActors);
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<AActor*>& MultipleActors);
 
-	virtual FVector GetLocation(const uint8* RawData) const override;
-	virtual FRotator GetRotation(const uint8* RawData) const override;
+	virtual FVector GetItemLocation(const uint8* RawData) const override;
+	virtual FRotator GetItemRotation(const uint8* RawData) const override;
 	virtual AActor* GetActor(const uint8* RawData) const override;
 };

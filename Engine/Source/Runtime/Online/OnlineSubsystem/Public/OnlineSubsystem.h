@@ -51,6 +51,8 @@ typedef TSharedPtr<class IOnlineMessage, ESPMode::ThreadSafe> IOnlineMessagePtr;
 typedef TSharedPtr<class IOnlinePresence, ESPMode::ThreadSafe> IOnlinePresencePtr;
 typedef TSharedPtr<class IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
 typedef TSharedPtr<class IOnlineChat, ESPMode::ThreadSafe> IOnlineChatPtr;
+typedef TSharedPtr<class FOnlineNotificationHandler, ESPMode::ThreadSafe> FOnlineNotificationHandlerPtr;
+typedef TSharedPtr<class FOnlineNotificationTransportManager, ESPMode::ThreadSafe> FOnlineNotificationTransportManagerPtr;
 
 /**
  * Called when the connection state as reported by the online platform changes
@@ -68,6 +70,9 @@ class ONLINESUBSYSTEM_API IOnlineSubsystem
 protected:
 	/** Hidden on purpose */
 	IOnlineSubsystem() {}
+
+	FOnlineNotificationHandlerPtr OnlineNotificationHandler;
+	FOnlineNotificationTransportManagerPtr OnlineNotificationTransportManager;
 
 public:
 	
@@ -245,6 +250,24 @@ public:
 	 * @return Interface pointer for the appropriate online user service
 	 */
 	virtual IOnlineChatPtr GetChatInterface() const = 0;
+	/**
+	* Get the notification handler instance for this subsystem
+	* @return Pointer for the appropriate notification handler
+	*/
+	FOnlineNotificationHandlerPtr GetOnlineNotificationHandler() const
+	{
+		return OnlineNotificationHandler;
+	}
+
+	/**
+	* Get the transport manager instance for this subsystem
+	* @return Pointer for the appropriate transport manager
+	*/
+	FOnlineNotificationTransportManagerPtr GetOnlineNotificationTransportManager() const
+	{
+		return OnlineNotificationTransportManager;
+	}
+
 	/**
 	 * Get custom UObject data preserved by the online subsystem
 	 *

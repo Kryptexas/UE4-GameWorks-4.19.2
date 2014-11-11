@@ -116,6 +116,11 @@ void FSlateEditorStyle::FStyle::SyncSettings()
 
 void FSlateEditorStyle::FStyle::Initialize()
 {
+	if (!GIsEditor)
+	{
+		return;
+	}
+
 	SyncSettings();
 
 	SetContentRoot( FPaths::EngineContentDir() / TEXT("Editor/Slate") );

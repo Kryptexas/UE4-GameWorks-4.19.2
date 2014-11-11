@@ -19,7 +19,7 @@ bool UEnvQueryItemType_VectorBase::StoreInBlackboard(FBlackboardKeySelector& Key
 	bool bStored = false;
 	if (KeySelector.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 	{
-		const FVector MyLocation = GetLocation(RawData);
+		const FVector MyLocation = GetItemLocation(RawData);
 		Blackboard->SetValueAsVector(KeySelector.GetSelectedKeyID(), MyLocation);
 
 		bStored = true;
@@ -30,16 +30,16 @@ bool UEnvQueryItemType_VectorBase::StoreInBlackboard(FBlackboardKeySelector& Key
 
 FString UEnvQueryItemType_VectorBase::GetDescription(const uint8* RawData) const
 {
-	FVector PointLocation = GetLocation(RawData);
+	FVector PointLocation = GetItemLocation(RawData);
 	return FString::Printf(TEXT("(X=%.0f,Y=%.0f,Z=%.0f)"), PointLocation.X, PointLocation.Y, PointLocation.Z);
 }
 
-FVector UEnvQueryItemType_VectorBase::GetLocation(const uint8* RawData) const
+FVector UEnvQueryItemType_VectorBase::GetItemLocation(const uint8* RawData) const
 {
 	return FVector::ZeroVector;
 }
 
-FRotator UEnvQueryItemType_VectorBase::GetRotation(const uint8* RawData) const
+FRotator UEnvQueryItemType_VectorBase::GetItemRotation(const uint8* RawData) const
 {
 	return FRotator::ZeroRotator;
 }

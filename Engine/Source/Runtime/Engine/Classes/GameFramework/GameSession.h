@@ -42,18 +42,11 @@ class ENGINE_API AGameSession : public AInfo
 	/** @return A new unique player ID */
 	int32 GetNextPlayerID();
 
-	/**
-	 * Chance to save objects from GC during seamless travel
-	 * @param bToEntry are we traveling to or from the transition map
-	 * @param ActorList list of actors to preserve
-	 */
-	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList) {}
-
 	//=================================================================================
 	// LOGIN
 
 	/** 
-	 * Allow an online service to process a login if specified on the commandline with -login/-pass
+	 * Allow an online service to process a login if specified on the commandline with -auth_login/-auth_password
 	 * @return true if login is in progress, false otherwise
 	 */
 	virtual bool ProcessAutoLogin();

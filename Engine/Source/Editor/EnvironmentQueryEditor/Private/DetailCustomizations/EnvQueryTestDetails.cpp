@@ -41,6 +41,7 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 
 	ScoreClampingMinHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoreClampingMin));
 	FloatFilterMinHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilterMin));
+
 	ScoreClampingMaxHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, ScoreClampingMax));
 	FloatFilterMaxHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, FloatFilterMax));
 
@@ -155,41 +156,52 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	ScoreClampingMinRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampingMinimum)));
 
 	// Lower Bound for scoring when tied to filter minimum.
-	IDetailPropertyRow& FloatFilterMinForClampingRow = ClampingGroup.AddPropertyRow(FloatFilterMinHandle.ToSharedRef());
-	FloatFilterMinForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFilterMinForScoreClamping)));
-	FloatFilterMinForClampingRow.ToolTip(TEXT("See Filter Thresholds under the Filter tab.  Values lower than this (before clamping) cause the item to be thrown out as invalid.  Values are normalized with this value as the minimum, so items with this value will have a normalized score of 0."));
-	FloatFilterMinForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
+	if (FloatFilterMinHandle->IsValidHandle())
+	{
+		IDetailPropertyRow& FloatFilterMinForClampingRow = ClampingGroup.AddPropertyRow(FloatFilterMinHandle.ToSharedRef());
+		FloatFilterMinForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFilterMinForScoreClamping)));
+		FloatFilterMinForClampingRow.ToolTip(TEXT("See Filter Thresholds under the Filter tab.  Values lower than this (before clamping) cause the item to be thrown out as invalid.  Values are normalized with this value as the minimum, so items with this value will have a normalized score of 0."));
+		FloatFilterMinForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
+	}
 
-	IDetailPropertyRow& ClampMaxTypeRow = ClampingGroup.AddPropertyRow(ClampMaxTypeHandle.ToSharedRef());
-	ClampMaxTypeRow.CustomWidget()
-		.NameContent()
-		[
-			ClampMaxTypeHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		[
-			SNew(SComboButton)
-			.OnGetMenuContent(this, &FEnvQueryTestDetails::OnGetClampMaxTypeContent)
-			.ContentPadding(FMargin( 2.0f, 2.0f ))
-			.ButtonContent()
+	if (ClampMaxTypeHandle->IsValidHandle())
+	{
+		IDetailPropertyRow& ClampMaxTypeRow = ClampingGroup.AddPropertyRow(ClampMaxTypeHandle.ToSharedRef());
+		ClampMaxTypeRow.CustomWidget()
+			.NameContent()
 			[
-				SNew(STextBlock) 
-				.Text(this, &FEnvQueryTestDetails::GetClampMaxTypeDesc)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
+				ClampMaxTypeHandle->CreatePropertyNameWidget()
 			]
-		];
-	ClampMaxTypeRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatScoreVisibility)));
+			.ValueContent()
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FEnvQueryTestDetails::OnGetClampMaxTypeContent)
+				.ContentPadding(FMargin( 2.0f, 2.0f ))
+				.ButtonContent()
+				[
+					SNew(STextBlock) 
+					.Text(this, &FEnvQueryTestDetails::GetClampMaxTypeDesc)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			];
+		ClampMaxTypeRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetFloatScoreVisibility)));
+	}
 
 	// Upper Bound for normalization of score if specified independently of filtering.
-	IDetailPropertyRow& ScoreClampingMaxRow = ClampingGroup.AddPropertyRow(ScoreClampingMaxHandle.ToSharedRef());
-	ScoreClampingMaxRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampingMaximum)));
+	if (ScoreClampingMaxHandle->IsValidHandle())
+	{
+		IDetailPropertyRow& ScoreClampingMaxRow = ClampingGroup.AddPropertyRow(ScoreClampingMaxHandle.ToSharedRef());
+		ScoreClampingMaxRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfScoreClampingMaximum)));
+	}
 	
-	// Upper Bound for scoring when tied to filter maximum.
-	IDetailPropertyRow& FloatFilterMaxForClampingRow = ClampingGroup.AddPropertyRow(FloatFilterMaxHandle.ToSharedRef());
-	FloatFilterMaxForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFilterMaxForScoreClamping)));
-	FloatFilterMaxForClampingRow.ToolTip(TEXT("See Filter Thresholds under the Filter tab.  Values higher than this (before normalization) cause the item to be thrown out as invalid.  Values are normalized with this value as the maximum, so items with this value will have a normalized score of 1."));
-	FloatFilterMaxForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
-	
+	if (FloatFilterMaxHandle->IsValidHandle())
+	{
+		// Upper Bound for scoring when tied to filter maximum.
+		IDetailPropertyRow& FloatFilterMaxForClampingRow = ClampingGroup.AddPropertyRow(FloatFilterMaxHandle.ToSharedRef());
+		FloatFilterMaxForClampingRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetVisibilityOfFilterMaxForScoreClamping)));
+		FloatFilterMaxForClampingRow.ToolTip(TEXT("See Filter Thresholds under the Filter tab.  Values higher than this (before normalization) cause the item to be thrown out as invalid.  Values are normalized with this value as the maximum, so items with this value will have a normalized score of 1."));
+		FloatFilterMaxForClampingRow.EditCondition(TAttribute<bool>(this, &FEnvQueryTestDetails::AllowWritingToFiltersFromScore), NULL);
+	}
 	// END Scoring: Clamping, continue Scoring
 	//----------------------------
 

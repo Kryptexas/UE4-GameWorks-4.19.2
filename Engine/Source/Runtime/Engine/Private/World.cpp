@@ -4228,10 +4228,10 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
 
 		// If the world could not be found, follow a redirector if there is one.
-		if ( !World )
+		if (!World)
 		{
 			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
-			if ( World )
+			if (World)
 			{
 				LevelPackage = World->GetOutermost();
 			}
@@ -4287,13 +4287,16 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			bTransitionInProgress = true;
 			bPauseAtMidpoint = false;
 			bNeedCancelCleanUp = false;
-			
+
+			FName CurrentMapName = CurrentWorld->GetOutermost()->GetFName();
+			FName DestinationMapName = FName(*PendingTravelURL.Map);
+
 			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap;
 			FName DefaultMapFinalName(*TransitionMap);
 
 			// if we're already in the default map, skip loading it and just go to the destination
-			if (DefaultMapFinalName == CurrentWorld->GetOutermost()->GetFName() ||
-				DefaultMapFinalName == FName(*PendingTravelURL.Map))
+			if (DefaultMapFinalName == CurrentMapName ||
+				DefaultMapFinalName == DestinationMapName)
 			{
 				UE_LOG(LogWorld, Log, TEXT("Already in default map or the default map is the destination, continuing to destination"));
 				bSwitchedToDefaultMap = true;
@@ -4315,6 +4318,24 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			}
 			else
 			{
+				if (CurrentMapName == DestinationMapName)
+				{
+					UNetDriver* const NetDriver = CurrentWorld->GetNetDriver();
+					if (NetDriver)
+					{
+						for (int32 ClientIdx = 0; ClientIdx < NetDriver->ClientConnections.Num(); ClientIdx++)
+						{
+							UNetConnection* Connection = NetDriver->ClientConnections[ClientIdx];
+							if (Connection)
+							{
+								// Empty the current map name in case we are going A -> transition -> A and the server loads fast enough
+								// that the clients are not on the transition map yet causing the server to think its loaded
+								Connection->ClientWorldPackageName = NAME_None;
+							}
+						}
+					}
+				}
+
 				// Set the world type in the static map, so that UWorld::PostLoad can set the world type
 				UWorld::WorldTypePreLoadMap.FindOrAdd(*TransitionMap) = CurrentWorld->WorldType;
 
@@ -4339,6 +4360,32 @@ void FSeamlessTravelHandler::CancelTravel()
 		LoadedWorld->ClearFlags(RF_Standalone);
 		LoadedWorld = NULL;
 	}
+
+	UPackage* Package = CurrentWorld ? CurrentWorld->GetOutermost() : nullptr;
+	if (Package)
+	{
+		FName CurrentPackageName = Package->GetFName();
+		UNetDriver* const NetDriver = CurrentWorld->GetNetDriver();
+		if (NetDriver)
+		{
+			for (int32 ClientIdx = 0; ClientIdx < NetDriver->ClientConnections.Num(); ClientIdx++)
+			{
+				UNetConnection* Connection = NetDriver->ClientConnections[ClientIdx];
+				if (Connection)
+				{
+					UChildConnection* ChildConnection = Connection->GetUChildConnection();
+					if (ChildConnection)
+					{
+						Connection = ChildConnection->Parent;
+					}
+
+					// Mark all clients as being where they are since this was set to None in StartTravel
+					Connection->ClientWorldPackageName = CurrentPackageName;
+				}
+			}
+		}
+	}
+	
 	if (bTransitionInProgress)
 	{
 		bTransitionInProgress = false;

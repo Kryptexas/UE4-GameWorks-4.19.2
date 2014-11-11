@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /**
- * Everything a player controller will use to manage online sessions.
+ * Everything a local player will use to manage online sessions.
  */
 
 #pragma once

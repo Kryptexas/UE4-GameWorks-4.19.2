@@ -15,7 +15,7 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
-	
+		
 	SpriteComponent = ObjectInitializer.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 	if (SpriteComponent)
 	{
@@ -73,7 +73,7 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 bool AFunctionalTest::StartTest(const TArray<FString>& Params)
 {
 	FailureMessage = TEXT("");
-
+	
 	TotalTime = 0.f;
 	if (TimeLimit > 0)
 	{

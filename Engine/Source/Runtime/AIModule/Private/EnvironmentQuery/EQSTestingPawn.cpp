@@ -126,7 +126,7 @@ void AEQSTestingPawn::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 		}
 	}
 
-	if (QueryInstance.IsValid() && QueryInstance->Status == EEnvQueryStatus::Processing)
+	if (QueryInstance.IsValid() && QueryInstance->IsFinished() == false)
 	{
 		MakeOneStep();
 	}
@@ -151,7 +151,7 @@ void AEQSTestingPawn::RunEQSQuery()
 	do
 	{
 		MakeOneStep();
-	} while (TimeLimitPerStep <= 0.f && QueryInstance.IsValid() == true && QueryInstance->Status == EEnvQueryStatus::Processing);	
+	} while (TimeLimitPerStep <= 0.f && QueryInstance.IsValid() == true && QueryInstance->IsFinished() == false);
 }
 
 void AEQSTestingPawn::Reset()
@@ -182,12 +182,12 @@ void AEQSTestingPawn::MakeOneStep()
 	}
 
 	// possible still not valid 
-	if (QueryInstance.IsValid() == true && QueryInstance->Status == EEnvQueryStatus::Processing)
+	if (QueryInstance.IsValid() == true && QueryInstance->IsFinished() == false)
 	{
 		QueryInstance->ExecuteOneStep(double(TimeLimitPerStep));
 		StepResults.Add(*(QueryInstance.Get()));
 
-		if (QueryInstance->Status != EEnvQueryStatus::Processing)
+		if (QueryInstance->IsFinished())
 		{
 			StepToDebugDraw = StepResults.Num() - 1;
 			UpdateDrawing();

@@ -158,6 +158,11 @@ bool UPawnAction_Move::Pause(const UPawnAction* PausedBy)
 
 bool UPawnAction_Move::Resume()
 {
+	if (GoalActor != NULL && GoalActor->IsPendingKillPending())
+	{
+		return false;
+	}
+
 	bool bResult = Super::Resume();
 	if (bResult)
 	{
@@ -168,6 +173,7 @@ bool UPawnAction_Move::Resume()
 			if (MyController->ResumeMove(RequestID) == false)
 			{
 				// try requesting a new move
+				UE_VLOG(MyController, LogPawnAction, Log, TEXT("Resume move failed, requesting a new one."));
 				StopWaitingForMessages();
 				
 				bResult = PerformMoveAction();

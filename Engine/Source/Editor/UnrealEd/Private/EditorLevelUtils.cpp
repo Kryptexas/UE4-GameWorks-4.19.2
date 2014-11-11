@@ -405,6 +405,7 @@ namespace EditorLevelUtils
 				MakeLevelCurrent(OwningWorld->PersistentLevel);
 			}
 
+
 			EditorDestroyLevel(InLevel);
 
 			// Redraw the main editor viewports.

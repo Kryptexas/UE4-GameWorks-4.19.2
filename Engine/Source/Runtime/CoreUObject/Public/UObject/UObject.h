@@ -126,18 +126,18 @@ public:
 	virtual void PostLoad();
 
 	/**
-	 * Instances components for objects being loaded from disk, if necessary.  Ensures that component references
-	 * between nested components are fixed up correctly.
-	 *
-	 * @param	OuterInstanceGraph	when calling this method on subobjects, specifies the instancing graph which contains all instanced
-	 *								subobjects and components for a subobject root.
-	 */
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph );
-	
+	* Instances components for objects being loaded from disk, if necessary.  Ensures that component references
+	* between nested components are fixed up correctly.
+	*
+	* @param	OuterInstanceGraph	when calling this method on subobjects, specifies the instancing graph which contains all instanced
+	*								subobjects and components for a subobject root.
+	*/
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph);
+
 	/**
-	 * Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
-	 * asynchronous cleanup process.
-	 */
+	* Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
+	* asynchronous cleanup process.
+	*/
 	virtual void BeginDestroy();
 
 	/**

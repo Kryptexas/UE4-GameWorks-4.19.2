@@ -55,6 +55,8 @@ bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 	KillOffSpawnedPawns();
 	ClearPendingDelayedSpawns();
 
+	RandomNumbersStream.Reset();
+
 	bSingleSetRun = Params.Num() > 0;
 	if (bSingleSetRun)
 	{
@@ -212,7 +214,7 @@ void AFunctionalAITest::AddSpawnedPawn(APawn& SpawnedPawn)
 
 FVector AFunctionalAITest::GetRandomizedLocation(const FVector& Location) const
 {
-	return Location + FVector(FMath::FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), FMath::FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), 0);
+	return Location + FVector(RandomNumbersStream.FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), RandomNumbersStream.FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), 0);
 }
 
 //----------------------------------------------------------------------//

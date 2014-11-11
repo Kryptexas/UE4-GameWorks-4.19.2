@@ -17,7 +17,10 @@ public:
 	virtual void StartupModule() override
 	{
 #if WITH_EDITOR	
-		FUMGStyle::Initialize();
+		if (GIsEditor)
+		{
+			FUMGStyle::Initialize();
+		}
 
 		// This is done so that the compiler is available in non-cooked builds when the widget blueprint is 
 		// compiled again in the running game.
@@ -29,7 +32,10 @@ public:
 	virtual void ShutdownModule() override
 	{
 #if WITH_EDITOR
-		FUMGStyle::Shutdown();
+		if (GIsEditor)
+		{
+			FUMGStyle::Shutdown();
+		}
 #endif
 	}
 };

@@ -1308,6 +1308,7 @@ namespace EOnlineStatusUpdatePrivacy
 
 class FJsonValue;
 
+
 /** Notification object, used to send messages between systems */
 struct FOnlineNotification
 {
@@ -1323,7 +1324,7 @@ struct FOnlineNotification
 	// User who sent the notification, optional.
 	TSharedPtr<FUniqueNetId> FromUserId;
 
-	FOnlineNotification() 
+	FOnlineNotification()
 	{
 
 	}
@@ -1349,4 +1350,8 @@ struct FOnlineNotification
 	}
 };
 
+/**
+* unique identifier for notification transports
+*/
+typedef FString FNotificationTransportId;
 

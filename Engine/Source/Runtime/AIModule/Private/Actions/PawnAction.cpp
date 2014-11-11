@@ -221,13 +221,21 @@ bool UPawnAction::Activate()
 	if (HasBeenStarted() && IsPaused())
 	{
 		bResult = Resume();
+		if (bResult == false)
+		{
+			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Failed to RESUME.")
+				, *GetName());
+			bFailedToStart = true;
+			SetFinishResult(EPawnActionResult::Failed);
+			SendEvent(EPawnActionEventType::FailedToStart);
+		}
 	}
 	else 
 	{
 		bResult = Start();
 		if (bResult == false)
 		{
-			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Failed to start.")
+			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Failed to START.")
 				, *GetName());
 			bFailedToStart = true;
 			SetFinishResult(EPawnActionResult::Failed);

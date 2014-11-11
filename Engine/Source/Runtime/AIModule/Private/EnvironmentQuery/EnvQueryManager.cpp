@@ -20,6 +20,8 @@ extern UNREALED_API UEditorEngine* GEditor;
 DEFINE_LOG_CATEGORY(LogEQS);
 
 DEFINE_STAT(STAT_AI_EQS_Tick);
+DEFINE_STAT(STAT_AI_EQS_TickWork);
+DEFINE_STAT(STAT_AI_EQS_TickNotifies);
 DEFINE_STAT(STAT_AI_EQS_LoadTime);
 DEFINE_STAT(STAT_AI_EQS_GeneratorTime);
 DEFINE_STAT(STAT_AI_EQS_TestTime);
@@ -182,7 +184,7 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 		return NULL;
 	}
 
-	while (QueryInstance->Status == EEnvQueryStatus::Processing)
+	while (QueryInstance->IsFinished() == false)
 	{
 		QueryInstance->ExecuteOneStep((double)FLT_MAX);
 	}
@@ -225,9 +227,9 @@ bool UEnvQueryManager::AbortQuery(int32 RequestID)
 	{
 		TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[QueryIndex];
 		if (QueryInstance->QueryID == RequestID &&
-			QueryInstance->Status == EEnvQueryStatus::Processing)
+			QueryInstance->IsFinished() == false)
 		{
-			QueryInstance->Status = EEnvQueryStatus::Aborted;
+			QueryInstance->MarkAsAborted();
 			QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
 			
 			RunningQueries.RemoveAt(QueryIndex);
@@ -246,19 +248,42 @@ void UEnvQueryManager::Tick(float DeltaTime)
 
 	const double MaxAllowedSeconds = 0.010;
 	double TimeLeft = MaxAllowedSeconds;
+	int32 FinishedQueriesCount = 0;
 		
-	while (TimeLeft > 0.0 && RunningQueries.Num() > 0)
+	TArray<TSharedPtr<FEnvQueryInstance> > RunningQueriesCopy = RunningQueries;
+
 	{
-		for (int32 Index = 0; Index < RunningQueries.Num() && TimeLeft > 0.0; Index++)
+		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TickWork);
+		while (TimeLeft > 0.0 && RunningQueriesCopy.Num() > 0)
 		{
-			const double StartTime = FPlatformTime::Seconds();
+			for (int32 Index = 0; Index < RunningQueriesCopy.Num() && TimeLeft > 0.0; Index++)
+			{
+				const double StartTime = FPlatformTime::Seconds();
 
+				TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueriesCopy[Index];
+				//SCOPE_LOG_TIME(*FString::Printf(TEXT("Query %s step"), *QueryInstance->QueryName), nullptr);
+
+				QueryInstance->ExecuteOneStep(TimeLeft);
+
+				if (QueryInstance->IsFinished())
+				{
+					RunningQueriesCopy.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
+					Index--;
+					++FinishedQueriesCount;
+				}
+
+				TimeLeft -= (FPlatformTime::Seconds() - StartTime);
+			}
+		}
+	}
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TickNotifies);
+		for (int32 Index = RunningQueries.Num() - 1; Index >= 0 && FinishedQueriesCount > 0; --Index)
+		{
 			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
-			//SCOPE_LOG_TIME(*FString::Printf(TEXT("Query %s step"), *QueryInstance->QueryName), nullptr);
 
-			QueryInstance->ExecuteOneStep(TimeLeft);
-			
-			if (QueryInstance->Status != EEnvQueryStatus::Processing)
+			if (QueryInstance->IsFinished())
 			{
 				UE_VLOG_EQS(*QueryInstance.Get(), LogEQS, All);
 
@@ -267,12 +292,10 @@ void UEnvQueryManager::Tick(float DeltaTime)
 #endif // USE_EQS_DEBUGGER
 
 				QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
+				RunningQueries.RemoveAtSwap(Index, 1, /*bAllowShrinking=*/false);
 
-				RunningQueries.RemoveAt(Index);
-				Index--;
+				--FinishedQueriesCount;
 			}
-
-			TimeLeft -= (FPlatformTime::Seconds() - StartTime);
 		}
 	}
 }
@@ -284,9 +307,9 @@ void UEnvQueryManager::OnPreLoadMap()
 		for (int32 Index = 0; Index < RunningQueries.Num(); Index++)
 		{
 			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
-			if (QueryInstance->Status == EEnvQueryStatus::Processing)
+			if (QueryInstance->IsFinished() == false)
 			{
-				QueryInstance->Status = EEnvQueryStatus::Failed;
+				QueryInstance->MarkAsFailed();
 				QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
 			}
 		}

@@ -184,14 +184,14 @@ bool UEnvQueryTest::IsContextPerItem(TSubclassOf<UEnvQueryContext> CheckContext)
 FVector UEnvQueryTest::GetItemLocation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeVectorCDO ?
-		QueryInstance.ItemTypeVectorCDO->GetLocation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
+		QueryInstance.ItemTypeVectorCDO->GetItemLocation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		FVector::ZeroVector;
 }
 
 FRotator UEnvQueryTest::GetItemRotation(FEnvQueryInstance& QueryInstance, int32 ItemIndex) const
 {
 	return QueryInstance.ItemTypeVectorCDO ?
-		QueryInstance.ItemTypeVectorCDO->GetRotation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
+		QueryInstance.ItemTypeVectorCDO->GetItemRotation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIndex].DataOffset) :
 		FRotator::ZeroRotator;
 }
 

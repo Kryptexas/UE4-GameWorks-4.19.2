@@ -80,7 +80,7 @@ uint16 UBTTask_RunEQSQuery::GetInstanceMemorySize() const
 
 void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<FEnvQueryResult> Result)
 {
-	if (Result->Status == EEnvQueryStatus::Aborted)
+	if (Result->IsAborted())
 	{
 		return;
 	}

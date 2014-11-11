@@ -9,6 +9,7 @@
 #include "RawIndexBuffer.h"
 #include "SkeletalMeshMerge.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Animation/Skeleton.h"
 
 /*-----------------------------------------------------------------------------
 	FSkeletalMeshMerge

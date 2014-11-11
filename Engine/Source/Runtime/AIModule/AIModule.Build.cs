@@ -31,6 +31,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"RHI",
                     "RenderCore",
+                    "GameplayTags"
 				}
 				);
 

@@ -124,6 +124,12 @@ private:
 		FSlateApplication::Get().SetApplicationScale(NewValue);
 	}
 
+	FReply HandleDisplayTextureAtlases()
+	{
+		FSlateApplication::Get().GetRenderer()->DisplayTextureAtlases();
+		return FReply::Handled();
+	}
+
 	/** Callback for getting the value of the application scale slider. */
 	float HandleAppScaleSliderValue() const
 	{

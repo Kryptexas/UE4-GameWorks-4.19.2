@@ -20,13 +20,13 @@ void UEnvQueryItemType_Actor::SetValue(uint8* RawData, const AActor* Value)
 	SetValueInMemory<FWeakObjectPtr>(RawData, WeakObjPtr);
 }
 
-FVector UEnvQueryItemType_Actor::GetLocation(const uint8* RawData) const
+FVector UEnvQueryItemType_Actor::GetItemLocation(const uint8* RawData) const
 {
 	AActor* MyActor = UEnvQueryItemType_Actor::GetValue(RawData);
 	return MyActor ? MyActor->GetActorLocation() : FVector::ZeroVector;
 }
 
-FRotator UEnvQueryItemType_Actor::GetRotation(const uint8* RawData) const
+FRotator UEnvQueryItemType_Actor::GetItemRotation(const uint8* RawData) const
 {
 	AActor* MyActor = UEnvQueryItemType_Actor::GetValue(RawData);
 	return MyActor ? MyActor->GetActorRotation() : FRotator::ZeroRotator;

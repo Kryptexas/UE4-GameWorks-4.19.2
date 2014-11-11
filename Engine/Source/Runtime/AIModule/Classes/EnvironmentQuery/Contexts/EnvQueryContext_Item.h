@@ -5,7 +5,7 @@
 #include "EnvQueryContext_Item.generated.h"
 
 UCLASS()
-class UEnvQueryContext_Item : public UEnvQueryContext
+class AIMODULE_API UEnvQueryContext_Item : public UEnvQueryContext
 {
 	GENERATED_UCLASS_BODY()
 };

@@ -969,6 +969,8 @@ void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& Actor
 	{
 		// keep general game state until we transition to the final destination
 		ActorList.Add(World->GameState);
+		// keep the game session state until we transition to the final destination
+		ActorList.Add(GameSession);
 	}
 }
 

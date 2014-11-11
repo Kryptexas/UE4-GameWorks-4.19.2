@@ -11,7 +11,7 @@ class UEnvQueryItemType_VectorBase;
 class UEnvQueryItemType_ActorBase;
 struct FEnvQueryInstance;
 
-AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Warning, All);
 
 // If set, execution details will be processed by debugger
 #define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -19,6 +19,8 @@ AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 DECLARE_STATS_GROUP(TEXT("Environment Query"), STATGROUP_AI_EQS, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_EQS_Tick,STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - EQS work"), STAT_AI_EQS_TickWork, STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - OnFinished delegates"), STAT_AI_EQS_TickNotifies, STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EQS_LoadTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EQS_GeneratorTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EQS_TestTime,STATGROUP_AI_EQS, );
@@ -424,12 +426,14 @@ struct AIMODULE_API FEnvQueryResult
 	/** type of generated items */
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
-	/** query status */
-	TEnumAsByte<EEnvQueryStatus::Type> Status;
-
 	/** raw data of items */
 	TArray<uint8> RawData;
 
+private:
+	/** query status */
+	TEnumAsByte<EEnvQueryStatus::Type> Status;
+
+public:
 	/** index of query option, that generated items */
 	int32 OptionIndex;
 
@@ -447,6 +451,14 @@ struct AIMODULE_API FEnvQueryResult
 
 	FEnvQueryResult() : ItemType(NULL), Status(EEnvQueryStatus::Processing), OptionIndex(0) {}
 	FEnvQueryResult(const EEnvQueryStatus::Type& InStatus) : ItemType(NULL), Status(InStatus), OptionIndex(0) {}
+
+	FORCEINLINE bool IsFinished() const { return Status != EEnvQueryStatus::Processing; }
+	FORCEINLINE bool IsAborted() const { return Status == EEnvQueryStatus::Aborted; }
+	FORCEINLINE void MarkAsMissingParam() { Status = EEnvQueryStatus::MissingParam; }
+	FORCEINLINE void MarkAsAborted() { Status = EEnvQueryStatus::Aborted; }
+	FORCEINLINE void MarkAsFailed() { Status = EEnvQueryStatus::Failed; }
+	FORCEINLINE void MarkAsFinishedWithoutIssues() { Status = EEnvQueryStatus::Success; }
+	FORCEINLINE void MarkAsOwnerLost() { Status = EEnvQueryStatus::OwnerLost; }
 };
 
 
@@ -656,7 +668,7 @@ public:
 			if (PtrValue == NULL)
 			{
 				EQSHEADERLOG(FString::Printf(TEXT("Query [%s] is missing param [%s] for [%s] property!"), *QueryName, *Param.ParamName.ToString(), *ParamDesc));				
-				Status = EEnvQueryStatus::MissingParam;
+				MarkAsMissingParam();
 				return false;
 			}
 

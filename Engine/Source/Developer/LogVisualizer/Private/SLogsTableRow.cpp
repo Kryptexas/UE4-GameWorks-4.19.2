@@ -92,8 +92,9 @@ void SLogsTableRow::UpdateEntries()
 	}
 
 	TSharedPtr<SLogVisualizer> OwnerVisualizerWidget = OwnerVisualizerWidgetPtr.Pin();
-	if (OwnerVisualizerWidget.IsValid())
+	if (OwnerVisualizerWidget.IsValid() && OwnerVisualizerWidget->LogVisualizer->Logs.Num() > 0)
 	{
+		Item->LogIndex = FMath::Clamp<int32>(Item->LogIndex, 0, OwnerVisualizerWidget->LogVisualizer->Logs.Num() - 1);
 		TSharedPtr<FActorsVisLog>& Log = OwnerVisualizerWidget->LogVisualizer->Logs[Item->LogIndex];
 		OwnerVisualizerWidget->GetVisibleEntries(Log, VisibleEntries);
 		const float TotalSize = OwnerVisualizerWidget->LogsEndTime - OwnerVisualizerWidget->LogsStartTime;

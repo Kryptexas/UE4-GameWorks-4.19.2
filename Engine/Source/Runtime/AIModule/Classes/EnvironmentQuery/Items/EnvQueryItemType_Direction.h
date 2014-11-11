@@ -20,6 +20,6 @@ class AIMODULE_API UEnvQueryItemType_Direction : public UEnvQueryItemType_Vector
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FVector>& MultipleDirections);
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FRotator>& MultipleRotations);
 
-	virtual FRotator GetRotation(const uint8* RawData) const override;
+	virtual FRotator GetItemRotation(const uint8* RawData) const override;
 	virtual FString GetDescription(const uint8* RawData) const override;
 };

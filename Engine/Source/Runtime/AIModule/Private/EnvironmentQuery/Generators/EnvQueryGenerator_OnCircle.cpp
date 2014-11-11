@@ -109,7 +109,7 @@ UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const FObjectInitialize
 	AngleRadians = FMath::DegreesToRadians(360.f);
 
 	TraceData.bCanProjectDown = false;
-	TraceData.bCanDisableTrace = false;
+	TraceData.bCanDisableTrace = true;
 	TraceData.TraceMode = EEnvQueryTrace::Navigation;
 
 	ProjectionData.TraceMode = EEnvQueryTrace::None;
@@ -129,10 +129,13 @@ void UEnvQueryGenerator_OnCircle::PostLoad()
 FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInstance) const
 {
 	AActor* Querier = Cast<AActor>(QueryInstance.Owner.Get());
-	FVector Direction = Querier->GetActorRotation().Vector();
+	check(Querier != NULL);
 
+	FVector Direction;
 	if (bDefineArc)
 	{
+		// By default, use Querier rotation for arc direction.
+		Direction = Querier->GetActorRotation().Vector();
 		if (ArcDirection.DirMode == EEnvDirection::TwoPoints)
 		{
 			TArray<FVector> Start;
@@ -164,6 +167,10 @@ FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInsta
 			}
 		}
 	}
+	else
+	{	// Don't rotate based on querier!  Instead, use a stable rotation so the points on the circle don't rotate!
+		Direction = FVector(1, 0, 0);
+	}
 
 	return Direction;
 }
@@ -177,8 +184,10 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	if (QueryInstance.GetParamValue(Angle, AngleDegree, TEXT("Angle")) == false
 		|| QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) == false
 		|| QueryInstance.GetParamValue(ItemSpacing, ItemSpace, TEXT("ItemSpacing")) == false
-		|| AngleDegree <= 0.f || AngleDegree > 360.f
-		|| RadiusValue <= 0.f)
+		|| (AngleDegree <= 0.f) || (AngleDegree > 360.f)
+		|| (RadiusValue <= 0.f)
+		|| (ItemSpace <= 0.f)
+	   )
 	{
 		return;
 	}
@@ -193,34 +202,65 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	const float AngleStep = AngleDegree / (StepsCount - 1);
 
 	FVector StartDirection = CalcDirection(QueryInstance);
-	TArray<FVector> CenterLocationCandidates;
-	QueryInstance.PrepareContext(CircleCenter, CenterLocationCandidates);
-
 	StartDirection = StartDirection.RotateAngleAxis(-AngleDegree/2, FVector::UpVector) * RadiusValue;
+	
+	TSharedPtr<FVectorAndDataContainer> CenterLocationCandidates;
+	PrepareGeneratorContext(QueryInstance, CenterLocationCandidates);
+	check(CenterLocationCandidates.Get() != NULL);
 
-	int NumCenterLocations = CenterLocationCandidates.Num();
+	int32 NumCenterLocations = CenterLocationCandidates.Get()->GetNumEntries();
 	if (NumCenterLocations > 0)
 	{
 		for (int i = 0; i < NumCenterLocations; ++i)
 		{
-			GenerateItemsForCircle(CenterLocationCandidates[i], StartDirection, StepsCount, AngleStep, QueryInstance);
+			GenerateItemsForCircle(CenterLocationCandidates, i, CenterLocationCandidates.Get()->GetVector(i),
+									StartDirection, StepsCount, AngleStep, QueryInstance);
 		}
 	}
-	else
+// 	else
+// 	{
+// 		// No center locations were generated, so we can't generate any item locations based on those centers.
+// 		// This is a perfectly valid outcome though, so don't spam the log!
+// // 		UE_LOG(LogEQS, Warning,
+// // 			TEXT("Unable to generate any center location candidates at all, Generate Items has failed.  %s in %s."),
+// // 			*GetName(), *QueryInstance.QueryName);
+// 	}
+}
+
+void UEnvQueryGenerator_OnCircle::PrepareGeneratorContext(FEnvQueryInstance& QueryInstance,
+														  TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates) const
+{
+	FVectorAndDataContainer* CandidateData = CenterLocationCandidates.Get();
+	if (CandidateData == NULL)
+	{	// Make sure we have the data holder!
+		CenterLocationCandidates = MakeShareable(new FVectorAndDataContainer);
+		CandidateData = CenterLocationCandidates.Get();
+	}
+	else // We already had it... so make sure it's clear to start, just in case we need to clear old data.
 	{
-		FVector CenterLocation(0);
+		CandidateData->Reset();
+	}
+	check(CandidateData != NULL);
 
+	// Now use the generic vector context preparation.
+	QueryInstance.PrepareContext(CircleCenter, CandidateData->GetLocationArray());
+
+	// If there are no entries, make a fake one based on the querier.
+	if (CandidateData->GetNumEntries() < 1)
+	{	
+		UE_LOG(LogEQS, Warning, TEXT("No context locations found, using querier as context for %s in instance %s"), *GetName(), *QueryInstance.QueryName);
 		AActor* Querier = Cast<AActor>(QueryInstance.Owner.Get());
-		if (Querier)
+		if (Querier != NULL)
 		{
-			CenterLocation = Querier->GetActorLocation();
+			FVector CenterLocation = Querier->GetActorLocation();
+			CandidateData->GetLocationArray().Add(CenterLocation);
 		}
-
-		GenerateItemsForCircle(CenterLocation, StartDirection, StepsCount, AngleStep, QueryInstance);
 	}
 }
 
-void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(const FVector& CenterLocation, const FVector& StartDirection,
+void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates,
+	int32 CenterLocationCandidateIndex,
+	const FVector& CenterLocation, const FVector& StartDirection,
 	int32 StepsCount, float AngleStep, FEnvQueryInstance& OutQueryInstance) const
 {
 	TArray<FVector> ItemCandidates;
@@ -231,7 +271,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(const FVector& CenterLo
 	}
 
 #if WITH_RECAST
-	// @todo this needs to be optimize to batch raycasts
+	// @todo this needs to be optimized to batch raycasts
 	const ARecastNavMesh* NavMesh = 
 		(TraceData.TraceMode == EEnvQueryTrace::Navigation) || (ProjectionData.TraceMode == EEnvQueryTrace::Navigation) ?
 		FEQSHelpers::FindNavMeshForQuery(OutQueryInstance) : NULL;
@@ -242,58 +282,74 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(const FVector& CenterLo
 	}
 #endif
 
-	if (TraceData.TraceMode == EEnvQueryTrace::Navigation)
+	switch (TraceData.TraceMode)
 	{
+		case EEnvQueryTrace::Navigation:
 #if WITH_RECAST
-		if (NavMesh != NULL)
-		{
-			TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
-
-			TArray<FNavigationRaycastWork> RaycastWorkload;
-			RaycastWorkload.Reserve(ItemCandidates.Num());
-
-			for (const auto& ItemLocation : ItemCandidates)
+			if (NavMesh != NULL)
 			{
-				RaycastWorkload.Add(FNavigationRaycastWork(CenterLocation, ItemLocation));
-			}
+				TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
 
-			NavMesh->BatchRaycast(RaycastWorkload, NavigationFilter);
+				TArray<FNavigationRaycastWork> RaycastWorkload;
+				RaycastWorkload.Reserve(ItemCandidates.Num());
+
+				for (const auto& ItemLocation : ItemCandidates)
+				{
+					RaycastWorkload.Add(FNavigationRaycastWork(CenterLocation, ItemLocation));
+				}
+
+				NavMesh->BatchRaycast(RaycastWorkload, NavigationFilter);
 			
-			for (int32 ItemIndex = 0; ItemIndex < ItemCandidates.Num(); ++ItemIndex)
+				for (int32 ItemIndex = 0; ItemIndex < ItemCandidates.Num(); ++ItemIndex)
+				{
+					ItemCandidates[ItemIndex] = RaycastWorkload[ItemIndex].HitLocation.Location;
+				}
+			}
+#endif
+			break;
+
+		case EEnvQueryTrace::Geometry:
+		{
+			ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
+			FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+
+			FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+			TraceParams.bTraceAsyncScene = true;
+
+			FBatchTracingHelper TracingHelper(OutQueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
+
+			switch (TraceData.TraceShape)
 			{
-				ItemCandidates[ItemIndex] = RaycastWorkload[ItemIndex].HitLocation.Location;
+				case EEnvTraceShape::Line:		
+					TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(CenterLocation, ItemCandidates);
+					break;
+
+				case EEnvTraceShape::Sphere:	
+					TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Sphere>(CenterLocation, ItemCandidates);
+					break;
+
+				case EEnvTraceShape::Capsule:
+					TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Capsule>(CenterLocation, ItemCandidates);
+					break;
+
+				case EEnvTraceShape::Box:
+					TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(CenterLocation, ItemCandidates);
+					break;
+
+				default:
+					UE_VLOG(Cast<AActor>(OutQueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *OutQueryInstance.QueryName);
+					break;
 			}
 		}
-#endif
-	}
-	else
-	{
-		ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
-		FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+			break;
 
-		FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
-		TraceParams.bTraceAsyncScene = true;
+		case EEnvQueryTrace::None:
+			// Just accept the ItemCandidates as they already are (points on a circle), without using navigation OR collision.
+			break;
 
-		FBatchTracingHelper TracingHelper(OutQueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
-
-		switch (TraceData.TraceShape)
-		{
-		case EEnvTraceShape::Line:		
-			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(CenterLocation, ItemCandidates);
-			break;
-		case EEnvTraceShape::Sphere:	
-			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Sphere>(CenterLocation, ItemCandidates);
-			break;
-		case EEnvTraceShape::Capsule:
-			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Capsule>(CenterLocation, ItemCandidates);
-			break;
-		case EEnvTraceShape::Box:
-			TracingHelper.DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(CenterLocation, ItemCandidates);
-			break;
 		default:
-			UE_VLOG(Cast<AActor>(OutQueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *OutQueryInstance.QueryName);
+			UE_VLOG(Cast<AActor>(OutQueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection has invalid value for TraceData.TraceMode.  Query: %s"), *OutQueryInstance.QueryName);
 			break;
-		}
 	}
 
 #if WITH_RECAST
@@ -304,6 +360,14 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(const FVector& CenterLo
 	}
 #endif
 
+	AddItemDataForCircle(ItemCandidates, CenterLocationCandidates, CenterLocationCandidateIndex, OutQueryInstance);
+}
+
+void UEnvQueryGenerator_OnCircle::AddItemDataForCircle(const TArray<FVector>& ItemCandidates,
+													   TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates,
+													   int32 CenterLocationCandidateIndex,
+													   FEnvQueryInstance& OutQueryInstance) const
+{
 	for (int32 Step = 0; Step < ItemCandidates.Num(); ++Step)
 	{
 		OutQueryInstance.AddItemData<UEnvQueryItemType_Point>(ItemCandidates[Step]);

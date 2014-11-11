@@ -4,8 +4,30 @@
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_ProjectedPoints.h"
 #include "EnvQueryGenerator_OnCircle.generated.h"
 
+class FVectorAndDataContainer
+{
+public:
+	virtual ~FVectorAndDataContainer() {}
+
+	virtual void Reset() { Locations.Empty(); }
+
+	FORCEINLINE int32 GetNumEntries() const { return Locations.Num(); }
+	FORCEINLINE FVector GetVector(int32 Index) const { return Locations[Index]; }
+
+	FORCEINLINE TArray<FVector>& GetLocationArray() { return Locations; }
+
+protected:
+	// TODO: Make inline non-virtual and turn this into the base class?  If so, we wouldn't have to allocate this class
+	// We'd only have to fill in a parallel array if/when needed.
+	
+	// virtual FVectorAdditionalData& GetAdditionalData(int32 Index);
+
+private:
+	TArray<FVector> Locations;
+};
+
 UCLASS()	
-class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
+class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()
 
@@ -53,8 +75,20 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 protected:
 	FVector CalcDirection(struct FEnvQueryInstance& QueryInstance) const;
 
+	// For derived classes that need to store additional data associated with the FVector, override these two functions:
+	virtual void PrepareGeneratorContext(FEnvQueryInstance& QueryInstance,
+										 TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates) const;
+
+	virtual void AddItemDataForCircle(const TArray<FVector>& ItemCandidates,
+									  TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates,
+									  int32 CenterLocationCandidateIndex,
+									  FEnvQueryInstance& OutQueryInstance) const;
+
 private:
-	void GenerateItemsForCircle(const FVector& CenterLocation, const FVector& StartDirection,
+	void GenerateItemsForCircle(TSharedPtr<FVectorAndDataContainer>& CenterLocationCandidates,
+								int32 CenterLocationCandidateIndex,
+								const FVector& CenterLocation,
+								const FVector& StartDirection,
 								int32 StepsCount, float AngleStep,
 								FEnvQueryInstance& OutQueryInstance) const;
 };

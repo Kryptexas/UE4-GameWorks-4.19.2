@@ -2,6 +2,7 @@
 
 #pragma once
 #include "GameFramework/Actor.h"
+#include "Math/RandomStream.h"
 #include "FunctionalTest.generated.h"
 
 class UBillboardComponent;
@@ -64,6 +65,9 @@ public:
 	TArray<AActor*> AutoDestroyActors;
 	
 	FString FailureMessage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FunctionalTesting)
+	FRandomStream RandomNumbersStream;
 	
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()

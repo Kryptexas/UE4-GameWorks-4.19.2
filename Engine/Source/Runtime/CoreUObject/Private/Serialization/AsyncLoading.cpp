@@ -542,16 +542,23 @@ bool FAsyncPackage::AddUniqueLinkerDependencyPackage(int32 CurrentPackageIndex, 
  *
  * @param ImportedPackage Package imported either directly or by one of the imported packages
  */
-void FAsyncPackage::AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage)
+void FAsyncPackage::AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage, TSet<FAsyncPackage*>& SearchedPackages)
 {
+	if (SearchedPackages.Contains(&ImportedPackage))
+	{
+		// we've already searched this package
+		return;
+	}
 	for (int32 Index = 0; Index < ImportedPackage.PendingImportedPackages.Num(); ++Index)
 	{
 		FAsyncPackage& PendingImport = *ImportedPackage.PendingImportedPackages[Index];
 		if (!AddUniqueLinkerDependencyPackage(CurrentPackageIndex, PendingImport))
 		{
-			AddDependencyTree(CurrentPackageIndex, PendingImport);
+			AddDependencyTree(CurrentPackageIndex, PendingImport, SearchedPackages);
 		}
 	}
+	// Mark this package as searched
+	SearchedPackages.Add(&ImportedPackage);
 }
 
 /** 
@@ -611,8 +618,9 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 					// Only keep a reference to this package so that its linker doesn't go away too soon
 					PendingPackage.DependencyRefCount++;
 					ReferencedImports.Add(&PendingPackage);
-					// Check if we need to add its dependencies too.					
-					AddDependencyTree(AsyncQueueIndex, PendingPackage);
+					// Check if we need to add its dependencies too.
+					TSet<FAsyncPackage*> SearchedPackages;
+					AddDependencyTree(AsyncQueueIndex, PendingPackage, SearchedPackages);
 				}
 			}
 		}

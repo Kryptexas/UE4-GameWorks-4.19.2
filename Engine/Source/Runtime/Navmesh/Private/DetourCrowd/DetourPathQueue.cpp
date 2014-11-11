@@ -26,23 +26,7 @@
 #include "DetourNavMeshQuery.h"
 #include "DetourAlloc.h"
 #include "DetourCommon.h"
-#include "DetourCrowd.h"
 
-
-inline void dtPathQueue::PathQuery::init(dtPolyRef inStartRef, dtPolyRef inEndRef,
-	const float* inStartPos, const float* inEndPos,
-	const dtQueryFilter* inFilter)
-{
-	dtVcopy(startPos, inStartPos);
-	startRef = inStartRef;
-	dtVcopy(endPos, inEndPos);
-	endRef = inEndRef;
-
-	status = 0;
-	npath = 0;
-	filter = inFilter;
-	keepAlive = 0;
-}
 
 dtPathQueue::dtPathQueue() :
 	m_nextHandle(1),
@@ -127,11 +111,12 @@ void dtPathQueue::update(const int maxIters)
 			m_queueHead++;
 			continue;
 		}
-		
+
+		m_navquery->updateLinkFilter(q.linkFilter.Get());
+
 		// Handle query start.
 		if (q.status == 0)
 		{
-			m_navquery->updateLinkFilter(q.crowdAgent ? q.crowdAgent->params.linkFilter : 0);
 			q.status = m_navquery->initSlicedFindPath(q.startRef, q.endRef, q.startPos, q.endPos, q.filter);
 		}		
 		// Handle query in progress.
@@ -153,7 +138,9 @@ void dtPathQueue::update(const int maxIters)
 	}
 }
 
-dtPathQueueRef dtPathQueue::createPathQuery(PathQuery*& q)
+dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
+									const float* startPos, const float* endPos,
+									const dtQueryFilter* filter, TSharedPtr<dtQuerySpecialLinkFilter> linkFilter)
 {
 	// Find empty slot
 	int slot = -1;
@@ -165,52 +152,26 @@ dtPathQueueRef dtPathQueue::createPathQuery(PathQuery*& q)
 			break;
 		}
 	}
-
 	// Could not find slot.
 	if (slot == -1)
-	{
 		return DT_PATHQ_INVALID;
-	}
-
-	dtPathQueueRef ref = m_nextHandle++;
-	if (m_nextHandle == DT_PATHQ_INVALID)
-	{
-		++m_nextHandle;
-	}
-
-	q = &m_queue[slot];
-	q->ref = ref;
-
-	return ref;
-}
-
-dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
-									const float* startPos, const float* endPos,
-									const dtQueryFilter* filter)
-{
-	PathQuery* q = 0;
-	dtPathQueueRef ref = createPathQuery(q);
-		
-	if (ref != DT_PATHQ_INVALID)
-	{
-		q->init(startRef, endRef, startPos, endPos, filter);
-	}
 	
-	return ref;
-}
-
-dtPathQueueRef dtPathQueue::request(dtCrowdAgent* crowdAgent, const dtQueryFilter* filter)
-{
-	PathQuery* q = 0;
-	dtPathQueueRef ref = createPathQuery(q);
-
-	if (ref != DT_PATHQ_INVALID)
-	{
-		q->init(crowdAgent->corridor.getLastPoly(), crowdAgent->targetRef,
-			crowdAgent->corridor.getTarget(), crowdAgent->targetPos, filter);
-		q->crowdAgent = crowdAgent;
-	}
-
+	dtPathQueueRef ref = m_nextHandle++;
+	if (m_nextHandle == DT_PATHQ_INVALID) m_nextHandle++;
+	
+	PathQuery& q = m_queue[slot];
+	q.ref = ref;
+	dtVcopy(q.startPos, startPos);
+	q.startRef = startRef;
+	dtVcopy(q.endPos, endPos);
+	q.endRef = endRef;
+	
+	q.status = 0;
+	q.npath = 0;
+	q.filter = filter;
+	q.linkFilter = linkFilter;
+	q.keepAlive = 0;
+	
 	return ref;
 }
 

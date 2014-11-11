@@ -292,7 +292,7 @@ private:
 	 *
 	 * @param ImportedPackage Package imported either directly or by one of the imported packages
 	 */
-	void AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage);
+	void AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage, TSet<FAsyncPackage*>& SearchedPackages);
 	/**
 	 * Adds a unique package to the list of packages to wait for until their linkers have been created.
 	 *

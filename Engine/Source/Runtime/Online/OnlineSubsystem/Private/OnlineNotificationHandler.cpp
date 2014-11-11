@@ -5,8 +5,6 @@
 #include "OnlineNotificationHandler.h"
 
 
-FOnlineNotificationHandler FOnlineNotificationHandler::Singleton;
-
 // SYSTEM NOTIFICATION HANDLERS
 
 void FOnlineNotificationHandler::AddSystemNotificationBinding(FString NotificationType, const FOnlineNotificationBinding& NewBinding)
@@ -172,27 +170,4 @@ void FOnlineNotificationHandler::DeliverNotification(const FOnlineNotification& 
 		// can be safely removed once this use case exists, just here to catch errors in initial implementation
 		UE_LOG_ONLINE(Error, TEXT("Received an onlinenotification that was not handled. Type %s for %s"), *Notification.TypeStr, Notification.ToUserId.IsValid() ? *Notification.ToUserId->ToString() : TEXT("<system notification>"));
 	}
-}
-
-// NOTIFICATION TRANSPORTS
-
-void FOnlineNotificationHandler::AddNotificationTransport(FString TransportType, const FOnlineNotificationTransport& Transport)
-{
-	TransportMap.Add(TransportType, Transport);
-}
-
-void FOnlineNotificationHandler::RemoveNotificationTransport(FString TransportType)
-{
-	TransportMap.Remove(TransportType);
-}
-
-bool FOnlineNotificationHandler::SendNotification(FString TransportType, const FOnlineNotification& Notification)
-{
-	FOnlineNotificationTransport* Transport = TransportMap.Find(TransportType);
-	return Transport->SendNotification(Notification);
-}
-
-void FOnlineNotificationHandler::ResetNotificationTransports()
-{
-	TransportMap.Empty();
 }

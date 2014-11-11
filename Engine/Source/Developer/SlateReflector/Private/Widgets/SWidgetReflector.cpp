@@ -79,49 +79,61 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 							]
 
 						+ SHorizontalBox::Slot()
-						.MaxWidth(250)
+							.MaxWidth(250)
+							[
+								SNew(SSpinBox<float>)
+									.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
+									.MinValue(0.1f)
+									.MaxValue(3.0f)
+									.Delta(0.01f)
+									.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
+							]
+						+ SHorizontalBox::Slot()
+						.FillWidth(1.0f)
 						[
-							SNew(SSpinBox<float>)
-								.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
-								.MinValue(0.1f)
-								.MaxValue(3.0f)
-								.Delta(0.01f)
-								.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)
+							SNew(SSpacer)
+						]
+						+SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("DisplayTextureAtlases", "Display Atlases"))
+							.OnClicked(this, &SWidgetReflector::HandleDisplayTextureAtlases)
 						]
 					]
 
 				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(5.0f)
+					.AutoHeight()
 					[
-						// Check box that controls LIVE MODE
-						SNew(SCheckBox)
-							.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
-							.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(5.0f)
 							[
-								SNew(STextBlock)
-									.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
+								// Check box that controls LIVE MODE
+								SNew(SCheckBox)
+									.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
+									.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
+									[
+										SNew(STextBlock)
+											.Text(LOCTEXT("ShowFocus", "Show Focus").ToString())
+									]
 							]
-					]
 
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(5.0f)
-					[
-						// Check box that controls PICKING A WIDGET TO INSPECT
-						SNew(SButton)
-						.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
-						.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
-						[
-							SNew(STextBlock)
-							.Text(this, &SWidgetReflector::HandlePickButtonText)
-						]
-					]
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(5.0f)
+							[
+								// Check box that controls PICKING A WIDGET TO INSPECT
+								SNew(SButton)
+									.OnClicked(this, &SWidgetReflector::HandlePickButtonClicked)
+									.ButtonColorAndOpacity(this, &SWidgetReflector::HandlePickButtonColorAndOpacity)
+									[
+										SNew(STextBlock)
+											.Text(this, &SWidgetReflector::HandlePickButtonText)
+									]
+							]
 
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -232,10 +244,10 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 				#endif //WITH_EVENT_LOGGING
 			
 				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
+					.AutoHeight()
+					[
 					MakeStatViewer()
-				]
+					]
 				
 			]
 	];

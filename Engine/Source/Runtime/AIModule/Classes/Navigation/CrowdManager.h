@@ -7,6 +7,11 @@
 struct FNavMeshPath;
 class UCrowdFollowingComponent;
 class ICrowdAgentInterface;
+#if WITH_RECAST
+struct dtQuerySpecialLinkFilter;
+struct dtCrowdAgentParams;
+#endif
+
 /**
  *  Crowd manager is responsible for handling crowds using Detour (Recast library)
  *
@@ -102,7 +107,7 @@ struct AIMODULE_API FCrowdAgentData
 {
 #if WITH_RECAST
 	/** special filter for checking offmesh links */
-	struct dtQuerySpecialLinkFilter* LinkFilter;
+	TSharedPtr<dtQuerySpecialLinkFilter> LinkFilter;
 #endif
 
 	/** poly ref that agent is standing on from previous update */
@@ -120,12 +125,7 @@ struct AIMODULE_API FCrowdAgentData
 	/** if set, agent wants path optimizations */
 	uint32 bWantsPathOptimization : 1;
 
-	FCrowdAgentData() :
-#if WITH_RECAST
-		LinkFilter(0),
-#endif
-		PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false)
-	{}
+	FCrowdAgentData() :	PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false) {}
 
 	bool IsValid() const { return AgentIndex >= 0; }
 	void ClearFilter();
@@ -291,7 +291,7 @@ protected:
 #if WITH_RECAST
 	void AddAgent(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData) const;
 	void RemoveAgent(const class ICrowdAgentInterface* Agent, FCrowdAgentData* AgentData) const;
-	void GetAgentParams(const class ICrowdAgentInterface* Agent, struct dtCrowdAgentParams* AgentParams) const;
+	void GetAgentParams(const class ICrowdAgentInterface* Agent, dtCrowdAgentParams& AgentParams) const;
 
 	/** prepare agent for next step of simulation */
 	void PrepareAgentStep(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData, float DeltaTime) const;

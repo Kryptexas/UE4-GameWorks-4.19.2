@@ -23,6 +23,7 @@ void UGridSlot::ReleaseSlateResources(bool bReleaseChildren)
 	Slot = nullptr;
 }
 
+// COMPILE PLEASE
 void UGridSlot::BuildSlot(TSharedRef<SGridPanel> GridPanel)
 {
 	Slot = &GridPanel->AddSlot(Column, Row)

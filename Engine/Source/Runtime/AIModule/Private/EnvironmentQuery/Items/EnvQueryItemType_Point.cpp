@@ -18,7 +18,7 @@ void UEnvQueryItemType_Point::SetValue(uint8* RawData, const FVector& Value)
 	return SetValueInMemory<FVector>(RawData, Value);
 }
 
-FVector UEnvQueryItemType_Point::GetLocation(const uint8* RawData) const
+FVector UEnvQueryItemType_Point::GetItemLocation(const uint8* RawData) const
 {
 	return UEnvQueryItemType_Point::GetValue(RawData);
 }

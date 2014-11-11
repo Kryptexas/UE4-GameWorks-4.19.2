@@ -111,13 +111,13 @@ void FAvfMediaPlayer::Close()
 {
     CurrentTime = 0;
 	MediaUrl = FString();
-	
+    
     if( PlayerItem != nil )
-	{
+    {
 		[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
         PlayerItem = nil;
     }
-	
+
 	if( MediaHelper )
 	{
 		[MediaHelper release];
@@ -242,14 +242,15 @@ bool FAvfMediaPlayer::Open( const FString& Url )
         MediaUrl = FPaths::GetCleanFilename(Url);
         
         MediaPlayer = [[AVPlayer alloc] init];
-		if( MediaPlayer )
+        if( MediaPlayer )
         {
 			MediaHelper = [[FMediaHelper alloc] initWithMediaPlayer: MediaPlayer];
 			check( MediaHelper != nil );
 			
             PlayerItem = [AVPlayerItem playerItemWithURL: nsMediaUrl];
             if( PlayerItem != nil )
-			{
+            {
+				[PlayerItem retain];
 				[PlayerItem addObserver:MediaHelper forKeyPath:@"status" options:0 context:nil];
                 Duration = FTimespan::FromSeconds( CMTimeGetSeconds( PlayerItem.asset.duration ) );
 

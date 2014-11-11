@@ -240,6 +240,11 @@ public:
 	 */
 	UWorld* GetWorld() const;
 
+	/**
+	 * Get the game instance associated with this local player
+	 * 
+	 * @return GameInstance related to local player
+	 */
 	UGameInstance* GetGameInstance() const;
 
 	/**
@@ -268,6 +273,9 @@ public:
 	 * Called to initialize the online delegates
 	 */
 	virtual void InitOnlineSession();
+
+	/** @return online session management object associated with this player */
+	UOnlineSession* GetOnlineSession() const { return OnlineSession; }
 
 	/**
 	 * Called when the player is removed from the viewport client

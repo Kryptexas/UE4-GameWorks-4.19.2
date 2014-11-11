@@ -63,6 +63,11 @@ public:
 	 */
 	void ClearTextureData();
 
+	/**
+	 * Returns the pixel format of this texture
+	 */
+	EPixelFormat GetPixelFormat() const { return PixelFormat; }
+
 	// FSlateUpdatableTexture interface
 	virtual FSlateShaderResource* GetSlateResource() override {return this;}
 	virtual FRenderResource* GetRenderResource() override {return this;}

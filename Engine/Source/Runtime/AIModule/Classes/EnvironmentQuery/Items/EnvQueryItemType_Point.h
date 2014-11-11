@@ -15,5 +15,5 @@ class AIMODULE_API UEnvQueryItemType_Point : public UEnvQueryItemType_VectorBase
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const FVector& SinglePoint);
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FVector>& MultiplePoints);
 
-	virtual FVector GetLocation(const uint8* RawData) const override;
+	virtual FVector GetItemLocation(const uint8* RawData) const override;
 };

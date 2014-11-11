@@ -56,12 +56,18 @@ class FSequencerModule : public ISequencerModule
 
 	virtual void StartupModule() override
 	{
-		FSequencerCommands::Register();
+		if (GIsEditor)
+		{
+			FSequencerCommands::Register();
+		}
 	}
 
 	virtual void ShutdownModule() override
 	{
-		FSequencerCommands::Unregister();
+		if (GIsEditor)
+		{
+			FSequencerCommands::Unregister();
+		}
 	}
 private:
 	/** List of auto-key handler delegates sequencers will execute when they are created */

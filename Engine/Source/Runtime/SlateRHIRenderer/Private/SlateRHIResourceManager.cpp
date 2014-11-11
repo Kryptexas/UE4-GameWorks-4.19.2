@@ -279,12 +279,8 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GenerateTextureResource( co
 	const uint32 Width = Info.TextureData->GetWidth();
 	const uint32 Height = Info.TextureData->GetHeight();
 
-
 	if( Info.bShouldAtlas )
 	{
-		// 4 bytes per pixel
-		const uint32 AtlasStride = GPixelFormats[PF_R8G8B8A8].BlockBytes;
-		const uint8 Padding = 1;
 		const FAtlasedTextureSlot* NewSlot = NULL;
 		FSlateTextureAtlasRHI* Atlas = NULL;
 
@@ -299,7 +295,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GenerateTextureResource( co
 		{
 			INC_DWORD_STAT_BY(STAT_SlateNumTextureAtlases, 1);
 
-			Atlas = new FSlateTextureAtlasRHI( AtlasSize, AtlasSize, AtlasStride, ESlateTextureAtlasPaddingStyle::DilateBorder );
+			Atlas = new FSlateTextureAtlasRHI( AtlasSize, AtlasSize, ESlateTextureAtlasPaddingStyle::DilateBorder );
 			TextureAtlases.Add( Atlas );
 			NewSlot = TextureAtlases.Last()->AddTexture( Width, Height, Info.TextureData->GetRawBytes() );
 		}
@@ -309,7 +305,8 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GenerateTextureResource( co
 		// Create a proxy to the atlased texture. The texture being used is the atlas itself with sub uvs to access the correct texture
 		NewProxy = new FSlateShaderResourceProxy;
 		NewProxy->Resource = Atlas->GetAtlasTexture();
-		NewProxy->StartUV = FVector2D( (float)(NewSlot->X+Padding) / Atlas->GetWidth(), (float)(NewSlot->Y+Padding) / Atlas->GetHeight() );
+		const uint32 Padding = NewSlot->Padding;
+		NewProxy->StartUV = FVector2D((float)(NewSlot->X + Padding) / Atlas->GetWidth(), (float)(NewSlot->Y + Padding) / Atlas->GetHeight());
 		NewProxy->SizeUV = FVector2D( (float)(NewSlot->Width-Padding*2) / Atlas->GetWidth(), (float)(NewSlot->Height-Padding*2) / Atlas->GetHeight() );
 		NewProxy->ActualSize = FIntPoint( Width, Height );
 	}
@@ -317,7 +314,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GenerateTextureResource( co
 	{
 		NewProxy = new FSlateShaderResourceProxy;
 
-		// Create a new standalone texture because we cant atlas this one
+		// Create a new standalone texture because we can't atlas this one
 		FSlateTexture2DRHIRef* Texture = new FSlateTexture2DRHIRef( Width, Height, PF_B8G8R8A8, Info.TextureData, Info.bSrgb ? TexCreate_SRGB : TexCreate_None );
 		// Add it to the list of non atlased textures that we must clean up later
 		NonAtlasedTextures.Add( Texture );

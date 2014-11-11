@@ -16,7 +16,7 @@ public:
 
 	~FProxyCounter()
 	{
-		ensure( Creations == Deletions );
+		ensureMsgf( Creations == Deletions, TEXT("FProxyCounter::~FProxyCounter has a mismatch.  %d creations != %d deletions"), Creations, Deletions );
 	}
 
 	int32 Creations;

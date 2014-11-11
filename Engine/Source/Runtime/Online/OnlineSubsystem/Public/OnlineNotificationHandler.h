@@ -2,40 +2,14 @@
 
 #pragma once
 #include "OnlineSubsystemPackage.h"
+#include "OnlineSubsystemTypes.h"
 #include "OnlineNotificationTransportInterface.h"
 
-/**
-* unique identifier for notification transports
-*/
-typedef FString FNotificationTransportId;
+// forward declarations
+class IOnlineNotificationTransport;
 
-/**
-* Details of an entitlement
-*/
-struct FOnlineNotificationTransport
-{
-	/** Unique notification transport id associated with this transport */
-	FNotificationTransportId Id;
 
-	//TODO
-	//delegate for receiving
-	//delegate for sending
-
-	/**
-	* Equality operator
-	*/
-	bool operator==(const FOnlineNotificationTransport& Other) const
-	{
-		return Other.Id == Id;
-	}
-
-	bool SendNotification(const FOnlineNotification& Notification)
-	{
-		return true;
-	}
-};
-
-/** What happened in the handler function */
+/** Whether a handler function handled a particular notification */
 enum class EOnlineNotificationResult
 {
 	None,		// No handling occurred
@@ -96,16 +70,12 @@ protected:
 	/** Map from player and type of notification to the delegate to call */
 	TMap< FString, NotificationTypeBindingsMap > PlayerBindingMap;
 
-	/** Map from a transport type to the transport object */
-	TMap< FString, FOnlineNotificationTransport > TransportMap;
-
 public:
 
+	/** Lifecycle is managed by OnlineSubSystem, all access should be made through there */
 	FOnlineNotificationHandler()
 	{
 	}
-
-	static FOnlineNotificationHandler Singleton;
 
 	// SYSTEM NOTIFICATION BINDINGS
 
@@ -136,18 +106,6 @@ public:
 
 	/** Deliver a notification to the appropriate handler for that player/msg type.  Called by NotificationTransport implementations. */
 	void DeliverNotification(const FOnlineNotification& Notification);
-
-	// NOTIFICATION TRANSPORTS / SENDING
-
-	/** Add a notification transport */
-	void AddNotificationTransport(FString TransportType, const FOnlineNotificationTransport& Transport);
-
-	/** Remove a notification transport */
-	void RemoveNotificationTransport(FString TransportType);
-
-	/** Send a notification using a specific transport */
-	bool SendNotification(FString TransportType, const FOnlineNotification& Notification);
-
-	/** Resets all transports */
-	void ResetNotificationTransports();
 };
+
+typedef TSharedPtr<FOnlineNotificationHandler, ESPMode::ThreadSafe> FOnlineNotificationHandlerPtr;

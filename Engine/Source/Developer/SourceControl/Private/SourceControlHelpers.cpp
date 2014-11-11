@@ -218,7 +218,7 @@ bool CheckOutFile( const FString& InFilePath )
 					FMessageLog("SourceControl").Error(FText::Format(LOCTEXT("CheckoutFailed", "Failed to check out file '{InFilePath}'."), Arguments));
 				}
 			}
-			if(!SourceControlState->IsSourceControlled())
+			else if(!SourceControlState->IsSourceControlled())
 			{
 				bSuccessfullyCheckedOut = (SourceControlProvider.Execute( ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut ) == ECommandResult::Succeeded);
 				if (!bSuccessfullyCheckedOut)
@@ -228,8 +228,7 @@ bool CheckOutFile( const FString& InFilePath )
 					FMessageLog("SourceControl").Error(FText::Format(LOCTEXT("AddFailed", "Failed to add file '{InFilePath}' to source control."), Arguments));
 				}
 			}
-
-			if(!SourceControlState->IsCurrent())
+			else if(!SourceControlState->IsCurrent())
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add( TEXT("InFilePath"), FText::FromString(InFilePath) );

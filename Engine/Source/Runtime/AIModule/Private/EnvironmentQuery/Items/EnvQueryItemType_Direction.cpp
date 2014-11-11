@@ -28,14 +28,14 @@ void UEnvQueryItemType_Direction::SetValueRot(uint8* RawData, const FRotator& Va
 	return SetValueInMemory<FVector>(RawData, Value.Vector());
 }
 
-FRotator UEnvQueryItemType_Direction::GetRotation(const uint8* RawData) const
+FRotator UEnvQueryItemType_Direction::GetItemRotation(const uint8* RawData) const
 {
 	return UEnvQueryItemType_Direction::GetValueRot(RawData);
 }
 
 FString UEnvQueryItemType_Direction::GetDescription(const uint8* RawData) const
 {
-	FRotator Rot = GetRotation(RawData);
+	FRotator Rot = GetItemRotation(RawData);
 	return FString::Printf(TEXT("(P=%.0f,Y=%.0f,R=%.0f)"), Rot.Pitch, Rot.Yaw, Rot.Roll);
 }
 
