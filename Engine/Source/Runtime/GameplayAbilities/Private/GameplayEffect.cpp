@@ -227,6 +227,10 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 				OutCalculatedMagnitude = CalcCDO->CalculateMagnitude(InRelevantSpec);
 			}
 			break;
+
+			case EGameplayEffectMagnitudeCalculation::SetByCaller:
+				// Add check that we've been set?
+				break;
 		}
 	}
 
@@ -544,6 +548,24 @@ void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container
 	Container.AppendTags(DynamicGrantedTags);
 	Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
 }
+
+void FGameplayEffectSpec::SetModifierMagnitude(int32 ModIdx, float EvaluatedMagnitude)
+{
+	if (Def->Modifiers.IsValidIndex(EvaluatedMagnitude) == false)
+	{
+		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetModifierMagnitude called on invalid index %d for Def: %s"), ModIdx, *Def->GetName());
+		return;
+	}
+
+	if (Def->Modifiers[ModIdx].ModifierMagnitude.GetMagnitudeCalculationType() != EGameplayEffectMagnitudeCalculation::SetByCaller)
+	{
+		ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetModifierMagnitude called on index %d for Def: %s - this modifier not SetByCaller!"), ModIdx, *Def->GetName());
+		return;
+	}
+	
+	Modifiers[ModIdx].EvaluatedMagnitude = EvaluatedMagnitude;
+}
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //

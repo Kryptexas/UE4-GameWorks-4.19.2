@@ -89,9 +89,14 @@ struct FGameplayEffectStackingCallbacks
 UENUM()
 enum class EGameplayEffectMagnitudeCalculation : uint8
 {
-	ScalableFloat,			// Use a simple, scalable float for the calculation
-	AttributeBased,			// Perform a calculation based upon an attribute
-	CustomCalculationClass	// Perform a custom calculation, capable of capturing and acting on multiple attributes, in either BP or native
+	/** Use a simple, scalable float for the calculation */
+	ScalableFloat,
+	/** Perform a calculation based upon an attribute */
+	AttributeBased,
+	/** Perform a custom calculation, capable of capturing and acting on multiple attributes, in either BP or native */
+	CustomCalculationClass,	
+	/** This magnitude will be set explicity by that code/blueprint that creates the spec. */
+	SetByCaller,
 };
 
 /** Enumeration outlining the possible attribute based float calculation policies */
@@ -210,6 +215,8 @@ public:
 	 * @param OutCaptureDefs	[OUT] Array populated with necessary attribute capture definitions
 	 */
 	void GetAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutCaptureDefs) const;
+
+	EGameplayEffectMagnitudeCalculation GetMagnitudeCalculationType() const { return MagnitudeCalculationType; }
 
 protected:
 
@@ -851,6 +858,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	}
 
 	void GetAllGrantedTags(OUT FGameplayTagContainer& Container) const;
+
+	/** Sets the magnitude of one of our modifiers. This must be done on modifiers which are EGameplayEffectMagnitudeCalculation::SetByCaller  */
+	void SetModifierMagnitude(int32 ModIdx, float EvaluatedMagnitude);
 
 	// The duration in seconds of this effect
 	// instantaneous effects should have a duration of UGameplayEffect::INSTANT_APPLICATION
