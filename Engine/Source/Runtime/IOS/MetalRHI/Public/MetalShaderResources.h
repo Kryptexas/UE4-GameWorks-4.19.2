@@ -165,6 +165,10 @@ struct FMetalCodeHeader
 	uint32 Frequency;
 	FMetalShaderBindings Bindings;
 	TArray<FMetalUniformBufferCopyInfo> UniformBuffersCopyInfo;
+
+	uint8 NumThreadsX;
+	uint8 NumThreadsY;
+	uint8 NumThreadsZ;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
@@ -191,6 +195,10 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 			Header.UniformBuffersCopyInfo.Add(Info);
 		}
 	}
+
+	Ar << Header.NumThreadsX;
+	Ar << Header.NumThreadsY;
+	Ar << Header.NumThreadsZ;
 
 	return Ar;
 }

@@ -340,6 +340,11 @@ protected:
 	exec_list sampler_variables;
 	exec_list image_variables;
 
+	/** Attribute [numthreads(X,Y,Z)] */
+	int32 NumThreadsX;
+	int32 NumThreadsY;
+	int32 NumThreadsZ;
+
 	/** Track global instructions. */
 	struct global_ir : public exec_node
 	{
@@ -410,8 +415,10 @@ protected:
 			{
 				md_array_entry* entry = (md_array_entry*)iter.get();
 				if (entry->type == type)
+				{
 					return true;
 				}
+			}
 			md_array_entry* entry = new(mem_ctx) md_array_entry();
 			entry->type = type;
 			used_md_arrays.push_tail(entry);
@@ -450,7 +457,7 @@ protected:
 	/**
 	 * Add tabs/spaces for the current indentation level.
 	 */
-	void indent(void)
+	void indent()
 	{
 		for (int i = 0; i < indentation; i++)
 		{
@@ -851,6 +858,14 @@ protected:
 				do_visit(gir->ir);
 			}
 			indentation--;
+		}
+
+		// Copy the global attributes
+		if (sig->is_main)
+		{
+			NumThreadsX = sig->wg_size_x;
+			NumThreadsY = sig->wg_size_y;
+			NumThreadsZ = sig->wg_size_z;
 		}
 
 		indentation++;
@@ -2365,6 +2380,11 @@ protected:
 				ralloc_asprintf_append(buffer, "\n");
 			}
 		}
+
+		if (Frequency == compute_shader)
+		{
+			ralloc_asprintf_append(buffer, "// @NumThreads: %d, %d, %d\n", this->NumThreadsX, this->NumThreadsY, this->NumThreadsZ);
+		}
 	}
 
 public:
@@ -2599,6 +2619,9 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	// Call the original EntryPoint
 	MainSig->body.push_tail(new(ParseState) ir_call(EntryPointSig, EntryPointReturn, &ArgInstructions));
 	MainSig->body.append_list(&PostCallInstructions);
+	MainSig->wg_size_x = EntryPointSig->wg_size_x;
+	MainSig->wg_size_y = EntryPointSig->wg_size_y;
+	MainSig->wg_size_z = EntryPointSig->wg_size_z;
 
 	// Generate the Main() function
 	auto* MainFunction = new(ParseState)ir_function("Main");

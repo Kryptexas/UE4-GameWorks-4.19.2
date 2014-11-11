@@ -48,8 +48,8 @@ static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 }
 
 /** Initialization constructor. */
-template<typename BaseResourceType>
-TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode)
+template<typename BaseResourceType, int32 ShaderType>
+TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<uint8>& InCode)
 	: DirtyUniformBuffers(0)
 {
 	FMemoryReader Ar(InCode, true);
@@ -159,12 +159,21 @@ TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode
 		Bindings = Header.Bindings;
 		BoundUniformBuffers.AddZeroed(Header.Bindings.NumUniformBuffers);
 		UniformBuffersCopyInfo = Header.UniformBuffersCopyInfo;
+
+		//@todo: Find better way...
+		if (ShaderType == SF_Compute)
+		{
+			auto* ComputeShader = (FMetalComputeShader*)this;
+			ComputeShader->NumThreadsX = Header.NumThreadsX;
+			ComputeShader->NumThreadsY = Header.NumThreadsY;
+			ComputeShader->NumThreadsZ = Header.NumThreadsZ;
+		}
 	}
 }
 
 /** Destructor */
-template<typename BaseResourceType>
-TMetalBaseShader<BaseResourceType>::~TMetalBaseShader()
+template<typename BaseResourceType, int32 ShaderType>
+TMetalBaseShader<BaseResourceType, ShaderType>::~TMetalBaseShader()
 {
 	UNTRACK_OBJECT(Function);
 	[Function release];

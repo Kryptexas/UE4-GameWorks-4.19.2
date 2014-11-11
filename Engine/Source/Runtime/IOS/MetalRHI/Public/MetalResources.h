@@ -22,7 +22,7 @@ public:
 	FVertexDeclarationElementList Elements;
 
 	/** This is the layout for the vertex elements */
- 	MTLVertexDescriptor* Layout;
+	MTLVertexDescriptor* Layout;
 
 protected:
 	void GenerateLayout(const FVertexDeclarationElementList& Elements);
@@ -32,10 +32,11 @@ protected:
 
 
 /** This represents a vertex shader that hasn't been combined with a specific declaration to create a bound shader. */
-template<typename BaseResourceType /*, typename ShaderType */>
+template<typename BaseResourceType, int32 ShaderType>
 class TMetalBaseShader : public BaseResourceType, public IRefCountedObject
 {
 public:
+	enum { StaticFrequency = ShaderType };
 
 	/** Initialization constructor. */
 	TMetalBaseShader()
@@ -64,7 +65,7 @@ public:
 	// this is the compiler shader
 	id<MTLFunction> Function;
 
- 	/** External bindings for this shader. */
+	/** External bindings for this shader. */
 	FMetalShaderBindings Bindings;
 	TArray< TRefCountPtr<FRHIUniformBuffer> > BoundUniformBuffers;
 
@@ -73,19 +74,33 @@ public:
 
 	// List of memory copies from RHIUniformBuffer to packed uniforms
 	TArray<FMetalUniformBufferCopyInfo> UniformBuffersCopyInfo;
-    
+	
 	TArray<ANSICHAR> GlslCode;
-    NSString* GlslCodeNSString;
+	NSString* GlslCodeNSString;
 	const ANSICHAR*  GlslCodeString; // make it easier in VS to see shader code in debug mode; points to begin of GlslCode
 };
 
-typedef TMetalBaseShader<FRHIVertexShader> FMetalVertexShader;
-typedef TMetalBaseShader<FRHIPixelShader> FMetalPixelShader;
-typedef TMetalBaseShader<FRHIHullShader> FMetalHullShader;
-typedef TMetalBaseShader<FRHIDomainShader> FMetalDomainShader;
-typedef TMetalBaseShader<FRHIComputeShader> FMetalComputeShader;
-typedef TMetalBaseShader<FRHIGeometryShader> FMetalGeometryShader;
+typedef TMetalBaseShader<FRHIVertexShader, SF_Vertex> FMetalVertexShader;
+typedef TMetalBaseShader<FRHIPixelShader, SF_Pixel> FMetalPixelShader;
+typedef TMetalBaseShader<FRHIHullShader, SF_Hull> FMetalHullShader;
+typedef TMetalBaseShader<FRHIDomainShader, SF_Domain> FMetalDomainShader;
+typedef TMetalBaseShader<FRHIGeometryShader, SF_Geometry> FMetalGeometryShader;
 
+class FMetalComputeShader : public TMetalBaseShader<FRHIComputeShader, SF_Compute>
+{
+public:
+	FMetalComputeShader(const TArray<uint8>& InCode) :
+		TMetalBaseShader<FRHIComputeShader, SF_Compute>(InCode),
+		NumThreadsX(0),
+		NumThreadsY(0),
+		NumThreadsZ(0)
+	{
+	}
+
+	int32 NumThreadsX;
+	int32 NumThreadsY;
+	int32 NumThreadsZ;
+};
 
 /**
  * Combined shader state and vertex definition for rendering geometry. 
@@ -173,7 +188,7 @@ public:
 	EPixelFormat PixelFormat;
 	uint8 FormatKey;
 	id<MTLTexture> Texture;
-    id<MTLTexture> MSAATexture;
+	id<MTLTexture> MSAATexture;
 	id<MTLTexture> StencilTexture;
 	uint32 SizeX, SizeY, SizeZ;
 	bool bIsCubemap;
@@ -202,8 +217,8 @@ public:
 		, Surface(RRT_Texture2D, Format, SizeX, SizeY, 1, NumSamples, /*bArray=*/ false, 1, NumMips, Flags, BulkData)
 	{
 	}
-    
-    
+	
+	
 };
 
 class FMetalTexture2DArray : public FRHITexture2DArray

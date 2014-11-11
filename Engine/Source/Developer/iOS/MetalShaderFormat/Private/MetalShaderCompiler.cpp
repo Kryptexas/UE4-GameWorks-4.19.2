@@ -114,6 +114,7 @@ static void BuildMetalShaderOutput(
 	DEF_PREFIX_STR(Samplers);
 	DEF_PREFIX_STR(UAVs);
 	DEF_PREFIX_STR(SamplerStates);
+	DEF_PREFIX_STR(NumThreads);
 	#undef DEF_PREFIX_STR
 
 	// Skip any comments that come before the signature.
@@ -599,6 +600,19 @@ static void BuildMetalShaderOutput(
 			// Skip the comma.
 			verify(Match(ShaderSource, ','));
 		}
+	}
+
+	if (FCStringAnsi::Strncmp(ShaderSource, NumThreadsPrefix, NumThreadsPrefixLen) == 0)
+	{
+		ShaderSource += NumThreadsPrefixLen;
+		Header.NumThreadsX = ParseNumber(ShaderSource);
+		verify(Match(ShaderSource, ','));
+		Match(ShaderSource, ' ');
+		Header.NumThreadsY = ParseNumber(ShaderSource);
+		verify(Match(ShaderSource, ','));
+		Match(ShaderSource, ' ');
+		Header.NumThreadsZ = ParseNumber(ShaderSource);
+		verify(Match(ShaderSource, '\n'));
 	}
 
 	// Build the SRT for this shader.
