@@ -1285,7 +1285,7 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsectionNoForced(const class FS
 		switch (LODFalloff)
 		{
 			case ELandscapeLODFalloff::SquareRoot:
-				fLOD = FMath::Sqrt(FMath::Sqrt(Scale / 5.0f));
+				fLOD = FMath::Sqrt(Scale / 5.0f);
 				break;
 			default:
 			case ELandscapeLODFalloff::Linear:
