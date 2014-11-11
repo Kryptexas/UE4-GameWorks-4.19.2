@@ -721,11 +721,13 @@ public:
 	/**
 	 * Called by the native application in response to a mouse button press. Routs the event to Slate Widgets.
 	 *
-	 * @param  InMouseEvent  Mouse event
+	 * @param  PlatformWindow  The platform window the event originated from, used to set focus at the platform level. 
+	 *                         If Invalid the Mouse event will work but there will be no effect on the platform.
+	 * @param  InMouseEvent    Mouse event
 	 *
 	 * @return  Was this event handled by the Slate application?
 	 */
-	bool ProcessMouseButtonDownEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& MouseEvent );
+	bool ProcessMouseButtonDownEvent(const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InMouseEvent);
 
 	/**
 	 * Called by the native application in response to a mouse button release. Routs the event to Slate Widgets.
@@ -943,6 +945,9 @@ public:
 	/** Set the size of the deadzone for dragging in screen pixels */
 	void SetDragTriggerDistnace( float ScreenPixels );
 	
+	/** Set the analog cursor to be enabled or disabled. */
+	void SetAnalogCursorEnable(bool bEnable);
+
 public:
 
 	// Begin FSlateApplicationBase interface

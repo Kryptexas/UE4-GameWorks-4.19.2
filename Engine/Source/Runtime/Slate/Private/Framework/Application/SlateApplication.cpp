@@ -711,8 +711,6 @@ FSlateApplication::FSlateApplication()
 
 	NormalExecutionGetter.BindRaw( this, &FSlateApplication::IsNormalExecution );
 	PointerIndexLastPositionMap.Add(CursorPointerIndex, FVector2D::ZeroVector);
-
-	//AnalogCursor = MakeShareable(new FAnalogCursor);
 }
 
 FSlateApplication::~FSlateApplication()
@@ -1090,9 +1088,9 @@ void FSlateApplication::FinishedInputThisFrame()
 {
 	const float DeltaTime = GetDeltaTime();
 
-	if (AnalogCursor.IsValid())
+	if (AnalogCursor.IsValid() && PlatformApplication->Cursor.IsValid())
 	{
-		AnalogCursor->Tick(DeltaTime, PlatformApplication->Cursor);
+		AnalogCursor->Tick(DeltaTime, *this, PlatformApplication->Cursor.ToSharedRef());
 	}
 
 	// All the input events have been processed.
@@ -2983,6 +2981,18 @@ void FSlateApplication::SetDragTriggerDistnace( float ScreenPixels )
 	DragTriggerDistnace = ScreenPixels;
 }
 
+void FSlateApplication::SetAnalogCursorEnable(bool bEnable)
+{
+	if (bEnable && !AnalogCursor.IsValid())
+	{
+		AnalogCursor = MakeShareable(new FAnalogCursor);
+	}
+	else
+	{
+		AnalogCursor.Reset();
+	}
+}
+
 FVector2D FSlateApplication::CalculatePopupWindowPosition( const FSlateRect& InAnchor, const FVector2D& InSize, const EOrientation Orientation ) const
 {
 	// Do nothing if this window has no size
@@ -3441,6 +3451,12 @@ bool FSlateApplication::OnKeyDown( const int32 KeyCode, const uint32 CharacterCo
 
 bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 {
+	// Analog cursor gets first chance at the input
+	if (AnalogCursor.IsValid() && AnalogCursor->HandleKeyDownEvent(*this, InKeyEvent))
+	{
+		return true;
+	}
+
 	FReply Reply = FReply::Unhandled();
 
 	LastUserInteractionTime = this->GetCurrentTime();
@@ -3520,6 +3536,12 @@ bool FSlateApplication::OnKeyUp( const int32 KeyCode, const uint32 CharacterCode
 
 bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 {
+	// Analog cursor gets first chance at the input
+	if (AnalogCursor.IsValid() && AnalogCursor->HandleKeyUpEvent(*this, InKeyEvent))
+	{
+		return true;
+	}
+
 	FReply Reply = FReply::Unhandled();
 
 	LastUserInteractionTime = this->GetCurrentTime();
@@ -3546,6 +3568,12 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 
 bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInputEvent)
 {
+	// Analog cursor gets first chance at the input
+	if (AnalogCursor.IsValid() && AnalogCursor->HandleAnalogInputEvent(*this, InAnalogInputEvent))
+	{
+		return true;
+	}
+
 	FReply Reply = FReply::Unhandled();
 
 	LastUserInteractionTime = this->GetCurrentTime();
@@ -3641,7 +3669,10 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 	LastUserInteractionTime = this->GetCurrentTime();
 	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	
-	PlatformApplication->SetCapture( PlatformWindow );
+	if (PlatformWindow.IsValid())
+	{
+		PlatformApplication->SetCapture(PlatformWindow);
+	}
 	PressedMouseButtons.Add( MouseEvent.GetEffectingButton() );
 
 	bool bInGame = false;
@@ -4431,14 +4462,6 @@ bool FSlateApplication::OnControllerAnalog( EControllerButtons::Type Button, int
 	int32 UserIndex = GetUserIndexForController(ControllerId);
 	
 	FAnalogInputEvent AnalogInputEvent(Key, PlatformApplication->GetModifierKeys(), UserIndex, false, 0, 0, AnalogValue);
-	
-	if (AnalogCursor.IsValid())
-	{
-		if (AnalogCursor->HandleAnalog(AnalogInputEvent))
-		{
-			return true;
-		}
-	}
 
 	return ProcessAnalogInputEvent(AnalogInputEvent);
 }
@@ -4459,14 +4482,6 @@ bool FSlateApplication::OnControllerButtonReleased( EControllerButtons::Type But
 	int32 UserIndex = GetUserIndexForController(ControllerId);
 	
 	FKeyEvent KeyEvent(Key, PlatformApplication->GetModifierKeys(),UserIndex, IsRepeat,  0, 0);
-
-	if (AnalogCursor.IsValid())
-	{
-		if (AnalogCursor->HandleReleased(KeyEvent))
-		{
-			return true;
-		}
-	}
 
 	return ProcessKeyUpEvent(KeyEvent);
 }
