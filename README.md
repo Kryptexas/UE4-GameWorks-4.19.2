@@ -1,23 +1,34 @@
 Unreal Engine 4.6
 =================
 
-Welcome to the Unreal Engine source code! With this you can build the Unreal Editor for Windows and Mac, 
-compile Unreal Engine games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux,
-and build tools like Unreal Lightmass and Unreal Frontend. Modify them in any way you can imagine, and share your changes with others! 
+Welcome to the Unreal Engine source code! 
 
-Release branches (such as this one) are extensively tested by our QA team and make a great starting point for learning the engine or
-making your own games. Battle-hardened developers may be interested to track [live changes](https://github.com/EpicGames/UnrealEngine/commits/master) 
-by our engine team in the [master branch](https://github.com/EpicGames/UnrealEngine/tree/master) or stable builds verified by our QA team in the 
-[promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted).
+From this repository you can build the Unreal Editor for Windows and Mac, compile Unreal Engine games for Android, iOS, Playstation 4, Xbox One, HTML5 and Linux,
+and build tools like Unreal Lightmass and Unreal Frontend. Modify them in any way you can imagine, and share your changes with others! 
 
 We have a heap of documentation available for the engine on the web. If you're looking for the answer to something, you may want to start here: 
 
 * [Unreal Engine Programming Guide](https://docs.unrealengine.com/latest/INT/Programming/index.html)
-* [Unreal Engine API Documentation](https://docs.unrealengine.com/latest/INT/API/index.html)
+* [Unreal Engine API Reference](https://docs.unrealengine.com/latest/INT/API/index.html)
 * [Engine source and GitHub on the Unreal Engine forums](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion)
 
 If you need more, just ask. A lot of Epic developers hang out on the [forums](https://forums.unrealengine.com/) or [AnswerHub](https://answers.unrealengine.com/), 
 and we're proud to be part of a well-meaning, friendly and welcoming community of thousands. 
+
+
+Branches
+--------
+
+We publish source for the engine in three rolling branches:
+
+The **[release branch](https://github.com/EpicGames/UnrealEngine/tree/4.6)** is extensively tested by our QA team and makes a great starting point for learning the engine or
+making your own games. We work hard to make releases stable and reliable, and aim to publish new releases every 1-2 months.
+
+The **[promoted branch](https://github.com/EpicGames/UnrealEngine/tree/promoted)** branch is updated with builds for our artists and designers to use. We try to update it daily, though we often
+catch things that prevent us from doing so, and it's a good balance between getting the latest cool stuff and knowing most things work.
+
+The **[master branch](https://github.com/EpicGames/UnrealEngine/tree/master)** branch tracks [live changes](https://github.com/EpicGames/UnrealEngine/commits/master) by our engine team. This is the cutting edge and may be buggy - it may not even 
+compile. Battle-hardened developers eager to work lock-step with us on the latest and greatest should head here.
 
 
 Getting up and running
@@ -28,20 +39,19 @@ The steps below will take you through cloning your own private fork, then compil
 ### Windows
 
 1. Install **[GitHub for Windows](https://windows.github.com/)** then **fork our repository** and **clone it to your computer**. 
-
    If you'd rather use Git from the command line, see the [Setting up Git](https://help.github.com/articles/set-up-git/) and [Fork a Repo](https://help.github.com/articles/fork-a-repo/) articles.
-   If you'd prefer not to use Git at all, [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
+   If you'd prefer not to use Git at all, you can [download the source as a zip file](https://github.com/EpicGames/UnrealEngine/archive/4.6.zip).
 
-1. Install **Visual Studio 2013** if you don't already have it.
+1. Make sure you have **Visual Studio 2013** installed.
    Any desktop edition of Visual Studio 2013 will do, including the free version: [Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=40787).
 
 1. Open your source folder in Explorer and run **Setup.bat**. This will download binary content for the engine, as well as installing prerequisites
    and setting up Unreal file associations. On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
    
-   A fresh download of all the engine binaries is currently around 2.5gb, which may take some time to complete on a slow internet connection.
-   Incremental downloads for future checkouts will be much quicker.
+   A clean download of the engine binaries is currently around 2.5gb, which may take some time to complete on a slow internet connection.
+   Subsequent checkouts only require incremental downloads and will be much quicker.
  
-1. Run **GenerateProjectFiles.bat** to create project files for engine. It should take less than a minute to complete.  
+1. Run **GenerateProjectFiles.bat** to create project files for the engine. It should take less than a minute to complete.  
 
 1. Load the project into Visual Studio by double-clicking on the **UE4.sln** file. Set your solution configuration to **Development Editor** and your solution
    platform to **Win64**, then right click on the **UE4** target and select **Build**. It may take anywhere between 10 and 40 minutes to finish compiling, depending on your system specs.
