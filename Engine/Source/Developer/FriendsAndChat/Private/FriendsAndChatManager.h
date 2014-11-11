@@ -119,6 +119,30 @@ public:
 	void DeleteFriend( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
+	* Get incomeing game invite list.
+	*
+	* @param OutFriendsList  Array of friends to fill in.
+	* @return The friend list count.
+	*/
+	int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendListItems > >& OutFriendsList);
+
+	/**
+	* Delegate used when a game invite is rejected.
+	*
+	* @param UserId		The user ID.
+	* @param FriendId	The friend ID.
+	*/
+	void RejectGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
+
+	/**
+	* Delegate used when a game invite is accepted.
+	*
+	* @param UserId		The user ID.
+	* @param FriendId	The friend ID.
+	*/
+	void AcceptGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
+
+	/**
 	 * Find a user ID.
 	 *
 	 * @param InUserName The user name to find.
@@ -186,6 +210,12 @@ public:
 	virtual FOnFriendsUpdated& OnFriendsListUpdated()
 	{
 		return OnFriendsListUpdatedDelegate;
+	}
+
+	DECLARE_EVENT(FFriendsAndChatManager, FOnGameInvitesUpdated)
+	virtual FOnGameInvitesUpdated& OnGameInvitesUpdated()
+	{
+		return OnGameInvitesUpdatedDelegate;
 	}
 
 private:
@@ -335,6 +365,15 @@ private:
 	void OnFriendInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FriendId);
 
 	/**
+	 * Delegate called when an invite is received to a game session
+	 *
+	 * @param UserId user that received the game invite
+	 * @param FromId user that send the game invite
+	 * @param InviteResult info about the game session that can be joined
+	 */
+	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult);
+
+	/**
 	 * Delegate used when a friend is removed.
 	 *
 	 * @param UserId		The user ID.
@@ -421,6 +460,8 @@ private:
 	TArray< TSharedPtr< IFriendListItems > > PendingFriendsList;
 	// Holds the list of incoming invites that need to be responded to
 	TArray< TSharedPtr< IFriendListItems > > PendingIncomingInvitesList;
+	// Holds the list of incoming game invites that need to be responded to
+	TMap< FString, TSharedPtr< IFriendListItems > > PendingGameInvitesList;
 	// Holds the list of invites we have already responded to
 	TArray< TSharedPtr< FUniqueNetId > > NotifiedRequest;
 	// Holds the list messages sent out to be responded to
@@ -459,6 +500,8 @@ private:
 	FOnFriendsChangeDelegate OnFriendsListChangedDelegate;
 	// Delegate for an invite received
 	FOnInviteReceivedDelegate OnFriendInviteReceivedDelegate;
+	// Delegate for a game invite received
+	FOnSessionInviteReceivedDelegate OnGameInviteReceivedDelegate;
 	// Delegate for friend removed
 	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
 	// Delegate for friend invite rejected
@@ -478,6 +521,8 @@ private:
 	// Internal events
 	// Holds the delegate to call when the friends list gets updated - refresh the UI
 	FOnFriendsUpdated OnFriendsListUpdatedDelegate;
+	// Delegate for when list of active game invites updates
+	FOnGameInvitesUpdated OnGameInvitesUpdatedDelegate;
 
 	/* Identity stuff
 	*****************************************************************************/

@@ -145,7 +145,7 @@ public:
 	 */
 	virtual EInviteStatus::Type GetInviteStatus() override;
 
-private:
+protected:
 
 	/** Hidden default constructor. */
 	FFriendStuct()

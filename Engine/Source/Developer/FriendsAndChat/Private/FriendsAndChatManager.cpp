@@ -8,6 +8,7 @@
 #include "SNotificationList.h"
 #include "SWindowTitleBar.h"
 #include "FriendRecentPlayerItems.h"
+#include "FriendGameInviteItem.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
@@ -71,6 +72,7 @@ void FFriendsAndChatManager::Login()
 			OnFriendRemovedDelegate = FOnFriendRemovedDelegate::CreateSP(this, &FFriendsAndChatManager::OnFriendRemoved);
 			OnFriendInviteRejected = FOnInviteRejectedDelegate::CreateSP(this, &FFriendsAndChatManager::OnInviteRejected);
 			OnFriendInviteAccepted = FOnInviteAcceptedDelegate::CreateSP(this, &FFriendsAndChatManager::OnInviteAccepted);
+			OnGameInviteReceivedDelegate = FOnSessionInviteReceivedDelegate::CreateSP(this, &FFriendsAndChatManager::OnGameInviteReceived);
 
 			FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate(OnQueryRecentPlayersCompleteDelegate);
 			FriendsInterface->AddOnFriendsChangeDelegate(0, OnFriendsListChangedDelegate);
@@ -84,6 +86,7 @@ void FFriendsAndChatManager::Login()
 			FriendsInterface->AddOnSendInviteCompleteDelegate( 0, OnSendInviteCompleteDelegate );
 			UserInterface->AddOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
 			OnlineSubMcp->GetPresenceInterface()->AddOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
+			OnlineSubMcp->GetSessionInterface()->AddOnSessionInviteReceivedDelegate(OnGameInviteReceivedDelegate);
 
 			FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
 			OnlinePersonaMcp->AddOnQueryUserIdMappingCompleteDelegate(OnQueryUserIdMappingCompleteDelegate);
@@ -135,6 +138,7 @@ void FFriendsAndChatManager::Logout()
 		if ( OnlineSubMcp != nullptr )
 		{
 			OnlineSubMcp->GetPresenceInterface()->ClearOnPresenceReceivedDelegate(OnPresenceReceivedCompleteDelegate);
+			OnlineSubMcp->GetSessionInterface()->ClearOnSessionInviteReceivedDelegate(OnGameInviteReceivedDelegate);
 			FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
 			if (OnlinePersonaMcp.IsValid())
 			{
@@ -151,6 +155,7 @@ void FFriendsAndChatManager::Logout()
 	PendingOutgoingDeleteFriendRequests.Empty();
 	PendingOutgoingAcceptFriendRequests.Empty();
 	PendingIncomingInvitesList.Empty();
+	PendingGameInvitesList.Empty();
 	NotifiedRequest.Empty();
 
 	if ( FriendWindow.IsValid() )
@@ -529,6 +534,15 @@ int32 FFriendsAndChatManager::GetFilteredOutgoingFriendsList( TArray< TSharedPtr
 	return OutFriendsList.Num();
 }
 
+int32 FFriendsAndChatManager::GetFilteredGameInviteList(TArray< TSharedPtr< IFriendListItems > >& OutFriendsList)
+{
+	for (auto It = PendingGameInvitesList.CreateConstIterator(); It; ++It)
+	{
+		OutFriendsList.Add(It.Value());
+	}
+	return OutFriendsList.Num();
+}
+
 bool FFriendsAndChatManager::IsInSession()
 {
 	return bIsInSession;
@@ -885,7 +899,7 @@ void FFriendsAndChatManager::RefreshList()
 		}
 	}
 
-	OnFriendsListUpdatedDelegate.Broadcast();
+	OnFriendsListUpdated().Broadcast();
 }
 
 void FFriendsAndChatManager::SendFriendRequests()
@@ -1037,6 +1051,48 @@ void FFriendsAndChatManager::OnFriendsListChanged()
 void FFriendsAndChatManager::OnFriendInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FriendId)
 {
 	RequestListRefresh();
+}
+
+void FFriendsAndChatManager::OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult)
+{
+	// game invites can only be received from friends
+	// so should already be in our existing friends list
+	TSharedPtr<IFriendListItems> Friend = FindUser(FromId);
+	if (Friend.IsValid() &&
+		Friend->GetOnlineFriend().IsValid() &&
+		Friend->GetOnlineUser().IsValid())
+	{
+		TSharedPtr<FFriendGameInviteItem> FriendGameInvite = MakeShareable(new FFriendGameInviteItem(
+			Friend->GetOnlineFriend().ToSharedRef(), 
+			Friend->GetOnlineUser().ToSharedRef(), 
+			MakeShareable(new FOnlineSessionSearchResult(InviteResult))
+			));
+
+		PendingGameInvitesList.Add(Friend->GetUniqueID()->ToString(), FriendGameInvite);
+
+		OnGameInvitesUpdated().Broadcast();
+	}
+}
+
+void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendListItems>& FriendItem)
+{
+	TSharedPtr<IFriendListItems>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());
+	if (Existing != NULL)
+	{
+		(*Existing)->SetPendingDelete();
+		PendingGameInvitesList.Remove(FriendItem->GetUniqueID()->ToString());
+	}
+
+	OnGameInvitesUpdated().Broadcast();
+}
+
+void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendListItems>& FriendItem)
+{
+	TSharedPtr<IFriendListItems>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());	
+
+	//@todo samz - broadcast accept for game
+
+	OnGameInvitesUpdated().Broadcast();
 }
 
 void FFriendsAndChatManager::OnFriendRemoved(const FUniqueNetId& UserId, const FUniqueNetId& FriendId)

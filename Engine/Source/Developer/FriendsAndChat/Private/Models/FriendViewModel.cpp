@@ -63,7 +63,11 @@ public:
 	{
 		switch(ActionType)
 		{
-			case EFriendActionType::AcceptFriendRequest : AcceptFriend(); break;
+			case EFriendActionType::AcceptFriendRequest : 
+			{
+				AcceptFriend();
+				break;
+			}
 			case EFriendActionType::RemoveFriend :
 			case EFriendActionType::IgnoreFriendRequest :
 			case EFriendActionType::BlockFriend :
@@ -71,13 +75,33 @@ public:
 			case EFriendActionType::CancelFriendRequest:
 			{
 				RemoveFriend();
+				break;
 			}
-			break;
-			case EFriendActionType::SendFriendRequest : SendFriendRequest(); break;
-			case EFriendActionType::InviteToGame : InviteToGame(); break;
-			case EFriendActionType::JoinGame : JoinGame(); break;
-			case EFriendActionType::RejectGame : RejectGame(); break;
-			case EFriendActionType::Chat : StartChat(); break;
+			case EFriendActionType::SendFriendRequest : 
+			{
+				SendFriendRequest();
+				break;
+			}
+			case EFriendActionType::InviteToGame : 
+			{
+				InviteToGame();
+				break;
+			}
+			case EFriendActionType::JoinGame : 
+			{
+				JoinGame();
+				break;
+			}
+			case EFriendActionType::RejectGame:
+			{
+				RejectGame();
+				break;
+			}
+			case EFriendActionType::Chat:
+			{
+				StartChat();
+				break;
+			}
 		}
 	}
 
@@ -136,17 +160,21 @@ private:
 
 	void JoinGame()
 	{
-		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		if (FriendItem.IsValid() && 
+			FriendItem->GetOnlineFriend().IsValid() && 
+			FriendItem->IsGameRequest())
 		{
-			//FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
+			FFriendsAndChatManager::Get()->AcceptGameInvite(FriendItem);
 		}
 	}
 
 	void RejectGame()
 	{
-		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		if (FriendItem.IsValid() &&
+			FriendItem->GetOnlineFriend().IsValid() &&
+			FriendItem->IsGameRequest())
 		{
-			//FFriendsMessageManager::Get()->RequestJoinAGame( FriendItem->GetOnlineFriend()->GetUserId() );
+			FFriendsAndChatManager::Get()->RejectGameInvite(FriendItem);
 		}
 	}
 

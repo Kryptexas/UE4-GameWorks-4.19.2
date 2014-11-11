@@ -54,7 +54,14 @@ public:
 private:
 	void Initialize()
 	{
-		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP( this, &FFriendListViewModelImpl::RefreshFriendsList );
+		if (ListType == EFriendsDisplayLists::GameInviteDisplay)
+		{
+			FFriendsAndChatManager::Get()->OnGameInvitesUpdated().AddSP(this, &FFriendListViewModelImpl::RefreshFriendsList);
+		}
+		else
+		{
+			FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FFriendListViewModelImpl::RefreshFriendsList);
+		}
 		RefreshFriendsList();
 	}
 
@@ -71,8 +78,7 @@ private:
 
 		if(ListType == EFriendsDisplayLists::GameInviteDisplay)
 		{
-				// Add Invite items here
-				// OfflineFriendsList = 
+			FFriendsAndChatManager::Get()->GetFilteredGameInviteList(OfflineFriendsList);
 		}
 		else if (ListType == EFriendsDisplayLists::RecentPlayersDisplay)
 		{
