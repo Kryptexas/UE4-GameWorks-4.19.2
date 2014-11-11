@@ -45,6 +45,7 @@
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin/mono-boehm
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono
+!/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono/config
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono/4.5
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono/4.5/machine.config
 !/Engine/Binaries/ThirdParty/Mono/Mac/lib/
