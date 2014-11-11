@@ -1077,7 +1077,7 @@ void FFriendsAndChatManager::OnGameInviteReceived(const FUniqueNetId& UserId, co
 void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendListItems>& FriendItem)
 {
 	TSharedPtr<IFriendListItems>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());
-	if (Existing != NULL)
+	if (Existing != nullptr)
 	{
 		(*Existing)->SetPendingDelete();
 		PendingGameInvitesList.Remove(FriendItem->GetUniqueID()->ToString());
@@ -1093,6 +1093,21 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendListItems>
 	//@todo samz - broadcast accept for game
 
 	OnGameInvitesUpdated().Broadcast();
+}
+
+void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendListItems>& FriendItem)
+{
+	if (OnlineSubMcp != nullptr &&
+		OnlineIdentity.IsValid() &&
+		OnlineSubMcp->GetSessionInterface().IsValid() &&
+		OnlineSubMcp->GetSessionInterface()->GetNamedSession(GameSessionName) != nullptr)
+	{
+		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		if (UserId.IsValid())
+		{
+			OnlineSubMcp->GetSessionInterface()->SendSessionInviteToFriend(*UserId, GameSessionName, *FriendItem->GetUniqueID());
+		}
+	}
 }
 
 void FFriendsAndChatManager::OnFriendRemoved(const FUniqueNetId& UserId, const FUniqueNetId& FriendId)

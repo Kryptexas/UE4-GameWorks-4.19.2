@@ -152,9 +152,10 @@ private:
 
 	void InviteToGame()
 	{
-		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		if (FriendItem.IsValid() && 
+			FriendItem->GetOnlineFriend().IsValid())
 		{
-			//FFriendsMessageManager::Get()->InviteFriendToGame( FriendItem->GetOnlineFriend()->GetUserId() );
+			FFriendsAndChatManager::Get()->SendGameInvite(FriendItem);
 		}
 	}
 

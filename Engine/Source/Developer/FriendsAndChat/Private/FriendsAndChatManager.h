@@ -119,28 +119,33 @@ public:
 	void DeleteFriend( TSharedPtr< IFriendListItems > FriendItem );
 
 	/**
-	* Get incomeing game invite list.
-	*
-	* @param OutFriendsList  Array of friends to fill in.
-	* @return The friend list count.
-	*/
+	 * Get incoming game invite list.
+	 *
+	 * @param OutFriendsList  Array of friends to fill in.
+	 * @return The friend list count.
+	 */
 	int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendListItems > >& OutFriendsList);
 
 	/**
-	* Delegate used when a game invite is rejected.
-	*
-	* @param UserId		The user ID.
-	* @param FriendId	The friend ID.
-	*/
+	 * Reject a game invite
+	 *
+	 * @param FriendItem friend with game invite info
+	 */
 	void RejectGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
 
 	/**
-	* Delegate used when a game invite is accepted.
-	*
-	* @param UserId		The user ID.
-	* @param FriendId	The friend ID.
-	*/
+	 * Accept a game invite
+	 *
+	 * @param FriendItem friend with game invite info
+	 */
 	void AcceptGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
+
+	/**
+	 * Send a game invite to a friend
+	 *
+	 * @param FriendItem friend to send game invite to
+	 */
+	void SendGameInvite(const TSharedPtr<IFriendListItems>& FriendItem);
 
 	/**
 	 * Find a user ID.
