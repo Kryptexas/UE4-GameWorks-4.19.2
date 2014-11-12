@@ -245,10 +245,10 @@ FReply SRetargetManager::OnSaveRetargetBasePose()
 			const FScopedTransaction Transaction( LOCTEXT("SaveRetargetBasePose_Action", "Save Retarget Base Pose") );
 			PreviewMesh->Modify();
 			// get space bases and calculate local
-			const TArray<FTransform> & SpaceBases = PreviewMeshComp->SpaceBases;
+			const TArray<FTransform>& SpaceBases = PreviewMeshComp->SpaceBases;
 			// @todo check to see if skeleton vs preview mesh makes it different for missing bones
 			const FReferenceSkeleton& RefSkeleton = PreviewMesh->RefSkeleton;
-			TArray<FTransform> & NewRetargetBasePose = PreviewMesh->RetargetBasePose;
+			TArray<FTransform>& NewRetargetBasePose = PreviewMesh->RetargetBasePose;
 			// if you're using master pose component in preview, this won't work
 			check (PreviewMesh->RefSkeleton.GetNum() == SpaceBases.Num());
 			int32 TotalNumBones = PreviewMesh->RefSkeleton.GetNum();

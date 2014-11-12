@@ -494,7 +494,7 @@ void SBlendSpaceSamplesWidget::ConstructSamplesPanel()
 {
 	SampleDataPanel->ClearChildren();
 
-	const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
+	const TArray<struct FBlendSample>& SampleData = BlendSpace->GetBlendSamples();
 
 	for(int32 I=0; I<SampleData.Num(); ++I)
 	{
@@ -740,7 +740,7 @@ FReply SBlendSpaceWidget::OnDragDetected( const FGeometry& MyGeometry, const FPo
 		{
 			check (CachedSamples.IsValidIndex(HighlightedSample));
 
-			FBlendSample & Sample = CachedSamples[HighlightedSample];
+			FBlendSample& Sample = CachedSamples[HighlightedSample];
 
 			TSharedRef<FSampleDragDropOp> Operation = FSampleDragDropOp::New();
 			Operation->OriginalSampleIndex = HighlightedSample;
@@ -837,7 +837,7 @@ void SBlendSpaceWidget::HandleSampleDrop(const FGeometry& MyGeometry, const FVec
 				const FScopedTransaction Transaction( LOCTEXT("MoveSample", "Move Sample") );
 				BlendSpace->Modify();
 
-				FBlendSample & Sample = CachedSamples[OriginalIndex];
+				FBlendSample& Sample = CachedSamples[OriginalIndex];
 				// otherwise overwrite current animation
 				BlendSpace->DeleteSample(Sample);
 				FBlendSample NewSample(DroppedSequence, LastValidMouseEditorPoint, true);
@@ -853,13 +853,13 @@ void SBlendSpaceWidget::HandleSampleDrop(const FGeometry& MyGeometry, const FVec
 			if(OriginalIndex != INDEX_NONE)
 			{
 				//Clean up dragging sample
-				FBlendSample & OriginalSample = CachedSamples[OriginalIndex];
+				FBlendSample& OriginalSample = CachedSamples[OriginalIndex];
 				BlendSpace->DeleteSample(OriginalSample);
 			}
 
 			check (CachedSamples.IsValidIndex(HighlightedIndex));
 
-			FBlendSample & HighlightedSample = CachedSamples[HighlightedIndex];
+			FBlendSample& HighlightedSample = CachedSamples[HighlightedIndex];
 			BlendSpace->DeleteSample(HighlightedSample);
 			HighlightedSample.Animation = DroppedSequence;
 			bAddSampleSuccess = BlendSpace->AddSample(HighlightedSample);
@@ -901,7 +901,7 @@ void SBlendSpaceWidget::ValidateSamplePositions()
 	}
 }
 
-void SBlendSpaceWidget::DrawToolTip(const FVector2D & LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawToolTip(const FVector2D& LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	if (bTooltipOn)
 	{
@@ -949,7 +949,7 @@ void SBlendSpaceWidget::DrawToolTip(const FVector2D & LeftTopPos, const FText& T
 	}
 }
 
-void SBlendSpaceWidget::DrawSamplePoint( const FVector2D & Point, EBlendSpaceSampleState::Type SampleState, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawSamplePoint( const FVector2D& Point, EBlendSpaceSampleState::Type SampleState, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	const FSlateBrush* StyleInfo = NULL;
 
@@ -1004,7 +1004,7 @@ void SBlendSpaceWidget::DrawSamplePoints( const FSlateRect& WindowRect, const FG
 	}
 }
 
-void SBlendSpaceWidget::DrawText( const FVector2D & Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawText( const FVector2D& Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	FSlateFontInfo MyFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );

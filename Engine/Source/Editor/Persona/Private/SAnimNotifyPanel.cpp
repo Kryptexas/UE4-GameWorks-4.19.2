@@ -2857,7 +2857,7 @@ void SNotifyEdTrack::Construct(const FArguments& InArgs)
 {
 	Sequence = InArgs._Sequence;
 	TrackIndex = InArgs._TrackIndex;
-	FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[InArgs._TrackIndex];
+	FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[InArgs._TrackIndex];
 	// @Todo anim: we need to fix this to allow track color to be customizable. 
 	// for now name, and track color are given
 	Track.TrackColor = ((TrackIndex & 1) != 0) ? FLinearColor(0.9f, 0.9f, 0.9f, 0.9f) : FLinearColor(0.5f, 0.5f, 0.5f);
@@ -3040,7 +3040,7 @@ FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
 	// before insert, make sure everything behind is fixed
 	for (int32 I=TrackIndexToInsert; I<Sequence->AnimNotifyTracks.Num(); ++I)
 	{
-		FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[I];
+		FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[I];
 		for (int32 J=0; J<Track.Notifies.Num(); ++J)
 		{
 			// fix notifies indices
@@ -3071,7 +3071,7 @@ FReply SAnimNotifyPanel::DeleteTrack(int32 TrackIndexToDelete)
 			// before insert, make sure everything behind is fixed
 			for (int32 I=TrackIndexToDelete+1; I<Sequence->AnimNotifyTracks.Num(); ++I)
 			{
-				FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[I];
+				FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[I];
 				for (int32 J=0; J<Track.Notifies.Num(); ++J)
 				{
 					// fix notifies indices
@@ -3167,7 +3167,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 
 	for(int32 I=Sequence->AnimNotifyTracks.Num()-1; I>=0; --I)
 	{
-		FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[I];
+		FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[I];
 		TSharedPtr<SNotifyEdTrack> EdTrack;
 
 		NotifySlots->AddSlot()

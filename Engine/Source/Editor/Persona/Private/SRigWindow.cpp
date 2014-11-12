@@ -334,7 +334,7 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 	if ( Rig )
 	{
 		bool bDoFiltering = !SearchText.IsEmpty();
-		const TArray<FNode> & Nodes = Rig->GetNodes();
+		const TArray<FNode>& Nodes = Rig->GetNodes();
 
 		for ( const auto Node : Nodes )
 		{

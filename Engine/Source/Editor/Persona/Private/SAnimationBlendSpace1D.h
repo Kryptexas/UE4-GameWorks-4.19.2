@@ -128,7 +128,7 @@ public:
 	 * Mapping function between WidgetPos and GridPos
 	 */
 	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const override;
-	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const override;
+	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const override;
 
 	/**
 	 * Snaps a position in editor space to the editor grid

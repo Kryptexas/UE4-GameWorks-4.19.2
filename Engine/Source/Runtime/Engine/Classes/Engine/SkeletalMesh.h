@@ -127,9 +127,9 @@ struct FBoneReference
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** Name of bone to control. This is the main bone chain to modify from. **/
-		UPROPERTY(EditAnywhere, Category = BoneReference)
-		FName BoneName;
+	/** Name of bone to control. This is the main bone chain to modify from. **/
+	UPROPERTY(EditAnywhere, Category = BoneReference)
+	FName BoneName;
 
 	/** Cached bone index for run time - right now bone index of skeleton **/
 	int32 BoneIndex;

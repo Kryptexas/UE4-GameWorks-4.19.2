@@ -353,7 +353,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		{
 			// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
 			TArray<FBlendSampleData> SampleDataList;
-			const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
+			const TArray<struct FBlendSample>& SampleData = BlendSpace->GetBlendSamples();
 
 			// if no sample data is found, return 
 			if (BlendSpace->GetSamplesFromBlendInput(LastValidMouseEditorPoint, SampleDataList))
@@ -458,7 +458,7 @@ TOptional<FVector2D> SBlendSpace1DWidget::GetWidgetPosFromEditorPos(const FVecto
 	return OutWidgetPos;
 }
 
-TOptional<FVector> SBlendSpace1DWidget::GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const
+TOptional<FVector> SBlendSpace1DWidget::GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const
 {
 	TOptional<FVector> OutGridPos;
 

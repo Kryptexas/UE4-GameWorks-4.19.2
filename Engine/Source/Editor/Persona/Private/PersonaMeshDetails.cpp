@@ -664,7 +664,7 @@ void FPersonaMeshDetails::RefreshBonesToRemove(TArray<FBoneReference>& InOutBone
 
 	if (Skeleton->BoneReductionSettingsForLODs.Num() > LODSettingIndex)
 	{
-		const TArray<FName> & BonesToRemove = Skeleton->BoneReductionSettingsForLODs[LODSettingIndex].BonesToRemove;
+		const TArray<FName>& BonesToRemove = Skeleton->BoneReductionSettingsForLODs[LODSettingIndex].BonesToRemove;
 
 		// filter out only the parent, not all children
 		int32 TotalNumOfBonesToRemove = BonesToRemove.Num();

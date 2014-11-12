@@ -193,7 +193,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 		return;
 	}
 
-	TArray<FTransform> & SpaceBases = Component->SpaceBases;
+	TArray<FTransform>& SpaceBases = Component->SpaceBases;
 
 	check (SpaceBases.Num() == PreviousSpacesBases.Num());
 

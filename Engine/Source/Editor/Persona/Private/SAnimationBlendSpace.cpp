@@ -73,7 +73,7 @@ struct FGridSpaceConverter
 	}
 
 	/** Local Widget Space -> Curve Input domain. */
-	FVector ScreenToInput(const FVector2D & Screen) const
+	FVector ScreenToInput(const FVector2D& Screen) const
 	{
 		FVector Output = MinInput;
 		FVector2D LocalScreen = Screen - ScreenMin;
@@ -321,7 +321,7 @@ bool FDelaunayTriangleGenerator::FlipTriangles(int32 I, int32 J)
 	return Flipped;
 }
 
-void FDelaunayTriangleGenerator::AddTriangle(FTriangle & newTriangle, bool bCheckHalfEdge/*=true*/)
+void FDelaunayTriangleGenerator::AddTriangle(FTriangle& newTriangle, bool bCheckHalfEdge/*=true*/)
 {
 	// see if it's same vertices
 	for (int32 I=0;I<TriangleList.Num(); ++I)
@@ -341,7 +341,7 @@ void FDelaunayTriangleGenerator::AddTriangle(FTriangle & newTriangle, bool bChec
 	TriangleList.Add(new FTriangle(newTriangle));
 }
 
-int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint> & PointList, const int32 TotalNum)
+int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint>& PointList, const int32 TotalNum)
 {
 	if (TotalNum < BLENDSPACE_MINSAMPLE)
 	{
@@ -443,7 +443,7 @@ int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint> & PointList, 
 * 
 * @return	true if successfully found the triangle this point is within
 */
-bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const
+bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle*& OutTriangle, const TArray<FTriangle*>& TriangleList) const
 {
 	// sort triangle by distance to TestPoint
 	TArray<FSortByDistance> SortedTriangles;
@@ -523,7 +523,7 @@ bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, F
 * @param	SamplePoints		: Sample Point List
 * @param	TriangleList		: List of triangles
 */
-void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, const TArray<FTriangle*> & TriangleList)
+void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, const TArray<FTriangle*>& TriangleList)
 {
 	check ( GridNum.X > 0 && GridNum.Y > 0 );
 	check ( GridDim.IsValid );
@@ -552,7 +552,7 @@ void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, c
 		for (int32 J=0; J<GridSizeY; ++J)
 		{
 			FTriangle * SelectedTriangle = NULL;
-			FEditorElement & Ele = Elements[ I*GridSizeY + J ];
+			FEditorElement& Ele = Elements[ I*GridSizeY + J ];
 
 			PointPos = GetPosFromIndex(I, J);
 			if ( FindTriangleThisPointBelongsTo(PointPos, Weights, SelectedTriangle, TriangleList) )
@@ -710,7 +710,7 @@ TOptional<FVector2D> SBlendSpaceGridWidget::GetWidgetPosFromEditorPos(const FVec
 	return OutWidgetPos;
 }
 
-TOptional<FVector> SBlendSpaceGridWidget::GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const
+TOptional<FVector> SBlendSpaceGridWidget::GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const
 {
 	TOptional<FVector> OutGridPos;
 
@@ -775,8 +775,8 @@ void SBlendSpaceGridWidget::ResampleData()
 		Generator.Triangulate();
 
 		// once triangulated, generated grid
-		const TArray<FPoint> & Points = Generator.GetSamplePointList();
-		const TArray<FTriangle*> & Triangles = Generator.GetTriangleList();
+		const TArray<FPoint>& Points = Generator.GetSamplePointList();
+		const TArray<FTriangle*>& Triangles = Generator.GetTriangleList();
 		BlendSpaceGrid.GenerateGridElements(Points, Triangles );
 
 		// now fill up grid elements in BlendSpace using this Element information
@@ -791,7 +791,7 @@ void SBlendSpaceGridWidget::ResampleData()
 
 		if (Triangles.Num() > 0 )
 		{
-			const TArray<FEditorElement> & GridElements = BlendSpaceGrid.GetElements();
+			const TArray<FEditorElement>& GridElements = BlendSpaceGrid.GetElements();
 			BlendSpace->FillupGridElements(SamplePoints, GridElements);
 		}
 	}
@@ -815,7 +815,7 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 	CachedGridIndices = FIntPoint::NoneValue;
 }
 
-void SBlendSpaceGridWidget::DrawHighlightGrid(const FVector2D & LeftTopPos, const FVector2D & RightBottomPos, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceGridWidget::DrawHighlightGrid(const FVector2D& LeftTopPos, const FVector2D& RightBottomPos, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	FVector2D DrawSize = RightBottomPos - LeftTopPos;
 	FVector2D Pos = LeftTopPos;
@@ -972,7 +972,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 		{
 			// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
 			TArray<FBlendSampleData> SampleDataList;
-			const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
+			const TArray<struct FBlendSample>& SampleData = BlendSpace->GetBlendSamples();
 
 			// if no sample data is found, return 
 			if (BlendSpace->GetSamplesFromBlendInput(LastValidMouseEditorPoint, SampleDataList))
@@ -1024,7 +1024,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 	}
 
 	// draw triangles
-	const TArray<FTriangle*> & TriangleList = Generator.GetTriangleList();
+	const TArray<FTriangle*>& TriangleList = Generator.GetTriangleList();
 	// now I'd like to get all triangles all 4 points are available
 	TArray<FTriangle*> NewTriangles;
 	if ( TriangleList.Num() > 0 )
@@ -1452,7 +1452,7 @@ FVector UnnormalizeGridPos(const FBox& GridDim, const FVector& NormalizedGridPos
 /** 
 * Get Min/Max windows position from Grid Pos
 */
-bool SBlendSpaceGridWidget::GetMinMaxFromGridPos(FVector GridPos, FVector2D & WindowLeftTop, FVector2D & WindowRightBottom, const FSlateRect& WindowRect) const
+bool SBlendSpaceGridWidget::GetMinMaxFromGridPos(FVector GridPos, FVector2D& WindowLeftTop, FVector2D& WindowRightBottom, const FSlateRect& WindowRect) const
 {
 	// grid 5 means, indexing from 0 - 5 to have 5 grids. 
 	const FBox& GridDim = BlendSpaceGrid.GetGridDim();

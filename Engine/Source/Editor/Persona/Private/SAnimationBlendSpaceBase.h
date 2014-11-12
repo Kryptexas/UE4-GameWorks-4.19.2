@@ -49,7 +49,7 @@ struct FLine
 			(LinePoints[0] == Other.LinePoints[1] && LinePoints[1] == Other.LinePoints[0]));
 	}
 
-	FLine(const FVector2D & A, const FVector2D& B, const FColor InColor, int32 InLayerID)
+	FLine(const FVector2D& A, const FVector2D& B, const FColor InColor, int32 InLayerID)
 	{
 		LinePoints[0] = A;
 		LinePoints[1] = B;
@@ -62,13 +62,13 @@ struct FDrawLines
 {
 	TArray<FLine> DrawLines;
 
-	void AddLine(const FVector2D & A, const FVector2D& B, const FColor InColor, int32 InLayerID)
+	void AddLine(const FVector2D& A, const FVector2D& B, const FColor InColor, int32 InLayerID)
 	{
 		FLine NewLine(A, B, InColor, InLayerID);
 
 		for (auto Iter=DrawLines.CreateIterator(); Iter; ++Iter)
 		{
-			FLine & ExistingLine = (*Iter);
+			FLine& ExistingLine = (*Iter);
 			if (ExistingLine == NewLine)
 			{
 				if (ExistingLine.LayerID < InLayerID)
@@ -271,7 +271,7 @@ public:
 	 * Mapping function between WidgetPos and GridPos
 	 */
 	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const PURE_VIRTUAL(SBlendSpaceWidget::GetWidgetPosFromEditorPos, return TOptional<FVector2D>(););
-	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const PURE_VIRTUAL(SBlendSpaceWidget::GetEditorPosFromWidgetPos, return TOptional<FVector>(););
+	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const PURE_VIRTUAL(SBlendSpaceWidget::GetEditorPosFromWidgetPos, return TOptional<FVector>(););
 
 	/**
 	 * Snaps a position in editor space to the editor grid
@@ -280,10 +280,10 @@ public:
 
 protected:
 	/** Utility functions for OnPaint */
-	void DrawToolTip(const FVector2D & LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
-	void DrawSamplePoint( const FVector2D & Point, EBlendSpaceSampleState::Type SampleState, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
+	void DrawToolTip(const FVector2D& LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
+	void DrawSamplePoint( const FVector2D& Point, EBlendSpaceSampleState::Type SampleState, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
 	void DrawSamplePoints( const FSlateRect& WindowRect, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, int32 HighlightedSampleIndex ) const;
-	void DrawText( const FVector2D & Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
+	void DrawText( const FVector2D& Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
 	
 	/** Utility functions */
 	FText GetToolTipText(const FVector& GridPos, const TArray<UAnimSequence*> AnimSeqs, const TArray<float> BlendWeights) const;
