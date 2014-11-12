@@ -56,48 +56,6 @@ TArray<TSharedPtr<FSlateBrush>>* FContentSourceViewModel::GetScreenshotBrushes()
 	return &ScreenshotBrushes;
 }
 
-
-const FSlateBrush* FContentSourceViewModel::GetSelectedScreenshotBrush() const
-{
-	return SelectedScreenshotBrush.Get();
-}
-
-void FContentSourceViewModel::SelectNextScreenshotBrush()
-{
-	if (ScreenshotBrushes.Num() > 1)
-	{
-		int currentIndex = ScreenshotBrushes.IndexOfByKey(SelectedScreenshotBrush);
-		int newIndex = currentIndex + 1;
-		if (newIndex < 0)
-		{
-			newIndex += ScreenshotBrushes.Num();
-		}
-		else if (newIndex >= ScreenshotBrushes.Num())
-		{
-			newIndex -= ScreenshotBrushes.Num();
-		}
-		SelectedScreenshotBrush = ScreenshotBrushes[newIndex];
-	}
-}
-
-void FContentSourceViewModel::SelectPreviousScreenshotBrush()
-{
-	if (ScreenshotBrushes.Num() > 1)
-	{
-		int currentIndex = ScreenshotBrushes.IndexOfByKey(SelectedScreenshotBrush);
-		int newIndex = currentIndex - 1;
-		if (newIndex < 0)
-		{
-			newIndex += ScreenshotBrushes.Num();
-		}
-		else if (newIndex >= ScreenshotBrushes.Num())
-		{
-			newIndex -= ScreenshotBrushes.Num();
-		}
-		SelectedScreenshotBrush = ScreenshotBrushes[newIndex];
-	}
-}
-
 void FContentSourceViewModel::SetupBrushes()
 {
 	FString IconBrushName = GetName().ToString() + "_" + ContentSource->GetIconData()->GetName();
@@ -107,10 +65,6 @@ void FContentSourceViewModel::SetupBrushes()
 	{
 		FString ScreenshotBrushName = GetName().ToString() + "_" + ScreenshotData->GetName();
 		ScreenshotBrushes.Add(CreateBrushFromRawData(FName(*ScreenshotBrushName), *ScreenshotData->GetData()));
-	}
-	if (ScreenshotBrushes.Num())
-	{
-		SelectedScreenshotBrush = ScreenshotBrushes[0];
 	}
 }
 

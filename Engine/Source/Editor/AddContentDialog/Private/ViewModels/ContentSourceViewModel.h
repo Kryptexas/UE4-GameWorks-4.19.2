@@ -27,17 +27,6 @@ public:
 	/** Gets an array or brushes which should be used to display screenshots for this content source. */
 	TArray<TSharedPtr<FSlateBrush>>* GetScreenshotBrushes();
 
-	/** Gets the brush for the currently selected screenshot. */
-	const FSlateBrush* GetSelectedScreenshotBrush() const;
-
-	/** Selects the next available screenshot.  When at the last screenshot this will start again at
-		the beginning of the array. */
-	void SelectNextScreenshotBrush();
-
-	/** Selects the previous available screenshot.  When at the first screenshot this will start again at
-		the end of the array. */
-	void SelectPreviousScreenshotBrush();
-
 private:
 	/** Sets up brushes from the images data supplied by the IContentSource. */
 	void SetupBrushes();
@@ -57,9 +46,6 @@ private:
 
 	/** An array or brushes which should be used to display screenshots for this content source. */
 	TArray<TSharedPtr<FSlateBrush>> ScreenshotBrushes;
-
-	/** The brush for the currently selected screenshot. */
-	TSharedPtr<FSlateBrush> SelectedScreenshotBrush;
 
 	/** The view model for the category for this content source. */
 	FCategoryViewModel Category;
