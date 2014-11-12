@@ -134,6 +134,9 @@ private:
 	/** Called to get the visibility of the actor name area */
 	EVisibility GetActorNameAreaVisibility() const;
 
+	/** Called to get the visibility of the scrollbar */
+	EVisibility GetScrollBarVisibility() const;
+
 	/** Returns the name of the image used for the icon on the locked button */
 	const FSlateBrush* OnGetLockButtonImageResource() const;
 	/**
