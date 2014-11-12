@@ -502,7 +502,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 			// compile was already kicked off as a result of a level save, as it
 			// could cause a recursive save)... let the "SaveOnCompile" setting 
 			// only save blueprint assets
-			if (!bIsLevelPackage)
+			if (!bIsLevelPackage && !IsRunningCommandlet())
 			{
 				TArray<UPackage*> PackagesToSave;
 				PackagesToSave.Add(BlueprintPackage);
