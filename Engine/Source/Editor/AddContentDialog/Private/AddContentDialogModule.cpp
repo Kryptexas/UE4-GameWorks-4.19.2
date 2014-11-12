@@ -6,6 +6,7 @@
 #include "FeaturePackContentSourceProvider.h"
 #include "ModuleManager.h"
 #include "SDockTab.h"
+#include "WidgetCarouselModule.h"
 
 #define LOCTEXT_NAMESPACE "AddContentDialog"
 
@@ -15,6 +16,7 @@ class FAddContentDialogModule : public IAddContentDialogModule
 public:
 	virtual void StartupModule() override
 	{
+		FModuleManager::LoadModuleChecked<FWidgetCarouselModule>("WidgetCarousel");
 		ContentSourceProviderManager = TSharedPtr<FContentSourceProviderManager>(new FContentSourceProviderManager());
 		ContentSourceProviderManager->RegisterContentSourceProvider(MakeShareable(new FFeaturePackContentSourceProvider()));
 		FAddContentDialogStyle::Initialize();

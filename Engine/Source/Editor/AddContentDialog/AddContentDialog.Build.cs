@@ -28,6 +28,12 @@ public class AddContentDialog : ModuleRules
 			}
 		);
 
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"WidgetCarousel"
+			}
+		);
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 			}

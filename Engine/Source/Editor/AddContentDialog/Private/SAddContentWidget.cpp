@@ -3,6 +3,7 @@
 #include "AddContentDialogPCH.h"
 
 #include "SSearchBox.h"
+#include "SWidgetCarouselWithNavigation.h"
 
 #define LOCTEXT_NAMESPACE "AddContentDialog"
 
@@ -285,68 +286,9 @@ TSharedRef<SWidget> SAddContentWidget::CreateContentSourceDetail(TSharedPtr<FCon
 
 TSharedRef<SWidget> SAddContentWidget::CreateScreenshotCarousel(TSharedPtr<FContentSourceViewModel> ContentSource)
 {
-	// Previous button and image.
-	TSharedRef<SButton> PreviousButton = 
-		SNew(SButton)
-		.ButtonStyle(FAddContentDialogStyle::Get(), "AddContentDialog.BlankButton")
-		.Visibility(ContentSource->GetScreenshotBrushes()->Num() > 1 ? EVisibility::Visible : EVisibility::Hidden)
-		.OnClicked(this, &SAddContentWidget::PreviousScreenshotButtonClicked, ContentSource)
-		.HAlign(EHorizontalAlignment::HAlign_Left)
-		.VAlign(EVerticalAlignment::VAlign_Center);
-
-	TSharedRef<SImage> PreviousImage = 
-		SNew(SImage)
-		.Image(FAddContentDialogStyle::Get().GetBrush("AddContentDialog.LeftArrow"))
-		.Visibility_Lambda([PreviousButton]()->EVisibility
-		{
-			return PreviousButton->IsHovered() ? EVisibility::Visible : EVisibility::Hidden;
-		});
-
-	PreviousButton->SetContent(PreviousImage);
-
-	// Next button and image.
-	TSharedRef<SButton> NextButton = 
-		SNew(SButton)
-		.ButtonStyle(FAddContentDialogStyle::Get(), "AddContentDialog.BlankButton")
-		.Visibility(ContentSource->GetScreenshotBrushes()->Num() > 1 ? EVisibility::Visible : EVisibility::Hidden)
-		.OnClicked(this, &SAddContentWidget::NextScreenshotButtonClicked, ContentSource)
-		.HAlign(EHorizontalAlignment::HAlign_Right)
-		.VAlign(EVerticalAlignment::VAlign_Center);
-
-	TSharedRef<SImage> NextImage = 
-		SNew(SImage)
-		.Image(FAddContentDialogStyle::Get().GetBrush("AddContentDialog.RightArrow"))
-		.Visibility_Lambda([NextButton]()->EVisibility
-		{
-			return NextButton->IsHovered() ? EVisibility::Visible : EVisibility::Hidden;
-		});
-
-	NextButton->SetContent(NextImage);
-
-	// Image and button overlay.
-	return SNew(SOverlay)
-
-	+ SOverlay::Slot()
-	.HAlign(HAlign_Center)
-	.VAlign(VAlign_Center)
-	[
-		SNew(SImage)
-		.Image(ContentSource.ToSharedRef(), &FContentSourceViewModel::GetSelectedScreenshotBrush)
-	]
-
-	+ SOverlay::Slot()
-	.Padding(0)
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		[
-			PreviousButton
-		]
-		+ SHorizontalBox::Slot()
-		[
-			NextButton
-		]
-	];
+	return SNew(SWidgetCarouselWithNavigation<TSharedPtr<FSlateBrush>>)
+	.OnGenerateWidget(this, &SAddContentWidget::CreateScreenshotWidget)
+	.WidgetItemsSource(ContentSource->GetScreenshotBrushes());
 }
 
 TSharedRef<SWidget> SAddContentWidget::CreateAddListView()
@@ -465,16 +407,10 @@ FReply SAddContentWidget::ContentSourceTileDragDetected(const FGeometry& MyGeome
 	return FReply::Unhandled();
 }
 
-FReply SAddContentWidget::PreviousScreenshotButtonClicked(TSharedPtr<FContentSourceViewModel> ContentSource)
+TSharedRef<SWidget> SAddContentWidget::CreateScreenshotWidget(TSharedPtr<FSlateBrush> ScreenshotBrush)
 {
-	ContentSource->SelectPreviousScreenshotBrush();
-	return FReply::Handled();
-}
-
-FReply SAddContentWidget::NextScreenshotButtonClicked(TSharedPtr<FContentSourceViewModel> ContentSource)
-{
-	ContentSource->SelectNextScreenshotBrush();
-	return FReply::Handled();
+	return SNew(SImage)
+	.Image(ScreenshotBrush.Get());
 }
 
 FReply SAddContentWidget::RemoveAddedContentSourceClicked(TSharedPtr<FContentSourceViewModel> ContentSource)

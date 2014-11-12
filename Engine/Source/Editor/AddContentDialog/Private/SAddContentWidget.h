@@ -40,10 +40,13 @@ private:
 	/** Creates a widget carousel for displaying the set of screenshots for a specific content source. */
 	TSharedRef<SWidget> CreateScreenshotCarousel(TSharedPtr<FContentSourceViewModel> ContentSource);
 
-	/** Creates a list view represnting content which the user has selected for addition to the project. */
+	/** Creates the widget the displays a screenshot in the screenshot carousel. */
+	TSharedRef<SWidget> SAddContentWidget::CreateScreenshotWidget(TSharedPtr<FSlateBrush> ScreenshotBrush);
+
+	/** Creates a list view representing content which the user has selected for addition to the project. */
 	TSharedRef<SWidget> CreateAddListView();
 	
-	/** Creates a row for the list view represnting content selected for addition to the project */
+	/** Creates a row for the list view representing content selected for addition to the project */
 	TSharedRef<ITableRow> CreateAddContentSourceRow(TSharedPtr<FContentSourceViewModel> ContentSource, const TSharedRef<STableViewBase>& OwnerTable);
 
 
@@ -62,12 +65,6 @@ private:
 
 	/** Handles an item from the content source tile view being dragged. */
 	FReply ContentSourceTileDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-
-	/** Handles the previous screenshot button in the screenshot carousel being pressed. */
-	FReply PreviousScreenshotButtonClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
-
-	/** Handles the next screenshot button in the screenshot carousel being pressed */
-	FReply NextScreenshotButtonClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
 
 	/** Handles the remove button being pressed on a row in the list of content selected for addition to the project. */
 	FReply RemoveAddedContentSourceClicked(TSharedPtr<FContentSourceViewModel> ContentSource);
