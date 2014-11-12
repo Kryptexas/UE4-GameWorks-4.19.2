@@ -66,7 +66,7 @@ public:
 					[
 						SNew(STextBlock)
 						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
+						.Font(FriendStyle.FriendsFontStyleBold)
 						.Text(ViewModel->GetListName())
 					]
 					+ SHorizontalBox::Slot()
@@ -79,7 +79,7 @@ public:
 					[
 						SNew(STextBlock)
 						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
+						.Font(FriendStyle.FriendsFontStyleBold)
 						.Text(ViewModelPtr, &FFriendListViewModel::GetListCountText)
 					]
 				]

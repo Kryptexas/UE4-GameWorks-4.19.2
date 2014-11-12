@@ -37,6 +37,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListCriticalButtonStyle(co
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListEmphasisButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListEmphasisButtonStyle = ButtonStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListComboButtonStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListComboButtonStyle = ButtonStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	FriendListItemButtonStyle = ButtonStyle;
@@ -71,6 +83,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetLauncherImageBrush(const FSlateBr
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsComboDropdownImageBrush(const FSlateBrush& Brush)
 {
 	FriendsComboDropdownImageBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsAddImageBrush(const FSlateBrush& Brush)
+{
+	FriendsAddImageBrush = Brush;
 	return *this;
 }
 
@@ -118,9 +136,21 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyle(const FSlateFontInfo& I
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleBold(const FSlateFontInfo& InFontStyle)
+{
+	FriendsFontStyleBold = InFontStyle;
+	return *this;
+}
+
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleSmall(const FSlateFontInfo& FontStyle)
 {
 	FriendsFontStyleSmall = FontStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFontStyleSmallBold(const FSlateFontInfo& FontStyle)
+{
+	FriendsFontStyleSmallBold = FontStyle;
 	return *this;
 }
 

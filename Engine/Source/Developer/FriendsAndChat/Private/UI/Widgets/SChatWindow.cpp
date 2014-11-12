@@ -105,6 +105,7 @@ public:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
+						.Font(FriendStyle.FriendsFontStyleSmallBold)
 						.Text(ViewModelPtr, &FChatViewModel::GetChatGroupText)
 					]
 					+SHorizontalBox::Slot()
@@ -135,6 +136,7 @@ public:
 					SAssignNew(ChatBox, SEditableTextBox)
 					.OnTextCommitted(this, &SChatWindowImpl::HandleChatEntered)
 					.HintText(LOCTEXT("FriendsListSearch", "Enter to chat"))
+					.Font(FriendStyle.FriendsFontStyle)
 				]
 			]
 		]);
@@ -232,7 +234,7 @@ private:
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString("Global Chatter"))
-					.Font(FriendStyle.FriendsFontStyle)
+					.Font(FriendStyle.FriendsFontStyleSmallBold)
 					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				]
 			]
@@ -243,14 +245,14 @@ private:
 			ChannelSelection->AddSlot()
 			[
 				SNew(SButton)
-				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 				.OnClicked(this, &SChatWindowImpl::HandleChannelChanged, EChatMessageType::Whisper, RecentFriend)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString(RecentFriend))
-					.Font(FriendStyle.FriendsFontStyle)
+					.Font(FriendStyle.FriendsFontStyleSmallBold)
 					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				]
 			];
@@ -263,14 +265,14 @@ private:
 			ChannelSelection->AddSlot()
 			[
 				SNew(SButton)
-				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 				.OnClicked(this, &SChatWindowImpl::HandleChannelChanged, Option, FString())
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
 					.Text(EChatMessageType::ToText(Option))
-					.Font(FriendStyle.FriendsFontStyle)
+					.Font(FriendStyle.FriendsFontStyleSmallBold)
 					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				]
 			];
@@ -293,11 +295,11 @@ private:
 		FriendActionBox->AddSlot()
 		[
 			SNew(SButton)
-			.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+			.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 			.OnClicked(this, &SChatWindowImpl::HandleFriendActionClicked)
 			[
 				SNew(STextBlock)
-				.Font(FriendStyle.FriendsFontStyle)
+				.Font(FriendStyle.FriendsFontStyleSmallBold)
 				.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				.Text(FText::FromString("Some Action"))
 			]

@@ -60,6 +60,16 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle FriendListCriticalButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListCriticalButtonStyle(const FButtonStyle& ButtonStyle);
 
+	/** Friends List Emphasis Button style */
+	UPROPERTY()
+	FButtonStyle FriendListEmphasisButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListEmphasisButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Friends List Combo Button style */
+	UPROPERTY()
+	FButtonStyle FriendListComboButtonStyle;
+	FFriendsAndChatStyle& SetFriendsListComboButtonStyle(const FButtonStyle& ButtonStyle);
+
 	UPROPERTY()
 	FButtonStyle FriendListItemButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle);
@@ -93,6 +103,11 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush FriendsComboDropdownImageBrush;
 	FFriendsAndChatStyle& SetFriendsComboDropdownImageBrush(const FSlateBrush& BrushStyle);
+
+	/** Friends Add Icon */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendsAddImageBrush;
+	FFriendsAndChatStyle& SetFriendsAddImageBrush(const FSlateBrush& BrushStyle);
 
 	/** Friend combo callout Image */
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -131,8 +146,18 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 
 	/** Font Style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateFontInfo FriendsFontStyleBold;
+	FFriendsAndChatStyle& SetFontStyleBold(const FSlateFontInfo& InFontStyle);
+
+	/** Font Style */
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateFontInfo FriendsFontStyleSmall;
 	FFriendsAndChatStyle& SetFontStyleSmall(const FSlateFontInfo& InFontStyle);
+
+		/** Font Style */
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateFontInfo FriendsFontStyleSmallBold;
+	FFriendsAndChatStyle& SetFontStyleSmallBold(const FSlateFontInfo& InFontStyle);
 
 	/** Default Font Color */
 	UPROPERTY(EditAnywhere, Category=Appearance)

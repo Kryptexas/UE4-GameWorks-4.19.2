@@ -37,6 +37,7 @@ public:
 				.Padding(3)
 				[
 					SNew(STextBlock)
+					.Font(FriendStyle.FriendsFontStyleSmallBold)
 					.Text(ViewModel->GetFriendName())
 				]
 				+ SVerticalBox::Slot()

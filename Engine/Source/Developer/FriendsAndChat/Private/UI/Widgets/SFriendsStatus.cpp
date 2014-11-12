@@ -6,6 +6,10 @@
 
 #define LOCTEXT_NAMESPACE "SFriendsStatus"
 
+// Style values that shouldn't change
+#define DROPDOWN_MAX_HEIGHT 36
+#define DROPDOWN_MAX_WIDTH 150
+
 /**
  * Declares the Friends Status display widget
 */
@@ -41,32 +45,39 @@ public:
 					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
 					.Cursor(EMouseCursor::Hand)
 					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.HAlign(HAlign_Left)
+						SNew(SBox)
+						.WidthOverride(DROPDOWN_MAX_WIDTH)
+						.HeightOverride(DROPDOWN_MAX_HEIGHT)
 						.VAlign(VAlign_Center)
-						.AutoWidth()
 						[
-							SNew(SImage)
-							.Image(this, &SFriendsStatusImpl::GetStatusBrush)
-						]
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.Text(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.ColorAndOpacity(FLinearColor::White)
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						.Padding(FMargin(5, 0))
-						[
-							SNew(SImage)
-							.ColorAndOpacity(FLinearColor::White)
-							.Image(&FriendStyle.FriendsComboDropdownImageBrush)
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(SImage)
+								.Image(this, &SFriendsStatusImpl::GetStatusBrush)
+							]
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							.Padding(FMargin(5,2))
+							[
+								SNew(STextBlock)
+								.Text(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
+								.Font(FriendStyle.FriendsFontStyleBold)
+								.ColorAndOpacity(FLinearColor::White)
+							]
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							.Padding(FMargin(5, 0))
+							[
+								SNew(SImage)
+								.ColorAndOpacity(FLinearColor::White)
+								.Image(&FriendStyle.FriendsComboDropdownImageBrush)
+							]
 						]
 					]
 				]
@@ -88,6 +99,7 @@ private:
 	TSharedRef<SWidget> GetMenuContent()
 	{
 		return SNew(SBorder)
+			.BorderImage(&FriendStyle.Background)
 			.Padding(FMargin(1, 5))
 			[
 				SNew(SVerticalBox)

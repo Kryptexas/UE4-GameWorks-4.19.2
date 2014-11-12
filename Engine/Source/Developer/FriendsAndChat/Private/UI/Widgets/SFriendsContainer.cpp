@@ -48,7 +48,7 @@ public:
 				]
 				+ SHorizontalBox::Slot()
 				.VAlign(VAlign_Center)
-			 	.HAlign(HAlign_Fill)
+				.HAlign(HAlign_Fill)
 				.Padding(FMargin(5,0))
 				[
 				 	SNew(SHorizontalBox)
@@ -75,8 +75,8 @@ public:
 					]
 				]
 				+ SHorizontalBox::Slot()
-			 	.AutoWidth()
-			 	.HAlign(HAlign_Fill)
+				.AutoWidth()
+				.HAlign(HAlign_Fill)
 				[
 					SNew(SSpacer)
 				]
@@ -89,12 +89,10 @@ public:
 					SNew(SButton)
 					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
 					.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
-				 	.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+					.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
 					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(FText::FromString("+"))
+						SNew(SImage)
+						.Image(&FriendStyle.FriendsAddImageBrush)
 					]
 				]
 			]

@@ -67,7 +67,7 @@ public:
 							+ SVerticalBox::Slot()
 							[
 								SNew(STextBlock)
-								.Font(FriendStyle.FriendsFontStyle)
+								.Font(FriendStyle.FriendsFontStyleBold)
 								.ColorAndOpacity(FriendStyle.DefaultFontColor)
 								.Text(ViewModel->GetFriendName())
 							]
@@ -76,7 +76,7 @@ public:
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-								.Font(FriendStyle.FriendsFontStyleSmall)
+								.Font(FriendStyle.FriendsFontStyleSmallBold)
 								.ColorAndOpacity(FriendStyle.DefaultFontColor)
 								.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
 							]

@@ -356,32 +356,35 @@ void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< IFriendItem > Frien
 		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
 	}
 
-	if ( !ChatWindow.IsValid() )
+	if(ParentWidget.IsValid())
 	{
-		ChatWindow = SNew( SWindow )
-		.Title( LOCTEXT( "FriendsAndChatManager_ChatTitle", "Chat Window") )
-		.ClientSize( DEFAULT_WINDOW_SIZE )
-		.ScreenPosition( FVector2D( 200, 100 ) )
-		.AutoCenter( EAutoCenter::None )
-		.SupportsMaximize( true )
-		.SupportsMinimize( true )
-		.CreateTitleBar( false )
-		.SizingRule( ESizingRule::FixedSize );
-
-		ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
-
-		SetChatWindowContents();
-		if ( ParentWidget.IsValid() )
+		if (!ChatWindow.IsValid())
 		{
-			FWidgetPath WidgetPath;
-			FSlateApplication::Get().GeneratePathToWidgetChecked( ParentWidget.ToSharedRef(), WidgetPath );
-			ChatWindow = FSlateApplication::Get().AddWindowAsNativeChild( ChatWindow.ToSharedRef(), WidgetPath.GetWindow() );
+			ChatWindow = SNew( SWindow )
+			.Title( LOCTEXT( "FriendsAndChatManager_ChatTitle", "Chat Window") )
+			.ClientSize( DEFAULT_WINDOW_SIZE )
+			.ScreenPosition( FVector2D( 200, 100 ) )
+			.AutoCenter( EAutoCenter::None )
+			.SupportsMaximize( true )
+			.SupportsMinimize( true )
+			.CreateTitleBar( false )
+			.SizingRule( ESizingRule::FixedSize );
+
+			ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
+
+			SetChatWindowContents();
+			if ( ParentWidget.IsValid() )
+			{
+				FWidgetPath WidgetPath;
+				FSlateApplication::Get().GeneratePathToWidgetChecked( ParentWidget.ToSharedRef(), WidgetPath );
+				ChatWindow = FSlateApplication::Get().AddWindowAsNativeChild( ChatWindow.ToSharedRef(), WidgetPath.GetWindow() );
+			}
 		}
-	}
-	else if(ChatWindow->IsWindowMinimized())
-	{
-		ChatWindow->Restore();
-		SetChatWindowContents();
+		else if(ChatWindow->IsWindowMinimized())
+		{
+			ChatWindow->Restore();
+			SetChatWindowContents();
+		}
 	}
 
 	ChatViewModel->SetChatFriend(FriendItem);

@@ -54,7 +54,7 @@ public:
 					.Visibility(FriendNameVisibility)
 					.Text(ViewModel->GetFriendID())
 					.ColorAndOpacity(DisplayColor)
-					.Font(FriendStyle.FriendsFontStyle)
+					.Font(FriendStyle.FriendsFontStyleSmallBold)
 				]
 			]
 			+SHorizontalBox::Slot()
