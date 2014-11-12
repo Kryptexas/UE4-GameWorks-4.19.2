@@ -97,19 +97,26 @@ bool FFriendItem::IsGameJoinable() const
 	if (OnlineFriend.IsValid())
 	{
 		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
-		if (FriendPresence.Status.State == EOnlinePresenceState::Online &&
-			FriendPresence.bIsJoinable)
-		{
-			FString SessionIdStr;
-			const FVariantData* SessionId = FriendPresence.Status.Properties.Find(DefaultSessionIdKey);
-			if (SessionId != nullptr)
-			{
-				SessionId->GetValue(SessionIdStr);
-			}
-			return !SessionIdStr.IsEmpty();
-		}
+		const bool bIsOnline = FriendPresence.Status.State == EOnlinePresenceState::Online;
+		const bool bIsJoinable = FriendPresence.bIsJoinable && !GetGameSessionId().IsEmpty();
+		return bIsOnline && bIsJoinable;
 	}
 	return false;
+}
+
+FString FFriendItem::GetGameSessionId() const
+{
+	FString SessionIdStr;
+	if (OnlineFriend.IsValid())
+	{
+		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
+		const FVariantData* SessionId = FriendPresence.Status.Properties.Find(DefaultSessionIdKey);
+		if (SessionId != nullptr)
+		{
+			SessionId->GetValue(SessionIdStr);
+		}		
+	}
+	return SessionIdStr;
 }
 
 const TSharedRef< FUniqueNetId > FFriendItem::GetUniqueID() const

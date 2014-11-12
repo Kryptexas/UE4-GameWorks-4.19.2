@@ -56,6 +56,12 @@ public:
 	virtual bool IsGameJoinable() const = 0;
 
 	/**
+	 * Get game session id that this friend is currently in
+	 * @return The id of the game session
+	 */
+	virtual FString GetGameSessionId() const = 0;
+
+	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */

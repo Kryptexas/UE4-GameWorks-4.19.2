@@ -215,6 +215,12 @@ public:
 		return FriendsSendNetworkMessageEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsJoinGameEvent, FOnFriendsJoinGameEvent)
+	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() override
+	{
+		return FriendsJoinGameEvent;
+	}
+
 	// Internal events
 
 	DECLARE_EVENT(FFriendsAndChatManager, FOnFriendsUpdated)
@@ -532,6 +538,8 @@ private:
 	FOnFriendsUserSettingsUpdatedEvent FriendsUserSettingsUpdatedDelegate;
 	// Holds the network chat message sent delegate
 	FOnFriendsSendNetworkMessageEvent FriendsSendNetworkMessageEvent;
+	// Holds the join game request delegate
+	FOnFriendsJoinGameEvent FriendsJoinGameEvent;
 
 	// Internal events
 	// Holds the delegate to call when the friends list gets updated - refresh the UI

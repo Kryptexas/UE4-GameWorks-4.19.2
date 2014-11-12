@@ -87,6 +87,12 @@ public:
 	virtual bool IsGameJoinable() const override;
 
 	/**
+	 * Get if the user is online and his game is joinable
+	 * @return The user joinable game state.
+	 */
+	virtual FString GetGameSessionId() const override;
+
+	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */

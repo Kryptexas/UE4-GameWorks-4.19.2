@@ -14,6 +14,8 @@ public:
 	// FFriendStuct overrides
 
 	virtual bool IsGameRequest() const override;
+	virtual bool IsGameJoinable() const override;
+	virtual FString GetGameSessionId() const override;
 
 	// FFriendGameInviteItem
 

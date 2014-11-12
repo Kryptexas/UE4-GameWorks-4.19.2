@@ -67,6 +67,9 @@ public:
 	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsSendNetworkMessageEvent, /*struct*/ const FString& /* the message */)
 	virtual FOnFriendsSendNetworkMessageEvent& OnFriendsSendNewtworkMessage() = 0;
 
+	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FString& /*SessionId*/)
+	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
+
 public:
 
 	/** Virtual destructor. */

@@ -12,7 +12,10 @@ public:
 	{
 		if(FriendItem->IsGameRequest())
 		{
-			Actions.Add(EFriendActionType::JoinGame);
+			if (FriendItem->IsGameJoinable())
+			{
+				Actions.Add(EFriendActionType::JoinGame);
+			}
 			Actions.Add(EFriendActionType::RejectGame);
 		}
 		else if(FriendItem->IsPendingAccepted())

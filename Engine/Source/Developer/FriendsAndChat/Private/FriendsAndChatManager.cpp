@@ -1130,17 +1130,22 @@ void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& Fri
 		(*Existing)->SetPendingDelete();
 		PendingGameInvitesList.Remove(FriendItem->GetUniqueID()->ToString());
 	}
-
+	// update game invite UI
 	OnGameInvitesUpdated().Broadcast();
 }
 
 void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
 {
-	TSharedPtr<IFriendItem>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());	
-
-	//@todo samz - broadcast accept for game
-
+	TSharedPtr<IFriendItem>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());
+	if (Existing != nullptr)
+	{
+		(*Existing)->SetPendingDelete();
+		PendingGameInvitesList.Remove(FriendItem->GetUniqueID()->ToString());
+	}
+	// update game invite UI
 	OnGameInvitesUpdated().Broadcast();
+	// notify for further processing of join game request 
+	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), FriendItem->GetGameSessionId());
 }
 
 void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
