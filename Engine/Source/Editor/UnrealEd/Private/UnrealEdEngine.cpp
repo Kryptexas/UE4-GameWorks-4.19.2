@@ -86,7 +86,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Populate the data structures related to the sprite category visibility feature for use elsewhere in the editor later
 	TArray<FSpriteCategoryInfo> SortedSpriteInfo;
-	MakeSortedSpriteInfo(SortedSpriteInfo);
+	UUnrealEdEngine::MakeSortedSpriteInfo(SortedSpriteInfo);
 
 	// Iterate over the sorted list, constructing a mapping of unlocalized categories to the index the localized category
 	// resides in. This is an optimization to prevent having to localize values repeatedly.
@@ -157,7 +157,7 @@ void UUnrealEdEngine::CancelCookByTheBookInEditor()
 	CookServer->QueueCancelCookByTheBook();
 }
 
-void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo) const
+void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo)
 {
 	struct Local
 	{

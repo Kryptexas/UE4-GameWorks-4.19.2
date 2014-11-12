@@ -209,7 +209,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	// End UEngine Interface.
 
 	/** Builds a list of sprite categories for use in menus */
-	void MakeSortedSpriteInfo(TArray<struct FSpriteCategoryInfo>& OutSortedSpriteInfo) const;
+	static void MakeSortedSpriteInfo(TArray<struct FSpriteCategoryInfo>& OutSortedSpriteInfo);
 
 	/** called when a package has has its dirty state updated */
 	void OnPackageDirtyStateUpdated( UPackage* Pkg);
@@ -693,7 +693,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	*
 	* @param	VolumeClasses		Array to populate with AVolume classes.
 	*/
-	void GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses );
+	static void GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses );
 
 	/**
 	 * Checks the destination level visibility and warns the user if he is trying to paste to a hidden level, offering the option to cancel the operation or unhide the level that is hidden

@@ -1306,7 +1306,7 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 
 		// Get all known volume classes
 		TArray< UClass* > VolumeClasses;
-		GUnrealEd->GetSortedVolumeClasses( &VolumeClasses );
+		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 
 		for( int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex )
 		{
@@ -1716,7 +1716,7 @@ void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 void SLevelViewport::ToggleShowVolumeClass( int32 VolumeID )
 {
 	TArray< UClass* > VolumeClasses;
-	GUnrealEd->GetSortedVolumeClasses( &VolumeClasses );
+	UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 
 	// Get the corresponding volume class for the clicked menu item.
 	UClass *SelectedVolumeClass = VolumeClasses[ VolumeID ];

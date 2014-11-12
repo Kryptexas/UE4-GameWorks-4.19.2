@@ -1422,7 +1422,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 
 	// Get the number of volume classes so we can initialize our bit array
 	TArray<UClass*> VolumeClasses;
-	GUnrealEd->GetSortedVolumeClasses( &VolumeClasses ); 
+	UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 	VolumeActorVisibility.Init(true, VolumeClasses.Num() );
 
 	// Initialize all sprite categories to visible
@@ -2741,7 +2741,7 @@ static uint32 GetVolumeActorVisibilityId( const AActor& InActor )
 	{
 		// Build a mapping of volume classes to ID's.  Do this only once
 		TArray< UClass *> VolumeClasses;
-		GUnrealEd->GetSortedVolumeClasses( &VolumeClasses );
+		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 		for( int32 VolumeIdx = 0; VolumeIdx < VolumeClasses.Num(); ++VolumeIdx )
 		{
 			// An actors flag is just the index of the actor in the stored volume array shifted left to represent a unique bit.
