@@ -20,6 +20,8 @@
 #define _strdup strdup
 #endif
 
+#define GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC "GroupMemoryBarrierWithGroupSync"
+
 /**
  * This table must match the ir_expression_operation enum.
  */
@@ -1462,6 +1464,16 @@ protected:
 			call->return_deref->accept(this);
 			ralloc_asprintf_append(buffer, " = ");
 		}
+		else
+		{
+			//@todo-rco: Fix this properly
+			if (!strcmp(call->callee_name(), GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC))
+			{
+				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_threadgroup)");
+				return;
+			}
+		}
+
 		ralloc_asprintf_append(buffer, "%s(", call->callee_name());
 		bool bPrintComma = false;
 		foreach_iter(exec_list_iterator, iter, *call)
@@ -2661,7 +2673,7 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 		}
 
 		const auto* ReturnType = glsl_type::get_instance(GLSL_TYPE_HALF, 4, 1);
-		ir_function* Func = new(State)ir_function(FRAMEBUFFER_FETCH_MRT);
+		ir_function* Func = new(State) ir_function(FRAMEBUFFER_FETCH_MRT);
 		ir_function_signature* Sig = new(State) ir_function_signature(ReturnType);
 		//Sig->is_builtin = true;
 		Sig->is_defined = true;
@@ -2695,5 +2707,11 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 
 		State->symbols->add_global_function(Func);
 		ir->push_tail(Func);
+	}
+
+	// Memory sync/barriers
+	{
+		// GroupMemoryBarrierWithGroupSync
+		make_intrinsic_genType(ir, State, GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC, ir_invalid_opcode, 0, 0, 0, 0);
 	}
 }
