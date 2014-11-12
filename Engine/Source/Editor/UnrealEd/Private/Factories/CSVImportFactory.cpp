@@ -7,6 +7,11 @@
 #include "DirectoryWatcherModule.h"
 #include "../../../DataTableEditor/Public/IDataTableEditor.h"
 #include "Curves/CurveVector.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveLinearColor.h"
+#include "Engine/DataTable.h"
+#include "Engine/CurveTable.h"
+#include "Engine/UserDefinedStruct.h"
 DEFINE_LOG_CATEGORY(LogCSVImportFactory);
 
 #define LOCTEXT_NAMESPACE "CSVImportFactory"

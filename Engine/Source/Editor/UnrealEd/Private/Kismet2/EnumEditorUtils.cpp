@@ -5,6 +5,7 @@
 #include "ScopedTransaction.h"
 #include "BlueprintGraphDefinitions.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Engine/UserDefinedEnum.h"
 
 #define LOCTEXT_NAMESPACE "Enum"
 

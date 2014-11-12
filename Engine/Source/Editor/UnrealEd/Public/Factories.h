@@ -6,6 +6,7 @@
 
 #ifndef __FACTORIES_H__
 #define __FACTORIES_H__
+#include "Animation/VertexAnim/MorphTarget.h"
 
 /**  
  * This class is a simple customizable object factory driven from a text buffer.  

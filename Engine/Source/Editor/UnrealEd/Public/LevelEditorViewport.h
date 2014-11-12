@@ -4,6 +4,7 @@
 #pragma once
 
 #include "EditorViewportClient.h"
+#include "Camera/CameraComponent.h"
 
 // Forward declarations.
 

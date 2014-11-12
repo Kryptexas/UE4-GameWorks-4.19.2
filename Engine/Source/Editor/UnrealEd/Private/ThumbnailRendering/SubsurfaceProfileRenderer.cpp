@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Engine/SubsurfaceProfile.h"
+#include "CanvasTypes.h"
 
 USubsurfaceProfileRenderer::USubsurfaceProfileRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

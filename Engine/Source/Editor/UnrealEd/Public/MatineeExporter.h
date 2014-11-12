@@ -15,6 +15,9 @@ class UInterpData;
 class UInterpTrackMove;
 class UInterpTrackFloatProp;
 class UInterpTrackVectorProp;
+class AActor;
+class AMatineeActor;
+class ALight;
 
 /**
  * Main Matinee Exporter class.

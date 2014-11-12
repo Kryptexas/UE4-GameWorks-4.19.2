@@ -57,6 +57,14 @@
 #include "FbxExporter.h"
 #include "RawMesh.h"
 #include "Particles/Emitter.h"
+#include "Engine/Light.h"
+#include "Engine/Polys.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/BrushComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Camera/CameraActor.h"
+#include "Components/DirectionalLightComponent.h"
 
 namespace UnFbx
 {

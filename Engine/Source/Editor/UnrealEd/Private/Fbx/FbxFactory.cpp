@@ -37,6 +37,7 @@
 
 #include "FbxErrors.h"
 #include "AssetRegistryModule.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FBXFactory"
 

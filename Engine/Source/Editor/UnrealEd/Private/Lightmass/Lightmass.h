@@ -19,6 +19,7 @@
 
 #include "Lightmass/LightmassImportanceVolume.h"
 #include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
+#include "GameFramework/WorldSettings.h"
 
 /** Forward declarations of Lightmass types */
 namespace Lightmass

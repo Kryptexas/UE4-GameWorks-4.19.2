@@ -7,6 +7,7 @@
 #include "Factories.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "Engine/Font.h"
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
@@ -29,6 +30,7 @@ namespace TTFConstants
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #endif // USE_FREETYPE
+#include "Engine/FontImportOptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTTFontImport, Log, All);
 

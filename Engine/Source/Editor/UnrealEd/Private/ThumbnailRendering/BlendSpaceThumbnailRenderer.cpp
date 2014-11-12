@@ -6,6 +6,7 @@
 #include "ThumbnailHelpers.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "Animation/BlendSpaceBase.h"
 
 UBlendSpaceThumbnailRenderer::UBlendSpaceThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

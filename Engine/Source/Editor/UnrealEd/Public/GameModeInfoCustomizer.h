@@ -4,6 +4,8 @@
 
 #include "IDocumentation.h"
 #include "KismetEditorUtilities.h"
+#include "GameFramework/GameMode.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "FGameModeInfoCustomizer"
 

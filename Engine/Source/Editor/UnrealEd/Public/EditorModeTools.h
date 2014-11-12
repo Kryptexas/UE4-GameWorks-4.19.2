@@ -23,7 +23,7 @@ enum EGeomSelectionStatus
 
 
 
-enum EModeTools
+enum EModeTools : int8
 {
 	MT_None,
 	MT_InterpEdit,

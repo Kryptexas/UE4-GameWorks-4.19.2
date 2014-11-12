@@ -7,6 +7,7 @@
 #include "UObjectToken.h"
 #include "SourceCodeNavigation.h"
 #include "Developer/HotReload/Public/IHotReload.h"
+#include "EngineLogs.h"
 
 #if WITH_EDITOR
 

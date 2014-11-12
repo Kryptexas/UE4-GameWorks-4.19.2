@@ -6,6 +6,7 @@
 #include "ThumbnailHelpers.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "Engine/StaticMesh.h"
 
 UStaticMeshThumbnailRenderer::UStaticMeshThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

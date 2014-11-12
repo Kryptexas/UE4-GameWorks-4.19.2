@@ -2,6 +2,9 @@
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "Components/BillboardComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/ArrowComponent.h"
 
 /* UContentBrowserSettings interface
  *****************************************************************************/

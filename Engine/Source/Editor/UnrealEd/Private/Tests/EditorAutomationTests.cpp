@@ -24,6 +24,13 @@
 #include "AutomationTest.h"
 
 #include "PackageTools.h"
+#include "Engine/PointLight.h"
+#include "Engine/Selection.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/BlockingVolume.h"
+#include "Engine/StaticMeshActor.h"
+#include "EngineUtils.h"
 
 
 /**

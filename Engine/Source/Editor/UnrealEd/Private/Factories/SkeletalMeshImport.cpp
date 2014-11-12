@@ -11,6 +11,7 @@
 #include "../../../../Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h"
 #include "FbxImporter.h"
 #include "FbxErrors.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 

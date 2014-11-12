@@ -41,6 +41,7 @@
 #include "Matinee/InterpTrackInstFloatProp.h"
 
 #include "FbxImporter.h"
+#include "Camera/CameraActor.h"
 
 namespace UnFbx {
 

@@ -2,6 +2,8 @@
 
 #include "UnrealEd.h"
 #include "Sound/SoundWave.h"
+#include "CanvasItem.h"
+#include "Audio.h"
 
 USoundWaveThumbnailRenderer::USoundWaveThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

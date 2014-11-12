@@ -13,6 +13,7 @@
 #include "ModuleManager.h"
 #include "GameProjectGenerationModule.h"
 #include "Factories/PackFactory.h"
+#include "GameFramework/InputSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackFactory, Log, All);
 

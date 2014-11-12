@@ -8,6 +8,7 @@
 #include "Particles/ParticleSystem.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "CanvasTypes.h"
 
 UParticleSystemThumbnailRenderer::UParticleSystemThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -12,6 +12,8 @@
 #include "MaterialCompiler.h"
 #include "LightMap.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Materials/MaterialInstance.h"
+#include "CanvasTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightmassRender, Error, All);
 

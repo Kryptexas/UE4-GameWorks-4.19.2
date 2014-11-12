@@ -4,6 +4,8 @@
 #ifndef __SCurveEditor_h__
 #define __SCurveEditor_h__
 
+#include "EditorUndoClient.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FTrackScaleInfo
 

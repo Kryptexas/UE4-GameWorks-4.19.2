@@ -4,6 +4,10 @@
 
 #include "CubemapUnwrapUtils.h"			// FMipLevelBatchedElementParameters
 #include "NormalMapPreview.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTargetCube.h"
 
 UTextureThumbnailRenderer::UTextureThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

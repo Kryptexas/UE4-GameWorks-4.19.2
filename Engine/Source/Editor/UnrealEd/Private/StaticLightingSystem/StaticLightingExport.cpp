@@ -16,6 +16,9 @@
 #include "Lightmass/Lightmass.h"
 #include "Lightmass/LightmappedSurfaceCollection.h"
 
+#include "Materials/MaterialInstanceConstant.h"
+
+
 // Doxygen cannot parse these definitions correctly since the declaration is in a header from a different module
 #if !UE_BUILD_DOCS
 /** 

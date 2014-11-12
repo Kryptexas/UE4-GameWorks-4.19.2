@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Editor.h"
+#include "SlateIcon.h"
 
 /**
  *	Class responsible for maintaining a list of registered editor mode types.

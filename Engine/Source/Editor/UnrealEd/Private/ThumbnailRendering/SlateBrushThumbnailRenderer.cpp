@@ -4,6 +4,8 @@
 #include "Slate/SlateBrushAsset.h"
 // FPreviewScene derived helpers for rendering
 #include "ThumbnailHelpers.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
 
 USlateBrushThumbnailRenderer::USlateBrushThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

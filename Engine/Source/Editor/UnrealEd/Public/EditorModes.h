@@ -3,6 +3,15 @@
 #pragma once
 
 #include "EditorModeRegistry.h"
+#include "EditorComponents.h"
+#include "UnrealWidget.h"
+#include "EngineGlobals.h"
+
+enum EModeTools : int8;
+class FEditorViewportClient;
+class HHitProxy;
+struct FViewportClick;
+class FModeTool;
 
 /** Outcomes when determining whether it's possible to perform an action on the edit modes*/
 namespace EEditAction

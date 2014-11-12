@@ -6,6 +6,8 @@
 #include "ThumbnailHelpers.h"
 #include "EngineModule.h"
 #include "RendererInterface.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
 
 UBlueprintThumbnailRenderer::UBlueprintThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
