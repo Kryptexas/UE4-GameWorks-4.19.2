@@ -60,26 +60,28 @@ public:
 	{
 		switch(SelectedChatChannel)
 		{
-
 			case EChatMessageType::Whisper:
 			{
-				MessageManager.Pin()->SendPrivateMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
-				TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 				if (SelectedFriend.IsValid())
 				{
-					ChatItem->FromName = FText::FromString(SelectedFriend->GetName());
-				}
-				else
-				{
-					ChatItem->FromName = FText::FromString("Unknown");
-				}
+					MessageManager.Pin()->SendPrivateMessage(SelectedFriend->GetUniqueID().Get(), NewMessage.ToString());
+					TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+					if (SelectedFriend.IsValid())
+					{
+						ChatItem->FromName = FText::FromString(SelectedFriend->GetName());
+					}
+					else
+					{
+						ChatItem->FromName = FText::FromString("Unknown");
+					}
 
-				ChatItem->Message = NewMessage;
-				ChatItem->MessageType = SelectedChatChannel;
-				ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
-				ChatItem->bIsFromSelf = true;
-				ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
-				FilterChatList();
+					ChatItem->Message = NewMessage;
+					ChatItem->MessageType = SelectedChatChannel;
+					ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+					ChatItem->bIsFromSelf = true;
+					ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
+					FilterChatList();
+				}
 			}
 			break;
 			case EChatMessageType::Global:
