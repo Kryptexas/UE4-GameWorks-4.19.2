@@ -386,7 +386,7 @@ public:
 	TSharedPtr< SWidget > GetJoystickCaptor(uint32 UserIndex) const;
 
 	/** Releases the users focus from whatever it currently is on. */
-	void ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::Cleared);
+	void ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	DEPRECATED(4.6, "FSlateApplication::ReleaseJoystickCapture() is deprecated, use FSlateApplication::ClearUserFocus() instead.")
 	void ReleaseJoystickCapture(uint32 UserIndex);
@@ -401,7 +401,7 @@ public:
 	 *
 	 * @param ReasonFocusIsChanging The reason that keyboard focus is changing
 	 */
-	void ClearKeyboardFocus(const EFocusCause ReasonFocusIsChanging = EFocusCause::Cleared);
+	void ClearKeyboardFocus(const EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	/**
 	 * Returns the current modifier keys state

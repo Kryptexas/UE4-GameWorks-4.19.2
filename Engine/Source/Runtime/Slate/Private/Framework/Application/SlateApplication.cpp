@@ -1842,7 +1842,7 @@ TSharedPtr<SWidget> FSlateApplication::GetJoystickCaptor(uint32 UserIndex) const
 	return GetUserFocusedWidget(UserIndex);
 }
 
-void FSlateApplication::ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging /* = EFocusCause::Cleared*/)
+void FSlateApplication::ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
 {
 	SetUserFocus(UserIndex, FWidgetPath(), ReasonFocusIsChanging);
 }
@@ -2179,12 +2179,12 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		{
 			for (int32 SlateUserIndex = 0; SlateUserIndex < SlateApplicationDefs::MaxUsers; ++SlateUserIndex)
 			{
-				SetUserFocus(SlateUserIndex, FWidgetPath(), EFocusCause::Cleared);
+				SetUserFocus(SlateUserIndex, FWidgetPath(), TheReply.GetFocusCause());
 			}
 		}
 		else
 		{
-			SetUserFocus(UserIndex, FWidgetPath(), EFocusCause::Cleared);
+			SetUserFocus(UserIndex, FWidgetPath(), TheReply.GetFocusCause());
 		}
 	}
 
