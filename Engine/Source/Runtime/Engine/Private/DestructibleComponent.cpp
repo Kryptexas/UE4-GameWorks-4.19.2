@@ -1198,7 +1198,24 @@ void UDestructibleComponent::ResetFakeBodyInstance( FFakeBodyInstanceState& Prev
 	BodyInstance.RigidActorAsync = PrevState.ActorAsync;
 	BodyInstance.InstanceBodyIndex = PrevState.InstanceIndex;
 }
+
 #endif
+
+void UDestructibleComponent::SetEnableGravity(bool bGravityEnabled)
+{
+	Super::SetEnableGravity(bGravityEnabled);
+	
+#if WITH_APEX
+	for (FDestructibleChunkInfo& ChunkInfo : ChunkInfos)
+	 {
+		physx::PxRigidDynamic* Actor = ChunkInfo.Actor;
+		if (Actor)
+		{
+			Actor->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !bGravityEnabled);
+		}
+	}
+#endif //WITH_APEX
+}
 
 FBodyInstance* UDestructibleComponent::GetBodyInstance( FName BoneName /*= NAME_None*/, bool) const
 {
