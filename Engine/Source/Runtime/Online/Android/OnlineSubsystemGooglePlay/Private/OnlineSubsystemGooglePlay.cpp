@@ -120,7 +120,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 	{
 		StoreInterface = MakeShareable(new FOnlineStoreGooglePlay(this));
 	}
-	/*
+	
 	extern struct android_app* GNativeAndroidApp;
 	check(GNativeAndroidApp != nullptr);
 	AndroidInitialization::android_main(GNativeAndroidApp);
@@ -144,7 +144,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 			OnAuthActionFinished(Op, Status);
 		})
 		.Create(PlatformConfiguration).release() );
-*/
+
 	return true;
 }
 
