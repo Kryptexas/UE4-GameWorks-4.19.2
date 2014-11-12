@@ -1147,6 +1147,21 @@ protected:
 
 	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll ) override
 	{
+		if (InAllowOverscroll == EAllowOverscroll::No)
+		{
+			//check if we are on the top of the list and want to scroll up
+			if (ScrollOffset < KINDA_SMALL_NUMBER && ScrollByAmountInSlateUnits < 0)
+			{
+				return 0.0f;
+			}
+
+			//check if we are on the bottom of the list and want to scroll down
+			if (bWasAtEndOfList && ScrollByAmountInSlateUnits > 0)
+			{
+				return 0.0f;
+			}
+		}
+
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;
 		double NewScrollOffset = ScrollOffset;
