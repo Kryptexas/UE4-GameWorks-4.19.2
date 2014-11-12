@@ -83,7 +83,7 @@ protected:
 	class UStaticMeshComponent* ProxyMeshComponent;
 #endif
 public:
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	// Refreshes the visual components to match the component state
 	ENGINE_API virtual void RefreshVisualRepresentation();
 

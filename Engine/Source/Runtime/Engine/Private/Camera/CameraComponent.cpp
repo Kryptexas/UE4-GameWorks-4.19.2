@@ -41,7 +41,7 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 
 void UCameraComponent::OnRegister()
 {
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	if (ProxyMeshComponent == NULL)
 	{
 		ProxyMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
@@ -115,7 +115,7 @@ void UCameraComponent::PostLoad()
 }
 
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != NULL)
@@ -147,12 +147,16 @@ void UCameraComponent::RestoreFrustumColor()
 		//Cam->DrawFrustum->FrustumColor = DefCam->DrawFrustum->FrustumColor;
 	}
 }
+#endif
 
+#if WITH_EDITOR
 void UCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+#if WITH_EDITORONLY_DATA
 	RefreshVisualRepresentation();
+#endif
 }
 #endif
 
