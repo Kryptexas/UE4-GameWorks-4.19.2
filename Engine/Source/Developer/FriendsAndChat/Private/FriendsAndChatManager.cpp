@@ -1114,6 +1114,20 @@ void FFriendsAndChatManager::OnGameInviteReceived(const FUniqueNetId& UserId, co
 		PendingGameInvitesList.Add(Friend->GetUniqueID()->ToString(), FriendGameInvite);
 
 		OnGameInvitesUpdated().Broadcast();
+		SendGameInviteNotification(Friend);
+	}
+}
+
+void FFriendsAndChatManager::SendGameInviteNotification(const TSharedPtr<IFriendItem>& FriendItem)
+{
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Username"), FText::FromString(FriendItem->GetName()));
+		const FText FriendRequestMessage = FText::Format(LOCTEXT("FFriendsAndChatManager_GameInvite", "Game invite from {Username}"), Args);
+
+		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable(new FFriendsAndChatMessage(FriendRequestMessage.ToString()));
+		NotificationMessage->SetMessageType(EFriendsRequestType::GameInvite);
+		OnFriendsActionNotification().Broadcast(NotificationMessage.ToSharedRef());
 	}
 }
 

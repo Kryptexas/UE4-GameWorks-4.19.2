@@ -153,6 +153,9 @@ public:
 	 */
 	void SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem);
 
+	/** Send a game invite notification. */
+	void SendGameInviteNotification(const TSharedPtr<IFriendItem>& FriendItem);
+
 	/**
 	 * Find a user ID.
 	 *
