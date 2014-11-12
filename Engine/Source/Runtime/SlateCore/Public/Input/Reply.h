@@ -70,8 +70,14 @@ public:
 	/** An event should return a FReply::Handled().ClearUserFocus() to ask the system to clear user focus*/
 	FReply& ClearUserFocus(bool bInAllUsers = false)
 	{
+		return ClearUserFocus(EFocusCause::SetDirectly, bInAllUsers);
+	}
+
+	/** An event should return a FReply::Handled().ClearUserFocus() to ask the system to clear user focus*/
+	FReply& ClearUserFocus(EFocusCause ReasonFocusIsChanging, bool bInAllUsers = false)
+	{
 		this->FocusRecipient = nullptr;
-		this->FocusChangeReason = EFocusCause::Cleared;
+		this->FocusChangeReason = ReasonFocusIsChanging;
 		this->bReleaseUserFocus = true;
 		this->bSetUserFocus = false;
 		this->bAllUsers = bInAllUsers;
