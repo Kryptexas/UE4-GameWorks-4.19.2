@@ -634,7 +634,9 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 	for(int32 i=1; i<RequiredBones.Num(); i++)
 	{
 		const int32 BoneIndex = RequiredBones[i];
-		FPlatformMisc::Prefetch(SpaceBasesData + BoneIndex);
+		FTransform* SpaceBase = SpaceBasesData + BoneIndex;
+
+		FPlatformMisc::Prefetch(SpaceBase);
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 		// Mark bone as processed
@@ -642,16 +644,17 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 #endif
 		// For all bones below the root, final component-space transform is relative transform * component-space transform of parent.
 		const int32 ParentIndex = InSkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-		FPlatformMisc::Prefetch(SpaceBasesData + ParentIndex);
+		FTransform* ParentSpaceBase = SpaceBasesData + ParentIndex;
+		FPlatformMisc::Prefetch(ParentSpaceBase);
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 		// Check the precondition that Parents occur before Children in the RequiredBones array.
 		checkSlow(BoneProcessed[ParentIndex] == 1);
 #endif
-		FTransform::Multiply(SpaceBasesData + BoneIndex, LocalTransformsData + BoneIndex, SpaceBasesData + ParentIndex);
+		FTransform::Multiply(SpaceBase, LocalTransformsData + BoneIndex, ParentSpaceBase);
 
-		checkSlow(DestSpaceBases[BoneIndex].IsRotationNormalized());
-		checkSlow(!DestSpaceBases[BoneIndex].ContainsNaN());
+		checkSlow(SpaceBase->IsRotationNormalized());
+		checkSlow(!SpaceBase->ContainsNaN());
 	}
 
 	/**
@@ -762,7 +765,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// mirror table/phys body ones has to be calculated
 	if (ShouldUpdateBoneVisibility())
 	{
-		check(BoneVisibilityStates.Num() == SpaceBases.Num());
+		check(BoneVisibilityStates.Num() == GetNumSpaceBases());
 
 		int32 VisibleBoneWriteIndex = 0;
 		for (int32 i = 0; i < RequiredBones.Num(); ++i)
@@ -918,7 +921,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
 
-	if (!SkeletalMesh || SpaceBases.Num() == 0)
+	if (!SkeletalMesh || GetNumSpaceBases() == 0)
 	{
 		return;
 	}
@@ -941,7 +944,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	const bool bInvalidCachedBones = bDoUpdateRateOptimization &&
 									( (LocalAtoms.Num() != SkeletalMesh->RefSkeleton.GetNum())
 									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
-									  || (SpaceBases.Num() != CachedSpaceBases.Num()) );
+									  || (GetNumSpaceBases() != CachedSpaceBases.Num()) );
 
 	AnimEvaluationContext.bDoEvaluation = !bDoUpdateRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams.ShouldSkipEvaluation();
 	
@@ -962,7 +965,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		{
 			// Initialize Parallel Task arrays
 			AnimEvaluationContext.LocalAtoms = LocalAtoms;
-			AnimEvaluationContext.SpaceBases = SpaceBases;
+			AnimEvaluationContext.SpaceBases = GetSpaceBases();
 			AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
 		}
 
@@ -986,13 +989,13 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 			}
 			else
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, SpaceBases, LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
 			}
 		}
 		else if (!AnimEvaluationContext.bDoInterpolation)
 		{
 			LocalAtoms = CachedLocalAtoms;
-			SpaceBases = CachedSpaceBases;
+			GetEditableSpaceBases() = CachedSpaceBases;
 		}
 
 		PostAnimEvaluation(AnimEvaluationContext);
@@ -1007,7 +1010,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
 	if (EvaluationContext.bDuplicateToCacheBones)
 	{
-		CachedSpaceBases = SpaceBases;
+		CachedSpaceBases = GetEditableSpaceBases();
 		CachedLocalAtoms = LocalAtoms;
 	}
 
@@ -1017,14 +1020,14 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 		const float Alpha = 0.25f + (1.f / float(FMath::Max(AnimUpdateRateParams.GetEvaluationRate(), 2) * 2));
 		FAnimationRuntime::LerpBoneTransforms(LocalAtoms, CachedLocalAtoms, Alpha, RequiredBones);
-		FAnimationRuntime::LerpBoneTransforms(SpaceBases, CachedSpaceBases, Alpha, RequiredBones);
+		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
 	}
 
 	// Transforms updated, cached local bounds are now out of date.
 	InvalidateCachedBounds();
 
 	// update physics data from animated data
-	UpdateKinematicBonesToPhysics(false, true);
+	UpdateKinematicBonesToPhysics(GetEditableSpaceBases(), false, true);
 	UpdateRBJointMotors();
 
 	// @todo anim : hack TTP 224385	ANIM: Skeletalmesh double buffer
@@ -1035,6 +1038,9 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	if( !IsSimulatingPhysics() )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
+
+		// Updated last good bone positions
+		FlipEditableSpaceBases();
 
 		// New bone positions need to be sent to render thread
 		UpdateComponentToWorld();
@@ -1322,7 +1328,7 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 		{
 			int32 BoneIndex = RequiredBones[Index];
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			FTransform BoneTM = (SpaceBases[BoneIndex] * ComponentToWorld);
+			FTransform BoneTM = (GetSpaceBases()[BoneIndex] * ComponentToWorld);
 			FVector Start, End;
 			FLinearColor LineColor;
 
@@ -1330,7 +1336,7 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 
 			if (ParentIndex >=0)
 			{
-				Start = (SpaceBases[ParentIndex] * ComponentToWorld).GetLocation();
+				Start = (GetSpaceBases()[ParentIndex] * ComponentToWorld).GetLocation();
 				LineColor = FLinearColor::White;
 			}
 			else

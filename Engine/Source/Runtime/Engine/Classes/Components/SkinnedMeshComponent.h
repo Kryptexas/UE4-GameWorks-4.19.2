@@ -149,17 +149,14 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The skeletal mesh used by this component. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mesh")
+		/** The skeletal mesh used by this component. */
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh")
 	class USkeletalMesh* SkeletalMesh;
-
-	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
-	TArray<FTransform> SpaceBases;
 
 	//
 	// MasterPoseComponent.
 	//
-	
+
 	/**
 	 *	If set, this SkeletalMeshComponent will not use its SpaceBase for bone transform, but will
 	 *	use the SpaceBases array in the MasterPoseComponent. This is used when constructing a character using multiple skeletal meshes sharing the same
@@ -167,9 +164,22 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	 */
 	TWeakObjectPtr< class USkinnedMeshComponent > MasterPoseComponent;
 
+private:
+	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
+	TArray<FTransform> SpaceBasesArray[2];
+
+	/** The index for the space bases buffer we can currently write to */
+	int32 CurrentEditableSpaceBases;
+
+	/** The index for the space bases buffer we can currently read from */
+	int32 CurrentReadSpaceBases;
+
+	/** Are we using double buffered blend spaces */
+	bool bDoubleBufferedBlendSpaces;
+
 protected:
-	/** 
-	 * If set, this component has slave pose components that are associated with this 
+	/**
+	 * If set, this component has slave pose components that are associated with this
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference
 	 */
 	TArray< TWeakObjectPtr<USkinnedMeshComponent> > SlavePoseComponents;
@@ -180,121 +190,121 @@ public:
 	 */
 	TArray<int32> MasterBoneMap;
 
-	/** 
+	/**
 	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
 	 * to the main SkelMesh (e.g. outline mesh or a full body overdraw effect that is toggled) that is always going to be the same
 	 * bounds as parent.  We want to do no calculations in that case.
 	 */
 	UPROPERTY()
-	uint32 bUseBoundsFromMasterPoseComponent:1;
+		uint32 bUseBoundsFromMasterPoseComponent : 1;
 
 	/** Array indicating all active vertex animations. This array is updated inside RefreshBoneTransforms based on the Anim Blueprint. */
 	UPROPERTY(transient)
-	TArray<struct FActiveVertexAnim> ActiveVertexAnims;
+		TArray<struct FActiveVertexAnim> ActiveVertexAnims;
 
 #if WITH_EDITORONLY_DATA
 	/** Index of the chunk to preview... If set to -1, all chunks will be rendered */
 	UPROPERTY(transient)
-	int32 ChunkIndexPreview;
+		int32 ChunkIndexPreview;
 
 	/** Index of the section to preview... If set to -1, all section will be rendered */
 	UPROPERTY(transient)
-	int32 SectionIndexPreview;
+		int32 SectionIndexPreview;
 
 #endif // WITH_EDITORONLY_DATA
 	//
 	// Physics.
 	//
-	
+
 	/**
 	 *	PhysicsAsset is set in SkeletalMesh by default, but you can override with this value
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
 	class UPhysicsAsset* PhysicsAssetOverride;
 
 	//
 	// Level of detail.
 	//
-	
+
 	/** If 0, auto-select LOD level. if >0, force to (ForcedLodModel-1). */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD)
-	int32 ForcedLodModel;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = LOD)
+		int32 ForcedLodModel;
 
 	/**
 	 * This is the min LOD that this component will use.  (e.g. if set to 2 then only 2+ LOD Models will be used.) This is useful to set on
 	 * meshes which are known to be a certain distance away and still want to have better LODs when zoomed in on them.
 	 **/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD)
-	int32 MinLodModel;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = LOD)
+		int32 MinLodModel;
 
-	/** 
-	 *	Best LOD that was 'predicted' by UpdateSkelPose. 
-	 *	This is what bones were updated based on, so we do not allow rendering at a better LOD than this. 
+	/**
+	 *	Best LOD that was 'predicted' by UpdateSkelPose.
+	 *	This is what bones were updated based on, so we do not allow rendering at a better LOD than this.
 	 */
 	UPROPERTY()
-	int32 PredictedLODLevel;
+		int32 PredictedLODLevel;
 
 	/** LOD level from previous frame, so we can detect changes in LOD to recalc required bones. */
 	UPROPERTY()
-	int32 OldPredictedLODLevel;
+		int32 OldPredictedLODLevel;
 
 	/**	High (best) DistanceFactor that was desired for rendering this USkeletalMesh last frame. Represents how big this mesh was in screen space   */
 	UPROPERTY()
-	float MaxDistanceFactor;
+		float MaxDistanceFactor;
 
 	/** LOD array info. Each index will correspond to the LOD index **/
 	UPROPERTY(transient)
-	TArray<struct FSkelMeshComponentLODInfo> LODInfo;
+		TArray<struct FSkelMeshComponentLODInfo> LODInfo;
 
 	//
 	// Rendering options.
 	//
-	
+
 	/**
 	 * Allows adjusting the desired streaming distance of streaming textures that uses UV 0.
 	 * 1.0 is the default, whereas a higher value makes the textures stream in sooner from far away.
 	 * A lower value (0.0-1.0) makes the textures stream in later (you have to be closer).
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
-	float StreamingDistanceMultiplier;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
+		float StreamingDistanceMultiplier;
 
 	/**
 	 * Wireframe color
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
-	FColor WireframeColor;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = SkeletalMesh)
+		FColor WireframeColor;
 
 	/** Forces the mesh to draw in wireframe mode. */
 	UPROPERTY()
-	uint32 bForceWireframe:1;
+		uint32 bForceWireframe : 1;
 
 	/** Draw the skeleton hierarchy for this skel mesh. */
 	UPROPERTY()
-	uint32 bDisplayBones:1;
+		uint32 bDisplayBones : 1;
 
 	/** Don't bother rendering the skin. */
 	UPROPERTY()
-	uint32 bHideSkin:1;
+		uint32 bHideSkin : 1;
 	/** Array of bone visibilities (containing one of the values in EBoneVisibilityStatus for each bone).  A bone is only visible if it is *exactly* 1 (BVS_Visible) */
 	TArray<uint8> BoneVisibilityStates;
 
 	/**
 	 *	If true, use per-bone motion blur on this skeletal mesh (requires additional rendering, can be disabled to save performance).
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=SkeletalMesh)
-	uint32 bPerBoneMotionBlur:1;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = SkeletalMesh)
+		uint32 bPerBoneMotionBlur : 1;
 
 	//
 	// Misc.
 	//
-	
+
 	/** When true, skip using the physics asset etc. and always use the fixed bounds defined in the SkeletalMesh. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
-	uint32 bComponentUseFixedSkelBounds:1;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
+		uint32 bComponentUseFixedSkelBounds : 1;
 
 	/** If true, when updating bounds from a PhysicsAsset, consider _all_ BodySetups, not just those flagged with bConsiderForBounds. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
-	uint32 bConsiderAllBodiesForBounds:1;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
+		uint32 bConsiderAllBodiesForBounds : 1;
 
 	/** If true, update skeleton/attachments even when our Owner has not been rendered recently
 	 * @note if this is false, bone information may not be accurate, so be careful setting this to false if bone info is relevant to gameplay
@@ -302,106 +312,106 @@ public:
 	 * @note: In the output from SHOWSKELCOMPTICKTIME you want UpdatePoseTotal to be 0 when this is false for a specific component
 	 */
 	UPROPERTY()
-	uint32 bUpdateSkelWhenNotRendered_DEPRECATED:1;
+		uint32 bUpdateSkelWhenNotRendered_DEPRECATED : 1;
 
 	/** This is update frequency flag even when our Owner has not been rendered recently
-	 * 
+	 *
 	 * SMU_AlwaysTickPoseAndRefreshBones,			// Always Tick and Refresh BoneTransforms whether rendered or not
 	 * SMU_AlwaysTickPose,							// Always Tick, but Refresh BoneTransforms only when rendered
 	 * SMU_OnlyTickPoseWhenRendered,				// Tick only when rendered, and it will only RefreshBoneTransforms when rendered
-	 * 
+	 *
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
-	TEnumAsByte<EMeshComponentUpdateFlag::Type> MeshComponentUpdateFlag;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
+		TEnumAsByte<EMeshComponentUpdateFlag::Type> MeshComponentUpdateFlag;
 
 private:
 	/** If true, UpdateTransform will always result in a call to MeshObject->Update. */
 	UPROPERTY(transient)
-	uint32 bForceMeshObjectUpdate:1;
+		uint32 bForceMeshObjectUpdate : 1;
 
 public:
 	/** If true, DistanceFactor for this SkinnedMeshComponent will be added to global chart. */
 	UPROPERTY()
-	uint32 bChartDistanceFactor:1;
+		uint32 bChartDistanceFactor : 1;
 
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	UPROPERTY(transient)
-	uint32 bCanHighlightSelectedSections:1;
+		uint32 bCanHighlightSelectedSections : 1;
 
 	/** true if mesh has been recently rendered, false otherwise */
 	UPROPERTY(transient)
-	uint32 bRecentlyRendered:1;
+		uint32 bRecentlyRendered : 1;
 
 	/** Editor only. Used for visualizing drawing order in Animset Viewer. If < 1.0,
 	  * only the specified fraction of triangles will be rendered
 	  */
 	UPROPERTY(transient)
-	float ProgressiveDrawingFraction;
+		float ProgressiveDrawingFraction;
 
 	/** Editor only. Used for manually selecting the alternate indices for
 	  * TRISORT_CustomLeftRight sections.
 	  */
 	UPROPERTY(transient)
-	uint8 CustomSortAlternateIndexMode;
+		uint8 CustomSortAlternateIndexMode;
 
-	/** 
+	/**
 	 * Override the Physics Asset of the mesh. It uses SkeletalMesh.PhysicsAsset, but if you'd like to override use this function
-	 * 
+	 *
 	 * @param	NewPhysicsAsset	New PhysicsAsset
 	 * @param	bForceReInit	Force reinitialize
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset, bool bForceReInit = false);
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+		virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset, bool bForceReInit = false);
 
 	/**
 	 * Find the index of bone by name. Looks in the current SkeletalMesh being used by this SkeletalMeshComponent.
-	 * 
+	 *
 	 * @param BoneName Name of bone to look up
-	 * 
+	 *
 	 * @return Index of the named bone in the current SkeletalMesh. Will return INDEX_NONE if bone not found.
 	 *
 	 * @see USkeletalMesh::GetBoneIndex.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	int32 GetBoneIndex( FName BoneName ) const;
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+		int32 GetBoneIndex(FName BoneName) const;
 
-	/** 
+	/**
 	 * Get Bone Name from index
 	 * @param BoneIndex Index of the bone
 	 *
-	 * @return the name of the bone at the specified index 
+	 * @return the name of the bone at the specified index
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	FName GetBoneName(int32 BoneIndex) const;
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+		FName GetBoneName(int32 BoneIndex) const;
 
-		/**
-	 * Returns bone name linked to a given named socket on the skeletal mesh component.
-	 * If you're unsure to deal with sockets or bones names, you can use this function to filter through, and always return the bone name.
-	 *
-	 * @param	bone name or socket name
-	 *
-	 * @return	bone name
-	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	FName GetSocketBoneName(FName InSocketName);
+	/**
+ * Returns bone name linked to a given named socket on the skeletal mesh component.
+ * If you're unsure to deal with sockets or bones names, you can use this function to filter through, and always return the bone name.
+ *
+ * @param	bone name or socket name
+ *
+ * @return	bone name
+ */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+		FName GetSocketBoneName(FName InSocketName);
 
-	/** 
-	 * Change the SkeletalMesh that is rendered for this Component. Will re-initialize the animation tree etc. 
+	/**
+	 * Change the SkeletalMesh that is rendered for this Component. Will re-initialize the animation tree etc.
 	 *
 	 * @param NewMesh New mesh to set for this component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh);
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+		virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh);
 
-	/** 
+	/**
 	 * Get Parent Bone of the input bone
-	 * 
+	 *
 	 * @param BoneName Name of the bone
 	 *
-	 * @return the name of the parent bone for the specified bone. Returns 'None' if the bone does not exist or it is the root bone 
+	 * @return the name of the parent bone for the specified bone. Returns 'None' if the bone does not exist or it is the root bone
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
-	FName GetParentBone(FName BoneName) const;
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh")
+		FName GetParentBone(FName BoneName) const;
 
 public:
 	/** Object responsible for sending bone transforms, vertex anim state etc. to render thread. */
@@ -444,7 +454,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool HasAnySockets() const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
-	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
+	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps = NULL, bool bDoNotifies = true, const TArray<FOverlapInfo>* OverlapsAtEndLocation = NULL) override;
 	// End USceneComponent interface
 
 	// Begin UPrimitiveComponent interface
@@ -470,18 +480,18 @@ public:
 	 */
 	virtual bool ShouldCPUSkin();
 
-	/** 
-	 * Function to operate on mesh object after its created, 
+	/**
+	 * Function to operate on mesh object after its created,
 	 * but before it's attached.
-	 * 
+	 *
 	 * @param MeshObject - Mesh Object owned by this component
 	 */
 	virtual void PostInitMeshObject(class FSkeletalMeshObject*) {}
 
-	/** 
-	 * Simple, CPU evaluation of a vertex's skinned position (returned in component space) 
+	/**
+	 * Simple, CPU evaluation of a vertex's skinned position (returned in component space)
 	 *
-	 * @param VertexIndex Vertex Index. If compressed, this will be slow. 
+	 * @param VertexIndex Vertex Index. If compressed, this will be slow.
 	 */
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
 
@@ -503,13 +513,13 @@ public:
 	 * Update functions
 	 */
 
-	/** 
+	/**
 	 * Refresh Bone Transform (SpaceBases)
 	 * Each class will need to implement this function
-	 * Ideally this function should be atomic (not relying on Tick or any other update.) 
-	 * 
+	 * Ideally this function should be atomic (not relying on Tick or any other update.)
+	 *
 	 * @param TickFunction Supplied as non null if we are running in a tick, allows us to create graph tasks for parallelism
-	 * 
+	 *
 	 */
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) PURE_VIRTUAL(USkinnedMeshComponent::RefreshBoneTransforms, );
 
@@ -520,17 +530,17 @@ public:
 	 *
 	 * @return	Return true if anything modified. Return false otherwise
 	 */
-	virtual void TickPose( float DeltaTime ) {}
+	virtual void TickPose(float DeltaTime) {}
 
-	/** 
+	/**
 	 * Update Slave Component. This gets called when MasterPoseComponent!=NULL
-	 * 
+	 *
 	 */
 	virtual void UpdateSlaveComponent();
 
-	/** 
-	 * Update the PredictedLODLevel and MaxDistanceFactor in the component from its MeshObject. 
-	 * 
+	/**
+	 * Update the PredictedLODLevel and MaxDistanceFactor in the component from its MeshObject.
+	 *
 	 * @return true if LOD has been changed. false otherwise.
 	 */
 	virtual bool UpdateLODStatus();
@@ -539,7 +549,7 @@ public:
 	void InitLODInfos();
 
 	/**
-	 * Rebuild BoneVisibilityStates array. Mostly refresh information of bones for BVS_HiddenByParent 
+	 * Rebuild BoneVisibilityStates array. Mostly refresh information of bones for BVS_HiddenByParent
 	 */
 	void RebuildVisibilityArray();
 
@@ -549,7 +559,34 @@ public:
 	 * Checks/updates material usage on proxy based on current morph target usage
 	 */
 	void UpdateMorphMaterialUsageOnProxy();
+	
+	/** Access Space Bases for reading */
+	const TArray<FTransform>& GetSpaceBases() const { return SpaceBasesArray[CurrentReadSpaceBases]; }
 
+	/** Get Access to the current editable space bases */
+	TArray<FTransform>& GetEditableSpaceBases() { return SpaceBasesArray[CurrentEditableSpaceBases]; }
+	const TArray<FTransform>& GetEditableSpaceBases() const { return SpaceBasesArray[CurrentEditableSpaceBases]; }
+
+	/** Get the number of space bases */
+	int32 GetNumSpaceBases() const { return GetSpaceBases().Num(); }
+
+	/** Flip the editable space base buffer */
+	void FlipEditableSpaceBases();
+
+	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces)
+	{
+		bDoubleBufferedBlendSpaces = bInDoubleBufferedBlendSpaces;
+
+		if (bDoubleBufferedBlendSpaces)
+		{
+			CurrentReadSpaceBases = CurrentReadSpaceBases;
+			CurrentEditableSpaceBases = 1 - CurrentReadSpaceBases;
+		}
+		else
+		{
+			CurrentReadSpaceBases = CurrentEditableSpaceBases = CurrentReadSpaceBases;
+		}
+	}
 
 protected:
 	/**

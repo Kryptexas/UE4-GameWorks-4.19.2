@@ -130,7 +130,8 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 	{
 		// extend bounds by bones but without root bone
 		FBox BoundingBox(0);
-		for (int32 BoneIndex = 1; BoneIndex < SpaceBases.Num(); ++ BoneIndex)
+		const int32 NumBones = GetNumSpaceBases();
+		for (int32 BoneIndex = 1; BoneIndex < NumBones; ++BoneIndex)
 		{
 			BoundingBox += GetBoneMatrix(BoneIndex).GetOrigin();
 		}
@@ -425,42 +426,44 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 	bDrawBoneInfluences = bNewShowBoneWeight;
 }
 
+void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
+{
+	TArray<FTransform> TempLocalAtoms;
+	TArray<FActiveVertexAnim> TempVertexAnims;
+	FVector TempRootBoneTranslation;
+	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, CachedLocalAtoms, TempVertexAnims, TempRootBoneTranslation);
+}
+
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
+	bool bGenerateRAWAnimation = bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid();
+
+	if (bGenerateRAWAnimation)
+	{
+		AnimScriptInstance->RequiredBones.SetUseRAWData(true);
+	}
+
 	// Run regular update first so we get RequiredBones up to date.
 	Super::RefreshBoneTransforms(NULL); // Pass NULL so we force non threaded work
+
+	if (bGenerateRAWAnimation)
+	{
+		AnimScriptInstance->RequiredBones.SetUseRAWData(false);
+	}
 
 	// Non retargeted pose.
 	NonRetargetedSpaceBases.Empty();
 	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
 	{
-		TArray<FTransform> BackupSpaceBases = SpaceBases;
-
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(true);
-		Super::RefreshBoneTransforms(NULL);
+		GenSpaceBases(NonRetargetedSpaceBases);
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(false);
-
-		NonRetargetedSpaceBases = SpaceBases;
-		SpaceBases = BackupSpaceBases;
 	}
 
-	if( bDisplayRawAnimation )
+	if (bDisplayRawAnimation)
 	{
-		// save the transform in CompressedSpaceBases
-		CompressedSpaceBases = SpaceBases;
-
-		// use raw data now
-		if( AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
-		{
-			AnimScriptInstance->RequiredBones.SetUseRAWData(true);
-			Super::RefreshBoneTransforms(NULL);
-			AnimScriptInstance->RequiredBones.SetUseRAWData(false);
-		}
-		// Otherwise we'll just get ref pose.
-		else
-		{
-			Super::RefreshBoneTransforms(NULL);
-		}
+		// Generate the normal compressed space bases
+		GenSpaceBases(CompressedSpaceBases);
 	}
 	else
 	{

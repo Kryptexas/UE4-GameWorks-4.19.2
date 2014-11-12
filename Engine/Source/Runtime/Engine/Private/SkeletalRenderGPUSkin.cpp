@@ -991,7 +991,7 @@ FDynamicSkelMeshObjectDataGPUSkin::FDynamicSkelMeshObjectDataGPUSkin(
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	MeshSpaceBases = InMeshComponent->SpaceBases;
+	MeshSpaceBases = InMeshComponent->GetSpaceBases();
 #endif
 
 	// find number of morphs that are currently weighted and will affect the mesh

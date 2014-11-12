@@ -1293,7 +1293,7 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove )
 	{
-		UpdateKinematicBonesToPhysics(false, false, true);
+		UpdateKinematicBonesToPhysics(GetSpaceBases(), false, false, true);
 	}
 
 #if WITH_APEX_CLOTHING
@@ -3058,6 +3058,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// if physics is disabled on dedicated server, no reason to be here. 
 	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
 	{
+		FlipEditableSpaceBases();
 		return;
 	}
 
@@ -3077,6 +3078,12 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	if (Bodies.Num() > 0 && IsRegistered())
 	{
 		BlendInPhysics();
+	}
+
+	if (IsSimulatingPhysics())
+	{
+		// If we aren't simulating we will have already flipped this
+		FlipEditableSpaceBases();
 	}
 
 	//TODO: move this into pre physics tick
@@ -3449,14 +3456,9 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 		return;
 	}
 
-	TArray<FTransform>* BoneTransforms = &SpaceBases;
+	const TArray<FTransform>& BoneTransforms = MasterPoseComponent.IsValid() ? MasterPoseComponent.Get()->GetSpaceBases() : GetSpaceBases();
 
-	if(MasterPoseComponent.IsValid())
-	{
-		BoneTransforms = &(MasterPoseComponent.Get()->SpaceBases);
-	}
-
-	if(BoneTransforms->Num() == 0)
+	if(BoneTransforms.Num() == 0)
 	{
 		return;
 	}
@@ -3503,7 +3505,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
  
 					// If ParentBoneIndex is valid, grab matrix from MasterPoseComponent.
 					if( MasterBoneIndex != INDEX_NONE && 
-						MasterBoneIndex < MasterPoseComponent->SpaceBases.Num())
+						MasterBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 					{
 						BoneIndex = MasterBoneIndex;
 					}
@@ -3512,7 +3514,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		   if(BoneIndex != INDEX_NONE)
 		   {
-			   BoneMatrices[Index] = U2PMatrix((*BoneTransforms)[BoneIndex].ToMatrixWithScale());
+			   BoneMatrices[Index] = U2PMatrix(BoneTransforms[BoneIndex].ToMatrixWithScale());
 		   }
 		   else
 		   {
@@ -4908,7 +4910,7 @@ FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyIn
 	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
 	if (RootBodyData.BoneIndex != INDEX_NONE)
 	{
-		FTransform RootTransform(SpaceBases[RootBodyData.BoneIndex]);
+		FTransform RootTransform(GetSpaceBases()[RootBodyData.BoneIndex]);
 		return RootTransform.GetRelativeTransformReverse(BodyTransform);
 	}
 

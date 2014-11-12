@@ -4852,6 +4852,10 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	SectionIndexPreview = -1;
 #endif // WITH_EDITORONLY_DATA
 	bPerBoneMotionBlur = true;
+
+	bDoubleBufferedBlendSpaces = true;
+	CurrentEditableSpaceBases = 0;
+	CurrentReadSpaceBases = 1;
 }
 
 
@@ -4874,7 +4878,8 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
 	if(Ar.IsCountingMemory())
 	{
 		// add all native variables - mostly bigger chunks 
-		SpaceBases.CountBytes(Ar);
+		SpaceBasesArray[0].CountBytes(Ar);
+		SpaceBasesArray[1].CountBytes(Ar);
 		MasterBoneMap.CountBytes(Ar);
 	}
 

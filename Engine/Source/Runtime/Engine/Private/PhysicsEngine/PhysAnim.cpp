@@ -69,10 +69,12 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 	// Make sure scratch space is big enough.
 	TArray<FAssetWorldBoneTM> WorldBoneTMs;
 	WorldBoneTMs.Reset();
-	WorldBoneTMs.AddZeroed(SpaceBases.Num());
+	WorldBoneTMs.AddZeroed(GetNumSpaceBases());
 
 	FTransform LocalToWorldTM = ComponentToWorld;
 	LocalToWorldTM.RemoveScaling();
+
+	TArray<FTransform>& EditableSpaceBases = GetEditableSpaceBases();
 
 	// For each bone - see if we need to provide some data for it.
 	for(int32 i=0; i<InRequiredBones.Num(); i++)
@@ -155,12 +157,12 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 		// Update SpaceBases entry for this bone now
 		if( BoneIndex == 0 )
 		{
-			SpaceBases[0] = LocalAtoms[0];
+			EditableSpaceBases[0] = LocalAtoms[0];
 		}
 		else
 		{
 			const int32 ParentIndex	= SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			SpaceBases[BoneIndex] = LocalAtoms[BoneIndex] * SpaceBases[ParentIndex];
+			EditableSpaceBases[BoneIndex] = LocalAtoms[BoneIndex] * EditableSpaceBases[ParentIndex];
 
 			/**
 			* Normalize rotations.
@@ -169,12 +171,12 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			* SpaceBases are used by external systems, we feed this to PhysX, send this to gameplay through bone and socket queries, etc.
 			* So this is a good place to make sure all transforms are normalized.
 			*/
-			SpaceBases[BoneIndex].NormalizeRotation();
+			EditableSpaceBases[BoneIndex].NormalizeRotation();
 		}
 
 		if (bUpdatePhysics && BodyInstance)
 		{
-			BodyInstance->SetBodyTransform(SpaceBases[BoneIndex] * ComponentToWorld, true);
+			BodyInstance->SetBodyTransform(EditableSpaceBases[BoneIndex] * ComponentToWorld, true);
 		}
 	}
 
@@ -226,7 +228,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
+void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -252,14 +254,14 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 	}
 
 	// If desired, draw the skeleton at the point where we pass it to the physics.
-	if( bShowPrePhysBones && SkeletalMesh && SpaceBases.Num() == SkeletalMesh->RefSkeleton.GetNum() )
+	if (bShowPrePhysBones && SkeletalMesh && InSpaceBases.Num() == SkeletalMesh->RefSkeleton.GetNum())
 	{
-		for(int32 i=1; i<SpaceBases.Num(); i++)
+		for (int32 i = 1; i<InSpaceBases.Num(); i++)
 		{
-			FVector ThisPos = CurrentLocalToWorld.TransformPosition( SpaceBases[i].GetLocation() );
+			FVector ThisPos = CurrentLocalToWorld.TransformPosition(InSpaceBases[i].GetLocation());
 
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(i);
-			FVector ParentPos = CurrentLocalToWorld.TransformPosition( SpaceBases[ParentIndex].GetLocation() );
+			FVector ParentPos = CurrentLocalToWorld.TransformPosition(InSpaceBases[ParentIndex].GetLocation());
 
 			GetWorld()->LineBatcher->DrawLine(ThisPos, ParentPos, AnimSkelDrawColor, SDPG_Foreground);
 		}
@@ -303,14 +305,14 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 					int32 const BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BodyName);
 
 					// If we could not find it - warn.
-					if (BoneIndex == INDEX_NONE || BoneIndex >= SpaceBases.Num())
+					if (BoneIndex == INDEX_NONE || BoneIndex >= GetNumSpaceBases())
 					{
 						UE_LOG(LogPhysics, Log, TEXT("UpdateRBBones: WARNING: Failed to find bone '%s' need by PhysicsAsset '%s' in SkeletalMesh '%s'."), *BodyName.ToString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName());
 					}
 					else
 					{
 						// update bone transform to world
-						FTransform BoneTransform = SpaceBases[BoneIndex] * CurrentLocalToWorld;
+						FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
 
 						// move body
 						BodyInst->SetBodyTransform(BoneTransform, bTeleport);

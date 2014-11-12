@@ -55,7 +55,7 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 
 	// Do nothing more if no bones in skeleton.
-	if( SpaceBases.Num() == 0 )
+	if( GetNumSpaceBases() == 0 )
 	{
 		return;
 	}
@@ -77,7 +77,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 
 	// right now all this does is to convert to SpaceBases
 	check( SkeletalMesh->RefSkeleton.GetNum() == LocalAtoms.Num() );
-	check( SkeletalMesh->RefSkeleton.GetNum() == SpaceBases.Num() );
+	check( SkeletalMesh->RefSkeleton.GetNum() == GetNumSpaceBases());
 	check( SkeletalMesh->RefSkeleton.GetNum() == BoneVisibilityStates.Num() );
 
 	const int32 NumBones = LocalAtoms.Num();
@@ -89,9 +89,9 @@ void UPoseableMeshComponent::FillSpaceBases()
 #endif
 	// Build in 3 passes.
 	FTransform* LocalTransformsData = LocalAtoms.GetData(); 
-	FTransform* SpaceBasesData = SpaceBases.GetData();
+	FTransform* SpaceBasesData = GetEditableSpaceBases().GetData();
 	
-	SpaceBases[0] = LocalAtoms[0];
+	GetEditableSpaceBases()[0] = LocalAtoms[0];
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 	BoneProcessed[0] = 1;
 #endif
@@ -114,8 +114,8 @@ void UPoseableMeshComponent::FillSpaceBases()
 #endif
 		FTransform::Multiply(SpaceBasesData + BoneIndex, LocalTransformsData + BoneIndex, SpaceBasesData + ParentIndex);
 
-		checkSlow( SpaceBases[BoneIndex].IsRotationNormalized() );
-		checkSlow( !SpaceBases[BoneIndex].ContainsNaN() );
+		checkSlow(GetEditableSpaceBases()[BoneIndex].IsRotationNormalized());
+		checkSlow(!GetEditableSpaceBases()[BoneIndex].ContainsNaN());
 	}
 }
 

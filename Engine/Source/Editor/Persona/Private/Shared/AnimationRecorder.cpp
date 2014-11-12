@@ -91,7 +91,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 	AnimationObject->TrackToSkeletonMapTable.Empty();
 	AnimationObject->AnimationTrackNames.Empty();
 
-	PreviousSpacesBases = Component->SpaceBases;
+	PreviousSpacesBases = Component->GetSpaceBases();
 
 	LastFrame = 0;
 	AnimationObject->SequenceLength = 0.f;
@@ -194,7 +194,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 		return;
 	}
 
-	TArray<FTransform>& SpaceBases = Component->SpaceBases;
+	const TArray<FTransform> & SpaceBases = Component->GetSpaceBases();
 
 	check (SpaceBases.Num() == PreviousSpacesBases.Num());
 
@@ -225,7 +225,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 	}
 
 	//save to current transform
-	PreviousSpacesBases = Component->SpaceBases;
+	PreviousSpacesBases = Component->GetSpaceBases();
 
 	// if we passed MaxFrame, just stop it
 	if (FramesRecorded > MaxFrame)

@@ -670,7 +670,7 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 		const FColor BoneColor = FColor::White;
 		if (BoneColor.A != 0)
 		{
-			const FVector BonePos = PreviewSkelMeshComp->ComponentToWorld.TransformPosition(PreviewSkelMeshComp->SpaceBases[BoneIndex].GetLocation());
+			const FVector BonePos = PreviewSkelMeshComp->ComponentToWorld.TransformPosition(PreviewSkelMeshComp->GetSpaceBases()[BoneIndex].GetLocation());
 
 			const FPlane proj = View->Project(BonePos);
 			if (proj.W > 0.f)
@@ -881,7 +881,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
 				FTransform ReferenceTransform = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
 				FTransform LocalTransform = PreviewSkelMeshComp->LocalAtoms[BoneIndex];
-				FTransform ComponentTransform = PreviewSkelMeshComp->SpaceBases[BoneIndex];
+				FTransform ComponentTransform = PreviewSkelMeshComp->GetSpaceBases()[BoneIndex];
 
 				CurYOffset += YL + 2;
 				InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToString());
@@ -1483,10 +1483,10 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 	if ( MeshComponent && MeshComponent->SkeletalMesh )
 	{
 		TArray<FTransform> WorldTransforms;
-		WorldTransforms.AddUninitialized(MeshComponent->SpaceBases.Num());
+		WorldTransforms.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<FLinearColor> BoneColours;
-		BoneColours.AddUninitialized(MeshComponent->SpaceBases.Num());
+		BoneColours.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<int32> SelectedBones;
 		if(UDebugSkelMeshComponent* DebugMeshComponent = Cast<UDebugSkelMeshComponent>(MeshComponent))
@@ -1500,7 +1500,7 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 			const int32 BoneIndex = MeshComponent->RequiredBones[Index];
 			const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 
-			WorldTransforms[BoneIndex] = MeshComponent->SpaceBases[BoneIndex]*MeshComponent->ComponentToWorld;
+			WorldTransforms[BoneIndex] = MeshComponent->GetSpaceBases()[BoneIndex]*MeshComponent->ComponentToWorld;
 			
 			if(SelectedBones.Contains(BoneIndex))
 			{
@@ -1598,10 +1598,10 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 	if ( MeshComponent && MeshComponent->SkeletalMesh && BonesOfInterest.Num() > 0 )
 	{
 		TArray<FTransform> WorldTransforms;
-		WorldTransforms.AddUninitialized(MeshComponent->SpaceBases.Num());
+		WorldTransforms.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<FLinearColor> BoneColours;
-		BoneColours.AddUninitialized(MeshComponent->SpaceBases.Num());
+		BoneColours.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<FBoneIndexType> RequiredBones;
 
@@ -1627,7 +1627,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 					//found a bone we are interested in
 					if(ParentIndex >= 0)
 					{
-						WorldTransforms[ParentIndex] = MeshComponent->SpaceBases[ParentIndex]*MeshComponent->ComponentToWorld;
+						WorldTransforms[ParentIndex] = MeshComponent->GetSpaceBases()[ParentIndex]*MeshComponent->ComponentToWorld;
 					}
 					BoneColours[BoneIndex] = LinearSelectionColor;
 					bDrawBone = true;
@@ -1645,7 +1645,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 			{
 				//add to the list
 				RequiredBones.AddUnique(BoneIndex);
-				WorldTransforms[BoneIndex] = MeshComponent->SpaceBases[BoneIndex]*MeshComponent->ComponentToWorld;
+				WorldTransforms[BoneIndex] = MeshComponent->GetSpaceBases()[BoneIndex]*MeshComponent->ComponentToWorld;
 			}
 		}
 
@@ -1673,7 +1673,7 @@ void FAnimationViewportClient::DrawSockets( TArray<USkeletalMeshSocket*>& Socket
 			FVector Start, End;
 			if (ParentIndex >=0)
 			{
-				FTransform WorldTransformParent = DebugMeshComponent->SpaceBases[ParentIndex]*DebugMeshComponent->ComponentToWorld;
+				FTransform WorldTransformParent = DebugMeshComponent->GetSpaceBases()[ParentIndex]*DebugMeshComponent->ComponentToWorld;
 				Start = WorldTransformParent.GetLocation();
 				End = WorldTransformSocket.GetLocation();
 			}

@@ -248,6 +248,11 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual void CheckClothTeleport(float DeltaTime) override;
 
 #endif //#if WITH_APEX_CLOTHING
+
+private:
+
+	// Helper function to generate space bases for current frame
+	void GenSpaceBases(TArray<FTransform>& OutSpaceBases);
 };
 
 

@@ -43,6 +43,8 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 	bMultiBodyOverlap = true;
 
 	LargeChunkThreshold = 25.f;
+
+	SetSpaceBaseDoubleBuffering(false);
 }
 
 void UDestructibleComponent::Serialize(FArchive& Ar)
@@ -924,7 +926,7 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 		const FQuat BoneRotation = InvRotation*WorldRotation;
 		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - ComponentToWorld.GetTranslation()) / ComponentToWorld.GetScale3D();
 
-		SpaceBases[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+		GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 	}
 
 	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
@@ -932,6 +934,9 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 
 	// New bone positions need to be sent to render thread
 	MarkRenderDynamicDataDirty();
+
+	//Update bone visibilty and flip the editable space base buffer
+	FlipEditableSpaceBases();
 }
 
 void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& WorldRotation, const FVector& WorldTranslation )
@@ -954,7 +959,7 @@ void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& Wor
 	// More optimal form of the above
 	const FQuat BoneRotation = ComponentToWorld.GetRotation().Inverse()*WorldRotation;
 	const FVector BoneTranslation = ComponentToWorld.GetRotation().Inverse().RotateVector(WorldTranslation - ComponentToWorld.GetTranslation())/ComponentToWorld.GetScale3D();
-	SpaceBases[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+	GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 #endif
 }
 
