@@ -165,7 +165,7 @@ private:
 	{
 		if (FriendItem.IsValid() && 
 			FriendItem->GetOnlineFriend().IsValid() && 
-			(FriendItem->IsGameRequest() || FriendItem->IsGameJoinable))
+			(FriendItem->IsGameRequest() || FriendItem->IsGameJoinable()))
 		{
 			FFriendsAndChatManager::Get()->AcceptGameInvite(FriendItem);
 		}
