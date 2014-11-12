@@ -313,8 +313,9 @@ FORCEINLINE FPlane::FPlane( FVector InBase, const FVector &InNormal )
 
 FORCEINLINE FPlane::FPlane( FVector A, FVector B, FVector C )
 	:	FVector( ((B-A)^(C-A)).SafeNormal() )
-	,	W( A | ((B-A)^(C-A)).SafeNormal() )
-{}
+{
+	W = A | (FVector)(*this);
+}
 
 
 FORCEINLINE FPlane::FPlane(EForceInit)

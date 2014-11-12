@@ -1784,15 +1784,16 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		return;
 	}
 
-	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to be translated.
-	const FVector4 PreShadowToPreViewTranslation(View->ViewMatrices.PreViewTranslation - PreShadowTranslation,0);
-
 	FVector4 FrustumVertices[8];
-	
+
 	// Calculate whether the camera is inside the shadow frustum, or the near plane is potentially intersecting the frustum.
 	bool bCameraInsideShadowFrustum = true;
+
 	if (!IsWholeSceneDirectionalShadow())
 	{
+		// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to be translated.
+		const FVector PreShadowToPreViewTranslation(View->ViewMatrices.PreViewTranslation - PreShadowTranslation);
+
 		// fill out the frustum vertices (this is only needed in the non-whole scene case)
 		for(uint32 Z = 0;Z < 2;Z++)
 		{
@@ -1802,11 +1803,11 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 				{
 					const FVector4 UnprojectedVertex = InvReceiverMatrix.TransformFVector4(
 						FVector4(
-						(X ? -1.0f : 1.0f),
-						(Y ? -1.0f : 1.0f),
-						(Z ?  0.0f : 1.0f),
-						1.0f
-						)
+							(X ? -1.0f : 1.0f),
+							(Y ? -1.0f : 1.0f),
+							(Z ?  0.0f : 1.0f),
+							1.0f
+							)
 						);
 					const FVector ProjectedVertex = UnprojectedVertex / UnprojectedVertex.W + PreShadowToPreViewTranslation;
 					FrustumVertices[GetCubeVertexIndex(X,Y,Z)] = FVector4(ProjectedVertex, 0);
@@ -1824,26 +1825,27 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		const FVector BackBottomRight = FrustumVertices[GetCubeVertexIndex(0,1,0)] - View->ViewMatrices.PreViewTranslation;
 
 		const FPlane Front(FrontTopRight, FrontTopLeft, FrontBottomLeft);
-		const float FrontDistance = Front.PlaneDot(View->ViewMatrices.ViewOrigin) / FVector(Front).Size();
+		const float FrontDistance = Front.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		const FPlane Right(BackTopRight, FrontTopRight, FrontBottomRight);
-		const float RightDistance = Right.PlaneDot(View->ViewMatrices.ViewOrigin) / FVector(Right).Size();
+		const float RightDistance = Right.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		const FPlane Back(BackTopLeft, BackTopRight, BackBottomRight);
-		const float BackDistance = Back.PlaneDot(View->ViewMatrices.ViewOrigin) / FVector(Back).Size();
+		const float BackDistance = Back.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		const FPlane Left(FrontTopLeft, BackTopLeft, BackBottomLeft);
-		const float LeftDistance = Left.PlaneDot(View->ViewMatrices.ViewOrigin) / FVector(Left).Size();
+		const float LeftDistance = Left.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		const FPlane Top(BackTopRight, BackTopLeft, FrontTopLeft);
-		const float TopDistance = Top.PlaneDot(View->ViewMatrices.ViewOrigin) / FVector(Top).Size();
+		const float TopDistance = Top.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		const FPlane Bottom(FrontBottomRight, FrontBottomLeft, BackBottomLeft);
-		const float BottomDistance = Bottom.PlaneDot(View->ViewMatrices.ViewOrigin) / FVector(Bottom).Size();
+		const float BottomDistance = Bottom.PlaneDot(View->ViewMatrices.ViewOrigin);
 
 		// Use a distance threshold to treat the case where the near plane is intersecting the frustum as the camera being inside
 		// The near plane handling is not exact since it just needs to be conservative about saying the camera is outside the frustum
 		const float DistanceThreshold = -View->NearClippingDistance * 3.0f;
+
 		bCameraInsideShadowFrustum = 
 			FrontDistance > DistanceThreshold && 
 			RightDistance > DistanceThreshold && 

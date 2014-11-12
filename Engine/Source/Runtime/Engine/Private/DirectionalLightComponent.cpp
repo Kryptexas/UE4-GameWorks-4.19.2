@@ -231,7 +231,9 @@ public:
 		OutInitializer.SubjectBounds = FBoxSphereBounds(FVector::ZeroVector,SubjectBounds.BoxExtent,SubjectBounds.SphereRadius);
 		OutInitializer.WAxis = FVector4(0,0,0,1);
 		OutInitializer.MinLightW = -HALF_WORLD_MAX;
-		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 8.0f;
+		// Reduce casting distance on a directional light
+		// This is necessary to improve floating point precision in several places, especially when deriving frustum verts from InvReceiverMatrix
+		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 32.0f;
 		OutInitializer.SplitIndex = SplitIndex;
 		// Last cascade is the ray traced shadow, if enabled
 		OutInitializer.bRayTracedDistanceFieldShadow = ShouldCreateRayTracedCascade(View.GetFeatureLevel()) && SplitIndex == FDirectionalLightSceneProxy::GetNumViewDependentWholeSceneShadows(View) - 1;
@@ -256,7 +258,9 @@ public:
 		OutInitializer.SubjectBounds = FBoxSphereBounds( FVector::ZeroVector, LightPropagationVolumeBounds.GetExtent(), FMath::Sqrt( LpvExtent * LpvExtent * 3.0f ) );
 		OutInitializer.WAxis = FVector4(0,0,0,1);
 		OutInitializer.MinLightW = -HALF_WORLD_MAX;
-		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 8.0f;
+		// Reduce casting distance on a directional light
+		// This is necessary to improve floating point precision in several places, especially when deriving frustum verts from InvReceiverMatrix
+		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 32.0f;
 
 		// Compute the RSM bounds
 		{
@@ -300,7 +304,9 @@ public:
 		OutInitializer.SubjectBounds = FBoxSphereBounds(FVector::ZeroVector,SubjectBounds.BoxExtent,SubjectBounds.SphereRadius);
 		OutInitializer.WAxis = FVector4(0,0,0,1);
 		OutInitializer.MinLightW = -HALF_WORLD_MAX;
-		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX;
+		// Reduce casting distance on a directional light
+		// This is necessary to improve floating point precision in several places, especially when deriving frustum verts from InvReceiverMatrix
+		OutInitializer.MaxDistanceToCastInLightW = HALF_WORLD_MAX / 32.0f;
 		return true;
 	}
 
