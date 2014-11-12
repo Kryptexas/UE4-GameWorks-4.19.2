@@ -28,6 +28,8 @@ public:
 	virtual bool IsNodePure() const override { return true; }
 	virtual void PostReconstructNode() override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual FText GetMenuCategory() const override;
 	// End of UK2Node interface
 
 	bool IsValid(FString* OutMsg = NULL, bool bDontUseSkeletalClassForSelf = false) const;
