@@ -81,6 +81,17 @@ private:
 	const TSharedPtr<FModuleContextInfo>* SelectedModuleInfoPtr;
 };
 
+static void FindPublicEngineHeaderFiles(TArray<FString>& OutFiles, const FString& Path)
+{
+	TArray<FString> ModuleDirs;
+	IFileManager::Get().FindFiles(ModuleDirs, *(Path / TEXT("*")), false, true);
+	for (const FString& ModuleDir : ModuleDirs)
+	{
+		IFileManager::Get().FindFilesRecursive(OutFiles, *(Path / ModuleDir / TEXT("Classes")), TEXT("*.h"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(OutFiles, *(Path / ModuleDir / TEXT("Public")), TEXT("*.h"), true, false, false);
+	}
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewClassDialog::Construct( const FArguments& InArgs )
 {
@@ -92,6 +103,22 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 		for(const FModuleContextInfo& ModuleInfo : CurrentModules)
 		{
 			AvailableModules.Emplace(MakeShareable(new FModuleContextInfo(ModuleInfo)));
+		}
+
+		// Get collection of disallowed header names
+		TArray<FString> HeaderFiles;
+		FindPublicEngineHeaderFiles(HeaderFiles, FPaths::EngineDir() / TEXT("Source") / TEXT("Developer"));
+		FindPublicEngineHeaderFiles(HeaderFiles, FPaths::EngineDir() / TEXT("Source") / TEXT("Editor"));
+		FindPublicEngineHeaderFiles(HeaderFiles, FPaths::EngineDir() / TEXT("Source") / TEXT("Runtime"));
+
+		for (const FString& HeaderFile : HeaderFiles)
+		{
+			DisallowedHeaderNames.Add(FPaths::GetBaseFilename(HeaderFile));
+		}
+
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			DisallowedHeaderNames.Remove(ClassIt->GetName());
 		}
 	}
 
@@ -981,7 +1008,7 @@ void SNewClassDialog::FinishClicked()
 	FString CppFilePath;
 
 	FText FailReason;
-	if ( GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, HeaderFilePath, CppFilePath, FailReason) )
+	if (GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, DisallowedHeaderNames, HeaderFilePath, CppFilePath, FailReason))
 	{
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 		bPreventPeriodicValidityChecksUntilNextChange = true;
@@ -1211,7 +1238,7 @@ void SNewClassDialog::UpdateInputValidity()
 	// Validate the class name only if the path is valid
 	if ( bLastInputValidityCheckSuccessful )
 	{
-		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, *SelectedModuleInfo, LastInputValidityErrorText);
+		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, *SelectedModuleInfo, DisallowedHeaderNames, LastInputValidityErrorText);
 	}
 
 	LastPeriodicValidityCheckTime = FSlateApplication::Get().GetCurrentTime();

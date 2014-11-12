@@ -222,4 +222,7 @@ private:
 
 	/** Information about the currently selected module; used for class validation */
 	TSharedPtr<FModuleContextInfo> SelectedModuleInfo;
+
+	/** Collection of disallowed header filenames */
+	TSet<FString> DisallowedHeaderNames;
 };

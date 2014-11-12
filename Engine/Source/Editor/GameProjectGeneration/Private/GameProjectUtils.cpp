@@ -712,7 +712,7 @@ void GameProjectUtils::OpenAddCodeToProjectDialog()
 	}
 }
 
-bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, FText& OutFailReason)
+bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, const TSet<FString>& DisallowedHeaderNames, FText& OutFailReason)
 {
 	if ( NewClassName.IsEmpty() )
 	{
@@ -771,12 +771,24 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 		}
 	}
 
+	// See if header name clashes with an engine header
+	{
+		FString UnusedFoundPath;
+		if (DisallowedHeaderNames.Contains(NewClassName))
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NewHeaderName"), FText::FromString(NewClassName + ".h"));
+			OutFailReason = FText::Format(LOCTEXT("HeaderNameAlreadyExists", "The file {NewHeaderName} already exists elsewhere in the engine."), Args);
+			return false;
+		}
+	}
+
 	return true;
 }
 
-bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, const TSet<FString>& DisallowedHeaderNames, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
-	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ModuleInfo, ParentClassInfo, OutHeaderFilePath, OutCppFilePath, OutFailReason);
+	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ModuleInfo, ParentClassInfo, DisallowedHeaderNames, OutHeaderFilePath, OutCppFilePath, OutFailReason);
 
 	if( FEngineAnalytics::IsAvailable() )
 	{
@@ -2799,7 +2811,7 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
 }
 
-bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, const TSet<FString>& DisallowedHeaderNames, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
 	if ( !ParentClassInfo.IsSet() )
 	{
@@ -2810,7 +2822,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	const FString CleanClassName = ParentClassInfo.GetCleanClassName(NewClassName);
 	const FString FinalClassName = ParentClassInfo.GetFinalClassName(NewClassName);
 
-	if ( !IsValidClassNameForCreation(FinalClassName, ModuleInfo, OutFailReason) )
+	if (!IsValidClassNameForCreation(FinalClassName, ModuleInfo, DisallowedHeaderNames, OutFailReason))
 	{
 		return false;
 	}
@@ -2921,7 +2933,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 bool GameProjectUtils::FindSourceFileInProject(const FString& InFilename, const FString& InSearchPath, FString& OutPath)
 {
 	TArray<FString> Filenames;
-	const FString FilenameWidcard = TEXT("*") + InFilename;
+	const FString FilenameWidcard = /*TEXT("*") +*/ InFilename;
 	IFileManager::Get().FindFilesRecursive(Filenames, *InSearchPath, *FilenameWidcard, true, false, false);
 	
 	if(Filenames.Num())
