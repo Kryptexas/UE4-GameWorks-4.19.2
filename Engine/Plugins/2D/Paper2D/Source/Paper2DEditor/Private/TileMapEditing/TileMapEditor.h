@@ -36,6 +36,7 @@ public:
 protected:
 	UPaperTileMap* TileMapBeingEdited;
 	TSharedPtr<class STileMapEditorViewport> ViewportPtr;
+	FEditorModeTools EditorModeToolsInstance;
 
 protected:
 	void BindCommands();
@@ -43,6 +44,7 @@ protected:
 	void ExtendToolbar();
 
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_ToolboxHost(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);
 
 	void CreateModeToolbarWidgets(FToolBarBuilder& ToolbarBuilder);
