@@ -321,6 +321,9 @@ class UParticleEmitter : public UObject
 		}
 		return Q;
 	}
+
+	/** Returns true if the is emitter has any enabled LODs, false otherwise. */
+	bool HasAnyEnabledLODs()const;
 };
 
 

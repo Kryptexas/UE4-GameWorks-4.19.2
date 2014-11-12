@@ -1783,6 +1783,19 @@ void UParticleEmitter::Build()
 	}
 }
 
+bool UParticleEmitter::HasAnyEnabledLODs()const
+{
+	for (UParticleLODLevel* LodLevel : LODLevels)
+	{
+		if (LodLevel && LodLevel->bEnabled)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 /*-----------------------------------------------------------------------------
 	UParticleSpriteEmitter implementation.
 -----------------------------------------------------------------------------*/
@@ -4166,7 +4179,7 @@ void UParticleSystemComponent::InitParticles()
 					// Must have a slot for each emitter instance - even if it's NULL.
 					// This is so the indexing works correctly.
 					UParticleEmitter* Emitter = Template->Emitters[Idx];
-					if (Emitter && Emitter->DetailMode <= GlobalDetailMode)
+					if (Emitter && Emitter->DetailMode <= GlobalDetailMode && Emitter->HasAnyEnabledLODs())
 					{
 						EmitterInstances.Add(Emitter->CreateInstance(this));
 					}
@@ -4894,6 +4907,12 @@ bool UParticleSystemComponent::HasCompleted()
 						bHasCompleted = false;
 					}
 				}
+			}
+			else
+			{
+				//Don't assume emitter is complete if the current lod is disabled.
+				//Any emitters with all their lods disabled aren't created in the first place.
+				bHasCompleted = false;
 			}
 		}
 	}
