@@ -27,6 +27,13 @@ namespace GitDependencies
 			public string LastDownloadError;
 		}
 
+		enum OverwriteMode
+		{
+			Unchanged,
+			Prompt,
+			Force,
+		}
+
 		const string IncomingFileSuffix = ".incoming";
 		const string TempManifestExtension = ".tmp";
 		
@@ -40,12 +47,22 @@ namespace GitDependencies
 			}
 
 			// Parse the parameters
-			bool bForce = ParseSwitch(ArgsList, "-force");
 			int NumThreads = int.Parse(ParseParameter(ArgsList, "-threads=", "4"));
 			int MaxRetries = int.Parse(ParseParameter(ArgsList, "-max-retries=", "4"));
 			bool bDryRun = ParseSwitch(ArgsList, "-dry-run");
 			bool bHelp = ParseSwitch(ArgsList, "-help");
 			string RootPath = ParseParameter(ArgsList, "-root=", Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "../../..")));
+
+			// Parse the overwrite mode
+			OverwriteMode Overwrite = OverwriteMode.Unchanged;
+			if(ParseSwitch(ArgsList, "-prompt"))
+			{
+				Overwrite = OverwriteMode.Prompt;
+			}
+			else if(ParseSwitch(ArgsList, "-force"))
+			{
+				Overwrite = OverwriteMode.Force;
+			}
 
 			// Setup network proxy from argument list or environment variable
 			string ProxyUrl = ParseParameter(ArgsList, "-proxy=", null);
@@ -104,15 +121,16 @@ namespace GitDependencies
 				Log.WriteLine("   GitDependencies [options]");
 				Log.WriteLine();
 				Log.WriteLine("Options:");
-				Log.WriteLine("   -all              Sync all folders");
-				Log.WriteLine("   -include=<X>      Include binaries in folders called <X>");
-				Log.WriteLine("   -exclude=<X>      Exclude binaries in folders called <X>");
-				Log.WriteLine("   -force            Overwrite modified dependency files in the workspace");
-				Log.WriteLine("   -root=<PATH>      Specifies the path to the directory to sync with");
-				Log.WriteLine("   -threads=X        Use X threads when downloading new files");
-				Log.WriteLine("   -dry-run          Print a list of outdated files, but don't do anything");
-				Log.WriteLine("   -max-retries		Set the maximum number of retries for downloading files");
-				Log.WriteLine("   -proxy=<URL>      Set http proxy URL");
+				Log.WriteLine("   --all            Sync all folders");
+				Log.WriteLine("   --include=<X>    Include binaries in folders called <X>");
+				Log.WriteLine("   --exclude=<X>    Exclude binaries in folders called <X>");
+				Log.WriteLine("   --prompt         Prompts for whether to overwrite modified workspace files");
+				Log.WriteLine("   --force          Overwrite modified dependency files in the workspace");
+				Log.WriteLine("   --root=<PATH>    Specifies the path to the directory to sync with");
+				Log.WriteLine("   --threads=X      Use X threads when downloading new files");
+				Log.WriteLine("   --dry-run        Print a list of outdated files, but don't do anything");
+				Log.WriteLine("   --max-retries    Set the maximum number of retries for downloading files");
+				Log.WriteLine("   --proxy=<URL>    Set http proxy URL");
 				if(ExcludeFolders.Count > 0)
 				{
 					Log.WriteLine();
@@ -125,7 +143,7 @@ namespace GitDependencies
 			Console.CancelKeyPress += delegate { Log.FlushStatus(); };
 
 			// Update the tree. Make sure we clear out the status line if we quit for any reason (eg. ctrl-c)
-			if(!UpdateWorkingTree(bForce, bDryRun, RootPath, ExcludeFolders, NumThreads, MaxRetries, ProxyUrl))
+			if(!UpdateWorkingTree(bDryRun, RootPath, ExcludeFolders, NumThreads, MaxRetries, ProxyUrl, Overwrite))
 			{
 				return 1;
 			}
@@ -173,7 +191,7 @@ namespace GitDependencies
 			}
 		}
 
-		static bool UpdateWorkingTree(bool bForce, bool bDryRun, string RootPath, HashSet<string> ExcludeFolders, int NumThreads, int MaxRetries, string ProxyUrl)
+		static bool UpdateWorkingTree(bool bDryRun, string RootPath, HashSet<string> ExcludeFolders, int NumThreads, int MaxRetries, string ProxyUrl, OverwriteMode Overwrite)
 		{
 			// Start scanning on the working directory 
 			if(ExcludeFolders.Count > 0)
@@ -347,7 +365,7 @@ namespace GitDependencies
 			List<WorkingFile> TamperedFiles = new List<WorkingFile>();
 			foreach(WorkingFile FileToRemove in CurrentFileLookup.Values)
 			{
-				if(!bForce && FileToRemove.Hash != FileToRemove.ExpectedHash)
+				if(Overwrite != OverwriteMode.Force && FileToRemove.Hash != FileToRemove.ExpectedHash)
 				{
 					TamperedFiles.Add(FileToRemove);
 				}
@@ -357,10 +375,45 @@ namespace GitDependencies
 				}
 			}
 
-			// Warn if there were any files that have been tampered with, and remove them from the download list
-			if(TamperedFiles.Count > 0)
+			// Warn if there were any files that have been tampered with, and allow the user to choose whether to overwrite them
+			bool bOverwriteTamperedFiles = true;
+			if(TamperedFiles.Count > 0 && Overwrite != OverwriteMode.Force)
 			{
-				Log.WriteError("The following file(s) have been modified, and were not updated:");
+				// List the files that have changed
+				Log.WriteError("The following file(s) have been modified:");
+				foreach(WorkingFile TamperedFile in TamperedFiles)
+				{
+					Log.WriteError("  {0}", TamperedFile.Name);
+				}
+
+				// Figure out whether to overwrite the files
+				if(Overwrite == OverwriteMode.Unchanged)
+				{
+					Log.WriteError("Re-run with the --force parameter to overwrite them.");
+					bOverwriteTamperedFiles = false;
+				}
+				else
+				{
+					Log.WriteStatus("Would you like to overwrite your changes (y/n)? ");
+					ConsoleKeyInfo KeyInfo = Console.ReadKey(false);
+					bOverwriteTamperedFiles = (KeyInfo.KeyChar == 'y' || KeyInfo.KeyChar == 'Y');
+					Log.FlushStatus();
+				}
+			}
+
+			// Overwrite any tampered files, or remove them from the download list
+			if(bOverwriteTamperedFiles)
+			{
+				foreach(WorkingFile TamperedFile in TamperedFiles)
+				{
+					if(!SafeDeleteFile(Path.Combine(RootPath, TamperedFile.Name)))
+					{
+						return false;
+					}
+				}
+			}
+			else
+			{
 				foreach(WorkingFile TamperedFile in TamperedFiles)
 				{
 					DependencyFile TargetFile;
@@ -369,9 +422,7 @@ namespace GitDependencies
 						TargetFiles.Remove(TamperedFile.Name);
 						FilesToDownload.Remove(TargetFile);
 					}
-					Log.WriteError("  {0}", TamperedFile.Name);
 				}
-				Log.WriteError("Re-run with the --force parameter to overwrite them.");
 			}
 
 			// Write out the new working manifest, so we can track any files that we're going to download. We always verify missing files on startup, so it's ok that things don't exist yet.
