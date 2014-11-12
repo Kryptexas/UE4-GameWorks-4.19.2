@@ -6,6 +6,7 @@
 
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 

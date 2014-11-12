@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/Font.h"
+#include "AssetTypeActions_Base.h"
 
 class FAssetTypeActions_Font : public FAssetTypeActions_Base
 {

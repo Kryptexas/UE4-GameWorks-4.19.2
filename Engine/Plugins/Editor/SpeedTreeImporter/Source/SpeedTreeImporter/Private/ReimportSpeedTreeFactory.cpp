@@ -2,6 +2,7 @@
 
 #include "SpeedTreeImporterPrivatePCH.h"
 #include "ReimportSpeedTreeFactory.h"
+#include "Engine/StaticMesh.h"
 
 
 

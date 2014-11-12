@@ -6,7 +6,9 @@
  * A sound module file
  */
 
+#include "Sound/SoundBase.h"
 #include "SoundMod.generated.h"
+struct FActiveSound;
 
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USoundMod : public USoundBase

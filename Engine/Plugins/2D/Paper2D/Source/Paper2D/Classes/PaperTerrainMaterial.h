@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Engine/DataAsset.h"
 #include "PaperTerrainMaterial.generated.h"
 
 // Rule for a single section of a terrain material

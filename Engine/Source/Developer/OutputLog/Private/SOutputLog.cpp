@@ -4,7 +4,9 @@
 #include "SOutputLog.h"
 #include "SScrollBorder.h"
 #include "BaseTextLayoutMarshaller.h"
-
+#include "GameFramework/GameMode.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/GameState.h"
 /** Custom console editable text box whose only purpose is to prevent some keys from being typed */
 class SConsoleEditableTextBox : public SEditableTextBox
 {

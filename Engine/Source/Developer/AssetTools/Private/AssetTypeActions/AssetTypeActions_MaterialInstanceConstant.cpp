@@ -2,6 +2,7 @@
 
 #include "AssetToolsPrivatePCH.h"
 #include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

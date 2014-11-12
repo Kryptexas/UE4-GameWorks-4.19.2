@@ -4,6 +4,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "Editor/Persona/Public/PersonaModule.h"
 #include "ObjectTools.h"
+#include "Animation/VertexAnim/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorphTarget, Warning, All);
 

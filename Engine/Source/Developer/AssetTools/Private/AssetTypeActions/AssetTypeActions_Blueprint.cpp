@@ -10,6 +10,7 @@
 #include "SBlueprintDiff.h"
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

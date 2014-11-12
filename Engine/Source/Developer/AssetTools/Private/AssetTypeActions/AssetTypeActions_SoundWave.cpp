@@ -5,6 +5,8 @@
 #include "SoundDefinitions.h"
 #include "Editor/UnrealEd/Public/Dialogs/DlgSoundWaveOptions.h"
 #include "ContentBrowserModule.h"
+#include "Sound/SoundWave.h"
+#include "Sound/SoundCue.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

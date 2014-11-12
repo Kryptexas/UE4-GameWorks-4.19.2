@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/DataAsset.h"
 #include "Engine/EngineTypes.h"
 
 #include "PaperTileSet.generated.h"

@@ -6,6 +6,7 @@
 #include "../TileSetEditor.h"
 #include "SContentReference.h"
 #include "PaperEditorCommands.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

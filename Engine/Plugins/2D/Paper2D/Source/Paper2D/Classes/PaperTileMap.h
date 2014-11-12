@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/DataAsset.h"
 #include "Engine/EngineTypes.h"
 #include "PaperSprite.h"
 #include "PaperTileMap.generated.h"

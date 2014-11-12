@@ -7,6 +7,7 @@
 #include "IIntroTutorials.h"
 #include "EditorTutorial.h"
 #include "SSearchBox.h"
+#include "AssetData.h"
 
 static TSharedRef<FSearchEntry> OtherCategory(new FSearchEntry());
 static TSharedRef<FSearchEntry> AskQuestionEntry (new FSearchEntry());

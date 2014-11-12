@@ -6,6 +6,7 @@
 #include "PackageTools.h"
 #include "SoundDefinitions.h"
 #include "xmp.h"
+#include "Components/AudioComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USoundModImporterFactory

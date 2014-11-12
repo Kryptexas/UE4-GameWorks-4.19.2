@@ -14,6 +14,7 @@
 #include "Paper2DEditorModule.h"
 #include "STileMapEditorViewportToolbar.h"
 #include "SDockTab.h"
+#include "EdModeTileMap.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 

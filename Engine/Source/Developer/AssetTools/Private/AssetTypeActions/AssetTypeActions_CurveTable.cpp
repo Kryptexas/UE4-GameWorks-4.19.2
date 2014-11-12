@@ -4,6 +4,7 @@
 
 #include "Editor/CurveTableEditor/Public/CurveTableEditorModule.h"
 #include "Editor/CurveTableEditor/Public/ICurveTableEditor.h"
+#include "Engine/CurveTable.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

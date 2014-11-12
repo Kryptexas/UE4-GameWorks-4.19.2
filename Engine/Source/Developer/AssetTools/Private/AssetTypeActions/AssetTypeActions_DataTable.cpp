@@ -4,6 +4,7 @@
 
 #include "Editor/DataTableEditor/Public/DataTableEditorModule.h"
 #include "Editor/DataTableEditor/Public/IDataTableEditor.h"
+#include "Engine/DataTable.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

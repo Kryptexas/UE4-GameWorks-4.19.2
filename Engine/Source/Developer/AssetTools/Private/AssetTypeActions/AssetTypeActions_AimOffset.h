@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Animation/AimOffsetBlendSpace.h"
+#include "AssetTypeActions_BlendSpace.h"
 
 class FAssetTypeActions_AimOffset : public FAssetTypeActions_BlendSpace
 {

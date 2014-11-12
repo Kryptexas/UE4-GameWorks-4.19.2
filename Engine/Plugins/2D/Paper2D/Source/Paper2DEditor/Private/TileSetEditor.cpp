@@ -8,6 +8,8 @@
 #include "TileMapEditing/EdModeTileMap.h"
 #include "GraphEditor.h"
 #include "SPaperEditorViewport.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 

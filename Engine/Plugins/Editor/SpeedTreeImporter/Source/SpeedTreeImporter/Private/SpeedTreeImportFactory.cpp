@@ -43,6 +43,8 @@
 #endif
 
 #endif // WITH_SPEEDTREE
+#include "Engine/StaticMesh.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "SpeedTreeImportFactory"
 

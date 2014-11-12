@@ -2,6 +2,7 @@
 
 #include "AssetToolsPrivatePCH.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundMix.h"
 
 UClass* FAssetTypeActions_SoundMix::GetSupportedClass() const
 {

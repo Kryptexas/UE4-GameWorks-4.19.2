@@ -20,7 +20,7 @@
 #include "MovieSceneTrackEditor.h"
 #include "DirectorTrackEditor.h"
 #include "CommonMovieSceneTools.h"
-
+#include "Camera/CameraActor.h"
 
 namespace AnimatableShotToolConstants
 {

@@ -11,6 +11,8 @@
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 

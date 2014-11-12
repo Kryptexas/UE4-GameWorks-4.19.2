@@ -10,6 +10,7 @@
 #include "JsonUtilities.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/SimpleConstructionScript.h"
 
 #define LOCTEXT_NAMESPACE "FindInBlueprintManager"
 

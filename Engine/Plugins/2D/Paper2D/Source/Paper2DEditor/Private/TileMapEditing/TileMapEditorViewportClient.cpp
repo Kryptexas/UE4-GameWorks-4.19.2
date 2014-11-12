@@ -7,6 +7,7 @@
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "Runtime/Engine/Public/ComponentReregisterContext.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 

@@ -8,6 +8,9 @@
 #include "Matinee/InterpTrackInst.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/MatineeActorCameraAnim.h"
+#include "Camera/CameraAnim.h"
+#include "Camera/CameraActor.h"
+#include "GameFramework/Pawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCameraAnim, Log, All);
 

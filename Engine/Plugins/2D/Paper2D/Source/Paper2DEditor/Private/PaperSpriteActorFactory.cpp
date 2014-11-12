@@ -2,7 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
-
+#include "PhysicsEngine/BodySetup.h"
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteActorFactory
 

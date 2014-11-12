@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Materials/MaterialInstanceConstant.h"
+#include "AssetTypeActions_MaterialInterface.h"
 
 class FAssetTypeActions_MaterialInstanceConstant : public FAssetTypeActions_MaterialInterface
 {

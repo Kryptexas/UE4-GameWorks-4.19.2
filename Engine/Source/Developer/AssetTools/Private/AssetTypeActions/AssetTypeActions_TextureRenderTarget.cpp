@@ -2,6 +2,7 @@
 
 #include "AssetToolsPrivatePCH.h"
 #include "AssetRegistryModule.h"
+#include "Engine/TextureRenderTarget.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

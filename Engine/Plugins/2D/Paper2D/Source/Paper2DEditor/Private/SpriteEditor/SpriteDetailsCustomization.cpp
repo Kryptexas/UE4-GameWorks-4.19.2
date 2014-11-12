@@ -5,6 +5,7 @@
 
 #include "PhysicsEngine/BodySetup.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 

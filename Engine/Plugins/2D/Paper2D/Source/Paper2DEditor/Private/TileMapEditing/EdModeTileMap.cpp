@@ -7,6 +7,9 @@
 #include "Toolkits/ToolkitManager.h"
 #include "../PaperEditorCommands.h"
 #include "ScopedTransaction.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

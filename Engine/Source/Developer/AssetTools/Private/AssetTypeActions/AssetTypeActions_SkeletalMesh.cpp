@@ -14,6 +14,7 @@
 #include "AssetToolsModule.h"
 #include "Editor/UnrealEd/Public/FbxMeshUtils.h"
 #include "Editor/UnrealEd/Public/AssetNotifications.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

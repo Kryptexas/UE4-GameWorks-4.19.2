@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Animation/VertexAnim/MorphTarget.h"
+#include "AssetTypeActions_Base.h"
 
 class FAssetTypeActions_MorphTarget : public FAssetTypeActions_Base
 {

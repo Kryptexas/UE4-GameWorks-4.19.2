@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileSetEditor.h"
 #include "PaperEditorViewportClient.h"
+#include "CanvasTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperEditorViewportClient

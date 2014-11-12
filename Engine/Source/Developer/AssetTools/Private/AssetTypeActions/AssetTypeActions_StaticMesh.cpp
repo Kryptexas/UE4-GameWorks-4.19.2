@@ -13,6 +13,7 @@
 #include "FbxMeshUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

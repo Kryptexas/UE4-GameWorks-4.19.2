@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/TextureRenderTarget2D.h"
+#include "AssetTypeActions_TextureRenderTarget.h"
 
 class FAssetTypeActions_TextureRenderTarget2D : public FAssetTypeActions_TextureRenderTarget
 {
