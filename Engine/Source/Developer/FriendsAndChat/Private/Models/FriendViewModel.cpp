@@ -32,15 +32,14 @@ public:
 					{
 						Actions.Add(EFriendActionType::JoinGame);
 					}
-
 					if (FFriendsAndChatManager::Get()->IsInJoinableGameSession())
 					{
 						Actions.Add(EFriendActionType::InviteToGame);
 					}
-
-					// TODO. Move to user is online. Here for testing until Chat is ready
-					Actions.Add(EFriendActionType::Chat);
-
+					if (FriendItem->IsOnline())
+					{
+						Actions.Add(EFriendActionType::Chat);
+					}
 					Actions.Add(EFriendActionType::RemoveFriend);
 				}
 				break;
