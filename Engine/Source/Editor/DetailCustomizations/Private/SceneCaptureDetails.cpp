@@ -3,6 +3,11 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "Runtime/Engine/Public/ShowFlags.h"
 #include "SceneCaptureDetails.h"
+#include "Engine/SceneCapture2D.h"
+#include "Engine/SceneCaptureCube.h"
+#include "Components/SceneCaptureComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Components/SceneCaptureComponentCube.h"
 
 #define LOCTEXT_NAMESPACE "SceneCaptureDetails"
 

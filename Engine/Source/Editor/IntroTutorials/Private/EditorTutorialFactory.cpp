@@ -5,6 +5,7 @@
 #include "EditorTutorial.h"
 #include "KismetEditorUtilities.h"
 #include "IAssetTypeActions.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialFactory"
 

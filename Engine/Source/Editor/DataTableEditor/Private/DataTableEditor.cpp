@@ -7,6 +7,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "SSearchBox.h"
 #include "SDockTab.h"
+#include "Engine/DataTable.h"
  
 #define LOCTEXT_NAMESPACE "DataTableEditor"
 

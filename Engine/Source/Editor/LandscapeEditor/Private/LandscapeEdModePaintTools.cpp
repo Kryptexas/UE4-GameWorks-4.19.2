@@ -11,6 +11,7 @@
 #include "LandscapeEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "LandscapeEdModeTools.h"
+#include "Engine/StaticMesh.h"
 
 
 const int32 FNoiseParameter::Permutations[256] =

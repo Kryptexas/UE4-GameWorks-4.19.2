@@ -34,6 +34,11 @@
 
 #include "IDocumentation.h"
 #include "STextComboBox.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Components/TimelineComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDetailsCustomization"
 

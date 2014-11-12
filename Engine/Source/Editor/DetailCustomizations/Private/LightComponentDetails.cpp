@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "LightComponentDetails.h"
+#include "Components/LightComponentBase.h"
 
 #define LOCTEXT_NAMESPACE "LightComponentDetails"
 

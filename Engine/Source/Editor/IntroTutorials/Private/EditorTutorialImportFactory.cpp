@@ -7,6 +7,7 @@
 #include "IAssetTypeActions.h"
 #include "IDocumentation.h"
 #include "IDocumentationPage.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialImportFactory"
 

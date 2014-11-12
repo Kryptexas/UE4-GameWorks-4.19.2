@@ -11,6 +11,7 @@
 #include "LandscapeHeightfieldCollisionComponent.h"
 
 #include "LevelUtils.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 // 
 // FLandscapeBrush

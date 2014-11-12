@@ -10,6 +10,7 @@
 #include "SDockTab.h"
 #include "Curves/CurveVector.h"
 #include "Curves/CurveLinearColor.h"
+#include "Curves/CurveFloat.h"
 
 #define LOCTEXT_NAMESPACE "CurveAssetEditor"
 

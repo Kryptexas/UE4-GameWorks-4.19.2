@@ -3,6 +3,8 @@
 #pragma once
 
 #include "SCurveEditor.h"
+#include "IDetailCustomization.h"
+class UWheeledVehicleMovementComponent4W;
 
 class FWheeledVehicleMovementComponent4WDetails : public IDetailCustomization
 {

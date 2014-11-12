@@ -11,6 +11,7 @@
 #include "ClassIconFinder.h"
 #include "ScopedTransaction.h"
 #include "Engine/StaticMeshActor.h"
+#include "GameFramework/Volume.h"
 
 #define LOCTEXT_NAMESPACE "BrushDetails"
 

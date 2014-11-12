@@ -12,6 +12,7 @@
 #include "SDockTab.h"
 #include "GenericCommands.h"
 #include "IAddContentDialogModule.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

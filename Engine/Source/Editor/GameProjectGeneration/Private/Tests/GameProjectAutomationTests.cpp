@@ -7,6 +7,7 @@
 #include "../GameProjectUtils.h"
 #include "Tests/AutomationTestSettings.h"
 #include "AutomationEditorCommon.h"
+#include "GameFramework/PlayerStart.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameProjectGenerationTests, Log, All);
 

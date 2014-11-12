@@ -4,6 +4,7 @@
 #include "VehicleTransmissionDataCustomization.h"
 #include "ScopedTransaction.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "Vehicles/WheeledVehicleMovementComponent4W.h"
 
 #define LOCTEXT_NAMESPACE "VehicleTransmissionDataCustomization"
 

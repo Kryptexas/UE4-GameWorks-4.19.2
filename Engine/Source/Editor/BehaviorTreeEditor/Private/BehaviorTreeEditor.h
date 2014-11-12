@@ -4,6 +4,7 @@
 
 #include "IBehaviorTreeEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "EditorUndoClient.h"
 
 class UBehaviorTree;
 class UBlackboardData;

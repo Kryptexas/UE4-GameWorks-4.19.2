@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Components/SceneCaptureComponent.h"
+#include "IDetailCustomization.h"
 
 class FSceneCaptureDetails : public IDetailCustomization
 {

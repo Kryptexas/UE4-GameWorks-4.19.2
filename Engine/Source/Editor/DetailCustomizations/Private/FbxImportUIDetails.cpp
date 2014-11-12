@@ -4,6 +4,7 @@
 #include "FbxImportUIDetails.h"
 #include "Factories/FbxAnimSequenceImportData.h"
 #include "STextComboBox.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FbxImportUIDetails"
 

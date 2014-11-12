@@ -2,6 +2,8 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateFontInfoCustomization.h"
+#include "AssetData.h"
+#include "Engine/Font.h"
 
 #define LOCTEXT_NAMESPACE "SlateFontInfo"
 

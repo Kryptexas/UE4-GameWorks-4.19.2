@@ -7,6 +7,9 @@
 
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
+#include "Components/DecalComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #define LOCTEXT_NAMESPACE "SMaterialList"
 

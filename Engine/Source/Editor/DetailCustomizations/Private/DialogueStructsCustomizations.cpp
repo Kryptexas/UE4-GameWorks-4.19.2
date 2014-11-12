@@ -6,6 +6,7 @@
 #include "DialogueWaveWidgets.h"
 #include "AssetThumbnail.h"
 #include "Sound/DialogueWave.h"
+#include "Sound/DialogueVoice.h"
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 

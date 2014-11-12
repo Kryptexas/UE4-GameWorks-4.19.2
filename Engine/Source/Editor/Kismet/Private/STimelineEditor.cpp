@@ -18,6 +18,10 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/TimelineTemplate.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "STimelineEditor"
 

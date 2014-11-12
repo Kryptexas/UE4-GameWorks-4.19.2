@@ -17,6 +17,13 @@
 #include "ComponentVisualizer.h"
 #include "InstancedFoliage.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "CanvasTypes.h"
+#include "EngineUtils.h"
+#include "GameFramework/Actor.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/TextureCube.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditorViewport, Log, All);
 

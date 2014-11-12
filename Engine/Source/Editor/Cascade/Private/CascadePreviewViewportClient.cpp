@@ -14,6 +14,10 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "PhysicsPublic.h"
 #include "Components/VectorFieldComponent.h"
+#include "Engine/StaticMesh.h"
+#include "CanvasTypes.h"
+#include "Components/LineBatchComponent.h"
+#include "Engine/Canvas.h"
 
 #define LOCTEXT_NAMESPACE "CascadeViewportClient"
 

@@ -33,6 +33,7 @@
 #include "IDocumentation.h"
 #include "SDockTab.h"
 #include "ModuleManager.h"
+#include "IntroTutorials.h"
 
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"

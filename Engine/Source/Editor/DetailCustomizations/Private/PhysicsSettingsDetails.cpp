@@ -6,6 +6,7 @@
 #include "ObjectEditorUtils.h"
 #include "BodyInstanceCustomization.h"
 #include "IDocumentation.h"
+#include "STableViewBase.h"
 
 #define LOCTEXT_NAMESPACE "PhysicalSurfaceDetails"
 

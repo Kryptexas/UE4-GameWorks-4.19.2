@@ -10,6 +10,9 @@
 #include "ActorEditorUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomModifier, Log, All);
 

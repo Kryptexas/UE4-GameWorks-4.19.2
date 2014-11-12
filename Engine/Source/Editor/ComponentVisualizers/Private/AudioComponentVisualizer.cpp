@@ -4,6 +4,7 @@
 
 #include "SoundDefinitions.h"
 #include "AudioComponentVisualizer.h"
+#include "Components/AudioComponent.h"
 
 
 void FAudioComponentVisualizer::DrawVisualization( const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI )

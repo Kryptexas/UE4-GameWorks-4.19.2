@@ -12,6 +12,8 @@
 #include "ComponentReregisterContext.h"
 #include "Engine/DestructibleMesh.h"
 #include "SDockableTab.h"
+#include "Components/DestructibleComponent.h"
+#include "Engine/StaticMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 

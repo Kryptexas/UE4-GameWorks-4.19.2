@@ -20,6 +20,7 @@
 #include "DesktopPlatformModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "GameFramework/GameMode.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 

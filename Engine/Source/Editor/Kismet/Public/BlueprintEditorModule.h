@@ -9,6 +9,7 @@
 extern const FName BlueprintEditorAppName;
 
 class FBlueprintEditor;
+class UUserDefinedEnum;
 
 /**
  * Enum editor public interface

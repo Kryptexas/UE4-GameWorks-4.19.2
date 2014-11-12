@@ -8,6 +8,7 @@
 #include "CascadeParticleSystemComponent.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleModule.h"
+#include "EditorUndoClient.h"
 
 class SCascadePreviewViewport;
 class SCascadeEmitterCanvas;

@@ -6,6 +6,8 @@
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_ComponentBoundEvent.generated.h"
 
+class UDynamicBlueprintBinding;
+
 UCLASS(MinimalAPI)
 class UK2Node_ComponentBoundEvent : public UK2Node_Event
 {

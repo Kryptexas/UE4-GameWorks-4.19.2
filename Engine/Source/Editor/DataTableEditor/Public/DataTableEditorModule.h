@@ -7,6 +7,7 @@
 #include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
 
 class IDataTableEditor;
+class UDataTable;
 
 /** DataTable Editor module */
 class FDataTableEditorModule : public IModuleInterface,

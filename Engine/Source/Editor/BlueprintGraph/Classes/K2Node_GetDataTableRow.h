@@ -4,6 +4,7 @@
 #pragma once
 #include "K2Node.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "Engine/DataTable.h"
 #include "K2Node_GetDataTableRow.generated.h"
 
 UCLASS()

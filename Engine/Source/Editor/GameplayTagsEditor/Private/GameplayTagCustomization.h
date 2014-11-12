@@ -4,6 +4,7 @@
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "SGameplayTagWidget.h"
+#include "EditorUndoClient.h"
 
 /** Customization for the gameplay tag struct */
 class FGameplayTagCustomization : public IPropertyTypeCustomization, public FEditorUndoClient

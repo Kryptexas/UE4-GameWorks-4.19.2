@@ -17,6 +17,8 @@
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
 #include "ControlPointMeshComponent.h"
+#include "EditorUndoClient.h"
+#include "EngineUtils.h"
 
 
 #define LOCTEXT_NAMESPACE "Landscape"

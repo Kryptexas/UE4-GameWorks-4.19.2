@@ -18,6 +18,8 @@
 #include "KismetEditorUtilities.h"	// for CanPasteNodes()
 #include "K2ActionMenuBuilder.h"
 #include "BlueprintEditorSettings.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelScriptActor.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuUtils"
 

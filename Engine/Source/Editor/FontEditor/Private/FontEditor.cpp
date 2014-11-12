@@ -13,6 +13,8 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "SDockTab.h"
+#include "Engine/Font.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 

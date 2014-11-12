@@ -4,6 +4,7 @@
 #include "ModuleManager.h"
 #include "CurveTableEditor.h"
 #include "Toolkits/ToolkitManager.h"
+#include "Engine/CurveTable.h"
 
 IMPLEMENT_MODULE( FCurveTableEditorModule, CurveTableEditor );
 

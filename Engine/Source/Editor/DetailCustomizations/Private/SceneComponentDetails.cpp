@@ -9,6 +9,10 @@
 #include "ComponentTransformDetails.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Components/LightComponentBase.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponentDetails"
 

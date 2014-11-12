@@ -5,6 +5,7 @@
 #include "BlueprintEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "CreateBlueprintFromActorDialog.h"
+#include "Engine/Selection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogViewportBlueprintMenu, Log, All);
 

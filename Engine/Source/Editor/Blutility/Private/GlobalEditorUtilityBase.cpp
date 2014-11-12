@@ -6,6 +6,7 @@
 #include "ContentBrowserModule.h"
 #include "AssetData.h"
 #include "AssetToolsModule.h"
+#include "Engine/Selection.h"
 
 /////////////////////////////////////////////////////
 

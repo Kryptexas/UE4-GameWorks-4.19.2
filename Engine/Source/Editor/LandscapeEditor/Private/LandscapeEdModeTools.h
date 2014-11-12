@@ -5,6 +5,7 @@
 #include "Landscape.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 //
 //	FNoiseParameter - Perlin noise

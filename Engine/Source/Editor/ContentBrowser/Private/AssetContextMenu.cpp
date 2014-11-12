@@ -32,6 +32,7 @@
 #include "GenericCommands.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/LevelStreaming.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"

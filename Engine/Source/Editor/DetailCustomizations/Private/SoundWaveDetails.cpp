@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SoundWaveDetails.h"
+#include "Sound/SoundWave.h"
 
 TSharedRef<IDetailCustomization> FSoundWaveDetails::MakeInstance()
 {

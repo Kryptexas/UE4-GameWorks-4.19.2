@@ -8,6 +8,10 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "GraphEditor.h"
+#include "EditorUndoClient.h"
+#include "Engine/UserDefinedEnum.h"
+
+class USCS_Node;
 
 /////////////////////////////////////////////////////
 // FCustomDebugObjectEntry - Used to pass a custom debug object override around

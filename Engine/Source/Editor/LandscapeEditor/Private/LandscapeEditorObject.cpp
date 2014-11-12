@@ -6,6 +6,8 @@
 #include "ImageWrapper.h"
 
 #include "LandscapeMaterialInstanceConstant.h"
+#include "EngineUtils.h"
+#include "LandscapeGizmoActor.h"
 
 ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

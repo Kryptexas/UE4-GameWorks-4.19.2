@@ -4,6 +4,7 @@
 #include "InputSettingsDetails.h"
 #include "ScopedTransaction.h"
 #include "IDocumentation.h"
+#include "GameFramework/InputSettings.h"
 
 #define LOCTEXT_NAMESPACE "InputSettingsDetails"
 

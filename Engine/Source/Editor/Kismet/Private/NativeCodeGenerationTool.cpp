@@ -3,6 +3,9 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "NativeCodeGenerationTool.h"
 #include "Dialogs.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 

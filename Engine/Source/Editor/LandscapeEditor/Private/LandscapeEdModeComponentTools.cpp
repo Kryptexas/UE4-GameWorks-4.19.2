@@ -15,6 +15,7 @@
 #include "LandscapeEdModeTools.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

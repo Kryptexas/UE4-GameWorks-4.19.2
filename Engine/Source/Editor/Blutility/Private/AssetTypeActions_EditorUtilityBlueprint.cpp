@@ -9,6 +9,7 @@
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "GlobalBlutilityDialog.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

@@ -2,6 +2,8 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "NavLinkStructCustomization.h"
+#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #define LOCTEXT_NAMESPACE "FNavLinkStructCustomization"
 

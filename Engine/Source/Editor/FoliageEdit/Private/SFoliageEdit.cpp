@@ -14,6 +14,7 @@
 #include "Editor/IntroTutorials/Public/IIntroTutorials.h"
 
 #include "SFoliageEditMeshDisplayItem.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 

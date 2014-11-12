@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateSoundCustomization.h"
+#include "Sound/SoundBase.h"
 
 TSharedRef<IPropertyTypeCustomization> FSlateSoundStructCustomization::MakeInstance() 
 {

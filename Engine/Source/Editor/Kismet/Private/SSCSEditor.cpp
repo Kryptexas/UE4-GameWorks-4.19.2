@@ -29,6 +29,9 @@
 #include "TutorialMetaData.h"
 #include "SInlineEditableTextBlock.h"
 #include "GenericCommands.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 

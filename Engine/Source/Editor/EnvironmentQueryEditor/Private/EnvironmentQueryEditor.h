@@ -4,6 +4,7 @@
 
 #include "IEnvironmentQueryEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "EditorUndoClient.h"
 
 
 /** Viewer/editor for a DataTable */

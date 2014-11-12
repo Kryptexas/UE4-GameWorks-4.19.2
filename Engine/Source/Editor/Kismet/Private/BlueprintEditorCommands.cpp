@@ -6,6 +6,8 @@
 #include "BlueprintEditorCommands.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h" // for AddEventForFunction(), ...
+#include "Engine/Selection.h"
+#include "Engine/LevelScriptActor.h"
 
 struct FBlueprintPaletteListBuilder;
 

@@ -4,6 +4,7 @@
 #include "BodyInstanceCustomization.h"
 #include "ScopedTransaction.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "Engine/CollisionProfile.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstanceCustomization"
 

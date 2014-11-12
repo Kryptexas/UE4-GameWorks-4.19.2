@@ -4,6 +4,9 @@
 
 #include "PreviewScene.h"
 #include "AnimGraphDefinitions.h"
+#include "IDetailCustomization.h"
+
+class UAnimStateTransitionNode;
 
 class FAnimTransitionNodeDetails : public IDetailCustomization
 {

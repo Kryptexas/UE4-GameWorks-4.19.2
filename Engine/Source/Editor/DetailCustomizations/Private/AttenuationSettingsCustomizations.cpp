@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AttenuationSettingsCustomizations.h"
+#include "Sound/SoundAttenuation.h"
 
 TSharedRef<IPropertyTypeCustomization> FAttenuationSettingsCustomization::MakeInstance() 
 {

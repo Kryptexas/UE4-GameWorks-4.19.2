@@ -39,6 +39,7 @@
 #include "SSearchBox.h"
 #include "GenericCommands.h"
 #include "Components/TimelineComponent.h"
+#include "Engine/TimelineTemplate.h"
 
 #define LOCTEXT_NAMESPACE "MyBlueprint"
 

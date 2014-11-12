@@ -3,6 +3,7 @@
 #include "ComponentVisualizersPrivatePCH.h"
 
 #include "SpotLightComponentVisualizer.h"
+#include "Components/SpotLightComponent.h"
 
 
 void FSpotLightComponentVisualizer::DrawVisualization( const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI )

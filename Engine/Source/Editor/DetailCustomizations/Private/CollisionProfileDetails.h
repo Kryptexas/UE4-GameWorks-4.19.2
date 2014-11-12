@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/CollisionProfile.h"
 
 // Class containing the friend information - used to build the list view
 class FChannelListItem

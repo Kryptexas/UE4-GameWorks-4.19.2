@@ -7,6 +7,7 @@
 #include "SNumericEntryBox.h"
 #include "ScopedTransaction.h"
 #include "DesktopPlatformModule.h"
+#include "Engine/Font.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 

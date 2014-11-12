@@ -17,6 +17,9 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystem.h"
 #include "SColorPicker.h"
+#include "CanvasTypes.h"
+#include "Engine/Font.h"
+#include "Engine/StaticMesh.h"
 
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)

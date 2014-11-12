@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Components/InputComponent.h"
 #include "K2Node_Event.h"
 #include "K2Node_InputKeyEvent.generated.h"
 

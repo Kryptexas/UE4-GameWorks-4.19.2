@@ -18,6 +18,8 @@
 #include "UserDefinedEnumEditor.h"
 #include "UserDefinedStructureEditor.h"
 #include "FormatTextDetails.h"
+#include "Engine/SCS_Node.h"
+#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "KismetInspector"
 

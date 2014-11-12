@@ -10,6 +10,7 @@
 #include "SDockTab.h"
 
 #include "Engine/DestructibleMesh.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 

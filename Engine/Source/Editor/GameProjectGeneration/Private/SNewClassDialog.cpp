@@ -12,6 +12,17 @@
 #include "SWizard.h"
 #include "SHyperlink.h"
 #include "TutorialMetaData.h"
+#include "GameFramework/GameMode.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/WorldSettings.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/Actor.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/PlayerState.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"

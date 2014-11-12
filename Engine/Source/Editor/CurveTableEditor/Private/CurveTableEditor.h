@@ -5,6 +5,7 @@
 #include "ICurveTableEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
 
+class UCurveTable;
 
 /** Viewer/editor for a CurveTable */
 class FCurveTableEditor :

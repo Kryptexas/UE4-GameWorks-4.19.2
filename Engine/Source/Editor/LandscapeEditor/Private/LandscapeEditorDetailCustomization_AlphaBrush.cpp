@@ -17,6 +17,7 @@
 
 #include "Slate/SceneViewport.h"
 #include "AssetToolsModule.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.Brushes.Alpha"
 

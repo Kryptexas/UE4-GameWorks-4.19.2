@@ -4,6 +4,7 @@
 
 #include "UnloadedBlueprintData.h"
 #include "ClassViewerNode.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 FUnloadedBlueprintData::FUnloadedBlueprintData( TWeakPtr< FClassViewerNode > InClassViewerNode )
 {

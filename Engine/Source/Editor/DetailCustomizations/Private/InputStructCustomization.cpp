@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "InputStructCustomization.h"
 #include "InputSettingsDetails.h"
+#include "GameFramework/PlayerInput.h"
 
 #define LOCTEXT_NAMESPACE "InputStructCustomization"
 

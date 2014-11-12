@@ -12,6 +12,7 @@
 #include "STextEntryPopup.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 #define LOCTEXT_NAMESPACE "CurveEditor"
 

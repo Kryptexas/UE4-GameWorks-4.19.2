@@ -2,7 +2,7 @@
 
 #include "GeometryModePrivatePCH.h"
 #include "DynamicMeshBuilder.h"
-
+#include "Engine/Selection.h"
 
 IMPLEMENT_MODULE( FGeometryModeModule, GeometryMode );
 

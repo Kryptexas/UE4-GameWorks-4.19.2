@@ -8,6 +8,7 @@
 #include "LandscapeDataAccess.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Raster.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

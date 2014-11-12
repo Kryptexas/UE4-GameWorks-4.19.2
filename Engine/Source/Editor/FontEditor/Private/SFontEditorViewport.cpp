@@ -4,6 +4,10 @@
 #include "MouseDeltaTracker.h"
 #include "SFontEditorViewport.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "CanvasTypes.h"
+#include "Engine/Font.h"
+#include "Engine/Selection.h"
+#include "CanvasItem.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 

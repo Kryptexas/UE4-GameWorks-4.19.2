@@ -7,6 +7,8 @@
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
 #include "SCurveEditor.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "CurveStructCustomization"
 

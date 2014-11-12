@@ -2,6 +2,8 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SkyLightComponentDetails.h"
+#include "Components/LightComponentBase.h"
+#include "Engine/SkyLight.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponentDetails"
 

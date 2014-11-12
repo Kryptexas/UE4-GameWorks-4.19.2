@@ -5,6 +5,7 @@
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
 #include "Vehicles/WheeledVehicleMovementComponent4W.h"
+#include "WheeledVehicleMovementComponent4WDetails.h"
 #include "IDocumentation.h"
 #include "SCurveEditor.h"
 

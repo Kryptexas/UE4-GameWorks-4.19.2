@@ -5,6 +5,7 @@
 #include "IDataTableEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
 
+class UDataTable;
 
 /** Viewer/editor for a DataTable */
 class FDataTableEditor :

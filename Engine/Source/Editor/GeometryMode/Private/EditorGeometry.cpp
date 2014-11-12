@@ -3,6 +3,7 @@
 
 #include "GeometryModePrivatePCH.h"
 #include "EditorGeometry.h"
+#include "Engine/Polys.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorGeometry, Log, All);
 

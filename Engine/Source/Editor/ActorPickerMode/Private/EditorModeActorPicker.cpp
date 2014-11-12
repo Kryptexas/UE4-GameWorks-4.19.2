@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorPickerModePrivatePCH.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "PropertyPicker"
 

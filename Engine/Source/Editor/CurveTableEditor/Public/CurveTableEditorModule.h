@@ -7,6 +7,7 @@
 #include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
 
 class ICurveTableEditor;
+class UCurveTable;
 
 /** CurveTable Editor module */
 class FCurveTableEditorModule : public IModuleInterface,

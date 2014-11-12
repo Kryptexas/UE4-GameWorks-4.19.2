@@ -2,6 +2,7 @@
 
 #include "ComponentVisualizersPrivatePCH.h"
 #include "SpringArmComponentVisualizer.h"
+#include "GameFramework/SpringArmComponent.h"
 
 static const FColor	ArmColor(255,0,0);
 

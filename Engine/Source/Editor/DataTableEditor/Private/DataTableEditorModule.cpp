@@ -4,6 +4,7 @@
 #include "ModuleManager.h"
 #include "DataTableEditor.h"
 #include "Toolkits/ToolkitManager.h"
+#include "Engine/DataTable.h"
 
 IMPLEMENT_MODULE( FDataTableEditorModule, DataTableEditor );
 

@@ -4,6 +4,7 @@
 
 #include "Animation/AnimInstance.h"
 #include "AnimStateNodeBase.h"
+#include "Animation/AnimStateMachineTypes.h"
 
 #include "AnimStateTransitionNode.generated.h"
 

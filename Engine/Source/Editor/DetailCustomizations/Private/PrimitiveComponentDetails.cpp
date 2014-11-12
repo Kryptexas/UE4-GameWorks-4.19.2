@@ -10,6 +10,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "IDocumentation.h"
 #include "EditorCategoryUtils.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponentDetails"

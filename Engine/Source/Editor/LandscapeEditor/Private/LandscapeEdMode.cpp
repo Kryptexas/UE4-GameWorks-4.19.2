@@ -32,6 +32,10 @@
 #include "LandscapeSplinesComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/Selection.h"
+#include "LandscapeGizmoActiveActor.h"
+#include "EngineUtils.h"
+#include "Engine/Light.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
