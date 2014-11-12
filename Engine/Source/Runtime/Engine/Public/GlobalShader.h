@@ -150,11 +150,20 @@ public:
 	}
 };
 
+/**
+* Container for Backup/RestoreGlobalShaderMap functions.
+* Includes shader data from any populated feature levels.
+*/
+struct FGlobalShaderBackupData
+{
+	TScopedPointer<TArray<uint8>> FeatureLevelShaderData[ERHIFeatureLevel::Num];
+};
+
 /** Backs up all global shaders to memory through serialization, and removes all references to FShaders from the global shader map. */
-extern ENGINE_API TArray<uint8>* BackupGlobalShaderMap(EShaderPlatform Platform);
+extern ENGINE_API void BackupGlobalShaderMap(FGlobalShaderBackupData& OutGlobalShaderBackup);
 
 /** Recreates shaders in the global shader map from the serialized memory. */
-extern ENGINE_API void RestoreGlobalShaderMap(EShaderPlatform Platform, const TArray<uint8>& ShaderData);
+extern ENGINE_API void RestoreGlobalShaderMap(const FGlobalShaderBackupData& GlobalShaderData);
 
 /**
  * Makes sure all global shaders are loaded and/or compiled for the passed in platform.

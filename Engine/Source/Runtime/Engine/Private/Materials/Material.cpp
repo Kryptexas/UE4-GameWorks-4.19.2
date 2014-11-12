@@ -2937,7 +2937,7 @@ void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedP
 	FMaterial::BackupEditorLoadedMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 }
 
-void UMaterial::RestoreMaterialShadersFromMemory(EShaderPlatform ShaderPlatform, const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)
