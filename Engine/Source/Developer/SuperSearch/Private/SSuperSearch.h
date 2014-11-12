@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#if WITH_EDITOR
 #include "AssetData.h"
+#endif
 
 /**
  * Console input box with command-completion support
@@ -12,8 +15,9 @@ struct FSearchEntry
 	FString Title;
 	FString URL;
 	bool bCategory;
+#if WITH_EDITOR
 	FAssetData AssetData;
-
+#endif
 	static FSearchEntry * MakeCategoryEntry(const FString& InTitle);
 };
 

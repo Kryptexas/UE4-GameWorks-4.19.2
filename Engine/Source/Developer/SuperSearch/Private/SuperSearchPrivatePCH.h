@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "UnrealEd.h"
 #include "SuperSearchModule.h"
 #include "SlateBasics.h"
 #include "Http.h"
