@@ -89,7 +89,7 @@ class UDataTable : public UObject
 	/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
 	ENGINE_API UProperty* FindTableProperty(const FName& PropertyName) const;
 
-	void* FindRowUnchecked(FName RowName, bool MustExist=false) const
+	uint8* FindRowUnchecked(FName RowName, bool MustExist=false) const
 	{
 		if(RowStruct == NULL)
 		{
@@ -110,7 +110,7 @@ class UDataTable : public UObject
 			return NULL;
 		}
 
-		void* RowData = *RowDataPtr;
+		uint8* RowData = *RowDataPtr;
 		check(RowData);
 
 		return RowData;
@@ -118,6 +118,8 @@ class UDataTable : public UObject
 
 	/** Empty the table info (will not clear RowStruct) */
 	ENGINE_API void EmptyTable();
+
+	ENGINE_API TArray<FName> GetRowNames() const;
 
 #if WITH_EDITOR
 

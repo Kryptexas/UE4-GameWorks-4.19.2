@@ -151,6 +151,15 @@ void UDataTable::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar); // When loading, this should load our RowStruct!	
 
+	if (RowStruct && RowStruct->HasAnyFlags(RF_NeedLoad))
+	{
+		auto RowStructLinker = RowStruct->GetLinker();
+		if (RowStructLinker)
+		{
+			RowStructLinker->Preload(RowStruct);
+		}
+	}
+
 	if(Ar.IsLoading())
 	{
 		LoadStructData(Ar);
@@ -671,3 +680,10 @@ TArray< TArray<FString> > UDataTable::GetTableData() const
 }
 
 #endif //WITH_EDITOR
+
+TArray<FName> UDataTable::GetRowNames() const
+{
+	TArray<FName> Keys;
+	RowMap.GetKeys(Keys);
+	return Keys;
+}
