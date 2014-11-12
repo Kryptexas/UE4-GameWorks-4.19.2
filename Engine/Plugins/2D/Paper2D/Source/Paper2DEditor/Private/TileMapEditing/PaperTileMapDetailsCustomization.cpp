@@ -27,13 +27,19 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	UPaperTileMap* TileMap = NULL;
 	for (int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
 	{
-		if (AActor* CurrentActor = Cast<AActor>(SelectedObjects[ObjectIndex].Get()))
+		UObject* TestObject = SelectedObjects[ObjectIndex].Get();
+		if (AActor* CurrentActor = Cast<AActor>(TestObject))
 		{
 			if (UPaperTileMapRenderComponent* CurrentTileMap = CurrentActor->FindComponentByClass<UPaperTileMapRenderComponent>())
 			{
 				TileMap = CurrentTileMap->TileMap;
 				break;
 			}
+		}
+		else if (UPaperTileMap* TestTileMap = Cast<UPaperTileMap>(TestObject))
+		{
+			TileMap = TestTileMap;
+			break;
 		}
 	}
 	TileMapPtr = TileMap;
