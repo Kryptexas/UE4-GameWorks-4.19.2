@@ -100,3 +100,5 @@ FVector2D SCarouselNavigationBar::GetPlaceHolderPosition() const
 
 	return FVector2D(NewPos, 0.f);
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -41,7 +41,7 @@ private:
 	TSharedRef<SWidget> CreateScreenshotCarousel(TSharedPtr<FContentSourceViewModel> ContentSource);
 
 	/** Creates the widget the displays a screenshot in the screenshot carousel. */
-	TSharedRef<SWidget> SAddContentWidget::CreateScreenshotWidget(TSharedPtr<FSlateBrush> ScreenshotBrush);
+	TSharedRef<SWidget> CreateScreenshotWidget(TSharedPtr<FSlateBrush> ScreenshotBrush);
 
 	/** Creates a list view representing content which the user has selected for addition to the project. */
 	TSharedRef<SWidget> CreateAddListView();

@@ -52,3 +52,5 @@ private:
 	TAttribute<int32> CurrentItemIndex;
 	TAttribute<float> CurrentSlideAmount;
 };
+
+#undef LOCTEXT_NAMESPACE
