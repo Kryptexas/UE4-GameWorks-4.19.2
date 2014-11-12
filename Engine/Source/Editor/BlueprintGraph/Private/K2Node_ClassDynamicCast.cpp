@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_ClassDynamicCast.h"
 #include "DynamicCastHandler.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_ClassDynamicCast"
 

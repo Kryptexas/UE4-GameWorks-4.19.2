@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Runtime/Engine/Classes/Engine/UserDefinedStruct.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "K2Node_StructOperation.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UK2Node_StructOperation

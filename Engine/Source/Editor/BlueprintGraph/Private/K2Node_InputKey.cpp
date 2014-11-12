@@ -9,6 +9,7 @@
 #include "BlueprintEditorUtils.h"
 #include "EdGraphSchema_K2.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_InputKey"
 

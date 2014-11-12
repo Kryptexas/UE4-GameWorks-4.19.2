@@ -9,6 +9,7 @@
 #include "BlueprintEditorUtils.h"
 #include "EdGraphSchema_K2.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAction"
 

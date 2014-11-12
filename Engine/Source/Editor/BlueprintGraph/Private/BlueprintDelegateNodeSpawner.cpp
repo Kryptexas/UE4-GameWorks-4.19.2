@@ -7,6 +7,7 @@
 #include "ObjectEditorUtils.h"		// for GetCategory()
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForNodeChecked()
 #include "EditorCategoryUtils.h"
+#include "K2Node_BaseMCDelegate.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDelegateNodeSpawner"
 
