@@ -336,7 +336,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		ANSICHAR* VersionString = new ANSICHAR[18];
 		memset((void*)VersionString, '\0', 18 * sizeof(ANSICHAR));
 
-		if (IsES2Platform(GRHIShaderPlatform_DEPRECATED))
+		if (IsES2Platform(GMaxRHIShaderPlatform))
 		{
 			//#version 100 has to be the first line in the file, so it has to be added before anything else.
 			if (FOpenGL::UseES30ShadingLanguage())
@@ -365,7 +365,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 #endif
 
 #if PLATFORM_ANDROID 
-		if (IsES2Platform(GRHIShaderPlatform_DEPRECATED))
+		if (IsES2Platform(GMaxRHIShaderPlatform))
 		{
 			//Here is some code to add in a #define for textureCubeLodEXT
 			const ANSICHAR* ExtensionString = "";
@@ -1259,7 +1259,7 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	}
 	
 	// E.g. GLSL_430 uses layout(location=xx) instead of having to call glBindAttribLocation and glBindFragDataLocation
-	if (OpenGLShaderPlatformNeedsBindLocation(GRHIShaderPlatform_DEPRECATED))
+	if (OpenGLShaderPlatformNeedsBindLocation(GMaxRHIShaderPlatform))
 	{
 		// Bind attribute indices.
 		if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)

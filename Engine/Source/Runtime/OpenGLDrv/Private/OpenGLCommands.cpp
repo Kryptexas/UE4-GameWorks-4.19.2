@@ -1605,7 +1605,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 
 	FOpenGLTextureBase* NewDepthStencilRT = GetOpenGLTextureFromRHITexture(NewDepthStencilTargetRHI);
 
-	if (IsES2Platform(GRHIShaderPlatform_DEPRECATED) && !IsPCPlatform(GRHIShaderPlatform_DEPRECATED))
+	if (IsES2Platform(GMaxRHIShaderPlatform) && !IsPCPlatform(GMaxRHIShaderPlatform))
 	{
 		// @todo-mobile
 
