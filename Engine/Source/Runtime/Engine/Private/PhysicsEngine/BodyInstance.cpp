@@ -897,6 +897,7 @@ void FBodyInstance::UpdatePhysicsFilterData(bool bForceSimpleAsComplex)
 #endif
 }
 
+
 #if UE_WITH_PHYSICS
 void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PxAggregate* InAggregate)
 {
@@ -1279,6 +1280,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		check(FPhysxUserData::Get<FBodyInstance>(PNewActorAsync->userData) == this && FPhysxUserData::Get<FBodyInstance>(PNewActorAsync->userData)->OwnerComponent != NULL);
 	}
 
+
 	// If we added no shapes, generate warning, destroy actor and bail out (don't add to scene).
 	if ((PNewActorSync && PNewActorSync->getNbShapes() == 0) || ((PNewActorAsync && PNewActorAsync->getNbShapes() == 0)))
 	{
@@ -1454,7 +1456,6 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, 
 	return PairNotifyMapping;
 }
 
-
 //helper function for TermBody to avoid code duplication between scenes
 void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)
 {
@@ -1469,6 +1470,8 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
 
 			if (PRigidActor)
 			{
+
+
 				// Let FPhysScene know
 				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 				if (PhysScene)
@@ -1625,6 +1628,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 	int32 NumSyncShapes = 0;
 	TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
 
+	bool bShapesChanged = false;
 	bool bNeedsNotification = false;
 
 	PxScene * PSyncScene = RigidActorSync ? RigidActorSync->getScene() : NULL;
@@ -1644,6 +1648,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 			{
 				PShape->userData = NULL;
 				RigidActorSync->detachShape(*PShape);
+				bShapesChanged = true;
 			}
 		}
 	}
@@ -1659,11 +1664,15 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 			{
 				PShape->userData = NULL;
 				RigidActorSync->detachShape(*PShape);
+				bShapesChanged = true;
 			}
 		}
 	}
 
-	PostShapeChange();
+	if (bShapesChanged)
+	{
+		PostShapeChange();
+	}
 #endif
 }
 
