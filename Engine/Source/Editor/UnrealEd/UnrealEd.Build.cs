@@ -187,10 +187,14 @@ public class UnrealEd : ModuleRules
 				"ReferenceViewer",
 				"EditorLiveStreaming",
 				"HotReload",
-                "AndroidPlatformEditor",
                 "IOSPlatformEditor"
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+		{
+			DynamicallyLoadedModuleNames.Add("AndroidPlatformEditor");
+		}
 
 		CircularlyReferencedDependentModules.AddRange(
 			new string[] 
