@@ -57,7 +57,7 @@ void AGameplayAbilityTargetActor_Trace::SweepWithFilter(FHitResult& ReturnHitRes
 	while (true)
 	{
 		InWorld->SweepSingle(ReturnHitResult, InTraceStart, InTraceEnd, InRotation, Channel, CollisionShape, LocalParams);
-		if (ReturnHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(ReturnHitResult.Actor))
+		if (ReturnHitResult.bBlockingHit && ReturnHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(ReturnHitResult.Actor))
 		{
 			LocalParams.AddIgnoredActor(ReturnHitResult.Actor.Get());
 			continue;
