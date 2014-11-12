@@ -5351,7 +5351,6 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 			BeginUpdateResourceRHI(*It);
 		}
 
-		// try iterating over all worlds here
 		FeatureLevel = InFeatureLevel;
 
 		if (Scene)
