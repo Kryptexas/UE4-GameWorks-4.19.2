@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "DelegateNodeHandlers.h"
+#include "K2Node_ClearDelegate.h"
 
 #define LOCTEXT_NAMESPACE "DelegateNodeHandlers"
 

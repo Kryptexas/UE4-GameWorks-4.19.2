@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SBorder.h"
+#include "SlateDelegates.h"
 #include "SCheckBox.generated.h"
 
 /** Current state of the check box */

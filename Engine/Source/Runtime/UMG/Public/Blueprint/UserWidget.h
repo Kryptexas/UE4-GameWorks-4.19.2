@@ -8,6 +8,7 @@
 
 #include "NamedSlotInterface.h"
 #include "Slate/Anchors.h"
+#include "Engine/LocalPlayer.h"
 #include "UserWidget.generated.h"
 
 static FGeometry NullGeometry;
@@ -18,6 +19,7 @@ static FWidgetStyle NullStyle;
 class UWidget;
 class UWidgetAnimation;
 struct FAnchors;
+struct FLocalPlayerContext;
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to

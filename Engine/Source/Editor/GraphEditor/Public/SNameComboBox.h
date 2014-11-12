@@ -6,6 +6,7 @@
 #include "SharedPointer.h"
 #include "SlateEnums.h"
 #include "SCompoundWidget.h"
+#include "SComboBox.h"
 //#include "UnrealString.h"
 
 /**

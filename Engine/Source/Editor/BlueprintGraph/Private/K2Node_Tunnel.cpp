@@ -5,6 +5,7 @@
 
 #include "K2Node_MacroInstance.h"
 #include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
 
 UK2Node_Tunnel::UK2Node_Tunnel(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

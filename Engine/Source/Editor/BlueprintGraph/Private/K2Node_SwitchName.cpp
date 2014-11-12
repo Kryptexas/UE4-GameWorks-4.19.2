@@ -4,6 +4,7 @@
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_SwitchName.h"
 
 UK2Node_SwitchName::UK2Node_SwitchName(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

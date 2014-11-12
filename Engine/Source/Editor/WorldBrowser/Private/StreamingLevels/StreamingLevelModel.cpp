@@ -4,6 +4,7 @@
 
 #include "StreamingLevelCollectionModel.h"
 #include "StreamingLevelModel.h"
+#include "Engine/LevelStreaming.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

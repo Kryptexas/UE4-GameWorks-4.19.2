@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "NavigationTypes.h"
 #include "NavCollision.generated.h"
 
 USTRUCT()

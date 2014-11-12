@@ -3,6 +3,8 @@
 
 #include "SWorldHierarchyItem.h"
 #include "SColorPicker.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
+#include "Engine/LevelStreamingKismet.h"
 
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"

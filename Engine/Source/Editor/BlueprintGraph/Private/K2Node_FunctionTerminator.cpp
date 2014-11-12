@@ -2,6 +2,8 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_FunctionTerminator.h"
+#include "GraphEditorSettings.h"
 
 UK2Node_FunctionTerminator::UK2Node_FunctionTerminator(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

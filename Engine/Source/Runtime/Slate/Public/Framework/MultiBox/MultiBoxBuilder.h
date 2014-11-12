@@ -3,11 +3,13 @@
 #pragma once
 
 #include "MultiBoxExtender.h"
+#include "SlateDelegates.h"
 
 
 class FUICommandInfo;
 class FUICommandList;
-
+struct FSlateIcon;
+struct FUIAction;
 
 /** Delegate used by multi-box to call a user function to populate a new menu.  Used for spawning sub-menus and pull-down menus. */
 DECLARE_DELEGATE_OneParam( FNewMenuDelegate, class FMenuBuilder& );

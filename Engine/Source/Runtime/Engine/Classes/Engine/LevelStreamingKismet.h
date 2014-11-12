@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "LevelStreaming.h"
 #include "LevelStreamingKismet.generated.h"
 
 UCLASS(MinimalAPI, BlueprintType)

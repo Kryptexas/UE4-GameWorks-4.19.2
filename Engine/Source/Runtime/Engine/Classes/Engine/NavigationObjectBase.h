@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "AI/Navigation/NavAgentInterface.h"
 #include "NavigationObjectBase.generated.h"
 
 UCLASS(hidecategories=(Lighting, LightColor, Force), ClassGroup=Navigation, NotBlueprintable, abstract)

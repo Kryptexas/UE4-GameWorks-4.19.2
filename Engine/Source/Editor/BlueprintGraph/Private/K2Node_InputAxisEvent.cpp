@@ -6,6 +6,7 @@
 #include "EditorCategoryUtils.h"
 #include "Engine/InputAxisDelegateBinding.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_InputAxisEvent.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAxisEvent"
 

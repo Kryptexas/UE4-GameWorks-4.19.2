@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "Engine/ComponentDelegateBinding.h"
+#include "K2Node_ComponentBoundEvent.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

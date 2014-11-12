@@ -7,6 +7,9 @@
 
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_LocalVariable.h"
+#include "K2Node_AssignmentStatement.h"
+#include "K2Node_VariableSet.h"
+#include "K2Node_VariableGet.h"
 
 UDEPRECATED_K2Node_LocalVariable::UDEPRECATED_K2Node_LocalVariable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -20,6 +20,7 @@
 #include "K2Node_Message.h"
 #include "K2Node_ExecutionSequence.h"
 #include "K2Node_DynamicCast.h"
+#include "K2Node_BaseAsyncTask.h"
 
 /*******************************************************************************
  * Static BlueprintActionFilter Helpers

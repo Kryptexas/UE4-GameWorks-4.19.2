@@ -7,6 +7,8 @@
 #ifndef __GENERIC_OCTREE_H__
 #define __GENERIC_OCTREE_H__
 
+class FOctreeElementId;
+
 /** A concise iteration over the children of an octree node. */
 #define FOREACH_OCTREE_CHILD_NODE(ChildRef) \
 	for(FOctreeChildNodeRef ChildRef(0);!ChildRef.IsNULL();ChildRef.Advance())

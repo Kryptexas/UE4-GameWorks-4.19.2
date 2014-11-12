@@ -4,6 +4,8 @@
 
 #include "GenericApplicationMessageHandler.h"
 #include "MenuStack.h"
+#include "SlateDelegates.h"
+#include "SlateApplicationBase.h"
 
 class SToolTip;
 class SViewport;

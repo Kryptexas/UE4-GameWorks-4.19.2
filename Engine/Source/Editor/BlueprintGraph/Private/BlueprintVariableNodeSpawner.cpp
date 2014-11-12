@@ -9,6 +9,8 @@
 #include "EdGraphSchema_K2.h"		// for ConvertPropertyToPinType()
 #include "EditorCategoryUtils.h"	// for BuildCategoryString()
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintVariableNodeSpawner"
 

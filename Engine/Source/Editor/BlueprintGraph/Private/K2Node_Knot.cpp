@@ -5,6 +5,7 @@
 #include "Kismet2NameValidators.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_Knot.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Knot"
 

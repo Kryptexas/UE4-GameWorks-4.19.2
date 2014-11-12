@@ -10,6 +10,13 @@
 #include "EditorCategoryUtils.h"	// for BuildCategoryString()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()
 #include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
+#include "K2Node_Literal.h"
+#include "K2Node_CallFunctionOnMember.h"
+#include "K2Node_CommutativeAssociativeBinaryOperator.h"
+#include "K2Node_CallMaterialParameterCollectionFunction.h"
+#include "K2Node_CallDataTableFunction.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_VariableGet.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 

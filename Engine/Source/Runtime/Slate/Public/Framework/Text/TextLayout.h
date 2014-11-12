@@ -2,6 +2,9 @@
 #pragma once
 
 #include "IBreakIterator.h"
+#include "TextRunRenderer.h"
+#include "TextLineHighlight.h"
+#include "ILineHighlighter.h"
 #include "TextLayout.generated.h"
 
 #define TEXT_LAYOUT_DEBUG 0

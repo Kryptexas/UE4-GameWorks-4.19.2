@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "CompilerResultsLog.h"
+#include "K2Node_CallDataTableFunction.h"
 
 UK2Node_CallDataTableFunction::UK2Node_CallDataTableFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

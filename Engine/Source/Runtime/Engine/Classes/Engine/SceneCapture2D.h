@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "SceneCapture.h"
 #include "SceneCapture2D.generated.h"
 
 UCLASS(hidecategories=(Collision, Material, Attachment, Actor), MinimalAPI)

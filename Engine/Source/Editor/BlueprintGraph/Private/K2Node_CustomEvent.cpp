@@ -7,6 +7,8 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_BaseMCDelegate.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 

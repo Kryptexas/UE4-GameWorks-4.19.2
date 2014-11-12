@@ -8,6 +8,12 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
+#include "EdGraphNode_Comment.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_Literal.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_AddDelegate.h"
+#include "K2Node_CustomEvent.h"
 
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

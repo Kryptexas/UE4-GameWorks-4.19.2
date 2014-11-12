@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "MaterialInstance.h"
 #include "MaterialInstanceDynamic.generated.h"
 
 UCLASS(hidecategories=Object, collapsecategories, BlueprintType, MinimalAPI)

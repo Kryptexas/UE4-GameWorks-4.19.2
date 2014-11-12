@@ -9,6 +9,7 @@
 
 #include "FloatPacker.h"
 #include "Animation/AnimSequence.h"
+#include "EngineLogs.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimationCompression, Log, All);
 

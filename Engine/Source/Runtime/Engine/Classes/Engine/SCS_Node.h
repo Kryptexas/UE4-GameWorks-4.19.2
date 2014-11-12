@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "SimpleConstructionScript.h"
 #include "SCS_Node.generated.h"
 
 DECLARE_DELEGATE_OneParam( FSCSNodeNameChanged, const FName& );

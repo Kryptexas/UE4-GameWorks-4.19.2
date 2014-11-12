@@ -3,7 +3,11 @@
  
 #pragma once
 #include "Sound/SoundNode.h"
+#include "SoundAttenuation.h"
 #include "SoundNodeAttenuation.generated.h"
+
+struct FAttenuationSettings;
+class USoundAttenuation;
 
 /** 
  * Defines how a sound's volume changes based on distance to the listener

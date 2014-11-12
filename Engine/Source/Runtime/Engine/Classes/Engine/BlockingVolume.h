@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "BlockingVolume.generated.h"
 
 /** An invisible volume used to block other actors. */

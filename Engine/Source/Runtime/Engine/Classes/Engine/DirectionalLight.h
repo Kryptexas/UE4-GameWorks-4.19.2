@@ -4,6 +4,8 @@
 #include "Engine/Light.h"
 #include "DirectionalLight.generated.h"
 
+class UArrowComponent;
+
 UCLASS(ClassGroup=(Lights, DirectionalLights), MinimalAPI, meta=(ChildCanTick))
 class ADirectionalLight : public ALight
 {

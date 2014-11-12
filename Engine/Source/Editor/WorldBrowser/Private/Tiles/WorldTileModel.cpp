@@ -7,9 +7,13 @@
 #include "WorldTileDetails.h"
 #include "WorldTileCollectionModel.h"
 #include "WorldTileModel.h"
-
+#include "Engine/LevelBounds.h"
 #include "Engine/WorldComposition.h"
 #include "Landscape.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingKismet.h"
+
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 DEFINE_LOG_CATEGORY_STATIC(WorldBrowser, Log, All);

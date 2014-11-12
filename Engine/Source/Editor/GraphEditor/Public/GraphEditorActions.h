@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SlateBasics.h"
+#include "EditorStyleSet.h"
 
 class FGraphEditorCommandsImpl : public TCommands<FGraphEditorCommandsImpl>
 {

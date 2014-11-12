@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/LatentActionManager.h"
+#include "BlueprintFunctionLibrary.h"
 #include "KismetSystemLibrary.generated.h"
 
 /** It's just a proxy for FTimerDynamicDelegate */

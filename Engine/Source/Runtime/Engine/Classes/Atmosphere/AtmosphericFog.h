@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "GameFramework/Info.h"
 #include "AtmosphericFog.generated.h"
 
 /** 

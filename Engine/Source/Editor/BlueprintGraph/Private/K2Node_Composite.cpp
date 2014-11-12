@@ -4,6 +4,7 @@
 
 #include "EdGraphUtilities.h"
 #include "Kismet2NameValidators.h"
+#include "K2Node_Composite.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

@@ -127,7 +127,7 @@ namespace EAIRequestPriority
 
 namespace EAIRequestPriority
 {
-	static const int32 Lowest = Logic;
+	static const int32 Lowest = EAIRequestPriority::Logic;
 };
 
 UENUM()

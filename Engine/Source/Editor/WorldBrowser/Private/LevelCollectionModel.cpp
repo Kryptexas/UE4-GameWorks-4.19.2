@@ -8,6 +8,8 @@
 
 #include "LevelCollectionModel.h"
 #include "ShaderCompiler.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

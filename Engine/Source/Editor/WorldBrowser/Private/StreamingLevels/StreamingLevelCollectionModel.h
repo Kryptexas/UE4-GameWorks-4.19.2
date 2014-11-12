@@ -2,6 +2,7 @@
 #pragma once
 
 #include "StreamingLevelModel.h"
+#include "EditorUndoClient.h"
 
 /** The non-UI solution specific presentation logic for a LevelsView */
 class FStreamingLevelCollectionModel 

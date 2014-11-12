@@ -8,6 +8,7 @@
 #define __PRECOMPUTEDLIGHTVOLUME_H__
 
 #include "GenericOctree.h"
+#include "GenericOctreePublic.h"
 
 /** Incident radiance stored for a point. */
 class FVolumeLightingSample

@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "CompilerResultsLog.h"
+#include "K2Node_CallMaterialParameterCollectionFunction.h"
 
 UK2Node_CallMaterialParameterCollectionFunction::UK2Node_CallMaterialParameterCollectionFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

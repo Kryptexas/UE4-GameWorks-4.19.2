@@ -6,6 +6,8 @@
 #include "LevelModel.h"
 #include "LevelCollectionModel.h"
 #include "LevelBrowserSettings.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreaming.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

@@ -3,7 +3,10 @@
 
 
 #pragma once
+#include "Components/ActorComponent.h"
 #include "PawnSensingComponent.generated.h"
+
+class UPawnNoiseEmitterComponent;
 
 /**
  * SensingComponent encapsulates sensory (ie sight and hearing) settings and functionality for an Actor,

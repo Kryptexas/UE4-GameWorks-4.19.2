@@ -8,7 +8,10 @@
 #pragma once
 #include "Particles/Parameter/ParticleModuleParameterBase.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstant.h"
 #include "ParticleModuleParameterDynamic.generated.h"
+
+class UDistributionFloatConstant;
 
 /**
  *	EmitterDynamicParameterValue

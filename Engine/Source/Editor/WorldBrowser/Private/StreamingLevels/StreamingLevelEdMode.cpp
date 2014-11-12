@@ -2,6 +2,9 @@
 
 #include "WorldBrowserPrivatePCH.h"
 #include "StreamingLevelEdMode.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "WorldTileModel.h"
+#include "EditorUndoClient.h"
 
 /** The non-UI solution specific presentation logic for a world composition */
 class FWorldTileCollectionModel

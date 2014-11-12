@@ -13,6 +13,9 @@
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelEdMode.h"
 #include "SNumericEntryBox.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "AssetData.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

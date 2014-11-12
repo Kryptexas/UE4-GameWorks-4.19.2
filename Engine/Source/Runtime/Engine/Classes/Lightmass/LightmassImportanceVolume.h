@@ -6,6 +6,7 @@
 //=============================================================================
 #pragma once
 
+#include "GameFramework/Volume.h"
 #include "LightmassImportanceVolume.generated.h"
 
 UCLASS(hidecategories=(Collision, Brush, Attachment, Physics, Volume), MinimalAPI)

@@ -10,6 +10,11 @@
 
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelCollectionModel.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
+#include "Engine/LevelStreamingKismet.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

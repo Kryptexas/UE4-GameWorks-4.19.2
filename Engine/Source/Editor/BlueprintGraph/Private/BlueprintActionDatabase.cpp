@@ -41,6 +41,7 @@
 // used below in BlueprintActionDatabaseImpl::GetNodeSpectificActions()
 #include "EdGraphNode_Comment.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
+#include "K2Node_FunctionEntry.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionDatabase"
 

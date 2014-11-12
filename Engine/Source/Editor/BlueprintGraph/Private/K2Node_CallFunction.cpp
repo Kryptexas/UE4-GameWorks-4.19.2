@@ -9,6 +9,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
 #include "K2Node_PureAssignmentStatement.h"
+#include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

@@ -4,6 +4,8 @@
 #if WITH_FANCY_TEXT
 
 #include "ITextDecorator.h"
+#include "SlateWidgetRun.h"
+#include "SlateHyperlinkRun.h"
 
 class SLATE_API FWidgetDecorator : public ITextDecorator
 {

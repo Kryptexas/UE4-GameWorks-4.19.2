@@ -4,6 +4,8 @@
 #include "SlateBasics.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionFilter.h"
+#include "K2Node_MacroInstance.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MacroInstance"
 

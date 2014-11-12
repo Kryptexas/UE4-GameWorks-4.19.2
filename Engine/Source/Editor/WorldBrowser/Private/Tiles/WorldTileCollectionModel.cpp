@@ -16,6 +16,11 @@
 #include "WorldTileDetailsCustomization.h"
 #include "WorldTileCollectionModel.h"
 #include "STiledLandscapeImportDlg.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Light.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

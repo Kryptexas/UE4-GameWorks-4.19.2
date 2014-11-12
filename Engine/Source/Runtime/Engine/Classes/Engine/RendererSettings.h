@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Curves/CurveFloat.h"
 #include "UserInterfaceSettings.h"
 
 #include "RendererSettings.generated.h"

@@ -8,6 +8,8 @@
 	USoundNode helper macros. 
 -----------------------------------------------------------------------------*/
 
+struct FActiveSound;
+
 #define DECLARE_SOUNDNODE_ELEMENT(Type,Name)													\
 	Type& Name = *((Type*)(Payload));															\
 	Payload += sizeof(Type);														
