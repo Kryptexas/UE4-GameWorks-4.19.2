@@ -666,6 +666,7 @@ public:
 
 protected:
 
+	friend class FAnalogCursor;
 	friend class FEventRouter;
 
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
