@@ -42,7 +42,7 @@
 !/Engine/Binaries/ThirdParty/Mono
 !/Engine/Binaries/ThirdParty/Mono/Mac
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin
-!/Engine/Binaries/ThirdParty/Mono/Mac/bin/mono-boehm
+!/Engine/Binaries/ThirdParty/Mono/Mac/bin/*
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono/config
