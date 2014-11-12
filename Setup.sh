@@ -22,7 +22,7 @@ if [ "$(uname)" = "Darwin" ]; then
 	fi
 
 	# Get the dependencies for the first time
-	Engine/Build/BatchFiles/Mac/GitDependencies.sh $@
+	Engine/Build/BatchFiles/Mac/GitDependencies.sh --prompt $@
 else
 	# Setup the git hooks
 	if [ -d .git/hooks ]; then
@@ -36,5 +36,5 @@ else
 		chmod +x .git/hooks/post-merge
 	fi
 
-	mono Engine/Binaries/DotNET/GitDependencies.exe "$@"
+	mono Engine/Binaries/DotNET/GitDependencies.exe --prompt "$@"
 fi
