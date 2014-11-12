@@ -18,7 +18,7 @@ bool FFriendGameInviteItem::IsGameJoinable() const
 FString FFriendGameInviteItem::GetGameSessionId() const
 {
 	FString SessionId;
-	if (SessionResult->Session.SessionInfo->IsValid())
+	if (SessionResult->Session.SessionInfo.IsValid())
 	{
 		SessionId = SessionResult->Session.SessionInfo->GetSessionId().ToString();
 	}
