@@ -337,6 +337,11 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 		return PredictiveConnection != nullptr;
 	}
 
+	bool WasLocallyGenerated() const
+	{
+		return Current > 0 && PredictiveConnection == nullptr;
+	}
+
 	bool DependsOn(KeyType Key)
 	{
 		return (Current == Key || Base == Key);

@@ -6,7 +6,7 @@
 #include "HAL/OutputDevices.h"
 #include "AbilitySystemGlobals.h"
 
-#include "ComponentReregisterContext.h"	
+#include "ComponentReregisterContext.h"
 
 FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
 {

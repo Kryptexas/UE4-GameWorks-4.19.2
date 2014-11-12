@@ -1036,8 +1036,29 @@ void FActiveGameplayEffectsContainer::OnAttributeAggregatorDirty(FAggregator* Ag
 	// aggregators when that happens.
 	
 	FAggregatorEvaluateParameters EvaluationParameters;
+
+	if (Owner->IsNetSimulating())
+	{
+		// We are a client. The current value of this attribute is the replicated server's "final" value. We dont actually know what the 
+		// server's base value is. But we can calculate it with ReverseEvaluate(). Then, we can call Evaluate with IncludePredictiveMods=true
+		// to apply our mods and get an accurate predicted value.
+		
+		float FinalValue = Owner->GetNumericAttribute(Attribute);
+		float BaseValue = Aggregator->ReverseEvaluate(FinalValue, EvaluationParameters);
+		Aggregator->SetBaseValue(BaseValue, false);
+
+		EvaluationParameters.IncludePredictiveMods = true;
+		ABILITY_LOG(Log, TEXT("Reverse Evaluated %s. FinalValue: %.2f  BaseValue: %.2f "), *Attribute.GetName(), FinalValue, BaseValue);
+	}
+	
 	
 	float NewValue = Aggregator->Evaluate(EvaluationParameters);
+
+	if (EvaluationParameters.IncludePredictiveMods)
+	{
+		ABILITY_LOG(Log, TEXT("After Prediction, FinalValue: %.2f"), NewValue);
+	}
+
 	InternalUpdateNumericalAttribute(Attribute, NewValue, nullptr);
 }
 
@@ -1092,7 +1113,7 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependancyChange(FActiveGamepla
 
 					if (ModDef.Attribute == Attribute)
 					{
-						Aggregator->AddMod(ModSpec.GetEvaluatedMagnitude(), ModDef.ModifierOp, &ModDef.SourceTags, &ModDef.TargetTags, Handle);
+						Aggregator->AddMod(ModSpec.GetEvaluatedMagnitude(), ModDef.ModifierOp, &ModDef.SourceTags, &ModDef.TargetTags, ActiveEffect->PredictionKey.WasLocallyGenerated(), Handle);
 					}
 				}
 			}
@@ -1100,19 +1121,17 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependancyChange(FActiveGamepla
 	}
 }
 
-void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseValue)
+void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float ServerValue)
 {
-/*
-	FIXME: the approach for client side attribute prediction will need to be slightly rethought. Rather than touching base values we should be able
-	to just apply Mods... this function may just go away?
-
 	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
 	if (RefPtr && RefPtr->Get())
 	{
-		RefPtr->Get()->SetBaseValue(Attribute);
-		RefPtr->Get()->MarkDirty();
+		FAggregator* Aggregator =  RefPtr->Get();
+		if (Aggregator->HasPredictedMods())
+		{
+			OnAttributeAggregatorDirty(Aggregator, Attribute);
+		}
 	}
-*/
 }
 
 float FActiveGameplayEffectsContainer::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
@@ -1449,7 +1468,7 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 			// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
 					
 			FAggregator* Aggregator = FindOrCreateAttributeAggregator(Effect.Spec.Def->Modifiers[ModIdx].Attribute).Get();
-			Aggregator->AddMod(Mod.GetEvaluatedMagnitude(), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.Handle);
+			Aggregator->AddMod(Mod.GetEvaluatedMagnitude(), ModInfo.ModifierOp, &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
 		}
 	}
 

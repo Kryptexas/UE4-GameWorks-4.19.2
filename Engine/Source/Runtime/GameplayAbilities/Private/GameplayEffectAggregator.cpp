@@ -11,6 +11,11 @@ bool FAggregatorMod::Qualifies(const FAggregatorEvaluateParameters& Parameters) 
 
 	bool bSourceFilterMet = (Parameters.AppliedSourceTagFilter.Num() == 0);
 	bool bTargetFilterMet = (Parameters.AppliedTargetTagFilter.Num() == 0);
+
+	if (Parameters.IncludePredictiveMods == false && IsPredicted)
+	{
+		return false;
+	}
 	
 	const UAbilitySystemComponent* HandleComponent = ActiveHandle.GetOwningAbilitySystemComponent();
 	if (HandleComponent)
@@ -59,6 +64,36 @@ float FAggregator::EvaluateWithBase(float InlineBaseValue, const FAggregatorEval
 	return ((InlineBaseValue + Additive) * Multiplicitive) / Division;
 }
 
+float FAggregator::ReverseEvaluate(float FinalValue, const FAggregatorEvaluateParameters& Parameters) const
+{
+	for (const FAggregatorMod& Mod : Mods[EGameplayModOp::Override])
+	{
+		if (Mod.Qualifies(Parameters))
+		{
+			// This is the case we can't really handle due to lack of information.
+			return FinalValue;
+		}
+	}
+
+	float Additive = SumMods(Mods[EGameplayModOp::Additive], 0.f, Parameters);
+	float Multiplicitive = SumMods(Mods[EGameplayModOp::Multiplicitive], 1.f, Parameters);
+	float Division = SumMods(Mods[EGameplayModOp::Division], 1.f, Parameters);
+
+	if (FMath::IsNearlyZero(Division))
+	{
+		ABILITY_LOG(Warning, TEXT("Division summation was 0.0f in FAggregator."));
+		Division = 1.f;
+	}
+
+	if (Multiplicitive <= SMALL_NUMBER)
+	{
+		return FinalValue;
+	}
+
+	float CalculatedBaseValue = (FinalValue * Division / Multiplicitive) - Additive;
+	return CalculatedBaseValue;
+}
+
 float FAggregator::EvaluateBonus(const FAggregatorEvaluateParameters& Parameters) const
 {
 	return (Evaluate(Parameters) - GetBaseValue());
@@ -69,10 +104,13 @@ float FAggregator::GetBaseValue() const
 	return BaseValue;
 }
 
-void FAggregator::SetBaseValue(float NewBaseValue)
+void FAggregator::SetBaseValue(float NewBaseValue, bool BroadcastDirtyEvent)
 {
 	BaseValue = NewBaseValue;
-	BroadcastOnDirty();
+	if (BroadcastDirtyEvent)
+	{
+		BroadcastOnDirty();
+	}
 }
 
 float FAggregator::StaticExecModOnBaseValue(float BaseValue, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float EvaluatedMagnitude)
@@ -128,7 +166,7 @@ float FAggregator::SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const
 	return Sum;
 }
 
-void FAggregator::AddMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements* SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, FActiveGameplayEffectHandle ActiveHandle)
+void FAggregator::AddMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::Type> ModifierOp, const FGameplayTagRequirements* SourceTagReqs, const FGameplayTagRequirements* TargetTagReqs, bool IsPredicted, FActiveGameplayEffectHandle ActiveHandle)
 {
 	TArray<FAggregatorMod> &ModList = Mods[ModifierOp];
 
@@ -139,6 +177,10 @@ void FAggregator::AddMod(float EvaluatedMagnitude, TEnumAsByte<EGameplayModOp::T
 	NewMod.TargetTagReqs = TargetTagReqs;
 	NewMod.EvaluatedMagnitude = EvaluatedMagnitude;
 	NewMod.ActiveHandle = ActiveHandle;
+	NewMod.IsPredicted = IsPredicted;
+
+	if (IsPredicted)
+		NumPredictiveMods++;
 
 	BroadcastOnDirty();
 }
@@ -169,6 +211,11 @@ void FAggregator::AddDependant(FActiveGameplayEffectHandle Handle)
 	Dependants.Add(Handle);
 }
 
+bool FAggregator::HasPredictedMods() const
+{
+	return NumPredictiveMods > 0;
+}
+
 void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle)
 {
 	check(ActiveHandle.IsValid());
@@ -177,6 +224,9 @@ void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActi
 	{
 		if (Mods[idx].ActiveHandle == ActiveHandle)
 		{
+			if (Mods[idx].IsPredicted)
+				NumPredictiveMods--;
+
 			Mods.RemoveAtSwap(idx, 1, false);
 		}
 	}
@@ -210,6 +260,7 @@ void FAggregator::BroadcastOnDirty()
 	TGuardValue<bool>	Guard(IsBroadcastingDirty, true);
 	
 	OnDirty.Broadcast(this);
+
 
 	TArray<FActiveGameplayEffectHandle>	ValidDependants;
 	for (FActiveGameplayEffectHandle Handle : Dependants)
