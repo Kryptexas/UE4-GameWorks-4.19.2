@@ -579,12 +579,11 @@ public:
 
 		if (bDoubleBufferedBlendSpaces)
 		{
-			CurrentReadSpaceBases = CurrentReadSpaceBases;
 			CurrentEditableSpaceBases = 1 - CurrentReadSpaceBases;
 		}
 		else
 		{
-			CurrentReadSpaceBases = CurrentEditableSpaceBases = CurrentReadSpaceBases;
+			CurrentEditableSpaceBases = CurrentReadSpaceBases;
 		}
 	}
 
