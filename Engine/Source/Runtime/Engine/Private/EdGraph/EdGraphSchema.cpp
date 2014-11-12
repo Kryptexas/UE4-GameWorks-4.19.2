@@ -614,12 +614,10 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 				.VAlign(VAlign_Center)
 				.FillWidth( 1.0f )
 				[
-					SNew(SEditableTextBox)
+					SNew(SMultiLineEditableTextBox)
 					.Text( NodeCommentText )
 					.ToolTipText(LOCTEXT("NodeComment_ToolTip", "Comment for this node"))
 					.OnTextCommitted_Static(&Local::OnNodeCommentTextCommitted, SelectedNodeWeakPtr)
-					.MinDesiredWidth( 120.f )
-					//.IsReadOnly( !SelectedActors(0)->IsActorLabelEditable() )
 					.SelectAllTextWhenFocused( true )
 					.RevertTextOnEscape( true )
 				];

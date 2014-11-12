@@ -21,6 +21,9 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 		/** The comment text for the bubble */
 		SLATE_ATTRIBUTE( FString, Text )
 
+		/** The comment hint text for the bubble */
+		SLATE_ATTRIBUTE( FText, HintText )
+
 		/** Color and opacity for the comment bubble */
 		SLATE_ATTRIBUTE( FSlateColor, ColorAndOpacity )
 
@@ -121,6 +124,8 @@ protected:
 	TAttribute<bool> VisibilityState;
 	/** Attribute to query current LOD */
 	TAttribute<EGraphRenderingLOD::Type> GraphLOD;
+	/** Hint Text */
+	TAttribute<FText> HintText;
 
 	/** Delegate to determine if the graph node is currently hovered */
 	FIsGraphNodeHovered IsGraphNodeHovered;
