@@ -9,6 +9,7 @@
 #include "PropertyTableObjectNameCell.h"
 #include "DataSource.h"
 #include "PropertyPath.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "ObjectNameColumnHeader"
 

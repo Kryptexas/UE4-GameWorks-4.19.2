@@ -9,6 +9,10 @@
 #include "HModel.h"
 #include "Components/DrawSphereComponent.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //

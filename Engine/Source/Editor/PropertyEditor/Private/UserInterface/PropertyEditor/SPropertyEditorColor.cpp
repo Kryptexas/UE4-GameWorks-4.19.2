@@ -10,6 +10,7 @@
 #include "ScopedTransaction.h"
 #include "SPropertyEditorColor.h"
 #include "SColorPicker.h"
+#include "Components/LightComponent.h"
 
 void SPropertyEditorColor::Construct( const FArguments& InArgs, const TSharedRef<FPropertyEditor>& InPropertyEditor, const TSharedRef<IPropertyUtilities>& InPropertyUtilities )
 {

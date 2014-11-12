@@ -5,6 +5,7 @@
 #include "AutomationCommon.h"
 #include "SStaticMeshEditorViewport.h"
 #include "StaticMeshEditorViewportClient.h"
+#include "Engine/StaticMesh.h"
 
 namespace EditorViewButtonHelper
 {

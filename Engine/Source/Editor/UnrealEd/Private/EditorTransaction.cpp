@@ -3,6 +3,7 @@
 
 #include "UnrealEd.h"
 #include "BSPOps.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorTransaction, Log, All);
 

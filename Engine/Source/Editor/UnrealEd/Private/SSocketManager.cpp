@@ -14,6 +14,8 @@
 #include "EngineAnalytics.h"
 #include "SInlineEditableTextBlock.h"
 #include "GenericCommands.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshSocket.h"
 
 #define LOCTEXT_NAMESPACE "SSCSSocketManagerEditor"
 

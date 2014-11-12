@@ -23,6 +23,8 @@
 #include "SInlineEditableTextBlock.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneOutliner, Log, All);
 

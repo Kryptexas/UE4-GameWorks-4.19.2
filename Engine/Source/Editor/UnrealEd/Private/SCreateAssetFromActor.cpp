@@ -6,6 +6,7 @@
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "SCreateAssetFromActor"
 

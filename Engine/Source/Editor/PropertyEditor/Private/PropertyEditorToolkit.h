@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
+#include "TimerManager.h"
 
 class FPropertyEditorToolkit : public FAssetEditorToolkit
 {

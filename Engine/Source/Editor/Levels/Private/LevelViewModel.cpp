@@ -9,6 +9,8 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "EditorSupportDelegates.h"
 #include "SColorPicker.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Level"
 

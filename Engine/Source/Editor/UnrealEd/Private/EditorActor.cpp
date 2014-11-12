@@ -19,6 +19,14 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "UnrealExporter.h"
 #include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "EngineUtils.h"
+#include "Engine/LevelScriptActor.h"
+#include "Engine/Light.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/StaticMeshActor.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 

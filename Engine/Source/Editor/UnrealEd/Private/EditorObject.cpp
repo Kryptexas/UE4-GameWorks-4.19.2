@@ -11,6 +11,8 @@
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType.h"
 #include "InstancedFoliage.h"
+#include "Components/BrushComponent.h"
+#include "Engine/StaticMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorObject, Log, All);
 

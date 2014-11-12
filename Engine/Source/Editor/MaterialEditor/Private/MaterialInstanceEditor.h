@@ -4,6 +4,7 @@
 
 #include "Toolkits/AssetEditorToolkit.h"
 #include "SMaterialEditorViewport.h"
+#include "EditorUndoClient.h"
 
 /**
  * Material Instance Editor class

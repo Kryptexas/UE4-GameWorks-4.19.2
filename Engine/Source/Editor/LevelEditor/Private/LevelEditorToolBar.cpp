@@ -27,6 +27,14 @@
 #include "ISourceControlModule.h"
 #include "SVolumeControl.h"
 #include "ModuleManager.h"
+#include "GameFramework/GameMode.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
+#include "EngineUtils.h"
+#include "GameMapsSettings.h"
 
 
 namespace LevelEditorActionHelpers

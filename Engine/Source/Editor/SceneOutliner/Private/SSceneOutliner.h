@@ -3,6 +3,7 @@
 
 #include "SOutlinerTreeView.h"
 #include "SceneOutlinerStandaloneTypes.h"
+#include "EditorUndoClient.h"
 
 namespace SceneOutliner
 {

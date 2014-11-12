@@ -5,6 +5,8 @@
 
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 #include "Editor/DataTableEditor/Public/IDataTableEditor.h"
+#include "Engine/CurveTable.h"
+#include "Engine/DataTable.h"
 
 
 #define LOCTEXT_NAMESPACE "AutoReimportManager"

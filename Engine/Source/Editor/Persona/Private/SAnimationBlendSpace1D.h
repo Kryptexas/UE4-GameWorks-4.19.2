@@ -4,6 +4,9 @@
 
 #include "SAnimationBlendSpaceBase.h"
 #include "Sorting.h"
+#include "Animation/BlendSpace1D.h"
+
+struct FEditorElement;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationBlendSpace1D

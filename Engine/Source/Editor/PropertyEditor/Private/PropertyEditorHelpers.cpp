@@ -27,6 +27,7 @@
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EditorClassUtils.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 

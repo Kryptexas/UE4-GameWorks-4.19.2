@@ -7,6 +7,7 @@
 #include "MaterialEditorUtilities.h"
 #include "MaterialInstanceEditor.h"
 #include "ModuleManager.h"
+#include "Materials/MaterialInstance.h"
 
 const FName MaterialEditorAppIdentifier = FName(TEXT("MaterialEditorApp"));
 const FName MaterialInstanceEditorAppIdentifier = FName(TEXT("MaterialInstanceEditorApp"));

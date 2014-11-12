@@ -7,6 +7,8 @@
 #include "ImageUtils.h"
 
 #include "ISourceControlModule.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/TextureCube.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogThumbnailManager, Log, All);
 

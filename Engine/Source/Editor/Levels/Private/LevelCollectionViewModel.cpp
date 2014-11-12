@@ -14,6 +14,11 @@
 #include "ISourceControlModule.h"
 #include "ISourceControlRevision.h"
 #include "SourceControlWindows.h"
+#include "Engine/LevelStreamingKismet.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
 
 #define LOCTEXT_NAMESPACE "LevelsView"
 

@@ -10,6 +10,7 @@
 #include "MeshUtilities.h"
 #include "AssetRegistryModule.h"
 #include "ContentBrowserModule.h"
+#include "Engine/Selection.h"
 
 
 void UUnrealEdEngine::edactRegroupFromSelected()

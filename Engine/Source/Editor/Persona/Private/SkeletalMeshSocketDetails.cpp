@@ -11,6 +11,7 @@
 #include "IDetailsView.h"
 #include "Persona.h"
 #include "AssetSearchBoxUtilPersona.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 TSharedRef<IDetailCustomization> FSkeletalMeshSocketDetails::MakeInstance()
 {

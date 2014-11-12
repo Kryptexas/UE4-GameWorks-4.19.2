@@ -8,6 +8,10 @@
 #include "VertexSnapping.h"
 #include "ViewportSnappingModule.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "Engine/PostProcessVolume.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FEditorViewportSnapping

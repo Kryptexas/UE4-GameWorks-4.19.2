@@ -30,6 +30,7 @@
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
 #endif
+#include "Engine/StaticMeshSocket.h"
 
 #define HITPROXY_SOCKET	1
 

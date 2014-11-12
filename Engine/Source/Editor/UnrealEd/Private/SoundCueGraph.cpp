@@ -5,6 +5,7 @@
 
 #include "UnrealEd.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundCue.h"
 
 USoundCueGraph::USoundCueGraph(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

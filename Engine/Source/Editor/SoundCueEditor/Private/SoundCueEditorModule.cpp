@@ -14,6 +14,7 @@ const FName SoundCueEditorAppIdentifier = FName(TEXT("SoundCueEditorApp"));
    FSoundCueEditorModule
 -----------------------------------------------------------------------------*/
 #include "SoundDefinitions.h"
+#include "Sound/SoundCue.h"
 
 class FSoundCueEditorModule : public ISoundCueEditorModule
 {

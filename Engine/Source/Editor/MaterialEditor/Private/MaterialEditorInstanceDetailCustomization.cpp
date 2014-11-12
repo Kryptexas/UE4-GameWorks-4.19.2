@@ -12,6 +12,9 @@
 #include "MaterialEditorInstanceDetailCustomization.h"
 #include "ScopedTransaction.h"
 #include "DetailWidgetRow.h"
+#include "AssetData.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 
@@ -445,3 +448,4 @@ EVisibility FMaterialInstanceParameterDetails::ShouldShowSubsurfaceProfile() con
 }
 
 #undef LOCTEXT_NAMESPACE
+

@@ -19,6 +19,7 @@
 #endif
 
 #include "ConvexDecompTool.h"
+#include "PhysicsEngine/BodySetup.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConvexDecompTool, Log, All);
 

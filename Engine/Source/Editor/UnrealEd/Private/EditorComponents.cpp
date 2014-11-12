@@ -3,7 +3,9 @@
 
 #include "UnrealEd.h"
 #include "MouseDeltaTracker.h"
-
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Selection.h"
+#include "GameFramework/WorldSettings.h"
 
 static TAutoConsoleVariable<int32> CVarEditorNewLevelGrid(
 	TEXT("r.Editor.NewLevelGrid"),

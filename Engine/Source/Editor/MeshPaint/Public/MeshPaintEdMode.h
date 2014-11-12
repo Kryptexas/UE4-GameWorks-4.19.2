@@ -3,6 +3,8 @@
 #pragma once
 
 #include "GenericOctree.h"
+#include "GenericOctreePublic.h"
+#include "Engine/StaticMesh.h"
 
 
 /** Mesh paint resource types */

@@ -2,8 +2,10 @@
 #pragma once
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
+#include "EditorUndoClient.h"
 
 class FAssetData;
+class ALevelStreamingVolume;
 
 typedef TFilterCollection< const TSharedPtr< FLevelViewModel >& > LevelFilterCollection;
 typedef IFilter< const TSharedPtr< FLevelViewModel >& > LevelFilter;

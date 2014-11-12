@@ -10,7 +10,9 @@
 #include "DesktopPlatformModule.h"
 #include "ISourceControlModule.h"
 #include "SColorPicker.h"
-
+#include "Engine/StaticMeshActor.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 

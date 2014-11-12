@@ -8,6 +8,8 @@
 #include "SurfaceIterators.h"
 #include "SNumericEntryBox.h"
 #include "SHyperlink.h"
+#include "Engine/Polys.h"
+#include "Lightmass/LightmassPrimitiveSettingsObject.h"
 
 #define LOCTEXT_NAMESPACE "SSurfaceProperties"
 

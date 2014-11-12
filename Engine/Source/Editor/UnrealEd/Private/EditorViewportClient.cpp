@@ -18,6 +18,12 @@
 #include "RendererInterface.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Components/LineBatchComponent.h"
+#include "Debug/DebugDrawService.h"
+#include "Components/BillboardComponent.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 

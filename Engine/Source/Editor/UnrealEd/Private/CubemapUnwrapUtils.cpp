@@ -11,6 +11,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
 #include "Engine/TextureRenderTargetCube.h"
+#include "CanvasTypes.h"
 
 IMPLEMENT_SHADER_TYPE(,FCubemapTexturePropertiesVS,TEXT("SimpleElementVertexShader"),TEXT("Main"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<>,FCubemapTexturePropertiesPS<false>,TEXT("SimpleElementPixelShader"),TEXT("CubemapTextureProperties"),SF_Pixel);

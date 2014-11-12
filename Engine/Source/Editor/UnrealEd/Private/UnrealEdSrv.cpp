@@ -40,6 +40,15 @@
 #include "Engine/DestructibleMesh.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/PointLightComponent.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "Components/SphereComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "EngineUtils.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);

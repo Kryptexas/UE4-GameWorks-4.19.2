@@ -4,6 +4,7 @@
 
 #include "SlateBasics.h"
 #include "Sorting.h"
+#include "Animation/BlendSpaceBase.h"
 
 extern FText GetErrorMessageForSequence(UBlendSpaceBase* BlendSpace, UAnimSequence* AnimSequence, FVector SampleValue, int32 OriginalIndex);
 

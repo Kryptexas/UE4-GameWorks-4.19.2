@@ -9,6 +9,7 @@
 #include "DetailWidgetRow.h"
 #include "IDetailsView.h"
 #include "SAssetSearchBox.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class UObject* Outer, TSharedPtr<class IPropertyHandle> BoneNameProperty )
 {

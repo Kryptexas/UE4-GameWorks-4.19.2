@@ -52,6 +52,13 @@
 #include "NotificationManager.h"
 #include "SNumericEntryBox.h"
 #include "STextComboPopup.h"
+#include "Camera/CameraActor.h"
+#include "Engine/Light.h"
+#include "Engine/Selection.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Engine/Selection.h"
+#include "Sound/SoundBase.h"
+#include "Camera/CameraAnim.h"
 
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"

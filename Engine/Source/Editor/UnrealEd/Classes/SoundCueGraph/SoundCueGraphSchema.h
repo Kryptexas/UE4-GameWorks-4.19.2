@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "EdGraph/EdGraphSchema.h"
 #include "SoundCueGraphSchema.generated.h"
 
 class USoundCue;

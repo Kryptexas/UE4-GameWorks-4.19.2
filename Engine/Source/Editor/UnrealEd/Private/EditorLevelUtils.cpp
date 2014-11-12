@@ -21,6 +21,10 @@
 
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "Components/ModelComponent.h"
 
 DEFINE_LOG_CATEGORY(LogLevelTools);
 

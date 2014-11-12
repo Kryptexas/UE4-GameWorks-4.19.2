@@ -12,6 +12,7 @@
 #include "ScopedTransaction.h"
 #include "GenericCommands.h"
 #include "Sound/SoundCue.h"
+#include "Engine/Font.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode"
 

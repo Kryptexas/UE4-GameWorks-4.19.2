@@ -6,6 +6,7 @@
 #include "ISourceControlModule.h"
 #include "SVectorInputBox.h"
 #include "LevelUtils.h"
+#include "Engine/LevelStreaming.h"
 
 #define LOCTEXT_NAMESPACE "LevelsView"
 

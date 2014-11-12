@@ -7,7 +7,8 @@
 #include "MessageLog.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
-
+#include "EngineLogs.h"
+#include "PhysicsEngine/BodySetup.h"
 
 void FPhysAssetCreateParams::Initialize()
 {

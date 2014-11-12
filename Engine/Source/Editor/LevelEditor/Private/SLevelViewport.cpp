@@ -34,6 +34,12 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "SLevelViewportControlsPopup.h"
+#include "Camera/CameraActor.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/Selection.h"
+#include "GameFramework/PlayerInput.h"
+#include "GameFramework/PlayerController.h"
 
 static const FName LevelEditorName("LevelEditor");
 

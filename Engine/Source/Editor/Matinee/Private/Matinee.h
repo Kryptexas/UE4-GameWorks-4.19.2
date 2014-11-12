@@ -20,6 +20,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSlateMatinee, Log, All);
 
+class UInterpTrackMove;
 
 class FMatinee : public IMatinee, public FGCObject, public FCurveEdNotifyInterface
 {

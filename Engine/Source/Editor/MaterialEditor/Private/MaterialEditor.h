@@ -5,6 +5,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "DragAndDrop.h"
 #include "Editor/GraphEditor/Public/GraphEditorDragDropAction.h"
+#include "EditorUndoClient.h"
 
 /**
  * Class for rendering previews of material expressions in the material editor's linked object viewport.

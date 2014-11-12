@@ -11,6 +11,7 @@
 #include "Components/NiagaraComponent.h"
 #include "Engine/NiagaraEffect.h"
 #include "SDockTab.h"
+#include "Engine/TextureCube.h"
 
 /** Viewport Client for the preview viewport */
 class FNiagaraEffectEditorViewportClient : public FEditorViewportClient

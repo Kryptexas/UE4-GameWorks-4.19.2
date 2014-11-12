@@ -37,6 +37,9 @@
 class ALandscapeProxy;
 struct FAnimControlTrackKey;
 class USplineMeshComponent;
+class ALight;
+class UInterpTrackInstMove;
+class AMatineeActor;
 
 namespace UnFbx
 {

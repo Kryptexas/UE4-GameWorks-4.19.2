@@ -28,6 +28,12 @@
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
 #include "ComponentReregisterContext.h"
+#include "CanvasTypes.h"
+#include "Engine/Selection.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "EngineUtils.h"
+#include "Engine/StaticMeshActor.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 

@@ -5,6 +5,7 @@
 
 #include "UnrealEd.h"
 #include "GraphEditor.h"
+#include "Sound/SoundClass.h"
 
 USoundClassGraph::USoundClassGraph(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

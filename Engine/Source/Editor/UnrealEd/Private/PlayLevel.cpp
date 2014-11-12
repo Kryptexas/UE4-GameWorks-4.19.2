@@ -38,8 +38,26 @@
 #include "SNotificationList.h"
 #include "SDPIScaler.h"
 #include "NotificationManager.h"
+#include "Engine/Selection.h"
+#include "TimerManager.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #include "Runtime/HeadMountedDisplay/Public/HeadMountedDisplay.h"
+#include "Components/AudioComponent.h"
+#include "Engine/Note.h"
+#include "UnrealEngine.h"
+#include "GameFramework/GameMode.h"
+#include "Engine/NavigationObjectBase.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
+#include "Components/ModelComponent.h"
+#include "EngineUtils.h"
+#include "GameMapsSettings.h"
+#include "GameFramework/Pawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 

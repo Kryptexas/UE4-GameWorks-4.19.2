@@ -11,6 +11,9 @@
 #include "Engine/DestructibleMesh.h"
 #include "Components/DestructibleComponent.h"
 #include "Sound/SoundBase.h"
+#include "Engine/StaticMesh.h"
+#include "Components/AudioComponent.h"
+#include "Components/ChildActorComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker

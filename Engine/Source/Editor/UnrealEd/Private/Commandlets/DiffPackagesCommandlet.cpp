@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "EditorCommandlets.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffPackagesCommandlet, Log, All);
 

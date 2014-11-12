@@ -8,7 +8,7 @@
 #include "Matinee/InterpTrackColorProp.h"
 
 #include "Matinee.h"
-
+#include "Engine/InterpCurveEdSetup.h"
 
 /** Ensure the curve editor is synchronised with the track editor. */
 void FMatinee::SyncCurveEdView()

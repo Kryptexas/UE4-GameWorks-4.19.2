@@ -6,6 +6,7 @@
 #include "EditorShowFlags.h"
 #include "StatsData.h"
 #include "BufferVisualizationData.h"
+#include "GameFramework/WorldSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportActions"
 

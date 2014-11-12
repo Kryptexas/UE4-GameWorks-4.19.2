@@ -10,6 +10,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "IPropertyUtilities.h"
 #include "PropertyEditor.h"
+#include "Engine/Selection.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPropertyView, Log, All);
 

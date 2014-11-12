@@ -7,6 +7,7 @@
 #include "DragTool_Measure.h"
 #include "DragTool_FrustumSelect.h"
 #include "SnappingUtils.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "MouseDeltaTracker"
 

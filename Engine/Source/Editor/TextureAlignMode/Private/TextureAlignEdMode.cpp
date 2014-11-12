@@ -2,6 +2,7 @@
 
 #include "TextureAlignModePrivatePCH.h"
 #include "EditorSupportDelegates.h"
+#include "Engine/Polys.h"
 
 IMPLEMENT_MODULE( FTextureAlignModeModule, TextureAlignMode );
 

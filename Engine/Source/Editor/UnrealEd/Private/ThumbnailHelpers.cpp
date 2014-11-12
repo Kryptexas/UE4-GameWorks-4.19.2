@@ -8,6 +8,13 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "ContentStreaming.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/TextureCube.h"
 
 /*
 ***************************************************************

@@ -5,6 +5,7 @@
 #include "UnrealEd.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "Engine/Selection.h"
 
 uint32			EngineThreadId;
 const TCHAR*	GItem;

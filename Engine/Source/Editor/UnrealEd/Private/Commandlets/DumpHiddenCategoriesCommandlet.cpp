@@ -6,6 +6,7 @@
 #include "KismetEditorUtilities.h"
 #include "EditorCategoryUtils.h"
 #include "ScopedTimers.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 
 /*******************************************************************************
  * Static Helpers

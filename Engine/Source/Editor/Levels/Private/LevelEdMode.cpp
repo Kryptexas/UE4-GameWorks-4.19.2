@@ -4,6 +4,9 @@
 #include "LevelEdMode.h"
 #include "LevelUtils.h"
 #include "ActorEditorUtils.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelTransform_Mode"
 

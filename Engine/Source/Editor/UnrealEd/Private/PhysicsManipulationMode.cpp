@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "Engine/Selection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorPhysMode, Log, All);
 

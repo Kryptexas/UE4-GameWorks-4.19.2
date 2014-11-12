@@ -6,7 +6,7 @@
 #include "ScopedTransaction.h"
 #include "Sequencer.h"
 #include "MovieScene.h"
-
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
 

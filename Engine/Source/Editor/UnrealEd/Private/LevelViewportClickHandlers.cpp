@@ -13,6 +13,10 @@
 #include "ActorEditorUtils.h"
 #include "Editor/ActorPositioning.h"
 #include "Engine/PointLight.h"
+#include "Components/PointLightComponent.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/TargetPoint.h"
 
 #define LOCTEXT_NAMESPACE "ClickHandlers"
 

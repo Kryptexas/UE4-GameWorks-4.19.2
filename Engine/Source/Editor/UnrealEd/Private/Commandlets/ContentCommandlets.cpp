@@ -24,6 +24,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/StaticMesh.h"
 
 
 /**-----------------------------------------------------------------------------

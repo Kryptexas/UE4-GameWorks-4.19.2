@@ -15,6 +15,7 @@
 #include "MainFrame.h"
 #include "MessageLog.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "PackageTools"
 

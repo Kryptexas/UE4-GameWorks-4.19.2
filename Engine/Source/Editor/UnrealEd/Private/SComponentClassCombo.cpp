@@ -10,6 +10,7 @@
 #include "SListViewSelectorDropdownMenu.h"
 #include "EditorClassUtils.h"
 #include "SSearchBox.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "ComponentClassCombo"
 

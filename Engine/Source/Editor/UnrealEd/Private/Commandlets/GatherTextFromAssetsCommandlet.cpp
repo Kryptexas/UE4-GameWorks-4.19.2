@@ -8,6 +8,7 @@
 #include "PackageHelperFunctions.h"
 #include "InternationalizationMetadata.h"
 #include "Sound/DialogueWave.h"
+#include "Sound/DialogueVoice.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromAssetsCommandlet, Log, All);
 

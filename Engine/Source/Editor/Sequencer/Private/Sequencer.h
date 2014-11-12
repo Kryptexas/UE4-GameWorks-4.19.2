@@ -4,6 +4,7 @@
 
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "SelectedKey.h"
+#include "EditorUndoClient.h"
 
 class UMovieScene;
 class IToolkitHost;

@@ -9,7 +9,10 @@
 #include "AssetRegistryModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "STextComboBox.h"
-
+#include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Selection.h"
+#include "SystemSettings.h"
 
 #define LOCTEXT_NAMESPACE "SMeshMergingDialog"
 

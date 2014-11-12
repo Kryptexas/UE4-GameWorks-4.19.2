@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "EditorActorFolders.h"
 #include "ScopedTransaction.h"
+#include "EngineUtils.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "FActorFolders"
 

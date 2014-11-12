@@ -12,6 +12,9 @@
 #include "AnimPreviewInstance.h"
 #include "SExpandableArea.h"
 #include "SNotificationList.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpaceBase, Log, All);
 

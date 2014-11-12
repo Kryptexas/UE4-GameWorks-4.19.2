@@ -21,6 +21,7 @@
 #include "AssetEditorManager.h"
 
 #include "EditorActorFolders.h"
+#include "UnrealEngine.h"
 
 UUnrealEdEngine* GUnrealEd;
 

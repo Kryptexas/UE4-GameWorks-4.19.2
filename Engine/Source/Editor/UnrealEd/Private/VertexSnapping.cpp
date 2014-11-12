@@ -4,6 +4,9 @@
 #include "VertexSnapping.h"
 #include "StaticMeshResources.h"
 #include "Components/BrushComponent.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
 
 namespace VertexSnappingConstants
 {

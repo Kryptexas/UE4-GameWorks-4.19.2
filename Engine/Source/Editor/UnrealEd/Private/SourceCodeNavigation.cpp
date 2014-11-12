@@ -21,6 +21,7 @@
 #endif
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "GameFramework/Pawn.h"
 
 DEFINE_LOG_CATEGORY(LogSelectionDetails);
 

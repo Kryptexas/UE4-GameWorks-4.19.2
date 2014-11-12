@@ -30,6 +30,11 @@
 #include "PackageHelperFunctions.h" // for NORMALIZE_ExcludeMapPackages
 #include "K2Node_FunctionEntry.h"
 #include "Engine/LevelScriptActor.h"
+#include "Engine/Selection.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 

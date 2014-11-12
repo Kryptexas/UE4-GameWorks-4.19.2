@@ -12,7 +12,9 @@
 #include "SMaterialEditorViewportToolBar.h"
 #include "ComponentReregisterContext.h"
 #include "SDockTab.h"
-
+#include "Engine/StaticMesh.h"
+#include "Engine/Selection.h"
+#include "Engine/TextureCube.h"
 /** Viewport Client for the preview viewport */
 class FMaterialEditorViewportClient : public FEditorViewportClient
 {

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LayersPrivatePCH.h"
-
+#include "Layers/Layer.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "Layer"

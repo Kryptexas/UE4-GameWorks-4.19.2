@@ -20,7 +20,11 @@
 #include "Materials/MaterialInstanceActor.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Particles/Emitter.h"
-
+#include "CanvasTypes.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Engine/StaticMeshActor.h"
+#include "Camera/CameraActor.h"
+#include "Engine/Light.h"
 
 static const int32 GroupHeadHeight = 24;
 static const int32 TrackHeight = 24;

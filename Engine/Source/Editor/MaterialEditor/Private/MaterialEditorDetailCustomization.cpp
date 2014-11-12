@@ -4,6 +4,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 #include "MaterialEditor.h"
 #include "MaterialEditorDetailCustomization.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 

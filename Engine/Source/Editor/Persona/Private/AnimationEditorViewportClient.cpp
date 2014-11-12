@@ -16,6 +16,18 @@
 #include "UnrealWidget.h"
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "CanvasTypes.h"
+#include "Engine/TextureCube.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "EngineUtils.h"
+#include "GameFramework/WorldSettings.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Components/WindDirectionalSourceComponent.h"
+#include "Engine/StaticMesh.h"
 
 namespace {
 	// Value from UE3

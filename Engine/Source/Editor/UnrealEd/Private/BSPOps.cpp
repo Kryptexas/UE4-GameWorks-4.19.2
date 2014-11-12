@@ -5,6 +5,7 @@
 #include "BSPOps.h"
 #include "Engine/Polys.h"
 #include "Components/BrushComponent.h"
+#include "GameFramework/Volume.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBSPOps, Log, All);
 

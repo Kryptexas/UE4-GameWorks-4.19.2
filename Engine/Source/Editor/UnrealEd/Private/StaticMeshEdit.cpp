@@ -11,6 +11,7 @@
 #include "BSPOps.h"
 #include "RawMesh.h"
 #include "MeshUtilities.h"
+#include "Engine/Polys.h"
 
 bool GBuildStaticMeshCollision = 1;
 

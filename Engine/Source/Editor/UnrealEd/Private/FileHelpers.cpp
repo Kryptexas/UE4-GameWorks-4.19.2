@@ -29,6 +29,8 @@
 #include "PackageTools.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/LevelStreaming.h"
+#include "GameMapsSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 

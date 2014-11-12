@@ -18,6 +18,8 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "EditorViewportCommands.h"
 #include "SDockTab.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 

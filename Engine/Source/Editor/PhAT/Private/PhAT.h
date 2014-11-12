@@ -4,6 +4,8 @@
 
 #include "Toolkits/AssetEditorToolkit.h"
 #include "PhATSharedData.h"
+#include "EditorUndoClient.h"
+#include "PhysicsEngine/BodySetup.h"
 
 class SPhATPreviewViewport;
 class FPhATTreeInfo;

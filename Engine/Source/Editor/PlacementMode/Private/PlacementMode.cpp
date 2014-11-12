@@ -12,6 +12,7 @@
 #include "Editor/UnrealEd/Public/Toolkits/ToolkitManager.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
+#include "Engine/Selection.h"
 
 FPlacementMode::FPlacementMode()
 	: AssetsToPlace()

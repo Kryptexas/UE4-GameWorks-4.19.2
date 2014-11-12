@@ -18,6 +18,7 @@
 #include "MaterialEditorUtilities.h"
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphSchema"
 

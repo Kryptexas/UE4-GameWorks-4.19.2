@@ -1,6 +1,7 @@
 
 #include "UnrealEd.h"
 #include "StructureEditorUtils.h"
+#include "Engine/UserDefinedStruct.h"
 
 bool FStructVariableDescription::SetPinType(const FEdGraphPinType& VarType)
 {

@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "SnappingUtils.h"
 #include "DynamicMeshBuilder.h"
+#include "CanvasTypes.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 

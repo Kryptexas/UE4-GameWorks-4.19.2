@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "ScopedTransaction.h"
 #include "Layers/ILayers.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/Selection.h"
 
 const FLinearColor BOXCOLOR_LOCKEDGROUPS( 0.0f, 1.0f, 0.0f );
 const FLinearColor BOXCOLOR_UNLOCKEDGROUPS( 1.0f, 0.0f, 0.0f );

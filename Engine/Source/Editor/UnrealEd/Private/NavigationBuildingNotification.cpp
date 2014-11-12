@@ -7,6 +7,7 @@
 #include "NavigationBuildingNotification.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 void FNavigationBuildingNotificationImpl::BuildStarted()
 {

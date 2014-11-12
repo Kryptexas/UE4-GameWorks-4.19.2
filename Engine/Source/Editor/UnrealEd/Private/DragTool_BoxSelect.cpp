@@ -5,6 +5,10 @@
 #include "DragTool_BoxSelect.h"
 #include "ActorEditorUtils.h"
 #include "ScopedTransaction.h"
+#include "Engine/LevelStreaming.h"
+#include "EngineUtils.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

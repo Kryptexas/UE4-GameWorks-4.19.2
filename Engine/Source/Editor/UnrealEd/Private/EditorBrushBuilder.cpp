@@ -11,6 +11,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/Polys.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 

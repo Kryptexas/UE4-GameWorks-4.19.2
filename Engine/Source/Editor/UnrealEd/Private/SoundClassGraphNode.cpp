@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Sound/SoundClass.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassGraphNode"
 

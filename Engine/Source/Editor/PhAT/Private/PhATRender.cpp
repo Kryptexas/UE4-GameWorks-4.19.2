@@ -4,7 +4,8 @@
 #include "PhATSharedData.h"
 #include "PhATHitProxies.h"
 #include "PhATEdSkeletalMeshComponent.h"
-
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
 UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

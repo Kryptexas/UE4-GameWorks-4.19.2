@@ -5,6 +5,10 @@
 #include "SurfaceIterators.h"
 #include "BSPOps.h"
 #include "ActorEditorUtils.h"
+#include "Engine/Polys.h"
+#include "EngineUtils.h"
+#include "Engine/Brush.h"
+#include "Engine/Selection.h"
 
 // Globals:
 static TArray<uint8*> GFlags1;

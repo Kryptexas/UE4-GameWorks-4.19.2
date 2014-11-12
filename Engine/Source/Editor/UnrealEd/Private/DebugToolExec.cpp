@@ -6,6 +6,11 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Engine/GameEngine.h"
+#include "GameFramework/PlayerController.h"
+#include "EngineUtils.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "Engine/EngineTypes.h"
 
 
 /**

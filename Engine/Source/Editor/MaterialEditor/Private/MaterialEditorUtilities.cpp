@@ -20,6 +20,7 @@
 #include "MaterialEditorUtilities.h"
 #include "Toolkits/ToolkitManager.h"
 #include "MaterialExpressionClasses.h"
+#include "Materials/MaterialInstance.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorUtilities"
 

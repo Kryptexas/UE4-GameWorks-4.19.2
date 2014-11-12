@@ -10,6 +10,9 @@
 #include "SurfaceIterators.h"
 #include "MessageLog.h"
 #include "ActorEditorUtils.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Polys.h"
+#include "Engine/LevelStreaming.h"
 
 #define LOCTEXT_NAMESPACE "LightmapResRatioAdjustSettings"
 

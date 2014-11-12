@@ -32,6 +32,12 @@
 
 #include "Factories.h"
 
+class ALight;
+class UInterpGroupInst;
+class AMatineeActor;
+class AActor;
+class UInterpTrackMove;
+
 // Temporarily disable a few warnings due to virtual function abuse in FBX source files
 #pragma warning( push )
 

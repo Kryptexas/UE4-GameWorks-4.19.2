@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SoundCueGraphNode_Base.h"
 #include "SoundCueGraphNode.generated.h"
 
 UCLASS(MinimalAPI)

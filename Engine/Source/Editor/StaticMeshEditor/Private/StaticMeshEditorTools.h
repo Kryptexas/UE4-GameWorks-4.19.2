@@ -4,6 +4,7 @@
 
 #include "AssetThumbnail.h"
 #include "PropertyEditing.h"
+#include "Engine/StaticMesh.h"
 
 enum ECreationModeChoice
 {

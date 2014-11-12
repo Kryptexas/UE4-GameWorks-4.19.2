@@ -8,6 +8,7 @@
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpTrackMove.h"
 #include "Matinee/InterpTrackEvent.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 /*-----------------------------------------------------------------------------
  FMatineeViewportClient

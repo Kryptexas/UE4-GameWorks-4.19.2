@@ -26,6 +26,17 @@
 #include "EngineModule.h"
 #include "InstancedFoliage.h"
 #include "RendererInterface.h"
+#include "Sound/SoundWave.h"
+#include "Engine/Polys.h"
+#include "GameFramework/PhysicsVolume.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "CanvasTypes.h"
+#include "Engine/Selection.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/TextureCube.h"
+#include "EngineUtils.h"
+#include "TextureLODSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 

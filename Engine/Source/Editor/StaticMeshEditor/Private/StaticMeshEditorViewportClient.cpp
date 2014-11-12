@@ -23,6 +23,12 @@
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
 #endif
+#include "CanvasTypes.h"
+#include "Engine/AssetUserData.h"
+#include "Engine/StaticMeshSocket.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "Engine/TextureCube.h"
 
 #define LOCTEXT_NAMESPACE "FStaticMeshEditorViewportClient"
 

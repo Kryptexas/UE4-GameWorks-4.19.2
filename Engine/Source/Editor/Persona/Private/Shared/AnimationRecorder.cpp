@@ -7,6 +7,7 @@
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "EngineLogs.h"
 
 #define LOCTEXT_NAMESPACE "FAnimationRecorder"
 

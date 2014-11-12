@@ -5,6 +5,14 @@
 #include "ISettingsModule.h"
 #include "SDockTab.h"
 #include "SNumericEntryBox.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
+#include "SystemSettings.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "Engine/Texture2DDynamic.h"
 
 #define LOCTEXT_NAMESPACE "FTextureEditorToolkit"
 

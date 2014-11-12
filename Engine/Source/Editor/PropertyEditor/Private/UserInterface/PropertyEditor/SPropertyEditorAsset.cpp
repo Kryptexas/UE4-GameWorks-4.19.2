@@ -14,6 +14,8 @@
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
 #include "Particles/ParticleSystem.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 

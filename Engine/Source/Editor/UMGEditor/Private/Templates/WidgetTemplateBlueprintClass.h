@@ -3,6 +3,7 @@
 #pragma once
 
 #include "WidgetTemplateClass.h"
+#include "AssetData.h"
 
 class UUserWidget;
 

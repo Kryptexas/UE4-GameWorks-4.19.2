@@ -17,6 +17,9 @@
 #include "MainFrame.h"
 #include "AssetToolsModule.h"
 #include "MessageLog.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 

@@ -34,6 +34,8 @@
 #include "SnappingUtils.h"
 #include "STextEntryPopup.h"
 #include "GenericCommands.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

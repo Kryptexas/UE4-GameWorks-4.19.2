@@ -58,6 +58,7 @@
 #include "ShaderCompiler.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "EditorUndoClient.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 

@@ -5,6 +5,9 @@
 #include "SnappingUtils.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeComponent.h"
+#include "GameFramework/Volume.h"
+#include "Components/ShapeComponent.h"
+#include "Components/ModelComponent.h"
 
 FActorPositionTraceResult FActorPositioning::TraceWorldForPositionWithDefault(const FViewportCursorLocation& Cursor, const FSceneView& View, const TArray<AActor*>* IgnoreActors)
 {

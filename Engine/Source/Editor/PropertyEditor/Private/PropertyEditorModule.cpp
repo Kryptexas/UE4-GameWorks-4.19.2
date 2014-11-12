@@ -23,6 +23,8 @@
 #include "PropertyTableConstants.h"
 #include "SStructureDetailsView.h"
 #include "SColorPicker.h"
+#include "EngineUtils.h"
+#include "Engine/UserDefinedStruct.h"
 
 
 IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );

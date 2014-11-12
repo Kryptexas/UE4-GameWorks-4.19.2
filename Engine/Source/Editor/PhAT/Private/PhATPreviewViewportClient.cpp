@@ -10,7 +10,14 @@
 #include "PhATSharedData.h"
 #include "PhATPreviewViewportClient.h"
 #include "SPhATPreviewViewport.h"
-
+#include "GameFramework/WorldSettings.h"
+#include "CanvasTypes.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "Engine/Font.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "DrawDebugHelpers.h"
 
 FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data)
 	: FEditorViewportClient(GLevelEditorModeTools(), &Data->PreviewScene)

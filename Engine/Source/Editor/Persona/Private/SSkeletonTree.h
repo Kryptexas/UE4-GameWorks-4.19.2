@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Persona.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 /** Enum which determines what type a tree row is. Value is 
 	used as a flag for filtering tree items, so each goes up 

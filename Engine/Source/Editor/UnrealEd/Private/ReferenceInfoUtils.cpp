@@ -6,6 +6,7 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Selection.h"
 
 void ExecuteReferenceInfo(const TArray<FString>& Args, UWorld* InWorld )
 {

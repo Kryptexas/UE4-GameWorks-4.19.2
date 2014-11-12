@@ -27,6 +27,12 @@
 #include "ObjectEditorUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Light.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/Selection.h"
+#include "Components/DecalComponent.h"
 
 
 namespace AssetSelectionUtils

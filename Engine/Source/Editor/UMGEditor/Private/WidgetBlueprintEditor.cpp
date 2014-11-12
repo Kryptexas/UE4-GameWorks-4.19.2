@@ -21,6 +21,7 @@
 #include "Components/CanvasPanel.h"
 #include "GenericCommands.h"
 #include "WidgetBlueprint.h"
+#include "Engine/SimpleConstructionScript.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

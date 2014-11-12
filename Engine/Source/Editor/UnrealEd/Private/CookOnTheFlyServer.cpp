@@ -31,6 +31,8 @@
 
 // shader compiler processAsyncResults
 #include "ShaderCompiler.h"
+#include "Engine/LevelStreaming.h"
+#include "TextureLODSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookOnTheFly, Log, All);
 

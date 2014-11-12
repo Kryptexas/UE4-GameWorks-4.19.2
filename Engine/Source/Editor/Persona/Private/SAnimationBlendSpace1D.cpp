@@ -10,6 +10,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
 #include "SNotificationList.h"
+#include "Animation/BlendSpaceBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpace1D, Log, All);
 

@@ -23,6 +23,7 @@
 #include "BlueprintActionDatabase.h"
 #include "BlueprintActionMenuUtils.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/LevelScriptActor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 

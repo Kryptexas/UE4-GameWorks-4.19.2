@@ -3,6 +3,7 @@
 #pragma once
 
 #include "EditorViewportClient.h"
+#include "Engine/WindDirectionalSource.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode

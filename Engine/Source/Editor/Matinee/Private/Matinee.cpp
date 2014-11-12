@@ -42,6 +42,12 @@
 #include "SDockTab.h"
 #include "STextComboBox.h"
 #include "GenericCommands.h"
+#include "CanvasTypes.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Engine/Light.h"
+#include "CanvasItem.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
 
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);

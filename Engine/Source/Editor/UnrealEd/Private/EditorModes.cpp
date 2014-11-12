@@ -18,6 +18,13 @@
 #include "ComponentVisualizer.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Engine/Polys.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/LevelStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorModes, Log, All);
 

@@ -11,6 +11,8 @@
 #include "EditorClassUtils.h"
 #include "SSearchBox.h"
 #include "SWidgetSwitcher.h"
+#include "GameFramework/Volume.h"
+#include "Engine/PostProcessVolume.h"
 
 /**
  * These are the tab indexes, if the tabs are reorganized you need to adjust the

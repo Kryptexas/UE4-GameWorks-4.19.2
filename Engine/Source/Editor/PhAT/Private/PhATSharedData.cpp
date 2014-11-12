@@ -8,6 +8,12 @@
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhATSharedData.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "Engine/CollisionProfile.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "PhATShared"
 

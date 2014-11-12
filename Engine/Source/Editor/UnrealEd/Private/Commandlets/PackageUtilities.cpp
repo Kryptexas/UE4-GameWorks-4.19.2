@@ -16,7 +16,8 @@
 #include "AnimationCompression.h"
 
 #include "CollectionManagerModule.h"
-
+#include "GameFramework/WorldSettings.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY(LogPackageHelperFunctions);
 DEFINE_LOG_CATEGORY_STATIC(LogPackageUtilities, Log, All);

@@ -10,7 +10,8 @@
 #include "SNumericEntryBox.h"
 #include "STextComboBox.h"
 #include "Engine/StaticMeshActor.h"
-
+#include "Engine/StaticMesh.h"
+#include "Engine/Selection.h"
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 
 

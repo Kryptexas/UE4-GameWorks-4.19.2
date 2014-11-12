@@ -4,6 +4,7 @@
 #include "SAnimBlueprintParentPlayerList.h"
 #include "PropertyEditorModule.h"
 #include "AnimGraphNodeDetails.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 SAnimBlueprintParentPlayerList::SAnimBlueprintParentPlayerList()
 	: RootBlueprint(NULL)

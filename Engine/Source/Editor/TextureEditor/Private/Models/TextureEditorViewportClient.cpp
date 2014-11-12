@@ -1,6 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureEditorPrivatePCH.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureRenderTargetCube.h"
 
 
 /* FTextureEditorViewportClient structors

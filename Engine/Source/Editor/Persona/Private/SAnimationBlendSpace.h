@@ -4,6 +4,7 @@
 
 #include "SAnimationBlendSpaceBase.h"
 #include "Sorting.h"
+#include "Animation/BlendSpace.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationBlendSpace

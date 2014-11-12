@@ -10,6 +10,8 @@
 #include "LevelEditorActions.h"
 #include "IPlacementModeModule.h"
 #include "Engine/TriggerBase.h"
+#include "GameFramework/Volume.h"
+#include "Engine/BlockingVolume.h"
 
 class SMenuThumbnail : public SCompoundWidget
 {

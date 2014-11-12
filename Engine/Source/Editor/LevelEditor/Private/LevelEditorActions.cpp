@@ -51,6 +51,13 @@
 #include "ISourceControlModule.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/Polys.h"
+#include "Components/LightComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Light.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 

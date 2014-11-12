@@ -24,6 +24,8 @@
 #include "Matinee/MatineeAnimInterface.h"
 #include "STextComboPopup.h"
 #include "STextEntryPopup.h"
+#include "Engine/Selection.h"
+#include "Sound/SoundBase.h"
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 

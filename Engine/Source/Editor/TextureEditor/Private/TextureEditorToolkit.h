@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
+#include "EditorUndoClient.h"
 
 
 /**

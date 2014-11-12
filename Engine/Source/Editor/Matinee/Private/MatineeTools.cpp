@@ -38,6 +38,11 @@
 #include "EngineAnalytics.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 ///// UTILS
 

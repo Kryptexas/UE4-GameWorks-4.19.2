@@ -26,7 +26,12 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "SDockTab.h"
-
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMesh.h"
+#include "EngineLogs.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 DEFINE_LOG_CATEGORY(LogPhAT);
 #define LOCTEXT_NAMESPACE "PhAT"
 
