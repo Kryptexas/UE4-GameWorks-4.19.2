@@ -9,3 +9,5 @@
 
 // Module includes
 #include "HttpModule.h"
+
+HTTP_API DECLARE_LOG_CATEGORY_EXTERN(LogHttp, Warning, All);

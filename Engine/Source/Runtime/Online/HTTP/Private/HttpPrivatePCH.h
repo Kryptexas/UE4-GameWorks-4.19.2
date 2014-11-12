@@ -5,4 +5,3 @@
 #include "Core.h"
 #include "Http.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogHttp, Warning, All);
