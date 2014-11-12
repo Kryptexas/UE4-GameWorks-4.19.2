@@ -2530,7 +2530,7 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 			{
 				ULandscapeLayerInfoObject* const LayerInfo = *It;
 				const bool bFound = Component->WeightmapLayerAllocations.ContainsByPredicate([LayerInfo](const FWeightmapLayerAllocationInfo& Allocation){ return Allocation.LayerInfo == LayerInfo; });
-				if (bFound)
+				if (!bFound)
 				{
 					NeedAllocationInfos.Add(LayerInfo);
 				}
@@ -2650,7 +2650,7 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 								{
 									uint8& Weight = LayerDataInfos[LayerIdx].TexDataPtr[TexDataIndex];
 
-									Weight = Data[DataIndex]; // Only for whole weight
+									Weight = LayerDataInfos[LayerIdx].InDataPtr[DataIndex]; // Only for whole weight
 									if (Weight != 0)
 									{
 										LayerEditDataAllZero[LayerIdx] = false;

@@ -1232,6 +1232,7 @@ public:
 			bool bFullCopy = !EdMode->UISettings->bUseSelectedRegion || !LandscapeInfo->SelectedRegion.Num();
 			//bool bInverted = EdMode->UISettings->bUseSelectedRegion && EdMode->UISettings->bUseNegativeMask;
 
+			// TODO: This is a mess and badly needs refactoring
 			for (int32 Y = 0; Y < SizeY; ++Y)
 			{
 				for (int32 X = 0; X < SizeX; ++X)
@@ -1243,6 +1244,13 @@ public:
 					{
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i)
 						{
+							// Don't try to copy data for null layers
+							if ( (bApplyToAll && i >= 0 && !LandscapeInfo->Layers[i].LayerInfoObj) ||
+								(!bApplyToAll && !EdMode->CurrentToolTarget.LayerInfo.Get()))
+							{
+								continue;
+							}
+
 							FGizmoPreData GizmoPreData[NeighborNum];
 
 							for (int32 LocalY = 0; LocalY < 2; ++LocalY)
@@ -1301,7 +1309,7 @@ public:
 								bDidCopy = true;
 							}
 
-							if (LerpedData.Data > 0.f)
+							if (LerpedData.Ratio > 0.f)
 							{
 								// Added for LayerNames
 								if (bApplyToAll)
@@ -1408,9 +1416,9 @@ public:
 				Gizmo->SampleData(SizeX, SizeY);
 
 				// Update LayerInfos
-				for (auto It = LayerInfoSet.CreateConstIterator(); It; ++It)
+				for (ULandscapeLayerInfoObject* LayerInfo : LayerInfoSet)
 				{
-					Gizmo->LayerInfos.Add(*It);
+					Gizmo->LayerInfos.Add(LayerInfo);
 				}
 			}
 
