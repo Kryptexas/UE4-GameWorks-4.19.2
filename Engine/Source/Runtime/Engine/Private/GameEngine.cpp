@@ -501,7 +501,7 @@ void UGameEngine::PreExit()
 
 			World->GetGameInstance()->Shutdown();
 
-			World->FlushLevelStreaming( NULL, true );
+			World->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 			World->CleanupWorld();
 		}
 	}

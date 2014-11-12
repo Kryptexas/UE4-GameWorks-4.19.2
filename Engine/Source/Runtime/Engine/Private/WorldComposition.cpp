@@ -605,12 +605,12 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	}
 
 	// Quit early in case we have cooldown on streaming state changes
-	if (TilesStreamingTimeThreshold > 0.0)
+	const bool bUseStreamingStateCooldown = (PersistenWorld->IsGameWorld() && PersistenWorld->FlushLevelStreamingType == EFlushLevelStreamingType::None);
+	if (bUseStreamingStateCooldown && TilesStreamingTimeThreshold > 0.0)
 	{
 		const double CurrentTime = FPlatformTime::Seconds();
 		const double TimePassed = CurrentTime - Tile.StreamingLevelStateChangeTime;
-
-		if (!PersistenWorld->bFlushingLevelStreaming &&	TimePassed < TilesStreamingTimeThreshold)
+		if (TimePassed < TilesStreamingTimeThreshold)
 		{
 			return;
 		}

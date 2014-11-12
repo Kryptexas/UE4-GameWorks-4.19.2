@@ -101,6 +101,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 ,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
+,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
 {
 	TimerManager = new FTimerManager();
@@ -119,6 +120,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL )
 ,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
+,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
 {
 	SetFlags( RF_Transactional );
@@ -994,7 +996,7 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 	// Clean up existing world and remove it from root set so it can be garbage collected.
 	bIsLevelStreamingFrozen = false;
 	bShouldForceUnloadStreamingLevels = true;
-	FlushLevelStreaming( NULL, true );
+	FlushLevelStreaming();
 	CleanupWorld(true, true, NewWorld);
 
 	check( NetworkActors.Num() == 0 );
@@ -2214,21 +2216,19 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 				{
 					const FSceneView* View		= ViewFamily->Views[ViewIndex];
 					const FVector& ViewLocation	= View->ViewMatrices.ViewOrigin;
-					bShouldBeLoaded	= bShouldBeLoaded  || ( StreamingLevel && (!IsGameWorld() || StreamingLevel->ShouldBeLoaded(ViewLocation)) );
-					bShouldBeVisible= bShouldBeVisible || ( bShouldBeLoaded && StreamingLevel && StreamingLevel->ShouldBeVisible(ViewLocation) );
+					bShouldBeLoaded	= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded(ViewLocation);
+					bShouldBeVisible= bShouldBeVisible || ( bShouldBeLoaded && StreamingLevel->ShouldBeVisible(ViewLocation) );
 				}
 			}
 			// Or default to view location of 0,0,0
 			else
 			{
 				FVector ViewLocation(0,0,0);
-				bShouldBeLoaded		= bShouldBeLoaded  || ( StreamingLevel && (!IsGameWorld() || StreamingLevel->ShouldBeLoaded(ViewLocation)) );
-				bShouldBeVisible	= bShouldBeVisible || ( bShouldBeLoaded && StreamingLevel && StreamingLevel->ShouldBeVisible(ViewLocation) );
+				bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded(ViewLocation);
+				bShouldBeVisible	= bShouldBeVisible || ( bShouldBeLoaded && StreamingLevel->ShouldBeVisible(ViewLocation) );
 			}
 		}
 
-		// Figure out whether there are any levels we haven't collected garbage yet.
-		bool bAreLevelsPendingPurge	=	FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
 		// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
 		// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
 		// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
@@ -2236,10 +2236,10 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 		// on purpose as well so the GC code has a chance to execute between consecutive loads of maps.
 		//
 		// NOTE: AllowLevelLoadRequests not an invariant as streaming might affect the result, do NOT pulled out of the loop.
-		bool bAllowLevelLoadRequests =	(PersistentWorld->AllowLevelLoadRequests() && !bAreLevelsPendingPurge) 
-										|| bShouldBlockOnLoad 
-										|| bFlushingLevelStreaming;
+		bool bAllowLevelLoadRequests =	PersistentWorld->AllowLevelLoadRequests() || bShouldBlockOnLoad;
 
+		// Figure out whether there are any levels we haven't collected garbage yet.
+		bool bAreLevelsPendingPurge	=	FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
 		// Request a 'soft' GC if there are levels pending purge and there are levels to be loaded. In the case of a blocking
 		// load this is going to guarantee GC firing first thing afterwards and otherwise it is going to sneak in right before
 		// kicking off the async load.
@@ -2383,29 +2383,20 @@ void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
 	}
 }
 
-void UWorld::FlushLevelStreaming( FSceneViewFamily* ViewFamily, bool bOnlyFlushVisibility, FName ExcludeType)
+void UWorld::FlushLevelStreaming(FSceneViewFamily* ViewFamily, EFlushLevelStreamingType FlushType, FName ExcludeType)
 {
 	AWorldSettings* WorldSettings = GetWorldSettings();
 
-	TGuardValue<bool> FlushingLevelStreaming(bFlushingLevelStreaming, true);
-
-	// Allow queuing multiple load requests if we're performing a full flush and disallow if we're just
-	// flushing level visibility.
-	int32 OldAllowLevelLoadOverride = AllowLevelLoadOverride;
-	AllowLevelLoadOverride = bOnlyFlushVisibility ? 0 : 1;
+	TGuardValue<EFlushLevelStreamingType> FlushingLevelStreamingGuard(FlushLevelStreamingType, FlushType);
 
 	// Update internals with current loaded/ visibility flags.
-	UpdateLevelStreaming();
+	UpdateLevelStreaming(ViewFamily);
 
-	// Only flush async loading if we're performing a full flush.
-	if( !bOnlyFlushVisibility )
-	{
-		// Make sure all outstanding loads are taken care of, other than ones associated with the excluded type
-		FlushAsyncLoading(ExcludeType);
-	}
+	// Make sure all outstanding loads are taken care of, other than ones associated with the excluded type
+	FlushAsyncLoading(ExcludeType);
 
 	// Kick off making levels visible if loading finished by flushing.
-	UpdateLevelStreaming();
+	UpdateLevelStreaming(ViewFamily);
 
 	// Making levels visible is spread across several frames so we simply loop till it is done.
 	bool bLevelsPendingVisibility = true;
@@ -2417,7 +2408,7 @@ void UWorld::FlushLevelStreaming( FSceneViewFamily* ViewFamily, bool bOnlyFlushV
 		if( bLevelsPendingVisibility )
 		{
 			// Only flush async loading if we're performing a full flush.
-			if( !bOnlyFlushVisibility )
+			if (FlushLevelStreamingType == EFlushLevelStreamingType::Full)
 			{
 				// Make sure all outstanding loads are taken care of...
 				FlushAsyncLoading(NAME_None);
@@ -2435,12 +2426,10 @@ void UWorld::FlushLevelStreaming( FSceneViewFamily* ViewFamily, bool bOnlyFlushV
 	EnsureCollisionTreeIsBuilt();
 
 	// We already blocked on async loading.
-	if( !bOnlyFlushVisibility )
+	if (FlushLevelStreamingType == EFlushLevelStreamingType::Full)
 	{
 		bRequestedBlockOnAsyncLoading = false;
 	}
-
-	AllowLevelLoadOverride = OldAllowLevelLoadOverride;
 }
 
 /**
@@ -2509,39 +2498,24 @@ bool UWorld::AreAlwaysLoadedLevelsLoaded() const
 	return true;
 }
 
-
 bool UWorld::AllowLevelLoadRequests()
 {
-	bool bAllowLevelLoadRequests = false;
-	// Hold off requesting new loads if there is an active async load request.
-	if( !GIsEditor )
+	// Always allow level load request in the editor or when we do full streaming flush
+	if (IsGameWorld() && FlushLevelStreamingType != EFlushLevelStreamingType::Full)
 	{
-		// Let code choose.
-		if( AllowLevelLoadOverride == 0 )
+		const bool bAreLevelsPendingPurge = FLevelStreamingGCHelper::GetNumLevelsPendingPurge() > 0;
+		
+		// Let code choose. Hold off queueing in case: 
+		// We are only flushing levels visibility
+		// There pending unload requests
+		// There pending load requests and gameplay has already started.
+		if (bAreLevelsPendingPurge || FlushLevelStreamingType == EFlushLevelStreamingType::Visibility || (IsAsyncLoading() && GetTimeSeconds() > 1.f))
 		{
-			// There are pending queued requests and gameplay has already started so hold off queueing.
-			if( IsAsyncLoading() && GetTimeSeconds() > 1.f )
-			{
-				bAllowLevelLoadRequests = false;
-			}
-			// No load requests or initial load so it's save to queue.
-			else
-			{
-				bAllowLevelLoadRequests = true;
-			}
-		}
-		// Use override, < 0 == don't allow, > 0 == allow
-		else
-		{
-			bAllowLevelLoadRequests = AllowLevelLoadOverride > 0 ? true : false;
+			return false;
 		}
 	}
-	// Always allow load request in the Editor.
-	else
-	{
-		bAllowLevelLoadRequests = true;
-	}
-	return bAllowLevelLoadRequests;
+
+	return true;
 }
 
 bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
@@ -4521,7 +4495,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 		else
 		{
 			// Make sure there are no pending visibility requests.
-			CurrentWorld->FlushLevelStreaming( NULL, true );
+			CurrentWorld->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 
 			if (CurrentWorld->GameState)
 			{

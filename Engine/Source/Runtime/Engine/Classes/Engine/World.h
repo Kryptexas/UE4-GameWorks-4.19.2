@@ -843,9 +843,6 @@ public:
 	/** Whether world object has been initialized via Init()																	*/
 	bool										bIsWorldInitialized;
 	
-	/** Override, forcing level load requests to be allowed. < 0 == not allowed, 0 == have code choose, > 1 == force allow.		 */
-	int32										AllowLevelLoadOverride;
-
 	/** Number of frames to delay Streaming Volume updating, useful if you preload a bunch of levels but the camera hasn't caught up yet (INDEX_NONE for infinite) */
 	int32										StreamingVolumeUpdateDelay;
 
@@ -918,8 +915,8 @@ public:
 	UPROPERTY()
 	class UWorldComposition* WorldComposition;
 	
-	/** Whether we currently flushing level streaming state */ 
-	bool bFlushingLevelStreaming;
+	/** Whether we flushing level streaming state */ 
+	EFlushLevelStreamingType FlushLevelStreamingType;
 
 public:
 	/** The type of travel to perform next when doing a server travel */
@@ -1774,10 +1771,10 @@ public:
 	 * on all async operation like updating components.
 	 *
 	 * @param ViewFamily				Optional collection of views to take into account
-	 * @param bOnlyFlushVisibility		Whether to only flush level visibility operations (optional)
+	 * @param FlushType					Whether to only flush level visibility operations (optional)
 	 * @param ExcludeType				Exclude packages of this type from flushing
 	 */
-	void FlushLevelStreaming( FSceneViewFamily* ViewFamily = NULL, bool bOnlyFlushVisibility = false, FName ExcludeType = NAME_None);
+	void FlushLevelStreaming( FSceneViewFamily* ViewFamily = NULL, EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None );
 
 	/**
 	 * Triggers a call to ULevel::BuildStreamingData(this,NULL,NULL) within a few seconds.

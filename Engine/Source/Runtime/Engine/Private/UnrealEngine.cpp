@@ -8603,8 +8603,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		// Clean up networking
 		ShutdownWorldNetDriver(WorldContext.World());
 
-		// Clean up game state.
-		WorldContext.World()->FlushLevelStreaming( NULL, true );
+		// Make sure there are no pending visibility requests.
+		WorldContext.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 		
 		// send a message that all levels are going away (NULL means every sublevel is being removed
 		// without a call to RemoveFromWorld for each)
@@ -9772,7 +9772,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		// Update level streaming, forcing existing levels to be unloaded and their streaming objects 
 		// removed from the world info.	We can't kick off async loading in this update as we want to 
 		// collect garbage right below.
-		Context.World()->FlushLevelStreaming( NULL, true );
+		Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 		
 		// make sure any looping sounds, etc are stopped
 		if (GetAudioDevice() != NULL)
@@ -9819,12 +9819,12 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 			Context.PendingLevelStreamingStatusUpdates.Empty();
 
-			Context.World()->FlushLevelStreaming(NULL, false);
+			Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Full );
 		}
 		else
 		{
-			// This will cause the newly added persistent level to be made visible and kick off async loading for others.
-			Context.World()->FlushLevelStreaming( NULL, true );
+			// Make sure there are no pending visibility requests.
+			Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
 		}
 
 		// delay the use of streaming volumes for a few frames

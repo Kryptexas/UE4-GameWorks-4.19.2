@@ -474,6 +474,13 @@ namespace EWorldType
 	};
 }
 
+enum class EFlushLevelStreamingType
+{
+	None,			
+	Full,			// Allow multiple load requests
+	Visibility,		// Flush visibility only, do not allow load requests, flushes async loading as well
+};
+
 USTRUCT()
 struct FResponseChannel
 {
