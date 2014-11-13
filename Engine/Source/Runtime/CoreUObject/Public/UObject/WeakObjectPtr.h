@@ -147,6 +147,8 @@ protected:
 	}
 
 private:
+	friend struct FObjectKey;
+	
 	/**  
 	 * internal function to test for serial number matches
 	 * @return true if the serial number in this matches the central table
