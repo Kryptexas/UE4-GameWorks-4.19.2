@@ -208,3 +208,8 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 
 	return GlobalGameplayCueManager;
 }
+
+void UAbilitySystemGlobals::GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent)
+{
+
+}

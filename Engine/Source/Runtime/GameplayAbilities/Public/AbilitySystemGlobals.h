@@ -14,6 +14,7 @@ struct FGameplayAbilityActorInfo;
 struct FGameplayEffectContext;
 struct FGameplayTag;
 struct FAttributeSetInitter;
+struct FGameplayEffectSpec;
 
 /** Holds global data for the skill system. Can be configured per project via config file */
 UCLASS(config=Game)
@@ -85,6 +86,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	FAttributeSetInitter* GetAttributeSetInitter() const;
 
 	virtual UGameplayCueManager* GetGameplayCueManager();
+
+	virtual void GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent);
 
 protected:
 
