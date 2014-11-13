@@ -470,6 +470,8 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowRawAnimation );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowNonRetargetedAnimation );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowAdditiveBaseBones );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowSourceRawAnimation);
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowBakedAnimation );
 			}
 			ShowMenuBuilder.EndSection();
 

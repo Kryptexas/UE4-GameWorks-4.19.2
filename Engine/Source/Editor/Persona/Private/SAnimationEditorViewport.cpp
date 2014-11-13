@@ -513,6 +513,18 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::IsPreviewingAnimation),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingAdditiveBase));
 
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowSourceRawAnimation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowSourceRawAnimation),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSourceRawAnimation));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBakedAnimation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowBakedAnimation),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingBakedAnimation));
+
 	//Display info
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowDisplayInfoBasic,
@@ -809,6 +821,26 @@ void SAnimationEditorViewportTabBody::OnShowNonRetargetedAnimation()
 	}
 }
 
+void SAnimationEditorViewportTabBody::OnShowSourceRawAnimation()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent != NULL)
+	{
+		PreviewComponent->bDisplaySourceAnimation = !PreviewComponent->bDisplaySourceAnimation;
+		PreviewComponent->MarkRenderStateDirty();
+	}
+}
+
+void SAnimationEditorViewportTabBody::OnShowBakedAnimation()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent != NULL)
+	{
+		PreviewComponent->bDisplayBakedAnimation = !PreviewComponent->bDisplayBakedAnimation;
+		PreviewComponent->MarkRenderStateDirty();
+	}
+}
+
 void SAnimationEditorViewportTabBody::OnShowAdditiveBase()
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
@@ -853,6 +885,18 @@ bool SAnimationEditorViewportTabBody::IsShowingAdditiveBase() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	return PreviewComponent != NULL && PreviewComponent->bDisplayAdditiveBasePose;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingSourceRawAnimation() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->bDisplaySourceAnimation;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingBakedAnimation() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->bDisplayBakedAnimation;
 }
 
 void SAnimationEditorViewportTabBody::OnShowDisplayInfo(int32 DisplayInfoMode)

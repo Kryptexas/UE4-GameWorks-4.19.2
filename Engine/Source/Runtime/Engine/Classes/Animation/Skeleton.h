@@ -270,6 +270,9 @@ public:
 	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
 	static ENGINE_API const FName AnimCurveMappingName;
 
+	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
+	static ENGINE_API const FName AnimTrackCurveMappingName;
+
 	// Container for smart name mappings
 	UPROPERTY()
 	FSmartNameContainer SmartNames;

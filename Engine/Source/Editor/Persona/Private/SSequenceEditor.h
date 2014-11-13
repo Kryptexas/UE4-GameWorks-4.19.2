@@ -29,16 +29,14 @@ private:
 	/** Persona reference **/
 	TSharedPtr<class SAnimNotifyPanel>	AnimNotifyPanel;
 	TSharedPtr<class SAnimCurvePanel>	AnimCurvePanel;
+	TSharedPtr<class SAnimTrackCurvePanel>	AnimTrackCurvePanel;
 	TSharedPtr<class SAnimationScrubPanel> AnimScrubPanel;
 
 public:
 	void Construct(const FArguments& InArgs);
 	virtual ~SSequenceEditor();
 
-	void SetSequenceObj(UAnimSequenceBase * NewSequence);
-	UAnimSequenceBase * GetSequenceObj() const { return SequenceObj; }
-
-	virtual UAnimSequenceBase* GetEditorObject() const override { return GetSequenceObj(); }
+	virtual UAnimSequenceBase* GetEditorObject() const override { return SequenceObj; }
 
 private:
 	/** Pointer to the animation sequence being edited */
@@ -46,4 +44,5 @@ private:
 
 	/** Post undo **/
 	void PostUndo();
+	void OnTrackCurveChanged();
 };

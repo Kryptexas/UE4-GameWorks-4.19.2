@@ -369,6 +369,11 @@ class UAnimSequence : public UAnimSequenceBase
 	 */
 	UPROPERTY()
 	TArray<FName> AnimationTrackNames;
+
+	/**
+	 * Source RawAnimationData. Only can be overriden by when transform curves are added first time OR imported
+	 */
+	TArray<struct FRawAnimSequenceTrack> SourceRawAnimationData;
 #endif // WITH_EDITORONLY_DATA
 
 	/**
@@ -539,11 +544,16 @@ class UAnimSequence : public UAnimSequenceBase
 	UPROPERTY()
 	FString SourceFileTimestamp_DEPRECATED;
 
+	UPROPERTY(transient)
+	bool bNeedsRebake;
+
 #endif // WITH_EDITORONLY_DATA
 
+public:
 	// Begin UObject interface
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostLoad() override;
+	virtual void PreSave() override;
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -760,6 +770,41 @@ public:
 	 */
 	ENGINE_API bool AddLoopingInterpolation();
 
+	/** 
+	 * Bake Transform Curves.TransformCurves to RawAnimation after making a back up of current RawAnimation
+	 */
+	ENGINE_API void BakeTrackCurvesToRawAnimation();
+
+	/**
+	 * Add Key to Transform Curves
+	 */
+	ENGINE_API void AddKeyToSequence(float Time, const FName& BoneName, const FTransform& AdditiveTransform);
+	/**
+	 * Return true if it needs to re-bake
+	 */
+	ENGINE_API bool DoesNeedRebake() const;
+	/**
+	 * Return true if it contains transform curves
+	 */
+	ENGINE_API bool DoesContainTransformCurves() const;
+
+	/**
+	 * Create Animation Sequence from Reference Pose of the Mesh
+	 */
+	ENGINE_API bool CreateAnimation(USkeletalMesh * Mesh);
+	/**
+	 * Create Animation Sequence from the Mesh Component's current bone trasnform
+	 */
+	ENGINE_API bool CreateAnimation(USkeletalMeshComponent * MeshComponent);
+	/**
+	 * Create Animation Sequence from the given animation
+	 */
+	ENGINE_API bool CreateAnimation(UAnimSequence * Sequence);
+	/**
+	 * Resize Animation to Start/End. If End is bigger, it repeats last frame upto End. 
+	 * @todo implement
+	 */
+	ENGINE_API bool Resize(int32 Start, int32 End);
 #endif
 
 	/** 
@@ -795,12 +840,21 @@ private:
 
 	/** Verify Track Map is valid, if not, fix up */
 	void VerifyTrackMap();
+	/** Reset Animation Data. Called before Creating new Animation data **/
+	void ResetAnimation();
+	/** Refresh Track Map from Animation Track Names **/
+	void RefreshTrackMapFromAnimTrackNames();
 #endif
 
 	/**
 	 * Utility function that helps to remove track, you can't just remove RawAnimationData
 	 */
 	void RemoveTrack(int32 TrackIndex);
+	/**
+	 * Utility function that finds the correct spot to insert track to 
+	 */
+	int32 InsertTrack(const FName& BoneName);
+
 	friend class UAnimationAsset;
 };
 

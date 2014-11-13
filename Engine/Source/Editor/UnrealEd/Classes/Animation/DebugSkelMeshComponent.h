@@ -95,6 +95,14 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bDisplayAdditiveBasePose:1;
 
+	/** Display baked animation pose */
+	UPROPERTY(Transient)
+	uint32 bDisplayBakedAnimation:1;
+
+	/** Display source animation pose */
+	UPROPERTY(Transient)
+	uint32 bDisplaySourceAnimation:1;
+
 	/** Display Bound **/
 	UPROPERTY(transient)
 	uint32 bDisplayBound:1;
@@ -110,6 +118,12 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 
 	/** Storage for non retargeted pose. */
 	TArray<FTransform> NonRetargetedSpaceBases;
+
+	/** Storage of Baked Animation Pose for when bDisplayBakedAnimation == true, as they have to be calculated */
+	TArray<FTransform> BakedAnimationPoses;
+
+	/** Storage of Source Animation Pose for when bDisplaySourceAnimation == true, as they have to be calculated */
+	TArray<FTransform> SourceAnimationPoses;
 
 	/** Color render mode enum value - 0 - none, 1 - tangent, 2 - normal, 3 - mirror, 4 - bone weighting */
 	//var native transient int ColorRenderMode;

@@ -23,7 +23,7 @@ struct ENGINE_API FSmartNameMapping
 	// @param Name - The name to add/get
 	// @param OUT OutUid - The UID of the newly created or retrieved name
 	// @return bool - true if the name was added, false if it existed (OutUid will be correctly set still in this case)
-	bool AddName(FName Name, UID& OutUid);
+	bool AddOrFindName(FName Name, UID& OutUid);
 
 	// Get a name from the mapping
 	// @param Uid - UID of the name to retrieve

@@ -33,6 +33,10 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	UPROPERTY(transient)
 	TArray<FAnimNode_ModifyBone> BoneControllers;
 
+	/** Curve modifiers */
+	UPROPERTY(transient)
+	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
+
 	/** Shared parameters for previewing blendspace or animsequence **/
 	UPROPERTY(transient)
 	float SkeletalControlAlpha;
@@ -88,29 +92,95 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	 * @param	InBoneName	The name of the bone modification to find
 	 * @return the bone modification or NULL if no current modification was found
 	 */
-	FAnimNode_ModifyBone* FindModifiedBone(const FName& InBoneName);
+	FAnimNode_ModifyBone* FindModifiedBone(const FName& InBoneName, bool bCurveController=false);
 
 	/** 
 	 * Modifies a single bone. Create a new FAnimNode_ModifyBone if one does not exist for the passed-in bone.
 	 * @param	InBoneName	The name of the bone to modify
 	 * @return the new or existing bone modification
 	 */
-	FAnimNode_ModifyBone& ModifyBone(const FName& InBoneName);
+	FAnimNode_ModifyBone& ModifyBone(const FName& InBoneName, bool bCurveController=false);
 
 	/**
 	 * Removes an existing bone modification
 	 * @param	InBoneName	The name of the existing modification to remove
 	 */
-	void RemoveBoneModification(const FName& InBoneName);
+	void RemoveBoneModification(const FName& InBoneName, bool bCurveController=false);
 
 	/**
 	 * Reset all bone modified
 	 */
-	void ResetModifiedBone();
+	void ResetModifiedBone(bool bCurveController=false);
 
 #if WITH_EDITORONLY_DATA
 	bool bForceRetargetBasePose;
 #endif
+
+	/**
+	 * Convert current modified bone transforms (BoneControllers) to transform curves (CurveControllers)
+	 * it does based on CurrentTime. This function does not set key directly here. 
+	 * It does wait until next update, and it gets the delta of transform before applying curves, and 
+	 * creates curves from it, so you'll need delegate if you'd like to do something after
+	 * 
+	 * @param Delegate To be called once set key is completed
+	 */
+	void SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate);
+
+	/** 
+	 * Refresh Curve Bone Controllers based on TransformCurves from Animation data
+	 */
+	void RefreshCurveBoneControllers();
+
+	/**
+	 * Apply all Transform Curves to the RawAnimationData of the animation
+	 */
+	void BakeAnimation();
+
+	/** 
+	 * Enable Controllers
+	 * This is used by when editing, when controller has to be disabled
+	 */
+	void EnableControllers(bool bEnable);
+
+private:
+	/** 
+	 * Apply Bone Controllers to the Outpose
+	 *
+	 * @param	Component	Component to apply bone controller to
+	 * @param	BoneControllers	 List of Bone Controllers to apply
+	 * @param 	OutMeshPose	Outpose in Mesh Space once applied
+	 */
+	void ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &BoneControllers, FA2CSPose& OutMeshPose);
+	/** 
+	 * Update CurveControllers based on TransformCurves of Animation
+	 */
+	void UpdateCurveController();
+
+	/* 
+	 * Set Key Implementation function
+	 * It gets Pre Controller Local Space and gets Post Controller Local Space, and add the key to the curve 
+	 */
+	void SetKeyImplementation(const TArray<FTransform>& PreControllerInLocalSpace, const TArray<FTransform>& PostControllerInLocalSpace);
+	/** 
+	 * Add Key to the Sequence
+	 * Now Additive Key is generated, add to the curves
+	 */
+	void AddKeyToSequence(UAnimSequence* Sequence, float Time, const FName& BoneName, const FTransform& AdditiveTransform);
+	/* 
+	 * When this flag is true, it sets key
+	 */
+	bool bSetKey;
+
+	/*
+	 * Used to determine if controller has to be applied or not
+	 * Used to disable controller during editing
+	 */
+	bool bEnableControllers;
+	
+	/**
+	 * Delegate to call after Key is set
+	 */
+	FSimpleDelegate OnSetKeyCompleteDelegate;
 };
 
 

@@ -4,69 +4,101 @@
 #include "AnimGraphPrivatePCH.h"
 #include "AnimPreviewInstance.h"
 
+#if WITH_EDITOR
+#include "ScopedTransaction.h"
+#endif 
+
+#define LOCTEXT_NAMESPACE "AnimPreviewInstance"
+
 UAnimPreviewInstance::UAnimPreviewInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, SkeletalControlAlpha(1.0f)
 #if WITH_EDITORONLY_DATA
 	, bForceRetargetBasePose(false)
 #endif
+	, bSetKey(false)
 {
 	RootMotionMode = ERootMotionMode::RootMotionFromEverything;
+	bEnableControllers = true;
 }
 
 void UAnimPreviewInstance::NativeInitializeAnimation()
 {
 	// Cache our play state from the previous animation otherwise set to play
 	bool bCachedIsPlaying = (CurrentAsset != NULL) ? bPlaying : true;
-
+	bSetKey = false;
 	Super::NativeInitializeAnimation();
 
 	SetPlaying(bCachedIsPlaying);
+
+	RefreshCurveBoneControllers();
 }
 
-void UAnimPreviewInstance::ResetModifiedBone()
+void UAnimPreviewInstance::ResetModifiedBone(bool bCurveController/*=false*/)
 {
-	BoneControllers.Empty();
+	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
+	Controllers.Empty();
 }
 
-FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName)
+FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName, bool bCurveController/*=false*/)
 {
-	return BoneControllers.FindByPredicate(
+	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
+
+	return Controllers.FindByPredicate(
 		[InBoneName](const FAnimNode_ModifyBone& InController) -> bool
-		{
-			return InController.BoneToModify.BoneName == InBoneName;
-		}
+	{
+		return InController.BoneToModify.BoneName == InBoneName;
+	}
 	);
 }
 
-FAnimNode_ModifyBone& UAnimPreviewInstance::ModifyBone(const FName& InBoneName)
+FAnimNode_ModifyBone& UAnimPreviewInstance::ModifyBone(const FName& InBoneName, bool bCurveController/*=false*/)
 {
-	FAnimNode_ModifyBone* SingleBoneController = FindModifiedBone(InBoneName);
+	FAnimNode_ModifyBone* SingleBoneController = FindModifiedBone(InBoneName, bCurveController);
+	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
 
 	if(SingleBoneController == nullptr)
 	{
-		int32 NewIndex = BoneControllers.Add(FAnimNode_ModifyBone());
-		SingleBoneController = &BoneControllers[NewIndex];
+		int32 NewIndex = Controllers.Add(FAnimNode_ModifyBone());
+		SingleBoneController = &Controllers[NewIndex];
 	}
 
 	SingleBoneController->BoneToModify.BoneName = InBoneName;
 
-	SingleBoneController->TranslationMode = BMM_Replace;
-	SingleBoneController->TranslationSpace = BCS_BoneSpace;
+	if (bCurveController)
+	{
+		SingleBoneController->TranslationMode = BMM_Additive;
+		SingleBoneController->TranslationSpace = BCS_BoneSpace;
 
-	SingleBoneController->RotationMode = BMM_Replace;
-	SingleBoneController->RotationSpace = BCS_BoneSpace;
+		SingleBoneController->RotationMode = BMM_Additive;
+		SingleBoneController->RotationSpace = BCS_BoneSpace;
+
+		SingleBoneController->ScaleMode = BMM_Additive;
+		SingleBoneController->ScaleSpace = BCS_BoneSpace;
+	}
+	else
+	{
+		SingleBoneController->TranslationMode = BMM_Replace;
+		SingleBoneController->TranslationSpace = BCS_BoneSpace;
+
+		SingleBoneController->RotationMode = BMM_Replace;
+		SingleBoneController->RotationSpace = BCS_BoneSpace;
+
+		SingleBoneController->ScaleMode = BMM_Replace;
+		SingleBoneController->ScaleSpace = BCS_BoneSpace;
+	}
 
 	return *SingleBoneController;
 }
 
-void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName)
+void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName, bool bCurveController/*=false*/)
 {
-	BoneControllers.RemoveAll(
+	TArray<FAnimNode_ModifyBone>& Controllers = (bCurveController)?CurveBoneControllers : BoneControllers;
+	Controllers.RemoveAll(
 		[InBoneName](const FAnimNode_ModifyBone& InController)
-		{
-			return InController.BoneToModify.BoneName == InBoneName;
-		}
+	{
+		return InController.BoneToModify.BoneName == InBoneName;
+	}
 	);
 }
 
@@ -88,7 +120,7 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 #if WITH_EDITORONLY_DATA
 	if(bForceRetargetBasePose)
 	{
-		USkeletalMeshComponent * MeshComponent = GetSkelMeshComponent();
+		USkeletalMeshComponent* MeshComponent = GetSkelMeshComponent();
 		if(MeshComponent && MeshComponent->SkeletalMesh)
 		{
 			FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose.Bones, GetSkelMeshComponent()->SkeletalMesh, RequiredBones);
@@ -105,35 +137,255 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 		Super::NativeEvaluateAnimation(Output);
 	}
 
-	USkeletalMeshComponent* Component = GetSkelMeshComponent();
-
-	if (Component && CurrentSkeleton)
+	if (bEnableControllers)
 	{
-		if(BoneControllers.Num() > 0)
-		{
-			FA2CSPose OutMeshPose;
-			OutMeshPose.AllocateLocalPoses(RequiredBones, Output.Pose);
+		UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent>(GetSkelMeshComponent());
 
-			for(auto& SingleBoneController : BoneControllers)
+		if(Component && CurrentSkeleton)
+		{
+			// update curve controllers
+			UpdateCurveController();
+
+			// create bone controllers from 
+			if(BoneControllers.Num() > 0 || CurveBoneControllers.Num() > 0)
 			{
-				SingleBoneController.BoneToModify.BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
-				if (SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
+				TArray<FTransform> PreController, PostController;
+				// if set key is true, we should save pre controller local space transform 
+				// so that we can calculate the delta correctly
+				if(bSetKey)
 				{
-					TArray<FBoneTransform> BoneTransforms;
-					SingleBoneController.EvaluateBoneTransforms(Component, RequiredBones, OutMeshPose, BoneTransforms);
-					if (BoneTransforms.Num() > 0)
-					{
-						OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
-					}
+					PreController = Output.Pose.Bones;
+				}
+
+				FA2CSPose OutMeshPose;
+				OutMeshPose.AllocateLocalPoses(RequiredBones, Output.Pose);
+
+				// apply curve data first
+				ApplyBoneControllers(Component, CurveBoneControllers, OutMeshPose);
+
+				// and now apply bone controllers data
+				// it is possible they can be overlapping, but then bone controllers will overwrite
+				ApplyBoneControllers(Component, BoneControllers, OutMeshPose);
+
+				// convert back to local @todo check this
+				OutMeshPose.ConvertToLocalPoses(Output.Pose);
+
+				if(bSetKey)
+				{
+					// now we have post controller, and calculate delta now
+					PostController = Output.Pose.Bones;
+					SetKeyImplementation(PreController, PostController);
 				}
 			}
+			// if any other bone is selected, still go for set key even if nothing changed
+			else if(Component->BonesOfInterest.Num() > 0)
+			{
+				if(bSetKey)
+				{
+					// in this case, pose is same
+					SetKeyImplementation(Output.Pose.Bones, Output.Pose.Bones);
+				}
+			}
+		}
 
-			// convert back to local @todo check this
-			OutMeshPose.ConvertToLocalPoses(Output.Pose);
+		// we should unset here, just in case somebody clicks the key when it's not valid
+		if(bSetKey)
+		{
+			bSetKey = false;
 		}
 	}
 
 	return true;
+}
+
+void UAnimPreviewInstance::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FA2CSPose& OutMeshPose)
+{
+	for(auto& SingleBoneController : InBoneControllers)
+	{
+		SingleBoneController.BoneToModify.BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
+		if(SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
+		{
+			TArray<FBoneTransform> BoneTransforms;
+			SingleBoneController.EvaluateBoneTransforms(Component, RequiredBones, OutMeshPose, BoneTransforms);
+			if(BoneTransforms.Num() > 0)
+			{
+				OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
+			}
+		}
+	}
+}
+
+void UAnimPreviewInstance::SetKeyImplementation(const TArray<FTransform>& PreControllerInLocalSpace, const TArray<FTransform>& PostControllerInLocalSpace)
+{
+#if WITH_EDITOR
+	// evaluate the curve data first
+	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(CurrentAsset);
+	UDebugSkelMeshComponent* Component = Cast<UDebugSkelMeshComponent> (GetSkelMeshComponent());
+
+	if(CurrentSequence && CurrentSkeleton && Component && Component->SkeletalMesh)
+	{
+		FScopedTransaction ScopedTransaction(LOCTEXT("SetKey", "Set Key"));
+		CurrentSequence->Modify(true);
+		Modify();
+
+		TArray<FName> BonesToModify;
+		// need to get component transform first. Depending on when this gets called, the transform is not up-to-date. 
+		// first look at the bonecontrollers, and convert each bone controller to transform curve key
+		// and add new curvebonecontrollers with additive data type
+		// clear bone controller data
+		for(auto& SingleBoneController : BoneControllers)
+		{
+			// find bone name, and just get transform of the bone in local space
+			// and get the additive data
+			// find if this already exists, then just add curve data only
+			FName BoneName = SingleBoneController.BoneToModify.BoneName;
+			// now convert data
+			const int32 BoneIndex = Component->GetBoneIndex(BoneName);
+			FTransform  LocalTransform = PostControllerInLocalSpace[BoneIndex];
+
+			// now we have LocalTransform and get additive data
+			FTransform AdditiveTransform = LocalTransform.GetRelativeTransform(PreControllerInLocalSpace[BoneIndex]);
+			AddKeyToSequence(CurrentSequence, CurrentTime, BoneName, AdditiveTransform);
+
+			BonesToModify.Add(BoneName);
+		}
+
+		// see if the bone is selected right now and if that is added - if bone is selected, we should add identity key to it. 
+		if ( Component->BonesOfInterest.Num() > 0 )
+		{
+			// if they're selected, we should add to the modifyBone list even if they're not modified, so that they can key that point. 
+			// first make sure those are added 
+			// if not added, make sure to set the key for them
+			for (const auto& BoneIndex : Component->BonesOfInterest)
+			{
+				FName BoneName = Component->GetBoneName(BoneIndex);
+				// if it's not on BonesToModify, add identity here. 
+				if (!BonesToModify.Contains(BoneName))
+				{
+					AddKeyToSequence(CurrentSequence, CurrentTime, BoneName, FTransform::Identity);
+				}
+			}
+		}
+
+		ResetModifiedBone(false);
+
+		OnSetKeyCompleteDelegate.ExecuteIfBound();
+	}
+#endif
+}
+
+void UAnimPreviewInstance::AddKeyToSequence(UAnimSequence* Sequence, float Time, const FName& BoneName, const FTransform& AdditiveTransform) 
+{
+	Sequence->AddKeyToSequence(Time, BoneName, AdditiveTransform);
+
+	// now add to the controller
+	// find if it exists in CurveBoneController
+	// make sure you add it there
+	ModifyBone(BoneName, true);
+
+	RequiredBones.SetUseSourceData(true);
+}
+
+void UAnimPreviewInstance::SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate)
+{
+#if WITH_EDITOR
+	bSetKey = true;
+	OnSetKeyCompleteDelegate = InOnSetKeyCompleteDelegate;
+#endif
+}
+
+void UAnimPreviewInstance::RefreshCurveBoneControllers()
+{
+	// go through all curves and see if it has Transform Curve
+	// if so, find what bone that belong to and create BoneMOdifier for them
+	UAnimSequence* CurrentSequence = Cast<UAnimSequence>(CurrentAsset);
+
+	CurveBoneControllers.Empty();
+
+	// do not apply if BakedAnimation is on
+	if(CurrentSequence)
+	{
+		// make sure if this needs source update
+		if ( !CurrentSequence->DoesContainTransformCurves() )
+		{
+			return;
+		}
+
+		RequiredBones.SetUseSourceData(true);
+
+		TArray<FTransformCurve>& Curves = CurrentSequence->RawCurveData.TransformCurves;
+		FSmartNameMapping* NameMapping = CurrentSkeleton->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);
+
+		for (auto& Curve : Curves)
+		{
+			// skip if disabled
+			if (Curve.GetCurveTypeFlag(ACF_Disabled))
+			{
+				continue;
+			}
+
+			// add bone modifier
+			FName CurveName;
+			NameMapping->GetName(Curve.CurveUid, CurveName);
+
+			// @TODO: this is going to be issue. If they don't save skeleton with it, we don't have name at all?
+ 			if (CurveName == NAME_None)
+ 			{
+				FSmartNameMapping::UID NewUID;
+ 				NameMapping->AddOrFindName(Curve.LastObservedName, NewUID);
+				Curve.CurveUid = NewUID;
+
+				CurveName = Curve.LastObservedName;
+ 			}
+
+			FName BoneName = CurveName;
+			if (BoneName != NAME_None && CurrentSkeleton->GetReferenceSkeleton().FindBoneIndex(BoneName) != INDEX_NONE)
+			{
+				ModifyBone(BoneName, true);
+			}
+		}
+	}
+}
+
+void UAnimPreviewInstance::UpdateCurveController()
+{
+	// evaluate the curve data first
+	UAnimSequenceBase* CurrentSequence = Cast<UAnimSequenceBase>(CurrentAsset);
+
+	if (CurrentSequence && CurrentSkeleton)
+	{
+		TMap<FName, FTransform> ActiveCurves;
+		CurrentSequence->RawCurveData.EvaluateTransformCurveData(CurrentSkeleton, ActiveCurves, CurrentTime, 1.f);
+
+		// make sure those curves exists in the bone controller, otherwise problem
+		if ( ActiveCurves.Num() > 0 )
+		{
+			for(auto& SingleBoneController : CurveBoneControllers)
+			{
+				// make sure the curve exists
+				FName CurveName = SingleBoneController.BoneToModify.BoneName;
+
+				// we should add extra key to front and back whenever animation length changes or so. 
+				// animation length change requires to bake down animation first 
+				// this will make sure all the keys that were embedded at the start/end will automatically be backed to the data
+				const FTransform* Value = ActiveCurves.Find(CurveName);
+				if (Value)
+				{
+					// apply this change
+					SingleBoneController.Translation = Value->GetTranslation();
+					SingleBoneController.Scale = Value->GetScale3D();
+					// sasd we're converting twice
+					SingleBoneController.Rotation = Value->GetRotation().Rotator();
+				}
+			}
+		}
+		else
+		{
+			// should match
+			ensure (CurveBoneControllers.Num() == 0);
+			CurveBoneControllers.Empty();
+		}
+	}
 }
 
 /** Set SkeletalControl Alpha**/
@@ -163,8 +415,14 @@ void UAnimPreviewInstance::RestartMontage(UAnimMontage* Montage, FName FromSecti
 
 void UAnimPreviewInstance::SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping, float InPlayRate)
 {
+	// make sure to turn that off before setting new asset
+	RequiredBones.SetUseSourceData(false);
+
 	Super::SetAnimationAsset(NewAsset, bIsLooping, InPlayRate);
 	RootMotionMode = Cast<UAnimMontage>(CurrentAsset) != NULL ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::RootMotionFromEverything;
+
+	// should re sync up curve bone controllers from new asset
+	RefreshCurveBoneControllers();
 }
 
 void UAnimPreviewInstance::MontagePreview_SetLooping(bool bIsLooping)
@@ -217,7 +475,7 @@ void UAnimPreviewInstance::MontagePreview_SetReverse(bool bInReverse)
 {
 	Super::SetReverse(bInReverse);
 
-	if (FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance())
+	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
 	{
 		// copy the current playrate
 		CurMontageInstance->SetPlayRate(PlayRate);
@@ -710,3 +968,19 @@ int32 UAnimPreviewInstance::MontagePreview_FindLastSection(int32 StartSectionIdx
 	}
 	return ResultIdx;
 }
+
+void UAnimPreviewInstance::BakeAnimation()
+{
+	if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
+	{
+		FScopedTransaction ScopedTransaction(LOCTEXT("BakeAnimation", "Bake Animation"));
+		Sequence->Modify(true);
+		Sequence->BakeTrackCurvesToRawAnimation();
+	}
+}
+
+void UAnimPreviewInstance::EnableControllers(bool bEnable)
+{
+	bEnableControllers = bEnable;
+}
+#undef LOCTEXT_NAMESPACE

@@ -2268,7 +2268,6 @@ TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarqu
 void SCurveEditor::BeginDragTransaction()
 {
 	TransactionIndex = GEditor->BeginTransaction( LOCTEXT("CurveEditor_Drag", "Mouse Drag") );
-	check( TransactionIndex >= 0 );
 	CurveOwner->ModifyOwner();
 }
 
@@ -2278,9 +2277,9 @@ void SCurveEditor::EndDragTransaction()
 	{
 		GEditor->EndTransaction();
 		TransactionIndex = -1;
-
-		CurveOwner->OnCurveChanged();
 	}
+
+	CurveOwner->OnCurveChanged();
 }
 
 bool SCurveEditor::FSelectedTangent::IsValid() const

@@ -1209,6 +1209,7 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices
 }
 #endif
 
+#if WITH_EDITOR
 void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
 {
 	check(Skeleton);
@@ -1232,7 +1233,6 @@ void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArra
 	}
 }
 
-#if WITH_EDITOR
 void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
 {
 	check(Skeleton);

@@ -60,6 +60,12 @@ public:
 	/** Show additive base pose */
 	TSharedPtr< FUICommandInfo > ShowAdditiveBaseBones;
 
+	/** Show non retargeted animation. */
+	TSharedPtr< FUICommandInfo > ShowSourceRawAnimation;
+
+	/** Show non retargeted animation. */
+	TSharedPtr< FUICommandInfo > ShowBakedAnimation;
+
 	/** Show skeletal mesh bone names */
 	TSharedPtr< FUICommandInfo > ShowBoneNames;
 

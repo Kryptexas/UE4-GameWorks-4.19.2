@@ -425,7 +425,14 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		{
 			DrawMeshBonesAdditiveBasePose(PreviewSkelMeshComp.Get(), PDI);
 		}
-
+		if(PreviewSkelMeshComp->bDisplayBakedAnimation)
+		{
+			DrawMeshBonesBakedAnimation(PreviewSkelMeshComp.Get(), PDI);
+		}
+		if(PreviewSkelMeshComp->bDisplaySourceAnimation)
+		{
+			DrawMeshBonesSourceRawAnimation(PreviewSkelMeshComp.Get(), PDI);
+		}
 		// Display normal vectors of each simulation vertex
 		if ( PreviewSkelMeshComp->bDisplayClothingNormals )
 		{
@@ -768,6 +775,20 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				CurYOffset += YL + 2;
 			}
 			CurYOffset += 2;
+		}
+	}
+
+	UAnimPreviewInstance* PreviewInstance = PreviewSkelMeshComp->PreviewInstance;
+	if( PreviewInstance )
+	{
+		// see if you have anim sequence that has transform curves
+		UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset);
+		if ( Sequence && Sequence->DoesNeedRebake() )
+		{
+			FColor SubHeadlineColour(202, 66, 0);
+			InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+			CurYOffset += YL + 2;
 		}
 	}
 
@@ -1478,6 +1499,22 @@ void FAnimationViewportClient::DrawMeshBonesAdditiveBasePose(UDebugSkelMeshCompo
 	}
 }
 
+void FAnimationViewportClient::DrawMeshBonesSourceRawAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
+{
+	if(MeshComponent && MeshComponent->SkeletalMesh)
+	{
+		DrawBonesFromTransforms(MeshComponent->SourceAnimationPoses, MeshComponent, PDI, FColor(195, 195, 195, 255), FColor(195, 159, 195, 255));
+	}
+}
+
+void FAnimationViewportClient::DrawMeshBonesBakedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
+{
+	if(MeshComponent && MeshComponent->SkeletalMesh)
+	{
+		DrawBonesFromTransforms(MeshComponent->BakedAnimationPoses, MeshComponent, PDI, FColor(0, 128, 192, 255), FColor(0, 128, 192, 255));
+	}
+}
+
 void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
 {
 	if ( MeshComponent && MeshComponent->SkeletalMesh )
@@ -1516,7 +1553,7 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 	}
 }
 
-void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness/*=0.f*/) const
+void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType>& RequiredBones, const TArray<FTransform>& WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness/*=0.f*/) const
 {
 	check ( MeshComponent && MeshComponent->SkeletalMesh );
 

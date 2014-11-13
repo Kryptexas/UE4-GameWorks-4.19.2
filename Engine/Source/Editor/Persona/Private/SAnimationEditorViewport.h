@@ -213,6 +213,17 @@ private:
 
 	bool IsShowingNonRetargetedPose() const;
 
+	/** Show non retargeted animation. */
+	void OnShowSourceRawAnimation();
+
+	bool IsShowingSourceRawAnimation() const;
+
+	/** Show non retargeted animation. */
+	void OnShowBakedAnimation();
+
+	bool IsShowingBakedAnimation() const;
+
+
 	/** Additive Base Pose on top of full animation **/
 	void OnShowAdditiveBase();
 

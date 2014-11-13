@@ -326,47 +326,6 @@ namespace AnimationEditorUtils
 		}
 	}
 
-	template <typename TFactory, typename T>
-	void ExecuteNewAnimAsset(TArray<TWeakObjectPtr<USkeleton>> Objects, const FString InSuffix, FAnimAssetCreated AssetCreated, bool bInContentBrowser )
-	{
-		if(bInContentBrowser && Objects.Num() == 1)
-		{
-			auto Object = Objects[0].Get();
-
-			if(Object)
-			{
-				// Determine an appropriate name for inline-rename
-				FString Name;
-				FString PackageName;
-				CreateUniqueAssetName(Object->GetOutermost()->GetName(), InSuffix, PackageName, Name);
-
-				TFactory* Factory = ConstructObject<TFactory>(TFactory::StaticClass());
-				Factory->TargetSkeleton = Object;
-
-				FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-				ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), T::StaticClass(), Factory);
-
-				if(AssetCreated.IsBound())
-				{
-					// @TODO: this doesn't work
-					//FString LongPackagePath = FPackageName::GetLongPackagePath(PackageName);
-					UObject* 	Parent = FindPackage(NULL, *PackageName);
-					UObject* NewAsset = FindObject<UObject>(Parent, *Name, false);
-					if (NewAsset)
-					{
-						TArray<UObject*> NewAssets;
-						NewAssets.Add(NewAsset);
-						AssetCreated.Execute(NewAssets);
-					}
-				}
-			}
-		}
-		else
-		{
-			CreateAnimationAssets(Objects, T::StaticClass(), InSuffix, AssetCreated);
-		}
-	}
-
 	void FillCreateAssetMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated, bool bInContentBrowser) 
 	{
 		MenuBuilder.BeginSection("CreateAnimAssets", LOCTEXT("CreateAnimAssetsMenuHeading", "Anim Assets"));

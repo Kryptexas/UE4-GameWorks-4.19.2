@@ -129,7 +129,7 @@ void FAnimationRecorder::StopRecord(bool bShowMessage)
 		AnimationObject->NumFrames = NumFrames;
 
 		// can't use TimePassed. That is just total time that has been passed, not necessarily match with frame count
-		AnimationObject->SequenceLength = NumFrames * IntervalTime;
+		AnimationObject->SequenceLength = (NumFrames>1)? (NumFrames-1) * IntervalTime : MINIMUM_ANIMATION_LENGTH;
 		AnimationObject->PostProcessSequence();
 		AnimationObject->MarkPackageDirty();
 

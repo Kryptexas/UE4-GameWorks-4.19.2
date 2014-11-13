@@ -7,7 +7,7 @@ FSmartNameMapping::FSmartNameMapping()
 : NextUid(0)
 {}
 
-bool FSmartNameMapping::AddName(FName Name, UID& OutUid)
+bool FSmartNameMapping::AddOrFindName(FName Name, UID& OutUid)
 {
 	check(Name.IsValid());
 

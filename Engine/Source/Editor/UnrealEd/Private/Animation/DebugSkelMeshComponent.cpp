@@ -436,6 +436,40 @@ void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
+	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
+
+	BakedAnimationPoses.Empty();
+	if(bDisplayBakedAnimation && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid())
+	{
+		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
+		{
+			BakedAnimationPoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+			bool bSavedUseSourceData = AnimScriptInstance->RequiredBones.ShouldUseSourceData();
+			AnimScriptInstance->RequiredBones.SetUseRAWData(true);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(false);
+			PreviewInstance->EnableControllers(false);
+			GenSpaceBases(BakedAnimationPoses);
+			AnimScriptInstance->RequiredBones.SetUseRAWData(false);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(bSavedUseSourceData);
+			PreviewInstance->EnableControllers(true);
+		}
+	}
+
+	SourceAnimationPoses.Empty();
+	if(bDisplaySourceAnimation && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid())
+	{
+		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
+		{
+			SourceAnimationPoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+			bool bSavedUseSourceData = AnimScriptInstance->RequiredBones.ShouldUseSourceData();
+			AnimScriptInstance->RequiredBones.SetUseSourceData(true);
+			PreviewInstance->EnableControllers(false);
+			GenSpaceBases(SourceAnimationPoses);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(bSavedUseSourceData);
+			PreviewInstance->EnableControllers(true);
+		}
+	}
+
 	bool bGenerateRAWAnimation = bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid();
 
 	if (bGenerateRAWAnimation)
@@ -455,6 +489,7 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 	NonRetargetedSpaceBases.Empty();
 	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
 	{
+		NonRetargetedSpaceBases.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(true);
 		GenSpaceBases(NonRetargetedSpaceBases);
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(false);
@@ -469,8 +504,6 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 	{
 		CompressedSpaceBases.Empty();
 	}
-
-	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
 
 	// Only works in PreviewInstance, and not for anim blueprint. This is intended.
 	AdditiveBasePoses.Empty();

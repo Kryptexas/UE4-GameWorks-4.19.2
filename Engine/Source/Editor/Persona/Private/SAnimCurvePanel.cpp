@@ -5,7 +5,7 @@
 
 #include "SAnimCurvePanel.h"
 #include "ScopedTransaction.h"
-#include "SCurveEditor.h"
+#include "SAnimCurveEd.h"
 #include "Editor/KismetWidgets/Public/SScrubWidget.h"
 #include "AssetRegistryModule.h"
 #include "Kismet2NameValidators.h"
@@ -104,177 +104,6 @@ public:
 	{
 	}
 };
-
-//////////////////////////////////////////////////////////////////////////
-//  SAnimCurveEd : anim curve editor
-
-class SAnimCurveEd : public SCurveEditor
-{
-public:
-	SLATE_BEGIN_ARGS( SAnimCurveEd )
-		: _ViewMinInput(0.0f)
-		, _ViewMaxInput(10.0f)
-		, _TimelineLength(5.0f)
-		, _DrawCurve(true)
-		, _HideUI(true)
-		, _OnGetScrubValue()
-	{}
-	
-		SLATE_ATTRIBUTE( float, ViewMinInput )
-		SLATE_ATTRIBUTE( float, ViewMaxInput )
-		SLATE_ATTRIBUTE( TOptional<float>, DataMinInput )
-		SLATE_ATTRIBUTE( TOptional<float>, DataMaxInput )
-		SLATE_ATTRIBUTE( float, TimelineLength )
-		SLATE_ATTRIBUTE( int32, NumberOfKeys)
-		SLATE_ATTRIBUTE( FVector2D, DesiredSize )
-		SLATE_ARGUMENT( bool, DrawCurve )
-		SLATE_ARGUMENT( bool, HideUI )
-		SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
-		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs);
-
-protected:
-	// SWidget interface
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
-	// SWidget interface
-
-	// SCurveEditor interface
-	virtual void SetDefaultOutput(const float MinZoomRange) override;
-	virtual float GetTimeStep(FTrackScaleInfo &ScaleInfo) const override;
-	// SCurveEditor interface
-	
-private:
-	// scrub value grabber
-	FOnGetScrubValue	OnGetScrubValue;
-	// @todo redo this code, all mess and dangerous
-	TAttribute<int32>	NumberOfKeys;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//  SAnimCurveEd : anim curve editor
-
-float SAnimCurveEd::GetTimeStep(FTrackScaleInfo &ScaleInfo)const
-{
-	if(NumberOfKeys.Get())
-	{
-		int32 Divider = SScrubWidget::GetDivider( ViewMinInput.Get(), ViewMaxInput.Get(), ScaleInfo.WidgetSize, TimelineLength.Get(), NumberOfKeys.Get());
-
-		float TimePerKey;
-
-		if ( NumberOfKeys.Get() != 0.f )
-		{
-			TimePerKey = TimelineLength.Get()/(float)NumberOfKeys.Get();
-		}
-		else
-		{
-			TimePerKey = 1.f;
-		}
-
-		return TimePerKey * Divider;
-	}
-
-	return 0.0f;
-}
-
-int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
-{
-	int32 NewLayerId = SCurveEditor::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1;
-
-	float Value = 0.f;
-
-	if ( OnGetScrubValue.IsBound() )
-	{
-		Value = OnGetScrubValue.Execute();
-	}
-
-	FPaintGeometry MyGeometry = AllottedGeometry.ToPaintGeometry();
-
-	// scale info
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), 0.f, 0.f, AllottedGeometry.Size);
-	float XPos = ScaleInfo.InputToLocalX(Value);
-
-	TArray<FVector2D> LinePoints;
-	LinePoints.Add(FVector2D(XPos-1, 0.f));
-	LinePoints.Add(FVector2D(XPos+1, AllottedGeometry.Size.Y));
-
-
-	FSlateDrawElement::MakeLines( 
-		OutDrawElements,
-		NewLayerId,
-		MyGeometry,
-		LinePoints,
-		MyClippingRect,
-		ESlateDrawEffect::None,
-		FLinearColor::Red
-		);
-
-	// now draw scrub with new layer ID + 1;
-	return NewLayerId;
-}
-
-FReply SAnimCurveEd::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
-
-	const FVector2D WidgetSpace = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	const float ZoomRatio = FMath::Clamp((WidgetSpace.X / MyGeometry.Size.X), 0.f, 1.f);
-
-	{
-		const float InputViewSize = ViewMaxInput.Get() - ViewMinInput.Get();
-		const float InputChange = InputViewSize * ZoomDelta;
-
-		float NewViewMinInput = ViewMinInput.Get() - (InputChange * ZoomRatio);
-		float NewViewMaxInput = ViewMaxInput.Get() + (InputChange * (1.f - ZoomRatio));
-
-		SetInputMinMax(NewViewMinInput, NewViewMaxInput);
-	}
-
-	return FReply::Handled();
-}
-
-FCursorReply SAnimCurveEd::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
-{
-	if (ViewMinInput.Get() > 0.f || ViewMaxInput.Get() < TimelineLength.Get())
-	{
-		return FCursorReply::Cursor(EMouseCursor::GrabHand);
-	}
-
-	return FCursorReply::Unhandled();
-}
-
-void SAnimCurveEd::Construct(const FArguments& InArgs)
-{
-	OnGetScrubValue = InArgs._OnGetScrubValue;
-	NumberOfKeys = InArgs._NumberOfKeys;
-
-	SCurveEditor::Construct( SCurveEditor::FArguments()
-		.ViewMinInput(InArgs._ViewMinInput)
-		.ViewMaxInput(InArgs._ViewMaxInput)
-		.DataMinInput(InArgs._DataMinInput)
-		.DataMaxInput(InArgs._DataMaxInput)
-		.ViewMinOutput(0.f)
-		.ViewMaxOutput(1.f)
-		.ZoomToFitVertical(true)
-		.ZoomToFitHorizontal(false)
-		.TimelineLength(InArgs._TimelineLength)
-		.DrawCurve(InArgs._DrawCurve)
-		.HideUI(InArgs._HideUI)
-		.AllowZoomOutput(false)
-		.DesiredSize(InArgs._DesiredSize)
-		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
-}
-
-void SAnimCurveEd::SetDefaultOutput(const float MinZoomRange)
-{
-	const float NewMinOutput = (ViewMinOutput.Get());
-	const float NewMaxOutput = (ViewMaxOutput.Get() + MinZoomRange);
-
-	SetOutputMinMax(NewMinOutput, NewMaxOutput);
-}
 //////////////////////////////////////////////////////////////////////////
 //  SCurveEd Track : each track for curve editing 
 
@@ -381,8 +210,7 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 		SAssignNew(InnerBox, SHorizontalBox)
 	];
 	
-	FFloatCurve* CurveData = (FFloatCurve*)Curve;
-	bool bIsMetadata = CurveData->GetCurveTypeFlag(ACF_Metadata);
+	bool bIsMetadata = Curve->GetCurveTypeFlag(ACF_Metadata);
 	if(!bIsMetadata)
 	{
 		InnerBox->AddSlot()
@@ -796,7 +624,7 @@ FReply SAnimCurvePanel::DuplicateTrack(USkeleton::AnimCurveUID Uid)
 		// Use the validator to pick a reasonable name for the duplicated curve.
 		FString NewCurveName = CurveNameToCopy.ToString();
 		Validator->FindValidString(NewCurveName);
-		if(NameMapping->AddName(*NewCurveName, NewUid))
+		if(NameMapping->AddOrFindName(*NewCurveName, NewUid))
 		{
 			if(Sequence->RawCurveData.DuplicateCurveData(Uid, NewUid))
 			{
@@ -1111,7 +939,7 @@ ESlateCheckBoxState::Type SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveU
 {
 	if ( Sequence )
 	{
-		const FFloatCurve* Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		const FFloatCurve* Curve = static_cast<const FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if ( Curve )
 		{
 			return Curve->GetCurveTypeFlag(ACF_Editable)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
@@ -1127,7 +955,7 @@ void SAnimCurvePanel::ToggleEditability(ESlateCheckBoxState::Type NewType, USkel
 
 	if ( Sequence )
 	{
-		FFloatCurve * Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		FFloatCurve * Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if ( Curve )
 		{
 			Curve->SetCurveTypeFlag(ACF_Editable, bEdit);
@@ -1244,7 +1072,7 @@ void SAnimCurvePanel::AddMetadataEntry(USkeleton::AnimCurveUID Uid)
 	if(Sequence->RawCurveData.AddCurveData(Uid))
 	{
 		Sequence->Modify(true);
-		FFloatCurve* Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		FFloatCurve* Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		Curve->FloatCurve.AddKey(0.0f, 1.0f);
 		Curve->SetCurveTypeFlag(ACF_Metadata, true);
 		RefreshPanel();

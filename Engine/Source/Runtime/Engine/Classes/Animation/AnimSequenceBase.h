@@ -159,6 +159,30 @@ struct FAnimNotifyTrack
 	}
 };
 
+/** native enum for curve types **/
+enum EAnimCurveFlags
+{
+	// Used as morph target curve
+	ACF_DrivesMorphTarget	= 0x00000001,
+	// Used as triggering event
+	ACF_TriggerEvent		= 0x00000002,
+	// Is editable in Sequence Editor
+	ACF_Editable			= 0x00000004,
+	// Used as a material curve
+	ACF_DrivesMaterial		= 0x00000008,
+	// Is a metadata 'curve'
+	ACF_Metadata			= 0x00000010,
+	// motifies bone track
+	ACF_DriveTrack			= 0x00000020,
+	// disabled, right now it's used by track
+	ACF_Disabled			= 0x00000040,
+
+	// default flag when created
+	ACF_DefaultCurve		= ACF_TriggerEvent | ACF_Editable,
+	// curves created from Morph Target
+	ACF_MorphTargetCurve	= ACF_DrivesMorphTarget
+};
+
 /**
  * Float curve data for one track
  */
@@ -174,17 +198,27 @@ struct FAnimCurveBase
 	UPROPERTY()
 	FName		LastObservedName;
 
+	// For smart naming - management purpose - i.e. rename/delete
 	FSmartNameMapping::UID CurveUid;
 
+private:
+
+	/** Curve Type Flags */
+	UPROPERTY()
+	int32		CurveTypeFlags;
+
+public:
 	FAnimCurveBase(){}
 
-	FAnimCurveBase(FName InName)
+	FAnimCurveBase(FName InName, int32 InCurveTypeFlags)
 		: LastObservedName(InName)
+		, CurveTypeFlags(InCurveTypeFlags)
 	{	
 	}
 
-	FAnimCurveBase(USkeleton::AnimCurveUID Uid)
+	FAnimCurveBase(USkeleton::AnimCurveUID Uid, int32 InCurveTypeFlags)
 		: CurveUid(Uid)
+		, CurveTypeFlags(InCurveTypeFlags)
 	{}
 
 	// To be able to use typedef'd types we need to serialize manually
@@ -195,49 +229,6 @@ struct FAnimCurveBase
 			Ar << CurveUid;
 		}
 	}
-};
-
-/** native enum for curve types **/
-enum EAnimCurveFlags
-{
-	// Used as morph target curve
-	ACF_DrivesMorphTarget	= 0x00000001,
-	// Used as triggering event
-	ACF_TriggerEvent		= 0x00000002,
-	// Is editable in Sequence Editor
-	ACF_Editable			= 0x00000004,
-	// Used as a material curve
-	ACF_DrivesMaterial		= 0x00000008,
-	// Is a metadata 'curve'
-	ACF_Metadata		= 0x00000010,
-
-	// default flag when created
-	ACF_DefaultCurve		= ACF_TriggerEvent | ACF_Editable,
-	// curves created from Morph Target
-	ACF_MorphTargetCurve	= ACF_DrivesMorphTarget
-};
-
-USTRUCT()
-struct FFloatCurve : public FAnimCurveBase
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Curve data for float. */
-	UPROPERTY()
-	FRichCurve	FloatCurve;
-
-	FFloatCurve(){}
-
-	FFloatCurve(FName InName, int32 InCurveTypeFlags)
-		: FAnimCurveBase(InName)
-		, CurveTypeFlags(InCurveTypeFlags)
-	{
-	}
-
-	FFloatCurve(USkeleton::AnimCurveUID Uid, int32 InCurveTypeFlags)
-		: FAnimCurveBase(Uid)
-		, CurveTypeFlags(InCurveTypeFlags)
-	{}
 
 	/**
 	 * Set InFlag to bValue
@@ -263,19 +254,118 @@ struct FFloatCurve : public FAnimCurveBase
 	 * returns CurveTypeFlags
 	 */
 	int32 GetCurveTypeFlags() const;
+};
+
+USTRUCT()
+struct FFloatCurve : public FAnimCurveBase
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Curve data for float. */
+	UPROPERTY()
+	FRichCurve	FloatCurve;
+
+	FFloatCurve(){}
+
+	FFloatCurve(FName InName, int32 InCurveTypeFlags)
+		: FAnimCurveBase(InName, InCurveTypeFlags)
+	{
+	}
+
+	FFloatCurve(USkeleton::AnimCurveUID Uid, int32 InCurveTypeFlags)
+		: FAnimCurveBase(Uid, InCurveTypeFlags)
+	{}
 
 	virtual void Serialize(FArchive& Ar) override
 	{
 		FAnimCurveBase::Serialize(Ar);
 	}
 
-private:
-
-	/** Curve Type Flags */
-	UPROPERTY()
-	int32		CurveTypeFlags;
+	// we don't want to have = operator. This only copies curves, but leaving naming and everything else intact. 
+	void CopyCurve(FFloatCurve& SourceCurve);
+	float Evaluate(float CurrentTime, float BlendWeight) const;
+	void UpdateOrAddKey(float NewKey, float CurrentTime);
 };
 
+USTRUCT()
+struct FVectorCurve : public FAnimCurveBase
+{
+	GENERATED_USTRUCT_BODY()
+
+	enum EIndex
+	{
+		X = 0, 
+		Y, 
+		Z, 
+		Max
+	};
+
+	/** Curve data for float. */
+	UPROPERTY()
+	FRichCurve	FloatCurves[3];
+
+	FVectorCurve(){}
+
+	FVectorCurve(FName InName, int32 InCurveTypeFlags)
+		: FAnimCurveBase(InName, InCurveTypeFlags)
+	{
+	}
+
+	FVectorCurve(USkeleton::AnimCurveUID Uid, int32 InCurveTypeFlags)
+		: FAnimCurveBase(Uid, InCurveTypeFlags)
+	{}
+
+	virtual void Serialize(FArchive& Ar) override
+	{
+		FAnimCurveBase::Serialize(Ar);
+	}
+
+	// we don't want to have = operator. This only copies curves, but leaving naming and everything else intact. 
+	void CopyCurve(FVectorCurve& SourceCurve);
+	FVector Evaluate(float CurrentTime, float BlendWeight) const;
+	void UpdateOrAddKey(const FVector& NewKey, float CurrentTime);
+};
+
+USTRUCT()
+struct FTransformCurve: public FAnimCurveBase
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Curve data for each transform. */
+	UPROPERTY()
+	FVectorCurve	TranslationCurve;
+
+	/** Rotation curve - right now we use euler because quat also doesn't provide linear interpolation - curve editor can't handle quat interpolation
+	 * If you hit gimbal lock, you should add extra key to fix it. This will cause gimbal lock. 
+	 * @TODO: Eventually we'll need FRotationCurve that would contain rotation curve - that will interpolate as slerp or as quaternion 
+	 */
+	UPROPERTY()
+	FVectorCurve	RotationCurve;
+
+	UPROPERTY()
+	FVectorCurve	ScaleCurve;
+
+	FTransformCurve(){}
+
+	FTransformCurve(FName InName, int32 InCurveTypeFlags)
+		: FAnimCurveBase(InName, InCurveTypeFlags)
+	{
+	}
+
+	FTransformCurve(USkeleton::AnimCurveUID Uid, int32 InCurveTypeFlags)
+		: FAnimCurveBase(Uid, InCurveTypeFlags)
+	{}
+
+	virtual void Serialize(FArchive& Ar) override
+	{
+		FAnimCurveBase::Serialize(Ar);
+	}
+
+	// we don't want to have = operator. This only copies curves, but leaving naming and everything else intact. 
+	void CopyCurve(FTransformCurve& SourceCurve);
+	FTransform Evaluate(float CurrentTime, float BlendWeight) const;
+	ENGINE_API void UpdateOrAddKey(const FTransform& NewKey, float CurrentTime);
+};
 /**
  * Raw Curve data for serialization
  */
@@ -284,38 +374,118 @@ struct FRawCurveTracks
 {
 	GENERATED_USTRUCT_BODY()
 
+	enum ESupportedCurveType
+	{
+		FloatType,
+		VectorType,
+		TransformType,
+		Max, 
+	};
+
 	UPROPERTY()
 	TArray<FFloatCurve>		FloatCurves;
 
+#if WITH_EDITORONLY_DATA
 	/**
-	 * Evaluate curve data at the time CurrentTime, and add to Instance
+	 * @note : Currently VectorCurves are not evaluated or used for anything else but transient data for modifying bone track
+	 *			Note that it doesn't have UPROPERTY tag yet. In the future, we'd like this to be serialized, but not for now
+	 **/
+	UPROPERTY(transient)
+	TArray<FVectorCurve>	VectorCurves;
+
+	/**
+	 * @note : Currently VectorCurves are not evaluated or used for anything else but transient data for modifying bone track
+	 *			Note that it doesn't have UPROPERTY tag yet. In the future, we'd like this to be serialized, but not for now
+	 **/
+	UPROPERTY()
+	TArray<FTransformCurve>	TransformCurves;
+#endif // #if WITH_EDITOR_DATA
+	/**
+	 * Evaluate curve data at the time CurrentTime, and add to Instance. It only evaluates Float Curve for now
 	 */
 	void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const;
+
+#if WITH_EDITOR
+	/**
+	 *	Evaluate transform curves 
+	 */
+	ENGINE_API void EvaluateTransformCurveData(USkeleton * Skeleton, TMap<FName, FTransform>&OutCurves, float CurrentTime, float BlendWeight) const;
+#endif // WITH_EDITOR
 	/**
 	 * Find curve data based on the curve UID
 	 */
-	ENGINE_API FFloatCurve * GetCurveData(USkeleton::AnimCurveUID Uid);
+	ENGINE_API FAnimCurveBase * GetCurveData(USkeleton::AnimCurveUID Uid, ESupportedCurveType SupportedCurveType = FloatType);
 	/**
 	 * Add new curve from the provided UID and return true if success
 	 * bVectorInterpCurve == true, then it will create FVectorCuve, otherwise, FFloatCurve
 	 */
-	ENGINE_API bool AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags = ACF_DefaultCurve);
+	ENGINE_API bool AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags = ACF_DefaultCurve, ESupportedCurveType SupportedCurveType = FloatType);
+
 	/**
 	 * Delete curve data 
 	 */
-	ENGINE_API bool DeleteCurveData(USkeleton::AnimCurveUID Uid);
+	ENGINE_API bool DeleteCurveData(USkeleton::AnimCurveUID Uid, ESupportedCurveType SupportedCurveType = FloatType);
 	/**
 	 * Duplicate curve data
 	 * 
 	 */
-	ENGINE_API bool DuplicateCurveData(USkeleton::AnimCurveUID ToCopyUid, USkeleton::AnimCurveUID NewUid);
+	ENGINE_API bool DuplicateCurveData(USkeleton::AnimCurveUID ToCopyUid, USkeleton::AnimCurveUID NewUid, ESupportedCurveType SupportedCurveType = FloatType);
 
 	/**
 	 * Updates the LastObservedName field of the curves from the provided name container
 	 */
-	ENGINE_API void UpdateLastObservedNames(FSmartNameMapping* NameMapping);
+	ENGINE_API void UpdateLastObservedNames(FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType = FloatType);
 
+	/** 
+	 * Serialize
+	 */
 	void Serialize(FArchive& Ar);
+
+	/** 
+	 * Clear all keys
+	 */
+	void Empty()
+	{
+		FloatCurves.Empty();
+#if WITH_EDITORONLY_DATA
+		VectorCurves.Empty();
+		TransformCurves.Empty();
+#endif
+	}
+private:
+	/** 
+	 * Adding vector curve support - this is all transient data for now. This does not save and all these data will be baked into RawAnimationData
+	 */
+
+	/**
+	 * Find curve data based on the curve UID
+	 */
+	template <typename DataType>
+	DataType * GetCurveDataImpl(TArray<DataType>& Curves, USkeleton::AnimCurveUID Uid);
+
+	/**
+	 * Add new curve from the provided UID and return true if success
+	 * bVectorInterpCurve == true, then it will create FVectorCuve, otherwise, FFloatCurve
+	 */
+	template <typename DataType>
+	bool AddCurveDataImpl(TArray<DataType>& Curves, USkeleton::AnimCurveUID Uid, int32 CurveFlags);
+	/**
+	 * Delete curve data 
+	 */
+	template <typename DataType>
+	bool DeleteCurveDataImpl(TArray<DataType>& Curves, USkeleton::AnimCurveUID Uid);
+	/**
+	 * Duplicate curve data
+	 * 
+	 */
+	template <typename DataType>
+	bool DuplicateCurveDataImpl(TArray<DataType>& Curves, USkeleton::AnimCurveUID ToCopyUid, USkeleton::AnimCurveUID NewUid);
+
+	/**
+	 * Updates the LastObservedName field of the curves from the provided name container
+	 */
+	template <typename DataType>
+	void UpdateLastObservedNamesImpl(TArray<DataType>& Curves, FSmartNameMapping* NameMapping);
 };
 
 UENUM()
@@ -368,7 +538,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (DeltaTime<0).
 	 * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
 	 */
-	void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifies(const float& StartTime, const float& DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
@@ -376,7 +546,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (CurrentPosition<PreviousPosition).
 	 * Only supports contiguous range, does NOT support looping and wrapping over.
 	 */
-	void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifiesFromDeltaPositions(const float& PreviousPosition, const float& CurrentPosition, TArray<const FAnimNotifyEvent *>& OutActiveNotifies) const;
 
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
 	ENGINE_API virtual void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const;
@@ -442,4 +612,8 @@ public:
 	ENGINE_API void UnregisterOnNotifyChanged(void* Unregister);
 	ENGINE_API virtual bool IsValidToPlay() const { return true; }
 #endif
+
+protected:
+	template <typename DataType>
+	void VerifyCurveNames(USkeleton* Skeleton, const FName& NameContainer, TArray<DataType>& CurveList);
 };

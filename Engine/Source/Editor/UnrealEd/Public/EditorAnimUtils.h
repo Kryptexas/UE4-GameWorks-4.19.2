@@ -124,4 +124,7 @@ namespace EditorAnimUtils
 		}
 		return ReturnMap;
 	}
+
+	// utility functions
+	UNREALED_API void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType );
 } // namespace EditorAnimUtils

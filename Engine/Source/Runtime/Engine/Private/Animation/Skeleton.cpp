@@ -26,6 +26,7 @@ const FName USkeleton::RigTag = FName(TEXT("Rig"));
 
 // Names of smartname containers for skeleton properties
 const FName USkeleton::AnimCurveMappingName = FName(TEXT("AnimationCurves"));
+const FName USkeleton::AnimTrackCurveMappingName = FName(TEXT("AnimationTrackCurves"));
 
 const FName FAnimSlotGroup::DefaultGroupName = FName(TEXT("DefaultGroup"));
 const FName FAnimSlotGroup::DefaultSlotName = FName(TEXT("DefaultSlot"));
@@ -914,7 +915,7 @@ bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmart
 	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
 	if(RequestedMapping)
 	{
-		if(RequestedMapping->AddName(NewName, NewUid))
+		if(RequestedMapping->AddOrFindName(NewName, NewUid))
 		{
 			Modify(true);
 			Successful = true;

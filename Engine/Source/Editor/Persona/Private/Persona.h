@@ -43,7 +43,7 @@ public:
 	/** Set the current preview viewport for Persona */
 	void SetViewport(TWeakPtr<class SAnimationEditorViewportTabBody> NewViewport);
 	/** Set Sequence browser */
-	void SetSequenceBrowser(class SAnimationSequenceBrowser * SequenceBrowser);
+	void SetSequenceBrowser(class SAnimationSequenceBrowser* SequenceBrowser);
 
 	/** Refresh viewport */
 	void RefreshViewport();
@@ -200,6 +200,8 @@ public:
 	const FSlateBrush* GetDirtyImageForMode(FName Mode) const;
 
 	TSharedRef<SKismetInspector> GetPreviewEditor() {return PreviewEditor.ToSharedRef();}
+	/** Refresh Preview Instance Track Curves **/
+	void RefreshPreviewInstanceTrackCurves();
 
 protected:
 	// FBlueprintEditor interface
@@ -294,34 +296,19 @@ public:
 	class IDetailLayoutBuilder* PersonaMeshDetailLayout;
 private:
 	// called when animation asset has been changed
-	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimChangedMulticaster, UAnimationAsset* );
-	// Called after an undo is performed to give child widgets a chance to refresh
-	DECLARE_MULTICAST_DELEGATE( FOnPostUndoMulticaster );
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimChangedMulticaster, UAnimationAsset* )
 	// Called when the preview mesh has been changed
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreviewMeshChangedMulticaster, class USkeletalMesh*);
-
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreviewMeshChangedMulticaster, class USkeletalMesh*)
 	// Called when a socket is selected
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectSocket, const struct FSelectedSocketInfo& )
 	// Called when a bone is selected
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBone, const FName& )
-	// Called when selection is cleared
-	DECLARE_MULTICAST_DELEGATE( FOnDeselectAll )
-	// Called when the skeleton tree has been changed (socket added/deleted/etc)
-	DECLARE_MULTICAST_DELEGATE( FOnChangeSkeletonTree )
-	// Called when the notifies of the current animation are changed
-	DECLARE_MULTICAST_DELEGATE( FOnChangeAnimNotifies )
-	// Called when the curve panel is changed / updated
-	DECLARE_MULTICAST_DELEGATE( FOnChangeCurves )
 	// Called when the preview viewport is created
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
-	// Called when generic delete happens
-	DECLARE_MULTICAST_DELEGATE( FOnGenericDelete );
-	// Called when Persona refreshes
-	DECLARE_MULTICAST_DELEGATE( FOnPersonaRefreshMulticaster );
 public:
 
-	// Persona refreshed
-	typedef FOnPersonaRefreshMulticaster::FDelegate FOnPersonaRefresh;
+	// Called when Persona refreshes
+	typedef FSimpleMulticastDelegate::FDelegate FOnPersonaRefresh;
 
 	/** Registers a delegate to be called when Persona is Refreshed */
 	void RegisterOnPersonaRefresh(const FOnPersonaRefresh& Delegate)
@@ -350,8 +337,8 @@ public:
 		OnAnimChanged.RemoveAll(Widget);
 	}
 
-	// post undo 
-	typedef FOnPostUndoMulticaster::FDelegate FOnPostUndo;
+	// Called after an undo is performed to give child widgets a chance to refresh
+	typedef FSimpleMulticastDelegate::FDelegate FOnPostUndo;
 
 	/** Registers a delegate to be called after an Undo operation */
 	void RegisterOnPostUndo(const FOnPostUndo& Delegate)
@@ -410,8 +397,8 @@ public:
 		OnSocketSelected.RemoveAll( Widget );
 	}
 
-	// Deselected all
-	typedef FOnDeselectAll::FDelegate FOnAllDeselected;
+	// Called when selection is cleared
+	typedef FSimpleMulticastDelegate::FDelegate FOnAllDeselected;
 
 	/** Registers a delegate to be called when all bones/sockets are deselected */
 	void RegisterOnDeselectAll(const FOnAllDeselected& Delegate)
@@ -425,8 +412,8 @@ public:
 		OnAllDeselected.RemoveAll( Widget );
 	}
 
-	// Skeleton tree changed (socket duplicated, etc)
-	typedef FOnChangeSkeletonTree::FDelegate FOnSkeletonTreeChanged;
+	// Called when the skeleton tree has been changed (socket added/deleted/etc)
+	typedef FSimpleMulticastDelegate::FDelegate FOnSkeletonTreeChanged;
 
 	/** Registers a delegate to be called when the skeleton tree has changed */
 	void RegisterOnChangeSkeletonTree(const FOnSkeletonTreeChanged& Delegate)
@@ -440,8 +427,8 @@ public:
 		OnSkeletonTreeChanged.RemoveAll( Widget );
 	}
 
-	// Animation Notifies Changed
-	typedef FOnChangeAnimNotifies::FDelegate FOnAnimNotifiesChanged;
+	// Called when the notifies of the current animation are changed
+	typedef FSimpleMulticastDelegate::FDelegate FOnAnimNotifiesChanged;
 
 	/** Registers a delegate to be called when the skeleton anim notifies have been changed */
 	void RegisterOnChangeAnimNotifies(const FOnAnimNotifiesChanged& Delegate)
@@ -456,10 +443,10 @@ public:
 	}
 
 	/** Delegate for when the skeletons animation notifies have been changed */
-	FOnChangeAnimNotifies OnAnimNotifiesChanged;
+	FSimpleMulticastDelegate OnAnimNotifiesChanged;
 
-	// Curve changed
-	typedef FOnChangeCurves::FDelegate FOnCurvesChanged;
+	// Called when the curve panel is changed / updated
+	typedef FSimpleMulticastDelegate::FDelegate FOnCurvesChanged;
 
 	/** Registers delegate for changing / updating of curves panel */
 	void RegisterOnChangeCurves(const FOnCurvesChanged& Delegate)
@@ -474,7 +461,22 @@ public:
 	}
 
 	/** Delegate for changing / updating of curves panel */
-	FOnChangeCurves OnCurvesChanged;
+	FSimpleMulticastDelegate OnCurvesChanged;
+
+	// Called when the track curve is changed / updated
+	typedef FSimpleMulticastDelegate::FDelegate FOnTrackCurvesChanged;
+
+	/** Registers delegate for changing / updating of track curves panel */
+	void RegisterOnChangeTrackCurves(const FOnTrackCurvesChanged& Delegate)
+	{
+		OnTrackCurvesChanged.Add(Delegate);
+	}
+
+	/** Unregisters delegate for changing / updating of track curves panel */
+	void UnregisterOnChangeTrackCurves(SWidget* Widget)
+	{
+		OnTrackCurvesChanged.RemoveAll(Widget);
+	}
 
 	// Viewport Created
 	typedef FOnCreateViewport::FDelegate FOnViewportCreated;
@@ -491,7 +493,8 @@ public:
 		OnViewportCreated.RemoveAll( Widget );
 	}
 
-	typedef FOnGenericDelete::FDelegate FOnDeleteGeneric;
+	// Called when generic delete happens
+	typedef FSimpleMulticastDelegate::FDelegate FOnDeleteGeneric;
 
 	/** Registers a delegate to be called when Persona receives a generic delete command */
 	void RegisterOnGenericDelete(const FOnDeleteGeneric& Delegate)
@@ -506,11 +509,11 @@ public:
 	}
 
 	/** Apply Compression to list of animations */
-	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 	/** Export to FBX files of the list of animations */
-	void ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	void ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 	/** Add looping interpolation to the list of animations */
-	void AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	void AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 
 protected:
 	/** Undo Action**/
@@ -521,10 +524,10 @@ protected:
 protected:
 
 	/** Called when persona is refreshed through an external action (reimport etc) */
-	FOnPersonaRefreshMulticaster OnPersonaRefresh;
+	FSimpleMulticastDelegate OnPersonaRefresh;
 
 	/** Delegate called after an undo operation for child widgets to refresh */
-	FOnPostUndoMulticaster OnPostUndo;	
+	FSimpleMulticastDelegate OnPostUndo;	
 
 	/**	Broadcasts whenever the animation changes */
 	FOnAnimChangedMulticaster OnAnimChanged;
@@ -539,13 +542,16 @@ protected:
 	FOnSelectBone OnBoneSelected;
 
 	/** Delegate for clearing the current skeleton bone/socket selection */
-	FOnDeselectAll OnAllDeselected;
+	FSimpleMulticastDelegate OnAllDeselected;
 
 	/** Delegate for when the skeleton tree has changed (e.g. a socket has been duplicated in the viewport) */
-	FOnChangeSkeletonTree OnSkeletonTreeChanged;
+	FSimpleMulticastDelegate OnSkeletonTreeChanged;
 
 	/** Delegate for when the preview viewport is created */
 	FOnCreateViewport OnViewportCreated;
+
+	/** Delegate for changing / updating of track curves panel */
+	FSimpleMulticastDelegate OnTrackCurvesChanged;
 
 	/**
 	 * Delegate for handling generic delete command
@@ -553,7 +559,7 @@ protected:
 	 * remember that the user may be using another part of the editor when you get the broadcast so
 	 * make sure not to delete unless the user intends it.
 	 */
-	FOnGenericDelete OnGenericDelete;
+	FSimpleMulticastDelegate OnGenericDelete;
 
 	/** Persona toolbar builder class */
 	TSharedPtr<class FPersonaToolbar> PersonaToolbar;
@@ -575,6 +581,13 @@ private:
 	bool HasValidAnimationSequencePlaying() const;
 	bool IsInPersonaMode(const FName InPersonaMode) const;
 
+	/** Animation Editing Features **/
+	void OnSetKey();
+	bool CanSetKey() const;
+	void OnSetKeyCompleted();
+	void OnBakeAnimation();
+	bool CanBakeAnimation() const;
+	
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();
 	bool CanChangeSkeletonPreviewMesh() const;
@@ -591,6 +604,8 @@ private:
 	void OnReimportAnimation();
 	void OnAssetCreated(const TArray<UObject*> NewAssets);
 	TSharedRef< SWidget > GenerateCreateAssetMenu( USkeleton* Skeleton ) const;
+	void FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const;
+	void CreateAnimation(const TArray<UObject*> NewAssets, int32 Option);
 
 	/** Extend menu and toolbar */
 	void ExtendMenu();

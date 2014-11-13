@@ -826,14 +826,11 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 					UAnimSequenceBase * SequenceBase = Cast<UAnimSequenceBase>(AnimAsset);
 					if (SequenceBase)
 					{
-						// Copy curve data from source asset, preserving data in the target if present.
-						FSmartNameMapping* OldNameMapping = OldSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-						FSmartNameMapping* NewNameMapping = NewSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-						SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping);
-
-						for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
+						EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, SequenceBase, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+						
+						if (UAnimSequence * Sequence = Cast<UAnimSequence>(SequenceBase))
 						{
-							NewNameMapping->AddName(Curve.LastObservedName, Curve.CurveUid);
+							EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, Sequence, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
 						}
 					}
 					

@@ -177,15 +177,10 @@ namespace EditorAnimUtils
 			// Copy curve data from source asset, preserving data in the target if present.
 			if (OldSkeleton)
 			{
-				FSmartNameMapping* OldNameMapping = OldSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-				FSmartNameMapping* NewNameMapping = NewSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-				AssetToRetarget->RawCurveData.UpdateLastObservedNames(OldNameMapping);
-
-				for(FFloatCurve& Curve : AssetToRetarget->RawCurveData.FloatCurves)
-				{
-					NewNameMapping->AddName(Curve.LastObservedName, Curve.CurveUid);
-				}
-			}
+				EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+				// I can't copy transform curves yet because transform curves need retargeting. 
+				//EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, AssetToRetarget, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
+			}	
 
 			AssetToRetarget->ReplaceReferredAnimations(DuplicatedSequences);
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
@@ -371,6 +366,42 @@ namespace EditorAnimUtils
 				{
 					AnimNode->ReplaceReferredAnimations(ComplexAnimMap, AnimSequenceMap);
 				}
+			}
+		}
+	}
+
+	void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType )
+	{
+		// Copy curve data from source asset, preserving data in the target if present.
+		FSmartNameMapping* OldNameMapping = OldSkeleton->SmartNames.GetContainer(ContainerName);
+		FSmartNameMapping* NewNameMapping = NewSkeleton->SmartNames.GetContainer(ContainerName);
+		SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping, CurveType);
+
+		switch (CurveType)
+		{
+		case FRawCurveTracks::FloatType:
+			{
+				for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
+				{
+					NewNameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
+				}
+				break;
+			}
+		case FRawCurveTracks::VectorType:
+			{
+				for(FVectorCurve& Curve : SequenceBase->RawCurveData.VectorCurves)
+				{
+					NewNameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
+				}
+				break;
+			}
+		case FRawCurveTracks::TransformType:
+			{
+				for(FTransformCurve& Curve : SequenceBase->RawCurveData.TransformCurves)
+				{
+					NewNameMapping->AddOrFindName(Curve.LastObservedName, Curve.CurveUid);
+				}
+				break;
 			}
 		}
 	}
