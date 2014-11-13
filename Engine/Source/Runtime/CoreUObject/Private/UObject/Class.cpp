@@ -2479,7 +2479,7 @@ UObject* UClass::CreateDefaultObject()
 		if ( (ParentDefaultObject != NULL) || (this == UObject::StaticClass()) )
 		{
 			// If this is a class that can be regenerated, it is potentially not completely loaded.  Preload and Link here to ensure we properly zero memory and read in properties for the CDO
-			if( (ClassGeneratedBy != NULL) && (PropertyLink == NULL) && !GIsDuplicatingClassForReinstancing)
+			if( HasAnyClassFlags(CLASS_CompiledFromBlueprint) && (PropertyLink == NULL) && !GIsDuplicatingClassForReinstancing)
 			{
 				ULinkerLoad* ClassLinker = GetLinker();
 				if( ClassLinker )
