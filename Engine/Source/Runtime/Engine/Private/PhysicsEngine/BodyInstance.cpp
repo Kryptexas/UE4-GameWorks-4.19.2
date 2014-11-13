@@ -3845,8 +3845,11 @@ bool FBodyInstance::UseAsyncScene() const
 
 void FBodyInstance::SetUseAsyncScene(bool bNewUseAsyncScene)
 {
+#if WITH_BOX2D
 	// Invalid to call this if the body has been created
 	check(BodyInstancePtr == nullptr);
+#endif // WITH_BOX2D
+
 	// Set flag
 	bUseAsyncScene = bNewUseAsyncScene;
 }
