@@ -11,11 +11,15 @@ using System.Windows.Forms;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace iPhonePackager
 {
 	public partial class ToolsHub : Form
 	{
+		[DllImport("user32.dll")]
+		public static extern int MessageBox(IntPtr hWnd, String Text, String Caption, uint type);
+
 		protected Dictionary<int, Bitmap> CheckStateImages = new Dictionary<int, Bitmap>();
 
 		public static string IpaFilter = "iOS packaged applications (*.ipa)|*.ipa|All Files (*.*)|*.*";
@@ -142,7 +146,7 @@ namespace iPhonePackager
 
 		public static void ShowError(string Message)
 		{
-			MessageBox.Show(Message, Config.AppDisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+			System.Windows.Forms.MessageBox.Show(Message, Config.AppDisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 
 		public static bool IsProfileForDistribution(MobileProvision Provision)
@@ -179,7 +183,7 @@ namespace iPhonePackager
 							OldProvision.ProvisionName,
 							Provision.ProvisionName);
 
-						if (ShowPrompt && MessageBox.Show(MessagePrompt, Config.AppDisplayName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+						if (ShowPrompt && System.Windows.Forms.MessageBox.Show(MessagePrompt, Config.AppDisplayName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
 						{
 							return;
 						}
@@ -266,10 +270,9 @@ namespace iPhonePackager
 							string ErrorMsg = "Certificate does not include a private key and cannot be used to code sign";
 
 							// Prompt for a key pair
-							if (MessageBox.Show("Next, please choose the key pair that you made when generating the certificate request.",
+							if (MessageBox(new IntPtr(0), "Next, please choose the key pair that you made when generating the certificate request.",
 								Config.AppDisplayName,
-								MessageBoxButtons.OK,
-								MessageBoxIcon.Information) == DialogResult.OK)
+								0x00000000 | 0x00000040 | 0x00001000 | 0x00010000) == 1)
 							{
 								string KeyFilename;
 								if (ShowOpenFileDialog(KeysFilter, "Choose the key pair that belongs with the signing certificate", "", "", ref ChoosingFilesToInstallDirectory, out KeyFilename))
@@ -301,7 +304,8 @@ namespace iPhonePackager
 			{
 				string ErrorMsg = String.Format("Failed to load or install certificate due to an error: '{0}'", ex.Message);
 				Program.Error(ErrorMsg);
-				MessageBox.Show(ErrorMsg, Config.AppDisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+				System.Threading.Thread.Sleep(500);
+				MessageBox(new IntPtr(0), ErrorMsg, Config.AppDisplayName, 0x00000000 | 0x00000010 | 0x00001000 | 0x00010000);
 			}
 		}
 
