@@ -1466,7 +1466,7 @@ void AGameMode::RemovePlayerStart(APlayerStart* RemovedPlayerStart)
 	PlayerStarts.Remove(RemovedPlayerStart);
 }
 
-AActor* AGameMode::ChoosePlayerStart_Implementation( AController* Player )
+AActor* AGameMode::ChoosePlayerStart( AController* Player )
 {
 	// Choose a player start
 	APlayerStart* FoundPlayerStart = NULL;
