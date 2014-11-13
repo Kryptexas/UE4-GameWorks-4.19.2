@@ -67,6 +67,11 @@ public:
 	{
 		EditorViewportClient->NotifyTileMapBeingEditedHasChanged();
 	}
+
+	void ActivateEditMode()
+	{
+		EditorViewportClient->ActivateEditMode();
+	}
 private:
 	// Pointer back to owning tile map editor instance (the keeper of state)
 	TWeakPtr<class FTileMapEditor> TileMapEditorPtr;
@@ -340,17 +345,13 @@ void FTileMapEditor::InitTileMapEditor(const EToolkitMode::Type Mode, const TSha
 	// Initialize the asset editor and spawn the layout above
 	InitAssetEditor(Mode, InitToolkitHost, TileMapEditorAppName, StandaloneDefaultLayout, /*bCreateDefaultStandaloneMenu=*/ true, /*bCreateDefaultToolbar=*/ true, InitTileMap);
 
+	// Activate the edit mode
+	ViewportPtr->ActivateEditMode();
+
 	// Extend things
 	ExtendMenu();
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
-
-	// Activate the tile map edit mode
-	EditorModeToolsInstance.SetDefaultMode(FEdModeTileMap::EM_TileMap);
-	EditorModeToolsInstance.ActivateDefaultMode();
-
-	//@TODO: Need to be able to pass ToolkitHost.Get() into EditorModeToolsInstance, and have it in turn pass it into Enter/Leave on the individual modes I think
-	//@TODO: Need to be able to register the widget in the toolbox panel with ToolkitHost, so it can instance the ed mode widgets into it
 }
 
 void FTileMapEditor::BindCommands()

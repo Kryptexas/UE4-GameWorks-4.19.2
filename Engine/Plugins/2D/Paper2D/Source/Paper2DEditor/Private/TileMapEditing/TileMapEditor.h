@@ -36,7 +36,6 @@ public:
 protected:
 	UPaperTileMap* TileMapBeingEdited;
 	TSharedPtr<class STileMapEditorViewport> ViewportPtr;
-	FEditorModeTools EditorModeToolsInstance;
 
 protected:
 	void BindCommands();

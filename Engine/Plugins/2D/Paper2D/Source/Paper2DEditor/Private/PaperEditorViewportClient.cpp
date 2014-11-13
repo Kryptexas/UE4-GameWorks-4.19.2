@@ -9,14 +9,14 @@
 // FPaperEditorViewportClient
 
 FPaperEditorViewportClient::FPaperEditorViewportClient()
-	: FEditorViewportClient(GLevelEditorModeTools())
+	: FEditorViewportClient(*( new FEditorModeTools() ))
 	, CheckerboardTexture(NULL)
 {
 	ZoomPos = FVector2D::ZeroVector;
 	ZoomAmount = 1.0f;
 
 	//ModifyCheckerboardTextureColors();
-
+	//@TODO: ModeTools->SetToolkitHost
 
 	//@TODO: Pretty lame hardcoding
 	//@TODO: Doesn't handle negatives either (not really)
@@ -49,6 +49,7 @@ FPaperEditorViewportClient::FPaperEditorViewportClient()
 FPaperEditorViewportClient::~FPaperEditorViewportClient()
 {
 	//DestroyCheckerboardTexture();
+	delete ModeTools;
 }
 
 void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)

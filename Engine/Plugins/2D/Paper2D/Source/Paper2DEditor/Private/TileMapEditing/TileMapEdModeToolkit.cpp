@@ -13,6 +13,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEdModeToolkit
 
+FTileMapEdModeToolkit::FTileMapEdModeToolkit(class FEdModeTileMap* InOwningMode)
+{
+	TileMapEditor = InOwningMode;
+}
+
 void FTileMapEdModeToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
 }
@@ -47,7 +52,7 @@ FText FTileMapEdModeToolkit::GetToolkitName() const
 
 FEdMode* FTileMapEdModeToolkit::GetEditorMode() const
 {
-	return GLevelEditorModeTools().GetActiveMode(FEdModeTileMap::EM_TileMap);
+	return TileMapEditor;
 }
 
 TSharedPtr<SWidget> FTileMapEdModeToolkit::GetInlineContent() const
@@ -196,51 +201,27 @@ void FTileMapEdModeToolkit::BindCommands()
 
 void FTileMapEdModeToolkit::OnSelectTool(ETileMapEditorTool::Type NewTool)
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		TileMapEditor->SetActiveTool(NewTool);
-	}
+	TileMapEditor->SetActiveTool(NewTool);
 }
 
 bool FTileMapEdModeToolkit::IsToolSelected(ETileMapEditorTool::Type QueryTool) const
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		return (TileMapEditor->GetActiveTool() == QueryTool);
-	}
-	else
-	{
-		return false;
-	}
+	return (TileMapEditor->GetActiveTool() == QueryTool);
 }
 
 void FTileMapEdModeToolkit::OnSelectLayerPaintingMode(ETileMapLayerPaintingMode::Type NewMode)
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		TileMapEditor->SetActiveLayerPaintingMode(NewMode);
-	}
+	TileMapEditor->SetActiveLayerPaintingMode(NewMode);
 }
 
 bool FTileMapEdModeToolkit::IsLayerPaintingModeSelected(ETileMapLayerPaintingMode::Type PaintingMode) const
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		return (TileMapEditor->GetActiveLayerPaintingMode() == PaintingMode);
-	}
-	else
-	{
-		return false;
-	}
+	return (TileMapEditor->GetActiveLayerPaintingMode() == PaintingMode);
 }
 
 EVisibility FTileMapEdModeToolkit::GetTileSetSelectorVisibility() const
 {
-	bool bShouldShowSelector = false;
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		bShouldShowSelector = (TileMapEditor->GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::VisualLayers);
-	}
+	bool bShouldShowSelector = (TileMapEditor->GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::VisualLayers);
 	
 	return bShouldShowSelector ? EVisibility::Visible : EVisibility::Collapsed;
 }

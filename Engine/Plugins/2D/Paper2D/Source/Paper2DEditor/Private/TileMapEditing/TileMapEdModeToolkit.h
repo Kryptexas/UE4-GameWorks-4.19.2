@@ -10,6 +10,8 @@
 class FTileMapEdModeToolkit : public FModeToolkit
 {
 public:
+	FTileMapEdModeToolkit(class FEdModeTileMap* InOwningMode);
+
 	// IToolkit interface
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
@@ -40,6 +42,8 @@ protected:
 
 	TSharedRef<SWidget> BuildToolBar() const;
 private:
+	class FEdModeTileMap* TileMapEditor;
+
 	TWeakObjectPtr<class UPaperTileSet> CurrentTileSetPtr;
 
 	// All of the inline content for this toolkit

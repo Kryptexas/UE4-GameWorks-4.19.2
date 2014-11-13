@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileMapEditorViewportClient.h"
 #include "SceneViewport.h"
+#include "EdModeTileMap.h"
 
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
@@ -15,8 +16,8 @@
 // FTileMapEditorViewportClient
 
 FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEditor> InTileMapEditor, TWeakPtr<class STileMapEditorViewport> InTileMapEditorViewportPtr)
-	: TileMapEditorPtr(InTileMapEditor)
-	, TileMapEditorViewportPtr(InTileMapEditorViewportPtr)
+: TileMapEditorPtr(InTileMapEditor)
+, TileMapEditorViewportPtr(InTileMapEditorViewportPtr)
 {
 	check(TileMapEditorPtr.IsValid() && TileMapEditorViewportPtr.IsValid());
 
@@ -44,6 +45,16 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 
 		PreviewScene->AddComponent(RenderTileMapComponent, FTransform::Identity);
 	}
+}
+
+void FTileMapEditorViewportClient::ActivateEditMode()
+{
+	// Activate the tile map edit mode
+	ModeTools->SetToolkitHost(TileMapEditorPtr.Pin()->GetToolkitHost());
+	ModeTools->SetDefaultMode(FEdModeTileMap::EM_TileMap);
+	ModeTools->ActivateDefaultMode();
+	
+	//@TODO: Need to be able to register the widget in the toolbox panel with ToolkitHost, so it can instance the ed mode widgets into it
 }
 
 void FTileMapEditorViewportClient::DrawBoundsAsText(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, int32& YPos)

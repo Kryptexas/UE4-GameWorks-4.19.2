@@ -50,6 +50,9 @@ public:
 
 	// Invalidate any references to the tile map being edited; it has changed
 	void NotifyTileMapBeingEditedHasChanged();
+
+	// Note: Has to be delayed due to an unfortunate init ordering
+	void ActivateEditMode();
 private:
 	// The preview scene
 	FPreviewScene OwnedPreviewScene;
