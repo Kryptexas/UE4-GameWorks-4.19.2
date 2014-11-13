@@ -473,13 +473,23 @@ void FFriendsAndChatManager::RequestFriend( const FText& FriendName )
 {
 	if ( !FriendName.IsEmpty() )
 	{
-		if ( !FindUserID( FriendName.ToString() ).IsValid() )
+		TSharedPtr<FUniqueNetId> ExistingId = FindUserID(FriendName.ToString());
+		if (!ExistingId.IsValid())
 		{
 			FriendByNameRequests.AddUnique( *FriendName.ToString() );
 		}
 		else
 		{
-			AddFriendsToast(FText::FromString("Friend already requested"));
+			TSharedPtr<IFriendItem> ExistingFriend = FindUser(*ExistingId);
+			if (ExistingFriend.IsValid() &&
+				ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
+			{
+				AddFriendsToast(FText::FromString("Already friends"));
+			}
+			else
+			{
+				AddFriendsToast(FText::FromString("Friend already requested"));
+			}
 		}
 	}
 }
