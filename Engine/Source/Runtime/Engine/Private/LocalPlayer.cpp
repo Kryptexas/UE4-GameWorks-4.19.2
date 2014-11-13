@@ -20,6 +20,7 @@
 #include "DataChannel.h"
 #include "GameFramework/OnlineSession.h"
 #include "GameFramework/PlayerInput.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);

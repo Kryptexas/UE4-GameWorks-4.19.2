@@ -11,6 +11,7 @@
 #include "Engine/ActorChannel.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "GameFramework/GameMode.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.

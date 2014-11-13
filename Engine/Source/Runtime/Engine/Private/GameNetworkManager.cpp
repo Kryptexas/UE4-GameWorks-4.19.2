@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/GameNetworkManager.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameNetworkManager, Log, All);
 

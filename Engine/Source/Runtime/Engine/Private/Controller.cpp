@@ -10,6 +10,7 @@
 #include "NetworkingDistanceConstants.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 

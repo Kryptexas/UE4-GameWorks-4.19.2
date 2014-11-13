@@ -8,6 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameState, Log, All);
 

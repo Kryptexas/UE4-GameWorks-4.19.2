@@ -48,6 +48,7 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/GameMode.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"

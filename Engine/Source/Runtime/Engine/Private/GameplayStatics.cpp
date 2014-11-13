@@ -13,6 +13,7 @@
 #include "Sound/SoundBase.h"
 #include "Sound/SoundCue.h"
 #include "Engine/GameInstance.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/SaveGame.h"
 #include "GameFramework/DamageType.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"

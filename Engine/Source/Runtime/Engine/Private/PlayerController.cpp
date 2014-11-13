@@ -34,6 +34,7 @@
 #include "GameFramework/InputSettings.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameState.h"
+#include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);

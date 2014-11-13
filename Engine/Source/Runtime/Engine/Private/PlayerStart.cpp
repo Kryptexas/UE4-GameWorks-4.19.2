@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/PlayerStart.h"
+#include "GameFramework/GameMode.h"
 
 APlayerStart::APlayerStart(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

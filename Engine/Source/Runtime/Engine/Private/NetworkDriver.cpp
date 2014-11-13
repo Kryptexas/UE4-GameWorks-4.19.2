@@ -17,6 +17,7 @@
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/GameMode.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);

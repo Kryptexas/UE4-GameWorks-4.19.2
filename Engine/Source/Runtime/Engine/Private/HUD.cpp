@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
+#include "GameFramework/GameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

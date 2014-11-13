@@ -37,6 +37,7 @@
 #include "Camera/CameraActor.h"
 #include "Engine/DemoNetDriver.h"
 #include "Layers/Layer.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
 

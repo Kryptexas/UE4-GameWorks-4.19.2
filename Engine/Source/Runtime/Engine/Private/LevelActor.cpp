@@ -12,6 +12,7 @@
 #endif // WITH_PHYSX
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/GameMode.h"
 
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(

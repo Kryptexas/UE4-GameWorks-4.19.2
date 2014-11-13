@@ -18,6 +18,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/CheatManager.h"
+#include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
@@ -1465,7 +1466,7 @@ void AGameMode::RemovePlayerStart(APlayerStart* RemovedPlayerStart)
 	PlayerStarts.Remove(RemovedPlayerStart);
 }
 
-AActor* AGameMode::ChoosePlayerStart( AController* Player )
+AActor* AGameMode::ChoosePlayerStart_Implementation( AController* Player )
 {
 	// Choose a player start
 	APlayerStart* FoundPlayerStart = NULL;

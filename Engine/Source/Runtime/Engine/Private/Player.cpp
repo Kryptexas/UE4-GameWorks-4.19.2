@@ -18,6 +18,7 @@
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/GameState.h"
+#include "GameFramework/GameMode.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer

@@ -35,6 +35,7 @@
 #include "Components/ReflectionCaptureComponent.h"
 #include "Engine/GameEngine.h"
 #include "GameFramework/GameUserSettings.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
