@@ -45,9 +45,8 @@ void FPlacementMode::Enter()
 
 	if ( !Toolkit.IsValid() )
 	{
-		TSharedPtr< ILevelEditor > ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" ).GetFirstLevelEditor();
 		Toolkit = MakeShareable( new FPlacementModeToolkit );
-		Toolkit->Init( ToolkitHost );
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
 }
 

@@ -784,6 +784,15 @@ public:
 	/** Draws in the top level corner of all FEditorViewportClient windows (can be used to relay info to the user). */
 	FString InfoString;
 
+	/** Sets the host for toolkits created via modes from this mode manager (can only be called once) */
+	void SetToolkitHost(TSharedRef<class IToolkitHost> Host);
+
+	/** Returns the host for toolkits created via modes from this mode manager */
+	TSharedPtr<class IToolkitHost> GetToolkitHost() const
+	{
+		check(ToolkitHost.IsValid());
+		return ToolkitHost;
+	}
 protected:
 	/** 
 	 * Delegate handlers
@@ -796,6 +805,9 @@ protected:
 
 	/** A list of active editor modes. */
 	TArray< TSharedPtr<FEdMode> > Modes;
+
+	/** The host of the toolkits created by these modes */
+	TSharedPtr<IToolkitHost> ToolkitHost;
 
 	/** A list of previously active editor modes that we will potentially recycle */
 	TMap< FEditorModeID, TSharedPtr<FEdMode> > RecycledModes;

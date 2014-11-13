@@ -393,6 +393,7 @@ TSharedPtr<FTabManager> FLevelEditorModule::GetLevelEditorTabManager() const
 void FLevelEditorModule::SetLevelEditorInstance( TWeakPtr<SLevelEditor> LevelEditor )
 {
 	LevelEditorInstancePtr = LevelEditor;
+	GLevelEditorModeTools().SetToolkitHost(LevelEditorInstancePtr.Pin().ToSharedRef());
 }
 
 void FLevelEditorModule::SetLevelEditorInstanceTab( TWeakPtr<SDockTab> LevelEditorTab )

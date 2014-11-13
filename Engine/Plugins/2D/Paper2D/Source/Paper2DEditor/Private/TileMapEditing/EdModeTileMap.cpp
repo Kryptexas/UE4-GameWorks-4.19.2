@@ -106,15 +106,13 @@ bool FEdModeTileMap::UsesToolkits() const
 
 void FEdModeTileMap::Enter()
 {
+	FEdMode::Enter();
+
 	if (!Toolkit.IsValid())
 	{
-		// @todo: Remove this assumption when we make modes per level editor instead of global
-		auto ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" ).GetFirstLevelEditor();
-		Toolkit = MakeShareable(new FTileMapEdModeToolkit);
-		Toolkit->Init(ToolkitHost);
+		Toolkit = MakeShareable(new FTileMapEdModeToolkit(this));
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
-
-	FEdMode::Enter();
 }
 
 void FEdModeTileMap::Exit()

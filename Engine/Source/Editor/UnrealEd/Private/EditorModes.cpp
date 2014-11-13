@@ -1229,6 +1229,12 @@ void FEditorModeTools::SaveConfig(void)
 	SaveWidgetSettings();
 }
 
+void FEditorModeTools::SetToolkitHost(TSharedRef<class IToolkitHost> InHost)
+{
+	checkf(!ToolkitHost.IsValid(), TEXT("SetToolkitHost can only be called once"));
+	ToolkitHost = InHost;
+}
+
 void FEditorModeTools::OnEditorSelectionChanged(UObject* NewSelection)
 {
 	// If selecting an actor, move the pivot location.
