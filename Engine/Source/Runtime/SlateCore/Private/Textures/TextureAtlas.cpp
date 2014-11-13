@@ -48,13 +48,18 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::AddTexture( uint32 TextureWidth, 
 	return NewSlot;
 }
 
+
 void FSlateTextureAtlas::MarkTextureDirty()
 {
-	//check( IsThreadSafeForSlateRendering() );
-	check( (GSlateLoadingThreadId != 0) || FPlatformTLS::GetCurrentThreadId() == AtlasOwnerThreadId );
+	check( 
+		(GSlateLoadingThreadId != 0) || 
+		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Game && IsInGameThread()) || 
+		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Render && IsInRenderingThread()) 
+		);
+
 	bNeedsUpdate = true;
 }
-	
+
 
 const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( uint32 InWidth, uint32 InHeight )
 {
@@ -85,7 +90,8 @@ void FSlateTextureAtlas::InitAtlasData()
 	AtlasData.Reserve(AtlasWidth * AtlasHeight * BytesPerPixel);
 	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * BytesPerPixel);
 
-	AtlasOwnerThreadId = FPlatformTLS::GetCurrentThreadId();
+	check(IsInGameThread() || IsInRenderingThread());
+	AtlasOwnerThread = (IsInGameThread()) ? ESlateTextureAtlasOwnerThread::Game : ESlateTextureAtlasOwnerThread::Render;
 
 	INC_MEMORY_STAT_BY(STAT_SlateTextureAtlasMemory, AtlasData.GetAllocatedSize());
 }
