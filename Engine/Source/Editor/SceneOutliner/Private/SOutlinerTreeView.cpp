@@ -105,44 +105,6 @@ namespace SceneOutliner
 		return FReply::Handled();
 	}
 
-	struct FDropHandler : ITreeItemVisitor
-	{
-		/** Pointer to the scene outliner */
-		const TWeakPtr<SSceneOutliner>& SceneOutlinerWeak;
-
-		/** The drag/drop event we are processing */
-		const FDragDropEvent& DragDropEvent;
-
-		/** Whether or not we should actually apply the drop, or just validate it */
-		bool bApplyDrop;
-
-		/** The resulting validation information */
-		mutable FDragValidationInfo ValidationInfo;
-		
-		/** The reply we shouyld return, if applicable */
-		mutable FReply Reply;
-
-		/** Constructor */
-		FDropHandler(const TWeakPtr<SSceneOutliner>& InSceneOutlinerWeak, const FDragDropEvent& InDragDropEvent, bool bInApplyDrop)
-			: SceneOutlinerWeak(InSceneOutlinerWeak)
-			, DragDropEvent(InDragDropEvent)
-			, bApplyDrop(bInApplyDrop)
-			, ValidationInfo(FDragValidationInfo::Invalid())
-			, Reply(FReply::Unhandled())
-		{}
-
-		virtual void Visit(const FActorTreeItem& ActorItem) const override
-		{
-			FActorDropTarget DropTarget(ActorItem.Actor.Get());
-			Reply = HandleDrop(SceneOutlinerWeak, DragDropEvent, DropTarget, ValidationInfo, bApplyDrop);
-		}
-		virtual void Visit(const FFolderTreeItem& FolderItem) const override
-		{
-			FFolderDropTarget DropTarget(FolderItem.Path);
-			Reply = HandleDrop(SceneOutlinerWeak, DragDropEvent, DropTarget, ValidationInfo, bApplyDrop);
-		}
-	};
-
 	void SOutlinerTreeView::Construct(const SOutlinerTreeView::FArguments& InArgs, TSharedRef<SSceneOutliner> Owner)
 	{
 		SceneOutlinerWeak = Owner;
@@ -196,9 +158,8 @@ namespace SceneOutliner
 		auto ItemPtr = Item.Pin();
 		if (ItemPtr.IsValid())
 		{
-			FDropHandler Handler(SceneOutlinerWeak, DragDropEvent, true);
-			ItemPtr->Visit(Handler);
-			return Handler.Reply;
+			FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
+			return HandleDrop(SceneOutlinerWeak, DragDropEvent, *ItemPtr, ValidationInfo, true);
 		}
 
 		return FReply::Unhandled();
@@ -209,10 +170,10 @@ namespace SceneOutliner
 		auto ItemPtr = Item.Pin();
 		if (ItemPtr.IsValid())
 		{
-			FDropHandler Handler(SceneOutlinerWeak, DragDropEvent, false);
-			ItemPtr->Visit(Handler);
+			FDragValidationInfo ValidationInfo = FDragValidationInfo::Invalid();
 
-			UpdateOperationDecorator(DragDropEvent, Handler.ValidationInfo);
+			HandleDrop(SceneOutlinerWeak, DragDropEvent, *ItemPtr, ValidationInfo, false);
+			UpdateOperationDecorator(DragDropEvent, ValidationInfo);
 		}
 	}
 
@@ -240,7 +201,18 @@ namespace SceneOutliner
 			}
 		}
 
-		return FReply::Unhandled();
+		return FReply::Handled();
+	}
+	
+	FReply SSceneOutlinerTreeRow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	{
+		auto ItemPtr = Item.Pin();
+		if (ItemPtr.IsValid() && ItemPtr->CanInteract())
+		{
+			return SMultiColumnTableRow<FTreeItemPtr>::OnMouseButtonUp(MyGeometry, MouseEvent);
+		}
+
+		return FReply::Handled();
 	}
 
 	TSharedRef<SWidget> SSceneOutlinerTreeRow::GenerateWidgetForColumn( const FName& ColumnName )

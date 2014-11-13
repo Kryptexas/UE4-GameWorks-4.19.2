@@ -17,6 +17,9 @@ namespace SceneOutliner
 	/** Enum to specify how items that are not explicitly handled by this filter should be managed */
 	enum class EDefaultFilterBehaviour : uint8 { Pass, Fail };
 
+	/** Enum that defines how a tree item should be dealt with in the case where it appears in the tree, but doesn't match the filter (eg if it has a matching child) */
+	enum class EFailedFilterState : uint8 { Interactive, NonInteractive };
+
 	/** A filter that can be applied to any type in the tree */
 	class FOutlinerFilter : public ITreeItemVisitor, public IFilter<const ITreeItem&>
 	{
@@ -25,6 +28,9 @@ namespace SceneOutliner
 		/** Event that is fired if this filter changes */
 		DECLARE_DERIVED_EVENT(FOutlinerFilter, IFilter<const ITreeItem&>::FChangedEvent, FChangedEvent);
 		virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
+		
+		/** Enum that defines how a tree item should be dealt with in the case where it appears in the tree, but doesn't match the filter (eg if it has a matching child) */
+		EFailedFilterState FailedItemState;
 
 	protected:
 
@@ -33,9 +39,11 @@ namespace SceneOutliner
 
 		/** Default result of the filter when not overridden in derived classes */
 		const EDefaultFilterBehaviour DefaultBehaviour;
-		
+
 		/** Constructor to specify the default result of a filter */
-		FOutlinerFilter(EDefaultFilterBehaviour InDefaultBehaviour = EDefaultFilterBehaviour::Pass) : DefaultBehaviour(InDefaultBehaviour) {}
+		FOutlinerFilter(EDefaultFilterBehaviour InDefaultBehaviour, EFailedFilterState InFailedFilterState = EFailedFilterState::NonInteractive)
+			: FailedItemState(InFailedFilterState), DefaultBehaviour(InDefaultBehaviour)
+		{}
 
 		/** Overridden in derived types to filter actors */
 		virtual bool PassesFilter(const AActor* Actor) const { return DefaultBehaviour == EDefaultFilterBehaviour::Pass; }
@@ -113,23 +121,23 @@ namespace SceneOutliner
 		/** Predicate used to filter level blueprints */
 		mutable FLevelBlueprintFilterPredicate LevelBlueprintPred;
 
-		FOutlinerPredicateFilter(FActorFilterPredicate InActorPred, EDefaultFilterBehaviour InDefaultBehaviour)
-			: FOutlinerFilter(InDefaultBehaviour)
+		FOutlinerPredicateFilter(FActorFilterPredicate InActorPred, EDefaultFilterBehaviour InDefaultBehaviour, EFailedFilterState InFailedFilterState = EFailedFilterState::NonInteractive)
+			: FOutlinerFilter(InDefaultBehaviour, InFailedFilterState)
 			, ActorPred(InActorPred)
 		{}
 
-		FOutlinerPredicateFilter(FWorldFilterPredicate InWorldPred, EDefaultFilterBehaviour InDefaultBehaviour)
-			: FOutlinerFilter(InDefaultBehaviour)
+		FOutlinerPredicateFilter(FWorldFilterPredicate InWorldPred, EDefaultFilterBehaviour InDefaultBehaviour, EFailedFilterState InFailedFilterState = EFailedFilterState::NonInteractive)
+			: FOutlinerFilter(InDefaultBehaviour, InFailedFilterState)
 			, WorldPred(InWorldPred)
 		{}
 
-		FOutlinerPredicateFilter(FFolderFilterPredicate InFolderPred, EDefaultFilterBehaviour InDefaultBehaviour)
-			: FOutlinerFilter(InDefaultBehaviour)
+		FOutlinerPredicateFilter(FFolderFilterPredicate InFolderPred, EDefaultFilterBehaviour InDefaultBehaviour, EFailedFilterState InFailedFilterState = EFailedFilterState::NonInteractive)
+			: FOutlinerFilter(InDefaultBehaviour, InFailedFilterState)
 			, FolderPred(InFolderPred)
 		{}
 
-		FOutlinerPredicateFilter(FLevelBlueprintFilterPredicate InLevelBpPred, EDefaultFilterBehaviour InDefaultBehaviour)
-			: FOutlinerFilter(InDefaultBehaviour)
+		FOutlinerPredicateFilter(FLevelBlueprintFilterPredicate InLevelBpPred, EDefaultFilterBehaviour InDefaultBehaviour, EFailedFilterState InFailedFilterState = EFailedFilterState::NonInteractive)
+			: FOutlinerFilter(InDefaultBehaviour, InFailedFilterState)
 			, LevelBlueprintPred(InLevelBpPred)
 		{}
 
@@ -157,11 +165,42 @@ namespace SceneOutliner
 	/** Scene outliner filter class. This class abstracts the filtering of both actors and folders and allows for filtering on both types */
 	struct FOutlinerFilters : public TFilterCollection<const ITreeItem&>
 	{
+		/** Overridden to ensure we only ever have FOutlinerFilters added */
+		int32 Add(const TSharedPtr<FOutlinerFilter>& Filter)
+		{
+			return TFilterCollection::Add(Filter);
+		}
+
+		/** Test whether this tree item passes all filters, and set its interactive state according to the filter it failed (if applicable) */
+		bool TestAndSetInteractiveState(ITreeItem& InItem) const
+		{
+			bool bPassed = false;
+
+			// Default to interactive
+			InItem.Flags.bInteractive = true;
+			
+			for (const auto& Filter : ChildFilters)
+			{
+				if (!Filter->PassesFilter(InItem))
+				{
+					bPassed = false;
+					InItem.Flags.bInteractive = StaticCastSharedPtr<FOutlinerFilter>(Filter)->FailedItemState == EFailedFilterState::Interactive;
+					// If this has failed, but is still interactive, we carry on to see if any others fail *and* set to non-interactive
+					if (!InItem.Flags.bInteractive)
+					{
+						return false;
+					}
+				}
+			}
+
+			return bPassed;
+		}
+
 		/** Add a filter predicate to this filter collection */
 		template<typename T>
-		void AddFilterPredicate(T Predicate, EDefaultFilterBehaviour InDefaultBehaviour = EDefaultFilterBehaviour::Fail)
+		void AddFilterPredicate(T Predicate, EDefaultFilterBehaviour InDefaultBehaviour = EDefaultFilterBehaviour::Fail, EFailedFilterState InFailedFilterState = EFailedFilterState::NonInteractive)
 		{
-			Add(MakeShareable(new FOutlinerPredicateFilter(Predicate, InDefaultBehaviour)));
+			Add(MakeShareable(new FOutlinerPredicateFilter(Predicate, InDefaultBehaviour, InFailedFilterState)));
 		}
 	};
 }

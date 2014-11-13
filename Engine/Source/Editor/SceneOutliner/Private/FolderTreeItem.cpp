@@ -198,7 +198,7 @@ int32 FFolderTreeItem::GetTypeSortPriority() const
 
 bool FFolderTreeItem::CanInteract() const
 {
-	return !Flags.bIsFilteredOut;
+	return Flags.bInteractive;
 }
 
 void FFolderTreeItem::Delete()
@@ -224,6 +224,7 @@ void FFolderTreeItem::Delete()
 			{
 				Child.Pin()->Visit(ResetFolders);
 			}
+			FolderItem.Delete();
 		}
 	};
 

@@ -37,10 +37,11 @@ namespace SceneOutliner
 {
 	TSharedPtr< FOutlinerFilter > CreateSelectedActorFilter()
 	{
-		auto Predicate = FActorFilterPredicate::CreateStatic([](const AActor* InActor){			
-			return InActor->IsSelected();
-		});
-		return MakeShareable( new FOutlinerPredicateFilter(Predicate, EDefaultFilterBehaviour::Fail) );
+		auto* Filter = new FOutlinerPredicateFilter(FActorFilterPredicate::CreateStatic([](const AActor* InActor){	return InActor->IsSelected(); }), EDefaultFilterBehaviour::Fail);
+
+		// If anything fails this filter, make it non interactive. We don't want to allow selection of implicitly included parents which might nuke the actor selection.
+		Filter->FailedItemState = EFailedFilterState::NonInteractive;
+		return MakeShareable( Filter );
 	}
 
 	TSharedPtr< FOutlinerFilter > CreateHideTemporaryActorsFilter()
@@ -52,10 +53,21 @@ namespace SceneOutliner
 
 	TSharedPtr< FOutlinerFilter > CreateIsInCurrentLevelFilter()
 	{
-		auto Predicate = FActorFilterPredicate::CreateStatic([](const AActor* InActor){
-			return InActor->GetLevel() == InActor->GetWorld()->GetCurrentLevel();
-		});
-		return MakeShareable( new FOutlinerPredicateFilter(Predicate, EDefaultFilterBehaviour::Pass) );
+		struct FOnlyCurrentLevelFilter : FOutlinerFilter
+		{
+			FOnlyCurrentLevelFilter() : FOutlinerFilter(EDefaultFilterBehaviour::Fail, EFailedFilterState::Interactive) {}
+
+			virtual bool PassesFilter(const AActor* InActor) const override
+			{
+				return InActor->GetLevel() == InActor->GetWorld()->GetCurrentLevel();
+			}
+			virtual bool PassesFilter(const FLevelBlueprintHandle& LevelBlueprint) const override
+			{
+				return LevelBlueprint.ParentLevel == GWorld->GetCurrentLevel();
+			}
+		};
+
+		return MakeShareable( new FOnlyCurrentLevelFilter() );
 	}
 
 	struct FItemSelection : IMutableTreeItemVisitor
@@ -137,6 +149,7 @@ namespace SceneOutliner
 		bNeedsRefresh = true;
 		bIsReentrant = false;
 		bSortDirty = true;
+		bActorSelectionDirty = SharedData->Mode == ESceneOutlinerMode::ActorBrowsing;
 		FilteredActorCount = 0;
 		SortOutlinerTimer = 0.0f;
 		bPendingFocusNextFrame = InInitOptions.bFocusSearchBoxWhenOpened;
@@ -778,10 +791,10 @@ namespace SceneOutliner
 	{
 		EmptyTreeItems();
 
+		ConstructItemFor<FWorldTreeItem>(SharedData->RepresentingWorld);
+
 		if (!SharedData->bOnlyShowFolders)
 		{
-			ConstructItemFor<FWorldTreeItem>(SharedData->RepresentingWorld);
-
 			// Add the level blueprints for all levels
 			for (auto It = SharedData->RepresentingWorld->GetLevelIterator(); It ; ++It)
 			{
@@ -902,7 +915,8 @@ namespace SceneOutliner
 				auto NewParent = Item->CreateParent();
 				if (NewParent.IsValid())
 				{
-					NewParent->Flags.bIsFilteredOut = !Filters->PassesAllFilters(*NewParent) || !SearchBoxFilter->PassesFilter(*NewParent);
+					NewParent->Flags.bIsFilteredOut = !Filters->TestAndSetInteractiveState(*NewParent) || !SearchBoxFilter->PassesFilter(*NewParent);
+
 					AddUnfilteredItemToTree(NewParent.ToSharedRef());
 					return NewParent;
 				}
@@ -1077,10 +1091,10 @@ namespace SceneOutliner
 					const bool bCanMoveSelection = ItemSelection.Worlds.Num() + ItemSelection.LevelBlueprints.Num() == 0;
 					if (bCanMoveSelection)
 					{
-					MenuBuilder.AddSubMenu(
-						LOCTEXT("MoveActorsTo", "Move To"),
-						LOCTEXT("MoveActorsTo_Tooltip", "Move selection to another folder"),
-						FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
+						MenuBuilder.AddSubMenu(
+							LOCTEXT("MoveActorsTo", "Move To"),
+							LOCTEXT("MoveActorsTo_Tooltip", "Move selection to another folder"),
+							FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
 					}
 
 					// If we've only got folders selected, show the selection sub menu

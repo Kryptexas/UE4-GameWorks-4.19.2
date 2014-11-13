@@ -32,11 +32,14 @@ namespace SceneOutliner
 			/* true if this item is filtered out */
 			bool bIsFilteredOut : 1;
 
+			/* true if this item can be interacted with as per the current outliner filters */
+			bool bInteractive : 1;
+
 			/** true if this item's children need to be sorted */
 			bool bChildrenRequireSort : 1;
 
 			/** Default constructor */		
-			FlagsType() : bIsExpanded(1), bIsFilteredOut(0) {}
+			FlagsType() : bIsExpanded(1), bIsFilteredOut(0), bInteractive(1), bChildrenRequireSort(1) {}
 		};
 
 	public:

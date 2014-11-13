@@ -280,7 +280,7 @@ int32 FActorTreeItem::GetTypeSortPriority() const
 bool FActorTreeItem::CanInteract() const
 {
 	AActor* ActorPtr = Actor.Get();
-	if (!ActorPtr || Flags.bIsFilteredOut)
+	if (!ActorPtr || !Flags.bInteractive)
 	{
 		return false;
 	}

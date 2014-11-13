@@ -58,7 +58,7 @@ int32 FWorldTreeItem::GetTypeSortPriority() const
 
 bool FWorldTreeItem::CanInteract() const
 {
-	return !Flags.bIsFilteredOut;
+	return Flags.bInteractive;
 }
 
 void FWorldTreeItem::GenerateContextMenu(FMenuBuilder& MenuBuilder, SSceneOutliner& Outliner)
@@ -70,7 +70,15 @@ void FWorldTreeItem::GenerateContextMenu(FMenuBuilder& MenuBuilder, SSceneOutlin
 
 FDragValidationInfo FWorldTreeItem::ValidateDrop(FDragDropPayload& DraggedObjects, UWorld& World) const
 {
-	return FDragValidationInfo::Invalid();
+	// Dropping on the world means 'moving to the root' in folder terms
+	FFolderDropTarget Target(NAME_None);
+	return Target.ValidateDrop(DraggedObjects, World);
+}
+
+void FWorldTreeItem::OnDrop(FDragDropPayload& DraggedObjects, UWorld& World, const FDragValidationInfo& ValidationInfo, TSharedRef<SWidget> DroppedOnWidget)
+{
+	FFolderDropTarget Target(NAME_None);
+	return Target.OnDrop(DraggedObjects, World, ValidationInfo, DroppedOnWidget);
 }
 
 void FWorldTreeItem::OpenWorldSettings() const

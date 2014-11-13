@@ -86,7 +86,7 @@ bool FLevelBlueprintTreeItem::CanInteract() const
 			return false;
 		}
 	}
-	return !Flags.bIsFilteredOut;
+	return Flags.bInteractive;
 }
 
 void FLevelBlueprintTreeItem::GenerateContextMenu(FMenuBuilder& MenuBuilder, SSceneOutliner& Outliner)
