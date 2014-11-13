@@ -343,6 +343,8 @@ public:
 	// FRunnable interface.
 	virtual bool Init(void) 
 	{ 
+		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
+
 		// Acquire rendering context ownership on the current thread
 		RHIAcquireThreadOwnership();
 
@@ -353,6 +355,8 @@ public:
 	{
 		// Release rendering context ownership on the current thread
 		RHIReleaseThreadOwnership();
+
+		GRenderThreadId = 0;
 	}
 
 	virtual void Stop(void)
@@ -361,8 +365,6 @@ public:
 
 	virtual uint32 Run(void)
 	{
-		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
-
 		FPlatformProcess::SetupGameOrRenderThread(true);
 
 #if PLATFORM_WINDOWS
@@ -398,8 +400,6 @@ public:
 		FThreadStats::ExplicitFlush();
 		FThreadStats::Shutdown();
 #endif
-		GRenderThreadId = 0;
-
 		return 0;
 	}
 };
