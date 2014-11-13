@@ -154,15 +154,15 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 {
 	const bool bHasChildren = (InItem->Children.Num() > 0);
 	const FText Description = InItem->GetDescription();
+	const FEdGraphPinType& PinType = InItem->GetPinType(false);
 
 	// Determine the best icon the to represents this item
-	const FSlateBrush* IconBrush = GetIconFromPin(InItem->GetPinType(false));
+	const FSlateBrush* IconBrush = GetIconFromPin(PinType);
 
 	// Use tooltip if supplied, otherwise just repeat description
 	const FText OrgTooltip = InItem->GetToolTip();
 	const FText Tooltip = !OrgTooltip.IsEmpty() ? OrgTooltip : Description;
 
-	const FEdGraphPinType& PinType = InItem->GetPinType(true);
 	const FString PinTooltipExcerpt = ((PinType.PinCategory != UEdGraphSchema_K2::PC_Byte || PinType.PinSubCategoryObject == nullptr) ? PinType.PinCategory : TEXT("Enum")); 
 
 	return SNew( SComboRow<FPinTypeTreeItem>, OwnerTree )
@@ -175,7 +175,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 			[
 				SNew(SImage)
 				.Image(IconBrush)
-				.ColorAndOpacity(Schema->GetPinTypeColor(InItem->GetPinType(false)))
+				.ColorAndOpacity(Schema->GetPinTypeColor(PinType))
 				.Visibility( InItem->bReadOnly ? EVisibility::Collapsed : EVisibility::Visible )
 			]
 			+SHorizontalBox::Slot()

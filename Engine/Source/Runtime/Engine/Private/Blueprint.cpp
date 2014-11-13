@@ -675,7 +675,7 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 	//NumReplicatedProperties
 	int32 NumReplicatedProperties = 0;
-	UBlueprintGeneratedClass* BlueprintClass = Cast<UBlueprintGeneratedClass>(GenClass);
+	UBlueprintGeneratedClass* BlueprintClass = Cast<UBlueprintGeneratedClass>(SkeletonGeneratedClass);
 	if (BlueprintClass)
 	{
 		NumReplicatedProperties = BlueprintClass->NumReplicatedProperties;

@@ -403,6 +403,9 @@ public:
 	static void OpenReparentBlueprintMenu( UBlueprint* Blueprint, const TSharedRef<SWidget>& ParentContent, const FOnClassPicked& OnPicked);
 	static void OpenReparentBlueprintMenu( const TArray< UBlueprint* >& Blueprints, const TSharedRef<SWidget>& ParentContent, const FOnClassPicked& OnPicked);
 
+	/** Constructs a class picker widget for adding interfaces for the specified blueprint(s) */
+	static TSharedRef<SWidget> ConstructBlueprintInterfaceClassPicker( const TArray< UBlueprint* >& Blueprints, const FOnClassPicked& OnPicked);
+
 	/** return find first native class in the hierarchy */
 	static UClass* FindFirstNativeClass(UClass* Class);
 

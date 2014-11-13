@@ -244,6 +244,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FString PC_Text;
 	static const FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
 	static const FString PC_Wildcard;    // Special matching rules are imposed by the node itself
+	static const FString PC_Enum;    // SubCategoryObject is the UEnum object passed thru this pin
 
 	// Common PinType.PinSubCategory values
 	static const FString PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
@@ -800,14 +801,6 @@ public:
 	 * @param	Type	The type to check for subtypes
 	 */
 	bool DoesTypeHaveSubtypes( const FString& FriendlyTypeName ) const;
-
-	/**
-	 * Gets a list of variable subtypes that are valid for the specified type
-	 *
-	 * @param	Type			The type to grab subtypes for
-	 * @param	SubtypesList	(out) Upon return, this will be a list of valid subtype objects for the specified type
-	 */
-	void GetVariableSubtypes(const FString& Type, TArray<UObject*>& SubtypesList) const;
 
 	/**
 	 * Returns true if the types and directions of two pins are schema compatible. Handles

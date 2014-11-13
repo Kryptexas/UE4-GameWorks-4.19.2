@@ -547,8 +547,9 @@ private:
 	void OnRemoveInterface(FInterfaceName InterfaceName);
 
 	TSharedRef<SWidget> OnGetAddInterfaceMenuContent();
-	TSharedRef<ITableRow> GenerateInterfaceListRow(TSharedPtr<FInterfaceName> InterfaceName, const TSharedRef<STableViewBase>& OwningList);
-	void OnInterfaceListSelectionChanged(TSharedPtr<FInterfaceName> Selection, ESelectInfo::Type SelectInfo);
+
+	/** Callback function when an interface class is picked */
+	void OnClassPicked(UClass* PickedClass);
 
 private:
 	/** The parent graph action details customization */

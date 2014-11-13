@@ -42,6 +42,9 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/TimelineTemplate.h"
 
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
@@ -3550,7 +3553,8 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				const FScopedTransaction Transaction( LOCTEXT("ChangeVariableType", "Change Variable Type") );
 				Blueprint->Modify();
 
-				Variable.VarType = NewPinType;
+				/** Only change the variable type if type selection is valid, some unloaded Blueprints will turn out to be bad */
+				bool bChangeVariableType = true;
 
 				// Destroy all our nodes, because the pin types could be incorrect now (as will the links)
 				RemoveVariableNodes(Blueprint, VariableName);
@@ -3558,26 +3562,47 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				if ((NewPinType.PinCategory == K2Schema->PC_Object) || (NewPinType.PinCategory == K2Schema->PC_Interface))
 				{
 					// if it's a PC_Object, then it should have an associated UClass object
-					check(NewPinType.PinSubCategoryObject.IsValid());
-					const UClass* ClassObject = Cast<UClass>(NewPinType.PinSubCategoryObject.Get());
-					check(ClassObject != NULL);
+					if(NewPinType.PinSubCategoryObject.IsValid())
+					{
+						const UClass* ClassObject = Cast<UClass>(NewPinType.PinSubCategoryObject.Get());
+						check(ClassObject != NULL);
 
-					if (ClassObject->IsChildOf(AActor::StaticClass()))
-					{
-						// prevent Actor variables from having default values (because Blueprint templates are library elements that can 
-						// bridge multiple levels and different levels might not have the actor that the default is referencing).
-						Variable.PropertyFlags |= CPF_DisableEditOnTemplate;
+						if (ClassObject->IsChildOf(AActor::StaticClass()))
+						{
+							// prevent Actor variables from having default values (because Blueprint templates are library elements that can 
+							// bridge multiple levels and different levels might not have the actor that the default is referencing).
+							Variable.PropertyFlags |= CPF_DisableEditOnTemplate;
+						}
+						else 
+						{
+							// clear the disable-default-value flag that might have been present (if this was an AActor variable before)
+							Variable.PropertyFlags &= ~(CPF_DisableEditOnTemplate);
+						}
 					}
-					else 
+					else
 					{
-						// clear the disable-default-value flag that might have been present (if this was an AActor variable before)
-						Variable.PropertyFlags &= ~(CPF_DisableEditOnTemplate);
+						bChangeVariableType = false;
+
+						// Display a notification to inform the user that the variable type was invalid (likely due to corruption), it should no longer appear in the list.
+						FNotificationInfo Info( LOCTEXT("InvalidUnloadedBP", "The selected type was invalid once loaded, it has been removed from the list!") );
+						Info.ExpireDuration = 3.0f;
+						Info.bUseLargeFont = false;
+						TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+						if ( Notification.IsValid() )
+						{
+							Notification->SetCompletionState( SNotificationItem::CS_Fail );
+						}
 					}
 				}
 				else 
 				{
 					// clear the disable-default-value flag that might have been present (if this was an AActor variable before)
 					Variable.PropertyFlags &= ~(CPF_DisableEditOnTemplate);
+				}
+
+				if(bChangeVariableType)
+				{
+					Variable.VarType = NewPinType;
 				}
 
 				// And recompile
@@ -5819,6 +5844,112 @@ void FBlueprintEditorUtils::OpenReparentBlueprintMenu( const TArray< UBlueprint*
 		false,
 		FVector2D(280, 400)
 		);
+}
+
+/** Filter class for ClassPicker handling allowed interfaces for a Blueprint */
+class FBlueprintInterfaceFilter : public IClassViewerFilter
+{
+public:
+	/** All children of these classes will be included unless filtered out by another setting. */
+	TSet< const UClass* > AllowedChildrenOfClasses;
+
+	/** Classes to not allow any children of into the Class Viewer/Picker. */
+	TSet< const UClass* > DisallowedChildrenOfClasses;
+
+	/** Classes to never show in this class viewer. */
+	TSet< const UClass* > DisallowedClasses;
+
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
+	{
+		// If it appears on the allowed child-of classes list (or there is nothing on that list)
+		//		AND it is NOT on the disallowed child-of classes list
+		//		AND it is NOT on the disallowed classes list
+		return InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed && 
+			InFilterFuncs->IfInChildOfClassesSet(DisallowedChildrenOfClasses, InClass) != EFilterReturn::Passed && 
+			InFilterFuncs->IfInClassesSet(DisallowedClasses, InClass) != EFilterReturn::Passed &&
+			!InClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) &&
+			InClass->HasAnyClassFlags(CLASS_Interface) &&
+			// Here is some loaded classes only logic, Blueprints will never have this info
+			!InClass->HasMetaData(FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint);
+	}
+
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
+	{
+		// Unloaded interfaces mean they must be Blueprint Interfaces
+
+
+		// If it appears on the allowed child-of classes list (or there is nothing on that list)
+		//		AND it is NOT on the disallowed child-of classes list
+		//		AND it is NOT on the disallowed classes list
+		return InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed && 
+			InFilterFuncs->IfInChildOfClassesSet(DisallowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Passed && 
+			InFilterFuncs->IfInClassesSet(DisallowedClasses, InUnloadedClassData) != EFilterReturn::Passed &&
+			!InUnloadedClassData->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) &&
+			InUnloadedClassData->HasAnyClassFlags(CLASS_Interface);
+	}
+};
+
+TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintInterfaceClassPicker( const TArray< UBlueprint* >& Blueprints, const FOnClassPicked& OnPicked)
+{
+	TArray<UClass*> BlueprintClasses;
+	for( auto BlueprintIter = Blueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
+	{
+		const auto Blueprint = *BlueprintIter;
+		BlueprintClasses.Add(Blueprint->GeneratedClass);
+	}
+
+	// Fill in options
+	FClassViewerInitializationOptions Options;
+	Options.Mode = EClassViewerMode::ClassPicker;
+
+	TSharedPtr<FBlueprintInterfaceFilter> Filter = MakeShareable(new FBlueprintInterfaceFilter);
+	Options.ClassFilter = Filter;
+	Options.ViewerTitleString = LOCTEXT("ImplementInterfaceBlueprint", "Implement Interface").ToString();
+
+	for( auto BlueprintIter = Blueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
+	{
+		const auto Blueprint = *BlueprintIter;
+
+		// don't allow making me my own parent!
+		Filter->DisallowedClasses.Add(Blueprint->GeneratedClass);
+
+		UClass const* const ParentClass = Blueprint->ParentClass;
+		// see if the parent class has any prohibited interfaces
+		if ((ParentClass != NULL) && ParentClass->HasMetaData(FBlueprintMetadata::MD_ProhibitedInterfaces))
+		{
+			FString const& ProhibitedList = Blueprint->ParentClass->GetMetaData(FBlueprintMetadata::MD_ProhibitedInterfaces);
+
+			TArray<FString> ProhibitedInterfaceNames;
+			ProhibitedList.ParseIntoArray(&ProhibitedInterfaceNames, TEXT(","), true);
+
+			// loop over all the prohibited interfaces
+			for (int32 ExclusionIndex = 0; ExclusionIndex < ProhibitedInterfaceNames.Num(); ++ExclusionIndex)
+			{
+				FString const& ProhibitedInterfaceName = ProhibitedInterfaceNames[ExclusionIndex].Trim().RightChop(1);
+				UClass* ProhibitedInterface = (UClass*)StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, *ProhibitedInterfaceName);
+				if(ProhibitedInterface)
+				{
+					Filter->DisallowedClasses.Add(ProhibitedInterface);
+					Filter->DisallowedChildrenOfClasses.Add(ProhibitedInterface);
+				}
+			}
+		}
+
+		// Do not allow adding interfaces that are already added to the Blueprint
+		for(TArray<FBPInterfaceDescription>::TConstIterator it(Blueprint->ImplementedInterfaces); it; ++it)
+		{
+			const FBPInterfaceDescription& CurrentInterface = *it;
+			Filter->DisallowedClasses.Add(CurrentInterface.Interface);
+		}
+	}
+
+	// never allow parenting to children of itself
+	for( auto ClassIt = BlueprintClasses.CreateIterator(); ClassIt; ++ClassIt )
+	{
+		Filter->DisallowedChildrenOfClasses.Add(*ClassIt);
+	}
+
+	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
 }
 
 void FBlueprintEditorUtils::UpdateOldPureFunctions( UBlueprint* Blueprint )
