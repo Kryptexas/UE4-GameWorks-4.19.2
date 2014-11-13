@@ -30,14 +30,6 @@ public:
 	static void RemoveLOD( FSkeletalMeshUpdateContext& UpdateContext, int32 DesiredLOD );
 
 	/**
-	* Import a .FBX file as an LOD of the SkeletalMesh.
-	*
-	* @param UpdateContext - The skeletal mesh and actor components to operate on.
-	* @param DesiredLOD   - the LOD index to import into. A new LOD entry is created if one doesn't exist
-	*/
-	static void ImportMeshLOD( FSkeletalMeshUpdateContext& UpdateContext, int32 DesiredLOD);
-
-	/**
 	 *	Simplifies the static mesh based upon various user settings.
 	 *
 	 * @param UpdateContext - The skeletal mesh and actor components to operate on.
@@ -54,15 +46,6 @@ public:
 	 * @param	InSkeletalMesh	SkeletalMesh that LOD has been changed for
 	 */
 	static void RefreshLODChange(const USkeletalMesh* SkeletalMesh);
-
-	/**
-	 * Create LOD Settings Dialog
-	 * 
-	 * Spawns a Slate dialog for editing LOD settings on a USkeletalMesh
-	 *
-	 * @param	UpdateContext	Context to be acted upon
-	 */
-	static void CreateLODSettingsDialog(FSkeletalMeshUpdateContext& UpdateContext);
 
 private:
 	FLODUtilities() {}
