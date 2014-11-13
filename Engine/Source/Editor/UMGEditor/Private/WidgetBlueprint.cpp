@@ -209,15 +209,14 @@ void UWidgetBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildre
 	AllowedChildrenOfClasses.Add( UUserWidget::StaticClass() );
 }
 
-void UWidgetBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
+bool UWidgetBlueprint::NeedsLoadForClient() const
 {
-	Super::PostLoadSubobjects(OuterInstanceGraph);
+	return false;
+}
 
-	UWidgetBlueprintGeneratedClass* BPGClass = Cast<UWidgetBlueprintGeneratedClass>(*GeneratedClass);
-	if ( BPGClass )
-	{
-		//BPGClass->WidgetTree = WidgetTree;
-	}
+bool UWidgetBlueprint::NeedsLoadForServer() const
+{
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE 
