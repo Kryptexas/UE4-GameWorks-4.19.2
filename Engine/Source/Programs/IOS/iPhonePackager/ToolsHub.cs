@@ -261,7 +261,7 @@ namespace iPhonePackager
 						}
 
 						// If the certificate doesn't have a private key pair, ask the user to provide one
-						if (ShowPrompt && !Cert.HasPrivateKey)
+						if (!Cert.HasPrivateKey)
 						{
 							string ErrorMsg = "Certificate does not include a private key and cannot be used to code sign";
 
