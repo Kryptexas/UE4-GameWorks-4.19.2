@@ -5009,6 +5009,10 @@ FString UWorld::RemovePIEPrefix(const FString &Source)
 		
 		FixedName += RightS;
 	}
+	else
+	{
+		FixedName = Source;
+	}
 
 	return FixedName;
 }
