@@ -45,10 +45,15 @@ void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bRe
 	if (bReset && HitResult.IsValid())
 	{
 		HitResult.Reset();
+		bHasWorldOrigin = false;
 	}
 
 	check(!HitResult.IsValid());
 	HitResult = TSharedPtr<FHitResult>(new FHitResult(InHitResult));
+	if (bHasWorldOrigin == false)
+	{
+		AddOrigin(InHitResult.TraceStart);
+	}
 }
 
 bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
