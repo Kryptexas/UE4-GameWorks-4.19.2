@@ -297,7 +297,6 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	bool Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Mode( const TCHAR* Str, FOutputDevice& Ar );
-	bool Exec_SkeletalMesh( const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Group( const TCHAR* Str, FOutputDevice& Ar );
 
 
