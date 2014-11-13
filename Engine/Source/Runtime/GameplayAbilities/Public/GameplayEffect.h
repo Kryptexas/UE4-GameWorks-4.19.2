@@ -556,7 +556,7 @@ public:
 	FGameplayTagContainer GameplayEffectTags;
 	
 	/** "These tags are applied to the actor I am applied to" */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, Deprecated, meta=(DisplayName="GrantedTags"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(DisplayName="GrantedTags"))
 	FInheritedTagContainer InheritableOwnedTagsContainer;
 
 	/** "These tags are applied to the actor I am applied to" */
