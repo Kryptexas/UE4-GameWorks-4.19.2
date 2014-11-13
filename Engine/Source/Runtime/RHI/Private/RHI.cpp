@@ -159,7 +159,6 @@ namespace RHIConfig
 
 bool GIsRHIInitialized = false;
 int32 GMaxTextureMipCount = MAX_TEXTURE_MIP_COUNT;
-bool GSupportsVertexTextureFetch = false;
 bool GSupportsDepthFetchDuringDepthTest = true;
 FString GRHIAdapterName;
 uint32 GRHIVendorId = 0;
@@ -173,7 +172,6 @@ bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
-float GPixelCenterOffset = 0;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
 int32 GMaxShadowDepthBufferSizeX = 2048;
@@ -184,9 +182,6 @@ int32 GMaxTextureArrayLayers = 256;
 bool GUsingNullRHI = false;
 int32 GDrawUPVertexCheckCount = MAX_int32;
 int32 GDrawUPIndexCheckCount = MAX_int32;
-bool GSupportsVertexInstancing = false;
-bool GSupportsEmulatedVertexInstancing = false;
-bool GVertexElementsCanShareStreamOffset = true;
 bool GTriggerGPUProfile = false;
 bool GRHISupportsTextureStreaming = false;
 bool GSupportsDepthBoundsTest = false;

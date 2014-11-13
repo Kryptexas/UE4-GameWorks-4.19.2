@@ -28,10 +28,6 @@ FEmptyDynamicRHI::FEmptyDynamicRHI()
 
 	// Initialize the RHI capabilities.
 
-// 	GPixelCenterOffset = 0.0f;
-// 	GSupportsVertexInstancing = false;
-// 	GSupportsEmulatedVertexInstancing = false;
-// 	GSupportsVertexTextureFetch = false;
 //	GRHIAdapterName = 
 //	GRHIVendorId = 
 // 	GSupportsRenderTargetFormat_PF_G8 = false;

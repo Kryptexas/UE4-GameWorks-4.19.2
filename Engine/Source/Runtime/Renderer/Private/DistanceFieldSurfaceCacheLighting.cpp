@@ -3124,8 +3124,8 @@ void RenderIrradianceCacheInterpolation(
 				View.ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY));
 
 			const FVector2D ScreenPositionBias(
-				(View.ViewRect.Width() / 2.0f + GPixelCenterOffset) * InvBufferSizeX,
-				(View.ViewRect.Height() / 2.0f + GPixelCenterOffset) * InvBufferSizeY);
+				(View.ViewRect.Width() / 2.0f) * InvBufferSizeX,
+				(View.ViewRect.Height() / 2.0f) * InvBufferSizeY);
 
 			FVector2D OffsetToLowResCorner = (FVector2D(.5f, .5f) / FVector2D(DownsampledViewSizeX, DownsampledViewSizeY) - FVector2D(.5f, .5f)) * FVector2D(2, -2);
 			FVector2D OffsetToTopResPixel = (FVector2D(.5f, .5f) / BufferSize - ScreenPositionBias) / ScreenPositionScale;

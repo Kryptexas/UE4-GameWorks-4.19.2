@@ -2344,8 +2344,8 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
 			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
-				(X + SHADOW_BORDER + GPixelCenterOffset) * InvBufferResolutionX + ShadowResolutionFractionX,
-				(Y + SHADOW_BORDER + GPixelCenterOffset) * InvBufferResolutionY + ShadowResolutionFractionY,
+				(X + SHADOW_BORDER) * InvBufferResolutionX + ShadowResolutionFractionX,
+				(Y + SHADOW_BORDER) * InvBufferResolutionY + ShadowResolutionFractionY,
 				0,
 				1
 			)
@@ -2376,8 +2376,8 @@ FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, 
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
 			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
-				(X + ShadowBorder + GPixelCenterOffset) * InvBufferResolutionX + ShadowResolutionFractionX,
-				(Y + ShadowBorder + GPixelCenterOffset) * InvBufferResolutionY + ShadowResolutionFractionY,
+				(X + ShadowBorder) * InvBufferResolutionX + ShadowResolutionFractionX,
+				(Y + ShadowBorder) * InvBufferResolutionY + ShadowResolutionFractionY,
 				0,
 				1
 			)

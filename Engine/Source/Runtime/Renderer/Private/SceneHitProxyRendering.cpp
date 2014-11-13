@@ -532,7 +532,7 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 	FIntPoint RenderTargetSize = ViewFamily.RenderTarget->GetSizeXY();
 
 	const FMatrix PixelToView =
-		FTranslationMatrix(FVector(-GPixelCenterOffset,-GPixelCenterOffset,0)) *
+		FTranslationMatrix(FVector(0, 0, 0)) *
 			FMatrix(
 				FPlane(	1.0f / ((float)RenderTargetSize.X / 2.0f),	0.0,										0.0f,	0.0f	),
 				FPlane(	0.0f,										-GProjectionSignY / ((float)RenderTargetSize.Y / 2.0f),	0.0f,	0.0f	),

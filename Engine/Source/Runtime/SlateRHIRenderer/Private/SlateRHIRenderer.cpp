@@ -130,13 +130,10 @@ FSlateRHIRenderer::~FSlateRHIRenderer()
 
 FMatrix FSlateRHIRenderer::CreateProjectionMatrix(uint32 Width, uint32 Height)
 {
-
-	float PixelOffset = GPixelCenterOffset;
-
 	// Create ortho projection matrix
-	const float Left = PixelOffset;
+	const float Left = 0;
 	const float Right = Left + Width;
-	const float Top = PixelOffset;
+	const float Top = 0;
 	const float Bottom = Top + Height;
 	const float ZNear = -100.0f;
 	const float ZFar = 100.0f;

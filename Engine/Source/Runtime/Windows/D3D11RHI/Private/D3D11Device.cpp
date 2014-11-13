@@ -89,10 +89,6 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 		GMaxRHIShaderPlatform = SP_PCD3D_SM4;
 	}
 
-	GPixelCenterOffset = 0.0f;	// Note that in D3D11, there is no half-texel offset (ala DX9)	
-	GSupportsVertexInstancing = true;
-	GSupportsVertexTextureFetch = true;
-
 	// Initialize the platform pixel format map.
 	GPixelFormats[ PF_Unknown		].PlatformFormat	= DXGI_FORMAT_UNKNOWN;
 	GPixelFormats[ PF_A32B32G32R32F	].PlatformFormat	= DXGI_FORMAT_R32G32B32A32_FLOAT;

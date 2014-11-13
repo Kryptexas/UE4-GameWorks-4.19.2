@@ -66,10 +66,6 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		GEmitDrawEvents = true;
 	}
 
-	GPixelCenterOffset = 0.0f;
-	GSupportsVertexInstancing = false;
-	GSupportsEmulatedVertexInstancing = false;
-	GSupportsVertexTextureFetch = false;
 	GSupportsShaderFramebufferFetch = true;
 	GHardwareHiddenSurfaceRemoval = true;
 //	GRHIAdapterName = 

@@ -104,7 +104,7 @@ FMatrix FCanvas::CalcBaseTransform2D(uint32 ViewSizeX, uint32 ViewSizeY)
 	ViewSizeY = FMath::Max<uint32>(ViewSizeY, 1.f);
 
 	return AdjustProjectionMatrixForRHI(
-		FTranslationMatrix(FVector(-GPixelCenterOffset,-GPixelCenterOffset,0)) *
+		FTranslationMatrix(FVector(0, 0, 0)) *
 		FMatrix(
 			FPlane(	1.0f / (ViewSizeX / 2.0f),	0.0,										0.0f,	0.0f	),
 			FPlane(	0.0f,						-1.0f / (ViewSizeY / 2.0f),					0.0f,	0.0f	),
@@ -139,7 +139,7 @@ FMatrix FCanvas::CalcViewMatrix(uint32 ViewSizeX, uint32 ViewSizeY, float fFOV)
 		);
 	return 
 		// also apply screen offset to align to pixel centers
-		FTranslationMatrix(FVector(-GPixelCenterOffset,-GPixelCenterOffset,0)) * 
+		FTranslationMatrix(FVector(0, 0, 0)) * 
 		OrientCanvasMat * 
 		CamOffsetMat;
 }

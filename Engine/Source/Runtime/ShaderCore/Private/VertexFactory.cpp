@@ -289,71 +289,12 @@ static uint8 GetVertexElementSize( uint8 Type )
 	}
 }
 
-/**
- * Patches the declaration so vertex stream offsets are unique. This is required for e.g. GeForce FX cards, which don't support redundant 
- * offsets in the declaration. We're unable to make that many vertex elements point to the same offset so the function moves redundant 
- * declarations to higher offsets, pointing to garbage data.
- */
-static void PatchVertexStreamOffsetsToBeUnique( FVertexDeclarationElementList& Elements )
-{
-	// check every vertex element
-	for ( int32 e = 0; e < Elements.Num(); e++ )
-	{
-		// check if there's an element that reads from the same offset
-		for ( int32 i = 0; i < Elements.Num(); i++ )
-		{
-			// but only in the same stream and if it's not the same element
-			if ( ( Elements[ i ].StreamIndex == Elements[ e ].StreamIndex ) && ( Elements[ i ].Offset == Elements[ e ].Offset ) && ( e != i ) )
-			{
-				// the id of the highest offset element is stored here (it doesn't need to be the last element in the declarator because the last element may belong to another StreamIndex
-				uint32 MaxOffsetID = i;
-
-				// find the highest offset element
-				for ( int32 j = 0; j < Elements.Num(); j++ )
-				{
-					if ( ( Elements[ j ].StreamIndex == Elements[ e ].StreamIndex ) && ( Elements[ MaxOffsetID ].Offset < Elements[ j ].Offset ) )
-					{
-						MaxOffsetID = j;
-					}
-				}
-
-				// get the size of the highest offset element, it's needed for the redundant element new offset
-				uint8 PreviousElementSize = GetVertexElementSize( Elements[ MaxOffsetID ].Type );
-
-				// prepare a new vertex element
-				FVertexElement VertElement;
-				VertElement.Offset		= Elements[ MaxOffsetID ].Offset + PreviousElementSize;
-				VertElement.StreamIndex = Elements[ i ].StreamIndex;
-				VertElement.Type		= Elements[ i ].Type;
-				VertElement.AttributeIndex	= Elements[ i ].AttributeIndex;
-				VertElement.Stride = Elements[ i ].Stride;
-				VertElement.bUseInstanceIndex = Elements[i].bUseInstanceIndex;
-
-				// remove the old redundant element
-				Elements.RemoveAt( i );
-
-				// add a new element with "correct" offset
-				Elements.Add( VertElement );
-
-				// make sure that when the element has been removed its index is taken by the next element, so we must take care of it too
-				i = i == 0 ? 0 : i - 1;
-			}
-		}
-	}
-}
-
 void FVertexFactory::InitDeclaration(
 	FVertexDeclarationElementList& Elements, 
 	const DataType& InData)
 {
 	// Make a copy of the vertex factory data.
 	Data = InData;
-
-	// If GFFX detected, patch up the declarator
-	if( !GVertexElementsCanShareStreamOffset )
-	{
-		PatchVertexStreamOffsetsToBeUnique( Elements );
-	}
 
 	// Create the vertex declaration for rendering the factory normally.
 	Declaration = RHICreateVertexDeclaration(Elements);

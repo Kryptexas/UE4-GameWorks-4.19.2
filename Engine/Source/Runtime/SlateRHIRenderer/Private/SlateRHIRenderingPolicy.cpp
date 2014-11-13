@@ -89,7 +89,7 @@ void FSlateElementIndexBuffer::ReleaseDynamicRHI()
 }
 
 FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateRHIResourceManager> InResourceManager )
-	: FSlateRenderingPolicy( GPixelCenterOffset )
+	: FSlateRenderingPolicy(0)
 	, ResourceManager( InResourceManager )
 	, FontCache( InFontCache )
 	, CurrentBufferIndex(0)

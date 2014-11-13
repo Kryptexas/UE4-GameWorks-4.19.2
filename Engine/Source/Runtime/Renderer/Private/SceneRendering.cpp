@@ -289,8 +289,8 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	const FVector4 ScreenPositionScaleBias(
 		ViewRect.Width() * InvBufferSizeX / +2.0f,
 		ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY),
-		(ViewRect.Height() / 2.0f + GPixelCenterOffset + ViewRect.Min.Y) * InvBufferSizeY,
-		(ViewRect.Width() / 2.0f + GPixelCenterOffset + ViewRect.Min.X) * InvBufferSizeX
+		(ViewRect.Height() / 2.0f + ViewRect.Min.Y) * InvBufferSizeY,
+		(ViewRect.Width() / 2.0f + ViewRect.Min.X) * InvBufferSizeX
 		);
 	
 	const bool bIsUnlitView = !Family->EngineShowFlags.Lighting;
