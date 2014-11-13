@@ -84,6 +84,8 @@ public:
 #elif PLATFORM_HTML5_WIN32
 		FILE *fp;
 		fp=fopen("c:\\test.sav","rb");
+		if (!fp)
+			return false;
 			// obtain file size:
 		fseek (fp, 0 , SEEK_END);
 		int size = ftell (fp);

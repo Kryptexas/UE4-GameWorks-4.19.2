@@ -13,7 +13,7 @@
 
 #include "unicode/locid.h"
 #include "GenericPlatformContext.h"
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include <ctime>
 
 void FHTML5Misc::PlatformInit()

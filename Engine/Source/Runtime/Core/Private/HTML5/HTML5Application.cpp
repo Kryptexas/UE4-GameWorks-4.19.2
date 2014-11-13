@@ -104,6 +104,11 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 
 						IConsoleManager::Get().ProcessUserConsoleInput(ANSI_TO_TCHAR(command), *GWarn, NULL );
 					}
+
+					// Slate needs to know when desktop size changes.
+					FDisplayMetrics DisplayMetrics;
+					FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+					BroadcastDisplayMetricsChanged(DisplayMetrics);
 				}
 				break;
 #if PLATFORM_HTML5_WIN32
