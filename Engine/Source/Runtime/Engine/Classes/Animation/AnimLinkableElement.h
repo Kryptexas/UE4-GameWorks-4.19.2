@@ -105,6 +105,9 @@ struct FAnimLinkableElement
 	 */
 	ENGINE_API void SetSegmentIndex(int32 NewSegmentIndex) {SegmentIndex = NewSegmentIndex;}
 
+	/** Relinks this element if it is outside of its segments */
+	ENGINE_API void ConditionalRelink();
+
 protected:
 
 	/** Gets the segment in the current montage in the current slot that is at the time of this element */
@@ -150,9 +153,6 @@ protected:
 	UAnimSequenceBase* LinkedSequence;
 
 private:
-
-	/** Relinks this element if it is outside of its segments */
-	void ConditionalRelink();
 
 	/** Gets a time from an absolute LinkValue
 	 * @param NewLinkMethod The type of time to return
