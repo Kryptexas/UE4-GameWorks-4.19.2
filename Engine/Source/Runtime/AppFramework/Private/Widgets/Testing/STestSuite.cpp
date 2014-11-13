@@ -22,7 +22,7 @@
 #include "SVolumeControl.h"
 #include "SResponsiveGridPanel.h"
 #include "SColorPicker.h"
-
+#include "INotificationWidget.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 
@@ -3873,6 +3873,49 @@ protected:
 	TSharedPtr<STextBlock> OutputTextBlock;
 };
 
+class STestNotificationWidget : public SCompoundWidget, public INotificationWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(STestNotificationWidget){}
+	SLATE_END_ARGS()
+
+		void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
+			[
+				SNew(SBorder)
+				.Padding(15.0f)
+				.BorderImage(FCoreStyle::Get().GetBrush("NotificationList.ItemBackground"))
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Image(FTestStyle::Get().GetBrush("UE4Icon"))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(15.0f, 0.0f, 0.0f, 0.0f))
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("TestingBigTextBigMargin", "Big notififcation text!"))
+						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 30))
+					]
+				]
+			];
+	}
+
+	virtual void OnSetCompletionState(SNotificationItem::ECompletionState State) override
+	{
+	}
+
+	virtual TSharedRef< SWidget > AsWidget() override
+	{
+		return SharedThis(this);
+	}
+};
+
 class SNotificationListTest : public SCompoundWidget
 {
 public:
@@ -3911,6 +3954,13 @@ public:
 						.OnClicked(this, &SNotificationListTest::SpawnNotification2)
 						.Text( LOCTEXT("NotificationListTest-SpawnNotification2Label", "Spawn Notification2") )
 					]
+
+					+ SHorizontalBox::Slot().AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SNotificationListTest::SpawnCustomNotification)
+							.Text(LOCTEXT("NotificationListTest-SpawnCustomNotificationLabel", "Spawn Custom Notification"))
+						]
 
 					+SHorizontalBox::Slot().AutoWidth()
 					[
@@ -4100,6 +4150,19 @@ protected:
 		FNotificationInfo Info( LOCTEXT("TestNotification02", "Another Notification" ));
 		SetNotificationInfoFlags(Info);
 		NotificationListPtr->AddNotification(Info);
+		return FReply::Handled();
+	}
+
+	FReply SpawnCustomNotification()
+	{
+		FNotificationInfo Info(SNew(STestNotificationWidget));
+		Info.bFireAndForget = true;
+		Info.ExpireDuration = 3.0f;
+		Info.FadeOutDuration = 3.0f;
+
+		SetNotificationInfoFlags(Info);
+		NotificationListPtr->AddNotification(Info);
+
 		return FReply::Handled();
 	}
 

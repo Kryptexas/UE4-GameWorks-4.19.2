@@ -21,7 +21,8 @@ public class Toolbox : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
-				"DesktopPlatform"
+				"DesktopPlatform",
+				"AppFramework"
 			}
 		);
 

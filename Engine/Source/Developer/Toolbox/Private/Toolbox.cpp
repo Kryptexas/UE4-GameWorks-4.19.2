@@ -10,6 +10,7 @@
 #include "SDockTab.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "STestSuite.h"
 
 IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 
@@ -58,8 +59,8 @@ public:
 			.HAlign(HAlign_Left)
 			[
 				SNew( SButton )
-				.Text( NSLOCTEXT("DeveloperToolbox", "TestNotifications", "Test Notifications") )
-				.OnClicked( this, &SDebugPanel::OnTestNotificationsClicked )
+				.Text( NSLOCTEXT("DeveloperToolbox", "TestSuite", "Test Suite") )
+				.OnClicked( this, &SDebugPanel::OnTestSuiteClicked )
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -93,20 +94,11 @@ public:
 		return FReply::Handled();
 	}
 
-	FReply OnTestNotificationsClicked()
+	FReply OnTestSuiteClicked()
 	{
-		static int32 Counter = 0;
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("CounterNumber"), Counter++ );
-		FNotificationInfo Info( FText::Format( NSLOCTEXT("DeveloperToolbox", "TestNotificationCounter", "Test Notification {CounterNumber}"), Args ) );
-		Info.bFireAndForget = true;
-		Info.ExpireDuration = 3.0f;
-		Info.FadeOutDuration = 3.0f;
-
-		FSlateNotificationManager::Get().AddNotification(Info);
+		RestoreSlateTestSuite();
 		return FReply::Handled();
 	}
-
 };
 
 TSharedRef<SDockTab> CreateDebugToolsTab( const FSpawnTabArgs& Args )
