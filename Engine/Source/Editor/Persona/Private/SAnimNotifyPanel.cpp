@@ -1858,16 +1858,7 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 	FAnimNotifyEvent& NewEvent = Sequence->Notifies[NewNotifyIndex];
 	NewEvent.NotifyName = FName(*NewNotifyName);
 
-	UAnimMontage* SequenceAsMontage = Cast<UAnimMontage>(Sequence);
-	if(SequenceAsMontage)
-	{
-		NewEvent.LinkMontage(SequenceAsMontage, NewTime);
-	}
-	else
-	{
-		NewEvent.LinkSequence(Sequence, NewTime);
-	}
-
+	NewEvent.Link(Sequence, NewTime);
 	NewEvent.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewTime));
 	NewEvent.TrackIndex = TrackIndex;
 
@@ -1882,14 +1873,7 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 		{
 			NewEvent.NotifyName = FName(*NewEvent.NotifyStateClass->GetNotifyName());
 			NewEvent.SetDuration(1 / 30.f);
-			if(SequenceAsMontage)
-			{
-				NewEvent.EndLink.LinkMontage(SequenceAsMontage, NewEvent.EndLink.GetTime());
-			}
-			else
-			{
-				NewEvent.EndLink.LinkSequence(Sequence, NewEvent.EndLink.GetTime());
-			}
+			NewEvent.EndLink.Link(Sequence, NewEvent.EndLink.GetTime());
 		}
 		else
 		{
@@ -2680,22 +2664,20 @@ void SAnimNotifyTrack::HandleNodeDrop(TSharedPtr<SAnimNotifyNode> Node, float Of
 	FAnimNotifyEvent* DroppedEvent = Node->NotifyEvent;
 	float EventDuration = DroppedEvent->GetDuration();
 
-	UAnimMontage* MontageObj = Cast<UAnimMontage>(Sequence);
-
 	if(Node->GetLastSnappedTime() != -1.0f)
 	{
-		DroppedEvent->LinkMontage(MontageObj, Node->GetLastSnappedTime(), DroppedEvent->GetSlotIndex());
+		DroppedEvent->Link(Sequence, Node->GetLastSnappedTime(), DroppedEvent->GetSlotIndex());
 	}
 	else
 	{
-		DroppedEvent->LinkMontage(MontageObj, Time, DroppedEvent->GetSlotIndex());
+		DroppedEvent->Link(Sequence, Time, DroppedEvent->GetSlotIndex());
 	}
 	DroppedEvent->RefreshTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->GetTime()));
 
 	if(EventDuration > 0.0f)
 	{
-		DroppedEvent->EndLink.LinkMontage(MontageObj, DroppedEvent->GetTime() + EventDuration, DroppedEvent->GetSlotIndex());
-		DroppedEvent->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->EndLink.GetTime()/*DroppedEvent->GetTime()+ DroppedEvent->GetDuration()*/));
+		DroppedEvent->EndLink.Link(Sequence, DroppedEvent->GetTime() + EventDuration, DroppedEvent->GetSlotIndex());
+		DroppedEvent->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(DroppedEvent->EndLink.GetTime()));
 	}
 	else
 	{
