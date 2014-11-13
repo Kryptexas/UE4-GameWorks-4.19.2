@@ -10,7 +10,7 @@ public class SlateViewer : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-                "AppFramework",
+				"AppFramework",
 				"Core",
 				"Projects",
 				"Slate",
@@ -18,6 +18,7 @@ public class SlateViewer : ModuleRules
 				"SlateReflector",
 				"StandaloneRenderer",
 				"SourceCodeAccess",
+				"WebBrowser",
 			}
 		);
 

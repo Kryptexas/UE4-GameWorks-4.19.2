@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "AppFrameworkPrivatePCH.h"
+#include "WebBrowserPrivatePCH.h"
 #include "SWebBrowser.h"
 #include "SThrobber.h"
 #if WITH_EDITOR || IS_PROGRAM

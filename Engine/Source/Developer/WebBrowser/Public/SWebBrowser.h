@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "SlateBasics.h"
+
 class IWebBrowserWindow;
 class FWebBrowserViewport;
 
-class APPFRAMEWORK_API SWebBrowser : public SCompoundWidget
+class WEBBROWSER_API SWebBrowser : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SWebBrowser)

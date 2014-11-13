@@ -10,3 +10,8 @@
  * Run the SlateViewer .
  */
 void RunSlateViewer(const TCHAR* Commandline);
+
+/**
+ * Spawn the contents of the web browser tab
+ */
+TSharedRef<SDockTab> SpawnWebBrowserTab(const FSpawnTabArgs& Args);

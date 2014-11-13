@@ -12,7 +12,6 @@
 #include "TransformCalculus3D.h"
 #include "SlateRenderTransform.h"
 #include "SlateLayoutTransform.h"
-#include "SWebBrowser.h"
 #include "SInlineEditableTextBlock.h"
 #include "STextEntryPopup.h"
 #include "SDPIScaler.h"
@@ -4994,19 +4993,6 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				]
 			];
 	}
-	else if (TabIdentifier == FName(TEXT("WebBrowserTab")))
-	{
-		const FString DocPath(FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/HTML/INT/Resources/index.html"))));
-		return SNew(SDockTab)
-			.Label(LOCTEXT("WebBrowserTab", "Web Browser"))
-			.ToolTipText(LOCTEXT("WebBrowserTabToolTip", "Switches to the Web Browser to test its features."))
-			[
-				SNew(SWebBrowser)
-				.ParentWindow(Args.GetOwnerWindow())
-				//.InitialURL(DocPath)
-				//.InitialURL(TEXT("www.youtube.com"))
-			];
-	}
 #endif //WITH_FANCY_TEXT
 	else if (TabIdentifier == FName("LayoutRoundingTab"))
 	{
@@ -5243,10 +5229,6 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 
 	TestSuite1TabManager->RegisterTabSpawner( "RichEditableTextTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("RichEditableTextTab") ) )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "RichEditableTextTab", "Rich Editable Text Test") )
-		.SetGroup(TestSuiteMenu::SuiteTabs);
-
-	TestSuite1TabManager->RegisterTabSpawner("WebBrowserTab", FOnSpawnTab::CreateStatic(&SpawnTab, FName("WebBrowserTab")))
-		.SetDisplayName(NSLOCTEXT("TestSuite1", "WebBrowserTab", "Web Browser test"))
 		.SetGroup(TestSuiteMenu::SuiteTabs);
 
 	TestSuite1TabManager->RegisterTabSpawner( "LayoutRoundingTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("LayoutRoundingTab") ) )

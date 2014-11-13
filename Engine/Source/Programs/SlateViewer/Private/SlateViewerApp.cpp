@@ -5,13 +5,16 @@
 #include "STestSuite.h"
 #include "ISourceCodeAccessModule.h"
 #include "SPerfSuite.h"
+#include "SDockTab.h"
+#include "SWebBrowser.h"
 
 IMPLEMENT_APPLICATION(SlateViewer, "SlateViewer");
 
+#define LOCTEXT_NAMESPACE "SlateViewer"
 
 namespace WorkspaceMenu
 {
-	TSharedRef<FWorkspaceItem> DeveloperMenu = FWorkspaceItem::NewGroup(NSLOCTEXT("SlateViewer", "DeveloperMenu", "Developer"));
+	TSharedRef<FWorkspaceItem> DeveloperMenu = FWorkspaceItem::NewGroup(LOCTEXT("DeveloperMenu", "Developer"));
 }
 
 
@@ -36,9 +39,11 @@ void RunSlateViewer( const TCHAR* CommandLine )
 #endif
 
 	// set the application name
-	FGlobalTabmanager::Get()->SetApplicationTitle(NSLOCTEXT("SlateViewer", "AppTitle", "Slate Viewer"));
+	FGlobalTabmanager::Get()->SetApplicationTitle(LOCTEXT("AppTitle", "Slate Viewer"));
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(WorkspaceMenu::DeveloperMenu);
 
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("WebBrowserTab", FOnSpawnTab::CreateStatic(&SpawnWebBrowserTab))
+		.SetDisplayName(LOCTEXT("WebBrowserTab", "Web Browser"));
 	
 	if (FParse::Param(FCommandLine::Get(), TEXT("perftest")))
 	{
@@ -70,3 +75,17 @@ void RunSlateViewer( const TCHAR* CommandLine )
 
 	FSlateApplication::Shutdown();
 }
+
+TSharedRef<SDockTab> SpawnWebBrowserTab(const FSpawnTabArgs& Args)
+{
+	return SNew(SDockTab)
+		.Label(LOCTEXT("WebBrowserTab", "Web Browser"))
+		.ToolTipText(LOCTEXT("WebBrowserTabToolTip", "Switches to the Web Browser to test its features."))
+		.TabRole(ETabRole::NomadTab)
+		[
+			SNew(SWebBrowser)
+			.ParentWindow(Args.GetOwnerWindow())
+		];
+}
+
+#undef LOCTEXT_NAMESPACE

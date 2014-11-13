@@ -53,7 +53,7 @@ public class LevelEditor : ModuleRules
 				"TargetPlatform",
 				"EngineSettings",
 				"PropertyEditor",
-                "AppFramework",
+				"WebBrowser",
 			}
 		);
 
