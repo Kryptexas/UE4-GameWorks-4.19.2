@@ -718,7 +718,7 @@ bool FVertexSnappingImpl::SnapDraggedActorsToNearestVertex( FVector& DragDelta, 
 
 		FSceneView* View = ViewportClient->CalcSceneView( &ViewFamily );
 
-		FVector StartLocation = GLevelEditorModeTools().PivotLocation;
+		FVector StartLocation = ViewportClient->GetModeTools()->PivotLocation;
 
 		FVector DesiredUnsnappedLocation = StartLocation+DragDelta;
 					

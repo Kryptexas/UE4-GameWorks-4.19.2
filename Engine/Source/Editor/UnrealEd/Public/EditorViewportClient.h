@@ -918,6 +918,12 @@ public:
 	/** Get the camera speed setting for this viewport */
 	virtual int32 GetCameraSpeedSetting() const;
 
+	/** Editor mode tool manager being used for this viewport client */
+	FEditorModeTools* GetModeTools() const
+	{
+		return ModeTools;
+	}
+
 protected:
 
 	/** Camera speed setting */
@@ -1180,12 +1186,6 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
-
-	/** Editor mode tool manager being used for this viewport client */
-	FEditorModeTools* GetModeTools() const
-	{
-		return ModeTools;
-	}
 
 public:
 	static const uint32 MaxCameraSpeeds;

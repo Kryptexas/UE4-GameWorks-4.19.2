@@ -1339,12 +1339,12 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 
 ECoordSystem FAnimationViewportClient::GetWidgetCoordSystemSpace() const
 { 
-	return GLevelEditorModeTools().GetCoordSystem();
+	return ModeTools->GetCoordSystem();
 }
 
 void FAnimationViewportClient::SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem)
 {
-	GLevelEditorModeTools().SetCoordSystem(NewCoordSystem);
+	ModeTools->SetCoordSystem(NewCoordSystem);
 	Invalidate();
 }
 
