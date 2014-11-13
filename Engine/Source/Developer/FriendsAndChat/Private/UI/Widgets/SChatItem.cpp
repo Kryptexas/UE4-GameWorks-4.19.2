@@ -16,19 +16,22 @@ public:
 		MenuMethod = InArgs._Method;
 		this->ViewModel = InViewModel;
 
-		FSlateColor DisplayColor;
-		switch(ViewModel->GetMessageType())
-		{
-			case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
-			case EChatMessageType::Whisper: DisplayColor =  FriendStyle.WhisplerChatColor; break;
-			case EChatMessageType::Party: DisplayColor =  FriendStyle.PartyChatColor; break;
-			case EChatMessageType::Network: DisplayColor =  FriendStyle.NetworkChatColor; break;
-			default:
-			DisplayColor = FLinearColor::Gray;
-		}
-		
 		const EVisibility FromSelfVisibility = ViewModel->IsFromSelf() ? EVisibility::Visible : EVisibility::Collapsed;
-		const EVisibility FriendNameVisibility = !ViewModel->IsFromSelf() || ViewModel->GetMessageType() == EChatMessageType::Whisper ? EVisibility::Visible : EVisibility::Collapsed;
+		EVisibility FriendNameVisibility = !ViewModel->IsFromSelf() || ViewModel->GetMessageType() == EChatMessageType::Whisper ? EVisibility::Visible : EVisibility::Collapsed;
+
+		// ToDo: Temp while messages go through old network system
+		if(ViewModel->GetMessageType() == EChatMessageType::Party)
+		{
+			FriendNameVisibility = EVisibility::Collapsed;
+		}
+
+		FText DisplayNameText = ViewModel->GetFriendID();
+		if(ViewModel->IsFromSelf())
+		{ 
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Username"), ViewModel->GetFriendID());
+			DisplayNameText = FText::Format(LOCTEXT("SChatItem_To", "To {Username}"), Args);
+		}
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
@@ -52,8 +55,8 @@ public:
 				[
 					SNew(STextBlock)
 					.Visibility(FriendNameVisibility)
-					.Text(ViewModel->GetFriendID())
-					.ColorAndOpacity(DisplayColor)
+					.Text(DisplayNameText)
+					.ColorAndOpacity(this, &SChatItemImpl::GetTextDisplayColor)
 					.Font(FriendStyle.FriendsFontStyleSmallBold)
 				]
 			]
@@ -63,7 +66,7 @@ public:
 			[
 				SNew(STextBlock)
 				.Text(ViewModel->GetMessage())
-				.ColorAndOpacity(DisplayColor)
+				.ColorAndOpacity(this, &SChatItemImpl::GetTextDisplayColor)
 				.Font(FriendStyle.FriendsFontStyleSmall)
 				.AutoWrapText(true)
 			]
@@ -85,27 +88,60 @@ private:
 
 	FSlateColor GetTimeDisplayColor() const
 	{
-		switch(ViewModel->GetMessageType())
+		if(ViewModel->UseOverrideColor())
 		{
-			case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-			case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-			case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-			case EChatMessageType::Network: return FriendStyle.NetworkChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-			default:
-			return FLinearColor::Gray;
+			return ViewModel->GetOverrideColor();
+		}
+		else
+		{
+			switch(ViewModel->GetMessageType())
+			{
+				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
+				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
+				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
+				default:
+				return FLinearColor::Gray;
+			}
+		}
+	}
+
+	FSlateColor GetTextDisplayColor () const
+	{
+		if(ViewModel->UseOverrideColor())
+		{
+			return ViewModel->GetOverrideColor();
+		}
+		else
+		{
+			FSlateColor DisplayColor;
+			switch(ViewModel->GetMessageType())
+			{
+				case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
+				case EChatMessageType::Whisper: DisplayColor =  FriendStyle.WhisplerChatColor; break;
+				case EChatMessageType::Party: DisplayColor =  FriendStyle.PartyChatColor; break;
+				default:
+				DisplayColor = FLinearColor::Gray;
+			}
+			return DisplayColor;
 		}
 	}
 
 	const FSlateBrush* GetChatIcon() const
 	{
-		switch(ViewModel->GetMessageType())
+		if(ViewModel->UseOverrideColor())
 		{
-			case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
-			case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
-			case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
-			case EChatMessageType::Network: return &FriendStyle.ChatPartyBrush; break;
-			default:
 			return nullptr;
+		}
+		else
+		{
+			switch(ViewModel->GetMessageType())
+			{
+				case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
+				case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
+				case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
+				default:
+				return nullptr;
+			}
 		}
 	}
 

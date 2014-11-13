@@ -47,6 +47,15 @@ public:
 		return Owner->GetTimeTransparency();
 	}
 
+	virtual const bool UseOverrideColor() const override
+	{
+		return Owner->GetOverrideColorSet();
+	}
+
+	virtual const FSlateColor GetOverrideColor() const override
+	{
+		return Owner->GetFontOverrideColor();
+	}
 private:
 
 	FChatItemViewModelImpl(TSharedRef<FFriendChatMessage> ChatMessage, TSharedPtr<FChatViewModel> Owner)

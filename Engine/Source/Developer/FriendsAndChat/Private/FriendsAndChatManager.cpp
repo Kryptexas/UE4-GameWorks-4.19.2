@@ -344,6 +344,10 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 	return ChatWidget;
 }
 
+TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
+{
+	return ChatViewModel;
+}
 
 void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< IFriendItem > FriendItem )
 {
@@ -432,11 +436,6 @@ void FFriendsAndChatManager::SetUserIsOnline(bool bIsOnline)
 		NewStatus.State = bIsOnline ? EOnlinePresenceState::Online : EOnlinePresenceState::Away;
 		OnlineSubMcp->GetPresenceInterface()->SetPresence(*UserId.Get(), NewStatus, OnPresenceUpdatedCompleteDelegate);
 	}
-}
-
-void FFriendsAndChatManager::SendNetworkMessage(const FString& NetworkMessage)
-{
-	OnFriendsSendNewtworkMessage().Broadcast(NetworkMessage);
 }
 
 void FFriendsAndChatManager::AcceptFriend( TSharedPtr< IFriendItem > FriendItem )

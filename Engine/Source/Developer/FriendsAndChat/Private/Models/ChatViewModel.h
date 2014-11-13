@@ -10,6 +10,7 @@ namespace EChatMessageType
 
 class FChatViewModel
 	: public TSharedFromThis<FChatViewModel>
+	, public IChatViewModel
 {
 public:
 	virtual TArray< TSharedRef<FChatItemViewModel > >& GetFilteredChatList() = 0;
@@ -25,9 +26,12 @@ public:
 	virtual EChatMessageType::Type GetChatChannelType() const = 0;
 	virtual const TArray<FString>& GetRecentOptions() const = 0;
 	virtual void SetChatFriend(TSharedPtr<IFriendItem> ChatFriend) = 0;
+	virtual EVisibility GetSScrollBarVisibility() const = 0;
+	virtual void SetAllowGlobalChat(bool bAllow) = 0;
+	virtual bool IsGlobalChatEnabled() const = 0;
 
-	DECLARE_EVENT(FChatViewModel, FChatListUpdated)
-	virtual FChatListUpdated& OnChatListUpdated() = 0;
+	DECLARE_EVENT(FChatViewModel, FChatListSetFocus)
+	virtual FChatListSetFocus& OnChatListSetFocus() = 0;
 
 	virtual ~FChatViewModel() {}
 };

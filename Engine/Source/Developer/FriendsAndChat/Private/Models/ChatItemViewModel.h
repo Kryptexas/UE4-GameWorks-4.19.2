@@ -15,6 +15,8 @@ public:
 	virtual FText GetMessageTime() = 0;
 	virtual const bool IsFromSelf() const = 0;
 	virtual const float GetFadeAmountColor() const = 0;
+	virtual const bool UseOverrideColor() const  = 0;
+	virtual const FSlateColor GetOverrideColor() const  = 0;
 };
 
 /**

@@ -44,7 +44,8 @@ public:
 	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetUserSettings(FFriendsAndChatSettings UserSettings) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
-	virtual TSharedPtr< SWidget > GenerateChatWidget( const FFriendsAndChatStyle* InStyle ) override;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle) override;
+	virtual TSharedPtr<IChatViewModel> GetChatViewModel() override;
 	virtual void InsertNetworkChatMessage(const FString InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
 
@@ -179,13 +180,6 @@ public:
 	void SetUserIsOnline(bool bIsOnline);
 
 	/**
-	 * Send network message
-	 *
-	 * @param NetworkMessage - the message to send
-	 */
-	void SendNetworkMessage(const FString& NetworkMessage);
-
-	/**
 	 * Find a user.
 	 *
 	 * @param InUserName The user name to find.
@@ -210,12 +204,6 @@ public:
 	virtual FOnFriendsUserSettingsUpdatedEvent& OnFriendsUserSettingsUpdated() override
 	{
 		return FriendsUserSettingsUpdatedDelegate;
-	}
-
-	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsSendNetworkMessageEvent, FOnFriendsSendNetworkMessageEvent)
-	virtual FOnFriendsSendNetworkMessageEvent& OnFriendsSendNewtworkMessage() override
-	{
-		return FriendsSendNetworkMessageEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsJoinGameEvent, FOnFriendsJoinGameEvent)
@@ -539,8 +527,6 @@ private:
 	FOnFriendsNotificationActionEvent FriendsListActionNotificationDelegate;
 	// Holds the Options Updated event notification delegate
 	FOnFriendsUserSettingsUpdatedEvent FriendsUserSettingsUpdatedDelegate;
-	// Holds the network chat message sent delegate
-	FOnFriendsSendNetworkMessageEvent FriendsSendNetworkMessageEvent;
 	// Holds the join game request delegate
 	FOnFriendsJoinGameEvent FriendsJoinGameEvent;
 

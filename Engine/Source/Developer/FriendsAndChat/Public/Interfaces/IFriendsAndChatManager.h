@@ -36,7 +36,13 @@ public:
 	 * @param InStyle The style to use to create the widgets.
 	 * @return The chat widget.
 	 */
-	virtual TSharedPtr< SWidget > GenerateChatWidget( const FFriendsAndChatStyle* InStyle ) = 0;
+	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle) = 0;
+
+	/**
+	 * Get the chat system view model for manipulating the chat widget.
+	 * @return The chat view model.
+	 */
+	virtual TSharedPtr<IChatViewModel> GetChatViewModel() = 0;
 
 	/**
 	 * Insert a network chat message.
@@ -63,9 +69,6 @@ public:
 
 	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsUserSettingsUpdatedEvent, /*struct*/ FFriendsAndChatSettings& /* New Options */)
 	virtual FOnFriendsUserSettingsUpdatedEvent& OnFriendsUserSettingsUpdated() = 0;
-
-	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsSendNetworkMessageEvent, /*struct*/ const FString& /* the message */)
-	virtual FOnFriendsSendNetworkMessageEvent& OnFriendsSendNewtworkMessage() = 0;
 
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FString& /*SessionId*/)
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;

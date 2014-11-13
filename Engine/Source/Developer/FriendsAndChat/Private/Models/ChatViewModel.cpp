@@ -9,9 +9,55 @@ class FChatViewModelImpl
 {
 public:
 
+	virtual void SetFocus() override
+	{
+		OnChatListSetFocus().Broadcast();
+	}
+
+	virtual void SetEntryBarVisibility(EVisibility Visibility)
+	{
+		ChatEntryVisibility = Visibility;
+	}
+
+	virtual EVisibility GetEntryBarVisibility() const
+	{
+		return ChatEntryVisibility;
+	}
+
+	virtual void SetFontOverrideColor(FSlateColor InOverrideColor) override
+	{
+		OverrideColor = InOverrideColor;
+	}
+
+	virtual void SetOverrideColorActive(bool bSet) override
+	{
+		bUseOverrideColor = bSet;
+	}
+
+	virtual bool GetOverrideColorSet() override
+	{
+		return bUseOverrideColor;
+	}
+
+	virtual FSlateColor GetFontOverrideColor() const override
+	{
+		return OverrideColor;
+	}
+
 	virtual TArray< TSharedRef<class FChatItemViewModel > >& GetFilteredChatList() override
 	{
 		return FilteredChatLists;
+	}
+
+	virtual void SetInGameUI(bool bIsInGame) override
+	{
+		bInGame = bIsInGame;
+		if(bIsInGame)
+		{
+			SetViewChannel(EChatMessageType::Party);
+			SetAllowGlobalChat(false);
+		}
+		FilterChatList();
 	}
 
 	virtual FReply  HandleSelectionChanged(TSharedRef<FChatItemViewModel> ItemSelected) override
@@ -39,7 +85,6 @@ public:
 	{
 		OUTChannelType.Add(EChatMessageType::Global);
 		OUTChannelType.Add(EChatMessageType::Party);
-		OUTChannelType.Add(EChatMessageType::Network);
 	}
 
 	virtual void SetChatChannel(const EChatMessageType::Type NewOption, FString InSelectedFriend) override
@@ -76,7 +121,7 @@ public:
 					}
 
 					ChatItem->Message = NewMessage;
-					ChatItem->MessageType = SelectedChatChannel;
+					ChatItem->MessageType = EChatMessageType::Whisper;
 					ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
 					ChatItem->bIsFromSelf = true;
 					ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
@@ -90,12 +135,15 @@ public:
 				MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
 			}
 			break;
-			case EChatMessageType::Network:
+			case EChatMessageType::Party:
 			{
-				MessageManager.Pin()->SendNetworkMessage(NewMessage.ToString());
+				OnNewtworkMessageSentEvent().Broadcast(NewMessage.ToString());
 			}
 			break;
 		}
+
+		// Callback to let some UI know to stay active
+		OnChatMessageCommitted().Broadcast();
 	}
 
 	virtual void SetTimeDisplayTransparency(const float TimeTransparency)
@@ -124,10 +172,44 @@ public:
 		SelectedChatChannel = EChatMessageType::Whisper;
 	}
 
-	DECLARE_DERIVED_EVENT(FChatViewModelImpl , FChatViewModel::FChatListUpdated, FChatListUpdated);
+	virtual EVisibility GetSScrollBarVisibility() const override
+	{
+		return bInGame ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+
+	virtual bool IsGlobalChatEnabled() const override
+	{
+		return bAllowGlobalChat;
+	}
+
+	virtual void SetAllowGlobalChat(bool bAllow) override
+	{
+		bAllowGlobalChat = bAllow;
+		FilterChatList();
+	}
+
+	DECLARE_DERIVED_EVENT(FChatViewModelImpl , IChatViewModel::FChatListUpdated, FChatListUpdated);
 	virtual FChatListUpdated& OnChatListUpdated() override
 	{
 		return ChatListUpdatedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FChatViewModelImpl , FChatViewModel::FChatListSetFocus, FChatListSetFocus);
+	virtual FChatListSetFocus& OnChatListSetFocus() override
+	{
+		return ChatListSetFocusEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FChatViewModelImpl, IChatViewModel::FOnFriendsChatMessageCommitted, FOnFriendsChatMessageCommitted)
+	virtual FOnFriendsChatMessageCommitted& OnChatMessageCommitted() override
+	{
+		return ChatMessageCommittedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FChatViewModelImpl, IChatViewModel::FOnFriendsSendNetworkMessageEvent, FOnFriendsSendNetworkMessageEvent)
+	virtual FOnFriendsSendNetworkMessageEvent& OnNewtworkMessageSentEvent() override
+	{
+		return FriendsSendNetworkMessageEvent;
 	}
 
 private:
@@ -139,15 +221,36 @@ private:
 
 	void FilterChatList()
 	{
-		FilteredChatLists = ChatLists;
+		if(!IsGlobalChatEnabled())
+		{
+			FilteredChatLists.Empty();
+			for (const auto& ChatItem : ChatLists)
+			{
+				if(ChatItem->GetMessageType() != EChatMessageType::Global)
+				{
+					FilteredChatLists.Add(ChatItem);
+				}
+			}
+		}
+		else
+		{
+			FilteredChatLists = ChatLists;
+		}
 		ChatListUpdatedEvent.Broadcast();
 	}
 
-
-	void HandleMessageReceived( const TSharedRef<FFriendChatMessage> NewMessage)
+	void HandleMessageReceived(const TSharedRef<FFriendChatMessage> NewMessage)
 	{
-		ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
-		FilterChatList();
+		if(bAllowGlobalChat || NewMessage->MessageType != EChatMessageType::Global)
+		{
+			ChatLists.Add(FChatItemViewModelFactory::Create(NewMessage, SharedThis(this)));
+			FilterChatList();
+		}
+	}
+
+	void HandleSetFocus()
+	{
+		OnChatListSetFocus().Broadcast();
 	}
 
 	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager)
@@ -155,6 +258,9 @@ private:
 		, SelectedChatChannel(EChatMessageType::Global)
 		, MessageManager(MessageManager)
 		, TimeDisplayTransaprency(0.f)
+		, bUseOverrideColor(false)
+		, bInGame(false)
+		, bAllowGlobalChat(true)
 	{
 	}
 
@@ -162,6 +268,11 @@ private:
 	TArray<TSharedRef<FChatItemViewModel> > ChatLists;
 	TArray<TSharedRef<FChatItemViewModel> > FilteredChatLists;
 	FChatListUpdated ChatListUpdatedEvent;
+	FChatListSetFocus ChatListSetFocusEvent;
+	FOnFriendsChatMessageCommitted ChatMessageCommittedEvent;
+	FOnFriendsSendNetworkMessageEvent FriendsSendNetworkMessageEvent;
+
+	EVisibility ChatEntryVisibility;
 	TArray<FString> RecentPlayerList;
 	TSharedPtr<IFriendItem> SelectedFriend;
 
@@ -169,6 +280,10 @@ private:
 	EChatMessageType::Type SelectedChatChannel;
 	TWeakPtr<FFriendsMessageManager> MessageManager;
 	float TimeDisplayTransaprency;
+	FSlateColor OverrideColor;
+	bool bUseOverrideColor;
+	bool bInGame;
+	bool bAllowGlobalChat;
 
 private:
 	friend FChatViewModelFactory;

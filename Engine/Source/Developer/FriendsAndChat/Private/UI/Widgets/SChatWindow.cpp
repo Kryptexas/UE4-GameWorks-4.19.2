@@ -19,11 +19,13 @@ public:
 		this->ViewModel = InViewModel;
 		FChatViewModel* ViewModelPtr = ViewModel.Get();
 		ViewModel->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
+		ViewModel->OnChatListSetFocus().AddSP(this, &SChatWindowImpl::SetFocus);
+
 		TimeTransparency = 0.0f;
 
 		TSharedRef<SScrollBar> ExternalScrollbar =
 		SNew(SScrollBar)
-		.AlwaysShowScrollbar( true );
+		.AlwaysShowScrollbar(true);
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
@@ -37,8 +39,8 @@ public:
 				+SHorizontalBox::Slot()
 			 	.AutoWidth()
 				[
-					SNew( SBox )
-					.WidthOverride( 16.0f )
+					SNew( SBorder )
+					.Visibility(ViewModelPtr, &FChatViewModel::GetSScrollBarVisibility)
 					[
 						ExternalScrollbar
 					]
@@ -58,7 +60,8 @@ public:
 			.VAlign(VAlign_Bottom)
 			.HAlign(HAlign_Fill)
 			[
-				SNew(SHorizontalBox)
+				SAssignNew(ChatBox, SHorizontalBox)
+				.Visibility(ViewModelPtr, &FChatViewModel::GetEntryBarVisibility)
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				.HAlign(HAlign_Left)
@@ -85,9 +88,11 @@ public:
 								.Image(&FriendStyle.FriendsCalloutBrush)
 							]
 							+SVerticalBox::Slot()
+							.VAlign(VAlign_Top)
+							.HAlign(HAlign_Center)
 							[
-								SNew(SSpacer)
-								.Size(FVector2D(15,10))
+								SNew(SImage)
+								.Image(this, &SChatWindowImpl::GetChatChannelIcon)
 							]
 						]
 					]
@@ -133,7 +138,8 @@ public:
 				.VAlign(VAlign_Center)
 				.Padding(5)
 				[
-					SAssignNew(ChatBox, SEditableTextBox)
+					SAssignNew(ChatTextBox, SEditableTextBox)
+					.ClearKeyboardFocusOnCommit(false)
 					.OnTextCommitted(this, &SChatWindowImpl::HandleChatEntered)
 					.HintText(LOCTEXT("FriendsListSearch", "Enter to chat"))
 					.Font(FriendStyle.FriendsFontStyle)
@@ -164,6 +170,11 @@ public:
 			}
 			ViewModel->SetTimeDisplayTransparency(TimeTransparency);
 		}
+	}
+
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
+	{
+		return FReply::Handled().ReleaseMouseCapture().LockMouseToWidget( SharedThis( this ) );
 	}
 
 private:
@@ -218,19 +229,12 @@ private:
 			SNew(SBorder)
 			.BorderImage(&FriendStyle.TitleBarBrush)
 			.ColorAndOpacity(FLinearColor::Gray)
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Center)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SCheckBox)
-				]
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
+				SNew(SCheckBox)
+				.OnCheckStateChanged(this, &SChatWindowImpl::OnGlocalOptionChanged)
+				.IsChecked(this, &SChatWindowImpl::GetGlobalOptionState)
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString("Global Chatter"))
@@ -262,6 +266,23 @@ private:
 		ViewModel->EnumerateChatChannelOptionsList(ChatMessageOptions);
 		for( const auto& Option : ChatMessageOptions)
 		{
+			FSlateBrush* ChatImage = nullptr;
+
+			switch(Option)
+			{
+				case EChatMessageType::Global: ChatImage =  &FriendStyle.ChatGlobalBrush; break;
+				case EChatMessageType::Whisper: ChatImage = &FriendStyle.ChatWhisperBrush; break;
+				case EChatMessageType::Party: ChatImage = &FriendStyle.ChatPartyBrush; break;
+			}
+
+			FLinearColor ChannelColor = FLinearColor::Gray;
+			switch(Option)
+			{
+				case EChatMessageType::Global: ChannelColor = FriendStyle.DefaultChatColor; break;
+				case EChatMessageType::Whisper: ChannelColor = FriendStyle.WhisplerChatColor; break;
+				case EChatMessageType::Party: ChannelColor = FriendStyle.PartyChatColor; break;
+			}
+
 			ChannelSelection->AddSlot()
 			[
 				SNew(SButton)
@@ -270,10 +291,27 @@ private:
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
-					SNew(STextBlock)
-					.Text(EChatMessageType::ToText(Option))
-					.Font(FriendStyle.FriendsFontStyleSmallBold)
-					.ColorAndOpacity(FriendStyle.DefaultFontColor)
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(5)
+					[
+						SNew(SImage)
+						.Image(ChatImage)
+					]
+					+SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(5)
+					[
+						SNew(STextBlock)
+						.Text(EChatMessageType::ToText(Option))
+						.Font(FriendStyle.FriendsFontStyleSmallBold)
+						.ColorAndOpacity(ChannelColor)
+					]
 				]
 			];
 		};
@@ -346,9 +384,8 @@ private:
 
 	void SendChatMessage()
 	{
-		ViewModel->SendMessage(ChatBox->GetText());
-		ChatBox->SetText(FText::GetEmpty());
-		SetFocus();
+		ViewModel->SendMessage(ChatTextBox->GetText());
+		ChatTextBox->SetText(FText::GetEmpty());
 	}
 
 	void RefreshChatList()
@@ -358,11 +395,11 @@ private:
 
 	void SetFocus()
 	{
-		if (ChatBox.IsValid())
+		if (ChatTextBox.IsValid())
 		{
 			FWidgetPath WidgetToFocusPath;
 
-			bool bFoundPath = FSlateApplication::Get().FindPathToWidget(ChatBox.ToSharedRef(), WidgetToFocusPath);
+			bool bFoundPath = FSlateApplication::Get().FindPathToWidget(ChatTextBox.ToSharedRef(), WidgetToFocusPath);
 			if (bFoundPath && WidgetToFocusPath.IsValid())
 			{
 				FSlateApplication::Get().SetKeyboardFocus(WidgetToFocusPath, EKeyboardFocusCause::SetDirectly);
@@ -375,26 +412,38 @@ private:
 		return ViewModel->GetChatChannelType() == EChatMessageType::Whisper ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
-
-	FSlateColor GetChatChannelColor() const
+	const FSlateBrush* GetChatChannelIcon() const
 	{
 		switch(ViewModel->GetChatChannelType())
 		{
-			case EChatMessageType::Global: return FriendStyle.DefaultChatColor; break;
-			case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor; break;
-			case EChatMessageType::Party: return FriendStyle.PartyChatColor; break;
-			case EChatMessageType::Network: return FriendStyle.NetworkChatColor; break;
+			case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
+			case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
+			case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
 			default:
-			return FLinearColor::Gray;
+			return nullptr;
 		}
 	}
+
+	void OnGlocalOptionChanged(ESlateCheckBoxState::Type NewState)
+	{
+		ViewModel->SetAllowGlobalChat(NewState == ESlateCheckBoxState::Unchecked ? false : true);
+	}
+
+	ESlateCheckBoxState::Type GetGlobalOptionState() const
+	{
+		return ViewModel->IsGlobalChatEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
 private:
 
 	// Holds the chat list
 	TSharedPtr<SListView<TSharedRef<FChatItemViewModel> > > ChatList;
 
+	// Holds the chat box
+	TSharedPtr<SHorizontalBox> ChatBox;
+
 	// Holds the chat list display
-	TSharedPtr<SEditableTextBox> ChatBox;
+	TSharedPtr<SEditableTextBox> ChatTextBox;
 
 	// Holds the menu anchor
 	TSharedPtr<SMenuAnchor> ActionMenu;

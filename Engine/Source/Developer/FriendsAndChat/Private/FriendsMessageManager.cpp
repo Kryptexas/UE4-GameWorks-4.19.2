@@ -89,17 +89,12 @@ public:
 		}
 	}
 
-	virtual void SendNetworkMessage(const FString& MsgBody) override
-	{
-		FFriendsAndChatManager::Get()->SendNetworkMessage(MsgBody);
-	}
-
 	virtual void InsertNetworkMessage(const FString& MsgBody) override
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 		ChatItem->FromName = FText::FromString("Game");
 		ChatItem->Message = FText::FromString(MsgBody);
-		ChatItem->MessageType = EChatMessageType::Network;
+		ChatItem->MessageType = EChatMessageType::Party;
 		ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
 		ChatItem->bIsFromSelf = false;
 		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
