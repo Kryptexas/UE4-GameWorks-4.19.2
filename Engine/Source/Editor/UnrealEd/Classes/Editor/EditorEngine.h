@@ -652,9 +652,6 @@ public:
 	bool	HandleBugItGoCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleTagSoundsCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& Ar );
-	bool	HandlePruneAnimSetsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
-	bool	HandleBakeAnimSetsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
-	bool	HandleCleanMatineeAnimSetsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleFixupBadAnimNotifiersCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleSetDetailModeCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleSetDetailModeViewCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
@@ -767,59 +764,6 @@ public:
 	bool Exec_Camera( const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Transaction(const TCHAR* Str, FOutputDevice& Ar);
 	bool Exec_Particle(const TCHAR* Str, FOutputDevice& Ar);
-
-	/**
-	 *	Gather the status of BakeAndPrune settings for the referenced AnimSets in the given level
-	 *
-	 *	@param	InLevel							The source level
-	 *	@param	OutAnimSetSkipBakeAndPruneMap	List of anim sets to not touch during the operation
-	 *											This is filled in during the bake, and used during the prune
-	 *											If NULL, bake all possible animsets
-	 *
-	 *	@return	bool							true if successful, false if not
-	 */
-	bool GatherBakeAndPruneStatus(ULevel* InLevel, TMap<FString,bool>* OutAnimSetSkipBakeAndPruneMap);
-
-	/**
-	 *	Clear the BakeAndPrune status arrays in the given level
-	 *
-	 *	@param	InLevel							The source level
-	 *
-	 *	@return	bool							true if successful, false if not
-	 */
-	bool ClearBakeAndPruneStatus(ULevel* InLevel);
-
-	/**
-	 *	Bake the anim sets in the given level
-	 *
-	 *	@param	InLevel							The source level
-	 *	@param	InAnimSetSkipBakeAndPruneMap	List of anim sets to not touch during the operation
-	 *											If NULL, bake all possible animsets
-	 *
-	 *	@return	bool							true if successful, false if not
-	 */
-	bool BakeAnimSetsInLevel(ULevel* InLevel, TMap<FString,bool>* InAnimSetSkipBakeAndPruneMap);
-
-	/**
-	 *	Prune the anim sets in the given level
-	 *
-	 *	@param	InLevel							The source level
-	 *	@param	InAnimSetSkipBakeAndPruneMap	List of anim sets to not touch during the operation
-	 *											Filled in during the bake, and used during the prune
-	 *											If NULL, prine all possible animsets
-	 *
-	 *	@return	bool							true if successful, false if not
-	 */
-	bool PruneAnimSetsInLevel(ULevel* InLevel, TMap<FString,bool>* InAnimSetSkipBakeAndPruneMap);
-
-	/**
-	 *	Clear unreferenced AnimSets from InterpData Groups
-	 *
-	 *	@param	InLevel		The source level to clean up
-	 *
-	 *	@return	bool		true if successful, false if not
-	 */
-	bool ClearUnreferenceAnimSetsFromGroups(ULevel* InLevel);
 
 	/**
 	 * Executes each line of text in a file sequentially, as if each were a separate command

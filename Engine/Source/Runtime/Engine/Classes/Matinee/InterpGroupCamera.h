@@ -68,13 +68,6 @@ class UInterpGroupCamera : public UInterpGroup
 	/** When compress, tolerance option **/
 	UPROPERTY(EditAnywhere, Category=InterpGroupCamera)
 	float CompressTolerance;
-
-
-	// Begin UOBject Interface
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif // WITH_EDITOR
-	// End UOBject Interface
 };
 
 

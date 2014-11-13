@@ -494,7 +494,7 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		}
 
 		// we need to reregister the primitive if the min draw distance changed to propagate the change to the rendering thread
-		if (PropertyThatChanged->GetName() == TEXT("MinDrawDistance"))
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, MinDrawDistance))
 		{
 			MarkRenderStateDirty();
 		}

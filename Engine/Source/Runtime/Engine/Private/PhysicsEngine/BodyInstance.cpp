@@ -3842,6 +3842,15 @@ bool FBodyInstance::UseAsyncScene() const
 	return bUseAsyncScene && bHasAsyncScene;
 }
 
+
+void FBodyInstance::SetUseAsyncScene(bool bNewUseAsyncScene)
+{
+	// Invalid to call this if the body has been created
+	check(BodyInstancePtr == nullptr);
+	// Set flag
+	bUseAsyncScene = bNewUseAsyncScene;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // FBodyInstanceEditorHelpers
 

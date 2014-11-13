@@ -29,12 +29,12 @@ FString UDialogueVoice::GetDesc()
 {
 	FString SummaryString;
 	{
-		UByteProperty* GenderProperty = CastChecked<UByteProperty>( FindFieldChecked<UProperty>( GetClass(), "Gender" ) );
+		UByteProperty* GenderProperty = CastChecked<UByteProperty>(FindFieldChecked<UProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UDialogueVoice, Gender)));
 		SummaryString += GenderProperty->Enum->GetEnumText(Gender).ToString();
 
 		if( Plurality != EGrammaticalNumber::Singular )
 		{
-			UByteProperty* PluralityProperty = CastChecked<UByteProperty>( FindFieldChecked<UProperty>( GetClass(), "Plurality" ) );
+			UByteProperty* PluralityProperty = CastChecked<UByteProperty>( FindFieldChecked<UProperty>( GetClass(), GET_MEMBER_NAME_CHECKED(UDialogueVoice, Plurality)) );
 
 			SummaryString += ", ";
 			SummaryString += PluralityProperty->Enum->GetEnumText(Plurality).ToString();

@@ -19,10 +19,10 @@ void FSkinnedMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& Detail
 	IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory("LOD", TEXT("Level of Detail"), ECategoryPriority::Default);
 	
 	// show extra field about actually used physics asset, but make sure to show it under physics asset override
-	TSharedRef<IPropertyHandle> PhysicsAssetProperty =  DetailBuilder.GetProperty("PhysicsAssetOverride");
+	TSharedRef<IPropertyHandle> PhysicsAssetProperty =  DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkinnedMeshComponent, PhysicsAssetOverride));
 	if (PhysicsAssetProperty->IsValidHandle())
 	{
-		PhysicsCategory.AddProperty("PhysicsAssetOverride");
+		PhysicsCategory.AddProperty(GET_MEMBER_NAME_CHECKED(USkinnedMeshComponent, PhysicsAssetOverride));
 		CreateActuallyUsedPhysicsAssetWidget(PhysicsCategory.AddCustomRow( LOCTEXT("CurrentPhysicsAsset", "Currently used Physics Asset").ToString(), true), &DetailBuilder);
 	}
 }

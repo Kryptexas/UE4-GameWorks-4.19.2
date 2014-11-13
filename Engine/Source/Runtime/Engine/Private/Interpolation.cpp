@@ -1157,7 +1157,7 @@ UInterpGroupInst* AMatineeActor::FindGroupInst(const AActor* Actor) const
 void AMatineeActor::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
 {
 	Super::PostEditChangeProperty( PropertyChangedEvent );
-	if( PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("MatineeData") )
+	if( PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(AMatineeActor, MatineeData) )
 	{
 		// Create new entries
 		if( MatineeData )
@@ -1828,9 +1828,6 @@ void UInterpData::PostLoad(void)
 	// Ensure the cached director group is emptied out
 	CachedDirectorGroup = NULL;
 
-#if WITH_EDITOR
-	UpdateBakeAndPruneStatus();
-#endif
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor && DefaultFilters.Num() == 0)
 	{
@@ -1948,92 +1945,6 @@ void UInterpData::UpdateEventNames()
 	}
 }
 
-#if WITH_EDITOR
-void UInterpData::UpdateBakeAndPruneStatus()
-{
-	if (!GIsEditor)
-	{
-		return;
-	}
-
-#if 0 // @todoanim : bakeandprune
-	// Check for anim sets that are referenced
-	TMap<FString,bool> UsedAnimSetNames;
-	TMap<FString,bool> GroupAnimSetNames;
-	TArray<FString> FoundAnimSetNames;
-	for (int32 GroupIdx = 0; GroupIdx < InterpGroups.Num(); GroupIdx++)
-	{
-		UInterpGroup* Group = InterpGroups(GroupIdx);
-		if (Group != NULL)
-		{
-			if (Group->GroupAnimSets.Num() > 0)
-			{
-				for (int32 DumpIdx = 0; DumpIdx < Group->GroupAnimSets.Num(); DumpIdx++)
-				{
-					UAnimSet* FoundSet = Group->GroupAnimSets(DumpIdx);
-					if (FoundSet != NULL)
-					{
-						GroupAnimSetNames.Set(FoundSet->GetPathName(), true);
-						FoundAnimSetNames.AddUniqueItem(FoundSet->GetPathName());
-					}
-				}
-			}
-			// Iterate over all tracks to find anim control tracks and their anim sequences.
-			// We only want to tag animsets that are acutally used.
-			for (int32 TrackIndex = 0; TrackIndex < Group->InterpTracks.Num(); TrackIndex++)
-			{
-				UInterpTrack* InterpTrack = Group->InterpTracks(TrackIndex);
-				UInterpTrackAnimControl* AnimControl = Cast<UInterpTrackAnimControl>(InterpTrack);				
-				if (AnimControl != NULL)
-				{
-					// Iterate over all track key/ sequences and find the associated sequence.
-					for (int32 TrackKeyIndex = 0; TrackKeyIndex < AnimControl->AnimSeqs.Num(); TrackKeyIndex++)
-					{
-						const FAnimControlTrackKey& TrackKey = AnimControl->AnimSeqs[TrackKeyIndex];
-						UAnimSequence* AnimSequence = TrackKey.AnimSeq;
-						if (AnimSequence != NULL)
-						{
-							UsedAnimSetNames.Set(AnimSequence->GetPathName(), true);
-							FoundAnimSetNames.AddUniqueItem(AnimSequence->GetPathName());
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Add any new ones found
-	for (int32 AnimSetIdx = 0; AnimSetIdx < FoundAnimSetNames.Num(); AnimSetIdx++)
-	{
-		FString AnimSetName = FoundAnimSetNames(AnimSetIdx);
-		bool bUsed = (UsedAnimSetNames.Find(AnimSetName) != NULL);
-		bool bInGroupList = (GroupAnimSetNames.Find(AnimSetName) != NULL);
-		bool bFound = false;
-		for (int32 CheckIdx = 0; CheckIdx < BakeAndPruneStatus.Num(); CheckIdx++)
-		{
-			FAnimSetBakeAndPruneStatus& Status = BakeAndPruneStatus(CheckIdx);
-			if (Status.AnimSetName == AnimSetName)
-			{
-				bFound = true;
-				Status.bReferencedButUnused = !bUsed;
-				break;
-			}
-		}
-		if (bFound == false)
-		{
-			// Add it
-			int32 NewIdx = BakeAndPruneStatus.AddZeroed();
-			FAnimSetBakeAndPruneStatus& Status = BakeAndPruneStatus(NewIdx);
-			Status.AnimSetName = AnimSetName;
-			Status.bSkipBakeAndPrune = false;
-			Status.bReferencedButUnused = !bUsed;
-		}
-	}
-#endif
-}
-#endif
-
-
 /*-----------------------------------------------------------------------------
  UInterpGroup
 -----------------------------------------------------------------------------*/
@@ -2076,23 +1987,6 @@ void UInterpGroup::PostLoad()
 		}
 	}
 }
-
-#if WITH_EDITOR
-void UInterpGroup::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("GroupAnimSets"))
-	{
-		// Update the interp data bake and prune list
-		UInterpData* InterpData = Cast<UInterpData>(GetOuter());
-		if (InterpData != NULL)
-		{
-			InterpData->UpdateBakeAndPruneStatus();
-		}
-	}
-}
-#endif // WITH_EDITOR
 
 void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool bPreview, bool bJump)
 {
@@ -9658,42 +9552,6 @@ UInterpGroupInstDirector::UInterpGroupInstDirector(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 }
-
-#if WITH_EDITOR
-void UInterpGroupCamera::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-#if WITH_EDITORONLY_DATA
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("AnimSeqName"))
-	{
-		UCameraAnim * CameraAnim = CastChecked<UCameraAnim>(GetOuter());
-		UInterpGroup* Group = CameraAnim->PreviewInterpGroup;
-		// find first InterpGroup, not me
-		if ( Group )
-		{
-			TArray<UInterpTrack*> AnimTracks;
-			Group->FindTracksByClass(UInterpTrackAnimControl::StaticClass(), AnimTracks);
-			if (AnimTracks.Num() > 0)
-			{
-				UInterpTrackAnimControl* AnimTrack = CastChecked<UInterpTrackAnimControl>(AnimTracks[0]);
-				if (AnimTrack->AnimSeqs.Num() > 0)
-				{
-					FAnimControlTrackKey& SeqKey = AnimTrack->AnimSeqs[ 0 ];
-					SeqKey.AnimSeq = Target.AnimSeq;	
-				}
-				else
-				{
-					int32 KeyIndex = AnimTrack->AddKeyframe(0.0f, NULL, CIM_Linear);
-					FAnimControlTrackKey& NewSeqKey = AnimTrack->AnimSeqs[ KeyIndex ];
-					NewSeqKey.AnimSeq = Target.AnimSeq;	
-				}
-			}
-		}
-	}
-#endif
-
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-#endif // WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
 /** Returns SpriteComponent subobject **/

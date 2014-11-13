@@ -1413,7 +1413,7 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	if (!bAutoComputeLODScreenSize
 		&& RenderData
 		&& PropertyThatChanged
-		&& PropertyThatChanged->GetName() == TEXT("bAutoComputeLODDistance"))
+		&& PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bAutoComputeLODScreenSize))
 		{
 		for (int32 LODIndex = 1; LODIndex < SourceModels.Num(); ++LODIndex)
 		{
@@ -1427,8 +1427,8 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	// Only unbuild lighting for properties which affect static lighting
 	if (!PropertyThatChanged 
-		|| PropertyThatChanged->GetName() == TEXT("LightMapResolution")
-		|| PropertyThatChanged->GetName() == TEXT("LightMapCoordinateIndex"))
+		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
+		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapCoordinateIndex))
 	{
 		FStaticMeshComponentRecreateRenderStateContext Context(this, true);		
 		SetLightingGuid();

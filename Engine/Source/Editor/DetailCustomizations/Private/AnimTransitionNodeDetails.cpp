@@ -52,11 +52,11 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 	{
 		// Transitions to conduits are just shorthand for some other real transition;
 		// All of the blend related settings are ignored, so hide them.
-		DetailBuilder.HideProperty("Bidirectional");
-		DetailBuilder.HideProperty("CrossfadeDuration");
-		DetailBuilder.HideProperty("CrossfadeMode");
-		DetailBuilder.HideProperty("LogicType");
-		DetailBuilder.HideProperty("Priority Order");
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, Bidirectional));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeDuration));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeMode));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, LogicType));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, PriorityOrder));
 	}
 	else
 	{
@@ -67,9 +67,9 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 			.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 		];
 
-		TransitionCategory.AddProperty("PriorityOrder").DisplayName( TEXT("Priority Order") );
-		TransitionCategory.AddProperty("Bidirectional").DisplayName( TEXT("Bidirectional"));
-		TransitionCategory.AddProperty("LogicType").DisplayName( TEXT("Blend Logic") );
+		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, PriorityOrder)).DisplayName(TEXT("Priority Order"));
+		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, Bidirectional)).DisplayName( TEXT("Bidirectional"));
+		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, LogicType)).DisplayName( TEXT("Blend Logic") );
 
 		UAnimStateTransitionNode* TransNode = TransitionNode.Get();
 		if (TransitionNode != NULL)
@@ -124,8 +124,8 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		}
 
 		//@TODO: Gate editing these on shared non-authorative ones
-		CrossfadeCategory.AddProperty("CrossfadeDuration").DisplayName( TEXT("Duration") );
-		CrossfadeCategory.AddProperty("CrossfadeMode").DisplayName( TEXT("Mode") );
+		CrossfadeCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeDuration)).DisplayName( TEXT("Duration") );
+		CrossfadeCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeMode)).DisplayName( TEXT("Mode") );
 
 		// Add a button that is only visible when blend logic type is custom
 		CrossfadeCategory.AddCustomRow( LOCTEXT("EditBlendGraph", "Edit Blend Graph").ToString() )
@@ -176,8 +176,8 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		CreateTransitionEventPropertyWidgets(NotificationCategory, TEXT("TransitionInterrupt"));
 	}
 
-	DetailBuilder.HideProperty("TransitionStart");
-	DetailBuilder.HideProperty("TransitionEnd");
+	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, TransitionStart));
+	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, TransitionEnd));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

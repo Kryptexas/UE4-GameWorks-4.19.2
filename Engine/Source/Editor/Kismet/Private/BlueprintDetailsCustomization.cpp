@@ -4889,7 +4889,7 @@ FChildActorComponentDetails::FChildActorComponentDetails(TWeakPtr<FBlueprintEdit
 
 void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	TSharedPtr<IPropertyHandle> ActorClassProperty = DetailBuilder.GetProperty("ChildActorClass");
+	TSharedPtr<IPropertyHandle> ActorClassProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass));
 	if (ActorClassProperty->IsValidHandle())
 	{
 		if (BlueprintEditorPtr.IsValid())

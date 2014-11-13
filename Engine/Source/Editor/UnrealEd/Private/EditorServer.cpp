@@ -4717,94 +4717,6 @@ bool UEditorEngine::Exec_Particle(const TCHAR* Str, FOutputDevice& Ar)
 }
 
 
-bool UEditorEngine::GatherBakeAndPruneStatus(ULevel* InLevel, TMap<FString,bool>* OutAnimSetSkipBakeAndPruneMap)
-{
-	if (OutAnimSetSkipBakeAndPruneMap != NULL)
-	{
-		for (TObjectIterator<UInterpData> IterpDataIt; IterpDataIt; ++IterpDataIt)
-		{
-			UInterpData* InterpData = *IterpDataIt;
-			if (InterpData->IsIn(InLevel))
-			{
-				// Gather the animsets from this InterpData
-				if (InterpData->bShouldBakeAndPrune == false)
-				{
-					// None of the anim sets in this data should be bake and pruned.
-					for (int32 AnimSetIdx = 0; AnimSetIdx < InterpData->BakeAndPruneStatus.Num(); AnimSetIdx++)
-					{
-						// If the anim set is referenced in *any* interp data that should not bake & prune,
-						// then it should not be bake and pruned in any of them...
-						FAnimSetBakeAndPruneStatus& Status = InterpData->BakeAndPruneStatus[AnimSetIdx];
-						OutAnimSetSkipBakeAndPruneMap->Add(Status.AnimSetName, true);
-					}
-				}
-				else
-				{
-					for (int32 AnimSetIdx = 0; AnimSetIdx < InterpData->BakeAndPruneStatus.Num(); AnimSetIdx++)
-					{
-						// If the anim set is referenced in *any* interp data that should not bake & prune,
-						// then it should not be bake and pruned in any of them...
-						FAnimSetBakeAndPruneStatus& Status = InterpData->BakeAndPruneStatus[AnimSetIdx];
-						bool* pShouldBakeAndPrune = OutAnimSetSkipBakeAndPruneMap->Find(Status.AnimSetName);
-						if (pShouldBakeAndPrune == NULL)
-						{
-							// First instance of the AnimSet
-							OutAnimSetSkipBakeAndPruneMap->Add(Status.AnimSetName, Status.bSkipBakeAndPrune);
-						}
-						else
-						{
-							// If found, SkipBakeAndPrune == true trumps any previous setting
-							if (*pShouldBakeAndPrune == false)
-							{
-								OutAnimSetSkipBakeAndPruneMap->Add(Status.AnimSetName, Status.bSkipBakeAndPrune);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return true;
-}
-
-
-bool UEditorEngine::ClearBakeAndPruneStatus(ULevel* InLevel)
-{
-	for (TObjectIterator<UInterpData> IterpDataIt; IterpDataIt; ++IterpDataIt)
-	{
-		UInterpData* InterpData = *IterpDataIt;
-		if (InterpData->IsIn(InLevel))
-		{
-			InterpData->BakeAndPruneStatus.Empty();
-		}
-	}
-
-	return true;
-}
-
-
-bool UEditorEngine::BakeAnimSetsInLevel(ULevel* InLevel, TMap<FString,bool>* InAnimSetSkipBakeAndPruneMap)
-{
-	// @TODO: ANIM: we'll need a feature to cut the animation to the size
-	return false;
-}
-
-
-bool UEditorEngine::PruneAnimSetsInLevel(ULevel* InLevel, TMap<FString,bool>* InAnimSetSkipBakeAndPruneMap)
-{
-	//@TODO: ANIM
-	return false;
-}
-
-
-bool UEditorEngine::ClearUnreferenceAnimSetsFromGroups(ULevel* InLevel)
-{
-	//@TODO: ANIM
-	return true;
-}
-
-
 void UEditorEngine::ExecFile( UWorld* InWorld, const TCHAR* InFilename, FOutputDevice& Ar )
 {
 	FString FileTextContents;
@@ -5379,18 +5291,6 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	else if ( FParse::Command(&Str,TEXT("CHECKSOUNDS")) )
 	{
 		return HandlecheckSoundsCommand( Str, Ar );
-	}
-	else if( FParse::Command(&Str,TEXT("PRUNEANIMSETS")) )
-	{
-		return HandlePruneAnimSetsCommand( Str, Ar, InWorld );
-	}
-	else if( FParse::Command(&Str,TEXT("BAKEANIMSETS")) )
-	{
-		return HandleBakeAnimSetsCommand( Str, Ar, InWorld );
-	}
-	else if( FParse::Command(&Str,TEXT("CLEANMATINEEANIMSETS")) )
-	{
-		return HandleCleanMatineeAnimSetsCommand( Str, Ar, InWorld );
 	}
 	else if( FParse::Command(&Str,TEXT("FIXUPBADANIMNOTIFIERS")) )
 	{
@@ -6008,29 +5908,6 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize)/(1024.f*1024.f) );
 		return true;
-}
-
-bool UEditorEngine::HandlePruneAnimSetsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	TMap<FString,bool> AnimSetSkipBakeAndPruneMap;
-	GatherBakeAndPruneStatus(InWorld->GetCurrentLevel(), &AnimSetSkipBakeAndPruneMap);
-	PruneAnimSetsInLevel(InWorld->GetCurrentLevel(), &AnimSetSkipBakeAndPruneMap);
-	return true;
-}
-
-bool UEditorEngine::HandleBakeAnimSetsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	TMap<FString,bool> AnimSetSkipBakeAndPruneMap;
-	GatherBakeAndPruneStatus(InWorld->GetCurrentLevel(), &AnimSetSkipBakeAndPruneMap);
-	BakeAnimSetsInLevel(InWorld->GetCurrentLevel(), &AnimSetSkipBakeAndPruneMap);
-	return true;
-}
-
-bool UEditorEngine::HandleCleanMatineeAnimSetsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	// Clear out unreferenced animsets from groups...
-	ClearUnreferenceAnimSetsFromGroups(InWorld->GetCurrentLevel());
-	return true;
 }
 
 bool UEditorEngine::HandleFixupBadAnimNotifiersCommand( const TCHAR* Str, FOutputDevice& Ar )

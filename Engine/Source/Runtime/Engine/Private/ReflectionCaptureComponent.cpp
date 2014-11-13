@@ -1112,7 +1112,7 @@ void UReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEvent& 
 	// AActor::PostEditChange will ForceUpdateComponents()
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("bVisible"))
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UReflectionCaptureComponent, bVisible))
 	{
 		SetCaptureIsDirty();
 	}
@@ -1442,7 +1442,7 @@ void USphereReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedE
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	if (PropertyChangedEvent.Property && 
-		(PropertyChangedEvent.Property->GetName() == TEXT("InfluenceRadius")))
+		(PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(USphereReflectionCaptureComponent, InfluenceRadius)))
 	{
 		SetCaptureIsDirty();
 	}
@@ -1474,7 +1474,7 @@ void UBoxReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEven
 	// AActor::PostEditChange will ForceUpdateComponents()
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("BoxTransitionDistance"))
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UBoxReflectionCaptureComponent, BoxTransitionDistance))
 	{
 		SetCaptureIsDirty();
 	}

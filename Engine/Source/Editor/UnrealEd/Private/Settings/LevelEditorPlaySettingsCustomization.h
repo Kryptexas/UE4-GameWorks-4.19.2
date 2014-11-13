@@ -300,10 +300,10 @@ public:
 		IDetailCategoryBuilder& PlayInNewWindowCategory = LayoutBuilder.EditCategory("PlayInNewWindow");
 		{
 			// new window size
-			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty("NewWindowHeight");
-			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty("NewWindowWidth");
-			TSharedRef<IPropertyHandle> WindowPositionHandle = LayoutBuilder.GetProperty("NewWindowPosition");
-			TSharedRef<IPropertyHandle> CenterNewWindowHandle = LayoutBuilder.GetProperty("CenterNewWindow");
+			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowHeight));
+			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowWidth));
+			TSharedRef<IPropertyHandle> WindowPositionHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowPosition));
+			TSharedRef<IPropertyHandle> CenterNewWindowHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, CenterNewWindow));
 
 			WindowHeightHandle->MarkHiddenByCustomization();
 			WindowWidthHandle->MarkHiddenByCustomization();
@@ -343,8 +343,8 @@ public:
 		IDetailCategoryBuilder& PlayInStandaloneCategory = LayoutBuilder.EditCategory("PlayInStandaloneGame");
 		{
 			// standalone window size
-			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty("StandaloneWindowHeight");
-			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty("StandaloneWindowWidth");
+			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowHeight));
+			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowWidth));
 
 			WindowHeightHandle->MarkHiddenByCustomization();
 			WindowWidthHandle->MarkHiddenByCustomization();
@@ -364,7 +364,7 @@ public:
 				];
 
 			// command line options
-			TSharedPtr<IPropertyHandle> DisableStandaloneSoundProperty = LayoutBuilder.GetProperty("DisableStandaloneSound");
+			TSharedPtr<IPropertyHandle> DisableStandaloneSoundProperty = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, DisableStandaloneSound));
 
 			DisableStandaloneSoundProperty->MarkHiddenByCustomization();
 

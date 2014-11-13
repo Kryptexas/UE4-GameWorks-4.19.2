@@ -3941,7 +3941,7 @@ void ULandscapeComponent::SetLOD(bool bForcedLODChanged, int32 InLODValue)
 void ULandscapeComponent::PreEditChange(UProperty* PropertyThatWillChange)
 {
 	Super::PreEditChange(PropertyThatWillChange);
-	if (GIsEditor && PropertyThatWillChange && (PropertyThatWillChange->GetName() == TEXT("ForcedLOD") || PropertyThatWillChange->GetName() == TEXT("LODBias")))
+	if (GIsEditor && PropertyThatWillChange && (PropertyThatWillChange->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeComponent, ForcedLOD) || PropertyThatWillChange->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeComponent, LODBias)))
 	{
 		// PreEdit unregister component and re-register after PostEdit so we will lose XYtoComponentMap for this component
 		ULandscapeInfo* Info = GetLandscapeInfo(false);

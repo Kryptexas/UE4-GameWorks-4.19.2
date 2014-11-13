@@ -13,24 +13,24 @@ TSharedRef<IDetailCustomization> FMacGraphicsSwitchingSettingsDetails::MakeInsta
 
 void FMacGraphicsSwitchingSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	TSharedRef<IPropertyHandle> PreferredRendererPropertyHandle = DetailLayout.GetProperty("RendererID");
+	TSharedRef<IPropertyHandle> PreferredRendererPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UMacGraphicsSwitchingSettings, RendererID));
 	DetailLayout.HideProperty("RendererID");
 
 	bool bAllowMultiGPUs = IMacGraphicsSwitchingModule::Get().AllowMultipleGPUs();
 	bool bAllowAutomaticGraphicsSwitching = IMacGraphicsSwitchingModule::Get().AllowAutomaticGraphicsSwitching();
 	
-	TSharedRef<IPropertyHandle> MultiGPUPropertyHandle = DetailLayout.GetProperty("bUseMultipleRenderers");
+	TSharedRef<IPropertyHandle> MultiGPUPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UMacGraphicsSwitchingSettings, bUseMultipleRenderers));
 	if (!bAllowMultiGPUs)
 	{
 		MultiGPUPropertyHandle->SetValue(false);
-		DetailLayout.HideProperty("bUseMultipleRenderers");
+		DetailLayout.HideProperty(GET_MEMBER_NAME_CHECKED(UMacGraphicsSwitchingSettings, bUseMultipleRenderers));
 	}
 	
-	TSharedRef<IPropertyHandle> SwitchingPropertyHandle = DetailLayout.GetProperty("bAllowAutomaticGraphicsSwitching");
+	TSharedRef<IPropertyHandle> SwitchingPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UMacGraphicsSwitchingSettings, bAllowAutomaticGraphicsSwitching));
 	if (!bAllowAutomaticGraphicsSwitching)
 	{
 		SwitchingPropertyHandle->SetValue(false);
-		DetailLayout.HideProperty("bAllowAutomaticGraphicsSwitching");
+		DetailLayout.HideProperty(GET_MEMBER_NAME_CHECKED(UMacGraphicsSwitchingSettings, bAllowAutomaticGraphicsSwitching));
 	}
 	
 	IDetailCategoryBuilder& AccessorCategory = DetailLayout.EditCategory( "OpenGL" );

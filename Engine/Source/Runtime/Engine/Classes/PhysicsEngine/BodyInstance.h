@@ -188,13 +188,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
 	uint32 bEnableGravity:1;
 
-	/**
-	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
-	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
-	uint32 bUseAsyncScene:1;
-
 	/** If true, it will update mass when scale changes **/
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
@@ -235,6 +228,13 @@ public:
 #endif
 
 protected:
+
+	/**
+	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
+	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
+	uint32 bUseAsyncScene:1;
 
 	/** Whether this instance of the object has its own custom walkable slope override setting. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
@@ -395,6 +395,9 @@ public:
 
 	/** Returns whether this body wants (and can) use the async scene. */
 	bool UseAsyncScene() const;
+
+	/** Indicates whether this body should use the async scene. Must be called before body is init'd, will assert otherwise. Will have no affect if there is no async scene. */
+	void SetUseAsyncScene(bool bNewUseAsyncScene);
 
 #if WITH_PHYSX
 	/**

@@ -5,6 +5,7 @@
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
 #include "IDocumentation.h"
+#include "Engine/DestructibleMesh.h"
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshDetails"
 
@@ -42,14 +43,14 @@ void AddStructToDetails(FName CategoryName, FName PropertyName, IDetailLayoutBui
 void FDestructibleMeshDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 		//we always hide bodysetup as it's not useful in this editor
-		TSharedPtr<IPropertyHandle> BodySetupHandler = DetailBuilder.GetProperty("BodySetup");
+		TSharedPtr<IPropertyHandle> BodySetupHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UDestructibleMesh, BodySetup));
 		if (BodySetupHandler.IsValid())
 		{
 			DetailBuilder.HideProperty(BodySetupHandler);
 		}
 		
 		//rest of customization is just moving stuff out of DefaultDestructibleParameters so it's nicer to view
-		TSharedPtr<IPropertyHandle> DefaultParams = DetailBuilder.GetProperty("DefaultDestructibleParameters");
+		TSharedPtr<IPropertyHandle> DefaultParams = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UDestructibleMesh, DefaultDestructibleParameters));
 		if (DefaultParams.IsValid() == false)
 		{
 			return;
