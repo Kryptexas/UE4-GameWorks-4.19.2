@@ -427,7 +427,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			SNew(SSpinBox<int32>)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 			.MinValue(0)
-			.MaxValue(8)
+			.MaxValue(7)
 			.Value(this, &FMeshBuildSettingsLayout::GetSrcLightmapIndex)
 			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnSrcLightmapIndexChanged)
 		];
@@ -446,7 +446,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			SNew(SSpinBox<int32>)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 			.MinValue(0)
-			.MaxValue(8)
+			.MaxValue(7)
 			.Value(this, &FMeshBuildSettingsLayout::GetDstLightmapIndex)
 			.OnValueChanged(this, &FMeshBuildSettingsLayout::OnDstLightmapIndexChanged)
 		];

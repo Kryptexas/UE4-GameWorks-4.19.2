@@ -2343,6 +2343,11 @@ bool FMeshUtilities::BuildStaticMesh(
 			// Generate lightmap UVs
 			if( SrcModel.BuildSettings.bGenerateLightmapUVs )
 			{
+				if( RawMesh.WedgeTexCoords[ SrcModel.BuildSettings.SrcLightmapIndex ].Num() == 0 )
+				{
+					SrcModel.BuildSettings.SrcLightmapIndex = 0;
+				}
+
 				FLayoutUV Packer( &RawMesh, SrcModel.BuildSettings.SrcLightmapIndex, SrcModel.BuildSettings.DstLightmapIndex, SrcModel.BuildSettings.MinLightmapResolution );
 
 				Packer.FindCharts( OverlappingCorners );
