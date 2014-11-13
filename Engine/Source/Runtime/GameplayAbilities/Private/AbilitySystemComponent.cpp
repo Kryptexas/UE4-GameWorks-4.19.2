@@ -459,6 +459,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		}
 	}
 
+	// Are we currently immunte to this? (ApplicationImmunity)
+	if (ActiveGameplayEffects.CheckApplicationImmunity(Spec))
+	{
+		return FActiveGameplayEffectHandle();
+	}
+
 	// Check AttributeSet requirements: do we have everything this GameplayEffectSpec expects?
 	// We may want to cache this off in some way to make the runtime check quicker.
 	// We also need to handle things in the execution list

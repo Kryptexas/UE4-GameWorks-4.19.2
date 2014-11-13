@@ -107,6 +107,19 @@ void FGameplayEffectContext::AddOrigin(FVector InOrigin)
 	WorldOrigin = InOrigin;
 }
 
+void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
+{
+	IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator);
+	if (TagInterface)
+	{
+		TagInterface->GetOwnedGameplayTags(TagContainer);
+	}
+	else if(InstigatorAbilitySystemComponent)
+	{
+		InstigatorAbilitySystemComponent->GetOwnedGameplayTags(TagContainer);
+	}
+}
+
 bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	UScriptStruct* ScriptStruct = Data.IsValid() ? Data->GetScriptStruct() : NULL;

@@ -1479,6 +1479,9 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, 1);
 
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, 1);
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
+
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
 		Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
@@ -1600,6 +1603,9 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
 
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, -1);
+	ApplicationImmunityGameplayTagCountContainer.UpdateTagMap(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, -1);
+
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
 
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
@@ -1644,6 +1650,32 @@ void FActiveGameplayEffectsContainer::OnOwnerTagChange(FGameplayTag TagChange, i
 			}
 		}
 	}
+}
+
+bool FActiveGameplayEffectsContainer::CheckApplicationImmunity(const FGameplayEffectSpec& SpecToApply) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_CheckApplicationImmunity)
+
+	const FGameplayTagContainer* Tags = SpecToApply.CapturedSourceTags.GetAggregatedTags();
+	if (!ensure(Tags))
+		return false;
+	
+
+	// Quick map test
+	if (!ApplicationImmunityGameplayTagCountContainer.HasAnyMatchingGameplayTags(*Tags, EGameplayTagMatchType::Explicit, false))
+	{
+		return false;
+	}
+
+	for (const FActiveGameplayEffect& Effect : GameplayEffects)
+	{
+		if (Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *Tags ))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool FActiveGameplayEffectsContainer::IsNetAuthority() const

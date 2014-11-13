@@ -581,6 +581,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Deprecated)
 	FGameplayTagContainer ClearTagsContainer;
 
+	/** Grants the owner immunity from these source tags. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta = (DisplayName = "GrantedApplicationImmunityTags"))
+	FGameplayTagRequirements GrantedApplicationImmunityTags;
 };
 
 /** Holds evaluated magnitude from a GameplayEffect modifier */
@@ -1167,6 +1170,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void OnOwnerTagChange(FGameplayTag TagChange, int32 NewCount);
 
+	bool CheckApplicationImmunity(const FGameplayEffectSpec& SpecToApply) const;
+
 private:
 
 	FTimerHandle StackHandle;
@@ -1205,6 +1210,8 @@ private:
 	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
 
 	TMap<FGameplayTag, TSet<FActiveGameplayEffectHandle> >	ActiveEffectTagDependencies;
+
+	FGameplayTagCountContainer ApplicationImmunityGameplayTagCountContainer;
 
 	FAggregatorRef& FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
