@@ -93,7 +93,7 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		checkf(Element.Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Element.Stride, 
 			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Element.Stride);
 
-		// we offset 6 buffers to leave space for uniform buffers
+		// Vertex & Constant buffers are set up in the same space, so add VB's from the top
 		uint32 ShaderBufferIndex = UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex);
 
 		// track the buffer stride, making sure all elements with the same buffer have the same stride
@@ -101,7 +101,7 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		if (ExistingStride == NULL)
 		{
 			// handle 0 stride buffers
-			MTLVertexStepFunction Function = (Element.Stride == 0 ? MTLVertexStepFunctionConstant : MTLVertexStepFunctionPerVertex);
+			MTLVertexStepFunction Function = (Element.Stride == 0 ? MTLVertexStepFunctionConstant : (Element.bUseInstanceIndex ? MTLVertexStepFunctionPerInstance : MTLVertexStepFunctionPerVertex));
 			uint32 StepRate = (Element.Stride == 0 ? 0 : 1);
 			// even with MTLVertexStepFunctionConstant, it needs a non-zero stride (not sure why)
 			uint32 Stride = (Element.Stride == 0 ? 4 : Element.Stride);
