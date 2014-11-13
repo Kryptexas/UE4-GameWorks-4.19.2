@@ -11,6 +11,9 @@ namespace SceneOutliner
 	{
 		/** The world this tree item is associated with. */
 		mutable TWeakObjectPtr<UWorld> World;
+		
+		/** Constant identifier for this tree item */
+		const FObjectKey ID;
 
 		/** Construct this item from a world */
 		FWorldTreeItem(UWorld* InWorld);

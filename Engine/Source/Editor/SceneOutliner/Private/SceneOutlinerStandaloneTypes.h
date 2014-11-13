@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ObjectKey.h"
 #include "SceneOutlinerFwd.h"
 
 #include "SceneOutlinerDragDrop.h"
@@ -33,27 +34,16 @@ namespace SceneOutliner
 		/** Default constructed null item ID */
 		FTreeItemID() : Type(EType::Null), CachedHash(0) {}
 
-		/** ID representing an actor */
-		FTreeItemID(const TWeakObjectPtr<AActor>& InActor) : Type(EType::Actor)
+		/** ID representing a UObject */
+		FTreeItemID(const UObject* InObject) : Type(EType::Object)
 		{
-			new (Data) TWeakObjectPtr<AActor>(InActor);
+			check(InObject);
+			new (Data) FObjectKey(InObject);
 			CachedHash = CalculateTypeHash();
 		}
-		FTreeItemID(const AActor* InActor) : Type(EType::Actor)
+		FTreeItemID(const FObjectKey& InKey) : Type(EType::Object)
 		{
-			new (Data) TWeakObjectPtr<AActor>(InActor);
-			CachedHash = CalculateTypeHash();
-		}
-
-		/** ID representing a world */
-		FTreeItemID(const TWeakObjectPtr<UWorld>& InWorld) : Type(EType::World)
-		{
-			new (Data) TWeakObjectPtr<UWorld>(InWorld);
-			CachedHash = CalculateTypeHash();
-		}
-		FTreeItemID(const UWorld* InWorld) : Type(EType::World)
-		{
-			new (Data) TWeakObjectPtr<UWorld>(InWorld);
+			new (Data) FObjectKey(InKey);
 			CachedHash = CalculateTypeHash();
 		}
 
@@ -81,8 +71,7 @@ namespace SceneOutliner
 			Type = Other.Type;
 			switch(Type)
 			{
-				case EType::Actor:			new (Data) TWeakObjectPtr<AActor>(Other.GetAsActorRef());								break;
-				case EType::World:			new (Data) TWeakObjectPtr<UWorld>(Other.GetAsWorldRef());								break;
+				case EType::Object:			new (Data) FObjectKey(Other.GetAsObjectKey());											break;
 				case EType::LevelBlueprint:	new (Data) FLevelBlueprintHandle(Other.GetAsLevelBlueprintRef());						break;
 				case EType::Folder:			new (Data) FName(Other.GetAsFolderRef());												break;
 				default:																											break;
@@ -107,8 +96,7 @@ namespace SceneOutliner
 		{
 			switch(Type)
 			{
-				case EType::Actor:			GetAsActorRef().~TWeakObjectPtr();						break;
-				case EType::World:			GetAsWorldRef().~TWeakObjectPtr();						break;
+				case EType::Object:			GetAsObjectKey().~FObjectKey();							break;
 				case EType::LevelBlueprint:	GetAsLevelBlueprintRef().~FLevelBlueprintHandle();		break;
 				case EType::Folder:			GetAsFolderRef().~FName();								break;
 				default:																			break;
@@ -129,8 +117,7 @@ namespace SceneOutliner
 			uint32 Hash = 0;
 			switch(Type)
 			{
-				case EType::Actor:			Hash = GetTypeHash(GetAsActorRef());				break;
-				case EType::World:			Hash = GetTypeHash(GetAsWorldRef());				break;
+				case EType::Object:			Hash = GetTypeHash(GetAsObjectKey());				break;
 				case EType::LevelBlueprint:	Hash = GetTypeHash(GetAsLevelBlueprintRef());		break;
 				case EType::Folder:			Hash = GetTypeHash(GetAsFolderRef());				break;
 				default:																		break;
@@ -146,18 +133,16 @@ namespace SceneOutliner
 
 	private:
 
-		TWeakObjectPtr<AActor>& 				GetAsActorRef() const 			{ return *reinterpret_cast<TWeakObjectPtr<AActor>*>(Data); }
-		TWeakObjectPtr<UWorld>& 				GetAsWorldRef() const 			{ return *reinterpret_cast<TWeakObjectPtr<UWorld>*>(Data); }
-		FLevelBlueprintHandle& 					GetAsLevelBlueprintRef() const 	{ return *reinterpret_cast<FLevelBlueprintHandle*>(Data); }
-		FName& 									GetAsFolderRef() const			{ return *reinterpret_cast<FName*>(Data); }
+		FObjectKey& 				GetAsObjectKey() const 			{ return *reinterpret_cast<FObjectKey*>(Data); }
+		FLevelBlueprintHandle& 		GetAsLevelBlueprintRef() const 	{ return *reinterpret_cast<FLevelBlueprintHandle*>(Data); }
+		FName& 						GetAsFolderRef() const			{ return *reinterpret_cast<FName*>(Data); }
 
 		/** Compares the specified ID with this one - assumes matching types */
 		bool Compare(const FTreeItemID& Other) const
 		{
 			switch(Type)
 			{
-				case EType::Actor:			return GetAsActorRef() == Other.GetAsActorRef();
-				case EType::World:			return GetAsWorldRef() == Other.GetAsWorldRef();
+				case EType::Object:			return GetAsObjectKey() == Other.GetAsObjectKey();
 				case EType::LevelBlueprint:	return GetAsLevelBlueprintRef() == Other.GetAsLevelBlueprintRef();
 				case EType::Folder:			return GetAsFolderRef() == Other.GetAsFolderRef();
 				case EType::Null:			return true;
@@ -165,11 +150,11 @@ namespace SceneOutliner
 			}
 		}
 
-		enum class EType : uint8 { Actor, World, LevelBlueprint, Folder, Null };
+		enum class EType : uint8 { Object, LevelBlueprint, Folder, Null };
 		EType Type;
 
 		uint32 CachedHash;
-		static const uint32 MaxSize = TMaxSizeof<TWeakObjectPtr<UWorld>, TWeakObjectPtr<ULevelScriptBlueprint>, TWeakObjectPtr<AActor>, FName>::Value;
+		static const uint32 MaxSize = TMaxSizeof<FObjectKey, FLevelBlueprintHandle, FName>::Value;
 		mutable uint8 Data[MaxSize];
 	};
 

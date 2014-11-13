@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ITreeItem.h"
+#include "ObjectKey.h"
 
 namespace SceneOutliner
 {
@@ -38,6 +39,9 @@ namespace SceneOutliner
 	{
 		/** The actor this tree item is associated with. */
 		mutable TWeakObjectPtr<AActor> Actor;
+
+		/** Constant identifier for this tree item */
+		const FObjectKey ID;
 
 		/** Construct this item from an actor */
 		FActorTreeItem(AActor* InActor);

@@ -181,6 +181,7 @@ void FActorDropTarget::DetachActorFromParent(AActor* ChildActor)
 
 FActorTreeItem::FActorTreeItem(AActor* InActor)
 	: Actor(InActor)
+	, ID(InActor)
 {
 	bExistsInCurrentWorldAndPIE = GEditor->ObjectsThatExistInEditorWorld.Get(InActor);
 }
@@ -194,8 +195,8 @@ FTreeItemPtr FActorTreeItem::FindParent(const FTreeItemMap& ExistingItems) const
 	}
 
 	// Parents should have already been added to the tree
-	TWeakObjectPtr<AActor> ParentActor = ActorPtr->GetAttachParentActor();
-	if (ParentActor.IsValid())
+	AActor* ParentActor = ActorPtr->GetAttachParentActor();
+	if (ParentActor)
 	{
 		return ExistingItems.FindRef(ParentActor);
 	}
@@ -262,7 +263,7 @@ void FActorTreeItem::Visit(const IMutableTreeItemVisitor& Visitor)
 
 FTreeItemID FActorTreeItem::GetID() const
 {
-	return FTreeItemID(Actor);
+	return ID;
 }
 
 FString FActorTreeItem::GetDisplayString() const

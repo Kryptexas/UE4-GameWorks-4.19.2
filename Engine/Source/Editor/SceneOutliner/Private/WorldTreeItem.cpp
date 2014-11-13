@@ -12,6 +12,7 @@ namespace SceneOutliner
 
 FWorldTreeItem::FWorldTreeItem(UWorld* InWorld)
 	: World(InWorld)
+	, ID(InWorld)
 {
 
 }
@@ -38,7 +39,7 @@ void FWorldTreeItem::Visit(const IMutableTreeItemVisitor& Visitor)
 
 FTreeItemID FWorldTreeItem::GetID() const
 {
-	return FTreeItemID(World);
+	return ID;
 }
 
 FString FWorldTreeItem::GetDisplayString() const

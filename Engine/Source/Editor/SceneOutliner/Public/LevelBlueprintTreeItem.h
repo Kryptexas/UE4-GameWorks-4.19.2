@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ITreeItem.h"
+#include "ObjectKey.h"
 
 namespace SceneOutliner
 {
@@ -12,9 +13,11 @@ namespace SceneOutliner
 		/** We reference level blueprints by their parent level, as they don't always exist */
 		TWeakObjectPtr<ULevel> ParentLevel;
 
+		/** A key that is used to reference the level */
+		FObjectKey LevelKey;
+
 		/** Construct this handle from a level */
-		explicit FLevelBlueprintHandle(ULevel* InLevel) : ParentLevel(InLevel) {}
-		explicit FLevelBlueprintHandle(const TWeakObjectPtr<ULevel>& InLevel) : ParentLevel(InLevel) {}
+		explicit FLevelBlueprintHandle(ULevel* InLevel) : ParentLevel(InLevel), LevelKey(InLevel) {}
 
 		/** Get the level blueprint for the parent level (if it exists) */
 		ULevelScriptBlueprint* GetLevelBlueprint()
@@ -40,11 +43,11 @@ namespace SceneOutliner
 
 		friend uint32 GetTypeHash(const FLevelBlueprintHandle& Handle)
 		{
-			return GetTypeHash(Handle.ParentLevel);
+			return GetTypeHash(Handle.LevelKey);
 		}
 
-		bool operator==(const FLevelBlueprintHandle& Other) const { return ParentLevel == Other.ParentLevel; }
-		bool operator!=(const FLevelBlueprintHandle& Other) const { return ParentLevel != Other.ParentLevel; }
+		bool operator==(const FLevelBlueprintHandle& Other) const { return LevelKey == LevelKey; }
+		bool operator!=(const FLevelBlueprintHandle& Other) const { return LevelKey != LevelKey; }
 	};
 
 	/** A tree item that represents a level blueprint */
