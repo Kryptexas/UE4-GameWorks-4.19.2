@@ -25,6 +25,46 @@ void APlacedEditorUtilityBase::TickActor(float DeltaSeconds, ELevelTick TickType
 	Super::TickActor(DeltaSeconds, TickType, ThisTickFunction);
 }
 
+TArray<AActor*> APlacedEditorUtilityBase::GetSelectionSet()
+{
+	TArray<AActor*> Result;
+
+#if WITH_EDITOR
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	{
+		if (AActor* Actor = Cast<AActor>(*It))
+		{
+			Result.Add(Actor);
+		}
+	}
+#endif //WITH_EDITOR
+
+	return Result;
+}
+
+bool APlacedEditorUtilityBase::GetLevelViewportCameraInfo(FVector& CameraLocation, FRotator& CameraRotation)
+{
+	bool RetVal = false;
+	CameraLocation = FVector::ZeroVector;
+	CameraRotation = FRotator::ZeroRotator;
+
+#if WITH_EDITOR
+	for (auto LevelVC : GEditor->LevelViewportClients)
+	{
+		if (LevelVC && LevelVC->IsPerspective())
+		{
+			CameraLocation = LevelVC->GetViewLocation();
+			CameraRotation = LevelVC->GetViewRotation();
+			RetVal = true;
+
+			break;
+		}
+	}
+#endif //WITH_EDITOR
+
+	return RetVal;
+}
+
 /*
 
 
