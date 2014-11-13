@@ -218,7 +218,7 @@ public:
 	TSubclassOf<class ASpectatorPawn> SpectatorClass;
 
 	/** A PlayerState of this class will be associated with every player to replicate relevant player information to all clients. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=Classes)
 	TSubclassOf<class APlayerState> PlayerStateClass;
 
 	/** Class of GameState associated with this GameMode. */
