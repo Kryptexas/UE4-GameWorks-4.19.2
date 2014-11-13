@@ -646,6 +646,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 			check(CompressedSize < INT_MAX);
 			int32 CompressedSizeInt = (int32)CompressedSize;
 			verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSizeInt, Src, BytesToCompress ) );
+			CompressedSize = CompressedSizeInt;
 			// move to next chunk if not reading from file
 			if (!bTreatBufferAsFileReader)
 			{
