@@ -3395,6 +3395,12 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
+	// It's necessary to tell if UberGraphFunction is ready to create frame.
+	if (NewClass->UberGraphFunction)
+	{
+		NewClass->UberGraphFunction->SetFlags(RF_LoadCompleted);
+	}
+
 	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_FinalizationWork);
 
 		// Set any final flags and seal the class, build a CDO, etc...
