@@ -18,5 +18,7 @@ rm -f casetest*
 
 # Copy UE4EditorServices to ~/Library/Services
 if [ ! -d ~/Library/Services/UE4EditorServices.app ]; then
-	cp -r ../../../Binaries/Mac/UE4EditorServices.app ~/Library/Services/UE4EditorServices.app
+	if [ -d ../../../Binaries/Mac/UE4EditorServices.app ]; then
+		cp -r ../../../Binaries/Mac/UE4EditorServices.app ~/Library/Services/UE4EditorServices.app
+	fi
 fi
