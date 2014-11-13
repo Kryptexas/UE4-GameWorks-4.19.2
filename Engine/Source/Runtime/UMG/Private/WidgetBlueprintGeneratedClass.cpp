@@ -106,4 +106,23 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 	}
 }
 
+void UWidgetBlueprintGeneratedClass::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
+	{
+		static const FName Visiblity(TEXT("Visiblity"));
+		static const FName Visibility(TEXT("Visibility"));
+
+		for ( FDelegateRuntimeBinding& Binding : Bindings )
+		{
+			if ( Binding.PropertyName == Visiblity )
+			{
+				Binding.PropertyName = Visibility;
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

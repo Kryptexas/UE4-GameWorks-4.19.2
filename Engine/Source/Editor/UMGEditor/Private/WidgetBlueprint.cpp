@@ -77,7 +77,7 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 	Binding.PropertyName = PropertyName;
 	if ( Kind == EBindingKind::Function )
 	{
-		Binding.FunctionName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->SkeletonGeneratedClass, MemberGuid);
+		Binding.FunctionName = ( MemberGuid.IsValid() ) ? Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->SkeletonGeneratedClass, MemberGuid) : FunctionName;
 	}
 	else
 	{
@@ -139,6 +139,20 @@ void UWidgetBlueprint::PostLoad()
 		}	
 
 		AnimationData_DEPRECATED.Empty();
+	}
+
+	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
+	{
+		static const FName Visiblity(TEXT("Visiblity"));
+		static const FName Visibility(TEXT("Visibility"));
+
+		for ( FDelegateEditorBinding& Binding : Bindings )
+		{
+			if ( Binding.PropertyName == Visiblity )
+			{
+				Binding.PropertyName = Visibility;
+			}
+		}
 	}
 }
 

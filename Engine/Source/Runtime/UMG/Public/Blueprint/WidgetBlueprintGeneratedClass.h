@@ -24,23 +24,21 @@ struct FDelegateRuntimeBinding
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** The widget that will be bound to the live data. */
 	UPROPERTY()
 	FString ObjectName;
 
+	/** The property on the widget that will have a binding placed on it. */
 	UPROPERTY()
 	FName PropertyName;
 
+	/** The function or property we're binding to on the source object. */
 	UPROPERTY()
 	FName FunctionName;
 
+	/** The kind of binding we're performing, are we binding to a property or a function. */
 	UPROPERTY()
 	TEnumAsByte<EBindingKind::Type> Kind;
-	
-	/*UFunction* UK2Node_CallFunction::GetTargetFunction() const
-	{
-	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
-	return Function;
-	}*/
 };
 
 
@@ -71,6 +69,8 @@ public:
 	TArray< FName > NamedSlots;
 
 public:
+
+	virtual void PostLoad() override;
 
 	/**
 	 * This is the function that makes UMG work.  Once a user widget is constructed, it will post load

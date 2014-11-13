@@ -18,7 +18,7 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
-	Visiblity = ESlateVisibility::SelfHitTestInvisible;
+	Visibility = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
 	bSupportsKeyboardFocus = true;
@@ -739,6 +739,11 @@ void UUserWidget::PreSave()
 			}
 		}
 	}
+}
+
+void UUserWidget::PostLoad()
+{
+	Super::PostLoad();
 }
 
 #if WITH_EDITOR

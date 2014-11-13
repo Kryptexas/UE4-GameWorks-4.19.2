@@ -14,7 +14,7 @@ UWidgetSwitcher::UWidgetSwitcher(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = true;
 
 	SWidgetSwitcher::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UWidgetSwitcher::ReleaseSlateResources(bool bReleaseChildren)

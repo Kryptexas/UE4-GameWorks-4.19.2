@@ -34,7 +34,7 @@ public:
 
 	/** Visibility */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
-	TEnumAsByte<ESlateVisibility::Type> ScrollBarVisibility;
+	TEnumAsByte<ESlateVisibility> ScrollBarVisibility;
 
 	/**  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")

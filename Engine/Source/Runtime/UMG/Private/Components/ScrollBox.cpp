@@ -15,7 +15,7 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 	Orientation = Orient_Vertical;
 
 	SScrollBox::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 
 	WidgetStyle = *Defaults._Style;
 	WidgetBarStyle = *Defaults._ScrollBarStyle;

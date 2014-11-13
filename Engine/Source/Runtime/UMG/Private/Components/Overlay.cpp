@@ -13,7 +13,7 @@ UOverlay::UOverlay(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SOverlay::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UOverlay::ReleaseSlateResources(bool bReleaseChildren)

@@ -13,7 +13,7 @@ UVerticalBox::UVerticalBox(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SVerticalBox::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity( Defaults._Visibility.Get() );
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UVerticalBox::ReleaseSlateResources(bool bReleaseChildren)

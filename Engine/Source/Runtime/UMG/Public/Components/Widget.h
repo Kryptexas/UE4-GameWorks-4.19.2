@@ -41,7 +41,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateBrush, FGetSlateBrush);
@@ -89,12 +89,16 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** The visibility of the widget */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
-	TEnumAsByte<ESlateVisibility::Type> Visiblity;
+	UPROPERTY()
+	TEnumAsByte<ESlateVisibility> Visiblity_DEPRECATED;
+
+	/** The visibility of the widget */
+	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	ESlateVisibility Visibility;
 
 	/** A bindable delegate for Visibility */
 	UPROPERTY()
-	FGetSlateVisibility VisiblityDelegate;
+	FGetSlateVisibility VisibilityDelegate;
 
 	/** The cursor to show when the mouse is over the widget */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
@@ -179,11 +183,11 @@ public:
 
 	/** Gets the current visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	TEnumAsByte<ESlateVisibility::Type> GetVisibility();
+	ESlateVisibility GetVisibility() const;
 
 	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility);
+	void SetVisibility(ESlateVisibility InVisibility);
 
 	/** Gets if the button is currently being hovered by the mouse */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -267,6 +271,8 @@ public:
 	 * @return true if this widget is a child of the PossibleParent
 	 */
 	bool IsChildOf(UWidget* PossibleParent);
+
+	virtual void PostLoad() override;
 	
 #if WITH_EDITOR
 	/** Is the label generated or provided by the user? */
@@ -317,8 +323,8 @@ public:
 
 	// Utility methods
 	//@TODO UMG: Should move elsewhere
-	static EVisibility ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input);
-	static ESlateVisibility::Type ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
+	static EVisibility ConvertSerializedVisibilityToRuntime(ESlateVisibility Input);
+	static ESlateVisibility ConvertRuntimeToSerializedVisibility(const EVisibility& Input);
 
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
@@ -337,9 +343,9 @@ protected:
 protected:
 	//TODO UMG Consider moving conversion functions into another class.
 	// Conversion functions
-	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
+	EVisibility ConvertVisibility(TAttribute<ESlateVisibility> SerializedType) const
 	{
-		ESlateVisibility::Type SlateVisibility = SerializedType.Get();
+		ESlateVisibility SlateVisibility = SerializedType.Get();
 		return ConvertSerializedVisibilityToRuntime(SlateVisibility);
 	}
 

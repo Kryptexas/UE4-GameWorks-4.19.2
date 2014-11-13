@@ -13,7 +13,7 @@ UCanvasPanel::UCanvasPanel(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SConstraintCanvas::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UCanvasPanel::ReleaseSlateResources(bool bReleaseChildren)
@@ -66,6 +66,11 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
 }
 
+UCanvasPanelSlot* UCanvasPanel::AddChildToCanvas(UWidget* Content)
+{
+	return Cast<UCanvasPanelSlot>( Super::AddChild(Content) );
+}
+
 TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 {
 	return MyCanvas;
@@ -79,7 +84,7 @@ bool UCanvasPanel::GetGeometryForSlot(int32 SlotIndex, FGeometry& ArrangedGeomet
 
 bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
 {
-	if ( Slot->Content == NULL )
+	if ( Slot->Content == nullptr )
 	{
 		return false;
 	}

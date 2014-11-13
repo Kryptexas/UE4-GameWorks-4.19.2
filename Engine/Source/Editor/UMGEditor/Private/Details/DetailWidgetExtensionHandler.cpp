@@ -54,5 +54,6 @@ TSharedRef<SWidget> FDetailWidgetExtensionHandler::GenerateExtensionWidget(const
 		return SNullWidget::NullWidget;
 	}
 
-	return SNew(SPropertyBinding, BlueprintEditor.Pin().ToSharedRef(), DelegateProperty, InPropertyHandle.ToSharedRef());
+	return SNew(SPropertyBinding, BlueprintEditor.Pin().ToSharedRef(), DelegateProperty, InPropertyHandle.ToSharedRef())
+		.GeneratePureBindings(true);
 }

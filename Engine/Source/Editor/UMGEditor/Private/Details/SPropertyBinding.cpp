@@ -129,18 +129,53 @@ void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSign
 		}
 	}
 
-	// Grab functions implemented by the blueprint
-	for ( TFieldIterator<UProperty> PropIt(SkeletonClass, EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt )
+	// Walk up class hierarchy for native functions and properties
+	for ( UClass* Class = SkeletonClass; Class != UUserWidget::StaticClass(); Class = Class->GetSuperClass() )
 	{
-		UProperty* Prop = *PropIt;
-
-		if ( UProperty* ReturnProperty = DelegateSignature->GetReturnProperty() )
+		// Add matching native functions
+		for ( TFieldIterator<UFunction> FuncIt(Class, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt )
 		{
-			if ( ReturnProperty->SameType(Prop) )
+			UFunction* Func = *FuncIt;
+
+			if ( !Func->HasAnyFunctionFlags(UF::BlueprintCallable | UF::BlueprintPure) )
 			{
-				if ( Prop->HasAnyPropertyFlags(UP::BlueprintReadWrite) )
+				continue;
+			}
+
+			FName FunctionFName = Func->GetFName();
+
+			UFunction* Function = Class->FindFunctionByName(FunctionFName, EIncludeSuperFlag::IncludeSuper);
+			if ( Function == nullptr )
+			{
+				continue;
+			}
+
+			// We ignore CPF_ReturnParm because all that matters for binding to script functions is that the number of out parameters match.
+			if ( Function->IsSignatureCompatibleWith(DelegateSignature, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+			{
+				TSharedPtr<FunctionInfo> NewFuncAction = MakeShareable(new FunctionInfo());
+				NewFuncAction->DisplayName = FText::FromName(Func->GetFName());
+				NewFuncAction->Tooltip = Func->GetMetaData("Tooltip");
+				NewFuncAction->FuncName = FunctionFName;
+				NewFuncAction->EdGraph = nullptr;
+
+				BlueprintFunctionCache.Add(NewFuncAction);
+			}
+		}
+
+		// Grab functions implemented by the blueprint
+		for ( TFieldIterator<UProperty> PropIt(SkeletonClass, EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt )
+		{
+			UProperty* Prop = *PropIt;
+
+			if ( UProperty* ReturnProperty = DelegateSignature->GetReturnProperty() )
+			{
+				if ( ReturnProperty->SameType(Prop) )
 				{
-					BlueprintPropertyCache.Add(Prop);
+					if ( Prop->HasAnyPropertyFlags(UP::BlueprintReadWrite) )
+					{
+						BlueprintPropertyCache.Add(Prop);
+					}
 				}
 			}
 		}
@@ -152,7 +187,7 @@ TSharedRef<SWidget> SPropertyBinding::OnGenerateDelegateMenu(UWidget* Widget, TS
 	RefreshBlueprintMemberCache(DelegateSignature, bIsPure);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, NULL);
+	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr);
 
 	static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
 	static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
@@ -265,7 +300,7 @@ const FSlateBrush* SPropertyBinding::GetCurrentBindingImage(TSharedRef<IProperty
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FText SPropertyBinding::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const
@@ -279,7 +314,7 @@ FText SPropertyBinding::GetCurrentBindingText(TSharedRef<IPropertyHandle> Proper
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
 		// Ignore null outer objects
-		if ( OuterObjects[ObjectIndex] == NULL )
+		if ( OuterObjects[ObjectIndex] == nullptr )
 		{
 			continue;
 		}
@@ -292,13 +327,30 @@ FText SPropertyBinding::GetCurrentBindingText(TSharedRef<IPropertyHandle> Proper
 			{
 				if ( Binding.Kind == EBindingKind::Function )
 				{
-					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
-					return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+					if ( Binding.MemberGuid.IsValid() )
+					{
+						// Graph function, look up by Guid
+						FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
+						return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+					}
+					else
+					{
+						// No GUID, native function, return function name.
+						return FText::FromName(Binding.FunctionName);
+					}
 				}
 				else // Property
 				{
-					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->GeneratedClass, Binding.MemberGuid);
-					return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+					if ( Binding.MemberGuid.IsValid() )
+					{
+						FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->GeneratedClass, Binding.MemberGuid);
+						return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+					}
+					else
+					{
+						// No GUID, native property, return source property.
+						return FText::FromName(Binding.SourceProperty);
+					}
 				}
 			}
 		}
@@ -365,7 +417,7 @@ void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> Prop
 		Binding.ObjectName = SelectedObject->GetName();
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.FunctionName = SelectedFunction->FuncName;
-		Binding.MemberGuid = SelectedFunction->EdGraph->GraphGuid;
+		Binding.MemberGuid = ( SelectedFunction->EdGraph ) ? SelectedFunction->EdGraph->GraphGuid : FGuid();
 		Binding.Kind = EBindingKind::Function;
 
 		Blueprint->Bindings.Remove(Binding);
@@ -462,7 +514,7 @@ EVisibility SPropertyBinding::GetGotoBindingVisibility(TSharedRef<IPropertyHandl
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
 		// Ignore null outer objects
-		if ( OuterObjects[ObjectIndex] == NULL )
+		if ( OuterObjects[ObjectIndex] == nullptr )
 		{
 			continue;
 		}
@@ -495,7 +547,7 @@ FReply SPropertyBinding::HandleGotoBindingClicked(TSharedRef<IPropertyHandle> Pr
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
 		// Ignore null outer objects
-		if ( OuterObjects[ObjectIndex] == NULL )
+		if ( OuterObjects[ObjectIndex] == nullptr )
 		{
 			continue;
 		}

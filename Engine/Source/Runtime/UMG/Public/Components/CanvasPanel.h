@@ -23,6 +23,10 @@ class UMG_API UCanvasPanel : public UPanelWidget
 
 public:
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Canvas Panel")
+	UCanvasPanelSlot* AddChildToCanvas(UWidget* Content);
+
 	/** Gets the underlying native canvas widget if it has been constructed */
 	TSharedPtr<class SConstraintCanvas> GetCanvasWidget() const;
 

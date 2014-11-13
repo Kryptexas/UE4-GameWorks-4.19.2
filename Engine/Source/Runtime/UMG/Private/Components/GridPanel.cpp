@@ -13,7 +13,7 @@ UGridPanel::UGridPanel(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SGridPanel::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UGridPanel::ReleaseSlateResources(bool bReleaseChildren)

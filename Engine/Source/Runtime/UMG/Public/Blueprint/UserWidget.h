@@ -105,7 +105,6 @@ class UUMGSequencePlayer;
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
@@ -583,6 +582,7 @@ public:
 
 	// Begin UObject interface
 	virtual void PreSave() override;
+	virtual void PostLoad() override;
 	// End UObject interface
 
 #if WITH_EDITOR

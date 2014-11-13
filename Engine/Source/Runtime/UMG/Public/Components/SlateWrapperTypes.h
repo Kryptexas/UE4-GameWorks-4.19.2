@@ -13,22 +13,19 @@
 
 /** Is an entity visible? */
 UENUM(BlueprintType)
-namespace ESlateVisibility
+enum class ESlateVisibility : uint8
 {
-	enum Type
-	{
-		/** Default widget visibility - visible and can interactive with the cursor */
-		Visible,
-		/** Not visible and takes up no space in the layout; can never be clicked on because it takes up no space. */
-		Collapsed,
-		/** Not visible, but occupies layout space. Not interactive for obvious reasons. */
-		Hidden,
-		/** Visible to the user, but only as art. The cursors hit tests will never see this widget. */
-		HitTestInvisible,
-		/** Same as HitTestInvisible, but doesn't apply to child widgets. */
-		SelfHitTestInvisible
-	};
-}
+	/** Default widget visibility - visible and can interactive with the cursor */
+	Visible,
+	/** Not visible and takes up no space in the layout; can never be clicked on because it takes up no space. */
+	Collapsed,
+	/** Not visible, but occupies layout space. Not interactive for obvious reasons. */
+	Hidden,
+	/** Visible to the user, but only as art. The cursors hit tests will never see this widget. */
+	HitTestInvisible,
+	/** Same as HitTestInvisible, but doesn't apply to child widgets. */
+	SelfHitTestInvisible
+};
 
 /** The sizing options of UWidgets */
 UENUM(BlueprintType)

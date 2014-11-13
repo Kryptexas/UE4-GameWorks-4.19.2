@@ -13,7 +13,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	bIsEnabled = true;
 	bIsVariable = true;
 	bDesignTime = false;
-	Visiblity = ESlateVisibility::Visible;
+	Visibility = ESlateVisibility::Visible;
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 
 	//TODO UMG ToolTipWidget
@@ -106,20 +106,20 @@ bool UWidget::IsVisible() const
 	return false;
 }
 
-TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
+ESlateVisibility UWidget::GetVisibility() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
 	{
-		return UWidget::ConvertRuntimeToSerializedVisiblity(SafeWidget->GetVisibility());
+		return UWidget::ConvertRuntimeToSerializedVisibility(SafeWidget->GetVisibility());
 	}
 
-	return Visiblity;
+	return Visibility;
 }
 
-void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
+void UWidget::SetVisibility(ESlateVisibility InVisibility)
 {
-	Visiblity = InVisibility;
+	Visibility = InVisibility;
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
@@ -458,7 +458,7 @@ void UWidget::SynchronizeProperties()
 #endif
 	{
 		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
-		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
+		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
 
 	UpdateRenderTransform();
@@ -496,7 +496,17 @@ void UWidget::SetIsDesignTime(bool bInDesignTime)
 	bDesignTime = bInDesignTime;
 }
 
-EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input)
+void UWidget::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
+	{
+		Visibility = Visiblity_DEPRECATED;
+	}
+}
+
+EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility Input)
 {
 	switch ( Input )
 	{
@@ -511,12 +521,12 @@ EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type
 	case ESlateVisibility::SelfHitTestInvisible:
 		return EVisibility::SelfHitTestInvisible;
 	default:
-		//check(false);
+		check(false);
 		return EVisibility::Visible;
 	}
 }
 
-ESlateVisibility::Type UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
+ESlateVisibility UWidget::ConvertRuntimeToSerializedVisibility(const EVisibility& Input)
 {
 	if ( Input == EVisibility::Visible )
 	{
@@ -540,7 +550,7 @@ ESlateVisibility::Type UWidget::ConvertRuntimeToSerializedVisiblity(const EVisib
 	}
 	else
 	{
-		//check(false);
+		check(false);
 		return ESlateVisibility::Visible;
 	}
 }

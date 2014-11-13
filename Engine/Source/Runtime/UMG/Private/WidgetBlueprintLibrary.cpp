@@ -17,7 +17,12 @@ UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FObjectInitializer& Objec
 
 UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType, APlayerController* OwningPlayer)
 {
-	if ( OwningPlayer == NULL )
+	if ( WidgetType == nullptr || WidgetType->HasAnyClassFlags(CLASS_Abstract) )
+	{
+		return nullptr;
+	}
+
+	if ( OwningPlayer == nullptr )
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		return CreateWidget<UUserWidget>(World, WidgetType);

@@ -13,7 +13,7 @@ UWrapBox::UWrapBox(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SWrapBox::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity( Defaults._Visibility.Get() );
+	Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UWrapBox::ReleaseSlateResources(bool bReleaseChildren)

@@ -644,6 +644,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_GRAPH_INTERACTIVE_COMMENTBUBBLES,
 	// Landscape serializes physical materials for collision objects 
 	VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS,
+	// Rename Visiblity on widgets to Visibility
+	VER_UE4_RENAME_WIDGET_VISIBILITY,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
