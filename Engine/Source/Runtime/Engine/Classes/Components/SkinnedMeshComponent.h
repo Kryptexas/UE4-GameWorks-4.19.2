@@ -573,19 +573,7 @@ public:
 	/** Flip the editable space base buffer */
 	void FlipEditableSpaceBases();
 
-	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces)
-	{
-		bDoubleBufferedBlendSpaces = bInDoubleBufferedBlendSpaces;
-
-		if (bDoubleBufferedBlendSpaces)
-		{
-			CurrentEditableSpaceBases = 1 - CurrentReadSpaceBases;
-		}
-		else
-		{
-			CurrentEditableSpaceBases = CurrentReadSpaceBases;
-		}
-	}
+	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces);
 
 protected:
 	/**

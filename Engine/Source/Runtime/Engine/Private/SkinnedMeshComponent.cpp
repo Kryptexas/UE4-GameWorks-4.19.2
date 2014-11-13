@@ -1832,6 +1832,20 @@ void USkinnedMeshComponent::FlipEditableSpaceBases()
 	}
 }
 
+void USkinnedMeshComponent::SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces)
+{
+	bDoubleBufferedBlendSpaces = bInDoubleBufferedBlendSpaces;
+
+	if (bDoubleBufferedBlendSpaces)
+	{
+		CurrentEditableSpaceBases = 1 - CurrentReadSpaceBases;
+	}
+	else
+	{
+		CurrentEditableSpaceBases = CurrentReadSpaceBases;
+	}
+}
+
 void FAnimUpdateRateParameters::Set(class AActor& Owner, const int32& NewUpdateRate, const int32& NewEvaluationRate, const bool & bNewInterpSkippedFrames)
 {
 	UpdateRate = FMath::Max(NewUpdateRate, 1);
