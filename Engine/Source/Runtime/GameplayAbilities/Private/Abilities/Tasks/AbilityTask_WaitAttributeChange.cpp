@@ -6,7 +6,7 @@
 
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffectExtension.h"
-
+#pragma optimize("",off)
 UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -18,6 +18,19 @@ UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttri
 	MyObj->WithTag = InWithTag;
 	MyObj->WithoutTag = InWithoutTag;
 	MyObj->Attribute = InAttribute;
+	MyObj->ComparisonType = EWaitAttributeChangeComparison::None;
+
+	return MyObj;
+}
+
+UAbilityTask_WaitAttributeChange* UAbilityTask_WaitAttributeChange::WaitForAttributeChangeWithComparison(UObject* WorldContextObject, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag, TEnumAsByte<EWaitAttributeChangeComparison::Type> InComparisonType, float InComparisonValue)
+{
+	auto MyObj = NewTask<UAbilityTask_WaitAttributeChange>(WorldContextObject);
+	MyObj->WithTag = InWithTag;
+	MyObj->WithoutTag = InWithoutTag;
+	MyObj->Attribute = InAttribute;
+	MyObj->ComparisonType = InComparisonType;
+	MyObj->ComparisonValue = InComparisonValue;
 
 	return MyObj;
 }
@@ -51,9 +64,35 @@ void UAbilityTask_WaitAttributeChange::OnAttributeChange(float NewValue, const F
 		}
 	}	
 
-	OnChange.Broadcast();
-
-	EndTask();
+	bool PassedComparison = true;
+	switch (ComparisonType)
+	{
+	case EWaitAttributeChangeComparison::ExactlyEqualTo:
+		PassedComparison = (NewValue == ComparisonValue);
+		break;		
+	case EWaitAttributeChangeComparison::GreaterThan:
+		PassedComparison = (NewValue > ComparisonValue);
+		break;
+	case EWaitAttributeChangeComparison::GreaterThanOrEqualTo:
+		PassedComparison = (NewValue >= ComparisonValue);
+		break;
+	case EWaitAttributeChangeComparison::LessThan:
+		PassedComparison = (NewValue < ComparisonValue);
+		break;
+	case EWaitAttributeChangeComparison::LessThanOrEqualTo:
+		PassedComparison = (NewValue <= ComparisonValue);
+		break;
+	case EWaitAttributeChangeComparison::NotEqualTo:
+		PassedComparison = (NewValue != ComparisonValue);
+		break;
+	default:
+		break;
+	}
+	if (PassedComparison)
+	{
+		OnChange.Broadcast();
+		EndTask();
+	}
 }
 
 void UAbilityTask_WaitAttributeChange::OnDestroy(bool AbilityEnded)

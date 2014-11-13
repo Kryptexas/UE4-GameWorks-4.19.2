@@ -10,6 +10,22 @@
 
 struct FGameplayEffectModCallbackData;
 
+UENUM()
+namespace EWaitAttributeChangeComparison
+{
+	enum Type
+	{
+		None,
+		GreaterThan,
+		LessThan,
+		GreaterThanOrEqualTo,
+		LessThanOrEqualTo,
+		NotEqualTo,
+		ExactlyEqualTo,
+		MAX UMETA(Hidden)
+	};
+}
+
 /**
  *	Waits for the actor to activate another ability
  */
@@ -25,17 +41,21 @@ class UAbilityTask_WaitAttributeChange : public UAbilityTask
 
 	virtual void Activate() override;
 
-	
-		
 	void OnAttributeChange(float NewValue, const FGameplayEffectModCallbackData*);
 
 	/** Wait until an attribute changes. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitAttributeChange* WaitForAttributeChange(UObject* WorldContextObject, FGameplayAttribute Attribute, FGameplayTag WithSrcTag, FGameplayTag WithoutSrcTag);
 
+	/** Wait until an attribute changes to pass a given test. */
+	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_WaitAttributeChange* WaitForAttributeChangeWithComparison(UObject* WorldContextObject, FGameplayAttribute InAttribute, FGameplayTag InWithTag, FGameplayTag InWithoutTag, TEnumAsByte<EWaitAttributeChangeComparison::Type> InComparisonType, float InComparisonValue);
+
 	FGameplayTag WithTag;
 	FGameplayTag WithoutTag;
 	FGameplayAttribute	Attribute;
+	TEnumAsByte<EWaitAttributeChangeComparison::Type> ComparisonType;
+	float ComparisonValue;
 
 protected:
 
