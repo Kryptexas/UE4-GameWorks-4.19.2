@@ -1834,6 +1834,11 @@ void FBlueprintEditor::FocusInspectorOnGraphSelection(const FGraphPanelSelection
 
 		Inspector->ShowDetailsForObjects(NewSelection.Array(), ShowDetailsOptions);
 	}
+	else
+	{
+		// Clear the Inspector if nothing is selected, the MyBlueprints window will set the selection if it means to, but we need to make sure invalid nodes aren't still appearing
+		Inspector->ShowDetailsForSingleObject(nullptr);
+	}
 }
 
 void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)

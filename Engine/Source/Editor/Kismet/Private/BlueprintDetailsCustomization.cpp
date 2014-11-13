@@ -795,53 +795,12 @@ void FBlueprintVarActionDetails::OnVarNameCommitted(const FText& InNewText, ETex
 
 bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 {
-	FEdGraphSchemaAction_K2Var* VarAction = MyBlueprintSelectionAsVar();
-	if (VarAction)
+	UProperty* VariableProperty = SelectionAsProperty();
+	if(VariableProperty)
 	{
-		TArray<UK2Node_Variable*> VariableNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
-
-		bool bNodesPendingDeletion = false;
-		for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
-		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if (VarAction->GetVariableName() == CurrentNode->GetVarName())
-			{
-				bNodesPendingDeletion = true;
-				break;
-			}
-		}
-		
-		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindNewVariableIndex(GetBlueprintObj(), VarAction->GetVariableName()) != INDEX_NONE;
-		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
+		return GetBlueprintObj()->SkeletonGeneratedClass->GetAuthoritativeClass() == VariableProperty->GetOwnerClass()->GetAuthoritativeClass();
 	}
-
-	FEdGraphSchemaAction_K2LocalVar* LocalVarAction = MyBlueprintSelectionAsLocalVar();
-	if (LocalVarAction)
-	{
-		TArray<UK2Node_Variable*> VariableNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
-
-		bool bNodesPendingDeletion = false;
-		for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
-		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if (LocalVarAction->GetVariableName() == CurrentNode->GetVarName())
-			{
-				bNodesPendingDeletion = true;
-				break;
-			}
-		}
-
-		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName()) != NULL;
-		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
-	}
-	FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
-	if(VarLocalAction)
-	{
-		return true;
-	}
-	return false;
+	return true;
 }
 
 bool FBlueprintVarActionDetails::GetVariableCategoryChangeEnabled() const
@@ -888,16 +847,14 @@ void FBlueprintVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinT
 			// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
 			MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
 
-			FEdGraphSchemaAction_K2Var* VarAction = MyBlueprintSelectionAsVar();
-			if(VarAction)
+			UProperty* VariableProperty = SelectionAsProperty();
+			if(IsALocalVariable(VariableProperty))
+			{
+				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), GetLocalVariableScope(VariableProperty), VarName, NewPinType);
+			}
+			else
 			{
 				FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
-			}
-
-			FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
-			if(VarLocalAction)
-			{
-				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), VarLocalAction->GetVariableScope(), VarName, NewPinType);
 			}
 		}
 	}

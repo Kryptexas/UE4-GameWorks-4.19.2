@@ -3537,6 +3537,80 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 	}
 }
 
+TArray<UK2Node_Variable*> FBlueprintEditorUtils::GetNodesForVariable(const FName& InVarName, const UBlueprint* InBlueprint, const UStruct* InScope/* = nullptr*/)
+{
+	TArray<UK2Node_Variable*> ReturnNodes;
+	TArray<UK2Node_Variable*> VariableNodes;
+	GetAllNodesOfClass<UK2Node_Variable>(InBlueprint, VariableNodes);
+
+	bool bNodesPendingDeletion = false;
+	for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
+	{
+		UK2Node_Variable* CurrentNode = *NodeIt;
+		if (InVarName == CurrentNode->GetVarName())
+		{
+			if(InScope && CurrentNode->VariableReference.GetMemberScopeName() != InScope->GetName())
+			{
+				// Variables are not in the same scope
+				continue;
+			}
+			ReturnNodes.Add(CurrentNode);
+		}
+	}
+	return ReturnNodes;
+}
+
+bool FBlueprintEditorUtils::VerifyUserWantsVariableTypeChanged(const FName& InVarName)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VariableName"), FText::FromName(InVarName));
+
+	FText ConfirmDelete = FText::Format(LOCTEXT( "ConfirmChangeVarType",
+		"This could break connections, do you want to search all Variable '{VariableName}' instances, change its type, and recompile?"), Args );
+
+	// Warn the user that this may result in data loss
+	FSuppressableWarningDialog::FSetupInfo Info( ConfirmDelete, LOCTEXT("ChangeVariableType", "Change Variable Type"), "ChangeVariableType_Warning" );
+	Info.ConfirmText = LOCTEXT( "ChangeVariableType_Yes", "Change Variable Type");
+	Info.CancelText = LOCTEXT( "ChangeVariableType_No", "Do Nothing");	
+
+	FSuppressableWarningDialog ChangeVariableType( Info );
+
+	FSuppressableWarningDialog::EResult RetCode = ChangeVariableType.ShowModal();
+	return RetCode == FSuppressableWarningDialog::Confirm || RetCode == FSuppressableWarningDialog::Suppressed;
+}
+
+void FBlueprintEditorUtils::GetLoadedChildBlueprints(UBlueprint* InBlueprint, TArray<UBlueprint*>& OutBlueprints)
+{
+	// Iterate over currently-loaded Blueprints and potentially adjust their variable names if they conflict with the parent
+	for(TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+	{
+		UBlueprint* ChildBP = *BlueprintIt;
+		if(ChildBP != NULL && ChildBP->ParentClass != NULL)
+		{
+			TArray<UBlueprint*> ParentBPArray;
+			// Get the parent hierarchy
+			UBlueprint::GetBlueprintHierarchyFromClass(ChildBP->ParentClass, ParentBPArray);
+
+			// Also get any BP interfaces we use
+			TArray<UClass*> ImplementedInterfaces;
+			FindImplementedInterfaces(ChildBP, true, ImplementedInterfaces);
+			for(auto InterfaceIt(ImplementedInterfaces.CreateConstIterator()); InterfaceIt; InterfaceIt++)
+			{
+				UBlueprint* BlueprintInterfaceClass = UBlueprint::GetBlueprintFromClass(*InterfaceIt);
+				if(BlueprintInterfaceClass != NULL)
+				{
+					ParentBPArray.Add(BlueprintInterfaceClass);
+				}
+			}
+
+			if(ParentBPArray.Contains(InBlueprint))
+			{
+				OutBlueprints.Add(ChildBP);
+			}
+		}
+	}
+}
+
 void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, const FName& VariableName, const FEdGraphPinType& NewPinType)
 {
 	if (VariableName != NAME_None)
@@ -3550,14 +3624,35 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 			// Update the variable type only if it is different
 			if (Variable.VarType != NewPinType)
 			{
+				TArray<UBlueprint*> ChildBPs;
+				GetLoadedChildBlueprints(Blueprint, ChildBPs);
+
+				TArray<UK2Node_Variable*> AllVariableNodes = GetNodesForVariable(VariableName, Blueprint);
+				for(UBlueprint* ChildBP : ChildBPs)
+				{
+					TArray<UK2Node_Variable*> VariableNodes = GetNodesForVariable(VariableName, ChildBP);
+					AllVariableNodes.Append(VariableNodes);
+				}
+
+				// TRUE if the user might be breaking variable connections
+				bool bBreakingVariableConnections = false;
+
+				// If there are variable nodes in place, warn the user of the consequences using a suppressible dialog
+				if(AllVariableNodes.Num())
+				{
+					if(!VerifyUserWantsVariableTypeChanged(VariableName))
+					{
+						// User has decided to cancel changing the variable member type
+						return;
+					}
+					bBreakingVariableConnections = true;
+				}
+
 				const FScopedTransaction Transaction( LOCTEXT("ChangeVariableType", "Change Variable Type") );
 				Blueprint->Modify();
 
 				/** Only change the variable type if type selection is valid, some unloaded Blueprints will turn out to be bad */
 				bool bChangeVariableType = true;
-
-				// Destroy all our nodes, because the pin types could be incorrect now (as will the links)
-				RemoveVariableNodes(Blueprint, VariableName);
 
 				if ((NewPinType.PinCategory == K2Schema->PC_Object) || (NewPinType.PinCategory == K2Schema->PC_Interface))
 				{
@@ -3603,6 +3698,39 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				if(bChangeVariableType)
 				{
 					Variable.VarType = NewPinType;
+
+					// Compile the Blueprint even if no loaded BPs are using the variable, this ensures that BPs refresh correctly when they are loaded
+					FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
+
+					if(bBreakingVariableConnections)
+					{
+						for(UBlueprint* ChildBP : ChildBPs)
+						{
+							// Mark the Blueprint as structurally modified so we can reconstruct the node successfully
+							FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(ChildBP);
+						}
+
+						// Reconstruct all variable nodes that reference the changing variable
+						for(UK2Node_Variable* VariableNode : AllVariableNodes)
+						{
+							K2Schema->ReconstructNode(*VariableNode, true);
+						}
+
+						TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(Blueprint);
+						if (FoundAssetEditor.IsValid())
+						{
+							TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
+
+							const bool bSetFindWithinBlueprint = false;
+							const bool bSelectFirstResult = false;
+							BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, VariableName.ToString(), bSelectFirstResult);
+						}
+					}
+					else
+					{
+						// And recompile
+						FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+					}
 				}
 
 				// And recompile
@@ -3954,7 +4082,7 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 	{
 		FString ActionCategory;
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		
+
 		UK2Node_FunctionEntry* FunctionEntry = NULL;
 		FBPVariableDescription* VariablePtr = FindLocalVariable(InBlueprint, InScope, InVariableName, &FunctionEntry);
 
@@ -3965,17 +4093,45 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 			// Update the variable type only if it is different
 			if (Variable.VarName == InVariableName && Variable.VarType != NewPinType)
 			{
+				TArray<UK2Node_Variable*> VariableNodes = GetNodesForVariable(InVariableName, InBlueprint, InScope);
+
+				// If there are variable nodes in place, warn the user of the consequences using a suppressible dialog
+				if(VariableNodes.Num())
+				{
+					if(!VerifyUserWantsVariableTypeChanged(InVariableName))
+					{
+						// User has decided to cancel changing the variable member type
+						return;
+					}
+				}
+
 				const FScopedTransaction Transaction( LOCTEXT("ChangeLocalVariableType", "Change Local Variable Type") );
 				InBlueprint->Modify();
 				FunctionEntry->Modify();
 
 				Variable.VarType = NewPinType;
 
-				// Destroy all our nodes, because the pin types could be incorrect now (as will the links)
-				RemoveVariableNodes(InBlueprint, InVariableName);
+				// Mark the Blueprint as structurally modified so we can reconstruct the node successfully
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+
+				// Reconstruct all local variables referencing the modified one
+				for(UK2Node_Variable* VariableNode : VariableNodes)
+				{
+					K2Schema->ReconstructNode(*VariableNode, true);
+				}
 
 				// And recompile
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+
+				TSharedPtr<IToolkit> FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(InBlueprint);
+				if (FoundAssetEditor.IsValid())
+				{
+					TSharedRef<IBlueprintEditor> BlueprintEditor = StaticCastSharedRef<IBlueprintEditor>(FoundAssetEditor.ToSharedRef());
+
+					const bool bSetFindWithinBlueprint = true;
+					const bool bSelectFirstResult = false;
+					BlueprintEditor->SummonSearchUI(bSetFindWithinBlueprint, InVariableName.ToString(), bSelectFirstResult);
+				}
 			}
 		}
 	}
