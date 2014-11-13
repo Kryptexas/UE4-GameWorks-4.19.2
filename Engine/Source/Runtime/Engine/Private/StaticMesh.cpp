@@ -621,22 +621,26 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 	// Inline the distance field derived data for cooked builds
 	if (bCooked)
 	{
-		for (int32 ResourceIndex = 0; ResourceIndex < LODResources.Num(); ResourceIndex++)
+		FStripDataFlags StripFlags( Ar );
+		if ( !StripFlags.IsDataStrippedForServer() )
 		{
-			FStaticMeshLODResources& LOD = LODResources[ResourceIndex];
-
-			bool bValid = LOD.DistanceFieldData != NULL;
-
-			Ar << bValid;
-
-			if (bValid)
+			for (int32 ResourceIndex = 0; ResourceIndex < LODResources.Num(); ResourceIndex++)
 			{
-				if (!LOD.DistanceFieldData)
-				{
-					LOD.DistanceFieldData = new FDistanceFieldVolumeData();
-				}
+				FStaticMeshLODResources& LOD = LODResources[ResourceIndex];
 
-				Ar << *(LOD.DistanceFieldData);
+				bool bValid = LOD.DistanceFieldData != NULL;
+
+				Ar << bValid;
+
+				if (bValid)
+				{
+					if (!LOD.DistanceFieldData)
+					{
+						LOD.DistanceFieldData = new FDistanceFieldVolumeData();
+					}
+
+					Ar << *(LOD.DistanceFieldData);
+				}
 			}
 		}
 	}
