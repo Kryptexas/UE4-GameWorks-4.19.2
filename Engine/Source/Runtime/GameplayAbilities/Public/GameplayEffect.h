@@ -865,6 +865,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	/** Sets the magnitude of one of our modifiers. This must be done on modifiers which are EGameplayEffectMagnitudeCalculation::SetByCaller  */
 	void SetModifierMagnitude(int32 ModIdx, float EvaluatedMagnitude);
 
+	/** Set magnitude of (the first) SetByCaller modifier with the given GameplayAttribute  */
+	void SetModifierMagnitude(FGameplayAttribute Attribute, float EvaluatedMagnitude);
+
 	// The duration in seconds of this effect
 	// instantaneous effects should have a duration of UGameplayEffect::INSTANT_APPLICATION
 	// effects that last forever should have a duration of UGameplayEffect::INFINITE_DURATION

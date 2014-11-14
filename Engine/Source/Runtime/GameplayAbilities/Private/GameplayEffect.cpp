@@ -572,6 +572,22 @@ void FGameplayEffectSpec::SetModifierMagnitude(int32 ModIdx, float EvaluatedMagn
 	Modifiers[ModIdx].EvaluatedMagnitude = EvaluatedMagnitude;
 }
 
+void FGameplayEffectSpec::SetModifierMagnitude(FGameplayAttribute Attribute, float EvaluatedMagnitude)
+{
+	for (int32 ModIdx=0; ModIdx < Def->Modifiers.Num(); ++ModIdx)
+	{
+		const FGameplayModifierInfo& ModDef = Def->Modifiers[ModIdx];
+		FModifierSpec& ModSpec = Modifiers[ModIdx];
+
+		if (ModDef.Attribute == Attribute && ModDef.ModifierMagnitude.GetMagnitudeCalculationType() == EGameplayEffectMagnitudeCalculation::SetByCaller )
+		{
+			ModSpec.EvaluatedMagnitude = EvaluatedMagnitude;
+			return;
+		}
+	}
+
+	ABILITY_LOG(Error, TEXT("FGameplayEffectSpec::SetModifierMagnitude - called on Def %s for Attribute %s but no valid modifier was found."), *Def->GetName(), *Attribute.GetName());
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
