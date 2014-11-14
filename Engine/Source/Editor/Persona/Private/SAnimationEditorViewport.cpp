@@ -75,6 +75,7 @@ TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 void SAnimationEditorViewport::OnUndoRedo()
 {
 	LevelViewportClient->Invalidate();
+	LevelViewportClient->PostUndo();
 }
 
 //////////////////////////////////////////////////////////////////////////

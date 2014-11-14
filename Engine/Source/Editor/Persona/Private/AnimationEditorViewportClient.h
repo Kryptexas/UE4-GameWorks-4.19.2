@@ -182,6 +182,10 @@ public:
 		SelectedWindActor = NULL;
 	}
 
+	void ClearSelectedAnimGraphNode();
+	void PostUndo();
+	void PostCompile();
+
 	/* Returns the floor height offset */	
 	float GetFloorOffset() const;
 
@@ -312,4 +316,13 @@ private:
 	void DrawSockets( TArray<class USkeletalMeshSocket*>& Sockets, FPrimitiveDrawInterface* PDI, bool bUseSkeletonSocketColor ) const;
 
 	TWeakObjectPtr<AWindDirectionalSource> FindSelectedWindActor() const;
+
+	struct FAnimNode_SkeletalControlBase* FindSkeletalControlAnimNode(TWeakObjectPtr<class UAnimGraphNode_SkeletalControlBase> AnimGraphNode) const;
+
+	void FindSelectedAnimGraphNode();
+
+	// selected skeletal control anim graph node 
+	TWeakObjectPtr<class UAnimGraphNode_SkeletalControlBase> SelectedSkelControlAnimGraph;
+	// to check whether we should update literal values in selected AnimGraphNode
+	bool bShouldUpdateDefaultValues;
 };

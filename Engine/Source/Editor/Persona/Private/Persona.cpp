@@ -1641,6 +1641,12 @@ void FPersona::Compile()
 			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
 		}
 	}
+
+	// calls PostCompile to copy proper values between anim nodes
+	if (Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->PostCompile();
+	}
 }
 
 FString FPersona::GetDefaultEditorTitle()
@@ -2044,7 +2050,18 @@ void FPersona::ClearSelectedSocket()
 
 void FPersona::ClearSelectedWindActor()
 {
-	Viewport.Pin()->GetAnimationViewportClient()->ClearSelectedWindActor();
+	if (Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->ClearSelectedWindActor();
+	}
+}
+
+void FPersona::ClearSelectedAnimGraphNode()
+{
+	if(Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->ClearSelectedAnimGraphNode();
+	}
 }
 
 void FPersona::RenameSocket( USkeletalMeshSocket* Socket, const FName& NewSocketName )
@@ -2387,6 +2404,7 @@ void FPersona::DeselectAll()
 	ClearSelectedBones();
 	ClearSelectedSocket();
 	ClearSelectedWindActor();
+	ClearSelectedAnimGraphNode();
 
 	OnAllDeselected.Broadcast();
 }

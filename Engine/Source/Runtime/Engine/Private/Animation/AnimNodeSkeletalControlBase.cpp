@@ -49,6 +49,11 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 	{
 		USkeletalMeshComponent* Component = Output.AnimInstance->GetSkelMeshComponent();
 
+#if WITH_EDITORONLY_DATA
+		// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
+		ForwardedPose = Output.Pose;
+#endif // #if WITH_EDITORONLY_DATA
+
 		TArray<FBoneTransform> BoneTransforms;
 		EvaluateBoneTransforms(Component, Output.AnimInstance->RequiredBones, Output.Pose, BoneTransforms);
 

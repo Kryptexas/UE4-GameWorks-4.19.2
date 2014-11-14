@@ -114,6 +114,9 @@ public:
 	/** Clears the selected wind actor */
 	void ClearSelectedWindActor();
 
+	/** Clears the selected anim graph node */
+	void ClearSelectedAnimGraphNode();
+
 	/** Clears the selection (both sockets and bones). Also broadcasts this */
 	void DeselectAll();
 
