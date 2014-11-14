@@ -72,10 +72,7 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 					.Text( this, &SGraphPinObject::OnGetComboTextValue )
 					.ToolTipText( this, &SGraphPinObject::GetObjectToolTip )
 				]
-				.MenuContent()
-				[
-					GenerateAssetPicker()
-				]
+				.OnGetMenuContent(this, &SGraphPinObject::GenerateAssetPicker)
 			]
 			// Use button
 			+SHorizontalBox::Slot()
