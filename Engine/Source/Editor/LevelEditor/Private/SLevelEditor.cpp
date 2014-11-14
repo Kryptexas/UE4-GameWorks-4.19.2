@@ -1370,12 +1370,12 @@ TArray< TSharedPtr< ILevelViewport > > SLevelEditor::GetViewports() const
 			if (LevelViewports != NULL)
 			{
 				for( int32 ViewportIndex = 0; ViewportIndex < LevelViewports->Num(); ++ViewportIndex )
-		{
+				{
 					const TSharedPtr< SLevelViewport >& Viewport = (*LevelViewports)[ ViewportIndex ];
 
-			OutViewports.Add(Viewport);
-		}
-	}
+					OutViewports.Add(Viewport);
+				}
+			}
 		}
 	}
 
