@@ -538,7 +538,10 @@ void UWidgetComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* Co
 	FWidgetComponentInstanceData* WidgetInstanceData  = static_cast<FWidgetComponentInstanceData*>(ComponentInstanceData);
 
 	RenderTarget = WidgetInstanceData->RenderTarget;
-	MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
+	if( MaterialInstance )
+	{
+		MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
+	}
 
 	MarkRenderStateDirty();
 }
