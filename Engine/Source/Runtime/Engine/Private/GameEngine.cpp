@@ -300,7 +300,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 
 void UGameEngine::SwitchGameWindowToUseGameViewport()
 {
-	if ( ensure(GameViewportWindow.IsValid()) && GameViewportWindow.Pin()->GetContent() != GameViewportWidget )
+	if (GameViewportWindow.IsValid() && GameViewportWindow.Pin()->GetContent() != GameViewportWidget)
 	{
 		if( !GameViewportWidget.IsValid() )
 		{
