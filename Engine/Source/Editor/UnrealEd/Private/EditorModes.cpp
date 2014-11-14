@@ -1229,6 +1229,13 @@ void FEditorModeTools::SaveConfig(void)
 	SaveWidgetSettings();
 }
 
+TSharedPtr<class IToolkitHost> FEditorModeTools::GetToolkitHost() const
+{
+	TSharedPtr<class IToolkitHost> Result = ToolkitHost.Pin();
+	check(ToolkitHost.IsValid());
+	return Result;
+}
+
 void FEditorModeTools::SetToolkitHost(TSharedRef<class IToolkitHost> InHost)
 {
 	checkf(!ToolkitHost.IsValid(), TEXT("SetToolkitHost can only be called once"));

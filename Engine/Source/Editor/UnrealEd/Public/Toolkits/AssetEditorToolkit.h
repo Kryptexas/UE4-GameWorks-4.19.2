@@ -117,6 +117,12 @@ public:
 	/** Called at the end of RegenerateMenusAndToolbars() */
 	virtual void PostRegenerateMenusAndToolbars() { }
 	
+	// Called when another toolkit (such as a ed mode toolkit) is being hosted in this asset editor toolkit
+	virtual void OnToolkitHostingStarted(const TSharedRef< class IToolkit >& Toolkit) {}
+
+	// Called when another toolkit (such as a ed mode toolkit) is no longer being hosted in this asset editor toolkit
+	virtual void OnToolkitHostingFinished(const TSharedRef< class IToolkit >& Toolkit) {}
+
 	/** Adds or removes extenders to the default menu or the toolbar menu this asset editor */
 	void AddMenuExtender(TSharedPtr<FExtender> Extender);
 	void RemoveMenuExtender(TSharedPtr<FExtender> Extender);
@@ -206,7 +212,7 @@ protected:
 
 	/** @return a pointer to the brush to use for the tab icon */
 	virtual const FSlateBrush* GetDefaultTabIcon() const;
-	
+
 private:
 	/** Spawns the toolbar tab */
 	TSharedRef<SDockTab> SpawnTab_Toolbar(const FSpawnTabArgs& Args);
