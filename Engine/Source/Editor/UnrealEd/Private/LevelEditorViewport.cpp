@@ -1461,11 +1461,6 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
 
-	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
-	FCoreDelegates::StatEnabled.RemoveAll(this);
-	FCoreDelegates::StatDisabled.RemoveAll(this);
-	FCoreDelegates::StatDisableAll.RemoveAll(this);
-
 	GEditor->LevelViewportClients.Remove(this);
 
 	RemoveReferenceToWorldContext(GEditor->GetEditorWorldContext());

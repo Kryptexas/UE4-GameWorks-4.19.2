@@ -321,6 +321,10 @@ FEditorViewportClient::~FEditorViewportClient()
 		GEditor->AllViewportClients[ViewportIndex]->ViewIndex = ViewportIndex;
 	}
 
+	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
+	FCoreDelegates::StatEnabled.RemoveAll(this);
+	FCoreDelegates::StatDisabled.RemoveAll(this);
+	FCoreDelegates::StatDisableAll.RemoveAll(this);
 }
 
 void FEditorViewportClient::RedrawRequested(FViewport* InViewport)
