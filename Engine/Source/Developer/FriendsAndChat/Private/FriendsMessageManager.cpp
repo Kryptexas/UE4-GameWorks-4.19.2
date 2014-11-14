@@ -20,7 +20,7 @@ public:
 			LoggedInUser = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0);
 		}
 
-		for (auto RoomName : PendingRoomJoins)
+		for (auto RoomName : RoomJoins)
 		{
 			JoinPublicRoom(RoomName);
 		}
@@ -104,8 +104,6 @@ public:
 	{
 		if (LoggedInUser.IsValid())
 		{
-			PendingRoomJoins.Remove(RoomName);
-
 			if (OnlineSub != nullptr &&
 				OnlineSub->GetChatInterface().IsValid())
 			{
@@ -114,10 +112,7 @@ public:
 				OnlineSub->GetChatInterface()->JoinPublicRoom(*LoggedInUser, FChatRoomId(RoomName), NickName);
 			}
 		}
-		else
-		{
-			PendingRoomJoins.AddUnique(RoomName);
-		}
+		RoomJoins.AddUnique(RoomName);
 	}
 
 	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatMessageReceivedEvent, FOnChatMessageReceivedEvent)
@@ -157,7 +152,7 @@ private:
 		if (OnlineSub != nullptr)
 		{
 			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
-			if( ChatInterface.IsValid())
+			if (ChatInterface.IsValid())
 			{
 				OnChatRoomJoinPublicDelegate = FOnChatRoomJoinPublicDelegate::CreateSP( this, &FFriendsMessageManagerImpl::OnChatRoomJoinPublic);
 				OnChatRoomExitDelegate = FOnChatRoomExitDelegate::CreateSP( this, &FFriendsMessageManagerImpl::OnChatRoomExit);
@@ -174,6 +169,12 @@ private:
 				ChatInterface->AddOnChatRoomMemberUpdateDelegate(OnChatRoomMemberUpdateDelegate);
 				ChatInterface->AddOnChatRoomMessageReceivedDelegate(OnChatRoomMessageReceivedDelegate);
 				ChatInterface->AddOnChatPrivateMessageReceivedDelegate(OnChatPrivateMessageReceivedDelegate);
+			}
+			IOnlinePresencePtr PresenceInterface = OnlineSub->GetPresenceInterface();
+			if (PresenceInterface.IsValid())
+			{
+				OnPresenceReceivedDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FFriendsMessageManagerImpl::OnPresenceReceived);
+				PresenceInterface->AddOnPresenceReceivedDelegate(OnPresenceReceivedDelegate);
 			}
 		}
 	}
@@ -192,6 +193,11 @@ private:
 				ChatInterface->ClearOnChatRoomMemberUpdateDelegate(OnChatRoomMemberUpdateDelegate);
 				ChatInterface->ClearOnChatRoomMessageReceivedDelegate(OnChatRoomMessageReceivedDelegate);
 				ChatInterface->ClearOnChatPrivateMessageReceivedDelegate(OnChatPrivateMessageReceivedDelegate);
+			}
+			IOnlinePresencePtr PresenceInterface = OnlineSub->GetPresenceInterface();
+			if (PresenceInterface.IsValid())
+			{
+				PresenceInterface->ClearOnPresenceReceivedDelegate(OnPresenceReceivedDelegate);
 			}
 		}
 		OnlineSub = nullptr;
@@ -284,6 +290,21 @@ private:
 		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 	}
 
+	void OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)
+	{
+		if (LoggedInUser.IsValid() &&
+			*LoggedInUser == UserId)
+		{
+			if (Presence->bIsOnline)
+			{
+				for (auto RoomName : RoomJoins)
+				{
+					JoinPublicRoom(RoomName);
+				}
+			}
+		}
+	}
+
 private:
 
 	// Incoming delegates
@@ -294,6 +315,7 @@ private:
 	FOnChatRoomMemberUpdateDelegate OnChatRoomMemberUpdateDelegate;
 	FOnChatRoomMessageReceivedDelegate OnChatRoomMessageReceivedDelegate;
 	FOnChatPrivateMessageReceivedDelegate OnChatPrivateMessageReceivedDelegate;
+	FOnPresenceReceivedDelegate OnPresenceReceivedDelegate;
 
 	// Outgoing events
 	FOnChatMessageReceivedEvent MessageReceivedEvent;
@@ -302,7 +324,7 @@ private:
 
 	IOnlineSubsystem* OnlineSub;
 	TSharedPtr<FUniqueNetId> LoggedInUser;
-	TArray<FString> PendingRoomJoins;
+	TArray<FString> RoomJoins;
 
 	bool bEnableEnterExitMessages;
 
