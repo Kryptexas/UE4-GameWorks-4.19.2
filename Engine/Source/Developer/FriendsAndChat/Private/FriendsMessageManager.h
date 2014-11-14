@@ -64,6 +64,12 @@ public:
 
 	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatMessageReceivedEvent, const TSharedRef<FFriendChatMessage> /*The chat message*/)
 	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() = 0;
+
+	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatPublicRoomJoinedEvent, const FString& /*RoomName*/)
+	virtual FOnChatPublicRoomJoinedEvent& OnChatPublicRoomJoined() = 0;
+
+	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatPublicRoomExitedEvent, const FString& /*RoomName*/)
+	virtual FOnChatPublicRoomExitedEvent& OnChatPublicRoomExited() = 0;
 };
 
 /**

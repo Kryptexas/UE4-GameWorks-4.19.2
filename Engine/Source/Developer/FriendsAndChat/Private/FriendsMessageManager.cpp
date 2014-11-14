@@ -123,9 +123,18 @@ public:
 	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatMessageReceivedEvent, FOnChatMessageReceivedEvent)
 	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() override
 	{
-		return MessageReceivedDelegate;
+		return MessageReceivedEvent;
 	}
-
+	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatPublicRoomJoinedEvent, FOnChatPublicRoomJoinedEvent)
+	virtual FOnChatPublicRoomJoinedEvent& OnChatPublicRoomJoined() override
+	{
+		return PublicRoomJoinedEvent;
+	}
+	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatPublicRoomExitedEvent, FOnChatPublicRoomExitedEvent)
+	virtual FOnChatPublicRoomExitedEvent& OnChatPublicRoomExited() override
+	{
+		return PublicRoomExitedEvent;
+	}
 
 	~FFriendsMessageManagerImpl()
 	{
@@ -134,6 +143,7 @@ public:
 private:
 	FFriendsMessageManagerImpl( )
 		: OnlineSub(nullptr)
+		, bEnableEnterExitMessages(false)
 	{
 	}
 
@@ -189,15 +199,18 @@ private:
 
 	void OnChatRoomJoinPublic(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
 	{
+		OnChatPublicRoomJoined().Broadcast(ChatRoomID);
 	}
 
 	void OnChatRoomExit(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
 	{
+		OnChatPublicRoomExited().Broadcast(ChatRoomID);
 	}
 
 	void OnChatRoomMemberJoin(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
 	{
-		if (LoggedInUser.IsValid() &&
+		if (bEnableEnterExitMessages &&
+			LoggedInUser.IsValid() &&
 			*LoggedInUser != MemberId)
 		{
 			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
@@ -216,7 +229,8 @@ private:
 
 	void OnChatRoomMemberExit(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
 	{
-		if (LoggedInUser.IsValid() &&
+		if (bEnableEnterExitMessages &&
+			LoggedInUser.IsValid() &&
 			*LoggedInUser != MemberId)
 		{
 			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
@@ -282,11 +296,15 @@ private:
 	FOnChatPrivateMessageReceivedDelegate OnChatPrivateMessageReceivedDelegate;
 
 	// Outgoing events
-	FOnChatMessageReceivedEvent MessageReceivedDelegate;
+	FOnChatMessageReceivedEvent MessageReceivedEvent;
+	FOnChatPublicRoomJoinedEvent PublicRoomJoinedEvent;
+	FOnChatPublicRoomExitedEvent PublicRoomExitedEvent;
 
 	IOnlineSubsystem* OnlineSub;
 	TSharedPtr<FUniqueNetId> LoggedInUser;
 	TArray<FString> PendingRoomJoins;
+
+	bool bEnableEnterExitMessages;
 
 private:
 	friend FFriendsMessageManagerFactory;
