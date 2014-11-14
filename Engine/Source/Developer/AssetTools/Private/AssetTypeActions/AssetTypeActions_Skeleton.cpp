@@ -12,7 +12,7 @@
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "AnimationEditorUtils.h"
-
+#include "EditorAnimUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Animation/Rig.h"

@@ -4,6 +4,7 @@
 #include "AbilitySystemInterface.h"
 #include "GameplayTagsModule.h"
 #include "GameplayEffectTypes.h"
+#include "AbilitySystemComponent.h"
 
 bool FGameplayEffectAttributeCaptureDefinition::operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const
 {

@@ -5,6 +5,8 @@
 
 #include "SAnimCurveEd.h"
 
+#include "Editor/KismetWidgets/Public/SScrubWidget.h"
+
 #define LOCTEXT_NAMESPACE "AnimCurveEd"
 
 //////////////////////////////////////////////////////////////////////////

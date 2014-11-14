@@ -8,6 +8,7 @@
 #include "SNodePanel.h"
 #include "SAnimTrackPanel.h"
 #include "SCurveEditor.h"
+#include "SAnimNotifyPanel.h"
 #include "Animation/AnimSequenceBase.h"
 
 //////////////////////////////////////////////////////////////////////////
