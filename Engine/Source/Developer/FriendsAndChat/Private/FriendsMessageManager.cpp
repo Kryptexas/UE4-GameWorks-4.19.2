@@ -266,6 +266,11 @@ private:
 		ChatItem->MessageType = EChatMessageType::Global;
 		ChatItem->MessageTimeText = FText::AsTime(ChatMessage.GetTimestamp());
 		ChatItem->bIsFromSelf = ChatMessage.GetUserId() == *LoggedInUser;
+		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage.GetUserId());
+		if(FoundFriend.IsValid())
+		{
+			ChatItem->SenderId = FoundFriend->GetUniqueID();
+		}
 		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 
 	}
@@ -278,6 +283,7 @@ private:
 		if(FoundFriend.IsValid())
 		{
 			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());
+			ChatItem->SenderId = FoundFriend->GetUniqueID();
 		}
 		else
 		{

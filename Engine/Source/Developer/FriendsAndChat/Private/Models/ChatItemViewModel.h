@@ -2,6 +2,9 @@
 
 #pragma once
 
+struct FFriendChatMessage;
+class FChatViewModel;
+
 class FChatItemViewModel
 	: public TSharedFromThis<FChatItemViewModel>
 {
@@ -12,6 +15,7 @@ public:
 	virtual FText GetMessageTypeText() = 0;
 	virtual const EChatMessageType::Type GetMessageType() const =0;
 	virtual FText GetFriendID() = 0;
+	virtual TSharedRef<FFriendChatMessage> GetMessageItem() const = 0;
 	virtual FText GetMessageTime() = 0;
 	virtual const bool IsFromSelf() const = 0;
 	virtual const float GetFadeAmountColor() const = 0;
@@ -25,4 +29,4 @@ public:
  * @return the newly created ChaItemtViewModel implementation.
  */
 FACTORY(TSharedRef< FChatItemViewModel >, FChatItemViewModel,
-	const TSharedRef<struct FFriendChatMessage>& FFriendChatMessage, TSharedRef<class FChatViewModel> Owner);
+	const TSharedRef<FFriendChatMessage>& FFriendChatMessage, TSharedRef<class FChatViewModel> Owner);

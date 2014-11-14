@@ -48,6 +48,7 @@ public:
 			.AutoWidth()
 			.VAlign(VAlign_Center)
 			.Padding(FMargin(5,1))
+			.MaxWidth(150)
 			[
 				SAssignNew(FriendItemBorder, SBorder)
 				.BorderImage(&FriendStyle.TitleBarBrush)

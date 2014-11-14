@@ -250,12 +250,12 @@ private:
 			[
 				SNew(SButton)
 				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-				.OnClicked(this, &SChatWindowImpl::HandleChannelChanged, EChatMessageType::Whisper, RecentFriend)
+				.OnClicked(this, &SChatWindowImpl::HandleChannelWhisperChanged, RecentFriend)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(RecentFriend))
+					.Text(RecentFriend->FriendName)
 					.Font(FriendStyle.FriendsFontStyleSmallBold)
 					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				]
@@ -287,7 +287,7 @@ private:
 			[
 				SNew(SButton)
 				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-				.OnClicked(this, &SChatWindowImpl::HandleChannelChanged, Option, FString())
+				.OnClicked(this, &SChatWindowImpl::HandleChannelChanged, Option)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
@@ -346,9 +346,16 @@ private:
 		return Contents;
 	}
 
-	FReply HandleChannelChanged(const EChatMessageType::Type NewOption, FString SelectedFriend)
+	FReply HandleChannelChanged(const EChatMessageType::Type NewOption)
 	{
-		ViewModel->SetChatChannel(NewOption, SelectedFriend);
+		ViewModel->SetChatChannel(NewOption);
+		ActionMenu->SetIsOpen(false);
+		return FReply::Handled();
+	}
+
+	FReply HandleChannelWhisperChanged(const TSharedPtr<FSelectedFriend> Friend)
+	{
+		ViewModel->SetWhisperChannel(Friend);
 		ActionMenu->SetIsOpen(false);
 		return FReply::Handled();
 	}
@@ -370,7 +377,7 @@ private:
 
 	void HandleChatEntered(const FText& CommentText, ETextCommit::Type CommitInfo)
 	{
-		if (CommitInfo == ETextCommit::OnEnter)
+		if (CommitInfo == ETextCommit::OnEnter && !CommentText.IsEmpty())
 		{
 			SendChatMessage();
 		}

@@ -32,6 +32,11 @@ public:
 		return DisplayName;
 	}
 
+	virtual TSharedRef<FFriendChatMessage> GetMessageItem() const override
+	{
+		return ChatMessage;
+	}
+
 	virtual FText GetMessageTime() override
 	{
 		return ChatMessage->MessageTimeText;
