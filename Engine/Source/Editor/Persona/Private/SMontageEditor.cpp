@@ -392,16 +392,7 @@ void SMontageEditor::SortAndUpdateMontage()
 
 float SMontageEditor::CalculateSequenceLengthOfEditorObject() const
 {
-	float NewSequenceLength = 0.f;
-	for (auto Iter = MontageObj->SlotAnimTracks.CreateIterator(); Iter; ++Iter)
-	{
-		FSlotAnimationTrack& SlotAnimTrack = (*Iter);
-		if ( SlotAnimTrack.AnimTrack.AnimSegments.Num() > 0 )
-		{
-			NewSequenceLength = FMath::Max(NewSequenceLength, SlotAnimTrack.AnimTrack.GetLength());
-		}
-	}
-	return NewSequenceLength;
+	return MontageObj->CalculateSequenceLength();
 }
 
 /** Sort Segments by starting time */

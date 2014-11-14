@@ -312,6 +312,10 @@ class UAnimMontage : public UAnimCompositeBase
 public:
 	// Begin UObject Interface
 	virtual void PostLoad() override;
+
+	// Gets the sequence length of the montage by calculating it from the lengths of the segments in the montage
+	ENGINE_API float CalculateSequenceLength();
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
