@@ -358,10 +358,7 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 					OutTileY = FMath::FloorToInt(NormalizedY * TileMap->MapHeight);
 					
 					if ((OutTileX > -BrushWidth) && (OutTileX < TileMap->MapWidth) && (OutTileY > -BrushHeight) && (OutTileY < TileMap->MapHeight))
-						//(NormalizedX >= 0.0f) && (NormalizedX < 1.0f) && (NormalizedY >= 0.0f) && (NormalizedY < 1.0f))
 					{
-						//OutTileX = FMath::Clamp<int>(NormalizedX * TileMap->MapWidth, 0, TileMap->MapWidth-1);
-						//OutTileY = FMath::Clamp<int>(NormalizedY * TileMap->MapHeight, 0, TileMap->MapHeight-1);
 						return Layer;
 					}
 				}
@@ -742,27 +739,6 @@ FViewportCursorLocation FEdModeTileMap::CalculateViewRay(FEditorViewportClient* 
 	FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
 
 	return MouseViewportRay;
-}
-
-AActor* FEdModeTileMap::GetFirstSelectedActorContainingTileMapComponent()
-{
-	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
-	{
-		if (AActor* Actor = Cast<AActor>(*It))
-		{
-			if (Actor->FindComponentByClass<UPaperTileMapRenderComponent>() != NULL)
-			{
-				return Actor;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-void FEdModeTileMap::CreateModeButtonInModeTray(FToolBarBuilder& Builder)
-{
-	Builder.AddToolBarButton( FPaperEditorCommands::Get().EnterTileMapEditMode );
 }
 
 void FEdModeTileMap::SetActiveTool(ETileMapEditorTool::Type NewTool)
