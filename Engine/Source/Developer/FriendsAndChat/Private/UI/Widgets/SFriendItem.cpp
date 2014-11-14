@@ -22,9 +22,16 @@ public:
 			SNew(SOverlay)
 			+SOverlay::Slot()
 			[
-				SAssignNew(ConfirmationAnchor, SMenuAnchor)
+				SAssignNew(RemoveConfirmationAnchor, SMenuAnchor)
 				.Method(InArgs._Method)
 				.OnGetMenuContent(this, &SFriendItemImpl::GetRemoveConfirmationContent)
+				.Placement(MenuMethod == SMenuAnchor::UseCurrentWindow ? MenuPlacement_MenuLeft : MenuPlacement_MenuRight)
+			]
+			+ SOverlay::Slot()
+			[
+				SAssignNew(JoinGameConfirmationAnchor, SMenuAnchor)
+				.Method(InArgs._Method)
+				.OnGetMenuContent(this, &SFriendItemImpl::GetJoinGameConfirmationContent)
 				.Placement(MenuMethod == SMenuAnchor::UseCurrentWindow ? MenuPlacement_MenuLeft : MenuPlacement_MenuRight)
 			]
 			+SOverlay::Slot()
@@ -205,12 +212,72 @@ private:
 		return Contents;
 	}
 
+	TSharedRef<SWidget> GetJoinGameConfirmationContent()
+	{
+		TSharedRef<SWidget> Contents =
+			SNew(SBorder)
+			.BorderImage(&FriendStyle.Background)
+			.Padding(10)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Padding(5)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Join Game?"))
+					.Font(FriendStyle.FriendsFontStyle)
+					.ColorAndOpacity(FriendStyle.DefaultFontColor)
+				]
+				+ SVerticalBox::Slot()
+					.Padding(5)
+					[
+						SNew(SButton)
+						.OnClicked(this, &SFriendItemImpl::HandleJoinConfirmClicked, true)
+						.ButtonStyle(&FriendStyle.FriendListEmphasisButtonStyle)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						[
+							SNew(STextBlock)
+
+							.ColorAndOpacity(FriendStyle.DefaultFontColor)
+							.Font(FriendStyle.FriendsFontStyle)
+							.Text(FText::FromString("Join"))
+						]
+					]
+				+ SVerticalBox::Slot()
+					.Padding(5)
+					[
+						SNew(SButton)
+						.OnClicked(this, &SFriendItemImpl::HandleJoinConfirmClicked, false)
+						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FriendStyle.DefaultFontColor)
+							.Font(FriendStyle.FriendsFontStyle)
+							.Text(FText::FromString("Cancel"))
+						]
+					]
+			];
+
+		MenuContent = Contents;
+		return Contents;
+	}
+
 	FReply HandleActionClicked(const EFriendActionType::Type FriendAction)
 	{
 		if( FriendAction == EFriendActionType::RemoveFriend)
 		{
 			Anchor->SetIsOpen(false);
-			ConfirmationAnchor->SetIsOpen(true);
+			RemoveConfirmationAnchor->SetIsOpen(true);
+		}
+		else if (FriendAction == EFriendActionType::JoinGame)
+		{
+			Anchor->SetIsOpen(false);
+			JoinGameConfirmationAnchor->SetIsOpen(true);
 		}
 		else
 		{
@@ -222,10 +289,20 @@ private:
 
 	FReply HandleRemoveClicked(bool bConfirm)
 	{
-		ConfirmationAnchor->SetIsOpen(false);
+		RemoveConfirmationAnchor->SetIsOpen(false);
 		if(bConfirm)
 		{
 			ViewModel->PerformAction(EFriendActionType::RemoveFriend);
+		}
+		return FReply::Handled();
+	}
+
+	FReply HandleJoinConfirmClicked(bool bConfirm)
+	{
+		JoinGameConfirmationAnchor->SetIsOpen(false);
+		if (bConfirm)
+		{
+			ViewModel->PerformAction(EFriendActionType::JoinGame);
 		}
 		return FReply::Handled();
 	}
@@ -264,7 +341,8 @@ private:
 	FFriendsAndChatStyle FriendStyle;
 
 	TSharedPtr<SMenuAnchor> Anchor;
-	TSharedPtr<SMenuAnchor> ConfirmationAnchor;
+	TSharedPtr<SMenuAnchor> RemoveConfirmationAnchor;
+	TSharedPtr<SMenuAnchor> JoinGameConfirmationAnchor;
 
 	TSharedPtr<SWidget> MenuContent;
 
