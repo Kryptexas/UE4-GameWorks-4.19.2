@@ -95,7 +95,7 @@ public:
 		ChatItem->FromName = FText::FromString("Game");
 		ChatItem->Message = FText::FromString(MsgBody);
 		ChatItem->MessageType = EChatMessageType::Party;
-		ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+		ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 		ChatItem->bIsFromSelf = false;
 		OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 	}
@@ -221,7 +221,7 @@ private:
 			}
 			ChatItem->Message = FText::FromString(TEXT("entered room"));
 			ChatItem->MessageType = EChatMessageType::Global;
-			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 			ChatItem->bIsFromSelf = false;
 			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 		}
@@ -241,7 +241,7 @@ private:
 			}
 			ChatItem->Message = FText::FromString(TEXT("left room"));
 			ChatItem->MessageType = EChatMessageType::Global;
-			ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 			ChatItem->bIsFromSelf = false;
 			OnChatMessageRecieved().Broadcast(ChatItem.ToSharedRef());
 		}

@@ -122,7 +122,7 @@ public:
 
 					ChatItem->Message = NewMessage;
 					ChatItem->MessageType = EChatMessageType::Whisper;
-					ChatItem->MessageTimeText = FText::AsTime(FDateTime::Now());
+					ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
 					ChatItem->bIsFromSelf = true;
 					ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
 					FilterChatList();
