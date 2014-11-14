@@ -492,6 +492,9 @@ while :; do
 done
 
 echo "Building ThirdParty libraries"
+echo
+echo "If you don't see SUCCESS message in the end, then building did not finish properly."
+echo "In that case, take a look into ${SCRIPT_DIR}/BuildThirdParty.log for details."
 
 rm -f ${SCRIPT_DIR}/BuildThirdParty.log
 

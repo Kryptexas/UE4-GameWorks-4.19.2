@@ -7,27 +7,6 @@
 # This script does not handle building of any of the ThirdParty dependencies.
 # (See BuildThirdParty.sh).
 
-# Location of the archive files (shared with GetAssets.py)
-if [ -z $ARCHIVE_ROOT ]; then
-  echo You should have ARCHIVE_ROOT variable set to the same location as used in GetAssets.py. If you don't know what this is about, don't invoke this file directly.
-fi
-
-# Prefix of the archive files (should match one used by GetAssets.py)
-if [ -z $GITHUB_TAG ]; then
-  echo You should have GITHUB_TAG variable set to the same release tag as used in GetAssets.py. If you don't know what this is about, don't invoke this file directly.
-fi
-
-if [ ! -d $ARCHIVE_ROOT ]; then
-  echo "Download root not found: $ARCHIVE_ROOT"
-  exit 1
-fi
-
-# Zipped archives.
-ARCHIVES="$GITHUB_TAG-Required_1of3.zip
-    $GITHUB_TAG-Required_2of3.zip
-    $GITHUB_TAG-Required_3of3.zip
-    $GITHUB_TAG-Optional.zip"
-
 # Make sure that the current working directory is the root the git checkout,
 # which is four levels up from the this script.
 SCRIPT_DIR=$(cd "$(dirname "$BASH_SOURCE")" ; pwd)
@@ -64,20 +43,6 @@ CleanRepo()
     Templates"
   for Dir in $CLEAN_DIRS; do
     git clean -xfd $Dir
-  done
-}
-
-ExtractArchives()
-{
-  echo "==> Installing dependencies"
-  for Archive in $ARCHIVES; do
-    FullPathArchive=$ARCHIVE_ROOT/$Archive
-    if [ ! -f $FullPathArchive ]; then
-      echo "Zip file dependency not found: $FullPathArchive"
-      exit 1
-    fi
-    echo "Extracting $FullPathArchive"
-    unzip -q -n $FullPathArchive
   done
 }
 
@@ -132,7 +97,6 @@ Unixify()
 }
 
 #CleanRepo
-#ExtractArchives
 Unixify
 
 echo "********** SUCCESS ****************"
