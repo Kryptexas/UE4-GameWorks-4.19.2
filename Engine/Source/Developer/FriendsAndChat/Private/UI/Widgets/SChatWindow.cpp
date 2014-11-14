@@ -372,7 +372,7 @@ private:
 
 	void HandleChatEntered(const FText& CommentText, ETextCommit::Type CommitInfo)
 	{
-		if (CommitInfo == ETextCommit::OnEnter && !CommentText.IsEmpty())
+		if (CommitInfo == ETextCommit::OnEnter)
 		{
 			SendChatMessage();
 		}

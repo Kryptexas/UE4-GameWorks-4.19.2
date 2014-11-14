@@ -118,38 +118,40 @@ public:
 
 	virtual void SendMessage(const FText NewMessage) override
 	{
-		switch(SelectedChatChannel)
+		if(!NewMessage.IsEmpty())
 		{
-			case EChatMessageType::Whisper:
+			switch(SelectedChatChannel)
 			{
-				if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
+				case EChatMessageType::Whisper:
 				{
-					MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), NewMessage.ToString());
-					TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-					ChatItem->FromName = SelectedFriend->FriendName;
-					ChatItem->Message = NewMessage;
-					ChatItem->MessageType = EChatMessageType::Whisper;
-					ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
-					ChatItem->bIsFromSelf = true;
-					ChatItem->SenderId = SelectedFriend->UserID;
-					ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
-					FilterChatList();
+					if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
+					{
+						MessageManager.Pin()->SendPrivateMessage(*SelectedFriend->UserID.Get(), NewMessage.ToString());
+						TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+						ChatItem->FromName = SelectedFriend->FriendName;
+						ChatItem->Message = NewMessage;
+						ChatItem->MessageType = EChatMessageType::Whisper;
+						ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow());
+						ChatItem->bIsFromSelf = true;
+						ChatItem->SenderId = SelectedFriend->UserID;
+						ChatLists.Add(FChatItemViewModelFactory::Create(ChatItem.ToSharedRef(), SharedThis(this)));
+						FilterChatList();
+					}
 				}
+				break;
+				case EChatMessageType::Global:
+				{
+					//@todo samz - send message to specific room (empty room name will send to all rooms)
+					MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
+				}
+				break;
+				case EChatMessageType::Party:
+				{
+					OnNewtworkMessageSentEvent().Broadcast(NewMessage.ToString());
+				}
+				break;
 			}
-			break;
-			case EChatMessageType::Global:
-			{
-				//@todo samz - send message to specific room (empty room name will send to all rooms)
-				MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
-			}
-			break;
-			case EChatMessageType::Party:
-			{
-				OnNewtworkMessageSentEvent().Broadcast(NewMessage.ToString());
-			}
-			break;
 		}
-
 		// Callback to let some UI know to stay active
 		OnChatMessageCommitted().Broadcast();
 	}
