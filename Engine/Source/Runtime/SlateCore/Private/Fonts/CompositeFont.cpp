@@ -25,6 +25,16 @@ void FFontData::SetFont(FString InFontFilename, const UFontBulkData* const InBul
 	BulkDataPtr = InBulkData;
 }
 
+bool FFontData::operator==(const FFontData& Other) const
+{
+	return BulkDataPtr == Other.BulkDataPtr && Hinting == Other.Hinting;
+}
+
+bool FFontData::operator!=(const FFontData& Other) const
+{
+	return !(*this == Other);
+}
+
 void FStandaloneCompositeFont::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	for(FTypefaceEntry& TypefaceEntry : DefaultTypeface.Fonts)

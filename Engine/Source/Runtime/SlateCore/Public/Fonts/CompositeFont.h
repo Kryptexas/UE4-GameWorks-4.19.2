@@ -35,6 +35,12 @@ struct SLATECORE_API FFontData
 	/** Set the new font data from a filename, and the data associated with that file */
 	void SetFont(FString InFontFilename, const UFontBulkData* const InBulkData);
 
+	/** Check to see whether this font data is equal to the other font data */
+	bool operator==(const FFontData& Other) const;
+
+	/** Check to see whether this font data is not equal to the other font data */
+	bool operator!=(const FFontData& Other) const;
+
 	/** The filename of the font to use - this may not always exist on disk, as we may have previously loaded and cached the font data inside an asset */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Font)
 	FString FontFilename;
