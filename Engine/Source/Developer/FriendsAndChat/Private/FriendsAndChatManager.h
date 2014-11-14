@@ -175,9 +175,9 @@ public:
 	/**
 	 * Set the user online status
 	 *
-	 * @param bIsOnline - the online state
+	 * @param OnlineState - the online state
 	 */
-	void SetUserIsOnline(bool bIsOnline);
+	void SetUserIsOnline(EOnlinePresenceState::Type OnlineState);
 
 	/**
 	 * Find a user.

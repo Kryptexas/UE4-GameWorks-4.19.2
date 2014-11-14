@@ -12,9 +12,9 @@ public:
 		return FriendsAndChatManager.Pin()->GetUserIsOnline();
 	}
 
-	virtual void SetOnlineStatus(const bool bOnlineStatus) override
+	virtual void SetOnlineStatus(EOnlinePresenceState::Type OnlineState) override
 	{
-		FriendsAndChatManager.Pin()->SetUserIsOnline(bOnlineStatus);
+		FriendsAndChatManager.Pin()->SetUserIsOnline(OnlineState);
 	}
 
 	virtual TArray<TSharedRef<FText> > GetStatusList() const override

@@ -427,13 +427,19 @@ void FFriendsAndChatManager::SetChatWindowContents()
 }
 // Actions
 
-void FFriendsAndChatManager::SetUserIsOnline(bool bIsOnline)
+void FFriendsAndChatManager::SetUserIsOnline(EOnlinePresenceState::Type OnlineState)
 {
 	if ( OnlineSubMcp != nullptr )
 	{
 		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<FOnlineUserPresence> CurrentPresence;
+		OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*UserId, CurrentPresence);
 		FOnlineUserPresenceStatus NewStatus;
-		NewStatus.State = bIsOnline ? EOnlinePresenceState::Online : EOnlinePresenceState::Away;
+		if (CurrentPresence.IsValid())
+		{
+			NewStatus = CurrentPresence->Status;
+		}
+		NewStatus.State = OnlineState;
 		OnlineSubMcp->GetPresenceInterface()->SetPresence(*UserId.Get(), NewStatus, OnPresenceUpdatedCompleteDelegate);
 	}
 }

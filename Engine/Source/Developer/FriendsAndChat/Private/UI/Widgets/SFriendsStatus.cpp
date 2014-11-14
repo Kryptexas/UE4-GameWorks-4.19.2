@@ -106,7 +106,7 @@ private:
 				+ SVerticalBox::Slot()
 				[
 					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, true)
+					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, EOnlinePresenceState::Online)
 					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 					[
 						SNew(STextBlock)
@@ -118,7 +118,7 @@ private:
 				+ SVerticalBox::Slot()
 				[
 					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, false)
+					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, EOnlinePresenceState::Away)
 					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 					[
 						SNew(STextBlock)
@@ -130,7 +130,7 @@ private:
 				+ SVerticalBox::Slot()
 				[
 					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, false)
+					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, EOnlinePresenceState::Offline)
 					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 					[
 						SNew(STextBlock)
@@ -142,10 +142,10 @@ private:
 			];
 	}
 
-	FReply HandleStatusChanged(bool bOnline)
+	FReply HandleStatusChanged(EOnlinePresenceState::Type OnlineState)
 	{
 		ActionMenu->SetIsOpen(false);
-		ViewModel->SetOnlineStatus(bOnline);
+		ViewModel->SetOnlineStatus(OnlineState);
 		return FReply::Handled();
 	}
 

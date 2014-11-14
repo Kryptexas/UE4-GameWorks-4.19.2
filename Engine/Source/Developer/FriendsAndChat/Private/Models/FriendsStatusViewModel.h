@@ -8,7 +8,7 @@ class FFriendsStatusViewModel
 public:
 	virtual ~FFriendsStatusViewModel() {}
 	virtual bool GetOnlineStatus() const = 0;
-	virtual void SetOnlineStatus( const bool bOnlineStatus) = 0;
+	virtual void SetOnlineStatus(EOnlinePresenceState::Type OnlineState) = 0;
 	virtual TArray<TSharedRef<FText> > GetStatusList() const = 0;
 	virtual FText GetStatusText() const = 0;
 };
