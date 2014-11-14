@@ -570,18 +570,11 @@ FReply FIOSTargetSettingsCustomization::OnInstallProvisionClicked()
 		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -provision \"%s\""), *ProjectPath, *ProvisionPath);
 #endif
-		TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 		OutputMessage = TEXT("");
 		IPPProcess->OnOutput().BindStatic(&OnOutput);
 		IPPProcess->Launch();
-		while(IPPProcess->IsRunning())
-		{
-			FPlatformProcess::Sleep(0.01f);
-		}
-		int RetCode = IPPProcess->GetReturnCode();
-		ensure(RetCode == 0);
-
-		UpdateStatus();
+		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FIOSTargetSettingsCustomization::UpdateStatusDelegate), 10.0f);
 	}
 
 	return FReply::Handled();
@@ -635,18 +628,11 @@ FReply FIOSTargetSettingsCustomization::OnInstallCertificateClicked()
 		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/IOS/IPhonePackager.exe"));
 		FString CommandLine = FString::Printf(TEXT("Install Engine -project \"%s\" -certificate \"%s\""), *ProjectPath, *CertPath);
 #endif
-		TSharedPtr<FMonitoredProcess> IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
+		IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 		OutputMessage = TEXT("");
 		IPPProcess->OnOutput().BindStatic(&OnOutput);
 		IPPProcess->Launch();
-		while(IPPProcess->IsRunning())
-		{
-			FPlatformProcess::Sleep(0.01f);
-		}
-		int RetCode = IPPProcess->GetReturnCode();
-		ensure(RetCode == 0);
-
-		UpdateStatus();
+		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FIOSTargetSettingsCustomization::UpdateStatusDelegate), 10.0f);
 	}
 
 	return FReply::Handled();
@@ -682,6 +668,18 @@ const FSlateBrush* FIOSTargetSettingsCustomization::GetCertificateStatus() const
 	}
 }
 
+bool FIOSTargetSettingsCustomization::UpdateStatusDelegate(float DeltaTime)
+{
+	if (IPPProcess->IsRunning())
+	{
+		return true;
+	}
+	int RetCode = IPPProcess->GetReturnCode();
+	ensure(RetCode == 0);
+	UpdateStatus();
+
+	return false;
+}
 //////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

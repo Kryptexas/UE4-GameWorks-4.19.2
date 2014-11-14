@@ -37,6 +37,8 @@ private:
 	bool bProvisionInstalled;
 	bool bCertificateInstalled;
 
+	TSharedPtr<FMonitoredProcess> IPPProcess;
+
 private:
 	FIOSTargetSettingsCustomization();
 
@@ -72,4 +74,7 @@ private:
 
 	// Update the provision status
 	void UpdateStatus();
+
+	// status tick delay
+	bool UpdateStatusDelegate(float delay);
 };
