@@ -402,7 +402,7 @@ protected:
 	 * @param OutInfos An array of widget info structures (output).
 	 * @param PropertyNamePrefix Optional prefix to use to filter the output.
 	 */
-	void GetPropertyWidgetInfos(const UStruct* InStruct, const void* InContainer, TArray<FPropertyWidgetInfo>& OutInfos, FString PropertyNamePrefix = TEXT("")) const;
+	void GetPropertyWidgetInfos(const UStruct* InStruct, const void* InContainer, TArray<FPropertyWidgetInfo>& OutInfos, FString PropertyNamePrefix = TEXT(""), FString DisplayNamePrefix = TEXT("")) const;
 
 	/** Name of the property currently being edited */
 	FString EditedPropertyName;
