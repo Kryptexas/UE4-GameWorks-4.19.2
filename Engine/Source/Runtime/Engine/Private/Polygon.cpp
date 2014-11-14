@@ -488,6 +488,29 @@ void FPoly::Rotate
 }
 
 
+void FPoly::Scale
+(
+	const FVector&		PreSubtract,
+	const FVector&		Scale
+)
+{
+	// Scale the vertices.
+	for (int32 Vertex = 0; Vertex < Vertices.Num(); Vertex++)
+	{
+		Vertices[Vertex] = PreSubtract + (Vertices[Vertex] - PreSubtract) * Scale;
+	}
+
+	Base = PreSubtract + (Base - PreSubtract) * Scale;
+
+	// Scale the texture vectors.
+	TextureU *= Scale;
+	TextureV *= Scale;
+
+	// Renormalize the normal.
+	Normal = Normal.SafeNormal();
+}
+
+
 int32 FPoly::RemoveColinears()
 {
 	FMemStack& LocalMemStack = FMemStack::Get();
