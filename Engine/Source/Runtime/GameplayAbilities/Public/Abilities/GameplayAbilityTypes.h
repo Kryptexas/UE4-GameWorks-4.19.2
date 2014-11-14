@@ -377,7 +377,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 		PlayRate(0.f),
 		Position(0.f),
 		NextSectionID(0),
-		IsStopped(0),
+		IsStopped(true),
 		ForcePlayBit(0)
 	{
 	}
