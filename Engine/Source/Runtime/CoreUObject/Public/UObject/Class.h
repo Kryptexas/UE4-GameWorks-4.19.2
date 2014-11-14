@@ -372,6 +372,11 @@ public:
 		Children = Child;
 	}
 
+	virtual FString PropertyNameToDisplayName(FName Name) const 
+	{ 
+		return Name.ToString(); 
+	}
+
 #if WITH_EDITOR
 	/** Try and find boolean metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetBoolMetaDataHierarchical(const FName& Key) const;

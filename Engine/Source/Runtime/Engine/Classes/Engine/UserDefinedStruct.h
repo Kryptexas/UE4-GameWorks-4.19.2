@@ -51,6 +51,7 @@ public:
 #endif	// WITH_EDITOR
 
 	virtual void SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad=NULL) const override;
+	virtual FString PropertyNameToDisplayName(FName Name) const override;
 
 	// UScriptStruct interface.
 	virtual void RecursivelyPreload() override;

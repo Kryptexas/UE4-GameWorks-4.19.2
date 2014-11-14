@@ -195,14 +195,24 @@ struct FDisplayNameHelper
 {
 	static FString Get(const UObject& Object)
 	{
-		FString Name = Object.GetName();
 		const UClass* Class = dynamic_cast<const UClass*>(&Object);
 		if (Class && !Class->HasAnyClassFlags(CLASS_Native))
 		{
+			FString Name = Object.GetName();
 			Name.RemoveFromEnd(TEXT("_C"));
 			Name.RemoveFromStart(TEXT("SKEL_"));
+			return Name;
 		}
-		return Name;
+
+		if (auto Property = dynamic_cast<const UProperty*>(&Object))
+		{
+			if (auto OwnerStruct = Property->GetOwnerStruct())
+			{
+				return OwnerStruct->PropertyNameToDisplayName(Property->GetFName());
+			}
+		}
+
+		return Object.GetName();
 	}
 };
 
