@@ -675,6 +675,7 @@ bool FIOSTargetSettingsCustomization::UpdateStatusDelegate(float DeltaTime)
 		return true;
 	}
 	int RetCode = IPPProcess->GetReturnCode();
+	IPPProcess = NULL;
 	ensure(RetCode == 0);
 	UpdateStatus();
 
