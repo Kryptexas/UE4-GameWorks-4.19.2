@@ -1108,7 +1108,8 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 		{
 			FTransform CurrentSkelControlTM(
 				SelectedSocket ? SelectedSocket->RelativeRotation : SkelControl->Rotation,
-				SelectedSocket ? SelectedSocket->RelativeLocation : SkelControl->Translation);
+				SelectedSocket ? SelectedSocket->RelativeLocation : SkelControl->Translation,
+				SelectedSocket ? SelectedSocket->RelativeScale : SkelControl->Scale);
 
 			FTransform BaseTM;
 
@@ -1122,10 +1123,11 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			}
 
 			// Remove SkelControl's orientation from BoneMatrix, as we need to translate/rotate in the non-SkelControlled space
-			BaseTM = BaseTM.Inverse() * CurrentSkelControlTM;
+			BaseTM = BaseTM.GetRelativeTransformReverse(CurrentSkelControlTM);
 
 			const bool bDoRotation    = WidgetMode == FWidget::WM_Rotate    || WidgetMode == FWidget::WM_TranslateRotateZ;
 			const bool bDoTranslation = WidgetMode == FWidget::WM_Translate || WidgetMode == FWidget::WM_TranslateRotateZ;
+			const bool bDoScale = WidgetMode == FWidget::WM_Scale;
 
 			if (bDoRotation)
 			{
@@ -1164,9 +1166,30 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 					SkelControl->Translation += BoneSpaceOffset;
 				}
 			}
+			if(bDoScale)
+			{
+				FVector4 BoneSpaceScaleOffset;
 
-				//@TODO: ANIMATION: Add scaling support here
+				if (ModeTools->GetCoordSystem() == COORD_World)
+				{
+					BoneSpaceScaleOffset = BaseTM.TransformVector(Scale);
+				}
+				else
+				{
+					BoneSpaceScaleOffset = Scale;
+				}
+
+				if(SelectedSocket)
+				{
+					SelectedSocket->RelativeScale += BoneSpaceScaleOffset;
+				}
+				else
+				{
+					SkelControl->Scale += BoneSpaceScaleOffset;
+				}
 			}
+			
+		}
 		else if( WindActor.IsValid() )
 		{
 			if (WidgetMode == FWidget::WM_Rotate)
@@ -1436,8 +1459,7 @@ void FAnimationViewportClient::SetWidgetMode(FWidget::EWidgetMode InMode)
 
 bool FAnimationViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
 {
-	//@TODO: ANIMATION: Add scaling support here
-	return (NewMode != FWidget::WM_Scale);
+	return true;
 }
 
 void FAnimationViewportClient::SetLocalAxesMode(ELocalAxesMode::Type AxesMode)
