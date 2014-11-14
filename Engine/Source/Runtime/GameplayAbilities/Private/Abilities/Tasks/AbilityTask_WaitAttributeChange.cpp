@@ -6,7 +6,7 @@
 
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffectExtension.h"
-#pragma optimize("",off)
+
 UAbilityTask_WaitAttributeChange::UAbilityTask_WaitAttributeChange(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
