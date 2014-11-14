@@ -478,24 +478,7 @@ void FFriendsAndChatManager::RequestFriend( const FText& FriendName )
 {
 	if ( !FriendName.IsEmpty() )
 	{
-		TSharedPtr<FUniqueNetId> ExistingId = FindUserID(FriendName.ToString());
-		if (!ExistingId.IsValid())
-		{
-			FriendByNameRequests.AddUnique( *FriendName.ToString() );
-		}
-		else
-		{
-			TSharedPtr<IFriendItem> ExistingFriend = FindUser(*ExistingId);
-			if (ExistingFriend.IsValid() &&
-				ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
-			{
-				AddFriendsToast(FText::FromString("Already friends"));
-			}
-			else
-			{
-				AddFriendsToast(FText::FromString("Friend already requested"));
-			}
-		}
+		FriendByNameRequests.AddUnique(*FriendName.ToString());
 	}
 }
 
@@ -1012,14 +995,28 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 
 	if ( bWasSuccessful && IdentifiedUserId.IsValid() )
 	{
-		TSharedPtr<FUniqueNetId> FriendId = OnlineIdentity->CreateUniquePlayerId( IdentifiedUserId.ToString() );
-		// Don't allow the user to add themselves as friends
-		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-		if ( UserId.IsValid() && OnlineIdentity->GetUserAccount( *UserId )->GetDisplayName() != DisplayName )
+		TSharedPtr<IFriendItem> ExistingFriend = FindUser(IdentifiedUserId);
+		if (ExistingFriend.IsValid())
 		{
-			PendingOutgoingFriendRequests.Add( FriendId.ToSharedRef() );
+			if (ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
+			{
+				AddFriendsToast(FText::FromString("Already friends"));
+			}
+			else
+			{
+				AddFriendsToast(FText::FromString("Friend already requested"));
+			}
 		}
-		FriendByNameInvites.AddUnique(DisplayName);
+		else if (IdentifiedUserId == RequestingUserId)
+		{
+			AddFriendsToast(FText::FromString("Can't friend yourself"));
+		}
+		else
+		{
+			TSharedPtr<FUniqueNetId> FriendId = OnlineIdentity->CreateUniquePlayerId(IdentifiedUserId.ToString());
+			PendingOutgoingFriendRequests.Add(FriendId.ToSharedRef());
+			FriendByNameInvites.AddUnique(DisplayName);
+		}
 	}
 	else
 	{
