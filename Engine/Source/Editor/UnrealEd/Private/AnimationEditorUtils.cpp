@@ -3,7 +3,6 @@
 #include "UnrealEd.h"
 #include "AnimationEditorUtils.h"
 #include "AssetToolsModule.h"
-#include "ContentBrowserModule.h"
 #include "Animation/AnimComposite.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/BlendSpace1D.h"

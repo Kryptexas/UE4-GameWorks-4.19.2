@@ -3,6 +3,8 @@
 #ifndef __AnimationEditorUtils_h__
 #define __AnimationEditorUtils_h__
 
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+
 /** dialog to prompt users to decide an animation asset name */
 class SCreateAnimationAssetDlg : public SWindow
 {
