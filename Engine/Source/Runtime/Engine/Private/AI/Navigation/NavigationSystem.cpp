@@ -113,6 +113,8 @@ namespace NavigationDebugDrawing
 void FNavigationLockContext::LockUpdates()
 {
 #if WITH_EDITOR
+	bIsLocked = true;
+
 	if (bSingleWorld)
 	{
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);
@@ -138,6 +140,11 @@ void FNavigationLockContext::LockUpdates()
 void FNavigationLockContext::UnlockUpdates()
 {
 #if WITH_EDITOR
+	if (!bIsLocked)
+	{
+		return;
+	}
+
 	if (bSingleWorld)
 	{
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyWorld);

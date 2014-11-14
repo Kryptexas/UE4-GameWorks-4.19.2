@@ -1178,6 +1178,8 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 
 			if (TargetActor != NULL)
 			{
+				FNavigationLockContext LockNavigationUpdates(TargetActor->GetWorld(), ENavigationLockReason::SpawnOnDragEnter, bCreateDropPreview);
+
 				// if the target actor is selected, we should drop onto all selected items
 				// otherwise, we should drop only onto this object
 				bool bDropOntoSelected = TargetActor->IsSelected();

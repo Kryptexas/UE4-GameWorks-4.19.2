@@ -83,22 +83,29 @@ namespace ENavigationLockReason
 		MaterialUpdate			= 1 << 2,
 		LightingUpdate			= 1 << 3,
 		ContinuousEditorMove	= 1 << 4,
+		SpawnOnDragEnter		= 1 << 5,
 	};
 }
 
 class ENGINE_API FNavigationLockContext
 {
 public:
-	FNavigationLockContext(ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown) 
-		: MyWorld(NULL), LockReason(Reason), bSingleWorld(false)
+	FNavigationLockContext(ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown, bool bApplyLock = true) 
+		: MyWorld(NULL), LockReason(Reason), bSingleWorld(false), bIsLocked(false)
 	{
-		LockUpdates(); 
+		if (bApplyLock)
+		{
+			LockUpdates();
+		}
 	}
 
-	FNavigationLockContext(UWorld* InWorld, ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown) 
-		: MyWorld(InWorld), LockReason(Reason), bSingleWorld(true)
+	FNavigationLockContext(UWorld* InWorld, ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown, bool bApplyLock = true)
+		: MyWorld(InWorld), LockReason(Reason), bSingleWorld(true), bIsLocked(false)
 	{
-		LockUpdates(); 
+		if (bApplyLock)
+		{
+			LockUpdates();
+		}
 	}
 
 	~FNavigationLockContext()
@@ -110,6 +117,7 @@ private:
 	UWorld* MyWorld;
 	uint8 LockReason;
 	uint8 bSingleWorld : 1;
+	uint8 bIsLocked : 1;
 
 	void LockUpdates();
 	void UnlockUpdates();
