@@ -204,23 +204,6 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	UpdatePropertyMap();
 }
 
-int32 SStructureDetailsView::OnPaint(const FPaintArgs& Args, FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const
-{
-	int32 LayerIdOut = LayerId;
-	// if the details table is still in need of a refresh, then wait for it to
-	// update before we paint (the tree view is probably holding onto some out
-	// of date properties, and painting those rows could cause a crash)
-	//
-	// @TODO: this is a temp fix to get 4.3 out the door, we need to find a
-	//        better, lower level solution (this could happen for other detail panels)
-	if (!DetailTree->IsPendingRefresh())
-	{
-		LayerIdOut = SDetailsViewBase::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	}
-	
-	return LayerIdOut;
-}
-
 void SStructureDetailsView::ForceRefresh()
 {
 	SetStructureData(StructData);
