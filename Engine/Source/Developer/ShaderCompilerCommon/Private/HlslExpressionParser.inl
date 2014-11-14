@@ -10,6 +10,12 @@
 
 namespace CrossCompiler
 {
+	struct FSymbolScope;
+	struct FInfo;
+
+	EParseResult ComputeExpr(FHlslScanner& Scanner, int32 MinPrec, FInfo& Info, FSymbolScope* SymbolScope);
+	EParseResult ParseExpressionList(EHlslToken EndListToken, FHlslScanner& Scanner, FSymbolScope* SymbolScope, EHlslToken NewStartListToken = EHlslToken::Invalid);
+
 	struct FSymbolScope
 	{
 		FSymbolScope* Parent;
@@ -318,171 +324,160 @@ namespace CrossCompiler
 		return EParseResult::NotMatched;
 	}
 
-	EParseResult ComputeExpr(FHlslScanner& Scanner, int32 MinPrec, FInfo& Info, FSymbolScope* SymbolScope);
-
-	EParseResult ComputeAtom(FHlslScanner& Scanner, FInfo& Info, FSymbolScope* SymbolScope)
+	EParseResult MatchUnaryOperator(FHlslScanner& Scanner, FInfo& Info, FSymbolScope* SymbolScope)
 	{
-		// Prefix (unary)
-		bool bFoundNonUnary = false;
-		//bool bFoundTypeInitializerList = false;
-		do
+		bool bFoundAny = false;
+		bool bTryAgain = true;
+		while (Scanner.HasMoreTokens() && bTryAgain)
 		{
 			auto* Token = Scanner.GetCurrentToken();
-			if (!Token)
-			{
-				return EParseResult::Error;
-			}
-			//Info.PrintWithTabs(FString::Printf(TEXT("Atom %s\n"), *Token->String));
-
-			bool bFoundUnary = true;
 			switch (Token->Token)
 			{
 			case EHlslToken::PlusPlus:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unary %s\n"), *Token->String);
+				bFoundAny = true;
 				Scanner.Advance();
 				break;
 
 			case EHlslToken::MinusMinus:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unary %s\n"), *Token->String);
+				bFoundAny = true;
 				Scanner.Advance();
 				break;
 
 			case EHlslToken::Plus:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unary %s\n"), *Token->String);
+				bFoundAny = true;
 				Scanner.Advance();
 				break;
 
 			case EHlslToken::Minus:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unary %s\n"), *Token->String);
+				bFoundAny = true;
 				Scanner.Advance();
 				break;
 
 			case EHlslToken::Not:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unary %s\n"), *Token->String);
+				bFoundAny = true;
 				Scanner.Advance();
 				break;
 
 			case EHlslToken::Neg:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unary %s\n"), *Token->String);
+				bFoundAny = true;
 				Scanner.Advance();
 				break;
 
-			case EHlslToken::BoolConstant:
-				Scanner.Advance();
-				bFoundUnary = false;
-				bFoundNonUnary = true;
-				break;
-
-			case EHlslToken::UnsignedIntegerConstant:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Atom Int %d\n"), Token->UnsignedInteger);
-				Scanner.Advance();
-				bFoundUnary = false;
-				bFoundNonUnary = true;
-				break;
-
-			case EHlslToken::FloatConstant:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Atom Float %f\n"), Token->Float);
-				Scanner.Advance();
-				bFoundUnary = false;
-				bFoundNonUnary = true;
-				break;
-
-			case EHlslToken::Identifier:
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Atom Literal %s\n"), *Token->String);
-				Scanner.Advance();
-				bFoundUnary = false;
-				bFoundNonUnary = true;
-				break;
 			case EHlslToken::LeftParenthesis:
+			// Only cast expressions are Unary
 			{
-				Scanner.Advance();
-
-				const auto* Peek1 = Scanner.PeekToken(0);
-				const auto* Peek2 = Scanner.PeekToken(1);
+				const auto* Peek1 = Scanner.PeekToken(1);
+				const auto* Peek2 = Scanner.PeekToken(2);
 				if (Peek1 && ParseGeneralType(Peek1, ETF_BUILTIN_NUMERIC | ETF_USER_TYPES, SymbolScope) == EParseResult::Matched && Peek2 && Peek2->Token == EHlslToken::RightParenthesis)
 				{
 					// Cast
-					//Info.PrintWithTabs(FString::Printf(TEXT("Cast %s\n"), *Peek1->String));
 					Scanner.Advance();
 					Scanner.Advance();
+					Scanner.Advance();
+					bFoundAny = true;
 				}
 				else
 				{
-					if (ComputeExpr(Scanner, 1, Info, SymbolScope) != EParseResult::Matched)
-					{
-						Scanner.SourceError(TEXT("Expected expression!"));
-						return EParseResult::Error;
-					}
-
-					if (!Scanner.MatchToken(EHlslToken::RightParenthesis))
-					{
-						Scanner.SourceError(TEXT("Expected ')'!"));
-						return EParseResult::Error;
-					}
-
-					bFoundNonUnary = true;
-					bFoundUnary = false;
+					// Non-unary
+					return bFoundAny ? EParseResult::Matched : EParseResult::NotMatched;
 				}
-				break;
-/*
-				//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Atom (\n"));
-
-				// Try cast expression
-				else
-				{
-					auto Result = ComputeExpr(Scanner, 1, Info, SymbolScope);
-					if (Result != EParseResult::Matched)
-					{
-						Scanner.SourceError(TEXT("Expected expression!"));
-						return EParseResult::Error;
-					}
-
-					if (!Scanner.MatchToken(EHlslToken::RightParenthesis))
-					{
-						Scanner.SourceError(TEXT("Expected ')'!"));
-						return EParseResult::Error;
-					}
-
-					bFoundNonUnary = true;
-					bFoundUnary = false;
-				}
-*/
 			}
 				break;
+
 			default:
-				// Grrr handle Sampler as a variable name
-				if (ParseGeneralType(Scanner, ETF_SAMPLER_TEXTURE_BUFFER) == EParseResult::Matched)
-				{
-				bFoundUnary = false;
-					bFoundNonUnary = true;
-				break;
+				return bFoundAny ? EParseResult::Matched : EParseResult::NotMatched;
 			}
-				// Handle float3(x,y,z)
-				else if (ParseGeneralType(Scanner, ETF_BUILTIN_NUMERIC) == EParseResult::Matched)
-			{
-					bFoundUnary = false;
-					//bFoundTypeInitializerList = true;
-					bFoundNonUnary = true;
-				break;
-			}
-				else
+		}
+
+		// Ran out of tokens!
+		return EParseResult::Error;
+	}
+
+	EParseResult ComputeAtom(FHlslScanner& Scanner, FInfo& Info, FSymbolScope* SymbolScope)
 	{
-					return EParseResult::NotMatched;
-		}
-		}
-
-			if (!bFoundUnary)
+		auto UnaryResult = MatchUnaryOperator(Scanner, Info, SymbolScope);
+		auto* Token = Scanner.GetCurrentToken();
+		if (!Token || UnaryResult == EParseResult::Error)
 		{
-			break;
+			return EParseResult::Error;
 		}
-		}
-		while (Scanner.HasMoreTokens());
 
-		if (!bFoundNonUnary)
+		switch (Token->Token)
+		{
+		case EHlslToken::BoolConstant:
+			Scanner.Advance();
+			break;
+
+		case EHlslToken::UnsignedIntegerConstant:
+			Scanner.Advance();
+			break;
+
+		case EHlslToken::FloatConstant:
+			Scanner.Advance();
+			break;
+
+		case EHlslToken::Identifier:
+			Scanner.Advance();
+			break;
+
+		case EHlslToken::LeftParenthesis:
+		{
+			Scanner.Advance();
+
+			// Check if it's a cast expression first
+			const auto* Peek1 = Scanner.PeekToken(0);
+			const auto* Peek2 = Scanner.PeekToken(1);
+			// Parenthesis expression
+			if (ComputeExpr(Scanner, 1, Info, SymbolScope) != EParseResult::Matched)
 			{
-			Scanner.SourceError(TEXT("Expected expression!"));
+				Scanner.SourceError(TEXT("Expected expression!"));
 				return EParseResult::Error;
 			}
+
+			if (!Scanner.MatchToken(EHlslToken::RightParenthesis))
+			{
+				Scanner.SourceError(TEXT("Expected ')'!"));
+				return EParseResult::Error;
+			}
+		}
+			break;
+
+		default:
+			// Grrr handle Sampler as a variable name... This is safe here since Declarations are always handled first
+			if (ParseGeneralType(Scanner, ETF_SAMPLER_TEXTURE_BUFFER) == EParseResult::Matched)
+			{
+				break;
+			}
+			// Handle float3(x,y,z)
+			else if (ParseGeneralType(Scanner, ETF_BUILTIN_NUMERIC) == EParseResult::Matched)
+			{
+				if (Scanner.MatchToken(EHlslToken::LeftParenthesis))
+				{
+					auto Result = ParseExpressionList(EHlslToken::RightParenthesis, Scanner, SymbolScope);
+					if (Result != EParseResult::Matched)
+					{
+						Scanner.SourceError(TEXT("Unexpected type in numeric constructor!"));
+						return EParseResult::Error;
+					}
+				}
+				else
+				{
+					Scanner.SourceError(TEXT("Unexpected type in declaration!"));
+					return EParseResult::Error;
+				}
+				break;
+			}
+			else
+			{
+				if (UnaryResult == EParseResult::Matched)
+				{
+					Scanner.SourceError(TEXT("Expected expression!"));
+					return EParseResult::Error;
+				}
+
+				return EParseResult::NotMatched;
+			}
+		}
 
 		// Suffix
 		while (Scanner.HasMoreTokens())
@@ -516,38 +511,9 @@ namespace CrossCompiler
 			}
 			else if (Scanner.MatchToken(EHlslToken::LeftParenthesis))
 			{
-				//Info.PrintWithTabs(TEXT("FunctionCall (\n"));
-				bool bFirst = true;
-				bool bFoundRightParenthesis = false;
-				while (Scanner.HasMoreTokens())
-				{
-					if (Scanner.MatchToken(EHlslToken::RightParenthesis))
-					{
-						bFoundRightParenthesis = true;
-						break;
-					}
-
-					if (bFirst)
-					{
-						bFirst = false;
-					}
-					else
-					{
-						if (!Scanner.MatchToken(EHlslToken::Comma))
-						{
-							Scanner.SourceError(TEXT("Expected ','!"));
-							return EParseResult::Error;
-						}
-					}
-					auto Result = ComputeExpr(Scanner, 0, Info, SymbolScope);
-					if (Result != EParseResult::Matched)
-					{
-						Scanner.SourceError(TEXT("Expected expression!"));
-						return EParseResult::Error;
-					}
-				}
-
-				if (!bFoundRightParenthesis)
+				// Function Call
+				auto Result = ParseExpressionList(EHlslToken::RightParenthesis, Scanner, SymbolScope);
+				if (Result != EParseResult::Matched)
 				{
 					Scanner.SourceError(TEXT("Expected ')'!"));
 					return EParseResult::Error;
@@ -723,5 +689,55 @@ namespace CrossCompiler
 	{
 		FInfo Info(!true);
 		return ComputeExpr(Scanner, 0, Info, SymbolScope);
+	}
+
+	EParseResult ParseExpressionList(EHlslToken EndListToken, FHlslScanner& Scanner, FSymbolScope* SymbolScope, EHlslToken NewStartListToken)
+	{
+		while (Scanner.HasMoreTokens())
+		{
+			const auto* Token = Scanner.PeekToken();
+			if (Token->Token == EndListToken)
+			{
+				Scanner.Advance();
+				return EParseResult::Matched;
+			}
+			else if (NewStartListToken != EHlslToken::Invalid && Token->Token == NewStartListToken)
+			{
+				Scanner.Advance();
+				auto Result = ParseExpressionList(EndListToken, Scanner, SymbolScope, NewStartListToken);
+				if (Result != EParseResult::Matched)
+				{
+					return Result;
+				}
+			}
+			else
+			{
+				auto Result = ParseExpression(Scanner, SymbolScope);
+				if (Result == EParseResult::Error)
+				{
+					Scanner.SourceError(TEXT("Invalid expression list\n"));
+					return EParseResult::Error;
+				}
+				else if (Result == EParseResult::NotMatched)
+				{
+					Scanner.SourceError(TEXT("Expected expression\n"));
+					return EParseResult::Error;
+				}
+			}
+
+			if (Scanner.MatchToken(EHlslToken::Comma))
+			{
+				continue;
+			}
+			else if (Scanner.MatchToken(EndListToken))
+			{
+				return EParseResult::Matched;
+			}
+
+			Scanner.SourceError(TEXT("Expected ','\n"));
+			break;
+		}
+
+		return EParseResult::Error;
 	}
 }

@@ -65,26 +65,27 @@ namespace CCT
 			if (RunInfo.bList)
 			{
 				TArray<FString> List;
-				FString Temp;
-				while (HLSLShaderSource.Split(TEXT("\r\n"), &Temp, &HLSLShaderSource))
+
+				if (!FFileHelper::LoadANSITextFileToStrings(*RunInfo.InputFile, &IFileManager::Get(), List))
 				{
-					List.Add(Temp);
+					return 1;
 				}
 
+				int32 Count = 0;
 				for (auto& File : List)
 				{
 					FString HLSLShader;
 					if (!FFileHelper::LoadFileToString(HLSLShader, *File))
 					{
-						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
-						return 1;
+						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *File);
+						continue;
 					}
-					UE_LOG(LogCrossCompilerTool, Log, TEXT("%s!"), *File);
+					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s!"), Count++, *File);
 
 					if (!CrossCompiler::Parser::Parse(HLSLShader, File))
 					{
 						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *File);
-						return 0;
+						return 1;
 					}
 				}
 			}
@@ -93,11 +94,11 @@ namespace CCT
 				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile))
 				{
 					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);
-					return 0;
+					return 1;
 				}
 			}
 			//Scanner.Dump();
-			return 1;
+			return 0;
 		}
 
 		ANSICHAR* ShaderSource = 0;

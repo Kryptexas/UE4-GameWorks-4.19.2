@@ -208,51 +208,13 @@ Unmatched:
 	{
 		if (bAllowLists && Scanner.MatchToken(EHlslToken::LeftBrace))
 		{
-			while (Scanner.HasMoreTokens())
+			auto Result = ParseExpressionList(EHlslToken::RightBrace, Scanner, SymbolScope, EHlslToken::LeftBrace);
+			if (Result != EParseResult::Matched)
 			{
-				const auto* Token = Scanner.PeekToken();
-				if (Token->Token == EHlslToken::RightBrace)
-				{
-					Scanner.Advance();
-					return EParseResult::Matched;
-				}
-				else if (Token->Token == EHlslToken::LeftBrace)
-				{
-					auto Result = ParseInitializer(Scanner, SymbolScope, true);
-					if (Result != EParseResult::Matched)
-					{
-						return Result;
-					}
-				}
-				else
-				{
-					auto Result = ParseExpression(Scanner, SymbolScope);
-					if (Result == EParseResult::Error)
-					{
-						Scanner.SourceError(TEXT("Invalid initielizer expression list\n"));
-						return EParseResult::Error;
-					}
-					else if (Result == EParseResult::NotMatched)
-					{
-						Scanner.SourceError(TEXT("Expected initializer expression\n"));
-						return EParseResult::Error;
-					}
-				}
-
-				if (Scanner.MatchToken(EHlslToken::Comma))
-				{
-					continue;
-				}
-				else if (Scanner.MatchToken(EHlslToken::RightBrace))
-				{
-					return EParseResult::Matched;
-				}
-
-				Scanner.SourceError(TEXT("Expected ','\n"));
-				break;
+				Scanner.SourceError(TEXT("Invalid initializer list\n"));
 			}
 
-			Scanner.SourceError(TEXT("Expected '}'\n"));
+			return EParseResult::Matched;
 		}
 		else
 		{
@@ -1022,22 +984,8 @@ Unmatched:
 
 			if (Parser.Scanner.MatchToken(EHlslToken::LeftParenthesis))
 			{
-				do
-				{
-					if (ParseExpression(Parser.Scanner, Parser.CurrentScope) != EParseResult::Matched)
-					{
-						Parser.Scanner.SourceError(TEXT("Incorrect attribute! Expected expression.\n"));
-						return EParseResult::Error;
-					}
-
-					if (!Parser.Scanner.MatchToken(EHlslToken::Comma))
-					{
-						break;
-					}
-				}
-				while (Parser.Scanner.HasMoreTokens());
-
-				if (!Parser.Scanner.MatchToken(EHlslToken::RightParenthesis))
+				auto Result = ParseExpressionList(EHlslToken::RightParenthesis, Parser.Scanner, Parser.CurrentScope);
+				if (Result != EParseResult::Matched)
 				{
 					Parser.Scanner.SourceError(TEXT("Incorrect attribute! Expected ')'.\n"));
 					return EParseResult::Error;
@@ -1199,8 +1147,9 @@ Unmatched:
 			RulesStatements.Add(FRulePair(EHlslToken::Switch, ParseSwitchStatement, TryParseAttribute));
 			RulesStatements.Add(FRulePair(EHlslToken::Semicolon, ParseEmptyStatement));
 			RulesStatements.Add(FRulePair(EHlslToken::Break, ParseEmptyStatement));
-			RulesStatements.Add(FRulePair(EHlslToken::Invalid, ParseExpressionStatement));
 			RulesStatements.Add(FRulePair(EHlslToken::Invalid, ParseLocalDeclaration));
+			// Always try expressions last
+			RulesStatements.Add(FRulePair(EHlslToken::Invalid, ParseExpressionStatement));
 		}
 	}
 
