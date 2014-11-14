@@ -27,6 +27,14 @@ class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	TArray<AActor*> GetSelectionSet();
 
+	/**
+	 * Attempts to find the actor specified by PathToActor in the current editor world
+	 * @param	PathToActor	The path to the actor (e.g. PersistentLevel.PlayerStart)
+	 * @return	A reference to the actor, or none if it wasn't found
+	 */
+	UFUNCTION(BlueprintPure, Category = "Development|Editor")
+	AActor* GetActorReference(FString PathToActor);
+
 	////////////////////////////
 
 	// Should this blueprint automatically run OnDefaultActionClicked, or should it open up a details panel to edit properties and/or offer multiple buttons

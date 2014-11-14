@@ -145,3 +145,12 @@ void UGlobalEditorUtilityBase::RenameAsset(UObject* Asset, const FString& NewNam
 
 	AssetToolsModule.Get().RenameAssets(AssetsAndNames);
 }
+
+AActor* UGlobalEditorUtilityBase::GetActorReference(FString PathToActor)
+{
+#if WITH_EDITOR
+	return Cast<AActor>(StaticFindObject(AActor::StaticClass(), GEditor->GetEditorWorldContext().World(), *PathToActor, false));
+#else
+	return nullptr;
+#endif //WITH_EDITOR
+}
