@@ -27,8 +27,8 @@ protected:
 	virtual FText GetControllerDescription() const override;
 
 	ANIMGRAPH_API virtual FVector GetWidgetLocation(const USkeletalMeshComponent* SkelComp, struct FAnimNode_SkeletalControlBase* AnimNode) override;
-	ANIMGRAPH_API virtual FWidget::EWidgetMode GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
-	ANIMGRAPH_API virtual FWidget::EWidgetMode ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, FWidget::EWidgetMode InCurWidgetMode) override;
+	ANIMGRAPH_API virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
+	ANIMGRAPH_API virtual int32 ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode) override;
 
 	ANIMGRAPH_API virtual FName FindSelectedBone() override;
 
@@ -44,14 +44,15 @@ protected:
 	// End of UAnimGraphNode_SkeletalControlBase interface
 
 	// methods to find a valid widget mode for gizmo because doesn't need to show gizmo when the mode is "Ignore"
-	FWidget::EWidgetMode FindValidWidgetMode(FWidget::EWidgetMode InMode);
-	EBoneModificationMode GetBoneModificationMode(FWidget::EWidgetMode InMode);
-	FWidget::EWidgetMode GetNextWidgetMode(FWidget::EWidgetMode InMode);
+	int32 FindValidWidgetMode(int32 InWidgetMode);
+	EBoneModificationMode GetBoneModificationMode(int32 InWidgetMode);
+	int32 GetNextWidgetMode(int32 InWidgetMode);
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */
 	FNodeTitleTextTable CachedNodeTitles;
 
-	FWidget::EWidgetMode CurWidgetMode;
+	// storing current widget mode 
+	int32 CurWidgetMode;
 };
 

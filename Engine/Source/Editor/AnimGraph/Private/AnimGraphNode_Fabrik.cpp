@@ -32,7 +32,7 @@ FVector UAnimGraphNode_Fabrik::GetWidgetLocation(const USkeletalMeshComponent* S
 	return WidgetLoc;
 }
 
-FWidget::EWidgetMode UAnimGraphNode_Fabrik::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
+int32 UAnimGraphNode_Fabrik::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
 {
 	uint32 BoneIndex = SkelComp->GetBoneIndex(Node.EffectorTransformBone.BoneName);
 

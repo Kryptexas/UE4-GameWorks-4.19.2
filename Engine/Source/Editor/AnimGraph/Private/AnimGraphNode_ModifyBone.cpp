@@ -11,7 +11,7 @@
 UAnimGraphNode_ModifyBone::UAnimGraphNode_ModifyBone(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	CurWidgetMode = FWidget::WM_Rotate;
+	CurWidgetMode = (int32)FWidget::WM_Rotate;
 }
 
 FText UAnimGraphNode_ModifyBone::GetControllerDescription() const
@@ -95,8 +95,9 @@ FVector UAnimGraphNode_ModifyBone::GetWidgetLocation(const USkeletalMeshComponen
 	return WidgetLoc;
 }
 
-EBoneModificationMode UAnimGraphNode_ModifyBone::GetBoneModificationMode(FWidget::EWidgetMode InMode)
+EBoneModificationMode UAnimGraphNode_ModifyBone::GetBoneModificationMode(int32 InWidgetMode)
 {
+	FWidget::EWidgetMode InMode = (FWidget::EWidgetMode)InWidgetMode;
 	switch (InMode)
 	{
 	case FWidget::WM_Translate:
@@ -113,8 +114,9 @@ EBoneModificationMode UAnimGraphNode_ModifyBone::GetBoneModificationMode(FWidget
 	return EBoneModificationMode::BMM_Ignore;
 }
 
-FWidget::EWidgetMode UAnimGraphNode_ModifyBone::GetNextWidgetMode(FWidget::EWidgetMode InMode)
+int32 UAnimGraphNode_ModifyBone::GetNextWidgetMode(int32 InWidgetMode)
 {
+	FWidget::EWidgetMode InMode = (FWidget::EWidgetMode)InWidgetMode;
 	switch (InMode)
 	{
 	case FWidget::WM_Translate:
@@ -125,11 +127,12 @@ FWidget::EWidgetMode UAnimGraphNode_ModifyBone::GetNextWidgetMode(FWidget::EWidg
 		return FWidget::WM_Translate;
 	}
 
-	return FWidget::WM_None;
+	return (int32)FWidget::WM_None;
 }
 
-FWidget::EWidgetMode UAnimGraphNode_ModifyBone::FindValidWidgetMode(FWidget::EWidgetMode InMode)
+int32 UAnimGraphNode_ModifyBone::FindValidWidgetMode(int32 InWidgetMode)
 {	
+	FWidget::EWidgetMode InMode = (FWidget::EWidgetMode)InWidgetMode;
 	FWidget::EWidgetMode ValidMode = InMode;
 	if (InMode == FWidget::WM_None)
 	{	// starts from Rotate mode
@@ -144,16 +147,16 @@ FWidget::EWidgetMode UAnimGraphNode_ModifyBone::FindValidWidgetMode(FWidget::EWi
 			return ValidMode;
 		}
 
-		ValidMode = GetNextWidgetMode(ValidMode);
+		ValidMode = (FWidget::EWidgetMode)GetNextWidgetMode(ValidMode);
 	}
 	
 	// if couldn't find a valid mode, returns None
 	ValidMode = FWidget::WM_None;
 
-	return ValidMode;
+	return (int32)ValidMode;
 }
 
-FWidget::EWidgetMode UAnimGraphNode_ModifyBone::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
+int32 UAnimGraphNode_ModifyBone::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
 {
 	int32 BoneIndex = SkelComp->GetBoneIndex(Node.BoneToModify.BoneName);
 	if (BoneIndex != INDEX_NONE)
@@ -162,12 +165,12 @@ FWidget::EWidgetMode UAnimGraphNode_ModifyBone::GetWidgetMode(const USkeletalMes
 		return CurWidgetMode;
 	}
 
-	return FWidget::WM_None;
+	return (int32)FWidget::WM_None;
 }
 
-FWidget::EWidgetMode UAnimGraphNode_ModifyBone::ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, FWidget::EWidgetMode InCurWidgetMode)
+int32 UAnimGraphNode_ModifyBone::ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 InCurWidgetMode)
 {
-	FWidget::EWidgetMode NextWidgetMode = GetNextWidgetMode(InCurWidgetMode);
+	int32 NextWidgetMode = GetNextWidgetMode(InCurWidgetMode);
 	CurWidgetMode = FindValidWidgetMode(NextWidgetMode);
 
 	return CurWidgetMode;

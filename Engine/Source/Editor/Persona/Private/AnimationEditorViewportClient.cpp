@@ -669,7 +669,7 @@ void FAnimationViewportClient::FindSelectedAnimGraphNode()
 						AnimGraphNode->CopyNodeDataTo(AnimNode);
 						AnimGraphNode->UpdateAllDefaultValues(AnimNode);
 
-						WidgetMode = AnimGraphNode->GetWidgetMode(PreviewSkelMeshComp.Get());
+						WidgetMode = (FWidget::EWidgetMode)AnimGraphNode->GetWidgetMode(PreviewSkelMeshComp.Get());
 						if (WidgetMode == FWidget::WM_Scale)
 						{
 							SetWidgetCoordSystemSpace(COORD_Local);
@@ -1508,7 +1508,7 @@ FWidget::EWidgetMode FAnimationViewportClient::GetWidgetMode() const
 
 	if (SelectedSkelControlAnimGraph.IsValid())
 	{
-		Mode = SelectedSkelControlAnimGraph->GetWidgetMode(PreviewSkelMeshComp.Get());
+		Mode = (FWidget::EWidgetMode)SelectedSkelControlAnimGraph->GetWidgetMode(PreviewSkelMeshComp.Get());
 	}
 
 	return Mode;
@@ -1634,7 +1634,7 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 		{
 			if (SelectedSkelControlAnimGraph.IsValid())
 			{
-				WidgetMode = SelectedSkelControlAnimGraph->ChangeWidgetMode(PreviewSkelMeshComp.Get(), WidgetMode);
+				WidgetMode = (FWidget::EWidgetMode)SelectedSkelControlAnimGraph->ChangeWidgetMode(PreviewSkelMeshComp.Get(), WidgetMode);
 				if (WidgetMode == FWidget::WM_Scale)
 				{
 					SetWidgetCoordSystemSpace(COORD_Local);

@@ -21,7 +21,7 @@ public:
 
 	// UAnimGraphNode_SkeletalControlBase interface
 	ANIMGRAPH_API virtual FVector GetWidgetLocation(const USkeletalMeshComponent* SkelComp, struct FAnimNode_SkeletalControlBase* AnimNode) override;
-	ANIMGRAPH_API virtual FWidget::EWidgetMode GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
+	ANIMGRAPH_API virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
 	ANIMGRAPH_API virtual FName FindSelectedBone() override;
 	ANIMGRAPH_API virtual void DoTranslation(const USkeletalMeshComponent* SkelComp, FVector& Drag, FAnimNode_Base* InOutAnimNode) override;
 

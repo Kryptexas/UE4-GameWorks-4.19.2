@@ -209,7 +209,7 @@ void UAnimGraphNode_TwoBoneIK::UpdateAllDefaultValues(const FAnimNode_Base* Anim
 }
 
 
-FWidget::EWidgetMode UAnimGraphNode_TwoBoneIK::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
+int32 UAnimGraphNode_TwoBoneIK::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
 {
 	int32 BoneIndex = SkelComp->GetBoneIndex(Node.IKBone.BoneName);
 	// Two bone IK node uses only Translate

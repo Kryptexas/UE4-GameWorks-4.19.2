@@ -15,6 +15,22 @@ UAnimGraphNode_SkeletalControlBase::UAnimGraphNode_SkeletalControlBase(const FOb
 {
 }
 
+// returns int32 instead of EWidgetMode because of compiling issue on Mac
+int32 UAnimGraphNode_SkeletalControlBase::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
+{
+	return  (int32)FWidget::EWidgetMode::WM_None;
+}
+
+int32 UAnimGraphNode_SkeletalControlBase::ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 CurWidgetMode)
+{
+	return GetWidgetMode(SkelComp);
+}
+// 
+FName UAnimGraphNode_SkeletalControlBase::FindSelectedBone()
+{
+	return NAME_None;
+}
+
 FLinearColor UAnimGraphNode_SkeletalControlBase::GetNodeTitleColor() const
 {
 	return FLinearColor(0.75f, 0.75f, 0.10f);

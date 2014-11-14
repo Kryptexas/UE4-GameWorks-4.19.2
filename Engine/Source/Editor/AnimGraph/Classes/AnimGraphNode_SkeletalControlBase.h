@@ -42,20 +42,11 @@ public:
 	ANIMGRAPH_API virtual void UpdateAllDefaultValues(const FAnimNode_Base* AnimNode){}
 
 	// return current widget mode this anim graph node supports
-	ANIMGRAPH_API virtual FWidget::EWidgetMode GetWidgetMode(const USkeletalMeshComponent* SkelComp)
-	{ 
-		return FWidget::EWidgetMode::WM_None; 
-	}
+	ANIMGRAPH_API virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp);
 	// called when the user changed widget mode
-	ANIMGRAPH_API virtual FWidget::EWidgetMode ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, FWidget::EWidgetMode CurWidgetMode)
-	{ 
-		return GetWidgetMode(SkelComp); 
-	}
+	ANIMGRAPH_API virtual int32 ChangeWidgetMode(const USkeletalMeshComponent* SkelComp, int32 CurWidgetMode);
 	// 
-	ANIMGRAPH_API virtual FName FindSelectedBone()
-	{ 
-		return NAME_None; 
-	}
+	ANIMGRAPH_API virtual FName FindSelectedBone();
 
 	// if anim graph node needs other actors to select other bones, move actor's positions when this is called
 	ANIMGRAPH_API virtual void MoveSelectActorLocation(const USkeletalMeshComponent* SkelComp, FAnimNode_SkeletalControlBase* InAnimNode){}

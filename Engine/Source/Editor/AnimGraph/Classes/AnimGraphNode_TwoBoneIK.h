@@ -41,7 +41,7 @@ public:
 	ANIMGRAPH_API virtual void	UpdateDefaultValues(const FAnimNode_Base* InAnimNode) override;
 	ANIMGRAPH_API virtual void	UpdateAllDefaultValues(const FAnimNode_Base* InAnimNode) override;
 
-	ANIMGRAPH_API virtual FWidget::EWidgetMode GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
+	ANIMGRAPH_API virtual int32 GetWidgetMode(const USkeletalMeshComponent* SkelComp) override;
 
 	ANIMGRAPH_API virtual void MoveSelectActorLocation(const USkeletalMeshComponent* SkelComp, FAnimNode_SkeletalControlBase* AnimNode) override;
 	ANIMGRAPH_API virtual FName FindSelectedBone() override;
