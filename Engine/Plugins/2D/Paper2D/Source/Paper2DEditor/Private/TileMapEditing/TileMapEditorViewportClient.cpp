@@ -45,6 +45,9 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 
 		PreviewScene->AddComponent(RenderTileMapComponent, FTransform::Identity);
 	}
+
+	// Select the render component
+	ModeTools->GetSelectedObjects()->Select(RenderTileMapComponent);
 }
 
 void FTileMapEditorViewportClient::ActivateEditMode()
@@ -147,87 +150,6 @@ void FTileMapEditorViewportClient::ToggleShowMeshEdges()
 bool FTileMapEditorViewportClient::IsShowMeshEdgesChecked() const
 {
 	return EngineShowFlags.MeshEdges;
-}
-
-void FTileMapEditorViewportClient::UpdateMouseDelta()
-{
-	FPaperEditorViewportClient::UpdateMouseDelta();
-}
-
-void FTileMapEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
-{
-	FPaperEditorViewportClient::ProcessClick(View, HitProxy, Key, Event, HitX, HitY);
-}
-
-bool FTileMapEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
-{
-	bool bHandled = false;
-
-	// Start the drag
-	//@TODO: EKeys::LeftMouseButton
-	//@TODO: Event.IE_Pressed
-	// Implement InputAxis
-	// StartTracking
-
-	// Pass keys to standard controls, if we didn't consume input
-	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport,  ControllerId, Key, Event, AmountDepressed, bGamepad);
-}
-
-bool FTileMapEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
-{
-	bool bHandled = false;
-	return bHandled;
-}
-
-void FTileMapEditorViewportClient::TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge)
-{
-	if (!bManipulating && bIsDragging)
-	{
-		BeginTransaction(LOCTEXT("ModificationInViewport", "Modification in Viewport"));
-		bManipulating = true;
-		bManipulationDirtiedSomething = false;
-	}
-}
-
-void FTileMapEditorViewportClient::TrackingStopped()
-{
-	if (bManipulating)
-	{
-		EndTransaction();
-		bManipulating = false;
-	}
-}
-
-FWidget::EWidgetMode FTileMapEditorViewportClient::GetWidgetMode() const
-{
-	return FWidget::WM_None;
-}
-
-FVector FTileMapEditorViewportClient::GetWidgetLocation() const
-{
-
-	return FVector::ZeroVector;
-}
-
-FMatrix FTileMapEditorViewportClient::GetWidgetCoordSystem() const
-{
-	return FMatrix::Identity;
-}
-
-ECoordSystem FTileMapEditorViewportClient::GetWidgetCoordSystemSpace() const
-{
-	return COORD_World;
-}
-
-void FTileMapEditorViewportClient::BeginTransaction(const FText& SessionName)
-{
-	if (ScopedTransaction == NULL)
-	{
-		ScopedTransaction = new FScopedTransaction(SessionName);
-
-		UPaperTileMap* TileMap = GetTileMapBeingEdited();
-		TileMap->Modify();
-	}
 }
 
 void FTileMapEditorViewportClient::EndTransaction()
