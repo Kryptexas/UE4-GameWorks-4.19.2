@@ -209,6 +209,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics)
 	FVector CustomLockedAxis;
 
+	/** When a Locked Axis Mode is selected, will lock translation on the specified axis*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Translation"))
+	uint32 bLockTranslation : 1;
+	
+	/** When a Locked Axis Mode is selected, will lock rotation to the specified axis*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Rotation"))
+	uint32 bLockRotation : 1;
+
 	/** Locks physical movement along axis. */
 	void SetDOFLock(ELockedAxis::Type NewAxisMode);
 
