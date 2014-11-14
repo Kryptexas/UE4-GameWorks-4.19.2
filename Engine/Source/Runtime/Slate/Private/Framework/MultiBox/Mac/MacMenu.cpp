@@ -81,7 +81,7 @@ static TMap<FMacMenu*, TSharedPtr<TArray<FMacMenuItemState>>> GCachedMenuState;
 
 @end
 
-void FSlateMacMenu::UpdateWithMultiBox(const TSharedRef< FMultiBox >& MultiBox)
+void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 {
 	MainThreadCall(^{
 		if (!FPlatformMisc::UpdateCachedMacMenuState)
@@ -98,54 +98,57 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedRef< FMultiBox >& MultiBox)
 			[[NSApp mainMenu] removeItemAtIndex:Index];
 		}
 		GCachedMenuState.Reset();
-
-		const TArray<TSharedRef<const FMultiBlock> >& MenuBlocks = MultiBox->GetBlocks();
-
-		for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
+		
+		if( MultiBox.IsValid() )
 		{
-			TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
-			FMacMenu* Menu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
-			NSString* Title = FSlateMacMenu::GetMenuItemTitle(Block);
-			[Menu setTitle:Title];
+			const TArray<TSharedRef<const FMultiBlock> >& MenuBlocks = MultiBox->GetBlocks();
 
-			NSMenuItem* MenuItem = [[NSMenuItem new] autorelease];
-			[MenuItem setTitle:Title];
-			[[NSApp mainMenu] addItem:MenuItem];
-			[MenuItem setSubmenu:Menu];
-
-			const bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString(Title)) == 0);
-			if (bIsWindowMenu)
+			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
 			{
-				[NSApp setWindowsMenu:nil];
+				TSharedRef<const FMenuEntryBlock> Block = StaticCastSharedRef<const FMenuEntryBlock>(MenuBlocks[Index]);
+				FMacMenu* Menu = [[FMacMenu alloc] initWithMenuEntryBlock:Block];
+				NSString* Title = FSlateMacMenu::GetMenuItemTitle(Block);
+				[Menu setTitle:Title];
 
-				[Menu removeAllItems];
+				NSMenuItem* MenuItem = [[NSMenuItem new] autorelease];
+				[MenuItem setTitle:Title];
+				[[NSApp mainMenu] addItem:MenuItem];
+				[MenuItem setSubmenu:Menu];
 
-				NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
-				NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
-				NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
-				NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+				const bool bIsWindowMenu = (WindowLabel.ToString().Compare(FString(Title)) == 0);
+				if (bIsWindowMenu)
+				{
+					[NSApp setWindowsMenu:nil];
 
-				[Menu addItem:MinimizeItem];
-				[Menu addItem:ZoomItem];
-				[Menu addItem:CloseItem];
-				[Menu addItem:[NSMenuItem separatorItem]];
-				[Menu addItem:BringAllToFrontItem];
-				[Menu addItem:[NSMenuItem separatorItem]];
+					[Menu removeAllItems];
 
-				[NSApp setWindowsMenu:Menu];
-				[Menu addItem:[NSMenuItem separatorItem]];
+					NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
+					NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
+					NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
+					NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
+
+					[Menu addItem:MinimizeItem];
+					[Menu addItem:ZoomItem];
+					[Menu addItem:CloseItem];
+					[Menu addItem:[NSMenuItem separatorItem]];
+					[Menu addItem:BringAllToFrontItem];
+					[Menu addItem:[NSMenuItem separatorItem]];
+
+					[NSApp setWindowsMenu:Menu];
+					[Menu addItem:[NSMenuItem separatorItem]];
+				}
 			}
-		}
 
-		if ([[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] == nil && HelpMenu)
-		{
-			[[NSApp mainMenu] addItem:HelpMenu];
-			GCachedMenuState.Add((FMacMenu*)HelpMenu, TSharedPtr<TArray<FMacMenuItemState>>(new TArray<FMacMenuItemState>()));
-		}
+			if ([[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] == nil && HelpMenu)
+			{
+				[[NSApp mainMenu] addItem:HelpMenu];
+				GCachedMenuState.Add((FMacMenu*)HelpMenu, TSharedPtr<TArray<FMacMenuItemState>>(new TArray<FMacMenuItemState>()));
+			}
 
-		if (HelpMenu)
-		{
-			[HelpMenu release];
+			if (HelpMenu)
+			{
+				[HelpMenu release];
+			}
 		}
 
 		FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;

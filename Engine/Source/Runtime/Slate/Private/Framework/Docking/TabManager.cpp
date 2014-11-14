@@ -468,6 +468,10 @@ void FTabManager::SetMenuMultiBox(const TSharedPtr< FMultiBox >& NewMenuMutliBox
 	{
 		UpdateMainMenu(false);
 	}
+	else
+	{
+		FSlateMacMenu::UpdateWithMultiBox(nullptr);
+	}
 #endif
 }
 
