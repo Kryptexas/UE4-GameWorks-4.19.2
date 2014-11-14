@@ -168,12 +168,12 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 	// Accumulated height of this block of text
 	int32 StringSizeY = MaxHeight;
 	// The previous char (for kerning)
-	TCHAR PreviousChar = 0;
+	const FCharacterEntry* PreviousCharEntry = nullptr;
 
 	//If we are measuring a range then we should take into account the kerning with the character before the start of the range
 	if ( !DoesStartAtBeginning && IncludeKerningWithPrecedingChar )
 	{
-		PreviousChar = Text[ StartIndex - 1 ];
+		PreviousCharEntry = &CharacterList[ Text[ StartIndex - 1 ] ];
 	}
 
 	int32 FinalPosX = 0;
@@ -202,14 +202,14 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 			int32 Kerning = 0;
 			if( CharIndex > 0 )
 			{
-				Kerning = CharacterList.GetKerning( PreviousChar, CurrentChar );
+				Kerning = CharacterList.GetKerning( *PreviousCharEntry, Entry );
 			}
 
 			const int32 TotalCharSpacing = 
 				Kerning + Entry.HorizontalOffset +		// Width is any kerning plus how much to advance the position when drawing a new character
 				Entry.XAdvance;	// How far we advance 
 
-			PreviousChar = CurrentChar;
+			PreviousCharEntry = &Entry;
 
 			CurrentX += Kerning + Entry.XAdvance;
 

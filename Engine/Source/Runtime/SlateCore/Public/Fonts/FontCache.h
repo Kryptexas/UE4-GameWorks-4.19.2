@@ -9,6 +9,8 @@ class FFreeTypeInterface;
 /** Information for rendering one character */
 struct SLATECORE_API FCharacterEntry
 {
+	/** The character this entry is for */
+	TCHAR Character;
 	/** The raw font data this character was rendered with */
 	const FFontData* FontData;
 	/** Scale that was applied when rendering this character */
@@ -31,8 +33,10 @@ struct SLATECORE_API FCharacterEntry
 	int16 XAdvance;
 	/** Index to a specific texture in the font cache. */
 	uint8 TextureIndex;
+	/** 1 if this entry has kerning, 0 otherwise. */
+	bool HasKerning;
 	/** 1 if this entry is valid, 0 otherwise. */
-	uint8 Valid;
+	bool Valid;
 
 	FCharacterEntry()
 	{
@@ -46,7 +50,7 @@ struct SLATECORE_API FCharacterEntry
 	 */
 	FORCEINLINE bool IsValidEntry() const
 	{
-		return Valid == 1;
+		return Valid;
 	}
 };
 
@@ -75,12 +79,12 @@ struct SLATECORE_API FKerningPair
 class FSlateFontCache;
 
 /**
- * A Kerning table for a single raw font
+ * A Kerning table for a single font key
  */
 class SLATECORE_API FKerningTable
 {
 public:
-	FKerningTable( const FFontData& InFontData, const int32 InFontSize, const float InFontScale, const FSlateFontCache& InFontCache );
+	FKerningTable( const FSlateFontCache& InFontCache );
 	~FKerningTable();
 
 	/**
@@ -90,7 +94,7 @@ public:
 	 * @param SecondChar	The second character in the pair
 	 * @return The kerning value
 	 */
-	int8 GetKerning( TCHAR FirstChar, TCHAR SecondChar );
+	int8 GetKerning( const FFontData& InFontData, const int32 InSize, TCHAR FirstChar, TCHAR SecondChar, float InScale );
 
 	/**
 	 * Allocated memory for the directly indexed kerning table
@@ -104,12 +108,6 @@ private:
 	int8* DirectAccessTable;
 	/** Interface to freetype for accessing new kerning values */
 	const class FSlateFontCache& FontCache;
-	/** Font for this kerning table */
-	const FFontData* FontData;
-	/** Size of the font used by this kerning table */
-	int32 FontSize;
-	/** Scale of the font used by this kerning table */
-	float FontScale;
 };
 
 
@@ -152,7 +150,16 @@ public:
 	 * @param SecondChar	The second character in the pair
 	 * @return The kerning value
 	 */
-	int8 GetKerning( TCHAR First, TCHAR Second );
+	int8 GetKerning( TCHAR FirstChar, TCHAR SecondChar );
+
+	/**
+	 * Gets a kerning value for a pair of character entries
+	 *
+	 * @param FirstCharacterEntry	The first character entry in the pair
+	 * @param SecondCharacterEntry	The second character entry in the pair
+	 * @return The kerning value
+	 */
+	int8 GetKerning( const FCharacterEntry& FirstCharacterEntry, const FCharacterEntry& SecondCharacterEntry );
 
 	/**
 	 * @return The global max height for any character in this font
@@ -191,8 +198,8 @@ private:
 	TMap<TCHAR, FCharacterEntry> MappedEntries; 
 	/** Directly indexed entries for fast lookup */
 	TArray<FCharacterEntry> DirectIndexEntries;
-	/** Tables of kerning values for this font */
-	TMap<const FFontData*, TSharedPtr<FKerningTable>> KerningTables;
+	/** Table of kerning values for this font */
+	FKerningTable KerningTable;
 	/** Font for this character list */
 	FSlateFontKey FontKey;
 	/** Reference to the font cache for accessing new unseen characters */

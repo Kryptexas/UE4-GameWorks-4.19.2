@@ -507,6 +507,7 @@ public:
 
 		// Set measurement info for this character
 		OutRenderData.Char = Char;
+		OutRenderData.HasKerning = FT_HAS_KERNING( FontFace ) != 0;
 		OutRenderData.MeasureInfo.SizeX = Bitmap->width;
 		OutRenderData.MeasureInfo.SizeY = Bitmap->rows;
 		OutRenderData.MaxHeight = Height;
@@ -849,12 +850,9 @@ private:
 #endif // WITH_FREETYPE
 };
 
-FKerningTable::FKerningTable( const FFontData& InFontData, const int32 InFontSize, const float InFontScale, const FSlateFontCache& InFontCache )
+FKerningTable::FKerningTable( const FSlateFontCache& InFontCache )
 	: DirectAccessTable( nullptr )
 	, FontCache( InFontCache )
-	, FontData( &InFontData )
-	, FontSize( InFontSize )
-	, FontScale( InFontScale )
 {
 }
 
@@ -871,7 +869,7 @@ FKerningTable::~FKerningTable()
 	DEC_MEMORY_STAT_BY( STAT_SlateFontKerningTableMemory, MappedKerningPairs.GetAllocatedSize() );
 }
 
-int8 FKerningTable::GetKerning( TCHAR FirstChar, TCHAR SecondChar )
+int8 FKerningTable::GetKerning( const FFontData& InFontData, const int32 InSize, TCHAR FirstChar, TCHAR SecondChar, float InScale )
 {
 	int8 OutKerning = 0;
 
@@ -892,7 +890,7 @@ int8 FKerningTable::GetKerning( TCHAR FirstChar, TCHAR SecondChar )
 		// If the kerning value hasn't been accessed yet, get the value from the cache now 
 		if( OutKerning == MAX_int8 )
 		{
-			OutKerning = FontCache.GetKerning( *FontData, FontSize, FirstChar, SecondChar, FontScale );
+			OutKerning = FontCache.GetKerning( InFontData, InSize, FirstChar, SecondChar, InScale );
 			DirectAccessTable[Index] = OutKerning;
 		}
 	}
@@ -904,7 +902,7 @@ int8 FKerningTable::GetKerning( TCHAR FirstChar, TCHAR SecondChar )
 		int8* FoundKerning = MappedKerningPairs.Find( KerningPair );
 		if( !FoundKerning )
 		{
-			OutKerning = FontCache.GetKerning( *FontData, FontSize, FirstChar, SecondChar, FontScale );
+			OutKerning = FontCache.GetKerning( InFontData, InSize, FirstChar, SecondChar, InScale );
 
 #if STATS
 			const uint32 CurrentMemoryUsage = MappedKerningPairs.GetAllocatedSize();
@@ -936,7 +934,8 @@ void FKerningTable::CreateDirectTable()
 }
 
 FCharacterList::FCharacterList( const FSlateFontKey& InFontKey, const FSlateFontCache& InFontCache )
-	: FontKey( InFontKey )
+	: KerningTable( InFontCache )
+	, FontKey( InFontKey )
 	, FontCache( InFontCache )
 	, CompositeFontHistoryRevision( 0 )
 	, MaxDirectIndexedEntries( FontCacheConstants::DirectAccessSize )
@@ -956,40 +955,26 @@ bool FCharacterList::IsStale() const
 	return !CompositeFont || CompositeFontHistoryRevision != CompositeFont->HistoryRevision;
 }
 
-int8 FCharacterList::GetKerning( TCHAR First, TCHAR Second )
+int8 FCharacterList::GetKerning( TCHAR FirstChar, TCHAR SecondChar )
 {
-	const FCharacterEntry& FirstCharacterEntry = GetCharacter( First );
-	const FCharacterEntry& SecondCharacterEntry = GetCharacter( Second );
+	return GetKerning( GetCharacter( FirstChar ), GetCharacter( SecondChar ) );
+}
 
+int8 FCharacterList::GetKerning( const FCharacterEntry& FirstCharacterEntry, const FCharacterEntry& SecondCharacterEntry )
+{
 	// We can only get kerning if both characters are using the same font
-	if( !FirstCharacterEntry.FontData || !FirstCharacterEntry.FontData->BulkDataPtr || *FirstCharacterEntry.FontData != *SecondCharacterEntry.FontData )
+	if( FirstCharacterEntry.FontData && 
+		FirstCharacterEntry.FontData->BulkDataPtr && 
+		FirstCharacterEntry.HasKerning && 
+		*FirstCharacterEntry.FontData == *SecondCharacterEntry.FontData )
 	{
-		return 0;
-	}
-
-	FKerningTable* KerningTablePtr = nullptr;
-
-	// Find or add the kerning table for this font
-	TSharedPtr<FKerningTable>* const FoundKerningTable = KerningTables.Find( FirstCharacterEntry.FontData );
-	if( FoundKerningTable )
-	{
-		KerningTablePtr = FoundKerningTable->Get();
-	}
-	else
-	{
-		// We add a null pointer (rather than a valid kerning table) if the font doesn't have kerning information
-		TSharedPtr<FKerningTable> NewKerningTable;
-		if( FontCache.HasKerning( *FirstCharacterEntry.FontData ) )
-		{
-			NewKerningTable = MakeShareable(new FKerningTable(*FirstCharacterEntry.FontData, FontKey.FontInfo.Size, FirstCharacterEntry.FontScale, FontCache));
-		}
-		KerningTablePtr = KerningTables.Add( FirstCharacterEntry.FontData, MoveTemp(NewKerningTable) ).Get();
-	}
-
-	// A null kerning table pointer means that the font doesn't have kerning information
-	if( KerningTablePtr )
-	{
-		return KerningTablePtr->GetKerning( First, Second );
+		return KerningTable.GetKerning( 
+			*FirstCharacterEntry.FontData, 
+			FontKey.FontInfo.Size, 
+			FirstCharacterEntry.Character, 
+			SecondCharacterEntry.Character, 
+			FirstCharacterEntry.FontScale 
+			);
 	}
 
 	return 0;
@@ -1132,6 +1117,7 @@ bool FSlateFontCache::AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, 
 
 	if( bSuccess )
 	{
+		OutCharacterEntry.Character = Character;
 		OutCharacterEntry.FontData = &FontData;
 		OutCharacterEntry.FontScale = FontScale;
 		OutCharacterEntry.StartU = NewSlot->X + NewSlot->Padding;
@@ -1144,6 +1130,7 @@ bool FSlateFontCache::AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, 
 		OutCharacterEntry.GlobalDescender = GetBaseline(InKey.FontInfo, InKey.Scale); // All fonts within a composite font need to use the baseline of the default font
 		OutCharacterEntry.HorizontalOffset = RenderData.MeasureInfo.HorizontalOffset;
 		OutCharacterEntry.TextureIndex = AtlasIndex;
+		OutCharacterEntry.HasKerning = RenderData.HasKerning;
 		OutCharacterEntry.Valid = 1;
 	}
 
