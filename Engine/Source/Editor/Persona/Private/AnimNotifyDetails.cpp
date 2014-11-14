@@ -35,6 +35,9 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 	FString NotifyClassName;
 	TSharedRef<IPropertyHandle> NotifyPropHandle = DetailBuilder.GetProperty(TEXT("Event.Notify"));
 	NotifyPropHandle->GetValue(NotifyPtr);
+	
+	// Don't want to edit the notify name here.
+	DetailBuilder.HideProperty(TEXT("Event.NotifyName"));
 
 	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(TEXT("AnimNotify"), TEXT(""), ECategoryPriority::TypeSpecific);
 
