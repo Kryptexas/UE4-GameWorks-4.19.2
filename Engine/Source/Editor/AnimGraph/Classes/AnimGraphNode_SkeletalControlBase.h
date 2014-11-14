@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AnimGraphNode_Base.h"
+#include "UnrealWidget.h"
 #include "AnimGraphNode_SkeletalControlBase.generated.h"
 
 UCLASS(Abstract, MinimalAPI)
