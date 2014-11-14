@@ -444,7 +444,7 @@ public:
 	/**
 	 * Set the default editor mode for these tools
 	 */
-	void SetDefaultMode ( FEditorModeID DefaultID );
+	void SetDefaultMode(FEditorModeID DefaultID);
 
 	/**
 	 * Activates the default mode defined by this class
@@ -790,6 +790,15 @@ public:
 	/** Returns the host for toolkits created via modes from this mode manager */
 	TSharedPtr<class IToolkitHost> GetToolkitHost() const;
 
+	/**
+	 * Returns the set of selected actors.
+	 */
+	virtual class USelection* GetSelectedActors() const;
+
+	/**
+	 * @return the set of selected non-actor objects.
+	 */
+	virtual class USelection* GetSelectedObjects() const;
 protected:
 	/** 
 	 * Delegate handlers

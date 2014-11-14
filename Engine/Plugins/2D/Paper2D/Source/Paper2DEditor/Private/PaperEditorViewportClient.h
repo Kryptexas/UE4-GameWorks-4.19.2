@@ -12,6 +12,25 @@ struct FViewportSelectionRectangle
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FAssetEditorModeTools
+
+class FAssetEditorModeTools : public FEditorModeTools
+{
+public:
+	FAssetEditorModeTools();
+	virtual ~FAssetEditorModeTools();
+
+	// FEditorModeTools interface
+	virtual class USelection* GetSelectedActors() const override;
+	virtual class USelection* GetSelectedObjects() const override;
+	// End of FEditorModeTools interface
+
+protected:
+	class USelection* ActorSet;
+	class USelection* ObjectSet;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FPaperEditorViewportClient
 
 class FPaperEditorViewportClient : public FEditorViewportClient

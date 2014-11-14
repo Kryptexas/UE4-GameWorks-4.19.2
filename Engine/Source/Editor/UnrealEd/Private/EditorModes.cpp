@@ -1242,6 +1242,16 @@ void FEditorModeTools::SetToolkitHost(TSharedRef<class IToolkitHost> InHost)
 	ToolkitHost = InHost;
 }
 
+class USelection* FEditorModeTools::GetSelectedActors() const
+{
+	return GEditor->GetSelectedActors();
+}
+
+class USelection* FEditorModeTools::GetSelectedObjects() const
+{
+	return GEditor->GetSelectedObjects();
+}
+
 void FEditorModeTools::OnEditorSelectionChanged(UObject* NewSelection)
 {
 	// If selecting an actor, move the pivot location.

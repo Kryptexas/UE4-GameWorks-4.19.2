@@ -6,10 +6,42 @@
 #include "CanvasTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
+// FAssetEditorModeTools
+
+FAssetEditorModeTools::FAssetEditorModeTools()
+{
+	ActorSet = NewObject<USelection>();
+	ActorSet->SetFlags(RF_Transactional);
+	ActorSet->AddToRoot();
+
+	ObjectSet = NewObject<USelection>();
+	ObjectSet->SetFlags(RF_Transactional);
+	ObjectSet->AddToRoot();
+}
+
+FAssetEditorModeTools::~FAssetEditorModeTools()
+{
+	ActorSet->RemoveFromRoot();
+	ActorSet = nullptr;
+	ObjectSet->RemoveFromRoot();
+	ObjectSet = nullptr;
+}
+
+USelection* FAssetEditorModeTools::GetSelectedActors() const
+{
+	return ActorSet;
+}
+
+USelection* FAssetEditorModeTools::GetSelectedObjects() const
+{
+	return ObjectSet;
+}
+
+//////////////////////////////////////////////////////////////////////////
 // FPaperEditorViewportClient
 
 FPaperEditorViewportClient::FPaperEditorViewportClient()
-	: FEditorViewportClient(*( new FEditorModeTools() ))
+	: FEditorViewportClient(*( new FAssetEditorModeTools() ))
 	, CheckerboardTexture(NULL)
 {
 	ZoomPos = FVector2D::ZeroVector;
