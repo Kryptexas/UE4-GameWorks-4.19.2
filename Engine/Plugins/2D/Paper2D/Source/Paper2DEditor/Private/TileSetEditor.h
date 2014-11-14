@@ -46,7 +46,7 @@ public:
 
 	~STileSetSelectorViewport();
 
-	void Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, FEdModeTileMap* InTileMapEditor);
+	void Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, class FEdModeTileMap* InTileMapEditor);
 
 	void ChangeTileSet(UPaperTileSet* InTileSet);
 protected:
@@ -60,5 +60,5 @@ private:
 private:
 	TWeakObjectPtr<class UPaperTileSet> TileSetPtr;
 	TSharedPtr<class FTileSetEditorViewportClient> TypedViewportClient;
-	FEdModeTileMap* TileMapEditor;
+	class FEdModeTileMap* TileMapEditor;
 };
