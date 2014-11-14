@@ -172,11 +172,6 @@ public:
 		}
 	}
 
-	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
-	{
-		return FReply::Handled().ReleaseMouseCapture().LockMouseToWidget( SharedThis( this ) );
-	}
-
 private:
 
 	TSharedRef<ITableRow> MakeChatWidget(TSharedRef<FChatItemViewModel> ChatMessage, const TSharedRef<STableViewBase>& OwnerTable)
@@ -402,6 +397,7 @@ private:
 
 	void SetFocus()
 	{
+		FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 		if (ChatTextBox.IsValid())
 		{
 			FWidgetPath WidgetToFocusPath;
@@ -439,6 +435,16 @@ private:
 	ESlateCheckBoxState::Type GetGlobalOptionState() const
 	{
 		return ViewModel->IsGlobalChatEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	virtual bool SupportsKeyboardFocus() const override
+	{
+		return true;
+	}
+
+	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
+	{
+		return FReply::Handled().ReleaseMouseCapture().LockMouseToWidget( SharedThis( this ) );
 	}
 
 private:
