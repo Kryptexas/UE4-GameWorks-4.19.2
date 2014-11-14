@@ -36,8 +36,31 @@ void UNiagaraScriptSource::PostLoad()
 	if (ScriptOwner)
 	{
 		ScriptOwner->ConditionalPostLoad();
-		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
-		NiagaraEditorModule.CompileScript(ScriptOwner);
+		//FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
+		//NiagaraEditorModule.CompileScript(ScriptOwner);
+		Compile();
+	}
+
+}
+
+
+void UNiagaraScriptSource::Compile()
+{
+	UNiagaraScript* ScriptOwner = Cast<UNiagaraScript>(GetOuter());
+	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
+	NiagaraEditorModule.CompileScript(ScriptOwner);
+
+	// grab all constant nodes that are exposed to the editor
+	TArray<UNiagaraNodeConstant*> ConstNodes;
+	UpdateGraph->GetNodesOfClass<UNiagaraNodeConstant>(ConstNodes);
+	for (UNiagaraNodeConstant *Node : ConstNodes)
+	{
+		if (Node->bExposeToEffectEditor)
+		{
+			EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
+			Const->ConstName = Node->ConstName;
+			ExposedVectorConstants.Add( MakeShareable(Const) );
+		}
 	}
 }
 

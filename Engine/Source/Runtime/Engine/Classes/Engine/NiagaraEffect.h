@@ -13,11 +13,11 @@ class UNiagaraEffect : public UObject
 public:
 	ENGINE_API FNiagaraEmitterProperties &AddEmitterProperties();
 
-
 	void Init(UNiagaraComponent *InComponent)
 	{
 		Component = InComponent;
 	}
+
 
 	TArray<FNiagaraEmitterProperties> &GetEmitterProperties() {
 		return EmitterProps;
@@ -102,6 +102,7 @@ public:
 		for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
 		{
 			it->SetConstants(Constants);
+			it->GetConstants().Merge(it->GetProperties()->ExternalConstants);
 			it->Tick(DeltaSeconds);
 		}
 	}

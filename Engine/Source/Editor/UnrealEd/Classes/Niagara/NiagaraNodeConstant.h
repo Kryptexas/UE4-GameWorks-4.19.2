@@ -22,6 +22,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Constant")
 	uint32 bNeedsDefault : 1;
 
+	UPROPERTY(EditAnywhere, Category = "Constant")
+	uint32 bExposeToEffectEditor : 1;
+
+	bool IsExposedToEffectEditor()	{ return bExposeToEffectEditor; }
+
 	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
 	// End UObject interface

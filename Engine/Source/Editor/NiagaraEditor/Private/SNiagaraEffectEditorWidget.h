@@ -17,6 +17,78 @@
 #include "ComponentReregisterContext.h"
 
 #define NGED_SECTION_BORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
+#define NGED_SECTION_LIGHTBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
+#define NGED_SECTION_DARKBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder")).Padding(4.0f).HAlign(HAlign_Left)
+
+
+class SVectorConstantWidget : public SCompoundWidget, public FNotifyHook
+{
+private:	
+	FName ConstantName;
+	TSharedPtr<FNiagaraSimulation> Emitter;
+
+	TSharedPtr<SEditableTextBox> XText, YText, ZText, WText;
+
+public:
+	SLATE_BEGIN_ARGS(SVectorConstantWidget) :
+	_Emitter(nullptr),
+	_ConstantName("Undefined")
+	{
+	}
+	SLATE_ARGUMENT(TSharedPtr<FNiagaraSimulation>, Emitter)
+	SLATE_ARGUMENT(FName, ConstantName)
+	SLATE_END_ARGS()
+
+
+	void OnConstantChanged(const FText &InText)
+	{
+		FVector4 Vec;
+		FString Strns[4];
+		Strns[0] = XText->GetText().ToString();
+		Strns[1] = YText->GetText().ToString();
+		Strns[2] = ZText->GetText().ToString();
+		Strns[3] = WText->GetText().ToString();
+		for (uint32 i = 0; i < 4; i++)
+		{
+			if (Strns[i]!="")
+			{
+				Vec[i] = FCString::Atof(*Strns[i]);
+			}
+			else
+			{
+				Vec[i] = 0.0f;
+			}
+		}
+		Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, Vec);
+	}
+
+	void Construct(const FArguments& InArgs)
+	{
+		Emitter = InArgs._Emitter;
+		ConstantName = InArgs._ConstantName;
+
+		FVector4 *ConstVal = Emitter->GetProperties()->ExternalConstants.FindVector(ConstantName);
+		FString ConstText[4] = {"","","",""};
+		if (ConstVal)
+		{
+			for (uint32 i = 0; i < 4; i++)
+			{
+				ConstText[i] = FString::Printf(TEXT("%.4f"), (*ConstVal)[i]);
+			}
+		}
+		
+		this->ChildSlot
+		[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot().Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
+		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(XText, SEditableTextBox).Text(FText::FromString(ConstText[0])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
+		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(YText, SEditableTextBox).Text(FText::FromString(ConstText[1])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
+		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(ZText, SEditableTextBox).Text(FText::FromString(ConstText[2])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
+		+ SHorizontalBox::Slot().Padding(4)[SAssignNew(WText, SEditableTextBox).Text(FText::FromString(ConstText[3])).OnTextChanged(this, &SVectorConstantWidget::OnConstantChanged)]
+		];
+		
+	}
+};
 
 
 class SEmitterWidget : public SCompoundWidget, public FNotifyHook
@@ -35,6 +107,11 @@ private:
 
 	TArray<TSharedPtr<FString> > RenderModuleList;
 
+	TSharedPtr< SListView<TSharedPtr<EditorExposedVectorConstant>>> UpdateScriptConstantList;
+	SVerticalBox::FSlot *UpdateScriptConstantListSlot;
+	TSharedPtr< SListView<TSharedPtr<EditorExposedVectorConstant>>> SpawnScriptConstantList;
+	SVerticalBox::FSlot *SpawnScriptConstantListSlot;
+
 public:
 	SLATE_BEGIN_ARGS(SEmitterWidget) :
 		_Emitter(nullptr)
@@ -44,6 +121,16 @@ public:
 	SLATE_ARGUMENT(FNiagaraEffectInstance*, Effect)
 	SLATE_END_ARGS()
 
+	TSharedRef<ITableRow> OnGenerateConstantListRow(TSharedPtr<EditorExposedVectorConstant> InItem, const TSharedRef< STableViewBase >& OwnerTable)
+	{
+		return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+		.Content()
+		[
+			SNew(SVectorConstantWidget).ConstantName(InItem->ConstName).Emitter(Emitter)
+		];
+	}
+
+
 	void OnUpdateScriptSelectedFromPicker(UObject *Asset)
 	{
 		// Close the asset picker
@@ -52,6 +139,13 @@ public:
 		// Set the object found from the asset picker
 		CurUpdateScript = Cast<UNiagaraScript>(Asset);
 		Emitter->GetProperties()->UpdateScript = CurUpdateScript;
+
+		UpdateScriptConstantListSlot->DetachWidget();
+		(*UpdateScriptConstantListSlot)
+			[
+				SAssignNew(UpdateScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
+				.ItemHeight(20).ListItemsSource(&CurUpdateScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
+			];
 	}
 
 	void OnSpawnScriptSelectedFromPicker(UObject *Asset)

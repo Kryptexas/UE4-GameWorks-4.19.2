@@ -53,6 +53,12 @@ public:
 	UMaterial *Material;
 	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	TEnumAsByte<EEmitterRenderModuleType> RenderModuleType;
+
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	FNiagaraConstantMap ExternalConstants;		// these are the update script constants from the effect editor; will be added to the emitter's constant map
+
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	FNiagaraConstantMap ExternalSpawnConstants;		// these are the spawn script constants from the effect editor; will be added to the emitter's constant map
 };
 
 
@@ -77,7 +83,9 @@ public:
 	FNiagaraEmitterParticleData &GetData()	{ return Data; }
 
 	void SetConstants(const FNiagaraConstantMap &InMap)	{ Constants = InMap; }
-	NiagaraEffectRenderer *GetEffectRenderer()	{ return EffectRenderer;  }
+	FNiagaraConstantMap &GetConstants()	{ return Constants; }
+
+	NiagaraEffectRenderer *GetEffectRenderer()	{ return EffectRenderer; }
 	
 	bool IsEnabled()	{ return bIsEnabled;  }
 	void SetEnabled(bool bInEnabled)	{ bIsEnabled = bInEnabled;  }
@@ -88,9 +96,8 @@ public:
 
 	FNiagaraEmitterProperties *GetProperties()	{ return Props; }
 	void SetProperties(FNiagaraEmitterProperties *InProps)	{ Props = InProps; }
-
 private:
-	FNiagaraEmitterProperties *Props;
+	FNiagaraEmitterProperties *Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
 
 	float Age;
 	bool bIsEnabled;

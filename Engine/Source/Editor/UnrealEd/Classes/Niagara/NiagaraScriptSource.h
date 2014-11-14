@@ -5,6 +5,7 @@
 #include "Engine/NiagaraScriptSourceBase.h"
 #include "NiagaraScriptSource.generated.h"
 
+
 UCLASS(MinimalAPI)
 class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 {
@@ -16,6 +17,7 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 
 	// UObject interface.
 	virtual void PostLoad() override;
+	void Compile();
 
 	UNREALED_API void GetParticleAttributes(TArray<FName>& VectorOutputs);
 	UNREALED_API void GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs);

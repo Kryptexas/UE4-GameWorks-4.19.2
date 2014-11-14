@@ -11,6 +11,7 @@ UNiagaraNodeConstant::UNiagaraNodeConstant(const FObjectInitializer& ObjectIniti
 	ConstName = NAME_None;
 	DataType = ENiagaraDataType::Vector;
 	bNeedsDefault = true;
+	bExposeToEffectEditor = false;
 }
 
 void UNiagaraNodeConstant::AllocateDefaultPins()

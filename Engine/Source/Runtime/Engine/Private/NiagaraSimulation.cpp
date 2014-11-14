@@ -13,6 +13,7 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps)
 , EffectRenderer(nullptr)
 {
 	Props = InProps;
+	Constants.Merge(InProps->ExternalConstants);
 }
 
 FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIFeatureLevel::Type InFeatureLevel)
@@ -23,6 +24,7 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIF
 	, EffectRenderer(nullptr)
 {
 	Props = InProps;
+	Constants.Merge(InProps->ExternalConstants);
 	SetRenderModuleType(InProps->RenderModuleType, InFeatureLevel);
 }
 

@@ -123,6 +123,7 @@ void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 						.ItemHeight(256)
 						.ListItemsSource(&(this->EffectInstance->GetEmitters()))
 						.OnGenerateRow(this, &SNiagaraEffectEditorWidget::OnGenerateWidgetForList)
+						.SelectionMode(ESelectionMode::None)
 					]
 
 					// Bottom-right corner text indicating the type of tool
@@ -187,6 +188,20 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 	RenderModuleList.Add(MakeShareable(new FString("Trails")));
 	RenderModuleList.Add(MakeShareable(new FString("Meshes")));
 
+	static TArray<TSharedPtr<EditorExposedVectorConstant>> DummyArray;
+	TArray<TSharedPtr<EditorExposedVectorConstant>> *EditorExposedConstants = &DummyArray;
+	if (Emitter->GetProperties()->UpdateScript && Emitter->GetProperties()->UpdateScript->Source)
+	{
+		EditorExposedConstants = &Emitter->GetProperties()->UpdateScript->Source->ExposedVectorConstants;
+	}
+
+	TArray<TSharedPtr<EditorExposedVectorConstant>> *EditorExposedSpawnConstants = &DummyArray;
+	if (Emitter->GetProperties()->SpawnScript && Emitter->GetProperties()->SpawnScript->Source)
+	{
+		EditorExposedSpawnConstants = &Emitter->GetProperties()->SpawnScript->Source->ExposedVectorConstants;
+	}
+
+
 	ChildSlot
 		.Padding(4)
 		[
@@ -242,7 +257,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 						//
 						+SHorizontalBox::Slot()
 						.Padding(4.0f)
-						.FillWidth(800)
+						.FillWidth(950)
 						.HAlign(HAlign_Left)
 						[
 							NGED_SECTION_BORDER
@@ -252,17 +267,19 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 								.Padding(4)
 								.AutoHeight()
 								[
-									SNew(SHorizontalBox)
-									+ SHorizontalBox::Slot()
-									.HAlign(HAlign_Right)
-									.VAlign(VAlign_Center)
-									.AutoWidth()
-									.Padding(4)
+									NGED_SECTION_DARKBORDER
 									[
-										SNew(STextBlock)
-										.Text(FString("Update Script"))
-									]
-									+ SHorizontalBox::Slot()
+										SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot()
+										.HAlign(HAlign_Right)
+										.VAlign(VAlign_Center)
+										.AutoWidth()
+										.Padding(4)
+										[
+											SNew(STextBlock)
+											.Text(FString("Update Script"))
+										]
+										+ SHorizontalBox::Slot()
 										.HAlign(HAlign_Right)
 										.VAlign(VAlign_Center)
 										[
@@ -274,12 +291,27 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 											.OnSetReference(this, &SEmitterWidget::OnUpdateScriptSelectedFromPicker)
 											.WidthOverride(150)
 										]
-
+									]
 								]
 
 								+ SVerticalBox::Slot()
-									.Padding(4)
-									.AutoHeight()
+								.Padding(4)
+								.AutoHeight()
+								.Expose(UpdateScriptConstantListSlot)
+								[
+									SAssignNew(UpdateScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
+									.ItemHeight(20).ListItemsSource(EditorExposedConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
+									.SelectionMode(ESelectionMode::None)
+								]
+
+
+
+
+								+ SVerticalBox::Slot()
+								.Padding(4)
+								.AutoHeight()
+								[
+									NGED_SECTION_DARKBORDER
 									[
 										SNew(SHorizontalBox)
 										+ SHorizontalBox::Slot()
@@ -292,17 +324,28 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 											.Text(FString("Spawn Script"))
 										]
 										+ SHorizontalBox::Slot()
-											.HAlign(HAlign_Right)
-											.VAlign(VAlign_Center)
-											[
-												SAssignNew(SpawnScriptSelector, SContentReference)
-												.AllowedClass(UNiagaraScript::StaticClass())
-												.AssetReference(this, &SEmitterWidget::GetSpawnScript)
-												.AllowSelectingNewAsset(true)
-												.AllowClearingReference(true)
-												.OnSetReference(this, &SEmitterWidget::OnSpawnScriptSelectedFromPicker)
-												.WidthOverride(150)
-											]
+										.HAlign(HAlign_Right)
+										.VAlign(VAlign_Center)
+										[
+											SAssignNew(SpawnScriptSelector, SContentReference)
+											.AllowedClass(UNiagaraScript::StaticClass())
+											.AssetReference(this, &SEmitterWidget::GetSpawnScript)
+											.AllowSelectingNewAsset(true)
+											.AllowClearingReference(true)
+											.OnSetReference(this, &SEmitterWidget::OnSpawnScriptSelectedFromPicker)
+											.WidthOverride(150)
+										]
+									]
+								]
+
+								+ SVerticalBox::Slot()
+									.Padding(4)
+									.AutoHeight()
+									.Expose(SpawnScriptConstantListSlot)
+									[
+										SAssignNew(SpawnScriptConstantList, SListView<TSharedPtr<EditorExposedVectorConstant>>)
+										.ItemHeight(20).ListItemsSource(EditorExposedSpawnConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
+										.SelectionMode(ESelectionMode::None)
 									]
 							]
 						]
@@ -430,4 +473,5 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 					]
 			]
 		];
+
 }

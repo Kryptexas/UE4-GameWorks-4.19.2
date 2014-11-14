@@ -215,7 +215,12 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRenderSprites);
 
-	check(DynamicDataRender && DynamicDataRender->VertexData.Num());
+	check(DynamicDataRender)
+		
+	if (DynamicDataRender->VertexData.Num() == 0)
+	{
+		return;
+	}
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 	FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(SceneProxy->IsSelected(), SceneProxy->IsHovered());
@@ -417,7 +422,11 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraRenderRibbons);
 
-	check(DynamicDataRender && DynamicDataRender->VertexData.Num());
+	check(DynamicDataRender)
+	if (DynamicDataRender->VertexData.Num() == 0)
+	{
+		return;
+	}
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 	FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(SceneProxy->IsSelected(), SceneProxy->IsHovered());
@@ -466,8 +475,8 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 				CollectorResources.UniformBuffer = FParticleBeamTrailUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 
 				CollectorResources.VertexFactory.InitResource();
-				CollectorResources.VertexFactory.SetBeamTrailUniformBuffer(PerViewUniformBuffers[ViewIndex]);
-				CollectorResources.VertexFactory.SetVertexBuffer(DynamicVertexAllocation.VertexBuffer, DynamicVertexAllocation.VertexOffset, sizeof(FParticleBeamTrailVertex));
+				CollectorResources.VertexFactory.SetBeamTrailUniformBuffer(CollectorResources.UniformBuffer);
+				CollectorResources.VertexFactory.SetVertexBuffer(LocalDynamicVertexAllocation.VertexBuffer, LocalDynamicVertexAllocation.VertexOffset, sizeof(FParticleBeamTrailVertex));
 				CollectorResources.VertexFactory.SetDynamicParameterBuffer(NULL, 0, 0);
 
 				FMeshBatch& MeshBatch = Collector.AllocateMesh();
@@ -493,7 +502,7 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 				FMeshBatchElement& MeshElement = MeshBatch.Elements[0];
 				MeshElement.IndexBuffer = &GParticleIndexBuffer;
 				MeshElement.FirstIndex = 0;
-				MeshElement.NumPrimitives = (DynamicDataRender->VertexData.Num() - 1) / 2;
+				MeshElement.NumPrimitives = (DynamicDataRender->VertexData.Num() - 2);
 				MeshElement.NumInstances = 1;
 				MeshElement.MinVertexIndex = 0;
 				MeshElement.MaxVertexIndex = DynamicDataRender->VertexData.Num() - 1;
@@ -588,7 +597,7 @@ void NiagaraEffectRendererRibbon::DrawDynamicElements(FPrimitiveDrawInterface* P
 		FMeshBatchElement& MeshElement = MeshBatch.Elements[0];
 		MeshElement.IndexBuffer = &GParticleIndexBuffer;
 		MeshElement.FirstIndex = 0;
-		MeshElement.NumPrimitives = DynamicDataRender->VertexData.Num() / 2;
+		MeshElement.NumPrimitives = DynamicDataRender->VertexData.Num()-2;
 		MeshElement.NumInstances = 1;
 		MeshElement.MinVertexIndex = 0;
 		MeshElement.MaxVertexIndex = DynamicDataRender->VertexData.Num() - 1;
@@ -699,20 +708,21 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 
 		FVector ParticleRight = FVector::CrossProduct(ParticleDir, FVector(0.0f, 0.0f, 1.0f));
 		ParticleRight.Normalize();
+		ParticleRight *= 3.0f;
 
 		if (i == 0)
 		{
-			AddRibbonVert(RenderData, ParticlePos + ParticleRight, Data, UVs[0], ColorPtr[i], AgePtr[i], RotPtr[i]);
-			AddRibbonVert(RenderData, ParticlePos - ParticleRight, Data, UVs[1], ColorPtr[i], AgePtr[i], RotPtr[i]);
+			AddRibbonVert(RenderData, ParticlePos + ParticleRight, Data, UVs[0], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
+			AddRibbonVert(RenderData, ParticlePos - ParticleRight, Data, UVs[1], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
 		}
 		else
 		{
-			AddRibbonVert(RenderData, PrevPos2, Data, UVs[0], ColorPtr[i], AgePtr[i], RotPtr[i]);
-			AddRibbonVert(RenderData, PrevPos, Data, UVs[1], ColorPtr[i], AgePtr[i], RotPtr[i]);
+			AddRibbonVert(RenderData, PrevPos2, Data, UVs[0], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
+			AddRibbonVert(RenderData, PrevPos, Data, UVs[1], ColorPtr[Index1], AgePtr[Index1], RotPtr[i]);
 		}
 
-		AddRibbonVert(RenderData, ParticlePos - ParticleRight + ParticleDir, Data, UVs[2], ColorPtr[i], AgePtr[i], RotPtr[i]);
-		AddRibbonVert(RenderData, ParticlePos + ParticleRight + ParticleDir, Data, UVs[3], ColorPtr[i], AgePtr[i], RotPtr[i]);
+		AddRibbonVert(RenderData, ParticlePos - ParticleRight + ParticleDir, Data, UVs[2], ColorPtr[Index2], AgePtr[Index2], RotPtr[i]);
+		AddRibbonVert(RenderData, ParticlePos + ParticleRight + ParticleDir, Data, UVs[3], ColorPtr[Index2], AgePtr[Index2], RotPtr[i]);
 		PrevPos = ParticlePos - ParticleRight + ParticleDir;
 		PrevPos2 = ParticlePos + ParticleRight + ParticleDir;
 		PrevDir = ParticleDir;
