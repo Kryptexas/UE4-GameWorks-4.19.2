@@ -493,6 +493,9 @@ void FTableRowStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) co
 	OutBrushes.Add( &EvenRowBackgroundBrush );
 	OutBrushes.Add( &OddRowBackgroundHoveredBrush );
 	OutBrushes.Add( &OddRowBackgroundBrush );
+	OutBrushes.Add( &DropIndicator_Above );
+	OutBrushes.Add( &DropIndicator_Onto );
+	OutBrushes.Add( &DropIndicator_Below );
 }
 
 const FName FTableRowStyle::TypeName( TEXT("FTableRowStyle") );

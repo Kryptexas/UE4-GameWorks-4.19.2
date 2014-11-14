@@ -1075,11 +1075,6 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 	FSlateBrush DragDropLineIndicatorBrush;
 	FTableRowStyle& SetDragDropLineIndicatorBrush(const FSlateBrush& InDragDropLineIndicatorBrush){ DragDropLineIndicatorBrush = InDragDropLineIndicatorBrush; return *this; }
 
-	/** Brush used when drawing the drag-drop indicator border around a row */
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush DragDropBorderIndicatorBrush;
-	FTableRowStyle& SetDragDropBorderIndicatorBrush(const FSlateBrush& InDragDropBorderIndicatorBrush){ DragDropBorderIndicatorBrush = InDragDropBorderIndicatorBrush; return *this; }
-
 	/** Text color used for all rows */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateColor TextColor;
@@ -1089,6 +1084,21 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateColor SelectedTextColor;
 	FTableRowStyle& SetSelectedTextColor( const FSlateColor& InSelectedTextColor ){ SelectedTextColor = InSelectedTextColor; return *this; }
+
+	/** Brush used to provide feedback that a user can drop above the hovered row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DropIndicator_Above;
+	FTableRowStyle& SetDropIndicator_Above(const FSlateBrush& InValue){ DropIndicator_Above = InValue; return *this; }
+
+	/** Brush used to provide feedback that a user can drop onto the hovered row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DropIndicator_Onto;
+	FTableRowStyle& SetDropIndicator_Onto(const FSlateBrush& InValue){ DropIndicator_Onto = InValue; return *this; }
+
+	/** Brush used to provide feedback that a user can drop below the hovered row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DropIndicator_Below;
+	FTableRowStyle& SetDropIndicator_Below(const FSlateBrush& InValue){ DropIndicator_Below = InValue; return *this; }
 };
 
 
