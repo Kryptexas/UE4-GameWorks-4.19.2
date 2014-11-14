@@ -166,6 +166,73 @@ private:
 
 
 
+FSourceFileDatabase::FSourceFileDatabase()
+{
+	// Find all the build rules within the game and engine directories
+	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Developer")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Editor")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Runtime")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::GameDir() / TEXT("Source")), TEXT("*.Build.cs"));
+
+	// Find list of disallowed header names in native (non-plugin) directories
+	TArray<FString> HeaderFiles;
+	for (const FString& ModuleName : ModuleNames)
+	{
+		IFileManager::Get().FindFilesRecursive(HeaderFiles, *(FPaths::GetPath(ModuleName) / TEXT("Classes")), TEXT("*.h"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(HeaderFiles, *(FPaths::GetPath(ModuleName) / TEXT("Public")), TEXT("*.h"), true, false, false);
+	}
+
+	for (const FString& HeaderFile : HeaderFiles)
+	{
+		DisallowedHeaderNames.Add(FPaths::GetBaseFilename(HeaderFile));
+	}
+
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	{
+		DisallowedHeaderNames.Remove(ClassIt->GetName());
+	}
+
+	// Find all the plugin directories
+	TArray<FString> PluginNames;
+
+	FindRootFilesRecursive(PluginNames, *(FPaths::EngineDir() / TEXT("Plugins")), TEXT("*.uplugin"));
+	FindRootFilesRecursive(PluginNames, *(FPaths::GameDir() / TEXT("Plugins")), TEXT("*.uplugin"));
+
+	// Add all the files within plugin directories
+	for (const FString& PluginName : PluginNames)
+	{
+		FindRootFilesRecursive(ModuleNames, *(FPaths::GetPath(PluginName) / TEXT("Source")), TEXT("*.Build.cs"));
+	}
+}
+
+
+void FSourceFileDatabase::FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard)
+{
+	// Find all the files within this directory
+	TArray<FString> BasedFileNames;
+	IFileManager::Get().FindFiles(BasedFileNames, *(BaseDirectory / Wildcard), true, false);
+
+	// Append to the result if we have any, otherwise recurse deeper
+	if (BasedFileNames.Num() == 0)
+	{
+		TArray<FString> DirectoryNames;
+		IFileManager::Get().FindFiles(DirectoryNames, *(BaseDirectory / TEXT("*")), false, true);
+
+		for (int32 Idx = 0; Idx < DirectoryNames.Num(); Idx++)
+		{
+			FindRootFilesRecursive(FileNames, BaseDirectory / DirectoryNames[Idx], Wildcard);
+		}
+	}
+	else
+	{
+		for (int32 Idx = 0; Idx < BasedFileNames.Num(); Idx++)
+		{
+			FileNames.Add(BaseDirectory / BasedFileNames[Idx]);
+		}
+	}
+}
+
+
 DECLARE_DELEGATE_RetVal( bool, FShouldAbortDelegate );
 
 
@@ -534,6 +601,45 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 #endif	// PLATFORM_WINDOWS
 }
 
+
+void FSourceCodeNavigation::Initialize()
+{
+	class FAsyncInitializeSourceFileDatabase : public FNonAbandonableTask
+	{
+	public:
+		/** Performs work on thread */
+		void DoWork()
+		{
+			FSourceCodeNavigation::GetSourceFileDatabase();
+		}
+
+		/** Returns true if the task should be aborted.  Called from within the task processing code itself via delegate */
+		bool ShouldAbort() const
+		{
+			return false;
+		}
+
+		/** @return Queries the name of this task for for external event viewers */
+		static const TCHAR* Name()
+		{
+			return TEXT("FAsyncInitializeSourceFileDatabase");
+		}
+	};
+
+	// Initialize SourceFileDatabase instance asynchronously
+	(new FAutoDeleteAsyncTask<FAsyncInitializeSourceFileDatabase>)->StartBackgroundTask();
+}
+
+
+const FSourceFileDatabase& FSourceCodeNavigation::GetSourceFileDatabase()
+{
+	// Lock so that nothing may proceed while the AsyncTask is constructing the FSourceFileDatabase for the first time
+	static FCriticalSection CriticalSection;
+	FScopeLock Lock(&CriticalSection);
+
+	static FSourceFileDatabase Instance;
+	return Instance;
+}
 
 
 void FSourceCodeNavigation::NavigateToFunctionSourceAsync( const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber )
@@ -1383,36 +1489,14 @@ FSourceCodeNavigation::FOnCompilerNotFound& FSourceCodeNavigation::AccessOnCompi
 
 bool FSourceCodeNavigation::FindModulePath( const FString& ModuleName, FString &OutModulePath )
 {
-	// Find all the plugin directories
-	static TArray<FString> PluginFileNames;
-	static TArray<FString> FileNames;
-	static bool bHasScannedFiles = false;
-	if( !bHasScannedFiles )
-	{
-		FindRootFilesRecursive(PluginFileNames, *(FPaths::EngineDir() / TEXT("Plugins")), TEXT("*.uplugin"));
-		FindRootFilesRecursive(PluginFileNames, *(FPaths::GameDir() / TEXT("Plugins")), TEXT("*.uplugin"));
-
-		// Find all the build rules within the game and engine directories
-		FindRootFilesRecursive(FileNames, *(FPaths::EngineDir() / TEXT("Source")), TEXT("*.Build.cs"));
-		FindRootFilesRecursive(FileNames, *(FPaths::GameDir() / TEXT("Source")), TEXT("*.Build.cs"));
-
-		// Add all the files within plugin directories
-		for(int32 Idx = 0; Idx < PluginFileNames.Num(); Idx++)
-		{
-			FindRootFilesRecursive(FileNames, *(FPaths::GetPath(PluginFileNames[Idx]) / TEXT("Source")), TEXT("*.Build.cs"));
-		}
-
-		// Only do this once per session
-		bHasScannedFiles = true;
-	}
-
 	// Try to find a file matching the module name
+	const TArray<FString>& ModuleNames = GetSourceFileDatabase().GetModuleNames();
 	FString FindModuleSuffix = FString(TEXT("/")) + ModuleName + ".Build.cs";
-	for(int32 Idx = 0; Idx < FileNames.Num(); Idx++)
+	for (int32 Idx = 0; Idx < ModuleNames.Num(); Idx++)
 	{
-		if(FileNames[Idx].EndsWith(FindModuleSuffix))
+		if (ModuleNames[Idx].EndsWith(FindModuleSuffix))
 		{
-			OutModulePath = FileNames[Idx].Left(FileNames[Idx].Len() - FindModuleSuffix.Len());
+			OutModulePath = ModuleNames[Idx].Left(ModuleNames[Idx].Len() - FindModuleSuffix.Len());
 			return true;
 		}
 	}
@@ -1442,32 +1526,6 @@ bool FSourceCodeNavigation::FindClassHeaderPath( const UField *Field, FString &O
 		}
 	}
 	return false;
-}
-
-void FSourceCodeNavigation::FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard)
-{
-	// Find all the files within this directory
-	TArray<FString> BasedFileNames;
-	IFileManager::Get().FindFiles(BasedFileNames, *(BaseDirectory / Wildcard), true, false);
-
-	// Append to the result if we have any, otherwise recurse deeper
-	if(BasedFileNames.Num() == 0)
-	{
-		TArray<FString> DirectoryNames;
-		IFileManager::Get().FindFiles(DirectoryNames, *(BaseDirectory / TEXT("*")), false, true);
-
-		for(int32 Idx = 0; Idx < DirectoryNames.Num(); Idx++)
-		{
-			FindRootFilesRecursive(FileNames, BaseDirectory / DirectoryNames[Idx], Wildcard);
-		}
-	}
-	else
-	{
-		for(int32 Idx = 0; Idx < BasedFileNames.Num(); Idx++)
-		{
-			FileNames.Add(BaseDirectory / BasedFileNames[Idx]);
-		}
-	}
 }
 
 void FSourceCodeNavigationImpl::TryToGatherFunctions( const FString& ModuleName, const FString& ClassName, TArray< FString >& OutFunctionSymbolNames, bool& OutIsCompleteList )

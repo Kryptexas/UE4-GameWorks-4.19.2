@@ -28,6 +28,7 @@
 #include "BSPOps.h"
 #include "ComponentVisualizer.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
+#include "SourceCodeNavigation.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
@@ -35,6 +36,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 {
 	Super::Init(InEngineLoop);
+
+	// Build databases used by source code navigation
+	FSourceCodeNavigation::Initialize();
 
 	PackageAutoSaver.Reset(new FPackageAutoSaver);
 	PackageAutoSaver->LoadRestoreFile();

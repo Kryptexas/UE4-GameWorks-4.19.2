@@ -104,22 +104,6 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 		{
 			AvailableModules.Emplace(MakeShareable(new FModuleContextInfo(ModuleInfo)));
 		}
-
-		// Get collection of disallowed header names
-		TArray<FString> HeaderFiles;
-		FindPublicEngineHeaderFiles(HeaderFiles, FPaths::EngineDir() / TEXT("Source") / TEXT("Developer"));
-		FindPublicEngineHeaderFiles(HeaderFiles, FPaths::EngineDir() / TEXT("Source") / TEXT("Editor"));
-		FindPublicEngineHeaderFiles(HeaderFiles, FPaths::EngineDir() / TEXT("Source") / TEXT("Runtime"));
-
-		for (const FString& HeaderFile : HeaderFiles)
-		{
-			DisallowedHeaderNames.Add(FPaths::GetBaseFilename(HeaderFile));
-		}
-
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-		{
-			DisallowedHeaderNames.Remove(ClassIt->GetName());
-		}
 	}
 
 	// If we have a runtime module with the same name as our project, then use that
@@ -1008,6 +992,7 @@ void SNewClassDialog::FinishClicked()
 	FString CppFilePath;
 
 	FText FailReason;
+	const TSet<FString>& DisallowedHeaderNames = FSourceCodeNavigation::GetSourceFileDatabase().GetDisallowedHeaderNames();
 	if (GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, DisallowedHeaderNames, HeaderFilePath, CppFilePath, FailReason))
 	{
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
@@ -1238,6 +1223,7 @@ void SNewClassDialog::UpdateInputValidity()
 	// Validate the class name only if the path is valid
 	if ( bLastInputValidityCheckSuccessful )
 	{
+		const TSet<FString>& DisallowedHeaderNames = FSourceCodeNavigation::GetSourceFileDatabase().GetDisallowedHeaderNames();
 		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, *SelectedModuleInfo, DisallowedHeaderNames, LastInputValidityErrorText);
 	}
 

@@ -10,6 +10,31 @@ DECLARE_LOG_CATEGORY_EXTERN(LogSelectionDetails, Log, All);
 
 
 /**
+ * Singleton holding database of module names and disallowed header names in the engine and current project.
+ */
+class FSourceFileDatabase
+{
+public:
+	/** Constructs database */
+	FSourceFileDatabase();
+
+	/** Return array of module names used by the engine and current project, including those in plugins */
+	const TArray<FString>& GetModuleNames() const { return ModuleNames; }
+
+	/** Return set of public header names used by engine modules, which are disallowed as project header names */
+	const TSet<FString>& GetDisallowedHeaderNames() const { return DisallowedHeaderNames; }
+
+private:
+
+	/** Return array of filenames matching the given wildcard, recursing into subdirectories if no results are yielded from the base directory */
+	void FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard);
+
+	TArray<FString> ModuleNames;
+	TSet<FString> DisallowedHeaderNames;
+};
+
+
+/**
  * Source code navigation functionality
  */
 class FSourceCodeNavigation
@@ -49,6 +74,17 @@ public:
 		/** Referenced object (e.g., a blueprint for a kismet graph symbol) */
 		TWeakObjectPtr<UObject> ReferencedObject;
 	};
+
+
+	/**
+	 * Initializes FSourceCodeNavigation static class
+	 */
+	UNREALED_API static void Initialize();
+
+	/**
+	 * Retrieves the SourceFileDatabase instance
+	 */
+	UNREALED_API static const FSourceFileDatabase& GetSourceFileDatabase();
 
 	/**
 	 * Asynchronously locates the source file and line for a specific function in a specific module and navigates an external editing to that source line
@@ -134,10 +170,6 @@ public:
 
 	/** Call this to access the multi-cast delegate that you can register a callback with */
 	UNREALED_API static FOnCompilerNotFound& AccessOnCompilerNotFound();
-
-private:
-	/** Recursively finds files which mark the root of a directory tree. Stops recursing once a file is found. */
-	static void FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard);
 };
 
 
