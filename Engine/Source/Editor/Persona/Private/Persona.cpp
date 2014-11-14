@@ -353,7 +353,7 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 
 		if(SequenceBrowser.IsValid())
 		{
-			UAnimationAsset * NewAsset = CastChecked<UAnimationAsset>(InAnimAsset);
+			UAnimationAsset* NewAsset = CastChecked<UAnimationAsset>(InAnimAsset);
 			SequenceBrowser.Pin()->SelectAsset(NewAsset);
 		}
 	}
@@ -542,7 +542,7 @@ void FPersona::ExtendMenu()
 	AddMenuExtender(PersonaModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
-void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, USkeleton* InitSkeleton, UAnimBlueprint* InitAnimBlueprint, UAnimationAsset* InitAnimationAsset, class USkeletalMesh * InitMesh)
+void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, USkeleton* InitSkeleton, UAnimBlueprint* InitAnimBlueprint, UAnimationAsset* InitAnimationAsset, class USkeletalMesh* InitMesh)
 {
 	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FPersona::OnPostReimport);
 
@@ -667,7 +667,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	}
 	else if (InitAnimationAsset != NULL)
 	{
-		USkeletalMesh * AssetMesh = InitAnimationAsset->GetPreviewMesh();
+		USkeletalMesh* AssetMesh = InitAnimationAsset->GetPreviewMesh();
 		if (AssetMesh)
 		{
 			SetPreviewMesh(AssetMesh);
@@ -678,7 +678,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	if (!bSetMesh && TargetSkeleton)
 	{
 		//If no preview mesh set, just find the first mesh that uses this skeleton
-		USkeletalMesh * PreviewMesh = TargetSkeleton->GetPreviewMesh(true);
+		USkeletalMesh* PreviewMesh = TargetSkeleton->GetPreviewMesh(true);
 		if ( PreviewMesh )
 		{
 			SetPreviewMesh( PreviewMesh );
@@ -736,12 +736,12 @@ void FPersona::CreateAnimation(const TArray<UObject*> NewAssets, int32 Option)
 	bool bResult = true;
 	if (NewAssets.Num() > 0)
 	{
-		USkeletalMeshComponent * MeshComponent = GetPreviewMeshComponent();
-		UAnimSequence * Sequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
+		USkeletalMeshComponent* MeshComponent = GetPreviewMeshComponent();
+		UAnimSequence* Sequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
 
 		for (auto NewAsset : NewAssets)
 		{
-			UAnimSequence * NewAnimSequence = Cast<UAnimSequence>(NewAsset);
+			UAnimSequence* NewAnimSequence = Cast<UAnimSequence>(NewAsset);
 			if (NewAnimSequence)
 			{
 				switch (Option)
@@ -1358,7 +1358,7 @@ void FPersona::OnConvertToSequenceEvaluator()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_SequencePlayer * OldNode = Cast<UAnimGraphNode_SequencePlayer>(*NodeIter);
+			UAnimGraphNode_SequencePlayer* OldNode = Cast<UAnimGraphNode_SequencePlayer>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.Sequence )
@@ -1409,7 +1409,7 @@ void FPersona::OnConvertToSequencePlayer()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_SequenceEvaluator * OldNode = Cast<UAnimGraphNode_SequenceEvaluator>(*NodeIter);
+			UAnimGraphNode_SequenceEvaluator* OldNode = Cast<UAnimGraphNode_SequenceEvaluator>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.Sequence )
@@ -1460,7 +1460,7 @@ void FPersona::OnConvertToBlendSpaceEvaluator()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_BlendSpacePlayer * OldNode = Cast<UAnimGraphNode_BlendSpacePlayer>(*NodeIter);
+			UAnimGraphNode_BlendSpacePlayer* OldNode = Cast<UAnimGraphNode_BlendSpacePlayer>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.BlendSpace )
@@ -1527,7 +1527,7 @@ void FPersona::OnConvertToBlendSpacePlayer()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_BlendSpaceEvaluator * OldNode = Cast<UAnimGraphNode_BlendSpaceEvaluator>(*NodeIter);
+			UAnimGraphNode_BlendSpaceEvaluator* OldNode = Cast<UAnimGraphNode_BlendSpaceEvaluator>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.BlendSpace )
@@ -1865,10 +1865,10 @@ void FPersona::PostUndo(bool bSuccess)
 
 void FPersona::ClearupPreviewMeshAnimNotifyStates()
 {
-	USkeletalMeshComponent * PreviewMeshComponent = GetPreviewMeshComponent();
+	USkeletalMeshComponent* PreviewMeshComponent = GetPreviewMeshComponent();
 	if ( PreviewMeshComponent )
 	{
-		UAnimInstance * AnimInstantace = PreviewMeshComponent->GetAnimInstance();
+		UAnimInstance* AnimInstantace = PreviewMeshComponent->GetAnimInstance();
 
 		if (AnimInstantace)
 		{
@@ -2551,27 +2551,27 @@ bool FPersona::CanSetKey() const
 
 void FPersona::OnSetKey()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	if (AnimSequence)
 	{
-		UDebugSkelMeshComponent * Component = GetPreviewMeshComponent();
+		UDebugSkelMeshComponent* Component = GetPreviewMeshComponent();
 		Component->PreviewInstance->SetKey(FSimpleDelegate::CreateSP(this, &FPersona::OnSetKeyCompleted));
 	}
 }
 
 bool FPersona::CanBakeAnimation() const
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	// ideally would be great if we can only show if something changed
 	return (AnimSequence && AnimSequence->DoesNeedRebake());
 }
 
 void FPersona::OnBakeAnimation()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetAnimationAssetBeingEdited());
 	if(AnimSequence)
 	{
-		UDebugSkelMeshComponent * Component = GetPreviewMeshComponent();
+		UDebugSkelMeshComponent* Component = GetPreviewMeshComponent();
 		// now bake
 		Component->PreviewInstance->BakeAnimation();
 	}
@@ -2579,7 +2579,7 @@ void FPersona::OnBakeAnimation()
 
 void FPersona::OnApplyCompression()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
 
 	if (AnimSequence)
 	{
@@ -2591,7 +2591,7 @@ void FPersona::OnApplyCompression()
 
 void FPersona::OnExportToFBX()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
 
 	if(AnimSequence)
 	{
@@ -2603,7 +2603,7 @@ void FPersona::OnExportToFBX()
 
 void FPersona::OnAddLoopingInterpolation()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
 
 	if(AnimSequence)
 	{
@@ -2625,7 +2625,7 @@ void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences)
 
 	if(DesktopPlatform)
 	{
-		USkeletalMesh * PreviewMesh = GetPreviewMeshComponent()->SkeletalMesh;
+		USkeletalMesh* PreviewMesh = GetPreviewMeshComponent()->SkeletalMesh;
 		if(PreviewMesh == NULL)
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ExportToFBXExportMissingPreviewMesh", "ERROR: Missing preview mesh"));
@@ -2770,7 +2770,7 @@ void FPersona::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>>& An
 
 bool FPersona::HasValidAnimationSequencePlaying() const
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	
 	return (AnimSequence != NULL);
 }
@@ -3033,7 +3033,7 @@ void FPersona::OnReimportMesh()
 void FPersona::OnReimportAnimation()
 {
 	// Reimport the asset
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	if (AnimSequence)
 	{
 		FReimportManager::Instance()->Reimport(AnimSequence, true);

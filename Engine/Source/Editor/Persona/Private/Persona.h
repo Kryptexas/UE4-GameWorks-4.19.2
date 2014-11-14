@@ -29,7 +29,7 @@ public:
 	 * @param	InitAnimationAsset		The animation asset to edit.  If specified, Blueprint must be NULL.
 	 * @param	InitMesh				The mesh asset to edit.  If specified, Blueprint must be NULL.	 
 	 */
-	void InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class USkeleton* InitSkeleton, class UAnimBlueprint* InitAnimBlueprint, class UAnimationAsset* InitAnimationAsset, class USkeletalMesh * InitMesh);
+	void InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class USkeleton* InitSkeleton, class UAnimBlueprint* InitAnimBlueprint, class UAnimationAsset* InitAnimationAsset, class USkeletalMesh* InitMesh);
 
 public:
 	FPersona();
