@@ -33,6 +33,7 @@ ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	bHidden = true;
 	bNotForClientOrServer = false;
 	bCanBeDamaged = false;
+	bCollideWhenPlacing = true;
 }
 
 #if WITH_EDITOR

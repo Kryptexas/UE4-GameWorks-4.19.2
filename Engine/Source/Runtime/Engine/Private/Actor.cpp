@@ -1576,9 +1576,10 @@ FVector AActor::GetPlacementExtent() const
 			}
 		}
 
-		FVector BoxExtent = ActorBox.GetExtent();
-		float CollisionRadius = FMath::Sqrt( (BoxExtent.X * BoxExtent.X) + (BoxExtent.Y * BoxExtent.Y) );
-		Extent = FVector(CollisionRadius, CollisionRadius, BoxExtent.Z);
+		// Get box extent, adjusting for any difference between the center of the box and the actor pivot
+		FVector AdjustedBoxExtent = ActorBox.GetExtent() - ActorBox.GetCenter();
+		float CollisionRadius = FMath::Sqrt((AdjustedBoxExtent.X * AdjustedBoxExtent.X) + (AdjustedBoxExtent.Y * AdjustedBoxExtent.Y));
+		Extent = FVector(CollisionRadius, CollisionRadius, AdjustedBoxExtent.Z);
 	}
 	return Extent;
 }

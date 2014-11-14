@@ -366,7 +366,13 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 	AActor* NewActorTemplate = Factory->GetDefaultActor( Asset );
 	if ( !NewActorTemplate )
 	{
-		return NULL;
+		return nullptr;
+	}
+
+	// For Brushes/Volumes, use the default brush as the template rather than the factory default actor
+	if (NewActorTemplate->IsA(ABrush::StaticClass()) && GWorld->GetDefaultBrush() != nullptr)
+	{
+		NewActorTemplate = GWorld->GetDefaultBrush();
 	}
 
 	const FSnappedPositioningData PositioningData = FSnappedPositioningData(GCurrentLevelEditingViewportClient, GEditor->ClickLocation, GEditor->ClickPlane)
@@ -388,7 +394,7 @@ static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool Sel
 		FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked.") );
 		Info.ExpireDuration = 3.0f;
 		FSlateNotificationManager::Get().AddNotification(Info);
-		return NULL;
+		return nullptr;
 	}
 
 	{

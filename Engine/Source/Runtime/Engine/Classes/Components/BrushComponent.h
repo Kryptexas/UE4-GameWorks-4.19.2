@@ -35,6 +35,8 @@ class UBrushComponent : public UPrimitiveComponent
 	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FVector GetCustomLocation() const override;
+	virtual bool ShouldCollideWhenPlacing() const override { return true; }
+
 protected:
 	
 	/** Calculate the new ComponentToWorld transform for this component.

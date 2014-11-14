@@ -4462,10 +4462,17 @@ bool UEditorEngine::SnapActorTo( AActor* InActor, const bool InAlign, const bool
 		Direction.Normalize();
 	}
 
+	// In the case that we're about to do a line trace from a brush, move the start position so it's guaranteed to be very slightly
+	// outside of the brush bounds. The BSP geometry is double-sided which will give rise to an unwanted hit.
+	if (Brush)
+	{
+		const float fTinyOffset = 0.01f;
+		StartLocation.Z = InActor->GetRootComponent()->Bounds.Origin.Z - InActor->GetRootComponent()->Bounds.BoxExtent.Z - fTinyOffset;
+	}
 
 	// Do the actual actor->world check.  We try to collide against the world, straight down from our current position.
 	// If we hit anything, we will move the actor to a position that lets it rest on the floor.
-	FHitResult Hit(1.0f) ;
+	FHitResult Hit(1.0f);
 	FCollisionQueryParams Params(FName(TEXT("MoveActorToTrace")), false, InActor);
 	if ( InActor->GetWorld()->SweepSingle(Hit, StartLocation, StartLocation + Direction*WORLD_MAX, FQuat::Identity, FCollisionShape::MakeBox(Extent), Params, FCollisionObjectQueryParams(ECC_WorldStatic)))
 	{
