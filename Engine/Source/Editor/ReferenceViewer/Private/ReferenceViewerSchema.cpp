@@ -5,8 +5,7 @@
 #include "ReferenceViewerActions.h"
 #include "GlobalEditorCommonCommands.h"
 
-// @todo ConnectionDrawingPolicy should not be in a private folder since it is part of the module's API
-#include "Editor/GraphEditor/Private/ConnectionDrawingPolicy.h"
+#include "Editor/GraphEditor/Public/ConnectionDrawingPolicy.h"
 
 // Overridden connection drawing policy to use less curvy lines between nodes
 class FReferenceViewerConnectionDrawingPolicy : public FConnectionDrawingPolicy
