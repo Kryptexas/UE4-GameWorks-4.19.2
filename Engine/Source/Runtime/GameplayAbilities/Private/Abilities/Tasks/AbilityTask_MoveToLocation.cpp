@@ -13,9 +13,9 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const FObjectInitialize
 	bIsFinished = false;
 }
 
-UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
+UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FName TaskInstanceName, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
 {
-	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
+	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject, TaskInstanceName);
 
 	MyObj->StartLocation = MyObj->GetAvatarActor()->GetActorLocation();
 	MyObj->TargetLocation = Location;
