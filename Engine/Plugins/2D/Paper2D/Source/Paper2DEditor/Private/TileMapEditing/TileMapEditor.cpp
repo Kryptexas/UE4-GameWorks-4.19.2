@@ -234,8 +234,7 @@ TSharedRef<SDockTab> FTileMapEditor::SpawnTab_ToolboxHost(const FSpawnTabArgs& A
 		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Modes"))
 		.Label(LOCTEXT("ToolboxHost_Title", "Toolbox"))
 		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("ToolkitControlsGohere", "Toolkit controls go here"))
+			ToolboxPtr.ToSharedRef()
 		];
 }
 
@@ -294,6 +293,9 @@ void FTileMapEditor::InitTileMapEditor(const EToolkitMode::Type Mode, const TSha
 	BindCommands();
 
 	ViewportPtr = SNew(STileMapEditorViewport, SharedThis(this));
+	ToolboxPtr = SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.Padding(0.f);
 
 	// Default layout
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_TileMapEditor_Layout_v2")
@@ -404,6 +406,41 @@ FString FTileMapEditor::GetWorldCentricTabPrefix() const
 FString FTileMapEditor::GetDocumentationLink() const
 {
 	return TEXT("Engine/Paper2D/TileMapEditor");
+}
+
+void FTileMapEditor::OnToolkitHostingStarted(const TSharedRef< class IToolkit >& Toolkit)
+{
+	TSharedPtr<SWidget> InlineContent = Toolkit->GetInlineContent();
+	if (InlineContent.IsValid())
+	{
+		ToolboxPtr->SetContent(InlineContent.ToSharedRef());
+	}
+}
+
+void FTileMapEditor::OnToolkitHostingFinished(const TSharedRef< class IToolkit >& Toolkit)
+{
+	ToolboxPtr->SetContent(SNullWidget::NullWidget);
+
+	//@TODO: MODETOOLS: How to handle multiple ed modes at once in a standalone asset editor?
+#if 0
+	bool FoundAnotherToolkit = false;
+	const TArray< TSharedPtr< IToolkit > >& HostedToolkits = LevelEditor.Pin()->GetHostedToolkits();
+	for (auto HostedToolkitIt = HostedToolkits.CreateConstIterator(); HostedToolkitIt; ++HostedToolkitIt)
+	{
+		if ((*HostedToolkitIt) != Toolkit)
+		{
+			UpdateInlineContent((*HostedToolkitIt)->GetInlineContent());
+			FoundAnotherToolkit = true;
+			break;
+		}
+	}
+
+	if (!FoundAnotherToolkit)
+	{
+		UpdateInlineContent(SNullWidget::NullWidget);
+	}
+
+#endif
 }
 
 FLinearColor FTileMapEditor::GetWorldCentricTabColorScale() const

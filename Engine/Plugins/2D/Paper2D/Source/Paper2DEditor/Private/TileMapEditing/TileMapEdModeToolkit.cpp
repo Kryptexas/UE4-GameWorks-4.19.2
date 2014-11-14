@@ -81,6 +81,8 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 		}
 	}
 
+	TileSetPalette = SNew(STileSetSelectorViewport, CurrentTileSetPtr.Get(), TileMapEditor);
+
 	// Create the contents of the editor mode toolkit
 	MyWidget = 
 		SNew(SBorder)
@@ -139,7 +141,7 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
-						SAssignNew(TileSetPalette, STileSetSelectorViewport, CurrentTileSetPtr.Get())
+						TileSetPalette.ToSharedRef()
 					]
 				]
 			]

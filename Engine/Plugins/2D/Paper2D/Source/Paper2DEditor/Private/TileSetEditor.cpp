@@ -133,9 +133,10 @@ STileSetSelectorViewport::~STileSetSelectorViewport()
 	TypedViewportClient = NULL;
 }
 
-void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet* InTileSet)
+void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, FEdModeTileMap* InTileMapEditor)
 {
 	TileSetPtr = InTileSet;
+	TileMapEditor = InTileMapEditor;
 
 	TypedViewportClient = MakeShareable(new FTileSetEditorViewportClient(InTileSet));
 
@@ -203,17 +204,17 @@ void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, boo
 	const bool bHasSelection = (SelectionDimensions.X + SelectionDimensions.Y > 0);
 	if (bIsPreview && bHasSelection)
 	{
-		if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
+		if (TileMapEditor != nullptr)
 		{
 			TileMapEditor->SetActivePaint(TileSetBeingEdited, SelectionTopLeft, SelectionDimensions);
+		}
 
-			if (FTileSetEditorViewportClient* Client = TypedViewportClient.Get())
-			{
-				Client->bHasValidPaintRectangle = true;
-				Client->ValidPaintRectangle.Color = FLinearColor::White;
-				Client->ValidPaintRectangle.Dimensions = FVector2D(SelectionDimensions.X * TileSetBeingEdited->TileWidth, SelectionDimensions.Y * TileSetBeingEdited->TileHeight);
-				Client->ValidPaintRectangle.TopLeft = FVector2D(SelectionTopLeft.X * TileSetBeingEdited->TileWidth, SelectionTopLeft.Y * TileSetBeingEdited->TileHeight);
-			}
+		if (FTileSetEditorViewportClient* Client = TypedViewportClient.Get())
+		{
+			Client->bHasValidPaintRectangle = true;
+			Client->ValidPaintRectangle.Color = FLinearColor::White;
+			Client->ValidPaintRectangle.Dimensions = FVector2D(SelectionDimensions.X * TileSetBeingEdited->TileWidth, SelectionDimensions.Y * TileSetBeingEdited->TileHeight);
+			Client->ValidPaintRectangle.TopLeft = FVector2D(SelectionTopLeft.X * TileSetBeingEdited->TileWidth, SelectionTopLeft.Y * TileSetBeingEdited->TileHeight);
 		}
 	}
 }
@@ -239,10 +240,8 @@ public:
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FTileSetEditor> TileSetEditorPtr = StaticCastSharedPtr<FTileSetEditor>(HostingApp.Pin());
-		//TSharedRef<FTileSetEditorViewportClient> ViewportClientPtr = MakeShareable(new FTileSetEditorViewportClient(TileSetEditorPtr));
-		//TWeakPtr<FTileSetEditorViewportClient> WeakViewportClient = ViewportClientPtr;
 
-		return SNew(STileSetSelectorViewport, TileSetEditorPtr->GetTileSetBeingEdited());
+		return SNew(STileSetSelectorViewport, TileSetEditorPtr->GetTileSetBeingEdited(), /*EdMode=*/ nullptr);
 	}
 };
 
