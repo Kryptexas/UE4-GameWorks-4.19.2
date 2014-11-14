@@ -7,7 +7,13 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/LevelDragDropOp.h"
+
 #include "ConnectionDrawingPolicy.h"
+#include "BlueprintConnectionDrawingPolicy.h"
+#include "AnimGraphConnectionDrawingPolicy.h"
+#include "SoundCueGraphConnectionDrawingPolicy.h"
+#include "MaterialGraphConnectionDrawingPolicy.h"
+#include "StateMachineConnectionDrawingPolicy.h"
 
 #include "AssetSelection.h"
 #include "ComponentAssetBroker.h"
