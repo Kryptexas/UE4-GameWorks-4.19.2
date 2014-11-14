@@ -30,6 +30,7 @@ void UGameplayCueNotify_Static::DeriveGameplayCueTagFromAssetName()
 			FString MyName = GetName();
 
 			MyName.RemoveFromStart(TEXT("Default__"));
+			MyName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
 			MyName.RemoveFromEnd(TEXT("_c"));
 
 			MyName.ReplaceInline(TEXT("_"), TEXT("."));
