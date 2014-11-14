@@ -68,8 +68,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	// Initialize the snap manager
 	FSnappingUtils::InitEditorSnappingTools();
 
-	// Register for notification of brush/volume changes
-	ABrush::GetOnBrushRegisteredDelegate().AddStatic(&FBSPOps::HandleBrushRegistered);
+	// Register for notification of volume changes
 	AVolume::GetOnVolumeShapeChangedDelegate().AddStatic(&FBSPOps::HandleVolumeShapeChanged);
 	//
 	InitBuilderBrush( GWorld );

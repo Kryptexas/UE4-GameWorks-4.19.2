@@ -51,8 +51,6 @@ public:
 	 */
 	static void RotateBrushVerts(ABrush* Brush, const FRotator& Rotation, bool bClearComponents);
 
-	/** Called when an ABrush is registered */
-	static void HandleBrushRegistered(ABrush* Brush);
 	/** Called when an AVolume shape is changed*/
 	static void HandleVolumeShapeChanged(AVolume& Volume);
 

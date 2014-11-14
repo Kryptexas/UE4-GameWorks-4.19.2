@@ -4486,14 +4486,7 @@ bool UEditorEngine::SnapActorTo( AActor* InActor, const bool InAlign, const bool
 			//@todo: This doesn't take into account that rotating the actor changes LocationOffset.
 			FRotator NewRotation( Hit.Normal.Rotation() );
 			NewRotation.Pitch -= 90.f;
-			if( Brush )
-			{
-				FBSPOps::RotateBrushVerts( Brush, NewRotation, false );
-			}
-			else
-			{
-				InActor->SetActorRotation(NewRotation);
-			}
+			InActor->SetActorRotation(NewRotation);
 		}
 
 		// Switch to the pie world if we have one

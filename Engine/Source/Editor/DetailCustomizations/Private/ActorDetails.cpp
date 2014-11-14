@@ -420,13 +420,18 @@ void FActorDetails::AddTransformCategory( IDetailLayoutBuilder& DetailBuilder )
 	bool bIsOnlyWorldPropsSelected =  SelectedActors.Num() == 1 && SelectedActors[0].IsValid() && SelectedActors[0]->IsA<AWorldSettings>();
 	bool bLacksRootComponent = SelectedActors[0].IsValid() && (SelectedActors[0]->GetRootComponent()==NULL);
 
-	// Don't show the Transform details when brushes are selected, if the only actor selected is world properties, or if they have no RootComponent
-	if ( bAreBrushesSelected || bIsOnlyWorldPropsSelected || bLacksRootComponent )
+	// Don't show the Transform details if the only actor selected is world properties, or if they have no RootComponent
+	if ( bIsOnlyWorldPropsSelected || bLacksRootComponent )
 	{
 		return;
 	}
 	
 	TSharedRef<FComponentTransformDetails> TransformDetails = MakeShareable( new FComponentTransformDetails( DetailBuilder.GetDetailsView().GetSelectedObjects(), SelectedActorInfo, DetailBuilder ) );
+
+	if (bAreBrushesSelected)
+	{
+		TransformDetails->HideTransformField(ETransformField::Scale);
+	}
 
 	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
 

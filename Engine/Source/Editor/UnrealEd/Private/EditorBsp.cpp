@@ -1183,6 +1183,7 @@ int UEditorEngine::bspBrushCSG
 			DestEdPoly.iLink = i;
 
 		// Transform it.
+		DestEdPoly.Rotate( Actor->GetPrePivot(), Actor->GetActorRotation() );
 		DestEdPoly.Transform( Actor->GetPrePivot(), Actor->GetActorLocation() );
 
 		// Add poly to the temp model.

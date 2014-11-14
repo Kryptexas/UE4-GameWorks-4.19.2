@@ -2173,54 +2173,44 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		{
 			bTranslationOnly = false;
 
-			if( Brush )
+			if ( bDelta )
 			{
-				FBSPOps::RotateBrushVerts( Brush, InDeltaRot, true );
+				if( InActor->GetRootComponent() != NULL )
+				{
+					const FRotator OriginalRotation = InActor->GetRootComponent()->GetComponentRotation();
+
+					InActor->EditorApplyRotation( InDeltaRot, bAltDown, bShiftDown, bControlDown );
+
+					// Check to see if we should transform the rigid body
+					UPrimitiveComponent* RootPrimitiveComponent = Cast< UPrimitiveComponent >( InActor->GetRootComponent() );
+					if( bIsSimulatingInEditor && GIsPlayInEditorWorld && RootPrimitiveComponent != NULL )
+					{
+						FRotator ActorRotWind, ActorRotRem;
+						OriginalRotation.GetWindingAndRemainder(ActorRotWind, ActorRotRem);
+
+						const FQuat ActorQ = ActorRotRem.Quaternion();
+						const FQuat DeltaQ = InDeltaRot.Quaternion();
+						const FQuat ResultQ = DeltaQ * ActorQ;
+
+						const FRotator NewActorRotRem = FRotator( ResultQ );
+						FRotator DeltaRot = NewActorRotRem - ActorRotRem;
+						DeltaRot.Normalize();
+
+						// @todo SIE: Not taking into account possible offset between root component and actor
+						RootPrimitiveComponent->SetWorldRotation( OriginalRotation + DeltaRot );
+					}
+				}
+
+				FVector NewActorLocation = InActor->GetActorLocation();
+				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
+				NewActorLocation = FRotationMatrix(InDeltaRot).TransformPosition(NewActorLocation);
+				NewActorLocation += GLevelEditorModeTools().PivotLocation;
+				NewActorLocation -= InActor->GetActorLocation();
+				InActor->EditorApplyTranslation(NewActorLocation, bAltDown, bShiftDown, bControlDown);
 			}
 			else
 			{
-				if ( bDelta )
-				{
-					if( InActor->GetRootComponent() != NULL )
-					{
-						const FRotator OriginalRotation = InActor->GetRootComponent()->GetComponentRotation();
-
-						InActor->EditorApplyRotation( InDeltaRot, bAltDown, bShiftDown, bControlDown );
-
-						// Check to see if we should transform the rigid body
-						UPrimitiveComponent* RootPrimitiveComponent = Cast< UPrimitiveComponent >( InActor->GetRootComponent() );
-						if( bIsSimulatingInEditor && GIsPlayInEditorWorld && RootPrimitiveComponent != NULL )
-						{
-							FRotator ActorRotWind, ActorRotRem;
-							OriginalRotation.GetWindingAndRemainder(ActorRotWind, ActorRotRem);
-
-							const FQuat ActorQ = ActorRotRem.Quaternion();
-							const FQuat DeltaQ = InDeltaRot.Quaternion();
-							const FQuat ResultQ = DeltaQ * ActorQ;
-
-							const FRotator NewActorRotRem = FRotator( ResultQ );
-							FRotator DeltaRot = NewActorRotRem - ActorRotRem;
-							DeltaRot.Normalize();
-
-							// @todo SIE: Not taking into account possible offset between root component and actor
-							RootPrimitiveComponent->SetWorldRotation( OriginalRotation + DeltaRot );
-						}
-					}
-				}
-				else
-				{
-					InActor->SetActorRotation( InDeltaRot );
-				}
-			}
-
-			if ( bDelta )
-			{
-				FVector NewActorLocation = InActor->GetActorLocation();
-				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
-				NewActorLocation = FRotationMatrix( InDeltaRot ).TransformPosition( NewActorLocation );
-				NewActorLocation += GLevelEditorModeTools().PivotLocation;
-				NewActorLocation -= InActor->GetActorLocation();
-				InActor->EditorApplyTranslation( NewActorLocation, bAltDown, bShiftDown, bControlDown );
+				InActor->SetActorRotation( InDeltaRot );
 			}
 		}
 	}

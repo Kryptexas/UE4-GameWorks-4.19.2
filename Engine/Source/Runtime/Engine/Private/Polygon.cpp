@@ -464,6 +464,30 @@ void FPoly::Transform
 }
 
 
+void FPoly::Rotate
+(
+	const FVector&		PreSubtract,
+	const FRotator&		Rotation
+)
+{
+	// Rotate the vertices.
+	for (int32 Vertex = 0; Vertex < Vertices.Num(); Vertex++)
+	{
+		Vertices[Vertex] = PreSubtract + FRotationMatrix(Rotation).TransformVector(Vertices[Vertex] - PreSubtract);
+	}
+
+	Base = PreSubtract + FRotationMatrix(Rotation).TransformVector(Base - PreSubtract);
+
+	// Rotate the texture vectors.
+	TextureU = FRotationMatrix(Rotation).TransformVector(TextureU);
+	TextureV = FRotationMatrix(Rotation).TransformVector(TextureV);
+
+	// Rotate the normal.
+	Normal = FRotationMatrix(Rotation).TransformVector(Normal);
+	Normal = Normal.SafeNormal();
+}
+
+
 int32 FPoly::RemoveColinears()
 {
 	FMemStack& LocalMemStack = FMemStack::Get();

@@ -2851,14 +2851,12 @@ void FLevelEditorViewportClient::MoveLockedActorToCamera() const
 		{
 			ActiveActorLock->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 		}
+		ActiveActorLock->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
+
 		ABrush* Brush = Cast< ABrush >( ActiveActorLock.Get() );
 		if( Brush )
 		{
-			FBSPOps::RotateBrushVerts( (ABrush*)ActiveActorLock.Get(), GCurrentLevelEditingViewportClient->GetViewRotation(), true );
-		}
-		else
-		{
-			ActiveActorLock->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
+			Brush->SetNeedRebuild( Brush->GetLevel() );
 		}
 
 		FScopedLevelDirtied LevelDirtyCallback;
