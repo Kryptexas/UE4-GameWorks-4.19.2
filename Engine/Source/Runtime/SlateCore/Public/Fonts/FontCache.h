@@ -101,8 +101,6 @@ private:
 	const class FSlateFontCache& FontCache;
 	/** Font this kerning table is for */
 	FSlateFontKey FontKey;
-	/** Whether the font has kerning at all */
-	bool bHasKerning;
 };
 
 
@@ -298,19 +296,9 @@ public:
 	int8 GetKerning( TCHAR First, TCHAR Second, const FSlateFontInfo& InFontInfo, float Scale ) const;
 
 	/**
-	 * @return Whether or not the font has kerning information (this checks both the default font as well as any sub-fonts)
+	 * @return Whether or not the font used by the given character has kerning information
 	 */
-	bool HasKerning( const FSlateFontInfo& InFontInfo ) const;
-
-	/**
-	 * @return Whether or not the typeface has kerning information
-	 */
-	bool HasKerning( const FTypeface& InTypeface ) const;
-
-	/**
-	 * @return Whether or not the font has kerning information
-	 */
-	bool HasKerning( const FFontData& InFontData ) const;
+	bool HasKerning( const FSlateFontInfo& InFontInfo, TCHAR Char ) const;
 
 	/**
 	 * Returns the height of the largest character in the font. 
