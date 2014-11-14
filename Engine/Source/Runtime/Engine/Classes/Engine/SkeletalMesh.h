@@ -630,7 +630,7 @@ public:
 	 *	Physics and collision information used for this USkeletalMesh, set up in PhAT.
 	 *	This is used for per-bone hit detection, accurate bounding box calculation and ragdoll physics for example.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics)
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, BlueprintReadOnly, Category=Physics)
 	class UPhysicsAsset* PhysicsAsset;
 
 #if WITH_EDITORONLY_DATA

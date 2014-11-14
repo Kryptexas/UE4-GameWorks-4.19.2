@@ -147,6 +147,10 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	ImportantStaticMeshTags.Add("CollisionPrims", TEXT("0"));
 	ImportantTagMap.Add("StaticMesh", ImportantStaticMeshTags);
 
+	TMap<FName, FString> ImportantSkelMeshTags;
+	ImportantSkelMeshTags.Add("PhysicsAsset", TEXT("None"));
+	ImportantTagMap.Add("SkeletalMesh", ImportantSkelMeshTags);
+
 	AssetDirtyBrush = FEditorStyle::GetBrush("ContentBrowser.ContentDirty");
 	SCCStateBrush = nullptr;
 
