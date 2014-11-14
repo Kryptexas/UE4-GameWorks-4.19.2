@@ -101,6 +101,14 @@ public:
 		return ObjectID;
 	}
 
+	/**
+	 * Non-const version of the above.
+	 */
+	FORCEINLINE TObjectID& GetUniqueID()
+	{
+		return ObjectID;
+	}
+
 	/**  
 	 * Dereference the lazy pointer, which may cause it to become valid again. Will not try to load pending outside of game thread
 	 * @return NULL if this object is gone or the lazy pointer was NULL, otherwise a valid UObject pointer
