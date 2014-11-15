@@ -7,7 +7,7 @@ class FFriendsStatusViewModelImpl
 	: public FFriendsStatusViewModel
 {
 public:
-	virtual bool GetOnlineStatus() const override
+	virtual EOnlinePresenceState::Type GetOnlineStatus() const override
 	{
 		return FriendsAndChatManager.Pin()->GetUserIsOnline();
 	}
@@ -24,7 +24,21 @@ public:
 
 	virtual FText GetStatusText() const override
 	{
-		return FriendsAndChatManager.Pin()->GetUserIsOnline() ? FText::FromString("Online") : FText::FromString("Away");
+		//@todo - use loc text
+		EOnlinePresenceState::Type OnlineStatus = FriendsAndChatManager.Pin()->GetUserIsOnline();
+		switch (OnlineStatus)
+		{
+			case EOnlinePresenceState::Away:
+			case EOnlinePresenceState::ExtendedAway:
+				return FText::FromString(TEXT("Away"));
+			case EOnlinePresenceState::Chat:
+			case EOnlinePresenceState::DoNotDisturb:
+			case EOnlinePresenceState::Online:
+				return FText::FromString(TEXT("Online"));
+			case EOnlinePresenceState::Offline:
+			default:
+				return FText::FromString("Offline");
+		};
 	}
 
 private:

@@ -566,7 +566,7 @@ bool FFriendsAndChatManager::IsInJoinableGameSession() const
 	return bIsGameJoinable && IsInGameSession();
 }
 
-bool FFriendsAndChatManager::GetUserIsOnline()
+EOnlinePresenceState::Type FFriendsAndChatManager::GetUserIsOnline()
 {
 	if (OnlineSubMcp != nullptr)
 	{
@@ -577,11 +577,11 @@ bool FFriendsAndChatManager::GetUserIsOnline()
 			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*UserId, Presence);
 			if(Presence.IsValid())
 			{
-				return Presence->Status.State == EOnlinePresenceState::Online;
+				return Presence->Status.State;
 			}
 		}
 	}
-	return false;
+	return EOnlinePresenceState::Offline;
 }
 
 // List processing

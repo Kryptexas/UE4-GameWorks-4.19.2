@@ -152,7 +152,19 @@ private:
 
 	const FSlateBrush* GetStatusBrush() const
 	{
-		return ViewModel->GetOnlineStatus() == true ? &FriendStyle.OnlineBrush : &FriendStyle.OfflineBrush;
+		switch (ViewModel->GetOnlineStatus())
+		{	
+		case EOnlinePresenceState::Away:
+		case EOnlinePresenceState::ExtendedAway:
+			return &FriendStyle.AwayBrush;
+		case EOnlinePresenceState::Chat:
+		case EOnlinePresenceState::DoNotDisturb:
+		case EOnlinePresenceState::Online:
+			return &FriendStyle.OnlineBrush;
+		case EOnlinePresenceState::Offline:
+		default:
+			return &FriendStyle.OfflineBrush;
+		};
 	}
 
 private:

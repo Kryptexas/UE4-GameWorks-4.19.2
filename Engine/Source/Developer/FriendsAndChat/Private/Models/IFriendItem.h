@@ -50,6 +50,12 @@ public:
 	virtual const bool IsOnline() const = 0;
 
 	/**
+	 * Get the online status of the user
+	 * @return online presence status
+	 */
+	virtual EOnlinePresenceState::Type GetOnlineStatus() const = 0;
+
+	/**
 	 * Get if the user is online and his game is joinable
 	 * @return The user joinable game state.
 	 */

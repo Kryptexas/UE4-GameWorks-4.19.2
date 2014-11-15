@@ -127,6 +127,11 @@ public:
 		return FriendItem.IsValid() ? FriendItem->IsOnline() : false;
 	}
 
+	virtual EOnlinePresenceState::Type GetOnlineStatus() const override
+	{
+		return FriendItem.IsValid() ? FriendItem->GetOnlineStatus() : EOnlinePresenceState::Offline;
+	}
+
 	virtual FString GetClientId() const override
 	{
 		return FriendItem.IsValid() ? FriendItem->GetClientId() : FString();

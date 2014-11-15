@@ -81,6 +81,12 @@ public:
 	virtual const bool IsOnline() const override;
 
 	/**
+	 * Get the online status of the user
+	 * @return online presence status
+	 */
+	virtual EOnlinePresenceState::Type GetOnlineStatus() const override;
+
+	/**
 	 * Get if the user is online and his game is joinable
 	 * @return The user joinable game state.
 	 */

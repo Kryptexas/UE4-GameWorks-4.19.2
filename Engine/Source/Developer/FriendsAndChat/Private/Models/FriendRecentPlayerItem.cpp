@@ -40,6 +40,11 @@ const bool FFriendRecentPlayerItem::IsOnline() const
 	return false;
 }
 
+EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() const
+{
+	return EOnlinePresenceState::Offline;
+}
+
 const TSharedRef< FUniqueNetId > FFriendRecentPlayerItem::GetUniqueID() const
 {
 	return RecentPlayer->GetUserId();

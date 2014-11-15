@@ -170,7 +170,7 @@ public:
 	 *
 	 * @return true if online
 	 */
-	bool GetUserIsOnline();
+	EOnlinePresenceState::Type GetUserIsOnline();
 
 	/**
 	 * Set the user online status

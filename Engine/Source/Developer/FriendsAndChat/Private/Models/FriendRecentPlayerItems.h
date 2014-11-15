@@ -62,6 +62,12 @@ public:
 	virtual const bool IsOnline() const override;
 
 	/**
+	 * Get the online status of the user
+	 * @return online presence status
+	 */
+	virtual EOnlinePresenceState::Type GetOnlineStatus() const override;
+
+	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
