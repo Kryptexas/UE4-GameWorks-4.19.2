@@ -15,7 +15,7 @@ public:
 	 * @param ParentWindow The parent window to add the widget
 	 * @param InStyle The style to use to create the widgets
 	 */
-	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const struct FFriendsAndChatStyle* InStyle ) = 0;
+	virtual void CreateFriendsListWidget(const struct FFriendsAndChatStyle* InStyle ) = 0;
 
 	/**
 	 * Set the FriendsAndChatUserSettings.

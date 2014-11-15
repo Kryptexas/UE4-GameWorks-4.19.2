@@ -188,9 +188,9 @@ private:
 
 	void StartChat()
 	{
-		if ( FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid() )
+		if (FriendItem.IsValid() && FriendItem->GetOnlineFriend().IsValid())
 		{
-			FFriendsAndChatManager::Get()->GenerateChatWindow(FriendItem);
+			FFriendsAndChatManager::Get()->SetChatFriend(FriendItem);
 		}
 	}
 

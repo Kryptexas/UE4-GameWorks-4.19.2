@@ -23,6 +23,7 @@ FFriendsAndChatManager::FFriendsAndChatManager( )
 	, bIsInited( false )
 	, bRequiresListRefresh(false)
 	, bRequiresRecentPlayersRefresh(false)
+	, bCreateChatWindow(false)
 {
 }
 
@@ -212,41 +213,37 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 
 // UI Creation
 
-void FFriendsAndChatManager::CreateFriendsListWidget( TSharedPtr< const SWidget > InParentWidget, const FFriendsAndChatStyle* InStyle )
+void FFriendsAndChatManager::CreateFriendsListWidget(const FFriendsAndChatStyle* InStyle )
 {
 	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(308, 458);
-	ParentWidget = InParentWidget;
+
 	Style = *InStyle;
 
-	if ( !FriendWindow.IsValid() )
+	if (!FriendWindow.IsValid())
 	{
 		FriendWindow = SNew( SWindow )
-		.Title( LOCTEXT( "FFriendsAndChatManager_FriendsTitle", "Friends List") )
-		.ClientSize( DEFAULT_WINDOW_SIZE )
-		.ScreenPosition( FVector2D( 100, 100 ) )
+		.Title(LOCTEXT("FFriendsAndChatManager_FriendsTitle", "Friends List"))
+		.ClientSize(DEFAULT_WINDOW_SIZE)
+		.ScreenPosition(FVector2D(100, 100))
 		.AutoCenter( EAutoCenter::None )
 		.SizingRule( ESizingRule::FixedSize )
-		.SupportsMaximize( false )
-		.SupportsMinimize( false )
-		.bDragAnywhere( true )
-		.CreateTitleBar( false );
+		.SupportsMaximize(false)
+		.SupportsMinimize(true)
+		.bDragAnywhere(true)
+		.CreateTitleBar(false);
 
 		FriendWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleFriendsWindowClosed));
 
 		BuildFriendsUI();
-
-		if ( ParentWidget.IsValid() )
-		{
-			FWidgetPath WidgetPath;
-			FSlateApplication::Get().GeneratePathToWidgetChecked( ParentWidget.ToSharedRef(), WidgetPath );
-			FriendWindow = FSlateApplication::Get().AddWindowAsNativeChild( FriendWindow.ToSharedRef(), WidgetPath.GetWindow() );
-		}
+		FriendWindow = FSlateApplication::Get().AddWindow(FriendWindow.ToSharedRef());
 	}
 	else if(!FriendWindow->IsWindowMinimized())
 	{
 		FriendWindow->Restore();
 		BuildFriendsUI();
 	}
+
+	GenerateChatWindow();
 
 	// Clear notifications
 	OnFriendsNotification().Broadcast(false);
@@ -336,6 +333,8 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 			ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
 		}
 
+		ChatViewModel->SetCaptureFocus(true);
+
 		Style = *InStyle;
 		SAssignNew(ChatWidget, SChatWindow, ChatViewModel.ToSharedRef())
 		.FriendStyle( &Style )
@@ -349,49 +348,55 @@ TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 	return ChatViewModel;
 }
 
-void FFriendsAndChatManager::GenerateChatWindow( TSharedPtr< IFriendItem > FriendItem )
+void FFriendsAndChatManager::GenerateChatWindow()
 {
 	const FVector2D DEFAULT_WINDOW_SIZE = FVector2D(400, 300);
 
 	check(MessageManager.IsValid());
+	bCreateChatWindow = true;
 
 	if(!ChatViewModel.IsValid())
 	{
 		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
 	}
 
-	if(ParentWidget.IsValid())
+	ChatViewModel->SetCaptureFocus(false);
+
+	if (!ChatWindow.IsValid())
 	{
-		if (!ChatWindow.IsValid())
-		{
-			ChatWindow = SNew( SWindow )
-			.Title( LOCTEXT( "FriendsAndChatManager_ChatTitle", "Chat Window") )
-			.ClientSize( DEFAULT_WINDOW_SIZE )
-			.ScreenPosition( FVector2D( 200, 100 ) )
-			.AutoCenter( EAutoCenter::None )
-			.SupportsMaximize( true )
-			.SupportsMinimize( true )
-			.CreateTitleBar( false )
-			.SizingRule( ESizingRule::FixedSize );
+		ChatWindow = SNew( SWindow )
+		.Title( LOCTEXT( "FriendsAndChatManager_ChatTitle", "Chat Window") )
+		.ClientSize( DEFAULT_WINDOW_SIZE )
+		.ScreenPosition( FVector2D( 200, 100 ) )
+		.AutoCenter( EAutoCenter::None )
+		.SupportsMaximize( false )
+		.SupportsMinimize( true )
+		.CreateTitleBar( false )
+		.SizingRule( ESizingRule::FixedSize );
 
-			ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
+		ChatWindow->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FFriendsAndChatManager::HandleChatWindowClosed));
 
-			SetChatWindowContents();
-			if ( ParentWidget.IsValid() )
-			{
-				FWidgetPath WidgetPath;
-				FSlateApplication::Get().GeneratePathToWidgetChecked( ParentWidget.ToSharedRef(), WidgetPath );
-				ChatWindow = FSlateApplication::Get().AddWindowAsNativeChild( ChatWindow.ToSharedRef(), WidgetPath.GetWindow() );
-			}
-		}
-		else if(ChatWindow->IsWindowMinimized())
-		{
-			ChatWindow->Restore();
-			SetChatWindowContents();
-		}
+		SetChatWindowContents();
+		ChatWindow = FSlateApplication::Get().AddWindow(ChatWindow.ToSharedRef());
+	}
+	else if(ChatWindow->IsWindowMinimized())
+	{
+		ChatWindow->Restore();
+		SetChatWindowContents();
+	}
+}
+
+void FFriendsAndChatManager::SetChatFriend( TSharedPtr< IFriendItem > FriendItem )
+{
+	if(ChatViewModel.IsValid())
+	{
+		ChatViewModel->SetChatFriend(FriendItem);
 	}
 
-	ChatViewModel->SetChatFriend(FriendItem);
+	if(bCreateChatWindow)
+	{
+		GenerateChatWindow();
+	}
 }
 
 void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& InWindow)

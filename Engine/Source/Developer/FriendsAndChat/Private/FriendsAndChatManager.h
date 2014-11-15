@@ -41,7 +41,7 @@ public:
 	// IFriendsAndChatManager
 	virtual void Logout() override;
 	virtual void Login() override;
-	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const FFriendsAndChatStyle* InStyle ) override;
+	virtual void CreateFriendsListWidget(const FFriendsAndChatStyle* InStyle ) override;
 	virtual void SetUserSettings(FFriendsAndChatSettings UserSettings) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle) override;
@@ -65,10 +65,15 @@ public:
 
 	/**
 	 * Create the friends list window.
+	 */
+	void GenerateChatWindow();
+
+	/**
+	 * Set the chat friend.
 	 *
 	 * @param FriendItem The friend to start a chat with.
 	 */
-	void GenerateChatWindow( TSharedPtr< IFriendItem > FriendItem );
+	void SetChatFriend( TSharedPtr< IFriendItem > FriendItem );
 
 	/**
 	 * Set the chat widget contents.
@@ -587,6 +592,8 @@ private:
 	bool bRequiresRecentPlayersRefresh;
 	// Holds the toast notification
 	TSharedPtr<SNotificationList> FriendsNotificationBox;
+	// Holds if we should create a chat window
+	bool bCreateChatWindow;
 
 public:
 
