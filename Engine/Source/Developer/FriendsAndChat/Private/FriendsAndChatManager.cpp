@@ -432,21 +432,24 @@ void FFriendsAndChatManager::SetUserIsOnline(EOnlinePresenceState::Type OnlineSt
 	if ( OnlineSubMcp != nullptr )
 	{
 		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-		TSharedPtr<FOnlineUserPresence> CurrentPresence;
-		OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*UserId, CurrentPresence);
-		FOnlineUserPresenceStatus NewStatus;
-		if (CurrentPresence.IsValid())
+		if (UserId.IsValid())
 		{
-			NewStatus = CurrentPresence->Status;
+			TSharedPtr<FOnlineUserPresence> CurrentPresence;
+			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*UserId, CurrentPresence);
+			FOnlineUserPresenceStatus NewStatus;
+			if (CurrentPresence.IsValid())
+			{
+				NewStatus = CurrentPresence->Status;
+			}
+			NewStatus.State = OnlineState;
+			OnlineSubMcp->GetPresenceInterface()->SetPresence(*UserId, NewStatus, OnPresenceUpdatedCompleteDelegate);
 		}
-		NewStatus.State = OnlineState;
-		OnlineSubMcp->GetPresenceInterface()->SetPresence(*UserId.Get(), NewStatus, OnPresenceUpdatedCompleteDelegate);
 	}
 }
 
 void FFriendsAndChatManager::AcceptFriend( TSharedPtr< IFriendItem > FriendItem )
 {
-	PendingOutgoingAcceptFriendRequests.Add( FUniqueNetIdString(FriendItem->GetOnlineUser()->GetUserId()->ToString()) );
+	PendingOutgoingAcceptFriendRequests.Add(FUniqueNetIdString(FriendItem->GetOnlineUser()->GetUserId()->ToString()));
 	FriendItem->SetPendingAccept();
 	RefreshList();
 	OnFriendsNotification().Broadcast(false);
@@ -571,7 +574,7 @@ bool FFriendsAndChatManager::GetUserIsOnline()
 		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 		if(UserId.IsValid())
 		{
-			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*UserId.Get(), Presence);
+			OnlineSubMcp->GetPresenceInterface()->GetCachedPresence(*UserId, Presence);
 			if(Presence.IsValid())
 			{
 				return Presence->Status.State == EOnlinePresenceState::Online;
@@ -654,7 +657,8 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 	case EFriendsAndManagerState::RequestRecentPlayersListRefresh:
 		{
 			TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if(FriendsInterface->QueryRecentPlayers(*UserId.Get()))
+			if (UserId.IsValid() &&
+				FriendsInterface->QueryRecentPlayers(*UserId))
 			{
 				SetState(EFriendsAndManagerState::RequestingRecentPlayersIDs);
 			}
@@ -824,17 +828,20 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 	}
 	else if(ManagerState == EFriendsAndManagerState::RequestingRecentPlayersIDs)
 	{
-		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 		RecentPlayersList.Empty();
-		TArray< TSharedRef<FOnlineRecentPlayer> > Players;
-		if (FriendsInterface->GetRecentPlayers(*UserId.Get(), Players))
+		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		if (UserId.IsValid())
 		{
-			for (const auto& RecentPlayer : Players)
+			TArray< TSharedRef<FOnlineRecentPlayer> > Players;
+			if (FriendsInterface->GetRecentPlayers(*UserId, Players))
 			{
-				TSharedRef<FFriendRecentPlayerItem> RecentPlayerItem = MakeShareable(new FFriendRecentPlayerItem(RecentPlayer));
-				TSharedPtr<FOnlineUser> OnlineUser = OnlineSubMcp->GetUserInterface()->GetUserInfo( LocalPlayer, *RecentPlayer->GetUserId());
-				RecentPlayerItem->SetOnlineUser(OnlineUser);
-				RecentPlayersList.Add(RecentPlayerItem);
+				for (const auto& RecentPlayer : Players)
+				{
+					TSharedRef<FFriendRecentPlayerItem> RecentPlayerItem = MakeShareable(new FFriendRecentPlayerItem(RecentPlayer));
+					TSharedPtr<FOnlineUser> OnlineUser = OnlineSubMcp->GetUserInterface()->GetUserInfo(LocalPlayer, *RecentPlayer->GetUserId());
+					RecentPlayerItem->SetOnlineUser(OnlineUser);
+					RecentPlayersList.Add(RecentPlayerItem);
+				}
 			}
 		}
 		OnFriendsListUpdated().Broadcast();
@@ -922,10 +929,12 @@ void FFriendsAndChatManager::SendFriendRequests()
 	// Invite Friends
 	FOnlinePersonaMcpPtr OnlinePersonaMcp = OnlineSubMcp->GetMcpPersonaService();
 	TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-
-	for ( int32 Index = 0; Index < FriendByNameRequests.Num(); Index++ )
+	if (UserId.IsValid())
 	{
-		OnlinePersonaMcp->QueryUserIdMapping(*UserId, FriendByNameRequests[Index]);
+		for (int32 Index = 0; Index < FriendByNameRequests.Num(); Index++)
+		{
+			OnlinePersonaMcp->QueryUserIdMapping(*UserId, FriendByNameRequests[Index]);
+		}
 	}
 }
 
