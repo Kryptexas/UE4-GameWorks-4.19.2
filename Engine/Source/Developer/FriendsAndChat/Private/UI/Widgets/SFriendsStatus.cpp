@@ -127,18 +127,6 @@ private:
 						.Text(FText::FromString("Away"))
 					]
 				]
-				+ SVerticalBox::Slot()
-				[
-					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, EOnlinePresenceState::Offline)
-					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(FText::FromString("Offline"))
-					 ]
-				 ]
 			];
 	}
 
