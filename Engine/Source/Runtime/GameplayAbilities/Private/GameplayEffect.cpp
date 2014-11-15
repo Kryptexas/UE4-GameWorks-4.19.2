@@ -1685,7 +1685,7 @@ bool FActiveGameplayEffectsContainer::CheckApplicationImmunity(const FGameplayEf
 
 	for (const FActiveGameplayEffect& Effect : GameplayEffects)
 	{
-		if (Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *Tags ))
+		if (Effect.Spec.Def->GrantedApplicationImmunityTags.IsEmpty() == false && Effect.Spec.Def->GrantedApplicationImmunityTags.RequirementsMet( *Tags ))
 		{
 			return true;
 		}

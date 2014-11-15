@@ -62,7 +62,17 @@ void UAbilitySystemComponent::OnComponentDestroyed()
 	{
 		// Cancel all abilities before we are destroyed.
 		CancelAbilities();
-	}	
+
+		// Mark pending kill any remainging instanced abilities
+		// (CancelAbilities() will only MarkPending kill InstancePerExecution abilities).
+		for (FGameplayAbilitySpec& Spec : ActivatableAbilities)
+		{
+			if (Spec.Ability && Spec.Ability->HasAnyFlags(RF_ClassDefaultObject) == false && Spec.Ability->IsPendingKill() == false)
+			{
+				Spec.Ability->MarkPendingKill();
+			}
+		}
+	}
 
 	// Call the super at the end, after we've done what we needed to do
 	Super::OnComponentDestroyed();

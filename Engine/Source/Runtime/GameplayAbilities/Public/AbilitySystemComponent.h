@@ -264,7 +264,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *
 	 *	Tags added this way are not replicated! 
 	 *	
-	 *	It is up to the calling GameCode to make sure these tags are added on a;; clients/server where necessary
+	 *	It is up to the calling GameCode to make sure these tags are added on clients/server where necessary
 	 */
 
 	void AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count=1);

@@ -536,9 +536,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			OurCopyOfSpec->SetDuration(UGameplayEffect::INFINITE_DURATION);
 		}
 	}
-
-
-	
 	
 	// We still probably want to apply tags and stuff even if instant?
 	if (bInvokeGameplayCueApplied)

@@ -610,7 +610,7 @@ private:
 
 /** Saves list of modified attributes, to use for gameplay cues or later processing */
 USTRUCT()
-struct FGameplayEffectModifiedAttribute
+struct GAMEPLAYABILITIES_API FGameplayEffectModifiedAttribute
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -627,7 +627,7 @@ struct FGameplayEffectModifiedAttribute
 
 /** Struct used to hold the result of a gameplay attribute capture; Initially seeded by definition data, but then populated by ability system component when appropriate */
 USTRUCT()
-struct FGameplayEffectAttributeCaptureSpec
+struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 {
 	// Allow these as friends so they can seed the aggregator, which we don't otherwise want exposed
 	friend struct FActiveGameplayEffectsContainer;
