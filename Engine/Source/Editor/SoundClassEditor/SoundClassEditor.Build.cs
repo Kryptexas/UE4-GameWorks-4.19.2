@@ -20,6 +20,7 @@ public class SoundClassEditor : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"InputCore",
                 "EditorStyle",
 				"UnrealEd",
 				"GraphEditor"
