@@ -444,7 +444,12 @@ private:
 
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override
 	{
-		return FReply::Handled().ReleaseMouseCapture().LockMouseToWidget( SharedThis( this ) );
+		if(ViewModel->ShouldCaptureFocus())
+		{
+			return FReply::Handled().ReleaseMouseCapture();
+		}
+		
+		return FReply::Handled();
 	}
 
 private:

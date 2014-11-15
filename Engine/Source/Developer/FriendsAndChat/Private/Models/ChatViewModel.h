@@ -36,6 +36,8 @@ public:
 	virtual EVisibility GetSScrollBarVisibility() const = 0;
 	virtual void SetAllowGlobalChat(bool bAllow) = 0;
 	virtual bool IsGlobalChatEnabled() const = 0;
+	virtual void SetCaptureFocus(bool bCaptureFocus) = 0;
+	virtual const bool ShouldCaptureFocus() const = 0;
 
 	DECLARE_EVENT(FChatViewModel, FChatListSetFocus)
 	virtual FChatListSetFocus& OnChatListSetFocus() = 0;

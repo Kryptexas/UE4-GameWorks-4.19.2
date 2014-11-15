@@ -202,6 +202,16 @@ public:
 		return bAllowGlobalChat;
 	}
 
+	virtual void SetCaptureFocus(bool bInCaptureFocus) override
+	{
+		bCaptureFocus = bInCaptureFocus;
+	}
+
+	virtual const bool ShouldCaptureFocus() const override
+	{
+		return bCaptureFocus;
+	}
+
 	virtual void SetAllowGlobalChat(bool bAllow) override
 	{
 		bAllowGlobalChat = bAllow;
@@ -294,6 +304,7 @@ private:
 		, bUseOverrideColor(false)
 		, bInGame(false)
 		, bAllowGlobalChat(true)
+		, bCaptureFocus(false)
 	{
 	}
 
@@ -317,6 +328,7 @@ private:
 	bool bUseOverrideColor;
 	bool bInGame;
 	bool bAllowGlobalChat;
+	bool bCaptureFocus;
 
 private:
 	friend FChatViewModelFactory;
