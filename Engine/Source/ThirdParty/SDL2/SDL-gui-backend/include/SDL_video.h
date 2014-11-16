@@ -114,7 +114,8 @@ typedef enum
     /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     ,
-    SDL_WINDOW_UTILITY = 0x08000000             /**< window should not appear on taskbar nor accept input> */
+    SDL_WINDOW_UTILITY = 0x08000000,            /**< window should not appear on taskbar> */
+    SDL_WINDOW_TOOLTIP = 0x04000000             /**< window should not appear on taskbar nor accept input> */
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
 

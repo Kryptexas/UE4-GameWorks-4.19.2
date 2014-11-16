@@ -357,7 +357,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 			else
 			{
-				TrackActivationChanges(CurrentEventWindow, EWindowActivation::ActivateByMouse);
 				if (buttonEvent.clicks == 2)
 				{
 					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, button);
@@ -717,8 +716,24 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					}
 					break;
 
-				case SDL_WINDOWEVENT_FOCUS_GAINED:	// seems to be spurious and does not always reflect actual focus changes, ignore for now
-				case SDL_WINDOWEVENT_FOCUS_LOST:	// seems to be spurious and does not always reflect actual focus changes, ignore for now
+				case SDL_WINDOWEVENT_FOCUS_GAINED:
+					{
+						if (CurrentEventWindow.IsValid())
+						{
+							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Activate);                            
+						}
+					}
+					break;
+
+				case SDL_WINDOWEVENT_FOCUS_LOST:
+					{
+						if (CurrentEventWindow.IsValid())
+						{
+							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Deactivate);
+						}
+					}
+					break;
+
 				case SDL_WINDOWEVENT_HIDDEN:		// intended fall-through
 				case SDL_WINDOWEVENT_EXPOSED:		// intended fall-through
 				case SDL_WINDOWEVENT_MINIMIZED:		// intended fall-through

@@ -84,8 +84,17 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 
 		if ( !Definition->AppearsInTaskbar )
 		{
-			WindowStyle |= SDL_WINDOW_UTILITY;
-		}		
+			if ( Definition->AcceptsInput )
+			{
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("Creating an utility window '%s'."), *Definition->Title);
+				WindowStyle |= SDL_WINDOW_UTILITY;
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("Creating a tooltip window '%s'."), *Definition->Title);
+				WindowStyle |= SDL_WINDOW_TOOLTIP;
+			}
+		}
 	}
 
 	if ( Definition->HasSizingFrame )

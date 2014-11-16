@@ -362,6 +362,7 @@ X11_CreateWindow(_THIS, SDL_Window * window)
     /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     Atom _NET_WM_WINDOW_TYPE_UTILITY;
+    Atom _NET_WM_WINDOW_TYPE_DOCK;
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */
     
@@ -545,6 +546,11 @@ X11_CreateWindow(_THIS, SDL_Window * window)
         X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
                             PropModeReplace,
                             (unsigned char *)&_NET_WM_WINDOW_TYPE_UTILITY, 1);
+    } else if (window->flags & SDL_WINDOW_TOOLTIP) {
+        _NET_WM_WINDOW_TYPE_DOCK = X11_XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+        X11_XChangeProperty(display, w, _NET_WM_WINDOW_TYPE, XA_ATOM, 32,
+                            PropModeReplace,
+                            (unsigned char *)&_NET_WM_WINDOW_TYPE_DOCK, 1);
     } else
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     {

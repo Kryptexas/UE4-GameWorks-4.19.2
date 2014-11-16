@@ -23,12 +23,27 @@
 #ifndef _SDL_x11window_h
 #define _SDL_x11window_h
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+
+/* In order to cut the latency, dispatch immediately. Considering comment below,
+ * proper solution should probably detect whether video mode change is under way
+ * and queue focus changes with a delay only for the duration of it.
+ */
+#define PENDING_FOCUS_IN_TIME   0
+#define PENDING_FOCUS_OUT_TIME  0
+
+#else
+/* EG END */
 /* We need to queue the focus in/out changes because they may occur during
    video mode changes and we can respond to them by triggering more mode
    changes.
 */
 #define PENDING_FOCUS_IN_TIME   200
 #define PENDING_FOCUS_OUT_TIME  200
+/* EG BEGIN */
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
 
 #if SDL_VIDEO_OPENGL_EGL   
 #include <EGL/egl.h>
