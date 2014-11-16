@@ -135,7 +135,15 @@ namespace UnrealBuildTool
             if (!CrossCompiling())
             {
                 // use native linux toolchain
-                ClangPath = Which("clang++");
+                string[] ClangNames = { "clang++", "clang++-3.5", "clang++-3.3" };
+                foreach (var ClangName in ClangNames)
+                {
+					ClangPath = Which(ClangName);
+					if (!String.IsNullOrEmpty(ClangPath))
+					{
+						break;
+					}
+				}
                 GCCPath = Which("g++");
                 ArPath = Which("ar");
                 RanlibPath = Which("ranlib");
