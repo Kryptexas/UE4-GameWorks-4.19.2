@@ -214,3 +214,18 @@ void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(UAnimInstance* An
 		}
 	}
 }
+
+bool UAIBlueprintHelperLibrary::IsValidAILocation(FVector Location)
+{
+	return FAISystem::IsValidLocation(Location);
+}
+
+bool UAIBlueprintHelperLibrary::IsValidAIDirection(FVector DirectionVector)
+{
+	return FAISystem::IsValidDirection(DirectionVector);
+}
+
+bool UAIBlueprintHelperLibrary::IsValidAIRotation(FRotator Rotation)
+{
+	return FAISystem::IsValidRotation(Rotation);
+}

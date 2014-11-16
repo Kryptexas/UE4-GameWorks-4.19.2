@@ -32,4 +32,13 @@ class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary
 	/** unlocks indicated AI resources of animated pawn. Will unlock only animation-locked resources */
 	UFUNCTION(BlueprintCallable, Category = "Animation", BlueprintAuthorityOnly, meta = (DefaultToSelf = "AnimInstance"))
 	static void UnlockAIResourcesWithAnimation(class UAnimInstance* AnimInstance, bool bUnlockMovement, bool UnlockAILogic);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+	static bool IsValidAILocation(FVector Location);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+	static bool IsValidAIDirection(FVector DirectionVector);
+
+	UFUNCTION(BlueprintPure, Category = "AI")
+	static bool IsValidAIRotation(FRotator Rotation);
 };
