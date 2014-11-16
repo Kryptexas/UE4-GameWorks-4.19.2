@@ -12,7 +12,15 @@ bool FFriendGameInviteItem::IsGameRequest() const
 
 bool FFriendGameInviteItem::IsGameJoinable() const
 {
-	return !GetGameSessionId().IsEmpty();
+	FString SessionId = GetGameSessionId();
+	if (!SessionId.IsEmpty())
+	{
+		if (SessionId != FFriendsAndChatManager::Get()->GetGameSessionId())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 FString FFriendGameInviteItem::GetGameSessionId() const

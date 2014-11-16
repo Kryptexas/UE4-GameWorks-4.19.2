@@ -107,7 +107,10 @@ bool FFriendItem::IsGameJoinable() const
 	{
 		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
 		const bool bIsOnline = FriendPresence.Status.State != EOnlinePresenceState::Offline;
-		const bool bIsJoinable = FriendPresence.bIsJoinable && !GetGameSessionId().IsEmpty();
+		const bool bIsJoinable = 
+			FriendPresence.bIsJoinable && 
+			!GetGameSessionId().IsEmpty() && 
+			GetGameSessionId() != FFriendsAndChatManager::Get()->GetGameSessionId();
 		return bIsOnline && bIsJoinable;
 	}
 	return false;

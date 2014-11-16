@@ -554,6 +554,26 @@ int32 FFriendsAndChatManager::GetFilteredGameInviteList(TArray< TSharedPtr< IFri
 	return OutFriendsList.Num();
 }
 
+FString FFriendsAndChatManager::GetGameSessionId() const
+{
+	FString Result;
+	if (OnlineSubMcp != nullptr &&
+		OnlineIdentity.IsValid() &&
+		OnlineSubMcp->GetSessionInterface().IsValid())
+	{
+		const FNamedOnlineSession* GameSession = OnlineSubMcp->GetSessionInterface()->GetNamedSession(GameSessionName);
+		if (GameSession != nullptr)
+		{
+			TSharedPtr<FOnlineSessionInfo> UserSessionInfo = GameSession->SessionInfo;
+			if (UserSessionInfo.IsValid())
+			{
+				Result = UserSessionInfo->GetSessionId().ToString();
+			}
+		}
+	}
+	return Result;
+}
+
 bool FFriendsAndChatManager::IsInGameSession() const
 {	
 	if (OnlineSubMcp != nullptr &&

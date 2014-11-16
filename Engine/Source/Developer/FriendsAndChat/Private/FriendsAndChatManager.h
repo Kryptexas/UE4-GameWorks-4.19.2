@@ -50,14 +50,21 @@ public:
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
 
 	/**
-	 * Get if the player is in a session.
+	 * Get session id if the current player is in a session.
+	 *
+	 * @return True id of game session we are in.
+	 */
+	FString GetGameSessionId() const;
+
+	/**
+	 * Get if the current player is in a session.
 	 *
 	 * @return True if we are in a game session.
 	 */
 	bool IsInGameSession() const;
 
 	/**
-	 * Get if the player is in a session and that game is joinable.
+	 * Get if the current player is in a session and that game is joinable.
 	 *
 	 * @return True if we are in a game session.
 	 */
