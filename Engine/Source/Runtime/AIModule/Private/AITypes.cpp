@@ -4,21 +4,6 @@
 #include "AITypes.h"
 
 //----------------------------------------------------------------------//
-// FAIResourceId
-//----------------------------------------------------------------------//
-uint16 FAIResourceID::NextAvailableID = 0;
-
-FAIResourceID::FAIResourceID(const FName& ResourceName)
-	: Index(NextAvailableID++), Name(ResourceName)
-{
-	check(NextAvailableID <= uint16(MAX_uint8) + 1);
-}
-
-FAIResourceID::FAIResourceID(const FAIResourceID& Other)
-	: Index(Other.Index), Name(Other.Name)
-{}
-
-//----------------------------------------------------------------------//
 // FAIResourceLock
 //----------------------------------------------------------------------//
 FAIResourceLock::FAIResourceLock()
@@ -63,9 +48,9 @@ namespace FAIResources
 
 	void RegisterResource(const FAIResourceID& Resource)
 	{
-		if (FAIResourceID::ResourcesCount() - FAIResources::ResourceIDs.Num() > 0)
+		if (FAIResourceID::GetSize() - FAIResources::ResourceIDs.Num() > 0)
 		{
-			ResourceIDs.AddZeroed(FAIResourceID::ResourcesCount() - FAIResources::ResourceIDs.Num());
+			ResourceIDs.AddZeroed(FAIResourceID::GetSize() - FAIResources::ResourceIDs.Num());
 		}
 		ResourceIDs[Resource.Index] = Resource;
 	}

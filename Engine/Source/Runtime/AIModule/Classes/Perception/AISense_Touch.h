@@ -37,9 +37,7 @@ class AIMODULE_API UAISense_Touch : public UAISense
 	UPROPERTY()
 	TArray<FAITouchEvent> RegisteredEvents;
 
-public:
-	FORCEINLINE static FAISenseId GetSenseIndex() { return FAISenseId(ECorePerceptionTypes::Touch); }
-		
+public:		
 	void RegisterEvent(const FAITouchEvent& Event);	
 
 protected:

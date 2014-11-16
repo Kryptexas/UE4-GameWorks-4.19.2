@@ -37,9 +37,7 @@ class AIMODULE_API UAISense_Prediction : public UAISense
 	UPROPERTY()
 	TArray<FAIPredictionEvent> RegisteredEvents;
 
-public:
-	FORCEINLINE static FAISenseId GetSenseIndex() { return FAISenseId(ECorePerceptionTypes::Prediction); }
-		
+public:		
 	void RegisterEvent(const FAIPredictionEvent& Event);	
 
 protected:

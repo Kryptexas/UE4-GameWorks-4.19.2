@@ -9,22 +9,20 @@ const float FAIStimulus::NeverHappenedAge = FLT_MAX;
 //----------------------------------------------------------------------//
 // FPerceptionListener
 //----------------------------------------------------------------------//
-const FPerceptionListener FPerceptionListener::NullListener((UAIPerceptionComponent*)NULL);
+const FPerceptionListener FPerceptionListener::NullListener;
 
-FPerceptionListener::FPerceptionListener(UAIPerceptionComponent* InListener) 
-	: Listener(InListener)
-	, PeripheralVisionAngleCos(1.f)
-	, HearingRangeSq(-1.f)
-	, LOSHearingRangeSq(-1.f)
-	, SightRadiusSq(-1.f)
-	, LoseSightRadiusSq(-1.f)
-	, ListenerId(AIPerception::InvalidListenerId)
+FPerceptionListener::FPerceptionListener()
+	: ListenerID(FPerceptionListenerID::InvalidID())
 {
-	if (InListener != NULL)
-	{
-		UpdateListenerProperties(InListener);
-		ListenerId = InListener->GetListenerId();
-	}
+
+}
+
+FPerceptionListener::FPerceptionListener(UAIPerceptionComponent& InListener) 
+	: Listener(&InListener)
+	, ListenerID(FPerceptionListenerID::InvalidID())
+{
+	UpdateListenerProperties(InListener);
+	ListenerID = InListener.GetListenerId();
 }
 
 void FPerceptionListener::CacheLocation()
@@ -35,20 +33,13 @@ void FPerceptionListener::CacheLocation()
 	}
 }
 
-void FPerceptionListener::UpdateListenerProperties(UAIPerceptionComponent* InListener)
+void FPerceptionListener::UpdateListenerProperties(UAIPerceptionComponent& InListener)
 {
-	check(InListener != NULL);
-	verify(InListener == Listener.Get());
+	verify(&InListener == Listener.Get());
 
 	// using InListener rather then Listener to avoid slight overhead of TWeakObjectPtr
-	TeamIdentifier = InListener->GetTeamIdentifier();
-	Filter = InListener->GetPerceptionFilter();
-
-	PeripheralVisionAngleCos = FMath::Cos(FMath::DegreesToRadians(InListener->GetPeripheralVisionAngle()));
-	HearingRangeSq = FMath::Square(InListener->GetHearingRange());
-	LOSHearingRangeSq = FMath::Square(InListener->GetLOSHearingRange());
-	SightRadiusSq = FMath::Square(InListener->GetSightRadius());
-	LoseSightRadiusSq = FMath::Square(InListener->GetLoseSightRadius());
+	TeamIdentifier = InListener.GetTeamIdentifier();
+	Filter = InListener.GetPerceptionFilter();
 }
 
 void FPerceptionListener::RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus)
@@ -89,3 +80,4 @@ const IGenericTeamAgentInterface* FPerceptionListener::GetTeamAgent() const
 	const IGenericTeamAgentInterface* OwnerTeamAgent = Cast<const IGenericTeamAgentInterface>(OwnerActor);
 	return OwnerTeamAgent != NULL ? OwnerTeamAgent : Cast<const IGenericTeamAgentInterface>(PercComponent->GetBodyActor());
 }
+

@@ -249,6 +249,17 @@ bool FAITestSpawnInfo::Spawn(AFunctionalAITest* AITest) const
 	}
 	else
 	{
+		IGenericTeamAgentInterface* TeamAgent = Cast<IGenericTeamAgentInterface>(SpawnedPawn);
+		if (TeamAgent == nullptr)
+		{
+			TeamAgent = Cast<IGenericTeamAgentInterface>(SpawnedPawn->GetController());
+		}
+
+		if (TeamAgent != nullptr)
+		{
+			TeamAgent->SetGenericTeamId(TeamID);
+		}
+
 		AITest->AddSpawnedPawn(*SpawnedPawn);
 		bSuccessfullySpawned = true;
 	}

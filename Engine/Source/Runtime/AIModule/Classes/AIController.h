@@ -104,10 +104,10 @@ private_subobject:
 public:
 
 	/** Component responsible for behaviors. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = AI)
 	UBrainComponent* BrainComponent;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = AI)
 	UAIPerceptionComponent* PerceptionComponent;
 
 private_subobject:

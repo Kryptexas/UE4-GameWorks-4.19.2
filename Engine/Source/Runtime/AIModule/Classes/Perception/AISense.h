@@ -5,6 +5,8 @@
 #include "AIPerceptionTypes.h"
 #include "AISense.generated.h"
 
+class UAIPerceptionSystem;
+
 DECLARE_DELEGATE_OneParam(FOnPerceptionListenerUpdateDelegate, const FPerceptionListener&);
 
 UCLASS(ClassGroup=AI, abstract)
@@ -14,12 +16,22 @@ class AIMODULE_API UAISense : public UObject
 
 	static const float SuspendNextUpdate;
 
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Debug)
+	FColor DebugDrawColor;
+
+	/** Sense name used in debug drawing */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Debug)
+	FString DebugName;
+
 private:
 	UPROPERTY()
-	class UAIPerceptionSystem* PerceptionSystemInstance;
+	UAIPerceptionSystem* PerceptionSystemInstance;
 
 	/** then this count reaches 0 sense will be updated */
 	float TimeUntilNextUpdate;
+
+	FAISenseID SenseID;
 
 protected:
 	/**	If bound will be called when new FPerceptionListener gets registers with AIPerceptionSystem */
@@ -30,9 +42,21 @@ protected:
 
 	/**	If bound will be called when a FPerceptionListener's in removed from AIPerceptionSystem */
 	FOnPerceptionListenerUpdateDelegate OnListenerRemovedDelegate;
-			
+				
 public:
-	static FAISenseId GetSenseIndex() { check(0 && "This should never get called!"); return AIPerception::InvalidSenseIndex; }
+
+	virtual UWorld* GetWorld() const override;
+
+	/** use with caution! Needs to be called before any senses get instantiated or listeners registered. DOES NOT update any perceptions system instances */
+	static void HardcodeSenseID(TSubclassOf<UAISense> SenseClass, FAISenseID HardcodedID);
+
+	static FAISenseID GetSenseID(TSubclassOf<UAISense> SenseClass) { return SenseClass ? ((UAISense*)SenseClass->GetDefaultObject())->SenseID : FAISenseID::InvalidID(); }
+	template<typename TSense>
+	static FAISenseID GetSenseID() 
+	{ 
+		return GetDefault<TSense>()->GetSenseID();
+	}
+	FORCEINLINE FAISenseID GetSenseID() const { return SenseID; }
 
 	virtual void PostInitProperties() override;
 
@@ -53,7 +77,10 @@ public:
 		}
 	}
 
-	virtual void RegisterSource(AActor& SourceActor) {}
+	//virtual void RegisterSources(TArray<AActor&> SourceActors) {}
+	virtual void RegisterSource(AActor& SourceActors){}
+	virtual void RegisterWrappedEvent(UAISenseEvent& PerceptionEvent);
+	virtual FAISenseID UpdateSenseID();
 
 	FORCEINLINE void OnNewListener(const FPerceptionListener& NewListener) { OnNewListenerDelegate.ExecuteIfBound(NewListener); }
 	FORCEINLINE void OnListenerUpdate(const FPerceptionListener& NewListener) { OnListenerUpdateDelegate.ExecuteIfBound(NewListener); }
@@ -71,7 +98,22 @@ protected:
 
 	FORCEINLINE UAIPerceptionSystem* GetPerceptionSystem() { return PerceptionSystemInstance; }
 
+	void SetSenseID(FAISenseID Index);
+
 	/** returning pointer rather then a reference to prevent users from
 	 *	accidentally creating copies by creating non-reference local vars */
 	AIPerception::FListenerMap* GetListeners();
+
+	/** To be called only for BP-generated classes */
+	void ForceSenseID(FAISenseID SenseID);
+
+public:
+#if !UE_BUILD_SHIPPING
+	//----------------------------------------------------------------------//
+	// DEBUG
+	//----------------------------------------------------------------------//
+	FColor GetDebugColor() const { return DebugDrawColor; }
+	FString GetDebugName() const { return DebugName; }
+	virtual FString GetDebugLegend() const;
+#endif // !UE_BUILD_SHIPPING
 };

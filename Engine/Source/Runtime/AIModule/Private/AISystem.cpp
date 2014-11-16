@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "EngineUtils.h"
+#include "StringClassReference.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "Perception/AIPerceptionSystem.h"
@@ -18,7 +19,6 @@ UAISystem::UAISystem(const FObjectInitializer& ObjectInitializer) : Super(Object
 		UObject* ManagersOuter = WorldOuter != NULL ? (UObject*)WorldOuter : (UObject*)this;
 		BehaviorTreeManager = NewObject<UBehaviorTreeManager>(ManagersOuter);
 		EnvironmentQueryManager = NewObject<UEnvQueryManager>(ManagersOuter);
-		PerceptionSystem = NewObject<UAIPerceptionSystem>(ManagersOuter);
 	}
 }
 
@@ -36,10 +36,16 @@ void UAISystem::PostInitProperties()
 		UWorld* WorldOuter = Cast<UWorld>(GetOuter());
 		UObject* ManagersOuter = WorldOuter != NULL ? (UObject*)WorldOuter : (UObject*)this;
 		
-		TSubclassOf<UAIHotSpotManager> HotSpotManagerClass = HotSpotManagerClassName.ResolveClass();
+		TSubclassOf<UAIHotSpotManager> HotSpotManagerClass = LoadClass<UAIHotSpotManager>(NULL, *HotSpotManagerClassName.ToString(), NULL, LOAD_None, NULL);
 		if (HotSpotManagerClass)
 		{
 			HotSpotManager = NewObject<UAIHotSpotManager>(ManagersOuter, HotSpotManagerClass);
+		}
+
+		TSubclassOf<UAIPerceptionSystem> PerceptionSystemClass = LoadClass<UAIPerceptionSystem>(NULL, *PerceptionSystemClassName.ToString(), NULL, LOAD_None, NULL);
+		if (PerceptionSystemClass)
+		{
+			PerceptionSystem = NewObject<UAIPerceptionSystem>(ManagersOuter, PerceptionSystemClass);
 		}
 	}
 }

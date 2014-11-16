@@ -5,6 +5,11 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/Canvas.h"
 
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Damage.h"
+
+
 DECLARE_CYCLE_STAT(TEXT("Requesting UAIPerceptionComponent::RemoveDeadData call from within a const function"),
 	STAT_FSimpleDelegateGraphTask_RequestingRemovalOfDeadPerceptionData,
 	STATGROUP_TaskGraphTasks);
@@ -14,7 +19,7 @@ DECLARE_CYCLE_STAT(TEXT("Requesting UAIPerceptionComponent::RemoveDeadData call 
 //----------------------------------------------------------------------//
 void FActorPerceptionInfo::Merge(const FActorPerceptionInfo& Other)
 {
-	for (int32 Index = 0; Index < ECorePerceptionTypes::MAX; ++Index)
+	for (uint32 Index = 0; Index < FAISenseID::GetSize(); ++Index)
 	{
 		if (LastSensedStimuli[Index].GetAge() > Other.LastSensedStimuli[Index].GetAge())
 		{
@@ -26,14 +31,23 @@ void FActorPerceptionInfo::Merge(const FActorPerceptionInfo& Other)
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
+FActorPerceptionBlueprintInfo::FActorPerceptionBlueprintInfo(const FActorPerceptionInfo& Info)
+{
+	Target = Info.Target.Get();
+	LastSensedStimuli = Info.LastSensedStimuli;
+	bIsHostile = Info.bIsHostile;
+}
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
 const int32 UAIPerceptionComponent::InitialStimuliToProcessArraySize = 10;
 
 UAIPerceptionComponent::UAIPerceptionComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, DominantSense(ECorePerceptionTypes::MAX)
-	, PerceptionListenerId(AIPerception::InvalidListenerId)
+	, PerceptionListenerId(FPerceptionListenerID::InvalidID())
 {
-	FMemory::Memzero(MaxActiveAge, sizeof(MaxActiveAge));
+	MaxActiveAge.AddZeroed(FAISenseID::GetSize());
 }
 
 void UAIPerceptionComponent::RequestStimuliListenerUpdate()
@@ -41,8 +55,37 @@ void UAIPerceptionComponent::RequestStimuliListenerUpdate()
 	UAIPerceptionSystem* AIPerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
 	if (AIPerceptionSys != NULL)
 	{
-		AIPerceptionSys->UpdateListener(this);
+		AIPerceptionSys->UpdateListener(*this);
 	}
+}
+
+namespace
+{
+	struct FConfigOfSenseID
+	{
+		FConfigOfSenseID(const FAISenseID& InSenseID)
+			: SenseID(InSenseID)
+		{}
+
+		bool operator()(const UAISenseConfig* SenseConfig) const
+		{
+			return SenseConfig && SenseConfig->GetSenseID() == SenseID;
+		}
+
+		const FAISenseID SenseID;
+	};
+}
+
+const UAISenseConfig* UAIPerceptionComponent::GetSenseConfig(const FAISenseID& SenseID) const
+{
+	int32 ConfigIndex = SensesConfig.IndexOfByPredicate(FConfigOfSenseID(SenseID));
+	return ConfigIndex != INDEX_NONE ? SensesConfig[ConfigIndex] : nullptr;
+}
+
+UAISenseConfig* UAIPerceptionComponent::GetSenseConfig(const FAISenseID& SenseID)
+{
+	int32 ConfigIndex = SensesConfig.IndexOfByPredicate(FConfigOfSenseID(SenseID));
+	return ConfigIndex != INDEX_NONE ? SensesConfig[ConfigIndex] : nullptr;
 }
 
 void UAIPerceptionComponent::PostInitProperties() 
@@ -60,6 +103,83 @@ void UAIPerceptionComponent::PostInitProperties()
 	}
 }
 
+void UAIPerceptionComponent::ConfigureSense(UAISenseConfig& Config)
+{
+	int32 ConfigIndex = INDEX_NONE;
+	// first check if we're reconfiguring a sense
+	for (int32 Index = 0; Index < SensesConfig.Num(); ++Index)
+	{
+		if (SensesConfig[Index]->GetClass() == Config.GetClass())
+		{
+			ConfigIndex = Index;
+			SensesConfig[Index] = &Config;
+		}
+	}
+
+	if (ConfigIndex == INDEX_NONE)
+	{
+		ConfigIndex = SensesConfig.Add(&Config);
+	}
+
+	if (IsRegistered())
+	{
+		RequestStimuliListenerUpdate();
+	}
+	// else the sense will be auto-configured during OnRegister
+}
+
+void UAIPerceptionComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	UAIPerceptionSystem* AIPerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
+	if (AIPerceptionSys != NULL)
+	{
+		PerceptionFilter.Clear();
+
+		if (SensesConfig.Num() > 0)
+		{
+			// set up perception listener based on SensesConfig
+			for (auto SenseConfig : SensesConfig)
+			{
+				if (SenseConfig)
+				{
+					TSubclassOf<UAISense> SenseImplementation = SenseConfig->GetSenseImplementation();
+
+					if (SenseImplementation)
+					{
+						// make sure it's registered with perception system
+						AIPerceptionSys->RegisterSenseClass(SenseImplementation);
+
+						if (SenseConfig->bStartsEnabled)
+						{
+							PerceptionFilter.AcceptChannel(UAISense::GetSenseID(SenseImplementation));
+						}
+					}
+				}
+			}
+
+			AIPerceptionSys->UpdateListener(*this);
+
+		}
+	}
+
+	// this should not be needed but aparently AAIController::PostRegisterAllComponents
+	// gets called component's OnRegister
+	AAIController* AIOwner = Cast<AAIController>(GetOwner());
+	if (AIOwner)
+	{
+		AIOwner->PerceptionComponent = this;
+	}
+}
+
+void UAIPerceptionComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+	CleanUp();
+}
+
 void UAIPerceptionComponent::OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	CleanUp();
@@ -67,10 +187,13 @@ void UAIPerceptionComponent::OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason)
 
 void UAIPerceptionComponent::CleanUp()
 {
-	UAIPerceptionSystem* AIPerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
-	if (AIPerceptionSys != NULL)
+	if (IsRegistered())
 	{
-		AIPerceptionSys->UnregisterListener(this);
+		UAIPerceptionSystem* AIPerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
+		if (AIPerceptionSys != NULL)
+		{
+			AIPerceptionSys->UnregisterListener(*this);
+		}
 	}
 }
 
@@ -80,31 +203,7 @@ void UAIPerceptionComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UAIPerceptionComponent::SetPeripheralVisionAngle(const float NewPeripheralVisionAngle)
-{
-	PeripheralVisionAngle = NewPeripheralVisionAngle;	
-	RequestStimuliListenerUpdate();	
-}
-
-void UAIPerceptionComponent::SetHearingRange(const float NewHearingRange)
-{
-	HearingRange = NewHearingRange;
-	RequestStimuliListenerUpdate();	
-}
-
-void UAIPerceptionComponent::SetLOSHearingRange(const float NewLOSHearingRange)
-{
-	LOSHearingRange = NewLOSHearingRange;
-	RequestStimuliListenerUpdate();	
-}
-
-void UAIPerceptionComponent::SetSightRadius(const float NewSightRadius)
-{
-	SightRadius = NewSightRadius;
-	RequestStimuliListenerUpdate();	
-}
-
-void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseId Channel, bool bNewValue)
+void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue)
 {
 	const bool bCurrentValue = PerceptionFilter.ShouldRespondToChannel(Channel);
 	if (bNewValue != bCurrentValue)
@@ -114,7 +213,7 @@ void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseId Channel, bool bNe
 	}
 }
 
-void UAIPerceptionComponent::GetHostileActors(TArray<const AActor*>& OutActors) const
+void UAIPerceptionComponent::GetHostileActors(TArray<AActor*>& OutActors) const
 {
 	bool bDeadDataFound = false;
 
@@ -142,7 +241,7 @@ void UAIPerceptionComponent::GetHostileActors(TArray<const AActor*>& OutActors) 
 	}
 }
 
-const FActorPerceptionInfo* UAIPerceptionComponent::GetFreshestTrace(const FAISenseId Sense) const
+const FActorPerceptionInfo* UAIPerceptionComponent::GetFreshestTrace(const FAISenseID Sense) const
 {
 	// @note will stop on first age 0 stimulus
 	float BestAge = FAIStimulus::NeverHappenedAge;
@@ -183,32 +282,18 @@ const FActorPerceptionInfo* UAIPerceptionComponent::GetFreshestTrace(const FAISe
 	return Result;
 }
 
-void UAIPerceptionComponent::SetDominantSense(ECorePerceptionTypes::Type InDominantSense)
+void UAIPerceptionComponent::SetDominantSense(TSubclassOf<UAISense> InDominantSense)
 {
 	if (DominantSense != InDominantSense)
 	{
 		DominantSense = InDominantSense;
+		DominantSenseID = UAISense::GetSenseID(InDominantSense);
 		// update all perceptual info with this info
 		for (TActorPerceptionContainer::TIterator DataIt = GetPerceptualDataIterator(); DataIt; ++DataIt)
 		{
-			DataIt->Value.DominantSense = DominantSense;
+			DataIt->Value.DominantSense = DominantSenseID;
 		}
 	}
-}
-
-void UAIPerceptionComponent::SetShouldSee(bool bNewValue)
-{
-	UpdatePerceptionFilter(ECorePerceptionTypes::Sight, bNewValue);
-}
-
-void UAIPerceptionComponent::SetShouldHear(bool bNewValue)
-{
-	UpdatePerceptionFilter(ECorePerceptionTypes::Hearing, bNewValue);
-}
-
-void UAIPerceptionComponent::SetShouldSenseDamage(bool bNewValue)
-{
-	UpdatePerceptionFilter(ECorePerceptionTypes::Damage, bNewValue);
 }
 
 FGenericTeamId UAIPerceptionComponent::GetTeamIdentifier() const
@@ -216,7 +301,7 @@ FGenericTeamId UAIPerceptionComponent::GetTeamIdentifier() const
 	return AIOwner ? FGenericTeamId::GetTeamIdentifier(AIOwner) : FGenericTeamId::NoTeam;
 }
 
-FVector UAIPerceptionComponent::GetActorLocation(const AActor* Actor) const 
+FVector UAIPerceptionComponent::GetActorLocation(const AActor& Actor) const 
 { 
 	// not that Actor == NULL is valid
 	const FActorPerceptionInfo* ActorInfo = GetActorInfo(Actor);
@@ -290,13 +375,21 @@ void UAIPerceptionComponent::ProcessStimuli()
 				// create an entry
 				PerceptualInfo = &PerceptualData.Add(SourcedStimulus->Source, FActorPerceptionInfo(SourcedStimulus->Source));
 				// tell it what's our dominant sense
-				PerceptualInfo->DominantSense = DominantSense;
+				PerceptualInfo->DominantSense = DominantSenseID;
 
 				PerceptualInfo->bIsHostile = AIOwner != NULL && FGenericTeamId::GetAttitude(AIOwner, SourcedStimulus->Source) == ETeamAttitude::Hostile;
+
+				if (PerceptualInfo->LastSensedStimuli.Num() <= SourcedStimulus->Stimulus.Type)
+				{
+					for (int32 Index = 0; Index < SourcedStimulus->Stimulus.Type - PerceptualInfo->LastSensedStimuli.Num() + 1; ++Index)
+					{
+						PerceptualInfo->LastSensedStimuli.Add(FAIStimulus());
+					}
+				}
 			}
 		}
 
-		check(SourcedStimulus->Stimulus.Type < ECorePerceptionTypes::MAX);
+		check(SourcedStimulus->Stimulus.Type.IsValid());
 
 		FAIStimulus& StimulusStore = PerceptualInfo->LastSensedStimuli[SourcedStimulus->Stimulus.Type];
 
@@ -307,8 +400,10 @@ void UAIPerceptionComponent::ProcessStimuli()
 
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
-			// if there are two stimuli at the same moment, prefer the one with higher strength
-			if (SourcedStimulus->Stimulus.GetAge() < StimulusStore.GetAge() || StimulusStore.Strength < SourcedStimulus->Stimulus.Strength)
+			// if new stimulus is younger or stronger
+			// note that stimulus Age depends on PerceptionSystem::PerceptionAgingRate. It's possible that 
+			// both already stored and the new stimulus have Age of 0, but stored stimulus' acctual age is in [0, PerceptionSystem::PerceptionAgingRate)
+			if (SourcedStimulus->Stimulus.GetAge() <= StimulusStore.GetAge() || StimulusStore.Strength < SourcedStimulus->Stimulus.Strength)
 			{
 				StimulusStore = SourcedStimulus->Stimulus;
 			}
@@ -323,9 +418,14 @@ void UAIPerceptionComponent::ProcessStimuli()
 
 	StimuliToProcess.Reset();
 
-	if (AIOwner != NULL)
+	if (UpdatedActors.Num() > 0)
 	{
-		AIOwner->ActorsPerceptionUpdated(UpdatedActors);
+		if (AIOwner != NULL)
+		{
+			AIOwner->ActorsPerceptionUpdated(UpdatedActors);
+		}
+
+		OnPerceptionUpdated.Broadcast(UpdatedActors);
 	}
 }
 
@@ -335,10 +435,9 @@ void UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
 	{
 		FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
 
-		FAIStimulus* Stimulus = ActorPerceptionInfo.LastSensedStimuli;
-		for (int32 SenseIndex = 0; SenseIndex < ECorePerceptionTypes::MAX; ++SenseIndex, ++Stimulus)
+		for (auto& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 		{
-			Stimulus->AgeStimulus(ConstPerceptionAgingRate);
+			Stimulus.AgeStimulus(ConstPerceptionAgingRate);
 		}
 	}
 }
@@ -348,7 +447,7 @@ void UAIPerceptionComponent::ForgetActor(AActor* ActorToForget)
 	PerceptualData.Remove(ActorToForget);
 }
 
-float UAIPerceptionComponent::GetYoungestStimulusAge(const AActor* Source) const
+float UAIPerceptionComponent::GetYoungestStimulusAge(const AActor& Source) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
 	if (Info == NULL)
@@ -357,11 +456,11 @@ float UAIPerceptionComponent::GetYoungestStimulusAge(const AActor* Source) const
 	}
 
 	float SmallestAge = FAIStimulus::NeverHappenedAge;
-	for (int32 SenseIndex = 0; SenseIndex < ECorePerceptionTypes::MAX; ++SenseIndex)
+	for (int32 SenseID = 0; SenseID < Info->LastSensedStimuli.Num(); ++SenseID)
 	{
-		if (Info->LastSensedStimuli[SenseIndex].WasSuccessfullySensed())
+		if (Info->LastSensedStimuli[SenseID].WasSuccessfullySensed())
 		{
-			float SenseAge = Info->LastSensedStimuli[SenseIndex].GetAge();
+			float SenseAge = Info->LastSensedStimuli[SenseID].GetAge();
 			if (SenseAge < SmallestAge)
 			{
 				SmallestAge = SenseAge;
@@ -372,7 +471,7 @@ float UAIPerceptionComponent::GetYoungestStimulusAge(const AActor* Source) const
 	return SmallestAge;
 }
 
-bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor* Source) const
+bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor& Source) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
 	if (Info == NULL)
@@ -380,11 +479,11 @@ bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor* Source) const
 		return false;
 	}
 
-	for (int32 SenseIndex = 0; SenseIndex < ECorePerceptionTypes::MAX; ++SenseIndex)
+	for (uint32 SenseID = 0; SenseID < FAISenseID::GetSize(); ++SenseID)
 	{
-		if (Info->LastSensedStimuli[SenseIndex].WasSuccessfullySensed() &&
-			Info->LastSensedStimuli[SenseIndex].GetAge() < FAIStimulus::NeverHappenedAge &&
-			Info->LastSensedStimuli[SenseIndex].GetAge() <= MaxActiveAge[SenseIndex])
+		if (Info->LastSensedStimuli[SenseID].WasSuccessfullySensed() &&
+			Info->LastSensedStimuli[SenseID].GetAge() < FAIStimulus::NeverHappenedAge &&
+			Info->LastSensedStimuli[SenseID].GetAge() <= MaxActiveAge[SenseID])
 		{
 			return true;
 		}
@@ -393,13 +492,14 @@ bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor* Source) const
 	return false;
 }
 
-bool UAIPerceptionComponent::HasActiveStimulus(const AActor* Source, FAISenseId Sense) const
+bool UAIPerceptionComponent::HasActiveStimulus(const AActor& Source, FAISenseID Sense) const
 {
 	const FActorPerceptionInfo* Info = GetActorInfo(Source);
-	return (Info &&
-		Info->LastSensedStimuli[Sense].WasSuccessfullySensed() &&
-		Info->LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge &&
-		Info->LastSensedStimuli[Sense].GetAge() <= MaxActiveAge[Sense]);
+	return (Info 
+		&& Info->LastSensedStimuli.IsValidIndex(Sense) 
+		&& Info->LastSensedStimuli[Sense].WasSuccessfullySensed()
+		&& Info->LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge
+		&& Info->LastSensedStimuli[Sense].GetAge() <= MaxActiveAge[Sense]);
 }
 
 void UAIPerceptionComponent::RemoveDeadData()
@@ -414,25 +514,44 @@ void UAIPerceptionComponent::RemoveDeadData()
 }
 
 //----------------------------------------------------------------------//
+// blueprint interface
+//----------------------------------------------------------------------//
+void UAIPerceptionComponent::GetPerceivedHostileActors(TArray<AActor*>& OutActors) const
+{
+	GetHostileActors(OutActors);
+}
+
+bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerceptionBlueprintInfo& Info)
+{
+	bool bInfoFound = false;
+	if (Actor && Actor->IsPendingKillPending())
+	{
+		const FActorPerceptionInfo* PerceivedInfo = GetActorInfo(*Actor);
+		if (PerceivedInfo)
+		{
+			Info = FActorPerceptionBlueprintInfo(*PerceivedInfo);
+			bInfoFound = true;
+		}
+	}
+
+	return bInfoFound;
+}
+
+//----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
 void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 {
-	static UEnum* SensesEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECorePerceptionTypes"));
-	check(SensesEnum);
+	if (Canvas == nullptr)
+	{
+		return;
+	}
 
-	static const FColor SenseColors[ECorePerceptionTypes::MAX] = {
-		FColor::Green,//Sight,
-		FColor::Blue,//Hearing,
-		FColor::Red,//Damage,
-		FColor::Cyan,//Touch
-		FColor::Yellow,//Team
-		FColorList::Grey,//Prediction
-	};
-	
 	UWorld* World = GetWorld();
 	if (World)
 	{
+		UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(World);
+		check(PerceptionSys);
 		UFont* Font = GEngine->GetSmallFont();
 
 		for (TActorPerceptionContainer::TIterator It(PerceptualData); It; ++It)
@@ -447,23 +566,32 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 			if (ActorPerceptionInfo.Target.IsValid())
 			{
 				const FVector TargetLocation = ActorPerceptionInfo.Target->GetActorLocation();
+				float VerticalLabelOffset = 0.f;
 
-				const FAIStimulus* Stimulus = ActorPerceptionInfo.LastSensedStimuli;
-				for (int32 SenseIndex = 0; SenseIndex < ECorePerceptionTypes::MAX; ++SenseIndex, ++Stimulus)
+				for (const auto& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 				{
-					if (Stimulus->Strength >= 0)
+					if (Stimulus.Strength >= 0)
 					{
-						const FVector ScreenLoc = Canvas->Project(Stimulus->StimulusLocation + FVector(0,0,30));
-						Canvas->DrawText(Font, FString::Printf(TEXT("%s: %.2f a:%.2f"), *(SensesEnum->GetEnumText(SenseIndex).ToString())
-							, Stimulus->Strength, Stimulus->GetAge())
-							, ScreenLoc.X, ScreenLoc.Y);
+						const FVector ScreenLoc = Canvas->Project(Stimulus.StimulusLocation + FVector(0, 0, 30));
+						Canvas->DrawText(Font, FString::Printf(TEXT("%s: %.2f a:%.2f")
+							, *PerceptionSys->GetSenseName(Stimulus.Type)
+							, Stimulus.Strength, Stimulus.GetAge())
+							, ScreenLoc.X, ScreenLoc.Y + VerticalLabelOffset);
 
-						DrawDebugSphere(World, Stimulus->StimulusLocation, 30.f, 16, SenseColors[SenseIndex]);
-						DrawDebugLine(World, Stimulus->ReceiverLocation, Stimulus->StimulusLocation, SenseColors[SenseIndex]);
-						DrawDebugLine(World, TargetLocation, Stimulus->ReceiverLocation, FColor::Black);
+						VerticalLabelOffset += 17.f;
+
+						const FColor DebugColor = PerceptionSys->GetSenseDebugColor(Stimulus.Type);
+						DrawDebugSphere(World, Stimulus.StimulusLocation, 30.f, 16, DebugColor);
+						DrawDebugLine(World, Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor);
+						DrawDebugLine(World, TargetLocation, Stimulus.StimulusLocation, FColor::Black);
 					}
 				}
 			}
+		}
+
+		for (auto Sense : SensesConfig)
+		{
+			Sense->DrawDebugInfo(*Canvas, *this);
 		}
 	}
 }

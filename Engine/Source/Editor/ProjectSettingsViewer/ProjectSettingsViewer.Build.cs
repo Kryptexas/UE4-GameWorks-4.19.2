@@ -24,6 +24,7 @@ namespace UnrealBuildTool.Rules
 					"SlateCore",
 					"UnrealEd",
 					"MoviePlayer",
+                    "AIModule",
 					"ProjectTargetPlatformEditor",
 				}
 			);

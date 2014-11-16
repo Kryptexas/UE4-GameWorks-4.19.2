@@ -274,6 +274,9 @@ struct AIMODULE_API FEnvNamedValue
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
 	float Value;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Param)
+	class UAISenseConfig* SenseConfig;
 };
 
 USTRUCT()

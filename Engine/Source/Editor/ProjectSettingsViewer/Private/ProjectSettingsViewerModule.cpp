@@ -16,7 +16,7 @@
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
-
+#include "AISystem.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -139,6 +139,13 @@ protected:
 			LOCTEXT("NavigationMeshSettingsDescription", "Settings for the navigation mesh."),
 			GetMutableDefault<ARecastNavMesh>()
 		);
+
+		// AI system
+		SettingsModule.RegisterSettings("Project", "Engine", "AISystem",
+			LOCTEXT("AISystemSettingsName", "AI System"),
+			LOCTEXT("AISystemSettingsDescription", "Settings for the AI System."),
+			GetMutableDefault<UAISystem>()
+			);
 /*
 		// network settings
 		SettingsModule.RegisterSettings("Project", "Engine", "NetworkManager",

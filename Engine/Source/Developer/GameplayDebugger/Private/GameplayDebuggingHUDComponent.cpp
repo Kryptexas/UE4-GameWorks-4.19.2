@@ -605,18 +605,16 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 				const FVector AILocation = MyPawn->GetActorLocation();
 				const FVector Facing = MyPawn->GetActorRotation().Vector();
 
-				static const FColor SightColor = FColor::Red;
-				static const FColor LoseSightColor = FColorList::NeonPink;
-				static const FColor HearingColor = FColor::Yellow;
-				static const FColor LoSHearingColor = FColor::Cyan;
-
-				PrintString(DefaultContext, FColor::Green, TEXT("\n PERCEPTION COMPONENT\n"));
-				PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
-				PrintString(DefaultContext, SightColor, FString::Printf(TEXT(" Sight,")));
-				PrintString(DefaultContext, LoseSightColor, FString::Printf(TEXT(" Lose Sight,")));
-				PrintString(DefaultContext, HearingColor, FString::Printf(TEXT(" Hearing,")));
-				PrintString(DefaultContext, LoSHearingColor, FString::Printf(TEXT(" Line-of-Sight Hearing\n")));
-
+				UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(this);
+				if (PerceptionSys)
+				{
+					PrintString(DefaultContext, FColor::Green, TEXT("\nPERCEPTION COMPONENT\n"));
+					PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
+					
+					FString PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
+					PrintString(DefaultContext, *PerceptionLegend);
+				}
+				
 				if (PC && PC->GetPawn())
 				{
 					const float DistanceFromPlayer = (MyPawn->GetActorLocation() - PC->GetPawn()->GetActorLocation()).Size();
@@ -624,18 +622,6 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 					PrintString(DefaultContext, FString::Printf(TEXT("Distance Sensor-PlayerPawn: %.1f\n"), DistanceFromSensor));
 					PrintString(DefaultContext, FString::Printf(TEXT("Distance Pawn-PlayerPawn: %.1f\n"), DistanceFromPlayer));
 				}
-
-				UWorld* World = GetWorld();
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetSightRadius(), 32, SightColor);
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLoseSightRadius(), 32, LoseSightColor);
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetHearingRange(), 32, HearingColor);
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLOSHearingRange(), 32, LoSHearingColor);
-
-				DrawDebugLine(World, AILocation, AILocation + (Facing * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
-				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
-				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(-BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
-
-				return;
 			}
 		}
 	}

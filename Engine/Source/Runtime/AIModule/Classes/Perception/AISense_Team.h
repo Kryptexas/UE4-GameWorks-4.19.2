@@ -49,9 +49,7 @@ class AIMODULE_API UAISense_Team : public UAISense
 	UPROPERTY()
 	TArray<FAITeamStimulusEvent> RegisteredEvents;
 
-public:
-	FORCEINLINE static FAISenseId GetSenseIndex() { return FAISenseId(ECorePerceptionTypes::Team); }
-		
+public:		
 	void RegisterEvent(const FAITeamStimulusEvent& Event);	
 
 protected:

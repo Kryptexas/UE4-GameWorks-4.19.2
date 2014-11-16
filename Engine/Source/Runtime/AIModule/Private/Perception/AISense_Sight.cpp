@@ -3,20 +3,22 @@
 #include "AIModulePrivate.h"
 #include "Perception/AISightTargetInterface.h"
 #include "Perception/AISense_Sight.h"
+#include "Perception/AISenseConfig_Sight.h"
 
 DECLARE_CYCLE_STAT(TEXT("Perception Sense: Sight"),STAT_AI_Sense_Sight,STATGROUP_AI);
+DECLARE_CYCLE_STAT(TEXT("Perception Sense: Sight, Listener Update"), STAT_AI_Sense_Sight_ListenerUpdate, STATGROUP_AI);
 
 static const int32 DefaultMaxTracesPerTick = 6;
 
 //----------------------------------------------------------------------//
 // helpers
 //----------------------------------------------------------------------//
-FORCEINLINE_DEBUGGABLE bool CheckIsTargetInSightPie(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq)
+FORCEINLINE_DEBUGGABLE bool CheckIsTargetInSightPie(const FPerceptionListener& Listener, const UAISense_Sight::FDigestedSightProperties& DigestedProps, const FVector& TargetLocation, const float SightRadiusSq)
 {
 	if (FVector::DistSquared(Listener.CachedLocation, TargetLocation) <= SightRadiusSq) 
 	{
 		const FVector DirectionToTarget = (TargetLocation - Listener.CachedLocation).UnsafeNormal();
-		return FVector::DotProduct(DirectionToTarget, Listener.CachedDirection) > Listener.PeripheralVisionAngleCos;
+		return FVector::DotProduct(DirectionToTarget, Listener.CachedDirection) > DigestedProps.PeripheralVisionAngleCos;
 	}
 
 	return false;
@@ -41,6 +43,21 @@ FAISightTarget::FAISightTarget(AActor* InTarget, FGenericTeamId InTeamId)
 }
 
 //----------------------------------------------------------------------//
+// FDigestedSightProperties
+//----------------------------------------------------------------------//
+UAISense_Sight::FDigestedSightProperties::FDigestedSightProperties(const UAISenseConfig_Sight& SenseConfig)
+{
+	SightRadiusSq = FMath::Square(SenseConfig.SightRadius);
+	LoseSightRadiusSq = FMath::Square(SenseConfig.LoseSightRadius);
+	PeripheralVisionAngleCos = FMath::Cos(FMath::DegreesToRadians(SenseConfig.PeripheralVisionAngleDegrees));
+	AffiliationFlags = SenseConfig.DetectionByAffiliation.GetAsFlags();
+}
+
+UAISense_Sight::FDigestedSightProperties::FDigestedSightProperties()
+	: PeripheralVisionAngleCos(0.f), SightRadiusSq(-1.f), LoseSightRadiusSq(-1.f), AffiliationFlags(-1)
+{}
+
+//----------------------------------------------------------------------//
 // UAISense_Sight
 //----------------------------------------------------------------------//
 UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
@@ -56,6 +73,9 @@ UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
 		OnListenerUpdateDelegate.BindUObject(this, &UAISense_Sight::OnListenerUpdateImpl);
 		OnListenerRemovedDelegate.BindUObject(this, &UAISense_Sight::OnListenerRemovedImpl);
 	}
+
+	DebugDrawColor = FColor::Green;
+	DebugName = TEXT("Sight");
 }
 
 FORCEINLINE_DEBUGGABLE float UAISense_Sight::CalcQueryImportance(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq) const
@@ -110,9 +130,10 @@ float UAISense_Sight::Update()
 			{
 				AActor* TargetActor = Target.Target.Get();
 				const FVector TargetLocation = TargetActor->GetActorLocation();
-				const float SightRadiusSq = SightQuery->bLastResult ? Listener.LoseSightRadiusSq : Listener.SightRadiusSq;
+				const FDigestedSightProperties& PropDigest = DigestedProperties[SightQuery->ObserverId];
+				const float SightRadiusSq = SightQuery->bLastResult ? PropDigest.LoseSightRadiusSq : PropDigest.SightRadiusSq;
 
-				if (CheckIsTargetInSightPie(Listener, TargetLocation, SightRadiusSq))
+				if (CheckIsTargetInSightPie(Listener, PropDigest, TargetLocation, SightRadiusSq))
 				{
 //					UE_VLOG_SEGMENT(Listener.Listener.Get()->GetOwner(), Listener.CachedLocation, TargetLocation, FColor::Green, TEXT("%s"), *(Target.TargetId.ToString()));
 
@@ -123,13 +144,13 @@ float UAISense_Sight::Update()
 						int32 NumberOfLoSChecksPerformed = 0;
 						if (Target.SightTargetInterface->CanBeSeenFrom(Listener.CachedLocation, OutSeenLocation, NumberOfLoSChecksPerformed, Listener.Listener->GetBodyActor()) == true)
 						{
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(ECorePerceptionTypes::Sight, 1.f, OutSeenLocation, Listener.CachedLocation));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 1.f, OutSeenLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
 						}
 						else
 						{
 //							UE_VLOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(ECorePerceptionTypes::Sight, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
 						}
 
@@ -150,13 +171,13 @@ float UAISense_Sight::Update()
 
 						if (bHit == false || (HitResult.Actor.IsValid() && HitResult.Actor->IsOwnedBy(TargetActor)))
 						{
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(ECorePerceptionTypes::Sight, 1.f, TargetLocation, Listener.CachedLocation));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 1.f, TargetLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
 						}
 						else
 						{
 //							UE_VLOG_LOCATION(Listener.Listener.Get()->GetOwner(), TargetLocation, 25.f, FColor::Red, TEXT(""));
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(ECorePerceptionTypes::Sight, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 							SightQuery->bLastResult = false;
 						}
 					}
@@ -164,7 +185,7 @@ float UAISense_Sight::Update()
 				else
 				{
 //					UE_VLOG_SEGMENT(Listener.Listener.Get()->GetOwner(), Listener.CachedLocation, TargetLocation, FColor::Red, TEXT("%s"), *(Target.TargetId.ToString()));
-					Listener.RegisterStimulus(TargetActor, FAIStimulus(ECorePerceptionTypes::Sight, 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+					Listener.RegisterStimulus(TargetActor, FAIStimulus(GetSenseID(), 0.f, TargetLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
 					SightQuery->bLastResult = false;
 				}
 
@@ -227,12 +248,12 @@ void UAISense_Sight::RegisterEvent(const FAISightEvent& Event)
 
 }
 
-void UAISense_Sight::RegisterSource(AActor& SourceActor) 
+void UAISense_Sight::RegisterSource(AActor& SourceActor)
 {
 	RegisterTarget(SourceActor, Sort);
 }
 
-void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess)
+bool UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 	
@@ -260,11 +281,12 @@ void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostPr
 		const IGenericTeamAgentInterface* ListenersTeamAgent = Listener.GetTeamAgent();
 
 		// @todo add configuration here
-		if (Listener.HasSense(GetSenseIndex()) && (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(TargetActor) == ETeamAttitude::Hostile))
+		if (Listener.HasSense(GetSenseID()) && (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(TargetActor) == ETeamAttitude::Hostile))
 		{
 			// create a sight query		
 			FAISightQuery SightQuery(ItListener->Key, SightTarget->TargetId);
-			SightQuery.Importance = CalcQueryImportance(ItListener->Value, TargetLocation, Listener.SightRadiusSq);
+			const FDigestedSightProperties& PropDigest = DigestedProperties[Listener.GetListenerID()];
+			SightQuery.Importance = CalcQueryImportance(ItListener->Value, TargetLocation, PropDigest.SightRadiusSq);
 
 			SightQueryQueue.Add(SightQuery);
 			bNewQueriesAdded = true;
@@ -277,18 +299,25 @@ void UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostPr
 		SortQueries();
 		RequestImmediateUpdate();
 	}
+
+	return bNewQueriesAdded;
 }
 
 void UAISense_Sight::OnNewListenerImpl(const FPerceptionListener& NewListener)
 {
-	if (NewListener.HasSense(GetSenseIndex()) == false)
-	{
-		return;
-	}
+	check(NewListener.Listener.IsValid());
+	const UAISenseConfig_Sight* SenseConfig = Cast<const UAISenseConfig_Sight>(NewListener.Listener->GetSenseConfig(GetSenseID()));
+	check(SenseConfig);
+	const FDigestedSightProperties PropertyDigest(*SenseConfig);
+	DigestedProperties.Add(NewListener.GetListenerID(), PropertyDigest);
 
+	GenerateQueriesForListener(NewListener, PropertyDigest);
+}
+
+void UAISense_Sight::GenerateQueriesForListener(const FPerceptionListener& Listener, const FDigestedSightProperties& PropertyDigest)
+{
 	bool bNewQueriesAdded = false;
-
-	const IGenericTeamAgentInterface* ListenersTeamAgent = NewListener.GetTeamAgent();
+	const IGenericTeamAgentInterface* ListenersTeamAgent = Listener.GetTeamAgent();
 
 	// create sight queries with all legal targets
 	for (TMap<FName, FAISightTarget>::TConstIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
@@ -303,8 +332,8 @@ void UAISense_Sight::OnNewListenerImpl(const FPerceptionListener& NewListener)
 		if (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(*TargetActor) == ETeamAttitude::Hostile)
 		{
 			// create a sight query		
-			FAISightQuery SightQuery(NewListener.GetListenerId(), ItTarget->Key);
-			SightQuery.Importance = CalcQueryImportance(NewListener, ItTarget->Value.GetLocationSimple(), NewListener.SightRadiusSq);
+			FAISightQuery SightQuery(Listener.GetListenerID(), ItTarget->Key);
+			SightQuery.Importance = CalcQueryImportance(Listener, ItTarget->Value.GetLocationSimple(), PropertyDigest.SightRadiusSq);
 
 			SightQueryQueue.Add(SightQuery);
 			bNewQueriesAdded = true;
@@ -321,14 +350,15 @@ void UAISense_Sight::OnNewListenerImpl(const FPerceptionListener& NewListener)
 
 void UAISense_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedListener)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight_ListenerUpdate);
+
 	// first, naive implementation:
 	// 1. remove all queries by this listener
 	// 2. proceed as if it was a new listener
-	// @todo add stats here to check how bad it is
 
 	// remove all queries
 	RemoveAllQueriesByListener(UpdatedListener, DontSort);
-
+	
 	// see if this listener is a Target as well
 	const FAISightTarget::FTargetId AsTargetId = UpdatedListener.GetBodyActorName();
 	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
@@ -341,13 +371,28 @@ void UAISense_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedList
 		}
 	}
 
-	// act as if it was a new listener
-	OnNewListenerImpl(UpdatedListener);
+	const FPerceptionListenerID ListenerID = UpdatedListener.GetListenerID();
+
+	if (UpdatedListener.HasSense(GetSenseID()))
+	{
+		const UAISenseConfig_Sight* SenseConfig = Cast<const UAISenseConfig_Sight>(UpdatedListener.Listener->GetSenseConfig(GetSenseID()));
+		check(SenseConfig);
+		FDigestedSightProperties& PropertiesDigest = DigestedProperties.FindOrAdd(ListenerID);
+		PropertiesDigest = FDigestedSightProperties(*SenseConfig);
+
+		GenerateQueriesForListener(UpdatedListener, PropertiesDigest);
+	}
+	else
+	{
+		DigestedProperties.FindAndRemoveChecked(ListenerID);
+	}
 }
 
 void UAISense_Sight::OnListenerRemovedImpl(const FPerceptionListener& UpdatedListener)
 {
 	RemoveAllQueriesByListener(UpdatedListener, DontSort);
+
+	DigestedProperties.FindAndRemoveChecked(UpdatedListener.GetListenerID());
 
 	if (UpdatedListener.Listener.IsValid())
 	{
@@ -374,7 +419,7 @@ void UAISense_Sight::RemoveAllQueriesByListener(const FPerceptionListener& Liste
 		return;
 	}
 
-	const uint32 ListenerId = Listener.GetListenerId();
+	const uint32 ListenerId = Listener.GetListenerID();
 	bool bQueriesRemoved = false;
 	
 	const FAISightQuery* SightQuery = &SightQueryQueue[SightQueryQueue.Num() - 1];
@@ -419,3 +464,16 @@ void UAISense_Sight::RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOpe
 		SortQueries();
 	}
 }
+
+#if !UE_BUILD_SHIPPING
+//----------------------------------------------------------------------//
+// DEBUG
+//----------------------------------------------------------------------//
+FString UAISense_Sight::GetDebugLegend() const
+{
+	static const FColor SightColor = GetDebugSightRangeColor(); 
+	static const FColor LoseSightColor = GetDebugLoseSightColor();
+
+	return FString::Printf(TEXT("{%s} Sight, {%s} Lose Sight,"), *SightColor.ToString(), *LoseSightColor.ToString());
+}
+#endif // !UE_BUILD_SHIPPING

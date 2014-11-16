@@ -6,7 +6,8 @@
 UAISense_Touch::UAISense_Touch(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	
+	DebugName = TEXT("Touch");
+	DebugDrawColor = FColor::Cyan;
 }
 
 float UAISense_Touch::Update()
@@ -28,7 +29,7 @@ float UAISense_Touch::Update()
 					// this has to succeed, will assert a failure
 					FPerceptionListener& Listener = ListenersMap[PerceptionComponent->GetListenerId()];
 
-					Listener.RegisterStimulus(Event.OtherActor, FAIStimulus(GetSenseIndex(), 1.f, Event.Location, Event.Location));
+					Listener.RegisterStimulus(Event.OtherActor, FAIStimulus(GetSenseID(), 1.f, Event.Location, Event.Location));
 				}
 			}
 		}

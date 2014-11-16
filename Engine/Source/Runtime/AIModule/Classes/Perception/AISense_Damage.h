@@ -13,25 +13,36 @@ struct AIMODULE_API FAIDamageEvent
 
 	typedef class UAISense_Damage FSenseClass;
 
+	/** Damage taken by DamagedActor.
+	 *	@Note 0-damage events do not get ignored */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sense")
 	float Amount;
+
+	/** Event's "Location", or what will be later treated as the perceived location for this sense.
+	 *	If not set, HitLocation will be used, if that is unset too DamagedActor's location */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sense")
 	FVector Location;
+
+	/** Event's additional spatial information
+	 *	@TODO document */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sense")
 	FVector HitLocation;
 	
-	UPROPERTY()
+	/** Damaged actor */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sense")
 	AActor* DamagedActor;
 
-	UPROPERTY()
+	/** Actor that instigated damage. Can be None */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sense")
 	AActor* Instigator;
 	
-	FAIDamageEvent(){}
+	FAIDamageEvent();
+	FAIDamageEvent(AActor* InDamagedActor, AActor* InInstigator, float DamageAmount, const FVector& EventLocation, const FVector& InHitLocation = FAISystem::InvalidLocation); 
+	void Compile();
 
-	FAIDamageEvent(class AActor* InDamagedActor, class AActor* InInstigator, float DamageAmount, const FVector& EventLocation, const FVector& InHitLocation = FAISystem::InvalidLocation)
-		: Amount(DamageAmount), Location(EventLocation), HitLocation(InHitLocation), DamagedActor(InDamagedActor), Instigator(InInstigator)
+	bool IsValid() const
 	{
-		if (FAISystem::IsValidLocation(InHitLocation))
-		{
-			HitLocation = EventLocation;
-		}
+		return DamagedActor != nullptr;
 	}
 };
 
@@ -43,10 +54,9 @@ class AIMODULE_API UAISense_Damage : public UAISense
 	UPROPERTY()
 	TArray<FAIDamageEvent> RegisteredEvents;
 
-public:
-	FORCEINLINE static FAISenseId GetSenseIndex() { return FAISenseId(ECorePerceptionTypes::Damage); }
-		
+public:		
 	void RegisterEvent(const FAIDamageEvent& Event);	
+	virtual void RegisterWrappedEvent(UAISenseEvent& PerceptionEvent) override;
 
 protected:
 	virtual float Update() override;

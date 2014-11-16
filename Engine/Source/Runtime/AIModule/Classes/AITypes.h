@@ -144,32 +144,120 @@ namespace EAILockSource
 	};
 }
 
-struct AIMODULE_API FAIResourceID
+/**
+ *	TCounter needs to supply following functions:
+ *		default constructor
+ *		typedef X Type; where X is an integer type to be used as ID's internal type
+ *		TCounter::Type GetNextAvailableID() - returns next available ID and advances the internal counter
+ *		uint32 GetSize() const - returns number of unique IDs created so far
+ */
+
+template<typename TCounter>
+struct FAINamedID
 {
-	const uint8 Index;
+	const typename TCounter::Type Index;
 	const FName Name;
-private:
-	static uint16 NextAvailableID;
+protected:
+	static TCounter& GetCounter() 
+	{ 
+		static TCounter Counter;
+		return Counter;
+	}
+
 public:
+	FAINamedID(const FName& InName)
+		: Index(GetCounter().GetNextAvailableID()), Name(InName)
+	{}
 
-	FAIResourceID() : Index(uint8(-1)) {}
-	explicit FAIResourceID(const FName& ResourceName);
-	FAIResourceID(const FAIResourceID& Other);
-	/* This constructor looks for ResourceIndex in registered resources.
-	 *	@see FAIResources::RegisterResource */
-	explicit FAIResourceID(uint8 ResourceIndex);
+	FAINamedID(const FAINamedID& Other)
+		: Index(Other.Index), Name(Other.Name)
+	{}
 
-	FAIResourceID& operator=(const FAIResourceID& Other)
+	FAINamedID& operator=(const FAINamedID& Other)
 	{
-		new(this) FAIResourceID(Other);
+		new(this) FAINamedID(Other);
 		return *this;
 	}
 
-	static uint32 ResourcesCount() { return NextAvailableID; }
+	FAINamedID()
+		: Index(TCounter::Type(-1)), Name(TEXT("Invalid"))
+	{}
 
-	operator int32() const { return int32(Index); }
+	operator typename TCounter::Type() const { return Index; }
+	bool IsValid() const { return Index != InvalidID().Index; }
+
+	static uint32 GetSize() { return GetCounter().GetSize(); }
+
+	static FAINamedID<TCounter> InvalidID()
+	{
+		static const FAINamedID<TCounter> InvalidIDInstance;
+		return InvalidIDInstance;
+	}
 };
 
+template<typename TCounter>
+struct FAIGenericID
+{
+	const typename TCounter::Type Index;
+protected:
+protected:
+	static TCounter& GetCounter()
+	{
+		static TCounter Counter;
+		return Counter;
+	}
+
+	FAIGenericID(typename TCounter::Type InIndex)
+		: Index(InIndex)
+	{}
+
+public:
+	FAIGenericID(const FAIGenericID& Other)
+		: Index(Other.Index)
+	{}
+
+	FAIGenericID& operator=(const FAIGenericID& Other)
+	{
+		new(this) FAIGenericID(Other);
+		return *this;
+	}
+
+	FAIGenericID()
+		: Index(TCounter::Type(-1))
+	{}
+
+	static FAIGenericID GetNextID() { return FAIGenericID(GetCounter().GetNextAvailableID()); }
+
+	operator typename TCounter::Type() const { return Index; }
+	bool IsValid() const { return Index != InvalidID().Index; }
+
+	static uint32 GetSize() { return GetCounter().GetSize(); }
+
+	static FAIGenericID<TCounter> InvalidID()
+	{
+		static const FAIGenericID<TCounter> InvalidIDInstance;
+		return InvalidIDInstance;
+	}
+};
+
+template<typename TCounterType>
+struct FAIBasicCounter
+{
+	typedef TCounterType Type;
+protected:
+	Type NextAvailableID;
+public:
+	FAIBasicCounter() : NextAvailableID(Type(0)) {}
+	Type GetNextAvailableID() { return NextAvailableID++; }
+	uint32 GetSize() const { return uint32(NextAvailableID); }
+};
+
+//////////////////////////////////////////////////////////////////////////
+struct AIMODULE_API FAIResCounter : FAIBasicCounter<uint8>
+{};
+typedef FAINamedID<FAIResCounter> FAIResourceID;
+
+//////////////////////////////////////////////////////////////////////////
 struct AIMODULE_API FAIResourcesSet
 {
 	static const uint32 NoResources = 0;

@@ -57,9 +57,14 @@
 #include "GenericTeamAgentInterface.h"
 
 #include "Perception/AISense.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISenseEvent.h"
+#include "Perception/AISenseConfig.h"
 #include "Perception/AIPerceptionComponent.h"
 
 #include "VisualLogger/VisualLogger.h"
+
+#include "BlueprintNodeHelpers.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAINavigation, Warning, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);

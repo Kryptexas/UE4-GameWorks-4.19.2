@@ -7,6 +7,7 @@
 #include "AISense_Sight.generated.h"
 
 class IAISightTargetInterface;
+class UAISenseConfig_Sight;
 
 namespace ESightPerceptionEventName
 {
@@ -64,7 +65,7 @@ struct FAISightTarget
 
 struct FAISightQuery
 {
-	uint32 ObserverId;
+	FPerceptionListenerID ObserverId;
 	FAISightTarget::FTargetId TargetId;
 
 	float Age;
@@ -73,7 +74,7 @@ struct FAISightQuery
 
 	uint32 bLastResult : 1;
 
-	FAISightQuery(uint32 ListenerId = AIPerception::InvalidListenerId, FAISightTarget::FTargetId Target = FAISightTarget::InvalidTargetId)
+	FAISightQuery(FPerceptionListenerID ListenerId = FPerceptionListenerID::InvalidID(), FAISightTarget::FTargetId Target = FAISightTarget::InvalidTargetId)
 		: ObserverId(ListenerId), TargetId(Target), Age(0), Score(0), Importance(0), bLastResult(false)
 	{
 	}
@@ -96,13 +97,27 @@ struct FAISightQuery
 	};
 };
 
-
 UCLASS(ClassGroup=AI, config=Game)
 class AIMODULE_API UAISense_Sight : public UAISense
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+	struct FDigestedSightProperties
+	{
+		float PeripheralVisionAngleCos;
+		float SightRadiusSq;
+		float LoseSightRadiusSq;
+		uint8 AffiliationFlags;
+
+		FDigestedSightProperties();
+		FDigestedSightProperties(const UAISenseConfig_Sight& SenseConfig);
+	};	
+	
+	//TChunkedArray<FDigestedSightProperties> DigestedProps
+
 	TMap<FAISightTarget::FTargetId, FAISightTarget> ObservedTargets;
+	TMap<FPerceptionListenerID, FDigestedSightProperties> DigestedProperties;
 
 	TArray<FAISightQuery> SightQueryQueue;
 
@@ -124,12 +139,10 @@ protected:
 public:
 
 	virtual void PostInitProperties() override;
-
-	FORCEINLINE static FAISenseId GetSenseIndex() { return FAISenseId(ECorePerceptionTypes::Sight); }
-
+	
 	void RegisterEvent(const FAISightEvent& Event);	
 
-	virtual void RegisterSource(AActor& SourceActor) override;
+	virtual void RegisterSource(AActor& SourceActors) override;
 	
 protected:
 	virtual float Update() override;
@@ -137,6 +150,8 @@ protected:
 	void OnNewListenerImpl(const FPerceptionListener& NewListener);
 	void OnListenerUpdateImpl(const FPerceptionListener& UpdatedListener);
 	void OnListenerRemovedImpl(const FPerceptionListener& UpdatedListener);	
+
+	void GenerateQueriesForListener(const FPerceptionListener& Listener, const FDigestedSightProperties& PropertyDigest);
 
 	enum FQueriesOperationPostProcess
 	{
@@ -146,9 +161,20 @@ protected:
 	void RemoveAllQueriesByListener(const FPerceptionListener& Listener, FQueriesOperationPostProcess PostProcess);
 	void RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOperationPostProcess PostProcess);
 
-	void RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess);
+	/** returns information whether new LoS queries have been added */
+	bool RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess);
 
 	FORCEINLINE void SortQueries() { SightQueryQueue.Sort(FAISightQuery::FSortPredicate()); }
 
 	float CalcQueryImportance(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq) const;
+
+public:
+#if !UE_BUILD_SHIPPING
+	//----------------------------------------------------------------------//
+	// DEBUG
+	//----------------------------------------------------------------------//
+	FString GetDebugLegend() const;
+	static FColor GetDebugSightRangeColor() { return FColor::Green; }
+	static FColor GetDebugLoseSightColor() { return FColorList::NeonPink; }
+#endif // !UE_BUILD_SHIPPING
 };

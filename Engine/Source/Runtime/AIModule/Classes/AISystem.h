@@ -13,10 +13,16 @@ class UAIPerceptionSystem;
 class UAIAsyncTaskBlueprintProxy;
 class UAIHotSpotManager;
 
-UCLASS(config=Engine)
+UCLASS(config=Engine, defaultconfig)
 class AIMODULE_API UAISystem : public UAISystemBase
 {
 	GENERATED_UCLASS_BODY()
+
+	UPROPERTY(globalconfig, EditAnywhere, Category = "AISystem", meta = (MetaClass = "AIPerceptionSystem", DisplayName = "Perception System Class"))
+	FStringClassReference PerceptionSystemClassName;
+
+	UPROPERTY(globalconfig, EditAnywhere, Category = "AISystem", meta = (MetaClass = "AIHotSpotManager", DisplayName = "AIHotSpotManager Class"))
+	FStringClassReference HotSpotManagerClassName;
 
 protected:
 	/** Behavior tree manager used by game */
@@ -35,10 +41,7 @@ protected:
 
 	UPROPERTY(Transient)
 	UAIHotSpotManager* HotSpotManager;
-
-	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AIHotSpotManager", DisplayName = "AIHotSpotManager Class"))
-	FStringClassReference HotSpotManagerClassName;
-
+	
 public:
 	virtual ~UAISystem();
 
