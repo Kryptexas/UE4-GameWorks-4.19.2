@@ -2990,8 +2990,13 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 }
 
 //----------------------------------------------------------------------//
-// Kismet functions
+// Blueprint functions
 //----------------------------------------------------------------------//
+UNavigationSystem* UNavigationSystem::GetNavigationSystem(UObject* WorldContext)
+{
+	return GetCurrent(WorldContext);
+}
+
 FVector UNavigationSystem::ProjectPointToNavigation(UObject* WorldContextObject, const FVector& Point, ANavigationData* NavData, TSubclassOf<UNavigationQueryFilter> FilterClass)
 {
 	FNavLocation ProjectedPoint(Point);

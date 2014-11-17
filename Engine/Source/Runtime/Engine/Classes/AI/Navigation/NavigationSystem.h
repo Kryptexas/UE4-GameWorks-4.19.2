@@ -203,8 +203,12 @@ private:
 
 public:
 	//----------------------------------------------------------------------//
-	// Kismet functions
+	// Blueprint functions
 	//----------------------------------------------------------------------//
+
+	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext"))
+	static UNavigationSystem* GetNavigationSystem(UObject* WorldContext);
+
 	/** Project a point onto the NavigationData */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
@@ -614,7 +618,7 @@ public:
 
 	static UNavigationSystem* GetCurrent(UWorld* World);
 	static UNavigationSystem* GetCurrent(UObject* WorldContextObject);
-
+	
 	/** try to create and setup navigation system */
 	static void InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode);
 
