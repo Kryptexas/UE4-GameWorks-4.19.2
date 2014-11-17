@@ -36,77 +36,78 @@ public:
 			.VAlign(VAlign_Top)
 			.HAlign(HAlign_Fill)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
+				SNew(SBorder)
+				.Padding(20.0f)
+				.BorderImage(&FriendStyle.FriendContainerHeader)
 				[
-					SNew(SFriendsStatus, ViewModel->GetStatusViewModel())
-					.FriendStyle(&FriendStyle)
-					.Method(MenuMethod)
-				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Fill)
-				.Padding(FMargin(5,0))
-				[
-				 	SNew(SHorizontalBox)
-					.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
+					SNew(SHorizontalBox)
 					+SHorizontalBox::Slot()
-				 	[
-						SAssignNew(FriendNameTextBox, SEditableTextBox)
-						.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email address"))
-						.Font(FriendStyle.FriendsFontStyle)
-						.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
-					]
-					+SHorizontalBox::Slot()
-				 	.AutoWidth()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.AutoWidth()
 					[
-						SNew(SButton)
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+						SNew(SFriendsStatus, ViewModel->GetStatusViewModel())
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Fill)
+					.Padding(FMargin(10,0,0,0))
+					[
+						SNew(SOverlay)
+						+ SOverlay::Slot()
 						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyle)
-							.Text(FText::FromString("x"))
+							SNew(SSpacer).Size(FVector2D(400.0f, 0.0f))
+						]
+						+ SOverlay::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SBorder)
+							.Padding(3.0f)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendVisibility)
+							.BorderImage(&FriendStyle.AddFriendEditBorder)
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								[
+									SAssignNew(FriendNameTextBox, SEditableTextBox)
+									.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
+									.Style(&FriendStyle.AddFriendEditableTextStyle)
+									.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+								]
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									[
+										SNew(SButton)
+										.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
+										.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+									]
+							]
+						]
+						+ SOverlay::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Right)
+						[
+							SNew(SButton)
+							.ContentPadding(FMargin(0.0f, 5.0f))
+							.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+							[
+								SNew(SImage)
+								.Image(&FriendStyle.FriendsAddImageBrush)
+							]
 						]
 					]
 				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.HAlign(HAlign_Fill)
-				[
-					SNew(SSpacer)
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.f)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right)
-				[
-					SNew(SButton)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-					.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
-					.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
-					[
-						SNew(SImage)
-						.Image(&FriendStyle.FriendsAddImageBrush)
-					]
-				]
 			]
 			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SSeparator)
-				.Orientation(Orient_Horizontal)
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(0,5))
 			[
 				SNew(SBorder)
+				.Padding(20.0f)
+				.BorderImage(&FriendStyle.FriendContainerBackground)
 				[
 					SNew(SScrollBox)
 					+SScrollBox::Slot()
@@ -179,7 +180,7 @@ private:
 
 	EVisibility AddFriendVisibility() const
 	{
-		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Hidden;
+		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	EVisibility AddFriendActionVisibility() const

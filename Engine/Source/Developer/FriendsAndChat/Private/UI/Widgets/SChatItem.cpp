@@ -42,6 +42,7 @@ public:
 			.Padding(FMargin(5))
 			[
 				SNew(SImage)
+				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
 				.Image(this, &SChatItemImpl::GetChatIcon)
 			]
 			+SHorizontalBox::Slot()
@@ -50,16 +51,11 @@ public:
 			.Padding(FMargin(5,1))
 			.MaxWidth(150)
 			[
-				SAssignNew(FriendItemBorder, SBorder)
-				.BorderImage(&FriendStyle.TitleBarBrush)
-				.BorderBackgroundColor(this, &SChatItemImpl::GetFriendBorderColor)
-				[
-					SNew(STextBlock)
-					.Visibility(FriendNameVisibility)
-					.Text(DisplayNameText)
-					.ColorAndOpacity(this, &SChatItemImpl::GetTextDisplayColor)
-					.Font(FriendStyle.FriendsFontStyleSmallBold)
-				]
+				SNew(STextBlock)
+				.Visibility(FriendNameVisibility)
+				.Text(DisplayNameText)
+				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
+				.Font(FriendStyle.FriendsFontStyleSmallBold)
 			]
 			+SHorizontalBox::Slot()
 			.Padding(FMargin(5,1))
@@ -67,7 +63,7 @@ public:
 			[
 				SNew(STextBlock)
 				.Text(ViewModel->GetMessage())
-				.ColorAndOpacity(this, &SChatItemImpl::GetTextDisplayColor)
+				.ColorAndOpacity(this, &SChatItemImpl::GetChannelColor)
 				.Font(FriendStyle.FriendsFontStyleSmall)
 				.AutoWrapText(true)
 			]
@@ -100,13 +96,13 @@ private:
 				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
 				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
-				default:
-				return FLinearColor::Gray;
+				case EChatMessageType::Network: return FriendStyle.NetworkChatColor.CopyWithNewOpacity(ViewModel->GetFadeAmountColor()); break;
+				default: return FLinearColor::Gray;
 			}
 		}
 	}
 
-	FSlateColor GetTextDisplayColor () const
+	FSlateColor GetChannelColor () const
 	{
 		if(ViewModel->UseOverrideColor())
 		{
@@ -120,8 +116,8 @@ private:
 				case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
 				case EChatMessageType::Whisper: DisplayColor =  FriendStyle.WhisplerChatColor; break;
 				case EChatMessageType::Party: DisplayColor =  FriendStyle.PartyChatColor; break;
-				default:
-				DisplayColor = FLinearColor::Gray;
+				case EChatMessageType::Network: DisplayColor = FriendStyle.NetworkChatColor; break;
+				default: DisplayColor = FLinearColor::Gray;
 			}
 			return DisplayColor;
 		}
@@ -144,11 +140,6 @@ private:
 				return nullptr;
 			}
 		}
-	}
-
-	FSlateColor GetFriendBorderColor() const
-	{
-		return FriendItemBorder->IsHovered() ? FLinearColor::Gray : FLinearColor::Transparent;
 	}
 
 private:

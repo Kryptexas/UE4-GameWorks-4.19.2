@@ -29,6 +29,10 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
+			SNew(SBorder)
+			.BorderImage(&FriendStyle.FriendItemSelected)
+			.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
+			[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
 			.Padding(FMargin(0,5))
@@ -41,6 +45,8 @@ public:
 				[
 					SNew( SBorder )
 					.Visibility(ViewModelPtr, &FChatViewModel::GetSScrollBarVisibility)
+						.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
+						.ColorAndOpacity(this, &SChatWindowImpl::GetTimedFadeColor)
 					[
 						ExternalScrollbar
 					]
@@ -145,6 +151,7 @@ public:
 					.Font(FriendStyle.FriendsFontStyle)
 				]
 			]
+			]
 		]);
 
 		RefreshChatList();
@@ -160,7 +167,7 @@ public:
 
 		if(ViewModel.IsValid())
 		{
-			if(IsHovered())
+			if (IsHovered() || ChatTextBox->HasKeyboardFocus())
 			{
 				TimeTransparency = FMath::Min<float>(TimeTransparency + DesiredBlendSpeed, 1.f);
 			}
@@ -214,7 +221,7 @@ private:
 		+SUniformGridPanel::Slot(0,0)
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.Background)
+			.BorderImage(&FriendStyle.FriendContainerBackground)
 			[
 				SAssignNew(ChannelSelection, SVerticalBox)
 			]
@@ -222,20 +229,26 @@ private:
 		+SUniformGridPanel::Slot(1,0)
 		[
 			SNew(SBorder)
-			.BorderImage(&FriendStyle.TitleBarBrush)
-			.ColorAndOpacity(FLinearColor::Gray)
+			.BorderImage(&FriendStyle.FriendContainerBackground)
+			.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
+			.Padding(8.0f)
 			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
+			.VAlign(VAlign_Top)
 			[
 				SNew(SCheckBox)
+				.Style(&FriendStyle.FriendCheckboxStyle)
 				.OnCheckStateChanged(this, &SChatWindowImpl::OnGlocalOptionChanged)
 				.IsChecked(this, &SChatWindowImpl::GetGlobalOptionState)
 				[
+					SNew(SBox)
+					.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+					[
 					SNew(STextBlock)
 					.Text(FText::FromString("Global Chatter"))
 					.Font(FriendStyle.FriendsFontStyleSmallBold)
 					.ColorAndOpacity(FriendStyle.DefaultFontColor)
 				]
+			]
 			]
 		];
 
@@ -247,7 +260,7 @@ private:
 				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 				.OnClicked(this, &SChatWindowImpl::HandleChannelWhisperChanged, RecentFriend)
 				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
+				.HAlign(HAlign_Left)
 				[
 					SNew(STextBlock)
 					.Text(RecentFriend->FriendName)
@@ -276,6 +289,7 @@ private:
 				case EChatMessageType::Global: ChannelColor = FriendStyle.DefaultChatColor; break;
 				case EChatMessageType::Whisper: ChannelColor = FriendStyle.WhisplerChatColor; break;
 				case EChatMessageType::Party: ChannelColor = FriendStyle.PartyChatColor; break;
+				case EChatMessageType::Network: ChannelColor = FriendStyle.NetworkChatColor; break;
 			}
 
 			ChannelSelection->AddSlot()
@@ -284,7 +298,7 @@ private:
 				.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
 				.OnClicked(this, &SChatWindowImpl::HandleChannelChanged, Option)
 				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
+				.HAlign(HAlign_Left)
 				[
 					SNew(SHorizontalBox)
 					+SHorizontalBox::Slot()
@@ -294,6 +308,7 @@ private:
 					.Padding(5)
 					[
 						SNew(SImage)
+						.ColorAndOpacity(ChannelColor)
 						.Image(ChatImage)
 					]
 					+SHorizontalBox::Slot()
@@ -304,8 +319,8 @@ private:
 					[
 						SNew(STextBlock)
 						.Text(EChatMessageType::ToText(Option))
+						.ColorAndOpacity(FColor::White)
 						.Font(FriendStyle.FriendsFontStyleSmallBold)
-						.ColorAndOpacity(ChannelColor)
 					]
 				]
 			];
@@ -450,6 +465,18 @@ private:
 		}
 		
 		return FReply::Handled();
+	}
+
+	FSlateColor GetTimedFadeSlateColor() const
+	{
+		return GetTimedFadeColor();
+	}
+
+	FLinearColor GetTimedFadeColor() const
+	{
+		FLinearColor Color = FLinearColor::White;
+		Color.A = ViewModel->GetTimeTransparency();
+		return Color;
 	}
 
 private:

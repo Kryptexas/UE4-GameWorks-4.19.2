@@ -43,8 +43,9 @@ public:
 				.Content()
 				[
 					SNew(SButton)
-					.ButtonStyle(&FriendStyle.FriendListItemButtonStyle)
+					.ButtonStyle(&FriendStyle.FriendListItemButtonSimpleStyle)
 					.OnClicked(this, &SFriendItemImpl::HandleItemClicked)
+					.ContentPadding(5.0f)
 					[
 						SNew( SHorizontalBox )
 						+SHorizontalBox::Slot()

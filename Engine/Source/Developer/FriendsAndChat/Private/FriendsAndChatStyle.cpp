@@ -24,6 +24,12 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListClosedButtonStyle(cons
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendCloseButtonStyle(const FButtonStyle& InAddFriendCloseButtonStyle)
+{
+	AddFriendCloseButtonStyle = InAddFriendCloseButtonStyle;
+	return *this;
+}
+
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListActionButtonStyle(const FButtonStyle& ButtonStyle)
 {
@@ -55,6 +61,11 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonStyle(const 
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListItemButtonSimpleStyle(const FButtonStyle& ButtonStyle)
+{
+	FriendListItemButtonSimpleStyle = ButtonStyle;
+	return *this;
+}
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetTitleBarBrush(const FSlateBrush& Brush)
 {
@@ -121,6 +132,36 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetAwayBrush(const FSlateBrush& InAw
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetBackgroundBrush(const FSlateBrush& InBackground)
 {
 	Background = InBackground;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendContainerHeader(const FSlateBrush& InFriendContainerHeader)
+{
+	FriendContainerHeader = InFriendContainerHeader;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendListHeader(const FSlateBrush& InFriendListHeader)
+{
+	FriendListHeader = InFriendListHeader;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendItemSelected(const FSlateBrush& InFriendItemSelected)
+{
+	FriendItemSelected = InFriendItemSelected;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendContainerBackground(const FSlateBrush& InFriendContainerBackground)
+{
+	FriendContainerBackground = InFriendContainerBackground;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendEditBorder(const FSlateBrush& InAddFriendEditBorder)
+{
+	AddFriendEditBorder = InAddFriendEditBorder;
 	return *this;
 }
 
@@ -199,6 +240,18 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatPartyBrush(const FSlateBrush&
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWhisperBrush(const FSlateBrush& Brush)
 {
 	ChatWhisperBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle)
+{
+	AddFriendEditableTextStyle = InEditableTextStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendCheckboxStyle(const FCheckBoxStyle& InFriendCheckboxStyle)
+{
+	FriendCheckboxStyle = InFriendCheckboxStyle;
 	return *this;
 }
 

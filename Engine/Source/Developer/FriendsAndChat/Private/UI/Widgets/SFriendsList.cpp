@@ -24,7 +24,7 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SAssignNew(Contents, SBorder)
+			SAssignNew(FriendsContents, SVerticalBox)
 		]);
 
 		RefreshFriendsList();
@@ -33,10 +33,7 @@ public:
 private:
 	void RefreshFriendsList()
 	{
-		Contents->ClearContent();
-
-		TSharedPtr<SVerticalBox> FriendsContents;
-		SAssignNew(FriendsContents, SVerticalBox);
+		FriendsContents->ClearChildren();
 
 		for(const auto& OnlineFriend : ViewModel->GetFriendsList())
 		{
@@ -49,15 +46,13 @@ private:
 				.Method(MenuMethod)
 			];
 		}
-
-		Contents->SetContent(FriendsContents.ToSharedRef());
 	}
 
 private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 	TSharedPtr<FFriendListViewModel> ViewModel;
-	TSharedPtr<SBorder> Contents;
+	TSharedPtr<SVerticalBox> FriendsContents;
 	SMenuAnchor::EMethod MenuMethod;
 };
 

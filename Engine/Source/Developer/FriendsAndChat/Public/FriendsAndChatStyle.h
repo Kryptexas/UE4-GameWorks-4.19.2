@@ -74,10 +74,19 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FButtonStyle FriendListItemButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle);
 
+	UPROPERTY()
+	FButtonStyle FriendListItemButtonSimpleStyle;
+	FFriendsAndChatStyle& SetFriendsListItemButtonSimpleStyle(const FButtonStyle& ButtonStyle);
+
 	/** Friends List Close button style */
 	UPROPERTY()
 	FButtonStyle FriendListCloseButtonStyle;
 	FFriendsAndChatStyle& SetFriendsListClosedButtonStyle(const FButtonStyle& ButtonStyle);
+
+	/** Add Friend Close button style */
+	UPROPERTY()
+	FButtonStyle AddFriendCloseButtonStyle;
+	FFriendsAndChatStyle& SetAddFriendCloseButtonStyle(const FButtonStyle& ButtonStyle);
 
 	/** Title Bar brush style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -133,6 +142,31 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush Background;
 	FFriendsAndChatStyle& SetBackgroundBrush(const FSlateBrush& InBackground);
+
+	/** Friend container header */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendContainerHeader;
+	FFriendsAndChatStyle& SetFriendContainerHeader(const FSlateBrush& InFriendContainerHeader);
+
+	/** Friend list header */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendListHeader;
+	FFriendsAndChatStyle& SetFriendListHeader(const FSlateBrush& InFriendListHeader);
+
+	/** Friend item selected */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendItemSelected;
+	FFriendsAndChatStyle& SetFriendItemSelected(const FSlateBrush& InFriendItemSelected);
+
+	/** Friend container background */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FriendContainerBackground;
+	FFriendsAndChatStyle& SetFriendContainerBackground(const FSlateBrush& InFriendContainerBackground);
+
+	/** Add Friend editable text border */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush AddFriendEditBorder;
+	FFriendsAndChatStyle& SetAddFriendEditBorder(const FSlateBrush& InAddFriendEditBorder);
 
 	/** Text Style */
 	UPROPERTY(EditAnywhere, Category=Appearance)
@@ -191,4 +225,12 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ChatWhisperBrush;
 	FFriendsAndChatStyle& SetChatWhisperBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FEditableTextBoxStyle AddFriendEditableTextStyle;
+	FFriendsAndChatStyle& SetAddFriendEditableTextStyle(const FEditableTextBoxStyle& InEditableTextStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FCheckBoxStyle FriendCheckboxStyle;
+	FFriendsAndChatStyle& SetFriendCheckboxStyle(const FCheckBoxStyle& InFriendCheckboxStyle);
 };

@@ -32,62 +32,68 @@ public:
 			.VAlign(VAlign_Center)
 			.AutoHeight()
 			[
-				SNew(SButton)
-				.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
-				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-				.Cursor(EMouseCursor::Hand)
+				SNew(SBorder)
+				.Padding(15.0f)
+				.BorderImage(&FriendStyle.FriendListHeader)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
+					SNew(SButton)
+					.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.Cursor(EMouseCursor::Hand)
 					[
-						SNew(SButton)
-						.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
-						.ButtonStyle(&FriendStyle.FriendListOpenButtonStyle)
-						.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, true)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
-						.ButtonStyle(&FriendStyle.FriendListCloseButtonStyle)
-						.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, false)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(FMargin(5, 0))
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyleBold)
-						.Text(ViewModel->GetListName())
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Fill)
-					[
-						SNew(SSpacer)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Right)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyleBold)
-						.Text(ViewModelPtr, &FFriendListViewModel::GetListCountText)
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
+							.ButtonStyle(&FriendStyle.FriendListOpenButtonStyle)
+							.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, true)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
+							.ButtonStyle(&FriendStyle.FriendListCloseButtonStyle)
+							.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, false)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(FMargin(5, 0))
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.Text(ViewModel->GetListName())
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SSpacer)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.Text(ViewModelPtr, &FFriendListViewModel::GetListCountText)
+						]
 					]
 				]
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SBorder)
+				SNew(SBox)
+				.Padding(FMargin(0.0f, 2.0f, 0.0f, 8.0f))
 				.Visibility(this, &SFriendsListContainerImpl::GetFriendsVisibility)
 				[
 					CreateList()
