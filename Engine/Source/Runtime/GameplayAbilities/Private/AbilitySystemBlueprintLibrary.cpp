@@ -272,6 +272,11 @@ bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueP
 }
 
 
+TArray<TWeakObjectPtr<AActor>> UAbilitySystemBlueprintLibrary::GetActors(FGameplayCueParameters Parameters)
+{
+	return Parameters.EffectContext.GetActors();
+}
+
 FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters Parameters)
 {
 	if (Parameters.EffectContext.GetHitResult())

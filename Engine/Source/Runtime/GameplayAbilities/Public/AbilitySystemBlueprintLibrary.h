@@ -86,6 +86,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	static bool IsInstigatorLocallyControlled(FGameplayCueParameters Parameters);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
+	static TArray<TWeakObjectPtr<AActor>> GetActors(FGameplayCueParameters Parameters);
+
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static FHitResult GetHitResult(FGameplayCueParameters Parameters);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")

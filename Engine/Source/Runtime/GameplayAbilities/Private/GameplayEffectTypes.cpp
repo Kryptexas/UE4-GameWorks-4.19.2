@@ -41,6 +41,17 @@ void FGameplayEffectContext::AddInstigator(class AActor *InInstigator, class AAc
 	}
 }
 
+void FGameplayEffectContext::AddActors(TArray<TWeakObjectPtr<AActor>> InActors, bool bReset)
+{
+	if (bReset && Actors.Num())
+	{
+		Actors.Reset();
+	}
+
+	check(!Actors.Num());
+	Actors = InActors;
+}
+
 void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bReset)
 {
 	if (bReset && HitResult.IsValid())
@@ -61,6 +72,13 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 {
 	Ar << Instigator;
 	Ar << EffectCauser;
+
+	int32 ActorArraySize = Actors.Num();		//This can probably be smaller than int32
+	Ar << ActorArraySize;
+	if (ActorArraySize > 0)
+	{
+		Ar << Actors;
+	}
 
 	bool HasHitResults = HitResult.IsValid();
 	Ar << HasHitResults;
@@ -115,7 +133,7 @@ void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer &Tag
 	{
 		TagInterface->GetOwnedGameplayTags(TagContainer);
 	}
-	else if(InstigatorAbilitySystemComponent)
+	else if (InstigatorAbilitySystemComponent)
 	{
 		InstigatorAbilitySystemComponent->GetOwnedGameplayTags(TagContainer);
 	}

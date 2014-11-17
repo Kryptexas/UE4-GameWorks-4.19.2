@@ -68,6 +68,11 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 
 void FGameplayAbilityTargetData::AddTargetDataToContext(FGameplayEffectContextHandle& Context)
 {
+	if (GetActors().Num() > 0)
+	{
+		Context.AddActors(GetActors());
+	}
+
 	if (HasHitResult())
 	{
 		Context.AddHitResult(*GetHitResult());

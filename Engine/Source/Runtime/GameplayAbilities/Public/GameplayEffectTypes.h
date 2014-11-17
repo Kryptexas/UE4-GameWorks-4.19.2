@@ -305,7 +305,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		return InstigatorAbilitySystemComponent;
 	}
 
+	virtual void AddActors(TArray<TWeakObjectPtr<AActor>> InActor, bool bReset = false);
+
 	virtual void AddHitResult(const FHitResult InHitResult, bool bReset = false);
+
+	virtual const TArray<TWeakObjectPtr<AActor>> GetActors() const
+	{
+		return Actors;
+	}
 
 	virtual const FHitResult* GetHitResult() const
 	{
@@ -343,6 +350,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	{
 		FGameplayEffectContext* NewContext = new FGameplayEffectContext();
 		*NewContext = *this;
+		NewContext->AddActors(Actors);
 		if (GetHitResult())
 		{
 			// Does a deep copy of the hit result
@@ -368,6 +376,9 @@ protected:
 	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)
 	UAbilitySystemComponent* InstigatorAbilitySystemComponent;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> Actors;
 
 	/** Trace information - may be NULL in many cases */
 	TSharedPtr<FHitResult>	HitResult;
@@ -511,12 +522,25 @@ struct FGameplayEffectContextHandle
 		return false;
 	}
 
+	void AddActors(TArray<TWeakObjectPtr<AActor>> InActors, bool bReset = false)
+	{
+		if (IsValid())
+		{
+			Data->AddActors(InActors, bReset);
+		}
+	}
+
 	void AddHitResult(const FHitResult InHitResult, bool bReset = false)
 	{
 		if (IsValid())
 		{
 			Data->AddHitResult(InHitResult, bReset);
 		}
+	}
+
+	const TArray<TWeakObjectPtr<AActor>> GetActors() const
+	{
+		return Data->GetActors();
 	}
 
 	const FHitResult* GetHitResult() const
