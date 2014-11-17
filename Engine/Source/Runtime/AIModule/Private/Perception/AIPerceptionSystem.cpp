@@ -113,7 +113,7 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 	for (const auto& PercSource : SourcesToRegister)
 	{
 		AActor* SourceActor = PercSource.Source.Get();
-		if (SourceActor)
+		if (SourceActor && Senses.IsValidIndex(PercSource.SenseID))
 		{
 			Senses[PercSource.SenseID]->RegisterSource(*SourceActor);
 		}

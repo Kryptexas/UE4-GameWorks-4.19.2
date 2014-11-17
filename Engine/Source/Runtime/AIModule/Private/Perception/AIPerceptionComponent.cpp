@@ -381,7 +381,8 @@ void UAIPerceptionComponent::ProcessStimuli()
 
 				if (PerceptualInfo->LastSensedStimuli.Num() <= SourcedStimulus->Stimulus.Type)
 				{
-					for (int32 Index = 0; Index < SourcedStimulus->Stimulus.Type - PerceptualInfo->LastSensedStimuli.Num() + 1; ++Index)
+					const int32 NumberToAdd = SourcedStimulus->Stimulus.Type - PerceptualInfo->LastSensedStimuli.Num() + 1;
+					for (int32 Index = 0; Index < NumberToAdd; ++Index)
 					{
 						PerceptualInfo->LastSensedStimuli.Add(FAIStimulus());
 					}
