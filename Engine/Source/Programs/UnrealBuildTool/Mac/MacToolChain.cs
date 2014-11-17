@@ -962,8 +962,11 @@ namespace UnrealBuildTool
 						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath) + "/Build/Mac";
 					}
 
-					CustomResourcesPath = ConvertPath(Path.GetFullPath(CustomResourcesPath));
-					CustomBuildPath = ConvertPath(Path.GetFullPath(CustomBuildPath));
+					if (!string.IsNullOrEmpty(CustomResourcesPath) && !string.IsNullOrEmpty(CustomBuildPath))
+					{
+						CustomResourcesPath = ConvertPath(Path.GetFullPath(CustomResourcesPath));
+						CustomBuildPath = ConvertPath(Path.GetFullPath(CustomBuildPath));
+					}
 
 					bool bBuildingEditor = GameName.EndsWith("Editor");
 
