@@ -3814,23 +3814,26 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 
 	if (MouseCaptorPath.IsValid())
 	{
-		FArrangedWidget& MouseCaptorWidget = MouseCaptorPath.Widgets.Last();
-		MouseEvent.SetEventPath(MouseCaptorPath);
-
-		// Switch worlds widgets in the current path
-		FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
-
-		FReply Reply = FReply::Unhandled();
-		if (MouseEvent.IsTouchEvent())
+		if ( !bIsSynthetic )
 		{
-			Reply = MouseCaptorWidget.Widget->OnTouchMoved( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
+			FArrangedWidget& MouseCaptorWidget = MouseCaptorPath.Widgets.Last();
+			MouseEvent.SetEventPath(MouseCaptorPath);
+
+			// Switch worlds widgets in the current path
+			FScopedSwitchWorldHack SwitchWorld(MouseCaptorPath);
+
+			FReply Reply = FReply::Unhandled();
+			if (MouseEvent.IsTouchEvent())
+			{
+				Reply = MouseCaptorWidget.Widget->OnTouchMoved(MouseCaptorWidget.Geometry, MouseEvent).SetHandler(MouseCaptorWidget.Widget);
+			}
+			if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
+			{
+				Reply = MouseCaptorWidget.Widget->OnMouseMove(MouseCaptorWidget.Geometry, MouseEvent).SetHandler(MouseCaptorWidget.Widget);
+			}
+			ProcessReply(MouseCaptorPath, Reply, &MouseCaptorPath, &MouseEvent);
+			bHandled = Reply.IsEventHandled();
 		}
-		if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
-		{
-			Reply = MouseCaptorWidget.Widget->OnMouseMove( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
-		}
-		ProcessReply(MouseCaptorPath, Reply, &MouseCaptorPath, &MouseEvent);
-		bHandled = Reply.IsEventHandled();
 	}
 	else
 	{	

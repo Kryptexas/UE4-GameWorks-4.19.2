@@ -91,11 +91,15 @@ class TOpenGLBuffer : public BaseType
 public:
 
 	GLuint Resource;
+	
+	/** Needed on OS X to force a rebind of the texture buffer to the texture name to workaround radr://18379338 */
+	uint64 ModificationCount;
 
 	TOpenGLBuffer(uint32 InStride,uint32 InSize,uint32 InUsage,
 		const void *InData = NULL, bool bStreamedDraw = false, GLuint ResourceToUse = 0, uint32 ResourceSize = 0)
 	: BaseType(InStride,InSize,InUsage)
 	, Resource(0)
+	, ModificationCount(0)
 	, bIsLocked(false)
 	, bIsLockReadOnly(false)
 	, bStreamDraw(bStreamedDraw)
@@ -322,6 +326,7 @@ public:
 				LockBuffer = NULL;
 				bLockBufferWasAllocated = false;
 			}
+			ModificationCount += (bIsLockReadOnly ? 0 : 1);
 			bIsLocked = false;
 		}
 	}
@@ -337,6 +342,7 @@ public:
 #else
 		LoadData( InOffset, InSize, InData);
 #endif
+		ModificationCount++;
 	}
 
 	bool IsDynamic() const { return (this->GetUsage() & BUF_AnyDynamic) != 0; }
@@ -1215,19 +1221,43 @@ public:
 	GLenum Target;
 
 	int32 LimitMip;
+	
+	/** Needed on OS X to force a rebind of the texture buffer to the texture name to workaround radr://18379338 */
+	FVertexBufferRHIRef VertexBuffer;
+	uint64 ModificationVersion;
+	uint8 Format;
 
 	FOpenGLShaderResourceView( FOpenGLDynamicRHI* InOpenGLRHI, GLuint InResource, GLenum InTarget )
 	:	Resource(InResource)
 	,	Target(InTarget)
 	,	LimitMip(-1)
+	,	ModificationVersion(0)
+	,	Format(0)
 	,	OpenGLRHI(InOpenGLRHI)
 	,	OwnsResource(true)
 	{}
+	
+	FOpenGLShaderResourceView( FOpenGLDynamicRHI* InOpenGLRHI, GLuint InResource, GLenum InTarget, FVertexBufferRHIParamRef InVertexBuffer, uint8 InFormat )
+	:	Resource(InResource)
+	,	Target(InTarget)
+	,	LimitMip(-1)
+	,	VertexBuffer(InVertexBuffer)
+	,	ModificationVersion(0)
+	,	Format(InFormat)
+	,	OpenGLRHI(InOpenGLRHI)
+	,	OwnsResource(true)
+	{
+		check(IsValidRef(VertexBuffer));
+		FOpenGLVertexBuffer* VB = (FOpenGLVertexBuffer*)VertexBuffer.GetReference();
+		ModificationVersion = VB->ModificationCount;
+	}
 
 	FOpenGLShaderResourceView( FOpenGLDynamicRHI* InOpenGLRHI, GLuint InResource, GLenum InTarget, GLuint Mip, bool InOwnsResource )
 	:	Resource(InResource)
 	,	Target(InTarget)
 	,	LimitMip(Mip)
+	,	ModificationVersion(0)
+	,	Format(0)
 	,	OpenGLRHI(InOpenGLRHI)
 	,	OwnsResource(InOwnsResource)
 	{}

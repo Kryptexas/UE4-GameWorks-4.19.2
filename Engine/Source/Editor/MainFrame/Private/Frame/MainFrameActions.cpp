@@ -1079,7 +1079,7 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 	FString CmdExe = TEXT("cmd.exe");
 #elif PLATFORM_LINUX
 	FString RunUATScriptName = TEXT("RunUAT.sh");
-	FString CmdExe = TEXT("/bin/sh");
+	FString CmdExe = TEXT("/bin/bash");
 #else
 	FString RunUATScriptName = TEXT("RunUAT.command");
 	FString CmdExe = TEXT("/bin/sh");

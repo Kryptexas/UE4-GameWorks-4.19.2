@@ -104,7 +104,7 @@ namespace APIDocTool
 					WritePinObjects(Writer, Pins.Where(x => x.bInputPin));
 					Writer.LeaveParam();
 					Writer.EnterParam("outputs");
-					WritePinObjects(Writer, Pins.Where(x => !x.bInputPin));
+					WritePinObjects(Writer, Pins.Where(x => !x.bInputPin && x.GetTypeText() != "delegate"));
 
 					if (bShowAddPin)
 					{

@@ -31,7 +31,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertex
 	// and the next draw will take care of cleaning it up; or
 	// next operation that needs the stage will switch something else in on it.
 
-	return new FOpenGLShaderResourceView(this,TextureID,GL_TEXTURE_BUFFER);
+	return new FOpenGLShaderResourceView(this,TextureID,GL_TEXTURE_BUFFER,VertexBufferRHI,Format);
 }
 
 FOpenGLShaderResourceView::~FOpenGLShaderResourceView()

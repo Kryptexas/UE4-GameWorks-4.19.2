@@ -180,6 +180,7 @@ public:
 struct FTextureStage
 {
 	class FOpenGLTextureBase* Texture;
+	class FOpenGLShaderResourceView* SRV;
 	GLenum Target;
 	GLuint Resource;
 	int32 LimitMip;
@@ -188,6 +189,7 @@ struct FTextureStage
 
 	FTextureStage()
 	:	Texture(NULL)
+	,	SRV(NULL)
 	,	Target(GL_NONE)
 	,	Resource(0)
 	,	LimitMip(-1)
