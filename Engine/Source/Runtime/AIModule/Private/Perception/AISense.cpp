@@ -5,6 +5,10 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 
+#if !UE_BUILD_SHIPPING
+#include "DrawDebugHelpers.h"
+#endif // !UE_BUILD_SHIPPING
+
 const float UAISense::SuspendNextUpdate = FLT_MAX;
 
 UAISense::UAISense(const FObjectInitializer& ObjectInitializer)
