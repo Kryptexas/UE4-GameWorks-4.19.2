@@ -7,15 +7,18 @@ public class LibOVR : ModuleRules
 	public LibOVR(TargetInfo Target)
 	{
 		/** Mark the current version of the Oculus SDK */
-		string LibOVRVersion = "";
+		string LibOVRVersion = "_04";
 		Type = ModuleType.External;
+
+		string OculusThirdPartyDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion;
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
 
-            string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/";
+            PublicIncludePaths.Add(OculusThirdPartyDirectory + "/Include");
+
+            string LibraryPath = OculusThirdPartyDirectory + "/Lib/";
 			string LibraryName = "libovr";
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
@@ -26,17 +29,22 @@ public class LibOVR : ModuleRules
             {
                 LibraryPath += "Win32/";
             }
+
+			//LibraryName += "_sp";
+
 			LibraryPath += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryName + ".lib");
+
+			PublicAdditionalLibraries.Add("Wtsapi32.lib");
             //PublicAdditionalLibraries.Add(LibraryName + "d.lib");
 			//PublicDelayLoadDLLs.Add(LibraryName + ".dll");
 		}
 		else if ((Target.Platform == UnrealTargetPlatform.Mac))
 		{
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
+            PublicIncludePaths.Add(OculusThirdPartyDirectory + "/Include");
 
-            string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
+            string LibraryPath = OculusThirdPartyDirectory + "/Lib/MacOS/Release/";
 			string LibraryName = "libovr";
 			PublicLibraryPaths.Add(LibraryPath);
 			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");

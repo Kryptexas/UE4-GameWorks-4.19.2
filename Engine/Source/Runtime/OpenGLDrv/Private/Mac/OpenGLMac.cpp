@@ -654,6 +654,22 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 				[Context->OpenGLContext update];
 			}
 			
+            if (Viewport.GetCustomPresent())
+            {
+				SCOPED_AUTORELEASE_POOL;
+                
+				// Clear the Alpha channel
+				glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_TRUE);
+				glClearColor(0.f,0.f,0.f,1.f);
+				glClear(GL_COLOR_BUFFER_BIT);
+				glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+				glClearColor(0.f,0.f,0.f,0.f);
+
+                glDisable(GL_FRAMEBUFFER_SRGB);
+                Viewport.GetCustomPresent()->Present(SyncInterval);
+                glEnable(GL_FRAMEBUFFER_SRGB);
+                return false;
+            }
 			// OpenGL state necessary for blit is set up in PlatformResizeGLContext(), and should be correct here,
 			// as viewport contexts aren't bound at any other occasion.
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -672,7 +688,7 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 			if (bPresent)
 			{
 				SCOPED_AUTORELEASE_POOL;
-				
+
 				// Clear the Alpha channel
 				glColorMask(GL_FALSE,GL_FALSE,GL_FALSE,GL_TRUE);
 				glClearColor(0.f,0.f,0.f,1.f);

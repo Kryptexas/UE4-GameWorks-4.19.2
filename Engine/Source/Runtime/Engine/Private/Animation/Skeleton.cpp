@@ -717,8 +717,9 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 		{
 			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
 		}
+		
 		// if not existing, and if bFindIfNotExisting is true, then try find one
-		else if (bFindIfNotSet)
+		if (!PreviewMesh && bFindIfNotSet)
 		{
 			FARFilter Filter;
 			Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
