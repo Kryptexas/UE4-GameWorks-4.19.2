@@ -975,6 +975,10 @@ namespace UnrealBuildTool
 						{
 							UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
 						}
+						else if (LowercaseArg == "-nocef3")
+						{
+							UEBuildConfiguration.bCompileCEF3 = false;
+						}
                         else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
                         {
                             // It's the platform set...

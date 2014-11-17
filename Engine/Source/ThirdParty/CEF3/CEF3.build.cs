@@ -18,7 +18,7 @@ public class CEF3 : ModuleRules
 			CEFPlatform = "windows64";
 		}
 
-		if (CEFPlatform.Length > 0)
+		if (CEFPlatform.Length > 0 && UEBuildConfiguration.bCompileCEF3)
 		{
 			Definitions.Add("WITH_CEF3=1");
 

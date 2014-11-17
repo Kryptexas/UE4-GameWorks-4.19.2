@@ -186,6 +186,10 @@ namespace UnrealBuildTool
 		/** When true, the targets won't execute their link actions if there was nothing to compile */
 		public static bool bSkipLinkingWhenNothingToCompile;
 
+		/** Whether to compile CEF3 support. */
+		[XmlConfig]
+		public static bool bCompileCEF3;
+
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
@@ -227,6 +231,7 @@ namespace UnrealBuildTool
 			bHotReloadFromIDE = false;
 			bAllowHotReloadFromIDE = true;
 			bSkipLinkingWhenNothingToCompile = false;
+			bCompileCEF3 = true;
 		}
 
 		/// <summary>
