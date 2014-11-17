@@ -1876,11 +1876,14 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 	const FTransform WorldToComponent(ComponentToWorld.Inverse());
 	const FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
 
+	FComponentQueryParams ParamsWithSelf = Params;
+	ParamsWithSelf.AddIgnoredComponent(this);
+
 	bool bHaveBlockingHit = false;
 	for (const FBodyInstance* Body : Bodies)
 	{
 		checkSlow(Body);
-		if (Body->OverlapMulti(/*inout*/ OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, Params, ResponseParams, ObjectQueryParams))
+		if (Body->OverlapMulti(OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, ParamsWithSelf, ResponseParams, ObjectQueryParams))
 		{
 			bHaveBlockingHit = true;
 		}
