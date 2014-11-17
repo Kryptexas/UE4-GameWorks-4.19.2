@@ -360,7 +360,15 @@ void UAnimMontage::PostLoad()
 			}
 		}
 		Track.ValidateSegmentTimes();
-			}
+
+		float CurrentCalculatedLength = CalculateSequenceLength();
+
+		if(CurrentCalculatedLength != SequenceLength)
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for montage %s does not match the length stored in the asset, please resave the montage asset."), *GetName());
+			SequenceLength = CurrentCalculatedLength;
+		}
+	}
 
 	int32 Ver = GetLinker()->UE4Ver();
 
@@ -1322,6 +1330,20 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 	{
 		TriggerEventHandler(BranchingPoint->EventName);
 	}
+}
+
+float UAnimMontage::CalculateSequenceLength()
+{
+	float CalculatedSequenceLength = 0.f;
+	for(auto Iter = SlotAnimTracks.CreateIterator(); Iter; ++Iter)
+	{
+		FSlotAnimationTrack& SlotAnimTrack = (*Iter);
+		if(SlotAnimTrack.AnimTrack.AnimSegments.Num() > 0)
+		{
+			CalculatedSequenceLength = FMath::Max(CalculatedSequenceLength, SlotAnimTrack.AnimTrack.GetLength());
+		}
+	}
+	return CalculatedSequenceLength;
 }
 
 #if WITH_EDITOR
