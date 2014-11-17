@@ -595,6 +595,9 @@ public:
 	/** Returns if the panel has been panned or zoomed since the last update */
 	bool HasMoved() const;
 
+	/** Returns all the panel children rather than only visible */
+	FChildren* GetAllChildren();
+
 protected:
 	/** Initialize members */
 	void Construct();

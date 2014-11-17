@@ -247,6 +247,11 @@ FChildren* SNodePanel::GetChildren()
 	return &VisibleChildren;
 }
 
+FChildren* SNodePanel::GetAllChildren()
+{
+	return &Children;
+}
+
 float SNodePanel::GetZoomAmount() const
 {
 	if (bAllowContinousZoomInterpolation)
