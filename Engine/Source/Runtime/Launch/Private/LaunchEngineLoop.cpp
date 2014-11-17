@@ -20,6 +20,7 @@
 	#include "AutomationController.h"
 	#include "ProfilerClient.h"
 	#include "RemoteConfigIni.h"
+	#include "EditorCommandLineUtils.h"
 
 	#if PLATFORM_WINDOWS
 		#include "AllowWindowsPlatformTypes.h"
@@ -215,6 +216,13 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 			return true;
 		}
 	}
+
+#if WITH_EDITOR
+	if (FEditorCommandLineUtils::ParseGameProjectPath(InCmdLine, OutProjectFilePath, OutGameName))
+	{
+		return true;
+	}
+#endif
 	return false;
 }
 

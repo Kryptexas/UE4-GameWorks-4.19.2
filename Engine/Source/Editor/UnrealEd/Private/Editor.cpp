@@ -10,6 +10,7 @@
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BSPOps.h"
+#include "EditorCommandLineUtils.h"
 
 // needed for the RemotePropagator
 #include "SoundDefinitions.h"
@@ -713,22 +714,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	// Purge garbage.
 	Cleanse( false, 0, NSLOCTEXT("UnrealEd", "Startup", "Startup") );
 
-	// If specified, Lightmass has to be launched manually with -debug (e.g. through a debugger).
-	// This creates a job with a hard-coded GUID, and allows Lightmass to be executed multiple times (even stand-alone).
-	if ( FParse::Param(FCommandLine::Get(), TEXT("LIGHTMASSDEBUG")) )
-	{
-		extern bool GLightmassDebugMode;
-		GLightmassDebugMode = true;
-		UE_LOG(LogInit, Log, TEXT("Running Engine with Lightmass Debug Mode ENABLED"));
-	}
-
-	// If specified, all participating Lightmass agents will report back detailed stats to the log.
-	if ( FParse::Param(FCommandLine::Get(), TEXT("LIGHTMASSSTATS")) )
-	{
-		extern bool GLightmassStatsMode;
-		GLightmassStatsMode = true;
-		UE_LOG(LogInit, Log, TEXT("Running Engine with Lightmass Stats Mode ENABLED"));
-	}
+	FEditorCommandLineUtils::ProcessEditorCommands(FCommandLine::Get());
 
 	// for IsInitialized()
 	bIsInitialized = true;
