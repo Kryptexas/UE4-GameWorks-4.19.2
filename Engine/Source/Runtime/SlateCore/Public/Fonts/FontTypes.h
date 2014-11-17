@@ -61,6 +61,8 @@ struct FCharacterRenderData
 	uint16 MaxHeight;
 	/** The character that was rendered */
 	TCHAR Char;	
+	/** Whether or not the character has kerning */
+	bool HasKerning;
 };
 
 /** 

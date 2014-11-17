@@ -1050,7 +1050,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 
 	float LineX = 0;
 
-	TCHAR PreviousChar = 0;
+	const FCharacterEntry* PreviousCharEntry = nullptr;
 
 	int32 Kerning = 0;
 
@@ -1107,7 +1107,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 
 			if( !bIsWhitespace && CharIndex > 0 )
 			{
-				Kerning = CharacterList.GetKerning( PreviousChar, CurrentChar );
+				Kerning = CharacterList.GetKerning( *PreviousCharEntry, Entry );
 			}
 			else
 			{
@@ -1115,7 +1115,7 @@ void FCanvasTextItem::DrawStringInternal_RuntimeCache( FCanvas* InCanvas, const 
 			}
 
 			LineX += Kerning;
-			PreviousChar = CurrentChar;
+			PreviousCharEntry = &Entry;
 
 			if( !bIsWhitespace )
 			{
