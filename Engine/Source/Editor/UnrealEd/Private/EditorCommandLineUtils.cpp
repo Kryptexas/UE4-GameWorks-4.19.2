@@ -9,6 +9,7 @@
 #include "TickableEditorObject.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 #include "AssetRegistryModule.h"
+#include "IAssetTypeActions.h"		// for FRevisionInfo
 
 #define LOCTEXT_NAMESPACE "EditorCommandLineUtils"
 
