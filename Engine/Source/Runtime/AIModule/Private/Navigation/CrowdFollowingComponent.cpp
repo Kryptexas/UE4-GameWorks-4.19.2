@@ -457,7 +457,7 @@ int32 UCrowdFollowingComponent::DetermineStartingPathPoint(const FNavigationPath
 		// no path = called from SwitchToNextPathPart
 		if (ConsideredPath == NULL && Path.IsValid())
 		{
-			StartIdx = LastPathPolyIndex + 1;
+			StartIdx = LastPathPolyIndex;
 		}
 	}
 	else

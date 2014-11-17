@@ -1735,9 +1735,11 @@ void dtCrowd::updateStepOffMeshVelocity(const float dt, dtCrowdAgentDebugInfo*)
 
 		anim->t += dt;
 		
-		const float dist = dtVdistSqr(ag->npos, anim->endPos);
+		const float dist = dtVdist2DSqr(ag->npos, anim->endPos);
 		const float distThres = dtSqr(5.0f);
-		if (dist < distThres)
+		const float heightDiff = dtAbs(ag->npos[1] - anim->endPos[1]);
+		const float heightThres = ag->params.height * 0.5f;
+		if (dist < distThres && heightDiff < heightThres)
 		{
 			// Reset animation
 			anim->active = 0;
