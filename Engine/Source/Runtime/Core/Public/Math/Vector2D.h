@@ -418,6 +418,14 @@ public:
 	FVector2D ClampAxes( float MinAxisVal, float MaxAxisVal ) const;
 
 	/**
+	* Get a copy of the vector as sign only.
+	* Each component is set to +1 or -1, with the sign of zero treated as +1.
+	*
+	* @param A copy of the vector with each component set to +1 or -1
+	*/
+	FORCEINLINE FVector2D GetSignVector() const;
+
+	/**
 	 * Get a textual representation of the vector.
 	 *
 	 * @return Text describing the vector.
@@ -795,6 +803,16 @@ FORCEINLINE FIntPoint FVector2D::IntPoint() const
 FORCEINLINE FVector2D FVector2D::ClampAxes( float MinAxisVal, float MaxAxisVal ) const
 {
 	return FVector2D( FMath::Clamp(X, MinAxisVal, MaxAxisVal), FMath::Clamp(Y, MinAxisVal, MaxAxisVal) );
+}
+
+
+FORCEINLINE FVector2D FVector2D::GetSignVector() const
+{
+	return FVector2D
+		(
+		FMath::FloatSelect(X, 1.f, -1.f),
+		FMath::FloatSelect(Y, 1.f, -1.f)
+		);
 }
 
 
