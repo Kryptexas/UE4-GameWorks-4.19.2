@@ -107,7 +107,7 @@ int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTim
 {
 	for (int32 Idx=0; Idx<SearchArray.Num(); ++Idx)
 	{
-		if (SearchArray[Idx].TimerDelegate == InDelegate && !SearchArray[Idx].TimerHandle.IsValid())
+		if (!SearchArray[Idx].TimerHandle.IsValid() && SearchArray[Idx].TimerDelegate == InDelegate)
 		{
 			return Idx;
 		}
@@ -119,16 +119,14 @@ int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTim
 /** Will find the given timer in the given TArray and return its index. */
 int32 FTimerManager::FindTimerInList(const TArray<FTimerData> &SearchArray, FTimerHandle const& InHandle) const
 {
-	if (!(InHandle.IsValid()))
+	if (InHandle.IsValid())
 	{
-		return INDEX_NONE;
-	}
-
-	for (int32 Idx = 0; Idx < SearchArray.Num(); ++Idx)
-	{
-		if (SearchArray[Idx].TimerHandle == InHandle)
+		for (int32 Idx = 0; Idx < SearchArray.Num(); ++Idx)
 		{
-			return Idx;
+			if (SearchArray[Idx].TimerHandle == InHandle)
+			{
+				return Idx;
+			}
 		}
 	}
 
@@ -181,7 +179,7 @@ void FTimerManager::InternalSetTimer(FTimerHandle& InOutHandle, FTimerUnifiedDel
 
 void FTimerManager::InternalSetTimer(FTimerData& NewTimerData, float InRate, bool InbLoop, float InFirstDelay)
 {
-	if (NewTimerData.TimerDelegate.IsBound() || NewTimerData.TimerHandle.IsValid())
+	if (NewTimerData.TimerHandle.IsValid() || NewTimerData.TimerDelegate.IsBound())
 	{
 		NewTimerData.Rate = InRate;
 		NewTimerData.bLoop = InbLoop;
@@ -239,7 +237,7 @@ void FTimerManager::InternalClearTimer(FTimerUnifiedDelegate const& InDelegate)
 	{
 		// Edge case. We're currently handling this timer when it got cleared.  Unbind it to prevent it firing again
 		// in case it was scheduled to fire multiple times.
-		if (CurrentlyExecutingTimer.TimerDelegate == InDelegate)
+		if (!CurrentlyExecutingTimer.TimerHandle.IsValid() && CurrentlyExecutingTimer.TimerDelegate == InDelegate)
 		{
 			CurrentlyExecutingTimer.TimerDelegate.Unbind();
 		}
@@ -250,6 +248,12 @@ void FTimerManager::InternalClearTimer(FTimerHandle const& InHandle)
 {
 	// not currently threadsafe
 	check(IsInGameThread());
+
+	// Skip if the handle is invalid as it  would not be found by FindTimer and unbind the current handler if it also used INDEX_NONE. 
+	if (!InHandle.IsValid())
+	{
+		return;
+	}
 
 	int32 TimerIdx;
 	FTimerData const* const TimerData = FindTimer(InHandle, &TimerIdx);
@@ -270,6 +274,7 @@ void FTimerManager::InternalClearTimer(FTimerHandle const& InHandle)
 		if (CurrentlyExecutingTimer.TimerHandle == InHandle)
 		{
 			CurrentlyExecutingTimer.TimerDelegate.Unbind();
+			CurrentlyExecutingTimer.TimerHandle.Invalidate();
 		}
 	}
 }
@@ -466,18 +471,19 @@ void FTimerManager::Tick(float DeltaTime)
 				CurrentlyExecutingTimer.TimerDelegate.Execute();
 
 				// If timer was cleared in the delegate execution, don't execute further 
-				if( !CurrentlyExecutingTimer.TimerDelegate.IsBound() && !CurrentlyExecutingTimer.TimerHandle.IsValid() )
+				if( !CurrentlyExecutingTimer.TimerHandle.IsValid() && !CurrentlyExecutingTimer.TimerDelegate.IsBound() )
 				{
 					break;
 				}
 			}
 
 			if( CurrentlyExecutingTimer.bLoop && 
-				(CurrentlyExecutingTimer.TimerDelegate.IsBound() ||
-				 CurrentlyExecutingTimer.TimerHandle.IsValid()) && 							// did not get cleared during execution
-				((FindTimer(CurrentlyExecutingTimer.TimerDelegate) == NULL) || 
-				 (CurrentlyExecutingTimer.TimerHandle.IsValid() && FindTimer(CurrentlyExecutingTimer.TimerHandle) == NULL))		// did not get manually re-added during execution
-			  )
+				(CurrentlyExecutingTimer.TimerHandle.IsValid() ||
+				 CurrentlyExecutingTimer.TimerDelegate.IsBound()) && 							// did not get cleared during execution
+				(CurrentlyExecutingTimer.TimerHandle.IsValid() ? 
+					(FindTimer(CurrentlyExecutingTimer.TimerHandle) == nullptr) : 
+					(FindTimer(CurrentlyExecutingTimer.TimerDelegate) == nullptr)) // did not get manually re-added during execution			  
+				)
 			{
 				// Put this timer back on the heap
 				CurrentlyExecutingTimer.ExpireTime += CallCount * CurrentlyExecutingTimer.Rate;

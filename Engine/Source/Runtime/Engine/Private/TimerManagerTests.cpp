@@ -390,6 +390,101 @@ bool TimerManagerTest_ValidTimer_HandleNoDelegate(UWorld* World, FAutomationTest
 	return true;
 }
 
+struct FLoopingTestFunc
+{
+	static FTimerManager* TimerManager;
+	static FTimerHandle* Handle;
+	static int TimerCalled;
+	static float NewTime;
+	static void TimerExecute()
+	{
+		TimerCalled++;
+		if (TimerCalled == 1)
+		{
+			TimerManager->SetTimer(*Handle, FTimerDelegate::CreateStatic(FLoopingTestFunc::TimerExecute), NewTime, true);
+		}
+		else
+		{
+			TimerManager->ClearTimer(*Handle);
+		}
+	}
+};
+
+FTimerManager* FLoopingTestFunc::TimerManager = nullptr;
+FTimerHandle* FLoopingTestFunc::Handle = nullptr;
+int FLoopingTestFunc::TimerCalled = 0;
+float FLoopingTestFunc::NewTime = 1.0f;
+
+bool TimerManagerTest_ValidTimer_HandleLoopingSetDuringExecute(UWorld* World, FAutomationTestBase* Test)
+{
+	FTimerManager& TimerManager = World->GetTimerManager();
+	FTimerHandle Handle;
+	const float Rate = 3.f;
+
+	FLoopingTestFunc::TimerManager = &TimerManager;
+	FLoopingTestFunc::Handle = &Handle;
+	FLoopingTestFunc::TimerCalled = 0;
+
+	Test->TestTrue(TIMER_TEST_TEXT("Timer called count starts at 0"), FLoopingTestFunc::TimerCalled == 0);
+
+	TimerManager.SetTimer(Handle, FTimerDelegate::CreateStatic(FLoopingTestFunc::TimerExecute), Rate, true);
+
+	// small tick to move the timer from the pending list to the active list, the timer will start counting time after this tick
+	TimerTest_TickWorld(World, KINDA_SMALL_NUMBER);
+
+	TimerTest_TickWorld(World, 3.0f);
+	Test->TestTrue(TIMER_TEST_TEXT("Timer was called first time"), FLoopingTestFunc::TimerCalled == 1);
+	Test->TestTrue(TIMER_TEST_TEXT("Timer was readded"), TimerManager.IsTimerActive(Handle));
+	Test->TestTrue(TIMER_TEST_TEXT("Timer was readded with correct time"), FMath::IsNearlyEqual(TimerManager.GetTimerRemaining(Handle), FLoopingTestFunc::NewTime, 1e-2f));
+
+	TimerTest_TickWorld(World, 1.1f);
+	Test->TestTrue(TIMER_TEST_TEXT("Timer was called second time"), FLoopingTestFunc::TimerCalled == 2);
+	Test->TestFalse(TIMER_TEST_TEXT("Timer handle no longer active"), TimerManager.IsTimerActive(Handle));
+
+	return true;
+}
+
+bool TimerManagerTest_LoopingTimers_DifferentHandles(UWorld* World, FAutomationTestBase* Test)
+{
+	FTimerManager& TimerManager = World->GetTimerManager();
+	FTimerHandle HandleOne, HandleTwo;
+
+	int32 CallCount = 0;
+	auto Func = [](int* CallCount){ (*CallCount)++; };
+
+	FTimerDelegate Delegate = FTimerDelegate::CreateStatic(Func, &CallCount);
+
+	TimerManager.SetTimer(Delegate, 1.0f, false);
+	TimerTest_TickWorld(World, KINDA_SMALL_NUMBER);
+
+	Test->TestTrue(TIMER_TEST_TEXT("First delegate time remaining is 1.0f"),
+		FMath::IsNearlyEqual(TimerManager.GetTimerRemaining(Delegate), 1.0f, KINDA_SMALL_NUMBER));
+	
+	TimerManager.SetTimer(Delegate, 5.0f, false);
+	TimerTest_TickWorld(World, KINDA_SMALL_NUMBER);
+	Test->TestTrue(TIMER_TEST_TEXT("Reset delegate time remaining is 5.0f"),
+		FMath::IsNearlyEqual(TimerManager.GetTimerRemaining(Delegate), 5.0f, KINDA_SMALL_NUMBER));
+	
+	TimerManager.SetTimer(HandleOne, Delegate, 1.0f, true);
+	TimerManager.SetTimer(HandleTwo, Delegate, 1.5f, true);
+	TimerTest_TickWorld(World, KINDA_SMALL_NUMBER);
+
+	Test->TestTrue(TIMER_TEST_TEXT("Handle One is active"), TimerManager.IsTimerActive(HandleOne));
+	Test->TestTrue(TIMER_TEST_TEXT("Handle Two is active"), TimerManager.IsTimerActive(HandleTwo));
+
+	TimerTest_TickWorld(World, 1.0f);
+
+	Test->TestTrue(TIMER_TEST_TEXT("Handle One is active after tick"), TimerManager.IsTimerActive(HandleOne));
+	Test->TestTrue(TIMER_TEST_TEXT("Handle Two is active after tick"), TimerManager.IsTimerActive(HandleTwo));
+
+	Test->TestTrue(TIMER_TEST_TEXT("Handle One has 0 seconds remaining after tick"), 
+		FMath::IsNearlyEqual(TimerManager.GetTimerRemaining(HandleOne), 0.0f, 1e-2f) );
+	Test->TestTrue(TIMER_TEST_TEXT("Handle Two has 0.5 seconds remaining after tick"),
+		FMath::IsNearlyEqual(TimerManager.GetTimerRemaining(HandleTwo), 0.5f, 1e-2f));
+
+	return true;
+}
+
 bool FTimerManagerTest::RunTest(const FString& Parameters)
 {
 	UWorld *World = UWorld::CreateWorld(EWorldType::Game, false);
@@ -405,6 +500,8 @@ bool FTimerManagerTest::RunTest(const FString& Parameters)
 	TimerManagerTest_ValidTimer_Delegate(World, this);
 	TimerManagerTest_ValidTimer_HandleWithDelegate(World, this);
 	TimerManagerTest_ValidTimer_HandleNoDelegate(World, this);
+	TimerManagerTest_ValidTimer_HandleLoopingSetDuringExecute(World, this);
+	TimerManagerTest_LoopingTimers_DifferentHandles(World, this);
 
 	GEngine->DestroyWorldContext(World);
 	World->DestroyWorld(false);
