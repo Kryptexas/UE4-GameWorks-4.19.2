@@ -50,6 +50,8 @@ void UNiagaraScriptSource::Compile()
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 	NiagaraEditorModule.CompileScript(ScriptOwner);
 
+	ExposedVectorConstants.Empty();
+
 	// grab all constant nodes that are exposed to the editor
 	TArray<UNiagaraNodeConstant*> ConstNodes;
 	UpdateGraph->GetNodesOfClass<UNiagaraNodeConstant>(ConstNodes);

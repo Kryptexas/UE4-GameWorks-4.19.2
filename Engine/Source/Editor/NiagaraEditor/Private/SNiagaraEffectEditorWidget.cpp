@@ -90,30 +90,6 @@ void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 				.AutoWidth()
 				[
 					SAssignNew(OverlayWidget, SOverlay)
-					/*
-					// details view on the left
-					+ SOverlay::Slot()
-					.Expose(DetailsViewSlot)
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Top)
-					[
-					SNew(SBorder)
-					.Padding(4)
-					[
-					EmitterDetails.ToSharedRef()
-					]
-					]
-					*/
-
-					// Title bar - optional
-					/*
-					+ SOverlay::Slot()
-					.VAlign(VAlign_Top)
-					[
-					InArgs._TitleBar.IsValid() ? InArgs._TitleBar.ToSharedRef() : (TSharedRef<SWidget>)SNullWidget::NullWidget
-					]
-					*/
-
 
 					+SOverlay::Slot()
 					.Padding(10)

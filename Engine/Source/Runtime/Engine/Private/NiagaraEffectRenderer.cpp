@@ -339,9 +339,10 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	const FVector4 *RotPtr = Data.GetAttributeData("Rotation");
 
 	float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumParticles();
+	RenderData.AddUninitialized(Data.GetNumParticles());
 	for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumParticles(); ParticleIndex++)
 	{
-		FParticleSpriteVertex& NewVertex = *new(RenderData)FParticleSpriteVertex;
+		FParticleSpriteVertex& NewVertex = RenderData[ParticleIndex];
 		NewVertex.Position = PosPtr[ParticleIndex];
 		NewVertex.OldPosition = NewVertex.Position;
 		NewVertex.Color = FLinearColor(ColPtr[ParticleIndex]);
@@ -351,6 +352,11 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 		NewVertex.Size = FVector2D(2.0f, 2.0f);
 		NewVertex.Rotation = RotPtr[ParticleIndex].X;
 		NewVertex.SubImageIndex = 0.f;
+
+		FPlatformMisc::Prefetch(PosPtr + ParticleIndex+1);
+		FPlatformMisc::Prefetch(RotPtr + ParticleIndex + 1);
+		FPlatformMisc::Prefetch(ColPtr + ParticleIndex + 1);		
+		FPlatformMisc::Prefetch(AgePtr + ParticleIndex + 1);
 
 		//CachedBounds += NewVertex.Position;
 	}

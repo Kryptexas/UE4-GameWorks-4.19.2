@@ -17,7 +17,7 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 
 	// UObject interface.
 	virtual void PostLoad() override;
-	void Compile();
+	virtual void Compile() override;
 
 	UNREALED_API void GetParticleAttributes(TArray<FName>& VectorOutputs);
 	UNREALED_API void GetEmitterAttributes(TArray<FName>& VectorInputs, TArray<FName>& MatrixInputs);

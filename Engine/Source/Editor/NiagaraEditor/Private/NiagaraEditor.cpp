@@ -270,9 +270,7 @@ void FNiagaraEditor::ExtendToolbar()
 
 FReply FNiagaraEditor::OnCompileClicked()
 {
-	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>( "NiagaraEditor" );
-	NiagaraEditorModule.CompileScript(Script);
-
+	Script->Source->Compile();
 	return FReply::Handled();
 }
 
