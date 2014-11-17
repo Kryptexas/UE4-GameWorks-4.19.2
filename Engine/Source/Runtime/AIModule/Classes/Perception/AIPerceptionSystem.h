@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Tickable.h"
 #include "AIPerceptionTypes.h"
 #include "AIPerceptionSystem.generated.h"
 
