@@ -80,6 +80,9 @@ void UBTNode::InitializeInSubtree(UBehaviorTreeComponent* OwnerComp, uint8* Node
 
 			OwnerComp->NodeInstances.Add(NodeInstance);
 		}
+		check(NodeInstance);
+
+		NodeInstance->SetOwner(OwnerComp->GetOwner());
 
 		FBTInstancedNodeMemory* MyMemory = GetSpecialNodeMemory<FBTInstancedNodeMemory>(NodeMemory);
 		MyMemory->NodeIdx = NextInstancedIndex;

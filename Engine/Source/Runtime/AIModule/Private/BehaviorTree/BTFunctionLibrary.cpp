@@ -6,6 +6,22 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyAllTypes.h"
 #include "BehaviorTree/BTFunctionLibrary.h"
 
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+namespace FBTNodeBPImplementationHelper
+{
+	int32 CheckEventImplementationVersion(FName GenericEventName, FName AIEventName, const UObject* Ob, const UClass* StopAtClass)
+	{
+		const bool bGeneric = BlueprintNodeHelpers::HasBlueprintFunction(GenericEventName, Ob, StopAtClass);
+		const bool bAI = BlueprintNodeHelpers::HasBlueprintFunction(AIEventName, Ob, StopAtClass);
+		
+		return (bGeneric ? Generic : NoImplementation) | (bAI ? AISpecific : NoImplementation);
+	}
+}
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
 namespace
 {
 	FORCEINLINE UBlackboardComponent* GetBlackboard(UBTNode& BTNode)

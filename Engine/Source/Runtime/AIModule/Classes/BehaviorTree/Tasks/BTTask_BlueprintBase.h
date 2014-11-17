@@ -26,11 +26,20 @@ class AIMODULE_API UBTTask_BlueprintBase : public UBTTaskNode
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
 
+	virtual void SetOwner(AActor* ActorOwner) override;
+
 #if WITH_EDITOR
 	virtual bool UsesBlueprint() const override;
 #endif
 
 protected:
+	/** Cached AIController owner of BehaviorTreeComponent. */
+	UPROPERTY(Transient)
+	AAIController* AIOwner;
+
+	/** Cached actor owner of BehaviorTreeComponent. */
+	UPROPERTY(Transient)
+	AActor* ActorOwner;
 
 	/** temporary variable for ReceiveExecute(Abort)-FinishExecute(Abort) chain */
 	mutable TEnumAsByte<EBTNodeResult::Type> CurrentCallResult;
@@ -43,29 +52,56 @@ protected:
 	uint32 bShowPropertyDetails : 1;
 
 	/** set if ReceiveTick is implemented by blueprint */
-	uint32 bImplementsReceiveTick : 1;
+	uint32 ReceiveTickImplementations : 2;
 
 	/** set if ReceiveExecute is implemented by blueprint */
-	uint32 bImplementsReceiveExecute : 1;
+	uint32 ReceiveExecuteImplementations : 2;
 
 	/** set if ReceiveAbort is implemented by blueprint */
-	uint32 bImplementsReceiveAbort : 1;
+	uint32 ReceiveAbortImplementations : 2;
 
 	/** if set, execution is inside blueprint's ReceiveExecute(Abort) event
 	  * FinishExecute(Abort) function should store their result in CurrentCallResult variable */
 	mutable uint32 bStoreFinishResult : 1;
 
-	/** entry point, task will stay active until FinishExecute is called */
+	/** entry point, task will stay active until FinishExecute is called.
+	 *	@Note that if both generic and AI event versions are implemented only the more 
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveExecute(AActor* OwnerActor);
 
-	/** if blueprint graph contains this event, task will stay active until FinishAbort is called */
+	/** if blueprint graph contains this event, task will stay active until FinishAbort is called
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveAbort(AActor* OwnerActor);
 
-	/** tick function */
+	/** tick function
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
+
+	/** Alternative AI version of ReceiveExecute
+	*	@see ReceiveExecute for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveExecuteAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of ReceiveAbort
+	 *	@see ReceiveAbort for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveAbortAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of tick function.
+	 *	@see ReceiveTick for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveTickAI(AAIController* OwnerController, APawn* ControlledPawn, float DeltaSeconds);
 
 	/** finishes task execution with Success or Fail result */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
@@ -86,7 +122,7 @@ protected:
 	/** check if task is currently being executed */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsTaskExecuting() const;
-
+	
 	/** ticks this task */
 	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 

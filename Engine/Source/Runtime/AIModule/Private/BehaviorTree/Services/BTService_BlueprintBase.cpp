@@ -7,15 +7,15 @@
 UBTService_BlueprintBase::UBTService_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTService_BlueprintBase::StaticClass();
-	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
-	bImplementsReceiveActivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveActivation"), this, StopAtClass);
-	bImplementsReceiveDeactivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveDeactivation"), this, StopAtClass);
-	bImplementsReceiveSearchStart = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveSearchStart"), this, StopAtClass);
+	ReceiveTickImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveTick"), TEXT("ReceiveTickAI"), this, StopAtClass);
+	ReceiveActivationImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveActivation"), TEXT("ReceiveActivationAI"), this, StopAtClass);
+	ReceiveDeactivationImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveDeactivation"), TEXT("ReceiveDeactivationAI"), this, StopAtClass);
+	ReceiveSearchStartImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveSearchStart"), TEXT("ReceiveSearchStartAI"), this, StopAtClass);
 
-	bNotifyBecomeRelevant = bImplementsReceiveActivation;
+	bNotifyBecomeRelevant = ReceiveActivationImplementations != 0;
 	bNotifyCeaseRelevant = bNotifyBecomeRelevant;
-	bNotifyOnSearch = bImplementsReceiveTick || bImplementsReceiveSearchStart;
-	bNotifyTick = bImplementsReceiveTick;
+	bNotifyOnSearch = ReceiveTickImplementations != 0 || ReceiveSearchStartImplementations != 0;
+	bNotifyTick = ReceiveTickImplementations != 0;
 	bShowPropertyDetails = true;
 
 	// all blueprint based nodes must create instances
@@ -33,14 +33,24 @@ void UBTService_BlueprintBase::PostInitProperties()
 	NodeName = BlueprintNodeHelpers::GetNodeName(this);
 }
 
+void UBTService_BlueprintBase::SetOwner(AActor* InActorOwner)
+{
+	ActorOwner = InActorOwner;
+	AIOwner = Cast<AAIController>(InActorOwner);
+}
+
 void UBTService_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
 	// check flag, it could be used because user wants tick
-	if (bImplementsReceiveActivation)
+	if (AIOwner != nullptr && ReceiveActivationImplementations & FBTNodeBPImplementationHelper::AISpecific)
 	{
-		ReceiveActivation(OwnerComp->GetOwner());
+		ReceiveActivationAI(AIOwner, AIOwner->GetPawn());
+	}
+	else if (ReceiveActivationImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveActivation(ActorOwner);
 	}
 }
 
@@ -54,9 +64,13 @@ void UBTService_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp
 		// we can't have those resuming activity when node is/was aborted
 		BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
 
-		if (bImplementsReceiveDeactivation)
+		if (AIOwner != nullptr && ReceiveActivationImplementations & FBTNodeBPImplementationHelper::AISpecific)
 		{
-			ReceiveDeactivation(OwnerComp->GetOwner());
+			ReceiveDeactivationAI(AIOwner, AIOwner->GetPawn());
+		}
+		else if (ReceiveActivationImplementations & FBTNodeBPImplementationHelper::Generic)
+		{
+			ReceiveDeactivation(ActorOwner);
 		}
 	}
 	else
@@ -75,9 +89,16 @@ void UBTService_BlueprintBase::OnSearchStart(FBehaviorTreeSearchData& SearchData
 {
 	// skip flag, will be handled by bNotifyOnSearch
 
-	if (bImplementsReceiveSearchStart)
+	if (ReceiveSearchStartImplementations != 0)
 	{
-		ReceiveSearchStart(SearchData.OwnerComp->GetOwner());
+		if (AIOwner != nullptr && ReceiveSearchStartImplementations & FBTNodeBPImplementationHelper::AISpecific)
+		{
+			ReceiveSearchStartAI(AIOwner, AIOwner->GetPawn());
+		}
+		else if (ReceiveSearchStartImplementations & FBTNodeBPImplementationHelper::Generic)
+		{
+			ReceiveSearchStart(ActorOwner);
+		}
 
 		const float NextTickTime = FMath::FRandRange(FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation));
 		uint8* NodeMemory = GetNodeMemory<uint8>(SearchData);
@@ -93,9 +114,14 @@ void UBTService_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
-	// skip flag, will be handled by bNotifyTick
-
-	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
+	if (AIOwner != nullptr && ReceiveTickImplementations & FBTNodeBPImplementationHelper::AISpecific)
+	{
+		ReceiveTickAI(AIOwner, AIOwner->GetPawn(), DeltaSeconds);
+	}
+	else if (ReceiveTickImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveTick(ActorOwner, DeltaSeconds);
+	}
 }
 
 bool UBTService_BlueprintBase::IsServiceActive() const
@@ -113,10 +139,10 @@ FString UBTService_BlueprintBase::GetStaticServiceDescription() const
 	if (CDO)
 	{
 		ReturnDesc = FString::Printf(TEXT("%s, %s, %s, %s\n"),
-			bImplementsReceiveTick ? *GetStaticTickIntervalDescription() : TEXT("No tick"),
-			bImplementsReceiveActivation ? TEXT("Activation") : TEXT("No Activation"),
-			bImplementsReceiveDeactivation ? TEXT("Deactivation") : TEXT("No Deactivation"),
-			bImplementsReceiveSearchStart ? TEXT("Search Start") : TEXT("No Search Start"));
+			ReceiveTickImplementations != 0 ? *GetStaticTickIntervalDescription() : TEXT("No tick"),
+			ReceiveActivationImplementations != 0 ? TEXT("Activation") : TEXT("No Activation"),
+			ReceiveDeactivationImplementations != 0 ? TEXT("Deactivation") : TEXT("No Deactivation"),
+			ReceiveSearchStartImplementations != 0 ? TEXT("Search Start") : TEXT("No Search Start"));
 								
 		if (bShowPropertyDetails)
 		{

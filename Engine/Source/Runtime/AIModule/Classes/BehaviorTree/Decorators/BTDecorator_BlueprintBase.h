@@ -37,12 +37,21 @@ class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
 	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
 
+	virtual void SetOwner(AActor* ActorOwner) override;
+
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
 	virtual bool UsesBlueprint() const override;
 #endif
 
 protected:
+	/** Cached AIController owner of BehaviorTreeComponent. */
+	UPROPERTY(Transient)
+	AAIController* AIOwner;
+
+	/** Cached AIController owner of BehaviorTreeComponent. */
+	UPROPERTY(Transient)
+	AActor* ActorOwner;
 
 	/** blackboard key names that should be observed */
 	TArray<FName> ObservedKeyNames;
@@ -58,54 +67,108 @@ protected:
 	mutable uint32 CurrentCallResult : 1;
 
 	/** set if ReceiveTick is implemented by blueprint */
-	uint32 bImplementsReceiveTick : 1;
+	uint32 ReceiveTickImplementations : 2;
 
 	/** set if ReceiveExecutionStart is implemented by blueprint */
-	uint32 bImplementsReceiveExecutionStart : 1;
+	uint32 ReceiveExecutionStartImplementations : 2;
 
 	/** set if ReceiveExecutionFinish is implemented by blueprint */
-	uint32 bImplementsReceiveExecutionFinish : 1;
+	uint32 ReceiveExecutionFinishImplementations : 2;
 
 	/** set if ReceiveObserverActivated is implemented by blueprint */
-	uint32 bImplementsReceiveObserverActivated : 1;
+	uint32 ReceiveObserverActivatedImplementations : 2;
 
 	/** set if ReceiveObserverDeactivated is implemented by blueprint */
-	uint32 bImplementsReceiveObserverDeactivated : 1;
+	uint32 ReceiveObserverDeactivatedImplementations : 2;
 
 	/** set if ReceiveConditionCheck is implemented by blueprint */
-	uint32 bImplementsReceiveConditionCheck : 1;
+	uint32 ReceiveConditionCheckImplementations : 2;
 
 	FOnBlackboardChange BBKeyObserver;
-
+	
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) override;
 	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) override;
 	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
-	/** tick function */
+	/** tick function
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
 
-	/** called on execution of underlying node */
+	/** called on execution of underlying node 
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveExecutionStart(AActor* OwnerActor);
 
-	/** called when execution of underlying node is finished */
+	/** called when execution of underlying node is finished 
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveExecutionFinish(AActor* OwnerActor, enum EBTNodeResult::Type NodeResult);
 
-	/** called when observer is activated (flow controller) */
+	/** called when observer is activated (flow controller) 
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveObserverActivated(AActor* OwnerActor);
 
-	/** called when observer is deactivated (flow controller) */
+	/** called when observer is deactivated (flow controller) 
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveObserverDeactivated(AActor* OwnerActor);
 
-	/** called when testing if underlying node can be executed, must call FinishConditionCheck */
+	/** called when testing if underlying node can be executed, must call FinishConditionCheck
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveConditionCheck(AActor* OwnerActor);
+
+	/** Alternative AI version of ReceiveTick
+	 *	@see ReceiveTick for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveTickAI(AAIController* OwnerController, APawn* ControlledPawn, float DeltaSeconds);
+
+	/** Alternative AI version of ReceiveExecutionStart
+	 *	@see ReceiveExecutionStart for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveExecutionStartAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of ReceiveExecutionFinish
+	 *	@see ReceiveExecutionFinish for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveExecutionFinishAI(AAIController* OwnerController, APawn* ControlledPawn, enum EBTNodeResult::Type NodeResult);
+
+	/** Alternative AI version of ReceiveObserverActivated
+	 *	@see ReceiveObserverActivated for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveObserverActivatedAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of ReceiveObserverDeactivated
+	 *	@see ReceiveObserverDeactivated for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveObserverDeactivatedAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of ReceiveConditionCheck
+	 *	@see ReceiveConditionCheck for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveConditionCheckAI(AAIController* OwnerController, APawn* ControlledPawn);
 
 	/** finishes condition check */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")

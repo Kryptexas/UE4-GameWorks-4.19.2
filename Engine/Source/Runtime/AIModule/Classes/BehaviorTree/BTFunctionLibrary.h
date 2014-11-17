@@ -6,6 +6,16 @@
 class UBlackboardComponent;
 struct FBlackboardKeySelector;
 
+namespace FBTNodeBPImplementationHelper
+{
+	static const int32 NoImplementation = 0;
+	static const int32 Generic = 1 << 0;
+	static const int32 AISpecific = 1 << 1;
+	static const int32 All = Generic | AISpecific;
+
+	AIMODULE_API int32 CheckEventImplementationVersion(FName GenericEventName, FName AIEventName, const UObject* Ob, const UClass* StopAtClass);
+}
+
 UCLASS(meta=(RestrictedToClasses="BTNode"))
 class AIMODULE_API UBTFunctionLibrary : public UBlueprintFunctionLibrary
 {
